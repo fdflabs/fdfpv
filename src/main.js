@@ -2239,9 +2239,13 @@ export async function boot({
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
   function roomProfile() {
-    const id = runAirframe;
-    const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
     const status = roomStatus();
+    /* Off the air in a war room (its lobby, its briefing) the aircraft the
+     * war will seat this pilot in, so the others' lobby names it and not
+     * whatever was flown before; in the air, what flies, which the poses
+     * and the room's hull are of. */
+    const id = status && inWarRoom() ? warCraftOf(ui.settings) : runAirframe;
+    const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
     return {
       airframe: id,
       map: view ? view.id : worldId(),
@@ -2747,6 +2751,8 @@ export async function boot({
    * bit; the crash cam's replay draws what it recorded and none of this.
    */
   const WAR_MISSION = 'itaipu-1';
+  /* ms of a live war the take-off line stays up for (warTakeoffHintDone). */
+  const WAR_TAKEOFF_HINT_MS = 30000;
   /* The one map the war runs on (section 9). */
   const WAR_MAP = 'itaipu';
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
@@ -3763,6 +3769,22 @@ export async function boot({
     }
   }
 
+  /* Whether a war has had enough of the take-off line: it is up through
+   * the countdown and the war's first WAR_TAKEOFF_HINT_MS, and never over
+   * a film or the end banner. A pilot who never took off had it drawn
+   * across the whole mission and over the loss. */
+  function warTakeoffHintDone() {
+    const v = roomWar.view();
+    if (v.state === 'lobby' || v.state === 'countdown') {
+      return false;
+    }
+    if (!roomWar.on()) {
+      return true;
+    }
+    const now = roomLinkState.roomNow();
+    return now == null || now - v.goAt > WAR_TAKEOFF_HINT_MS;
+  }
+
   /* The war is over, or this pilot left it: the music stops, the dam is
    * whole again, and the pilot's own damage setting is back at the next
    * reset. The last radio call is left to finish. */
@@ -4541,6 +4563,7 @@ export async function boot({
     roomBarFrame(wallMs);
     gameLobbyFrame(wallMs);
     const link = roomLinkState.state();
+    ui.setWarState(link.phase === 'open' ? roomWar.view().state : 'lobby');
     if (link.phase !== 'open') {
       return;
     }
@@ -12024,7 +12047,12 @@ export async function boot({
     race.setRecordKey(recordKey());
     paintBest();
     publishPids();
-    notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
+    /* In a war the tune follows the aircraft the war seated, which it
+     * says itself (war.craft_switched): "Flying Acro" over its countdown
+     * named a choice nobody made. */
+    if (!inWarRoom()) {
+      notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
+    }
     reset();
   }
 
@@ -12872,8 +12900,11 @@ export async function boot({
          *
          * `fly` keeps the shot: that one IS the first meeting, and it is
          * where the pilot sees the aircraft they are about to be inside of.
+         * Except in a war: its film was the introduction, and the shot's
+         * radii are a quad's, so round a Striker it sat inside the
+         * fuselage for the first four seconds of the countdown.
          */
-        introMs = action === 'restart' ? -1 : 0;
+        introMs = action === 'restart' || roomWar.on() ? -1 : 0;
       });
       return;
     }
@@ -16906,6 +16937,10 @@ export async function boot({
       /* The round's result card has the middle, and the next round puts
        * everybody back in the air, so no wreck's R prompt under it. */
       ui.setBanner('');
+    } else if (ui.screen === 'flight' && ['won', 'lost', 'ended'].includes(roomWar.view().state)) {
+      /* The war's end banner has the middle, and the room takes everybody
+       * back to its lobby: no wreck's R prompt or take-off line over it. */
+      ui.setBanner('');
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (
@@ -16937,6 +16972,8 @@ export async function boot({
           ? str('main.launch_punch_throttle', { deg })
           : str('main.launch_centre_the_stick_then_punch', { deg }))
         : str('main.launch_control_pitch_forward_then_centre'));
+    } else if (!flownThisRun && warTakeoffHintDone()) {
+      ui.setBanner('');
     } else if (!flownThisRun) {
       /*
        * THE SECOND LINE IS A PROMISE ABOUT WHAT STARTS, and in freestyle it

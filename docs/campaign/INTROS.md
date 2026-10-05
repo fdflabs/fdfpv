@@ -206,16 +206,19 @@ steel. **Music:** the intro track (built), from black. **Length:** 70 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6 | dolly | 35 | black; then the reservoir at water level, the crest a line on the horizon | the same, 40 m closer | the camera skims 3 m over the water toward the dam at dawn, mist on the surface; the title "2030" | io | film-itaipu-1-1 | music in; water, wind | dip |
-| 2 | 9 | telephoto | 400 | the horizon over the far reservoir, empty | the same, a dot growing | one Striker, head on, grows out of the haze; its engine heard before it is seen | hold, then lin pan 0.5 degree | film-itaipu-1-2 | a boxer twin, far | smash |
-| 3 | 5 | handheld | 24 | low on the water, the lens 2 m up, looking north | the same | the Striker passes 6 m over the lens, left to right, at `shot.start + 2.5`; its wash ruffles the water | hold | | the pass, loud, doppler | cut |
-| 4 | 7 | telephoto | 600 | the haze | the haze, ten shapes | ten Strikers in a loose line abreast, compressed by the lens, coming on | lin | film-itaipu-1-3 | a swarm's drone, building | cut |
-| 5 | 10 | crane | 24 | the upstream face at the waterline, the intakes' gates | over the crest, the whole dam and the river beyond | rises up the face to the crest and over it; the output counter counts up to the plant's full output | io | film-itaipu-1-4 | low string swell | cut |
-| 6 | 9 | dolly | 35 | the shed's door, dark inside | along the line of aircraft on the crest deck | the P-51, the Cub, the quads, the Skyhunter, the F-16, the Timber, each with a warhead slung under; nobody there | io | film-itaipu-1-5 | a radio's hiss in the shed; a fan | cut |
-| 7a | 3 | handheld | 35 | a 5 inch quad's props, close, still | the props a blur | the props spin up | in | film-itaipu-1-6 (spans 7a to 7c) | the motors' rising whine | smash |
-| 7b | 3 | drone POV | 18 | behind a Skyhunter just thrown off the crest | the Skyhunter climbing out over the water | rides the thrown Skyhunter's climb | lin | | a pusher prop, wind | smash |
-| 7c | 3 | handheld | 50 | the F-16 from behind and low | the same, its fan spooling, heat shimmer | the F-16's fan spools up | hold | | the fan's rising note | smash |
-| 8 | 15 | telephoto, then a crane out | 200 to 24 | the first wave on the horizon (it is the mission's stage 1 scout and the stage 2 Strikers, flown by the real routes) | the crest, defenders rising past the lens from both banks | the lens pulls back as the defenders climb into frame; the title card "FIRST LIGHT", under it "DEFEND THE PARANÁ", act and mission | out | film-itaipu-1-7 | music to its peak, then the bed's `AMB` | hand-off |
+| 1 (`dawn`) | 6 | dolly | 35 | black; then the reservoir at water level, the crest a line on the horizon | the same, 400 m closer | the camera skims 3 m over the water toward the dam at dawn; the title "2030" | io | film-itaipu-1-1 | music in; water, wind | dip |
+| 2 (`haze`) | 9 | telephoto | 400 | one Striker, head on, 300 m out over the water, the sky behind it | the same Striker at 60 m | the lens a metre over the water under its line; it looms out of the haze | lin | film-itaipu-1-2 | a boxer twin, far | smash |
+| 3 (`pass`) | 5 | handheld | 24 | low on the water, the Striker coming | the Striker going on for the dam | it passes over the lens and to the right, 2.5 s in, and the lens whips round after it | io | | the pass, loud, doppler | cut |
+| 4 (`ten`) | 6 | drone | 32 | 40 m behind and 20 m out from the end of the ten's line | the same, flying with them | ten Strikers in a loose V abreast, every one wholly in frame, the nearest an aircraft and not a dot | io | film-itaipu-1-3 | a swarm's drone, building | cut |
+| 5 (`face`) | 10 | crane | 24 | the upstream face at the waterline | over the crest, the dam and the river beyond | rises up the face to the crest and over it; the output counter counts up to the plant's full output | io | film-itaipu-1-4 | low string swell | cut |
+| 6 (`line`) | 9 | dolly | 75 | low off the west end of the line of aircraft on the crest deck, in front of the noses | a few metres closer | the war's quads and the interceptor side by side, receding down the row; nobody there; a graduated filter over the pale deck (grade `warm-grad`) | io | film-itaipu-1-5 | a radio's hiss; a fan | cut |
+| 7a (`props`) | 3 | handheld | 35 | a seven inch quad's props, close, still | the props a blur | the props spin up | io | film-itaipu-1-6 (spans 7a to 7c) | the motors' rising whine | smash |
+| 7b (`thrown`) | 3 | drone | 18 | behind the Striker just off its rail on the crest | the Striker climbing out over the water | rides its climb | lin | | a pusher prop, wind | smash |
+| 7c (`fan`) | 3 | handheld | 50 | the interceptor from behind and low | the same, its props spooling | the props spool up | io | | the rising note | cut |
+| 8 (`wave`) | 15 | telephoto, then wide | 540 to 24 | two Strikers of the first wave head on over the water, each about 115 px of wingspan at 1920 wide | the crest, the defenders climbing away up the lens's axis | held long; late, the defenders (the Striker, the quads, the interceptor) rise into the frame from under it, flying out along the axis toward the wave as the lens widens; the swarm, the high Loiterers and the west group behind; the title card "FIRST LIGHT", under it the mission | in | film-itaipu-1-7 | music to its peak, then the bed's `AMB` | hand-off |
+
+Only the war's aircraft are in the film (configs/airframes.js
+`WAR_AIRFRAMES`, held by films:lint).
 
 **Changes from today:** shot 2 is split into a telephoto reveal (2), a
 pass over the lens that is now solved from the route (3) and a long lens

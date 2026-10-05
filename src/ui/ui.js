@@ -5352,6 +5352,24 @@ export class Ui {
     this.syncMusicDock();
   }
 
+  /*
+   * The room's war state (the shell, each frame; 'lobby' with none). From
+   * the briefing until the room is back in its lobby the dock is not drawn
+   * over the war: until the end it named and skipped menu tracks that the
+   * war's own music had replaced, and over the end banner it is clutter
+   * (the Music row under Pilot still sets the level). And #ui.war-on keeps
+   * the freestyle clock off: it counted an airtime over the war whenever
+   * the Avionics HUD was not up (a chase camera, a wreck).
+   */
+  setWarState(state) {
+    if (this.warState === state) {
+      return;
+    }
+    this.warState = state;
+    this.root.classList.toggle('war-on', state !== 'lobby');
+    this.syncMusicDock();
+  }
+
   syncMusicDock() {
     if (!this.musicDock) {
       return;
@@ -5360,6 +5378,7 @@ export class Ui {
     const hide = dialog
       || this.screen === 'calibrate'
       || this.screen === 'padpick'
+      || (this.warState != null && this.warState !== 'lobby')
       || !this.settings.sound;
     this.musicDock.hidden = hide;
     this.musicDock.classList.toggle('on-flight', this.flying());
