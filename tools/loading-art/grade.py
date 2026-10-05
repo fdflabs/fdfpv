@@ -23,7 +23,7 @@ from PIL import Image
 
 # Output size per frame: 1920 wide for a desktop, and a phone's portrait at
 # twice the CSS pixels of a 390 by 844 screen.
-SIZES = {'wide': (1920, 1080), 'tall': (780, 1688), 'boom-wide': (1920, 1080)}
+SIZES = {'wide': (1920, 1080), 'tall': (780, 1688), 'boom-wide': (3840, 2160)}
 # WebP quality. The wide file has to stay under about 350 KB so it never
 # competes with the boot for the connection (index.html's preload says why).
 QUALITY = 88
