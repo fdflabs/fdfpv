@@ -702,7 +702,7 @@ async function runScenario(id) {
     s.hotspots = hotspots(s);
     s.crashes = await page.evaluate('window.__PP.crashes || 0');
     s.path = await page.evaluate('({ metres: window.__PP.dist || 0, clearance: window.__PP.clr })');
-    s.pace = await page.evaluate('(() => { const p = window.__pace(); return { scale: p.scale, rw: p.rw, rh: p.rh, gpu: p.gpu && p.gpu.name }; })()');
+    s.pace = await page.evaluate('(() => { const p = window.__dynres(); const c = document.getElementById(\'view\'); return { scale: p.scale, rw: c.width, rh: c.height, gpu: window.__gpu && window.__gpu.name }; })()');
     s.state = sc.summary ? await page.evaluate(sc.summary) : await page.evaluate('(() => { const c = window.__craftState(); return { mode: c.mode, crashed: c.crashed, speed: c.speed }; })()');
     s.load = { before: loadBefore, after: loadAfter };
     s.consoleErrors = page.errors.filter((e) => !String(e).startsWith('network:')).slice(0, 5);
