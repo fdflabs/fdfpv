@@ -56,7 +56,7 @@ import { createDynRes } from './render/dynres.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
-import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
+import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, threePosToDoc, docPosToThree, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
@@ -130,6 +130,11 @@ import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
+import { createRoomOps } from './share/roomops.js';
+import { worldFor as opsWorldFor } from './share/ops/missions.js';
+import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics/camball.js';
+import { createCapture, createStillStore } from './avionics/capture.js';
+import { OpsHud } from './ui/opshud.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
@@ -788,6 +793,348 @@ export async function boot({
       tracks: tracks.snapshot.tracks.length,
     }),
   };
+  /*
+   * THE CAMERA BALL (src/avionics/camball.js, docs/campaign/interior/
+   * TECH-NEEDS.md N14) and an ops mission's camera and captures
+   * (src/share/roomops.js, src/avionics/capture.js). An aircraft that
+   * carries a ball has a fourth view on C: the ball's picture full screen,
+   * the screen's camera put where the ball looks, so the sensor's modes
+   * and its digital zoom draw it exactly as they draw the pilot's camera.
+   * Its quiet HUD is src/ui/opshud.js.
+   *
+   * Keys while it is the view: Q and E pan, Y and H tilt, = and - (or
+   * Page Up and Page Down) the lens's zoom, K the sensor's digital zoom,
+   * J the sensor's mode, U locks the ball on the ground under the cross
+   * or frees it (B is the track builder's), Space captures. A standard pad: the D-pad slews, the
+   * triggers zoom, L3 captures, R3 locks. A mouse: the right button drags
+   * the picture, the wheel zooms (with Shift while the mouse flies).
+   *
+   * In an ops match every screen reports its camera to the room two a
+   * second (CONTRACT-P0.md 3 `cam`): the ball's when it is the view, else
+   * where the screen camera's axis meets the ground and its own field.
+   */
+  const opsHud = new OpsHud(uiRoot);
+  let ball = null;
+  let ballAirframe = null;
+  /* Whether the ball is the screen's camera this frame, and was last. */
+  let ballOn = false;
+  let ballWas = false;
+  /* The sensor's settings from before the ball took the screen. */
+  let ballSaved = null;
+  const ballDoc = { x: 0, y: 0, z: 0 };
+  const ballFwd = { x: 0, y: 0, z: 0 };
+  const ballHeightAt = (x, y) => view.height(x, -y, Infinity);
+  const ballMouse = {
+    drag: false, dx: 0, dy: 0, zoom: 1,
+  };
+  const ballPadWas = { lock: false, capture: false };
+  /* The screen's camera for the room this frame: { p, dir, aim, tanHalf,
+   * aspect } in the ops frame, or null. */
+  let opsCam = null;
+  let opsCue = null;
+  const stills = createStillStore();
+  let opsCapture = null;
+  let opsCaptureFor = null;
+  let opsMatch = null;
+  /* A still to grab from the next drawn frame. */
+  let stillWanted = null;
+  const stillCanvas = document.createElement('canvas');
+  const STILL_W = 640;
+  const GRADE_ORDER = ['poor', 'usable', 'clean'];
+
+  function ballOf(id) {
+    const spec = ballFor(id);
+    if (!spec) {
+      return null;
+    }
+    if (ballAirframe !== id) {
+      ball = createBall(spec);
+      ballAirframe = id;
+    }
+    return ball;
+  }
+  const ballView = () => ui.settings.wingView === 'ball' && Boolean(ballFor(runAirframe));
+
+  function ballPad() {
+    const gp = input.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+      return null;
+    }
+    const at = (i) => Boolean(gp.buttons[i] && gp.buttons[i].pressed);
+    const val = (i) => (gp.buttons[i] ? gp.buttons[i].value || 0 : 0);
+    return {
+      pan: Number(at(15)) - Number(at(14)),
+      tilt: Number(at(12)) - Number(at(13)),
+      zoom: val(7) - val(6),
+      capture: at(10),
+      lock: at(11),
+    };
+  }
+
+  function ballInput(b) {
+    const k = input.keys;
+    const key = (pos, neg) => Number(k.has(pos)) - Number(k.has(neg));
+    const out = {
+      pan: key('KeyE', 'KeyQ'),
+      tilt: key('KeyY', 'KeyH'),
+      zoom: key('Equal', 'Minus') + key('PageUp', 'PageDown'),
+    };
+    const pad = ballPad();
+    if (pad) {
+      out.pan += pad.pan;
+      out.tilt += pad.tilt;
+      out.zoom += pad.zoom;
+      if (pad.lock && !ballPadWas.lock) {
+        ballToggleLock();
+      }
+      if (pad.capture && !ballPadWas.capture) {
+        opsCaptureNow();
+      }
+      ballPadWas.lock = pad.lock;
+      ballPadWas.capture = pad.capture;
+    }
+    /* The mouse drags the picture: a screen's width of drag is the
+     * picture's whole field. */
+    const w = Math.max(1, shell.canvas.clientWidth);
+    const field = 2 * Math.atan(b.lensTan() / sensors.state.zoom);
+    out.panRad = (-ballMouse.dx / w) * field;
+    out.tiltRad = (ballMouse.dy / w) * field;
+    out.zoomBy = ballMouse.zoom;
+    ballMouse.dx = 0;
+    ballMouse.dy = 0;
+    ballMouse.zoom = 1;
+    return out;
+  }
+
+  function ballToggleLock() {
+    if (!ball || !ballOn) {
+      return;
+    }
+    if (ball.state.lock) {
+      ball.unlock();
+      notice = { text: str('ops.ball.unlocked'), untilMs: performance.now() + 1400 };
+    } else {
+      notice = { text: str(ball.lockHere() ? 'ops.ball.locked' : 'ops.ball.no_ground'), untilMs: performance.now() + 1400 };
+    }
+  }
+
+  {
+    const c = shell.renderer.domElement;
+    c.addEventListener('pointerdown', (e) => {
+      if (ballOn && e.button === 2) {
+        ballMouse.drag = true;
+      }
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (e.button === 2) {
+        ballMouse.drag = false;
+      }
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (ballMouse.drag && ballOn) {
+        ballMouse.dx += e.movementX || 0;
+        ballMouse.dy += e.movementY || 0;
+      }
+    });
+    c.addEventListener('contextmenu', (e) => {
+      if (ballOn) {
+        e.preventDefault();
+      }
+    });
+    c.addEventListener('wheel', (e) => {
+      if (ballOn && (e.shiftKey || !input.isMousePrimary())) {
+        ballMouse.zoom *= 1.15 ** (-Math.sign(e.deltaY || e.deltaX));
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  /* The ball as the screen's camera, after the craft is placed: pCurr and
+   * camFwd are this frame's. */
+  function ballFrame(dtS, paused) {
+    const b = ballOf(runAirframe);
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, ballDoc);
+    threePosToDoc(camFwd.x, camFwd.y, camFwd.z, ballFwd);
+    const p = [ballDoc.x, ballDoc.y, ballDoc.z];
+    const heading = Math.atan2(ballFwd.x, ballFwd.y);
+    b.step(paused ? 0 : dtS, paused ? {} : ballInput(b), { p, heading }, ballHeightAt);
+    if (!ballWas) {
+      ballSaved = { mainView: sensors.state.mainView, stab: sensors.state.stab };
+    }
+    /* The gimbal is the stabilisation: the picture must be the camera the
+     * room is told of, so no electronic turn on top of it. */
+    sensors.setMainView('sensor');
+    sensors.setStab(false);
+    const cam = threeCameraOf(p, b.state.dir, b.lensTan(), shell.camera.aspect);
+    shell.quad.visible = false;
+    shell.camera.up.set(0, 1, 0);
+    shell.camera.position.set(cam.position[0], cam.position[1], cam.position[2]);
+    shell.camera.quaternion.set(cam.quaternion[0], cam.quaternion[1], cam.quaternion[2], cam.quaternion[3]);
+    if (Math.abs(shell.camera.fov - cam.fov) > 1e-4) {
+      shell.camera.fov = cam.fov;
+      shell.camera.updateProjectionMatrix();
+    }
+    ballOn = true;
+    opsCam = {
+      p, dir: b.state.dir.slice(), aim: b.state.aim.slice(), tanHalf: b.tanHalf(sensors.state.zoom), aspect: shell.camera.aspect,
+    };
+  }
+
+  /* The sensor back as it was when the ball leaves the screen. */
+  function ballLeft() {
+    if (ballSaved) {
+      sensors.setMainView(ballSaved.mainView);
+      sensors.setStab(ballSaved.stab);
+      ballSaved = null;
+    }
+  }
+
+  /* Any other view's camera for the room: where its axis meets the
+   * ground, its own field. */
+  function screenCam() {
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, ballDoc);
+    const p = [ballDoc.x, ballDoc.y, ballDoc.z];
+    camLook.set(0, 0, -1).applyQuaternion(shell.camera.quaternion);
+    threePosToDoc(camLook.x, camLook.y, camLook.z, ballFwd);
+    const dir = [ballFwd.x, ballFwd.y, ballFwd.z];
+    const aim = groundHit(p, dir, ballHeightAt);
+    const tanHalf = Math.tan((shell.camera.fov * Math.PI) / 360) * shell.camera.aspect;
+    return {
+      p, dir, aim: aim ?? p.map((c, i) => c + dir[i] * FAR_M), tanHalf, aspect: shell.camera.aspect,
+    };
+  }
+  const camLook = new THREE.Vector3();
+
+  /* An item the HUD may name before it is captured: not one seen from
+   * one side only (the angle is the discovery), not contacts the room has
+   * not discovered (the quiet HUD's rule). */
+  function opsNameable(item, v) {
+    if (item.view) {
+      return false;
+    }
+    if (item.contact) {
+      const members = (v.contacts ?? []).filter((c) => c.id === item.contact || c.group === item.contact);
+      return members.length > 0 && members.every((c) => c.cls);
+    }
+    return true;
+  }
+
+  /* Every frame: the room's word on captures; in an ops match's flight,
+   * the camera to the room and the capture's hold. */
+  function opsFrame(flying) {
+    opsCue = null;
+    const v = roomOps.view();
+    const match = roomOps.match();
+    if (match !== opsMatch) {
+      opsMatch = match;
+      stills.keepOnly(match);
+      stillWanted = null;
+    }
+    for (const e of roomOps.takeEvents()) {
+      if (e.type === 'captured' && e.mine) {
+        for (const s of stills.all()) {
+          if (s.item === e.item && s.t === e.t) {
+            s.grade = e.grade;
+            s.pending = false;
+          }
+        }
+        opsHud.tell(str('ops.capture.recorded', { item: str(`ops.${v.campaign}.item.${e.item}`), grade: str(`ops.grade.${e.grade}`) }), { grade: e.grade });
+      } else if (e.type === 'error' && e.error === 'capture') {
+        opsHud.tell(str(`ops.capture.why.${e.why ?? 'item'}`), { warn: true });
+      }
+    }
+    if (!roomOps.on() || !flying) {
+      return;
+    }
+    if (!ballOn) {
+      opsCam = screenCam();
+    }
+    const t = roomLinkState.roomNow();
+    roomOps.cam(t, opsCam.aim, opsCam.tanHalf, opsCam.aspect);
+    const mission = roomOps.mission();
+    if (!roomOps.live() || !mission) {
+      return;
+    }
+    if (opsCaptureFor !== mission) {
+      opsCaptureFor = mission;
+      opsCapture = createCapture(mission, opsWorldFor(mission.map));
+    }
+    opsCapture.sample(v, t, opsCam.p, opsCam);
+    let best = null;
+    for (const f of opsCapture.framings(v, t, opsCam.p, opsCam)) {
+      if (f.grade && !f.blocked && opsNameable(f.item, v) && GRADE_ORDER.indexOf(f.grade) > GRADE_ORDER.indexOf(best)) {
+        best = f.grade;
+      }
+    }
+    opsCue = best;
+  }
+
+  /* The capture button. */
+  function opsCaptureNow() {
+    if (!roomOps.live() || !opsCapture || !opsCam) {
+      opsHud.tell(str('ops.capture.why.off'), { warn: true });
+      return;
+    }
+    const v = roomOps.view();
+    const t = roomLinkState.roomNow();
+    const r = opsCapture.still(v, t, opsCam.p, opsCam, {
+      mode: sensors.state.mode, night: sensors.state.timeOfDay === 'night', digital: ballOn ? sensors.state.zoom : 1,
+    });
+    if (!r.msg) {
+      opsHud.tell(str(`ops.capture.why.${r.why}`), { warn: true });
+      return;
+    }
+    roomOps.capture(r.msg);
+    stillWanted = {
+      match: roomOps.match(), item: r.item, grade: r.grade, t: r.msg.t, seat: roomOps.seat(), framing: r.framing, pending: true, image: null,
+    };
+    opsHud.tell(str('ops.capture.sent', { item: str(`ops.${v.campaign}.item.${r.item}`), grade: str(`ops.grade.${r.grade}`) }), { grade: r.grade });
+  }
+
+  /* After a drawn frame: the still, from the picture just drawn (the
+   * drawing buffer still holds it inside this task), downscaled, kept on
+   * this device only. */
+  function opsGrabStill() {
+    if (!stillWanted) {
+      return;
+    }
+    const rec = stillWanted;
+    stillWanted = null;
+    const src = shell.canvas;
+    stillCanvas.width = STILL_W;
+    stillCanvas.height = Math.max(1, Math.round((STILL_W * src.height) / Math.max(1, src.width)));
+    stillCanvas.getContext('2d').drawImage(src, 0, 0, stillCanvas.width, stillCanvas.height);
+    stills.add(rec);
+    stillCanvas.toBlob((blob) => {
+      rec.image = blob;
+    }, 'image/jpeg', 0.85);
+  }
+
+  const lockV = new THREE.Vector3();
+  window.__ops = {
+    view: () => roomOps.view(),
+    seat: () => roomOps.seat(),
+    ball: () => (ball ? {
+      ...ball.state, dir: ball.state.dir.slice(), aim: ball.state.aim.slice(), lock: ball.state.lock && ball.state.lock.slice(), on: ballOn,
+    } : null),
+    cam: () => (opsCam ? JSON.parse(JSON.stringify(opsCam)) : null),
+    /* The lock point through the screen's own camera, NDC: the browser
+     * half of camera:lock. */
+    lockNdc: () => {
+      if (!ball || !ball.state.lock) {
+        return null;
+      }
+      const l = ball.state.lock;
+      docPosToThree(l[0], l[1], l[2], lockV).project(shell.camera);
+      return { x: lockV.x, y: lockV.y };
+    },
+    toggleLock: () => ballToggleLock(),
+    capture: () => opsCaptureNow(),
+    stills: () => stills.all().map((s) => ({
+      match: s.match, item: s.item, grade: s.grade, t: s.t, pending: s.pending, image: Boolean(s.image),
+    })),
+  };
+
   /* Where the other pilots in a room are, when the picture does not say.
    * See src/ui/peermarks.js; a game mode marks its special pilot with
    * peerMarks.setRole(seat, 'ace'). */
@@ -2289,6 +2636,8 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /* Ops missions (src/share/roomops.js), wired below at THE CAMERA BALL. */
+  const roomOps = createRoomOps((obj) => roomLinkState.send(obj));
   /* The night raid's power outages (src/share/war/grid.js): which of the
    * map's lights are out, from the war's events and view, the same on
    * every screen. */
@@ -2351,6 +2700,7 @@ export async function boot({
       roomRace.onWelcome(w);
       roomTag.onWelcome(w);
       roomWar.onWelcome(w);
+      roomOps.onWelcome(w);
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
@@ -2441,6 +2791,10 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
+      if (roomOps.onMessage(m)) {
+        ui.refreshFriends();
+        return;
+      }
       if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
         /* Not the room's refusal of the aircraft a war just put this pilot
@@ -2498,6 +2852,7 @@ export async function boot({
         combatLayer.clear();
         combatHud.update(roomCombat.round(), 0, null, 0, 0);
         roomWar.clear();
+        roomOps.clear();
         warLeave();
       }
       roomBrowser.watch(roomBrowsing());
@@ -13321,6 +13676,7 @@ export async function boot({
 
   /* The Avionics HUD's keys (docs/AVIONICS-HUD.md section 9). */
   const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY']);
+  const BALL_KEYS = new Set(['KeyU', 'Space', 'KeyJ', 'KeyK']);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -13374,6 +13730,22 @@ export async function boot({
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
      * mode, K the zoom, I the sensor full screen or the pilot's picture, U
      * the inset's size and Y how much is drawn (settings, so kept). */
+    /* The camera ball's keys while its picture is the view (THE CAMERA
+     * BALL); its slew and zoom are held keys, read every frame. */
+    if (ui.screen === 'flight' && ballOn && BALL_KEYS.has(code)) {
+      if (code === 'KeyU') {
+        ballToggleLock();
+      } else if (code === 'Space') {
+        opsCaptureNow();
+      } else if (code === 'KeyJ') {
+        sensors.cycleMode();
+        notice = { text: str('avionics.hud.notice_cam', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) }), untilMs: performance.now() + 1600 };
+      } else {
+        sensors.cycleZoom();
+        notice = { text: str('avionics.hud.notice_zoom', { z: sensors.state.zoom }), untilMs: performance.now() + 1600 };
+      }
+      return;
+    }
     if (ui.screen === 'flight' && avionicsHud.on && AVX_KEYS.has(code)) {
       if (code === 'KeyY') {
         ui.settings.avxLevel = AVX_LEVELS[(AVX_LEVELS.indexOf(ui.settings.avxLevel) + 1) % AVX_LEVELS.length];
@@ -13446,11 +13818,14 @@ export async function boot({
       return;
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
-      const views = ['fpv', 'chase', 'los'];
+      /* A ball carried adds its picture as a fourth view (THE CAMERA BALL). */
+      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'ball'] : ['fpv', 'chase', 'los'];
       ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
       ui.persistSettings();
       chaseValid = false;
-      const said = { fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los') };
+      const said = {
+        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), ball: str('main.view_ball'),
+      };
       notice = { text: said[ui.settings.wingView], untilMs: performance.now() + 1800 };
       return;
     }
@@ -15899,6 +16274,7 @@ export async function boot({
     }
 
     fpvLensLive = false;
+    ballOn = false;
     const watching = mode === 'flight' || mode === 'paused' ? warWatch() : null;
     /* Done spectating: the chase camera's vectors were the teammate's. */
     if (!watching && watchCamSeat !== -1) {
@@ -16096,6 +16472,8 @@ export async function boot({
         shell.camera.fov = 70;
         shell.camera.updateProjectionMatrix();
       }
+    } else if (ballView() && !wreckWantsChase(nowWall)) {
+      ballFrame(dt / 1000, mode === 'paused' || ui.screen === 'paused');
     } else if ((airframeById(runAirframe).fixedWing && ui.settings.wingView !== 'fpv') || wreckWantsChase(nowWall)) {
       /*
        * A FIXED WING'S OTHER TWO VIEWS, both with the plane in the picture
@@ -16362,8 +16740,9 @@ export async function boot({
        * picture, and the main view in its mode when the pilot puts the
        * sensor full screen (src/avionics/sensors.js). */
       dynres.beginGpu();
-      if (avionicsHud.on) {
+      if (avionicsHud.on || ballOn) {
         sensors.render(view.post);
+        opsGrabStill();
       } else {
         view.post.render();
       }
@@ -16782,6 +17161,20 @@ export async function boot({
     const fpvHudUp = fpvLensLive && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
     fpvOsd.tick(hudStyle === 'osd' && fpvHudUp, ui.screen === 'paused', nowWall);
     avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed, ui.screen === 'paused', nowWall, dt / 1000);
+    /* THE CAMERA BALL: its sensor, the room's camera and captures, its
+     * HUD. Leaving the view gives the sensor back its settings. */
+    if (ballWas && !ballOn) {
+      ballLeft();
+    }
+    ballWas = ballOn;
+    const ballHudUp = ballOn && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
+    if (ballOn && ui.screen !== 'paused') {
+      sensors.update(telemetry.state.tS, dt / 1000, avxVideo);
+    }
+    opsFrame(mode === 'flight' && (ui.screen === 'flight' || ui.screen === 'paused'));
+    opsHud.tick(ballHudUp, ui.screen === 'paused', nowWall, ballHudUp ? {
+      ball: ball.state, digital: sensors.state.zoom, mode: sensors.state.mode, cue: opsCue,
+    } : null);
     peerMarks.begin(shell.camera, ui.settings.peerMarks, avionicsHud.on ? avionicsHud : fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
     for (const peer of roomPeers.values()) {
       if (peer.rig && peer.rig.group.visible) {
