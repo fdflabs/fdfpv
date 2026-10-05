@@ -254,7 +254,10 @@ The owner's rules of 2026-09-29, as `edge/rooms/war.js` plays them:
   one of that pilot's; every attacker its warhead kills earns it one more
   for the round (a swarm of N, N). Earned ones go with the round: the
   next starts at 4 again. A pilot who has spent all it has spectates, and
-  cannot go off, until the round ends.
+  cannot go off, until the round ends. An airframe a strike hits before
+  it ever took off (parked on the pad, no airborne sample since it was
+  put there) still goes off and is lost, but its pilot is credited no
+  kill, no megawatts and no earned airframe for it.
 - **A round ends** the instant either
   - every wave of it is born and no attacker of it is left but Scouts:
     **win** if the dam lost nothing in it, **damaged** if it did; or

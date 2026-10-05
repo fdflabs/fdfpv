@@ -4366,6 +4366,7 @@ export async function boot({
     }
     return isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
   }
+  ui.craftShown = (s) => (inWarRoom() ? warCraftOf(s) : s.airframe);
   function warSeatCraft() {
     const s = ui.settings;
     if (isWarAirframe(s.airframe)) {
