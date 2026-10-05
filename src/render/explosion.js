@@ -314,6 +314,8 @@ void main() {
   float r = length(p);
   vec3 rgb = vColor.rgb;
   float a;
+  // The flipbook's fire, 0 to 1, for the thermal picture.
+  float fire = 0.0;
   if (vShape > 2.5) {
     // The two frames either side of this moment, blended, so it does not
     // step at a frame's rate when it plays slowly.
@@ -328,6 +330,7 @@ void main() {
       // (FIRE_RAMP): a pilot 6 m from their own warhead is in the
       // brightest of it, not in an orange haze.
       float k = t.r * t.r;
+      fire = k;
       a = k * sqrt(k);
       float w = 1.0 - smoothstep(0.0, 0.4, vSeed);
       rgb *= mix(vec3(3.0, 0.2 + 2.4 * k, 1.8 * k * k), vec3(3.2, 2.4, 1.1), w) * (1.0 + w);
@@ -396,10 +399,15 @@ function createPool(cap, additive, tex) {
   });
   /* In a thermal picture the fire adds its heat, two hundred degrees for
    * each unit of its light up to eight hundred, and the smoke is a thin
-   * veil a little over the air's (src/render/thermal.js). */
+   * veil a little over the air's (src/render/thermal.js). The flipbook's
+   * fire is eight hundred where it is a third of the sheet's brightest
+   * and over, less at its edges: one quad has to carry what eighteen
+   * overlapping puffs added up. */
   thermalShader(
     mat,
-    additive ? 'float thT = a * min(thLum(vColor.rgb), 4.0) * 2.0;' : 'float thT = thEnv.y + 0.1; float thA = 0.3;',
+    additive
+      ? 'float thT = vShape > 2.5 ? min(1.0, 3.0 * fire) * 8.0 * clamp(vColor.a, 0.0, 1.0) : a * min(thLum(vColor.rgb), 4.0) * 2.0;'
+      : 'float thT = thEnv.y + 0.1; float thA = 0.3;',
     additive ? 'explosion-hot' : 'explosion-smoke',
   );
   const mesh = new THREE.Mesh(geo, mat);
