@@ -139,6 +139,8 @@ import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud } from './ui/opshud.js';
 import { RolesBoard } from './ui/rolesboard.js';
+import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
+import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
@@ -1148,6 +1150,9 @@ export async function boot({
         opsHud.tell(str('ops.capture.recorded', { item: str(`ops.${v.campaign}.item.${e.item}`), grade: str(`ops.grade.${e.grade}`) }), { grade: e.grade });
       } else if (e.type === 'error' && e.error === 'capture') {
         opsHud.tell(str(`ops.capture.why.${e.why ?? 'item'}`), { warn: true });
+      } else if (e.type === 'error' && e.error === 'unwatched') {
+        /* Said for a few seconds over the waiting line (opsFilmFrame). */
+        opsBriefRefusedUntil = performance.now() + 4000;
       } else if (e.type === 'error' && e.error === 'locked') {
         opsHud.tell(str('ops.roles.refused_locked'), { warn: true });
       } else if (e.type === 'cue') {
@@ -1164,8 +1169,14 @@ export async function boot({
         }
       } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.to)) {
         /* Ended by the host too: the squad's captures so far are its
-         * record. */
-        opsDebrief();
+         * record. A win has its outro first (opsFilmFrame), and the
+         * debrief when it is over. */
+        const m = roomOps.mission();
+        /* No outro over another world (a page not on the mission's map):
+         * the debrief at once. */
+        if (!(e.to === 'won' && opsFilmOf(v.mission, 'outro') && m && opsWorldUp(m.map))) {
+          opsDebrief();
+        }
       } else if (e.type === 'classified') {
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
       }
@@ -1219,6 +1230,7 @@ export async function boot({
         roomCall('game', { restart: true });
       }
     }
+    opsFilmFrame(v, match, consentDue);
     opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
@@ -1357,6 +1369,181 @@ export async function boot({
     }
   }
 
+  /*
+   * THE INTERIOR'S FILMS (docs/campaign/interior/FILMS.md, played by
+   * src/render/interiorfilms.js in the war's film slot, warIntro, so the
+   * frame loop poses the camera, hides the screens and draws them as it
+   * does the war's):
+   *   prologue  on this pilot's own screen, the first time they open the
+   *             campaign's card: its world stood up, then the page
+   *   intro     the room's briefing, on the room's clock from briefAt,
+   *             held (the room holds the briefing for its length); a late
+   *             joiner starts where the room is; stopped when it ends
+   *   outro     on a win, on the room's clock from endAt, with the
+   *             squad's stills this device holds; the debrief after it
+   * Each only over the mission's own world, standing.
+   */
+  const opsFilmStore = createCampaignStore(ui.settings, () => ui.persistSettings());
+  let opsIntroShown = null;
+  let opsOutroShown = null;
+  /* The prologue owed before the campaign's page: its film id, or null. */
+  let opsPrologueDue = null;
+  /* Own stills as pictures the film can draw, by item. */
+  const opsStillPics = new Map();
+  /* The items the outro asked for, and whether it had a picture: checks. */
+  const opsFilmAsked = new Map();
+  const opsFilmOf = (missionId, moment) => (missionId ? (opsFilmsFor(missionId) || {})[moment] ?? null : null);
+  const opsWorldUp = (map) => Boolean(view) && view.id === map && mapReady && !worldSync && !swapInFlight && worldMatchesSettings();
+
+  function opsFilmPlay(id, opts = {}) {
+    warIntroStop();
+    warIntroFor = `ops:${id}`;
+    warIntroFov = shell.camera.fov;
+    const film = OPS_FILMS[id];
+    const h = playInteriorFilm(shell.quad.parent || view.scene, shell.camera, id, {
+      map: view.id,
+      canvas: shell.canvas,
+      audio,
+      ground: (x, z) => view.height(x, z, Infinity),
+      seen: seenFilm(opsFilmStore.load(), id, film.version),
+      onSeen: () => {
+        opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version));
+        opsSeenTell();
+      },
+      ...opts,
+    });
+    warIntro = h;
+    h.done.then(() => {
+      if (warIntro === h) {
+        warIntroStop();
+      }
+    });
+    return h;
+  }
+  const opsFilmOn = (id) => warIntro !== null && warIntroFor === `ops:${id}`;
+  /* The room told which films this pilot has watched to their end (the
+   * films in the synced campaign section, the war's store), once per
+   * welcome and on every change: the host's skip waits on everybody's. */
+  let opsSeenTold = null;
+  /* Until when the room's refusal of the host's skip is said. */
+  let opsBriefRefusedUntil = 0;
+  function opsSeenTell() {
+    const films = opsFilmStore.load().films;
+    const key = roomOps.room() != null && roomOps.seat() != null ? `${roomOps.room()}:${roomOps.seat()}:${JSON.stringify(films)}` : null;
+    if (key && key !== opsSeenTold) {
+      opsSeenTold = key;
+      roomOps.seen(films);
+    }
+  }
+  /* Whether every pilot here has seen the briefing's film at its version
+   * (the view's `seen`), and how many have not. */
+  function opsBriefingSeen(v) {
+    const here = Object.keys((v.roles && v.roles.held) || {}).map(Number);
+    const seen = new Set(v.seen || []);
+    const missing = here.filter((s) => !seen.has(s)).length;
+    return { all: here.length > 0 && missing === 0, missing };
+  }
+
+  /* The card's press: the prologue first when this pilot has not seen
+   * it, over the campaign's world, then the page. */
+  function opsCampaignOpen() {
+    const id = opsFilmOf(INTERIOR[0].id, 'prologue');
+    const film = id ? OPS_FILMS[id] : null;
+    if (!film || seenFilm(opsFilmStore.load(), id, film.version)) {
+      interiorScreen.open();
+      return;
+    }
+    opsPrologueDue = id;
+    const map = roomOps.missionOf(INTERIOR[0].id)?.map;
+    if (map && ui.settings.map !== map) {
+      ui.seatMap(map, { stay: true });
+    }
+    /* Stand the campaign's world up now, in place of the title's own (as
+     * a war's room does): the film's shots are that map's metres. */
+    titleWorld = null;
+    buildWorld = null;
+    paintBest();
+    syncWorld();
+  }
+
+  function opsFilmFrame(v, match, consentDue) {
+    opsSeenTell();
+    /* The host's line over the briefing: holding ends it for everybody
+     * once everyone has seen this cut, else who it waits for. */
+    const briefingNow = v.state === 'briefing' && v.film && opsHost() === roomOps.seat();
+    if (briefingNow) {
+      const b = opsBriefingSeen(v);
+      opsHud.briefingNote(!b.all && performance.now() < opsBriefRefusedUntil
+        ? { text: str('ops.brief.refused'), wait: true }
+        : b.all
+        ? { text: str('ops.brief.skip_all'), wait: false }
+        : { text: plural('count.ops_brief_wait', b.missing), wait: true });
+    } else {
+      opsHud.briefingNote(null);
+    }
+    /* The prologue, once its world stands. */
+    if (opsPrologueDue && !warIntro) {
+      const map = roomOps.missionOf(INTERIOR[0].id)?.map;
+      if (map && opsWorldUp(map)) {
+        const h = opsFilmPlay(opsPrologueDue);
+        opsPrologueDue = null;
+        h.done.then(() => interiorScreen.open());
+      }
+    }
+    const mission = roomOps.mission();
+    const map = mission ? mission.map : null;
+    /* The briefing's film. */
+    const intro = opsFilmOf(v.mission, 'intro');
+    const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
+    if (briefing && intro && !consentDue && opsIntroShown !== match && map && opsWorldUp(map)) {
+      opsIntroShown = match;
+      const briefAt = v.briefAt;
+      opsFilmPlay(intro, {
+        clock: () => roomLinkState.roomNow() - briefAt,
+        hold: true,
+        /* A host's hold ends the briefing for everybody when everybody
+         * has seen this cut (the room refuses it otherwise); anyone
+         * else's, or a host's while someone has not, waits on the orbit. */
+        onSkip: () => {
+          const now = roomOps.view();
+          if (opsHost() === roomOps.seat() && now.state === 'briefing' && opsBriefingSeen(now).all) {
+            roomOps.skipIntro();
+          }
+        },
+        title: { key: mission.title, n: INTERIOR.findIndex((m) => m.id === v.mission) + 1 },
+      });
+    } else if (intro && opsFilmOn(intro) && !briefing) {
+      warIntroStop();
+    }
+    /* The outro on a win, then the debrief. */
+    const outro = opsFilmOf(v.mission, 'outro');
+    if (v.state === 'won' && outro && opsOutroShown !== match && v.endAt != null && map && opsWorldUp(map)) {
+      opsOutroShown = match;
+      const endAt = v.endAt;
+      /* This device's own stills as pictures first (a second at most):
+       * a squadmate's picture is on their device, so its frame is the
+       * reconstruction here. */
+      opsStillPics.clear();
+      opsFilmAsked.clear();
+      const jobs = stills.of(match).filter((x) => x.image).map((x) => createImageBitmap(x.image)
+        .then((bmp) => opsStillPics.set(x.item, { image: bmp, seat: x.seat }), () => {}));
+      Promise.race([Promise.all(jobs), new Promise((r) => { setTimeout(r, 1000); })]).then(() => {
+        if (roomOps.match() !== match) {
+          return;
+        }
+        const h = opsFilmPlay(outro, {
+          clock: () => roomLinkState.roomNow() - endAt,
+          capture: (item) => {
+            const pic = opsStillPics.get(item) ?? null;
+            opsFilmAsked.set(item, Boolean(pic));
+            return pic;
+          },
+        });
+        h.done.then(() => opsDebrief());
+      });
+    }
+  }
+
   /* The craft's height over the ground under it, m. */
   function opsAgl() {
     return pCurr.y - view.height(pCurr.x, pCurr.z, Infinity);
@@ -1461,6 +1648,12 @@ export async function boot({
       return { x: lockV.x, y: lockV.y };
     },
     toggleLock: () => ballToggleLock(),
+    /* Checks only: the campaign card's press (the prologue first). */
+    openCampaign: () => opsCampaignOpen(),
+    /* Checks only: the host's skip sent as it is, and a start. */
+    skipIntro: () => roomOps.skipIntro(),
+    start: (mission) => roomOps.start(mission, { intro: true }),
+    filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
     /* What the map was last told of the room: mark, hour, contacts. */
@@ -4684,7 +4877,7 @@ export async function boot({
           }
         },
       });
-    } else if (warIntro && warIntroFor !== 'watch' && !briefing) {
+    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !briefing) {
       warIntroStop();
     }
   }
@@ -6647,7 +6840,7 @@ export async function boot({
       opsEnter(m.id, mission).catch((e) => interiorScreen.open(str('ops.campaign.no_room', { why: e.message })));
     },
   });
-  ui.onOpsCampaignCard = () => interiorScreen.open();
+  ui.onOpsCampaignCard = () => opsCampaignOpen();
   /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the

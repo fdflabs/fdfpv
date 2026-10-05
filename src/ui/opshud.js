@@ -134,6 +134,11 @@ const CSS = `
 .ops-inset canvas { width: 100%; display: block; }
 .ops-inset-tag { position: absolute; left: 0.4em; top: 0.2em; font-size: 0.8em; }
 #ui.ops-on .osd-top, #ui.ops-on .osd-corner { display: none; }
+.ops-brief { position: fixed; left: 50%; bottom: calc(12vh + 3.5em); transform: translateX(-50%); z-index: 9001;
+  pointer-events: none; font-family: ${FONT}; font-size: clamp(11px, 1.6vh, 15px); letter-spacing: 0.12em; color: ${INK};
+  text-shadow: 0 1px 2px ${HALO}; white-space: nowrap; display: none; }
+.ops-brief.on { display: block; }
+.ops-brief.wait { color: ${AMBER}; }
 .ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
 .ops-touch.on { display: flex; }
 .ops-touch button { font: inherit; letter-spacing: 0.12em; color: ${INK}; background: rgba(6, 10, 12, 0.45);
@@ -293,6 +298,11 @@ export class OpsHud {
     this.inset = el('div', 'ops-panel ops-inset', this.el);
     this.keepOut = [];
     this.keepOutAt = 0;
+    /* The host's line over a briefing's film (above the film's own
+     * overlay): whether holding ends it for everybody, or who it waits
+     * for. Outside the HUD, which a film hides. */
+    this.brief = el('div', 'ops-brief', root);
+    this.briefText = null;
     /* The camera ball by touch, on a device with thumbs (shown over the
      * ball only, above the stick zones): a pad slews it, held buttons
      * zoom, and lock and capture. touchIn is read every frame by the
@@ -373,6 +383,7 @@ export class OpsHud {
       },
       row: Object.fromEntries(Object.entries(this.rowCells).map(([k, f]) => [k, { text: f.v, on: f.el.classList.contains('on') }])),
       rects: this.rects(),
+      briefing: this.briefText ? this.brief.textContent : null,
     });
   }
 
@@ -396,6 +407,18 @@ export class OpsHud {
       inset: r(this.inset),
       touch: r(this.touchEl),
     };
+  }
+
+  /* The host's briefing line: { text, wait } or null for none. */
+  briefingNote(note) {
+    const key = note ? `${note.wait ? 1 : 0}${note.text}` : null;
+    if (key === this.briefText) {
+      return;
+    }
+    this.briefText = key;
+    this.brief.textContent = note ? note.text : '';
+    this.brief.classList.toggle('on', Boolean(note));
+    this.brief.classList.toggle('wait', Boolean(note && note.wait));
   }
 
   /* A word for the pilot under the reticle: a capture's grade, a refusal. */

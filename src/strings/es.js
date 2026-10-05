@@ -3597,4 +3597,9 @@ export default {
   "ops.touch.zoom_out": "ZOOM -",
   "ops.touch.lock": "FIJAR",
   "ops.touch.capture": "CAPTURAR",
+  "ops.brief.skip_all": "Todos vieron la sesión informativa: mantengan para terminarla para todos",
+  "ops.brief.refused": "Todavía no todos vieron la sesión informativa",
+  "count.ops_brief_wait.one": "Esperando: {n} piloto no vio la sesión informativa",
+  "count.ops_brief_wait.other": "Esperando: {n} pilotos no vieron la sesión informativa",
+  "rooms.refused_ops": "Todavía hay una misión en curso: termínenla primero.",
 };
