@@ -46,6 +46,7 @@ import { HALF } from './frame.js';
 import { LAND } from './world.js';
 import { opened } from './places.js';
 import { RIVER, STREAMS } from './hydro.js';
+import { ROUTES } from './routes.js';
 
 /* One tree a square this size at most, metres: a semi deciduous forest's
  * crowns are 5 to 11 m across. */
@@ -75,10 +76,17 @@ const EDGE_JITTER = 16;
 const WATER_LAP = 8;
 const BANK_M = 9;
 const STREAM_FOOT = 1;
-/* The water's segments are bucketed in squares this size, each holding
- * every segment within WATER_REACH of its water's edge, metres. */
-const WATER_BUCKET = 64;
+/* The lines are bucketed in squares this size, metres; a water line is
+ * asked about out to WATER_REACH from its edge. */
+const LINE_BUCKET = 64;
 const WATER_REACH = 48;
+/* Round 0's crown footprints are kept within ROUTE_KEEP of the pair's
+ * concealment routes and their alternates, and the stands' smaller crowns
+ * come in over ROUTE_FADE past it, metres: the gaps the follow was tuned
+ * on (MISSIONS M1, the 60 s hard threshold) are those crowns' gaps. */
+const KEEP_ROUTES = ['west', 'mid', 'east'].flatMap((k) => [`conceal-${k}-a`, `conceal-${k}-alt-a`]);
+const ROUTE_KEEP = 20;
+const ROUTE_FADE = 20;
 
 /* The tree kinds, for the drawing. */
 export const KIND = { broadleaf: 0, palm: 1, lone: 2 };
@@ -127,32 +135,24 @@ function streamHalf(km2) {
   return (w < 7 ? w : 7) / 2;
 }
 
-/* The river and the streams as a lookup: waterAt(x, z, out) sets
- * out.river, the distance from (x, z) to the river's water's edge
- * (negative in it), and out.stream and out.km2, the same to the nearest
- * stream's and that stream's catchment, each Infinity past WATER_REACH. */
-function makeWater() {
-  const segs = [];
-  const add = (pts, halfOf, river, km2) => {
-    for (let k = 0; k + 1 < pts.length; k += 1) {
-      segs.push({
-        ax: pts[k][0], az: pts[k][1], bx: pts[k + 1][0], bz: pts[k + 1][1], half: halfOf(k), river, km2,
-      });
-    }
-  };
-  add(RIVER.points, (k) => ((RIVER.width[k] > RIVER.width[k + 1] ? RIVER.width[k] : RIVER.width[k + 1]) + WATER_LAP) / 2, true, 0);
-  for (const st of STREAMS) {
-    const h = streamHalf(st.km2);
-    add(st.points, () => h, false, st.km2);
-  }
+/* The lines a tree asks how near it stands to: the river's water, a
+ * stream's, and the concealment routes. */
+const LINE = { river: 0, stream: 1, route: 2 };
+
+/* Polylines as a lookup: near(x, z, out) sets out.d[tag] to the distance
+ * from (x, z) to the nearest edge (its line less its half width, so
+ * negative inside) of each tag's lines, Infinity past a segment's
+ * `reach`, and out.km2 to the nearest stream's catchment. segs: [{ ax, az,
+ * bx, bz, half, reach, tag, km2 }]. */
+function makeLines(segs) {
   const buckets = new Map();
   const keyOf = (i, j) => (i + 1024) * 4096 + (j + 1024);
   for (const sg of segs) {
-    const pad = sg.half + WATER_REACH;
-    const i0 = Math.floor(((sg.ax < sg.bx ? sg.ax : sg.bx) - pad) / WATER_BUCKET);
-    const i1 = Math.floor(((sg.ax > sg.bx ? sg.ax : sg.bx) + pad) / WATER_BUCKET);
-    const j0 = Math.floor(((sg.az < sg.bz ? sg.az : sg.bz) - pad) / WATER_BUCKET);
-    const j1 = Math.floor(((sg.az > sg.bz ? sg.az : sg.bz) + pad) / WATER_BUCKET);
+    const pad = sg.half + sg.reach;
+    const i0 = Math.floor(((sg.ax < sg.bx ? sg.ax : sg.bx) - pad) / LINE_BUCKET);
+    const i1 = Math.floor(((sg.ax > sg.bx ? sg.ax : sg.bx) + pad) / LINE_BUCKET);
+    const j0 = Math.floor(((sg.az < sg.bz ? sg.az : sg.bz) - pad) / LINE_BUCKET);
+    const j1 = Math.floor(((sg.az > sg.bz ? sg.az : sg.bz) + pad) / LINE_BUCKET);
     for (let j = j0; j <= j1; j += 1) {
       for (let i = i0; i <= i1; i += 1) {
         const key = keyOf(i, j);
@@ -165,11 +165,12 @@ function makeWater() {
       }
     }
   }
-  return function waterAt(x, z, out) {
-    out.river = Infinity;
-    out.stream = Infinity;
+  return function near(x, z, out) {
+    out.d[0] = Infinity;
+    out.d[1] = Infinity;
+    out.d[2] = Infinity;
     out.km2 = 0;
-    const b = buckets.get(keyOf(Math.floor(x / WATER_BUCKET), Math.floor(z / WATER_BUCKET)));
+    const b = buckets.get(keyOf(Math.floor(x / LINE_BUCKET), Math.floor(z / LINE_BUCKET)));
     if (!b) {
       return out;
     }
@@ -182,15 +183,40 @@ function makeWater() {
       const ex = x - sg.ax - ux * t;
       const ez = z - sg.az - uz * t;
       const d = Math.sqrt(ex * ex + ez * ez) - sg.half;
-      if (sg.river) {
-        out.river = d < out.river ? d : out.river;
-      } else if (d < out.stream) {
-        out.stream = d;
-        out.km2 = sg.km2;
+      if (d < out.d[sg.tag]) {
+        out.d[sg.tag] = d;
+        if (sg.tag === LINE.stream) {
+          out.km2 = sg.km2;
+        }
       }
     }
     return out;
   };
+}
+
+/* The segments of a polyline [[x, z]] for makeLines. */
+function segmentsOf(pts, halfOf, reach, tag, km2 = 0) {
+  const out = [];
+  for (let k = 0; k + 1 < pts.length; k += 1) {
+    out.push({
+      ax: pts[k][0], az: pts[k][1], bx: pts[k + 1][0], bz: pts[k + 1][1], half: halfOf(k), reach, tag, km2,
+    });
+  }
+  return out;
+}
+
+/* The river, the streams and the routes' lines, once. */
+let lines = null;
+function linesNear() {
+  if (!lines) {
+    const riverHalf = (k) => ((RIVER.width[k] > RIVER.width[k + 1] ? RIVER.width[k] : RIVER.width[k + 1]) + WATER_LAP) / 2;
+    lines = makeLines([
+      ...segmentsOf(RIVER.points, riverHalf, WATER_REACH, LINE.river),
+      ...STREAMS.flatMap((st) => segmentsOf(st.points, () => streamHalf(st.km2), WATER_REACH, LINE.stream, st.km2)),
+      ...KEEP_ROUTES.flatMap((id) => segmentsOf(ROUTES[id].pts, () => 0, ROUTE_KEEP + ROUTE_FADE, LINE.route)),
+    ]);
+  }
+  return lines;
 }
 
 /*
@@ -214,8 +240,8 @@ function makeWater() {
 export function makeCanopy(world) {
   const { groundAt, landAt } = world;
   const cellOf = (v) => Math.floor((v + HALF) / TREE_CELL);
-  const waterAt = makeWater();
-  const wet = { river: 0, stream: 0, km2: 0 };
+  const near = linesNear();
+  const at = { d: [0, 0, 0], km2: 0 };
 
   function treeAt(ci, cj) {
     const u = hash01(ci, cj, 1);
@@ -227,6 +253,7 @@ export function makeCanopy(world) {
     if (!(u < DENSITY[cls])) {
       return null;
     }
+    near(x, z, at);
     const v = hash01(ci, cj, 4);
     const w = hash01(ci, cj, 5);
     let kind;
@@ -243,7 +270,9 @@ export function makeCanopy(world) {
       /* Crowns wider than their squares and deep, overlapping into a
        * closed roof from a few metres up: a semi deciduous forest's
        * canopy and the layer under it, as one crown a square. */
-      r = 3.6 + 2.4 * w;
+      let keep = (at.d[LINE.route] - ROUTE_KEEP) / ROUTE_FADE;
+      keep = keep < 0 ? 0 : keep > 1 ? 1 : keep;
+      r = (3.6 + 2.4 * w) * (1 - keep * 0.2 * (1 - stand));
       ry = (0.36 + 0.12 * hash01(ci, cj, 12)) * h;
     } else if (cls === LAND.wetland || v < 0.3) {
       kind = KIND.palm;
@@ -264,8 +293,7 @@ export function makeCanopy(world) {
     if (world.rawLand(x, z) === LAND.water) {
       return null;
     }
-    waterAt(x, z, wet);
-    if (wet.river < BANK_M || wet.stream < STREAM_FOOT) {
+    if (at.d[LINE.river] < BANK_M || at.d[LINE.stream] < STREAM_FOOT) {
       return null;
     }
     const ground = groundAt(x, z);
