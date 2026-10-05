@@ -442,7 +442,8 @@ back). `Y` steps how much is drawn (section 8.3). `J` cycles the camera
 mode, `K` the zoom, and `I` puts the sensor
 full screen and back (section 5), so thermal full screen is `I` then `J` to
 an IR mode or fusion, and THERMAL holds from then on while the AI is off.
-`U` steps the inset's size (section 5). The keys act only while the Avionics HUD is on screen. None of them has a
+`U` steps the inset's size (section 5). `.` (period) steps the thermal
+palette (a setting, `avxPalette`). The keys act only while the Avionics HUD is on screen. None of them has a
 pad button: a radio reports its switches as latched buttons, and the only
 flight buttons are a standard pad's swap buttons (src/input/input.js).
 
