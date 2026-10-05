@@ -7,10 +7,15 @@
  * rendered by the real renderer, through scripts/shots.js, which is the
  * same harness every rendering bug in this project was found with.
  *
- * WHAT THE FRAME IS. The Itaipu key art (assets/keyart/wide.webp, from
- * scripts/loading-art.js and tools/loading-art/grade.py), with the name's
- * lockup over it in a column on the right: the flag as a bar ahead of
- * PARAGUAYAN, DRONE COMBAT in the metal, SIMULATOR between two rules.
+ * WHAT THE FRAME IS. The Itaipu key art with the dam under attack
+ * (assets/keyart/boom-wide.webp, from scripts/loading-art.js and
+ * tools/loading-art/grade.py), with the name's lockup over the sky at the
+ * top right: the flag as a bar ahead of PARAGUAYAN, DRONE COMBAT in the
+ * metal, SIMULATOR between two rules. It was the calm frame, wide.webp,
+ * until the owner saw it as a WhatsApp preview and called it horrible:
+ * the Striker was cropped to a dark wedge at the left edge and nothing in
+ * the picture said combat. This frame has the whole aircraft and three
+ * blasts on the spillway, which is the game in one look at 500 px.
  * The lockup is the title's own .lockup-box, cloned out of the title
  * (wordmark() in src/ui/ui.js), so the card draws exactly what the game
  * draws and follows it whenever the mark changes. Cloning the heading
@@ -77,25 +82,23 @@ const W = 1200;
 const H = 630;
 
 /*
- * The card, over everything else on the page. The picture is pushed a
- * little past cover and to the right, so the Striker sits in the left
- * third with its prop disc whole and the spillway's plume beside it, and
- * the dam and the sky on the right are left for the name. A thumbnail is
- * a small, dim thing, so the picture is lifted a little; the grade then
- * darkens the right hand side and the foot, so the metal reads against a
- * dark ground at a feed's 500 px and the flag stays the brightest colour
- * near it.
+ * The card, over everything else on the page. The picture covers the card
+ * and sits a little low, so the Striker is whole in the left third, the
+ * blasts run along the dam through the middle, and the sky above them is
+ * left for the name. A thumbnail is a small, dim thing, so the picture is
+ * lifted a little; the grade then darkens the sky and the foot, so the
+ * metal reads against a dark ground at a feed's 500 px and the flag and
+ * the fire stay the brightest colours on the card.
  */
-const ART = 'assets/keyart/wide.webp';
+const ART = 'assets/keyart/boom-wide.webp';
 const CARD = 'position:fixed;inset:0;z-index:50;background:#0c0e0d;';
 const PICTURE = 'position:absolute;inset:0;'
-  + `background:url("${ART}") 100% 46% / 106% auto no-repeat;`
-  + 'filter:brightness(1.14) contrast(1.06) saturate(1.08);';
+  + `background:url("${ART}") 50% 62% / cover no-repeat;`
+  + 'filter:brightness(1.1) contrast(1.05) saturate(1.08);';
 const GRADE = 'position:absolute;inset:0;background:'
-  + 'linear-gradient(90deg, rgba(8, 10, 9, 0) 32%, rgba(8, 10, 9, 0.5) 50%, rgba(8, 10, 9, 0.78) 100%),'
-  + 'linear-gradient(0deg, rgba(8, 10, 9, 0.55) 0%, rgba(8, 10, 9, 0) 30%);';
-const COLUMN = 'position:absolute;top:0;bottom:0;right:4%;width:54%;'
-  + 'display:flex;flex-direction:column;justify-content:center;';
+  + 'linear-gradient(180deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0.38) 30%, rgba(8, 10, 9, 0) 48%),'
+  + 'linear-gradient(0deg, rgba(8, 10, 9, 0.4) 0%, rgba(8, 10, 9, 0) 22%);';
+const COLUMN = 'position:absolute;top:7%;right:4%;width:52%;';
 
 const show = `const card = document.createElement('div');`
   + `card.id = 'og-card'; card.style.cssText = ${JSON.stringify(CARD)};`
@@ -156,6 +159,15 @@ try {
      * cold boot on a busy machine takes longer than that end to end. */
     'until:window.__loading.timings.sim',
     'until:window.__loading.timings.world',
+    /* The first frame and the loader's own finish are stages too. Measured
+     * on an M1 on 2026-10-05, the software rasteriser's first frame came
+     * 18.5 s after the world and the loader cleared 10 s after that, so the
+     * single wait that used to cover both ran out with the card half up.
+     * The plain wait is the part of the first frame's 18.5 s that one
+     * until: cannot be trusted to hold. */
+    'wait:8000',
+    'until:window.__loading.timings.frame',
+    'until:window.__loading.timings.total',
     "until:document.getElementById('pdcs-loader').hidden",
     `eval:(() => { ${show} })()`,
     /* The art is this card's own background, so this waits for the file
