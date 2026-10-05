@@ -80,143 +80,144 @@ Headroom is 11.1 ms less the frame time.
 over OpenGL ES 3.2, 1600 by 900 at a device pixel ratio of 1, preset
 High, 2026-10-05 on main at 6a23782e.
 
-**The GPU is not this page's.** Throughout the baseline nvidia-smi showed
-GPU 0 at 100 %, the owner's desktop, and GPU 1 at 3 to 18 %. Headless
-Chrome draws on GPU 0. Moving it to GPU 1 was tried again, about twenty
-minutes, and failed: `--use-angle=vulkan` (with and without
-`__NV_PRIME_RENDER_OFFLOAD=1`, `__VK_LAYER_NV_optimus=NVIDIA_only`,
-`MESA_VK_DEVICE_SELECT`) gives no WebGL2 context at all; `--use-angle=gl-egl`
-and plain `gl` stay on GPU 0 (a fullscreen shader loop moved GPU 1's
-utilisation by nothing). DRI_PRIME is Mesa only and does not apply to the
-NVIDIA driver. Both cards report the same PCI id, so device select by id
-cannot tell them apart.
+**Earlier runs were contaminated.** Four headless Chromes leaked by an earlier test run
+(orphaned, profiles under ~/.cache/fdfpv-lead-tmp/sim-page-*) had held
+GPU 0 at about 98 % for some four hours. While they ran, this script's
+first baseline read 48 to 101 ms a frame, with the sensor readback below
+blocking 750 to 850 ms of every second. They were killed (by the
+coordinator, by PID) and GPU 0 fell to about 5 %. The baseline below was
+taken after that: GPU 0 at 28 to 94 % during the runs (the owner's
+desktop and this run), host load average 1.7 to 4.3. The contaminated
+numbers are not kept here; they measured the leak.
 
-So every frame time here is inflated by the desktop's share of the card,
-by an amount that changes run to run, and a timer query counts the
-desktop's work too. Read the numbers this way:
+**GPU 1 could not be used.** About twenty minutes went into it:
+`--use-angle=vulkan` (with and without `__NV_PRIME_RENDER_OFFLOAD=1`,
+`__VK_LAYER_NV_optimus=NVIDIA_only`, `MESA_VK_DEVICE_SELECT`) gives no
+WebGL2 context at all; `--use-angle=gl-egl` and plain `gl` stay on GPU 0
+(a fullscreen shader loop did not move GPU 1's utilisation). DRI_PRIME is
+Mesa only. Both cards report the same PCI id (10de:2486), so device
+select by id cannot tell them apart. The card is still shared with the
+owner's desktop, so:
 
-- **frame ms** is what this box does today, an upper bound for an idle
-  card;
-- **GPU floor** is each GPU segment's tenth percentile, summed: the frame's
-  own GPU cost with the least of the desktop in it, a lower bound;
-- **CPU ms** (physics, scene, render) are the main thread's own and are
-  much less contaminated, **except** where the main thread blocks on the
-  GPU (the readback below), which the shared card makes far worse;
-- the run with the least mean frame time is reported (best of 2); the
-  JSON keeps both runs.
+- **frame ms** is what this box does with the desktop up, an upper bound
+  for an idle card;
+- **GPU floor** is each GPU segment's tenth percentile, summed, a lower
+  bound on the frame's own GPU cost;
+- each scenario was flown twice and the run with the lower mean frame is
+  reported; the two runs agreed within 1.4 ms mean in every scenario.
 
-The host load average was 9 to 20 during the runs (other agents' work).
+**A run must leave no browser behind.** perf-play.js closes its page
+(and the rooms server) in a `finally` and on SIGINT and SIGTERM; after
+the baseline no Chrome with this run's profile was left. Check with
+`pgrep -af sim-page-` before believing a GPU number.
 
-## Baseline, main at 6a23782e, High, uncapped
+## Baseline, main at 6a23782e, High, uncapped, clean card
 
 Best of two 30 s runs per scenario.
 
 | Scenario | Frames | Avg ms | p50 | p95 | p99 | 1% low fps | > 11.1 ms | > 16.7 ms | > 33.3 ms | Headroom vs 11.1 (avg / p95) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| itaipu-war | 628 | 47.9 | 46.9 | 74.7 | 86.7 | 10.6 | 627 | 625 | 517 | -36.8 / -63.6 |
-| swiss-low | 398 | 75.7 | 75.8 | 100.7 | 130.5 | 7.3 | 397 | 397 | 396 | -64.6 / -89.6 |
-| wing-cruise | 573 | 52.3 | 51.2 | 71.4 | 83.5 | 10.0 | 572 | 572 | 549 | -41.2 / -60.3 |
+| itaipu-war | 5832 | 5.15 | 5.0 | 7.0 | 8.2 | 107.3 | 4 | 0 | 0 | +5.97 / +4.11 |
+| swiss-low | 1596 | 18.81 | 16.9 | 35.7 | 42.6 | 21.1 | 1231 | 820 | 132 | -7.70 / -24.59 |
+| wing-cruise | 3816 | 7.86 | 7.3 | 15.0 | 16.2 | 53.4 | 1109 | 30 | 1 | +3.25 / -3.89 |
 
-The other runs: itaipu-war 61.0 ms avg, swiss-low 101.5, wing-cruise 54.3.
+The second runs: itaipu-war 5.82 ms avg (29 frames over 11.1, p95 8.6),
+swiss-low 20.14 (p95 33.9), wing-cruise 7.89 (p95 14.8).
 
-| Scenario | Physics | Scene | Render submit | GPU wait | Other | GPU avg | GPU p95 | GPU floor | Calls avg / max | Tris avg / max (M) | Long tasks (count, ms) | GC (count, MB) |
+| Scenario | Physics | Scene | Render submit | GPU wait | Other | GPU avg | GPU p95 | GPU floor | Calls avg / max | Tris avg / max (M) | Long tasks | GC (count, MB in 30 s) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| itaipu-war | 0.25 | 43.05 | 3.53 | 0.18 | 0.88 | 19.3 | 32.4 | 5.4 | 244 / 297 | 2.33 / 3.49 | 258, 15997 | 12, 284 |
-| swiss-low | 0.41 | 60.52 | 5.98 | 8.33 | 0.47 | 44.0 | 60.1 | 21.2 | 320 / 389 | 3.53 / 3.83 | 321, 25467 | 37, 951 |
-| wing-cruise | 0.21 | 4.09 | 3.67 | 43.91 | 0.43 | 21.2 | 30.4 | 10.8 | 183 / 218 | 1.85 / 2.59 | 3, 318 | 26, 654 |
+| itaipu-war | 0.03 | 3.01 | 1.69 | 0.00 | 0.42 | 3.44 | 4.39 | 2.05 | 244 / 297 | 2.31 / 3.51 | 0 | 62, 1747 |
+| swiss-low | 0.08 | 7.90 | 2.78 | 7.74 | 0.31 | 14.57 | 20.15 | 8.75 | 319 / 391 | 3.51 / 3.82 | 2, 101 ms | 72, 1772 |
+| wing-cruise | 0.02 | 0.59 | 1.15 | 5.96 | 0.14 | 6.97 | 8.03 | 5.94 | 183 / 219 | 1.85 / 2.68 | 1, 68 ms | 66, 1666 |
 
 GPU by segment, mean / tenth percentile, ms:
 
-| Scenario | scene | other (outside composer) | meter | bloom | shadow | clouds | ao | photo | fxaa |
+| Scenario | scene | other (outside composer) | clouds | shadow | meter | bloom | photo | fxaa | ao |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| itaipu-war | 4.82 / 0.75 | 11.53 / 4.14 | 0.10 / 0.01 | 0.64 / 0.11 | 0.38 / 0.11 | 0.13 / 0.01 | 0.72 / 0.03 | 0.55 / 0.16 | 0.39 / 0.04 |
-| swiss-low | 16.54 / 10.82 | 19.85 / 8.84 | 2.25 / 0.02 | 1.44 / 0.12 | 1.80 / 0.36 | 0.87 / 0.71 | 0.10 / 0.08 | 0.67 / 0.17 | 0.49 / 0.05 |
-| wing-cruise | 14.17 / 8.95 | 0.12 / 0.11 | 3.43 / 0.02 | 1.30 / 0.12 | 0.67 / 0.44 | 1.16 / 0.89 | 0.11 / 0.05 | 0.17 / 0.17 | 0.05 / 0.05 |
+| itaipu-war | 1.41 / 0.91 | 1.42 / 0.70 | 0.01 / 0.01 | 0.23 / 0.10 | 0.01 / 0.01 | 0.12 / 0.10 | 0.16 / 0.15 | 0.05 / 0.04 | 0.04 / 0.03 |
+| swiss-low | 6.72 / 5.14 | 5.10 / 2.09 | 0.88 / 0.71 | 0.73 / 0.37 | 0.47 / 0.02 | 0.26 / 0.12 | 0.20 / 0.17 | 0.11 / 0.05 | 0.10 / 0.08 |
+| wing-cruise | 4.76 / 4.14 | 0.17 / 0.10 | 0.99 / 0.88 | 0.62 / 0.42 | 0.03 / 0.02 | 0.12 / 0.11 | 0.17 / 0.17 | 0.05 / 0.05 | 0.06 / 0.05 |
 
-(`fxaa` is the table's name for three's `ShaderPass`.)
+(`fxaa` is three's `ShaderPass`. "other" is everything the GPU draws
+outside the composer: the avionics sensor view's own scene draws and the
+lake's mirror.)
 
 ## Top 5 hotspots per scenario, by measured ms per frame
 
-Where a hotspot is main thread time, the profile names the code; ms per
-second of play is converted to ms per frame at the run's frame rate.
+Main thread items come from the sampled profile, ms per second converted
+to ms per frame at that run's frame rate.
 
-### itaipu-war (47.9 ms frame)
+### itaipu-war (5.15 ms, 194 fps: inside 11.1 ms already)
 
-1. **The avionics sensor view's synchronous readback, 41 ms a frame.**
-   `getBufferSubData` called from `poll` (src/render/sensorview.js:395)
-   held the main thread 854 ms of every second. The readback is double
-   buffered behind a fence, but in Chrome `getBufferSubData` is a round
-   trip to the GPU process that waits behind everything queued there, so
-   on a busy card it blocks for most of a frame and on any card it
-   serialises the CPU and the GPU every frame. It is nearly all of the
-   43 ms "scene" bucket.
-2. **GPU outside the composer, 11.5 ms** (floor 4.1): the sensor view's own
-   scene draws (`drawScene`, src/render/sensorview.js:519) and the lake's
-   mirror. A drone with the avionics HUD draws the world more than once a
-   frame.
-3. **GPU scene pass, 4.8 ms** (floor 0.75).
-4. **Render submit, 3.5 ms** of three.js on the main thread
-   (`onBeforeRender`, `getBoundingSphereAt`, swiss2/post.js `render`).
-5. **Long tasks: 258 in 30 s**, nearly every frame over 50 ms, which is
-   item 1 seen from the event loop. Behind it: world-audio `ambience` at
-   0.4 ms a frame.
+1. **Avionics sensor view readback, 2.3 ms a frame.** `getBufferSubData`
+   from `poll` (src/render/sensorview.js:395): 436 ms of every second. A
+   synchronous round trip to the GPU process every frame; most of the
+   3.0 ms "scene" bucket.
+2. **Render submit, 1.7 ms** (three.js; swiss2/post.js `render`, the
+   lake's `render` at src/maps/swiss2/water/lake.js:126).
+3. **GPU outside the composer, 1.4 ms** (floor 0.7): the sensor view's
+   `drawScene` (sensorview.js:519) and the lake's mirror.
+4. **GPU scene pass, 1.4 ms** (floor 0.9).
+5. **Garbage: 58 MB a second**, 62 collections in 30 s, and world-audio
+   `ambience` (src/render/world-audio.js:332) at 0.23 ms a frame.
 
-### swiss-low (75.7 ms frame)
+Its stutter is in the tail: 4 to 29 frames over 11.1 ms per 30 s, max
+13 to 28 ms, which the GC count is the first suspect for.
 
-1. **The same sensor view readback, 57 ms a frame** (749 ms per second from
-   sensorview.js:395).
-2. **GPU outside the composer, 19.9 ms** (floor 8.8): the sensor view's scene
-   draws and the lake's mirror.
-3. **GPU scene pass, 16.5 ms** (floor 10.8): the valley's ground splat,
-   grass and forest at 8 m, as docs/SWISS2-PERF.md found parked.
-4. **Render submit, 6.0 ms**, and shader compiles in flight:
-   `getProgramInfoLog` 9.6 ms per second, programs being linked while the
-   craft flies into new vegetation zones.
-5. **Garbage: 951 MB collected in 30 s**, 37 collections; with GPU wait
-   8.3 ms.
+### swiss-low (18.8 ms, 53 fps: 7.7 ms over budget, the worst)
 
-### wing-cruise (52.3 ms frame, no avionics HUD on this craft)
+1. **GPU frame, 14.6 ms mean, 8.8 floor; the main thread waits 7.7 ms a
+   frame for it.** GPU bound.
+2. **GPU scene pass, 6.7 ms** (floor 5.1): the valley's ground splat,
+   grass and forest at 8 m (docs/SWISS2-PERF.md has it per mesh).
+3. **Sensor view readback, 6.6 ms a frame** (349 ms per second at 53 fps).
+   It waits behind the GPU's queue, so on a GPU bound frame it costs more.
+4. **GPU outside the composer, 5.1 ms** (floor 2.1): the sensor view
+   drawing the valley again, and the lake's mirror.
+5. **Render submit, 2.8 ms**, and 59 MB of garbage a second.
 
-1. **GPU bound: 43.9 ms a frame waiting on the GPU.** The main thread's own
-   work is under 8 ms; the frame is set by the card, which the desktop
-   shares. This is the one scenario that shows the valley's GPU cost alone.
-2. **GPU scene pass, 14.2 ms** (floor 9.0), at 23 m/s and 40 m.
-3. **GPU meter pass, 3.4 ms mean but 0.02 floor**: a spike, not a steady
-   cost. Most frames it is free and some it is not (the first read of the
-   colour target lands in it, per SWISS2-PERF.md).
-4. **CPU scene update, 4.1 ms**: swiss2/post.js `render`, vegetation
-   `coverOff` (zones.js:363), vehicles `rolled`, terrain `height`.
-5. **Render submit, 3.7 ms**, and 654 MB of garbage collected in 30 s.
+### wing-cruise (7.86 ms, 127 fps mean, p95 15 ms; no avionics HUD on this craft)
+
+1. **GPU bound: 6.0 ms a frame waiting on the GPU**, GPU frame 7.0 ms
+   mean, 5.9 floor. The main thread's own work is 1.9 ms.
+2. **GPU scene pass, 4.8 ms** (floor 4.1).
+3. **Render submit, 1.2 ms**.
+4. **GPU cloud march, 1.0 ms**.
+5. **GPU shadow maps, 0.6 ms**, and 56 MB of garbage a second. A third of
+   the frames are over 11.1 ms (p95 15.0) though the mean has 3.3 ms of
+   headroom: the frame time alternates, which is worth a look at the
+   frame list in the JSON before anything else.
 
 ### Across all three
 
-- **Physics and Betaflight are not the problem**: 0.2 to 0.5 ms a frame.
-- The first fix by a wide margin is the sensor view readback: it costs
-  the two combat drone scenarios 41 to 57 ms of main thread a frame
-  on this box. The second is the extra world draws the sensor view makes.
-- Then the valley's GPU scene pass, already characterised per mesh in
-  docs/SWISS2-PERF.md.
-- Every scenario allocates 20 to 30 MB a second.
+- **Physics and Betaflight are not the problem**: 0.02 to 0.08 ms a frame.
+- **The sensor view** (src/render/sensorview.js) is the biggest single
+  main thread cost wherever the avionics HUD is up: a blocking readback
+  every frame (2.3 to 6.6 ms) plus a second draw of the world (1.4 to
+  5.1 ms of GPU). Making the readback asynchronous, or every few frames,
+  and drawing the inset smaller or less often is the first fix.
+- **The Swiss valley low down is the one scenario well over budget**, and
+  it is GPU bound: the scene pass first, then the sensor view's extra draw.
+- **Garbage**: every scenario allocates 55 to 60 MB a second, 2 GC a
+  second. The prime suspect for the tail frames once the means fit.
 
 ## Proposed budgets (not a CI gate yet)
 
-For 90 fps on an RTX 3060 Ti at 1600 by 900, High, judged on a run like
-this one once a card can be had to itself (the frame totals here cannot
-pass any of these until the desktop is off the card):
+For 90 fps on an RTX 3060 Ti at 1600 by 900, High, measured by this
+script with no stray browser on the card:
 
-- **frame**: p95 under 11.1 ms; at most 5 % of frames over 11.1 ms, none
-  over 33.3 ms in a 30 s run; 1% low at least 60 fps;
-- **main thread**: physics under 1 ms, scene update under 3 ms, render
-  submit under 2.5 ms, so the CPU side fits in 6.5 ms with room for the
-  compositor;
-- **GPU floor**: under 9 ms for the whole frame, the composer's scene
-  pass under 6 ms, everything outside the composer under 1.5 ms;
+- **frame**: p95 under 11.1 ms; at most 5 % of frames over 11.1 ms and
+  none over 33.3 ms in a 30 s run; 1% low at least 60 fps. Today
+  itaipu-war passes, wing-cruise fails on p95 and the 5 %, swiss-low fails
+  all of it;
+- **main thread**: physics under 0.5 ms, scene update under 3 ms, render
+  submit under 2.5 ms;
+- **GPU floor**: under 8 ms for the whole frame; the composer's scene
+  pass under 5 ms, everything outside the composer under 1 ms;
 - **no synchronous GPU readback on the frame's path**: `getBufferSubData`
-  and `readPixels` into client memory under 0.5 ms per frame;
-- **no shader compile in flight**: `getProgramInfoLog` and program links 0
-  after the first 5 s of a run;
-- **long tasks**: 0 over 50 ms after the first 5 s;
-- **garbage**: under 5 MB allocated per second of play.
+  and `readPixels` into client memory under 0.5 ms a frame;
+- **long tasks**: none over 50 ms after the first 5 s;
+- **garbage**: under 10 MB a second of play.
 
 ## Not measured, and why
 
