@@ -336,6 +336,7 @@
     "briefing:selftest": "node scripts/briefing-selftest.js"
   },
   "dependencies": {
+    "nodemailer": "10.0.14",
     "ws": "8.21.3"
   }
 }

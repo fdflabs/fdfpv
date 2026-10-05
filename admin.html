@@ -214,8 +214,13 @@
 
       async function change(method, body, done) {
         try {
-          await admin(method, 'waitlist', body);
-          say($('waitlist-say'), 'ok', done);
+          const got = await admin(method, 'waitlist', body);
+          /* An invite whose email did not go still stands: say both. */
+          if (got.mailed === false) {
+            say($('waitlist-say'), 'fail', `${done} The email did not go: ${got.mailError}`);
+          } else {
+            say($('waitlist-say'), 'ok', got.mailed ? `${done} Emailed.` : done);
+          }
           await load();
         } catch (e) {
           if (!expired(e)) {
@@ -233,9 +238,12 @@
 
       function drawWaitlist(list) {
         const t = $('waitlist');
-        t.replaceChildren(head(['Address', 'State', 'Asked', 'Invited', '']));
+        t.replaceChildren(head(['Address', 'State', 'Asked', 'Invited', 'Emailed', '']));
         for (const w of list) {
           const acts = el('td', 'acts');
+          if (w.approvedUtc && !w.mailedUtc) {
+            acts.append(act('Send email', 'go', () => change('POST', { email: w.email, approved: true }, `${w.email} is invited.`)));
+          }
           acts.append(
             w.approvedUtc
               ? act('Take back', null, () => change('POST', { email: w.email, approved: false }, `${w.email} is back to waiting.`))
@@ -256,6 +264,7 @@
             el('td', w.approvedUtc ? 'invited' : 'waiting', w.approvedUtc ? 'Invited' : 'Waiting'),
             when(w.requestedUtc) || 'Never asked',
             when(w.approvedUtc),
+            w.approvedUtc ? when(w.mailedUtc) || 'Not sent' : '',
             acts,
           ]));
         }

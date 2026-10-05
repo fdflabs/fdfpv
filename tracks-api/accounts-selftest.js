@@ -642,6 +642,51 @@ ip = '198.51.100.20';
   check('the admin removes an address', r.status === 200 && !gone.body.waitlist.some((w) => w.email === 'early@example.com'));
   r = await admin('DELETE', { email: 'early@example.com' });
   check('once', r.status === 404);
+  console.log('the invite email');
+  {
+    const sent = [];
+    let broken = false;
+    env.SEND_MAIL = async (m) => {
+      if (broken) {
+        throw new Error('smtp said no');
+      }
+      sent.push(m);
+    };
+    r = await admin('POST', { email: 'mail1@example.com', approved: true });
+    check('inviting an address emails it', r.status === 200 && r.body.mailed === true && sent.length === 1 && sent[0].to === 'mail1@example.com', JSON.stringify(r.body));
+    check('in English and Spanish, with the way in and the address to sign in with',
+      /beta invite/.test(sent[0].subject) && /invitación/.test(sent[0].subject) && sent[0].text.includes('https://paraguayandronecombatsimulator.com')
+      && sent[0].text.includes('mail1@example.com') && /Entrar al simulador/.test(sent[0].text) && sent[0].html.includes('<a href="https://paraguayandronecombatsimulator.com">'),
+      JSON.stringify(sent[0]));
+    r = await admin('POST', { email: 'mail1@example.com', approved: true });
+    check('inviting it again does not email it twice', r.body.mailed === true && sent.length === 1);
+    r = await admin('GET');
+    check('the list says when it was emailed', Boolean(r.body.waitlist.find((w) => w.email === 'mail1@example.com').mailedUtc));
+    await call('POST', '/api/waitlist', { credential: await mail('asked@example.com', 'm2') });
+    r = await admin('POST', { email: 'asked@example.com', approved: true });
+    check('approving an address that asked emails it too', r.body.mailed === true && sent.length === 2 && sent[1].to === 'asked@example.com');
+    broken = true;
+    r = await admin('POST', { email: 'mail3@example.com', approved: true });
+    check('a mail server that refuses leaves the invite standing and says why',
+      r.status === 200 && r.body.approved === true && r.body.mailed === false && r.body.mailError === 'smtp said no', JSON.stringify(r.body));
+    broken = false;
+    const first = (await admin('GET')).body.waitlist.find((w) => w.email === 'mail3@example.com');
+    r = await admin('POST', { email: 'mail3@example.com', approved: true });
+    const second = (await admin('GET')).body.waitlist.find((w) => w.email === 'mail3@example.com');
+    check('asking again sends the email that did not go, and keeps the invite\'s date',
+      r.body.mailed === true && sent.length === 3 && !first.mailedUtc && Boolean(second.mailedUtc) && second.approvedUtc === first.approvedUtc);
+    await admin('POST', { email: 'mail1@example.com', approved: false });
+    r = await admin('POST', { email: 'mail1@example.com', approved: true });
+    check('an invite taken back and given again is emailed again', r.body.mailed === true && sent.length === 4);
+    delete env.SEND_MAIL;
+    r = await admin('POST', { email: 'mail5@example.com', approved: true });
+    check('with no mail set up the invite stands and the answer says so', r.body.approved === true && r.body.mailed === false && /not set up/.test(r.body.mailError));
+    for (const e of ['mail1@example.com', 'asked@example.com', 'mail3@example.com', 'mail5@example.com']) {
+      /* eslint-disable-next-line no-await-in-loop */
+      await admin('DELETE', { email: e });
+    }
+  }
+
   console.log('the admin page');
   env.ADMIN_EMAILS = ' Owner@Example.com ,second@example.com';
   r = await call('GET', '/api/admin/overview', undefined, await mail('owner@example.com', 'adm1'));
