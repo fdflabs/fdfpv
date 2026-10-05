@@ -239,6 +239,15 @@ campaign (`src/game/campaign.js` `ACT1`, unlocked in order), so they keep
 their ids and their order; 5 to 7 are appended. The titles change
 (string keys `war.mission.itaipu_N`). Mission 1 stays the free one.
 
+**Released one at a time** (the owner, 2026-10-04: "only make the first
+mission available, until its 100% correct, then only when storyline,
+videos, etc. of mission 2 is done do you make that available"). Each row
+of `ACT1` carries a `release`: `available` (offered and started),
+`development` (built, shown Under development) or `soon` (only planned,
+shown Coming soon). The room refuses to start anything not `available`
+(`edge/rooms/war.js` start), so a mission is opened by changing its row
+and redeploying the rooms server. Today only First Light is available.
+
 ---
 
 ## M1. First Light (`itaipu-1`)

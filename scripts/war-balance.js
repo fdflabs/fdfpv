@@ -186,9 +186,11 @@ export function runOne({
   const floor = loadHeight(floorBuf);
   const S = SKILLS[skill];
   const rand = rng(seed * 7919 + pilots * 31 + Object.keys(SKILLS).indexOf(skill));
+  /* devMissions: the balance is worked on missions still in development
+   * (src/game/campaign.js released), which the VM's room will not start. */
   const room = new RoomCore({
     code: 'W4RB00', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0,
-  });
+  }, { devMissions: true });
   const seedDraw = rng(seed * 104729 + 3);
   room.war.random = seedDraw;
   let tokens = 0;

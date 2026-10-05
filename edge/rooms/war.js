@@ -100,6 +100,9 @@
  *                                           again from the stage it was
  *                                           lost in (a countdown, no
  *                                           briefing; RESTART_STARS)
+ *
+ * A start of a campaign mission not yet released (src/game/campaign.js
+ * ACT1 `release`) is refused 'unreleased', whatever the client showed.
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
  *                                           countdown starts now; refused
  *                                           'unwatched' unless every pilot
@@ -226,6 +229,7 @@ import {
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
 import { madeFor, modeById } from '../../src/share/modes.js';
+import { released } from '../../src/game/campaign.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
@@ -503,8 +507,11 @@ function floorOf(map) {
 }
 
 export class RoomWar {
-  constructor(meta) {
+  /* options.devMissions also starts the campaign's missions still in
+   * development (campaign.js released): the checks' rooms, never the VM's. */
+  constructor(meta, options = {}) {
     this.meta = meta;
+    this.devMissions = options.devMissions === true;
     /*
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
      *   'won'|'lost'|'ended', briefAt (the room ms a briefing's film
@@ -997,6 +1004,11 @@ export class RoomWar {
     return m && m.state === 'lost' && m.mission === mission.id && m.checkpoint ? m.checkpoint : null;
   }
 
+  /* Whether this room may start mission `id`: one it knows, released. */
+  startable(id) {
+    return typeof id === 'string' && Object.hasOwn(this.missions, id) && released(id, this.devMissions);
+  }
+
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
     if (this.meta.public && modeById('war').publicOnlyWhenMadeFor && !madeFor(this.meta.mode, 'war')) {
@@ -1008,6 +1020,9 @@ export class RoomWar {
     const mission = typeof msg.mission === 'string' && Object.hasOwn(this.missions, msg.mission) ? this.missions[msg.mission] : null;
     if (!mission) {
       return this.error(conn, 'mission');
+    }
+    if (!this.startable(mission.id)) {
+      return this.error(conn, 'unreleased');
     }
     if (mission.map !== core.meta.map) {
       return this.error(conn, 'map');

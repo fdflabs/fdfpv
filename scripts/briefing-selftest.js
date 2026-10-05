@@ -2,8 +2,9 @@
  * briefing-selftest.js: Operations' briefing (src/ui/briefing.js) is
  * whole for every campaign mission, in every language.
  *
- * Node only. For each mission of Act 1 (src/game/campaign.js ACT1) and
- * each locale: a title, the campaign's line, the five facts (where, the
+ * Node only. For each mission of Act 1 in this build (src/game/campaign.js
+ * ACT1 with a definition in src/share/war/missions; one only planned has
+ * none, and no briefing) and each locale: a title, the campaign's line, the five facts (where, the
  * aircraft, the length, the pilots, the room), each with a value; every
  * campaign mission's definition carrying estimatedMinutes, [low, high]
  * (src/share/war/missions), and the briefing showing it; the room told as public or as private with its code;
@@ -47,10 +48,12 @@ function check(name, ok, detail = '') {
   }
 }
 
+const BUILT = ACT1.filter((m) => Object.hasOwn(MISSIONS, m.id));
+
 for (const locale of LOCALES) {
   await useLocale(locale);
   console.log(`briefing, ${locale}`);
-  for (const m of ACT1) {
+  for (const m of BUILT) {
     const pub = briefingOf(m.id, { public: true, code: 'ABC123' });
     const priv = briefingOf(m.id, { public: false, code: 'ABC123' });
     check(`${m.id}: a briefing with a title and the campaign's line`, Boolean(pub) && pub.title.length > 0 && pub.line.length > 0, JSON.stringify(pub && [pub.title, pub.line]));
@@ -68,10 +71,11 @@ for (const locale of LOCALES) {
     const text = JSON.stringify(pub);
     check(`${m.id}: no difficulty, no em or en dash`, !/difficult|dificultad/i.test(text) && !/[\u2013\u2014]/.test(text));
   }
-  const withStages = ACT1.filter((m) => (MISSIONS[m.id].stages || []).some((s) => Array.isArray(s.objectives) && s.objectives.length));
+  const withStages = BUILT.filter((m) => (MISSIONS[m.id].stages || []).some((s) => Array.isArray(s.objectives) && s.objectives.length));
   check('a mission whose opening stage has objectives shows them', withStages.length > 0 && withStages.every((m) => briefingOf(m.id).objectives.length > 0),
     withStages.map((m) => m.id).join());
   check('no mission that is not one', briefingOf('no-such-mission') === null);
+  check('a mission only planned has no briefing yet', ACT1.filter((m) => m.release === 'soon').every((m) => briefingOf(m.id) === null));
 }
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);

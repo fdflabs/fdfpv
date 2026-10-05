@@ -86,14 +86,16 @@ function hover(p) {
  * A private room on the Itaipu map, n pilots flying paths[i](t) (room ms;
  * null sends nothing), sampled every 33 ms on a phase each, flags[i](t)
  * their flags, the room ticking every 33 ms. The mission is started by
- * the host at room ms 0 unless `start` is false.
+ * the host at room ms 0 unless `start` is false. `dev` is a room that
+ * starts the campaign's missions in development too (edge/rooms/war.js
+ * devMissions), as a check's own server does; the VM's room never does.
  */
 function warRoom({
-  n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true, code = 'W4RR00',
+  n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true, code = 'W4RR00', dev = false,
 } = {}) {
   const r = new RoomCore({
     code, cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map, epoch: 0, public: pub,
-  });
+  }, { devMissions: dev });
   r.war.missions = { ...MISSIONS, ...(mission ? { [mission.id]: mission } : {}) };
   r.war.random = () => 0.25;
   let tokens = 0;
@@ -743,10 +745,34 @@ export function warSection(check) {
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
     check('itaipu-4 is the drill (mission 1 as it was) at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
       && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-drill'].waves);
-    const n = warRoom({ mission: MISSIONS['itaipu-4'] });
+    const n = warRoom({ mission: MISSIONS['itaipu-4'], dev: true });
     check('the night raid counts down prepMs longer, so every screen has built its night before the go',
       MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
       JSON.stringify({ goAt: n.view().goAt }));
+  }
+  {
+    /* THE RELEASE GATE (the owner, 2026-10-04: only mission 1 until it is
+     * right; src/game/campaign.js ACT1 release). A room refuses to start a
+     * mission in development, by its word, whatever a client sends: a
+     * stale build, a crafted socket, a ?missions=dev page. Mission 1 and
+     * the drill, which no campaign offers, start as ever; a check's own
+     * room (dev) starts 2 to 4. */
+    for (const id of ['itaipu-2', 'itaipu-3', 'itaipu-4']) {
+      const held = warRoom({ mission: MISSIONS[id], code: 'R3L000' });
+      check(`${id}: the room refuses to start it, 'unreleased', and no war is on`, held.errors(0).includes('unreleased') && held.r.war.match === null,
+        JSON.stringify({ errors: held.errors(0), match: held.r.war.match && held.r.war.match.mission }));
+      held.say(0, { type: 'war', op: 'start', mission: id, from: 'checkpoint' });
+      held.say(0, { type: 'war', op: 'start', mission: id, intro: true });
+      check(`${id}: nor from a checkpoint, nor with its intro`, held.r.war.match === null
+        && held.errors(0).filter((x) => x === 'unreleased').length === 3, JSON.stringify(held.errors(0)));
+      const dev = warRoom({ mission: MISSIONS[id], code: 'R3L001', dev: true });
+      check(`${id}: a check's own room (devMissions) starts it`, dev.errors(0).length === 0 && dev.r.war.match && dev.r.war.match.mission === id,
+        JSON.stringify(dev.errors(0)));
+    }
+    for (const id of ['itaipu-1', 'itaipu-drill']) {
+      const open = warRoom({ mission: MISSIONS[id], code: 'R3L002' });
+      check(`${id}: the room starts it as ever`, open.errors(0).length === 0 && open.r.war.match && open.r.war.match.mission === id, JSON.stringify(open.errors(0)));
+    }
   }
   {
     /* One airframe a pilot. Seat 1 kills a Strike head on (spent 1,
@@ -1055,7 +1081,9 @@ export function warSection(check) {
       feed(c, one.socks[0], 0);
       const first = c.match();
       c.clear();
-      const two = warRoom({ n: 1, start: false, code: 'M1SS20', air: WAR_DEFAULT });
+      const two = warRoom({
+        n: 1, start: false, code: 'M1SS20', air: WAR_DEFAULT, dev: true,
+      });
       two.paths[0] = hover([0, 400, 0]);
       two.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-2', intro: true,

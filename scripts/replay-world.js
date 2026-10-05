@@ -132,7 +132,9 @@ const describe = (w) => (w ? `${JSON.stringify(w.targets)} dark ${w.levels.map((
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-replay-world-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 4 is in development, which only a check's own server
+ * starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`A war's map replayed as it was, rooms at ${rooms}`);
 const a = await openPage({

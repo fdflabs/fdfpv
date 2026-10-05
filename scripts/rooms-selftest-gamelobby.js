@@ -45,11 +45,14 @@ import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.j
 import { PROTO } from '../src/share/roomwire.js';
 
 /* A room at room ms 0, its `n` pilots seated: made for the war unless
- * `mode` says otherwise. */
-function lobbyRoom({ n = 2, mode = 'war', mission = 'itaipu-1' } = {}) {
+ * `mode` says otherwise. `dev` starts the campaign's missions in
+ * development too, as a check's own server does (edge/rooms/war.js). */
+function lobbyRoom({
+  n = 2, mode = 'war', mission = 'itaipu-1', dev = false,
+} = {}) {
   const r = new RoomCore({
     code: 'L0BBY1', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0, public: true, mode, mission,
-  });
+  }, { devMissions: dev });
   let tokens = 0;
   const env = { r, socks: [], clock: 0, ticks: 0 };
   env.apply = (actions) => {
@@ -163,7 +166,26 @@ export function warLobbySection(check) {
     check('and nothing starts on its own', e.war().state === 'lobby');
   }
   {
+    /* The release gate (src/game/campaign.js ACT1 release): the VM's
+     * room never takes a mission in development, by its word, and a room
+     * stored set to one before the gate is mission 1 again, not a lobby
+     * whose every start is refused. */
     const e = lobbyRoom();
+    e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
+    check('the host cannot set mission 2 while it is in development: refused, said why, the room keeps mission 1',
+      e.socks[0].got.some((m) => m.type === 'refused' && m.why === 'war_unreleased') && e.lobby(1).mission === 'itaipu-1' && e.r.meta.mission === 'itaipu-1',
+      JSON.stringify(e.lobby(1)));
+    const stored = lobbyRoom({ mission: 'itaipu-3' });
+    check('a room stored set to mission 3 says mission 1 in its lobby', stored.lobby(0).mission === 'itaipu-1', JSON.stringify(stored.lobby(0)));
+    stored.at(100);
+    stored.ready(0);
+    stored.ready(1);
+    stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('and its lobby starts mission 1', stored.war().state === 'briefing' && stored.war().mission === 'itaipu-1',
+      JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+  }
+  {
+    const e = lobbyRoom({ dev: true });
     e.say(1, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
     check('the mission is the host\'s to change', e.socks[1].got.some((m) => m.type === 'refused' && m.why === 'host') && e.lobby(0).mission === 'itaipu-1');
     e.say(0, { type: 'lobby', op: 'mission', mission: 'nowhere-9' });

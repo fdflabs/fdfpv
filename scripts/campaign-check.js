@@ -8,9 +8,10 @@
  * The gate draws five cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
  * clear of them. Its card is one click onto the campaign's page (the
- * owner, 2026-10-03), before any consent or room: four missions with
- * their stars, mission 1 playable and free, missions 2 to 4 marked
- * Campaign. The shop, with
+ * owner, 2026-10-03), before any consent or room: Act 1's seven missions
+ * with their stars, mission 1 playable and free, missions 2 to 7 marked
+ * Campaign, 2 to 4 Under development and 5 to 7 Coming soon (the owner,
+ * 2026-10-04: only mission 1 until it is right). The shop, with
  * credits seeded in the stored settings' campaign section (the guest's
  * store, which the account syncs for a signed in pilot): buy the wide
  * blast warhead and Rack +1, equip and unequip, the loadout line
@@ -21,9 +22,13 @@
  * Start now starts it with the loadout in the start
  * message. A mission end with no result, as main gives: nothing paid, a
  * quiet note. A mocked room result, since the room gives none yet: stars
- * and credits on the screen follow it. Play mission 2 from the lobby's
- * Campaign row: the lobby says mission 2 and Start now starts it, its
- * intro played.
+ * and credits on the screen follow it; mission 2, open by the win, still
+ * Under development and not playable. Then the page again with
+ * ?missions=dev, against this check's own server, which starts missions
+ * in development (DEV_MISSIONS; a server named on the command line must
+ * run with it for these rows): play mission 2 from the lobby's Campaign
+ * row: the lobby says mission 2 and Start now starts it, its intro
+ * played.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -147,6 +152,7 @@ const SCREEN = `(() => {
       best: m.querySelector('.campaign-best').textContent,
       play: m.querySelector('.campaign-play').textContent,
       playable: !m.querySelector('.campaign-play').disabled,
+      release: m.dataset.release,
     })),
     items: Object.fromEntries([...box.querySelectorAll('.campaign-item')].map((i) => [i.dataset.upgrade, {
       label: i.querySelector('button').textContent, disabled: i.querySelector('button').disabled,
@@ -174,10 +180,11 @@ const SEED = `(() => {
   }
 })();`;
 
-const server = await roomsServer(process.argv[2], 'campaign');
+const server = await roomsServer(process.argv[2], 'campaign', { devMissions: true });
+const pageUrl = `/index.html?rooms=${encodeURIComponent(server.url)}`;
 console.log(`Defend the Paraná, rooms at ${server.url}`);
 const page = await openPage({
-  root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720, seed: [SOCKET_TAP, SEED],
+  root, url: pageUrl, width: 1280, height: 720, seed: [SOCKET_TAP, SEED],
 });
 try {
   await page.until('window.__shellReady === true', 300000);
@@ -206,13 +213,16 @@ try {
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
   const first = await page.evaluate(SCREEN);
   const unasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.warConsent === true })");
-  check('the card opens the campaign\'s page: four missions, each with its three stars, no room, nothing asked',
-    first && first.page === 'missions' && first.missions.length === 4 && first.missions.every((m) => m.starSlots === 3)
-    && first.missions.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4' && unasked.phase === 'idle' && !unasked.consent,
+  check('the card opens the campaign\'s page: Act 1\'s seven missions, each with its three stars, no room, nothing asked',
+    first && first.page === 'missions' && first.missions.length === 7 && first.missions.every((m) => m.starSlots === 3)
+    && first.missions.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7' && unasked.phase === 'idle' && !unasked.consent,
     JSON.stringify({ first, unasked }));
-  check('mission 1: free, playable, not flown; 2 to 4 marked Campaign',
+  check('mission 1: free, playable, not flown; 2 to 7 marked Campaign, none playable',
     first.missions[0].tag === 'Free' && first.missions[0].playable && first.missions[0].best === 'Not flown yet'
     && first.missions.slice(1).every((m) => m.tag === 'Campaign' && !m.playable), JSON.stringify(first.missions));
+  check('2 to 4 say Under development, 5 to 7 Coming soon',
+    first.missions.slice(1, 4).every((m) => m.play === 'Under development' && m.release === 'development')
+    && first.missions.slice(4).every((m) => m.play === 'Coming soon' && m.release === 'soon'), JSON.stringify(first.missions.map((m) => m.play)));
   check('the seeded credits show', first.credits === 'Credits: 1000', first.credits);
   await shot(page, 'missions');
 
@@ -374,8 +384,24 @@ try {
   check('after the result: two stars on mission 1, 225 more credits, paid once',
     after.missions[0].stars === 2 && after.credits === 'Credits: 325' && after.missions[0].best === 'Best: won, 225 credits', JSON.stringify(after));
   check('the result is said on the screen', after.last === 'Mission 1 won: 2 of 3 stars, 225 credits.', after.last);
-  check('mission 2 unlocked and playable', after.missions[1].play === 'Play' && after.missions[1].playable, after.missions[1].play);
+  check('mission 2, open by the win, is still Under development and not playable', after.missions[1].play === 'Under development' && !after.missions[1].playable,
+    after.missions[1].play);
+  check('and the stars won on mission 1 stay, 5 to 7 still Coming soon', after.missions[0].stars === 2 && after.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable),
+    JSON.stringify(after.missions.map((m) => [m.stars, m.play])));
   await shot(page, 'after-result');
+
+  /* THE DEV PATH: the same page with ?missions=dev, back in its room
+   * (a reload rejoins it, docs/FLOW-AUDIT.md rule 6), against this
+   * check's server, which starts missions in development. */
+  await page.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await page.cdp.send('Page.navigate', { url: `${page.origin}${pageUrl}&missions=dev` }, page.sessionId);
+  await page.until('window.__beforeReload !== true && window.__shellReady === true', 300000);
+  await page.until(IN_LOBBY, 60000).catch(() => {});
+  await page.evaluate('(() => { window.__campaign.open(); return true; })()');
+  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  const dev = await page.evaluate(SCREEN);
+  check('with ?missions=dev, back in the room: mission 2 playable, 5 to 7 still Coming soon', dev && dev.missions[1].play === 'Play' && dev.missions[1].playable
+    && dev.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
 
   /* PLAY MISSION 2, from the lobby's Campaign row: the lobby says mission
    * 2 (the owner saw "Start mission 1" there, 2026-09-30) and Start now

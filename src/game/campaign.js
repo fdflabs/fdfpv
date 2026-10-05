@@ -1,5 +1,5 @@
 /*
- * campaign.js: Defend the Paraná, the paid campaign's state. Act 1 is four
+ * campaign.js: Defend the Paraná, the paid campaign's state. Act 1 is seven
  * Defend Itaipu missions flown in order, each worth up to three stars and
  * some credits, and a shop that spends the credits on the loadout a pilot
  * takes into the war (docs/WARFARE-PLAN.md; the war itself is the room's,
@@ -55,16 +55,38 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* Act 1, in the order it is flown. `free` is the one mission a pilot
- * without the campaign may fly. The ids are the room's mission ids
- * (src/share/war/missions/index.js); the three after the first are not in
- * the build until the war's owner adds them, and the screen says so. */
+/* Act 1, in the order it is flown (docs/campaign/MISSIONS.md section 2).
+ * `free` is the one mission a pilot without the campaign may fly. The ids
+ * are the room's mission ids (src/share/war/missions/index.js).
+ *
+ * `release` is whether a pilot may fly it at all (the owner, 2026-10-04:
+ * "only make the first mission available, until its 100% correct, then
+ * only when storyline, videos, etc. of mission 2 is done do you make that
+ * available"): 'available' is offered and started; 'development' has code
+ * in the build and is shown Under Development; 'soon' is only planned, has
+ * no mission file, and is shown Coming Soon. The room refuses to start
+ * anything but 'available' (edge/rooms/war.js start), so this row is the
+ * gate, not the screen. A mission is made available here and nowhere else. */
 export const ACT1 = [
-  { id: 'itaipu-1', key: 'intakes', free: true },
-  { id: 'itaipu-2', key: 'spillway', free: false },
-  { id: 'itaipu-3', key: 'switchyard', free: false },
-  { id: 'itaipu-4', key: 'night', free: false },
+  { id: 'itaipu-1', key: 'intakes', free: true, release: 'available' },
+  { id: 'itaipu-2', key: 'spillway', free: false, release: 'development' },
+  { id: 'itaipu-3', key: 'switchyard', free: false, release: 'development' },
+  { id: 'itaipu-4', key: 'night', free: false, release: 'development' },
+  { id: 'itaipu-5', key: 'river', free: false, release: 'soon' },
+  { id: 'itaipu-6', key: 'corridor', free: false, release: 'soon' },
+  { id: 'itaipu-7', key: 'breach', free: false, release: 'soon' },
 ];
+
+/* Whether mission `id` may be started. A mission outside Act 1 (the
+ * drill, itaipu-drill.js, which no screen offers, and the checks' own) is
+ * not the campaign's to hold back. `dev` also lets through what is in
+ * development, for the checks that fly missions 2 to 4 and for a
+ * developer's own rooms server (edge/rooms/node.js DEV_MISSIONS); what is
+ * only planned has nothing to fly either way. */
+export function released(id, dev = false) {
+  const m = ACT1.find((x) => x.id === id);
+  return !m || m.release === 'available' || (dev && m.release === 'development');
+}
 
 export const MAX_STARS = 3;
 
