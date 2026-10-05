@@ -16,7 +16,9 @@
  *
  * The grass reads the fields through ground.js's MEADOW_GLSL, so the
  * grass materials are swapped to each set's MEADOW_GLSL along with the
- * ground.
+ * ground; and the base's grass is this tree's grass shader with
+ * vegetation/grass.js's diff from --base turned back in its text, so a
+ * change to the grass's own shader is compared as well.
  *
  * WHAT IS COMPARED is the scene pass, the light before any post pass, in a
  * 32 bit float target read back as floats (the post chain's grain and the
@@ -154,6 +156,27 @@ for (const name of variantNames) {
   }
   variants[name] = candSrc.replace(find, repl);
 }
+/*
+ * The grass's own shader (vegetation/grass.js) as it is at --base: this
+ * tree's, with each hunk of the diff from --base to grass.js turned back
+ * in the compiled shader's text. A hunk that is not found there whole
+ * touched something other than the shader's GLSL, and the run stops:
+ * this check cannot stand in for that.
+ */
+const grassDiff = spawnSync('git', ['-C', root, 'diff', '-U1', opts.base, '--', 'src/maps/swiss2/vegetation/grass.js'], { encoding: 'utf8', maxBuffer: 1 << 26 });
+if (grassDiff.status !== 0) {
+  throw new Error(`perf-ground-check: the diff from ${opts.base} to grass.js failed: ${grassDiff.stderr}`);
+}
+const grassEdits = grassDiff.stdout.split('\n@@').slice(1).map((hunk) => {
+  const now = [];
+  const was = [];
+  for (const l of hunk.split('\n').slice(1)) {
+    if (l.startsWith(' ')) { now.push(l.slice(1)); was.push(l.slice(1)); }
+    if (l.startsWith('+')) { now.push(l.slice(1)); }
+    if (l.startsWith('-')) { was.push(l.slice(1)); }
+  }
+  return [now.join('\n'), was.join('\n')];
+});
 const indexHtml = await readFile(join(root, 'index.html'), 'utf8');
 const threeUrl = (indexHtml.match(/"three":\s*"([^"]+)"/) || [])[1];
 if (!threeUrl) {
@@ -255,10 +278,11 @@ const INSTALL = /* js */ `(async (sources, threeUrl) => {
       set.set(mat, { onBeforeCompile: m.onBeforeCompile, customProgramCacheKey: () => key });
     }
     const setMeadow = mod.MEADOW_GLSL;
+    const edits = tag === 'base' ? sources.grassEdits : [];
     for (const mat of meadow.keys()) {
       const hook = mat.onBeforeCompile;
       const keyOf = mat.customProgramCacheKey;
-      if (setMeadow === candMeadow) {
+      if (setMeadow === candMeadow && !edits.length) {
         set.set(mat, { onBeforeCompile: hook, customProgramCacheKey: keyOf });
         continue;
       }
@@ -266,6 +290,12 @@ const INSTALL = /* js */ `(async (sources, threeUrl) => {
       set.set(mat, {
         onBeforeCompile(shader, rr) {
           hook.call(this, shader, rr);
+          for (const [now, was] of edits) {
+            if (shader.vertexShader.split(now).length !== 2) {
+              throw new Error('perf-ground-check: a hunk of grass.js is not in its vertex shader exactly once: ' + now.slice(0, 160));
+            }
+            shader.vertexShader = shader.vertexShader.replace(now, () => was);
+          }
           shader.vertexShader = shader.vertexShader.split(candMeadow).join(setMeadow);
           shader.fragmentShader = shader.fragmentShader.split(candMeadow).join(setMeadow);
         },
@@ -483,7 +513,7 @@ const report = { base: opts.base, variant: opts.variant || null, views: [] };
 try {
   await page.until('window.__map && window.__map().id === "swiss2" && window.__map().ready', 300000);
   await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
-  const sources = { base: baseSrc, variants };
+  const sources = { base: baseSrc, variants, grassEdits };
   const info = JSON.parse(await page.evaluate(`${INSTALL}(${JSON.stringify(sources)}, ${JSON.stringify(threeUrl)})`));
   if (info.quality !== 'high') {
     throw new Error(`perf-ground-check: the map was built at ${info.quality}, not High`);
