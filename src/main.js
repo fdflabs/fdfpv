@@ -5272,8 +5272,15 @@ export async function boot({
     }
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
+    /* The others are drawn at the frame's own moment, wallMs on the room
+     * clock, as this pilot's craft is (its state is the block ending at
+     * wallMs) and as the poses this page sends are stamped (roomPoseFrame).
+     * `now` is read part way through the frame, as late as the frame's
+     * work before this line makes it, and that work changes frame to frame:
+     * a peer drawn at it moved on that jitter, not on the display's beat. */
+    const drawNow = roomLinkState.roomAt(wallMs) ?? now;
     for (const peer of roomPeers.values()) {
-      roomDrawPeer(peer, now, scene, dt, simT);
+      roomDrawPeer(peer, now, scene, dt, simT, drawNow);
     }
     /* In a replay the pilots are heard from the clip (the frame's sound). */
     if (mode !== 'replay') {
@@ -5858,7 +5865,7 @@ export async function boot({
     audio.updatePeers(peerHeard);
   }
 
-  function roomDrawPeer(peer, now, scene, dt, simT) {
+  function roomDrawPeer(peer, now, scene, dt, simT, drawNow) {
     /* The replay draws the room as it was (src/replay/peerscene.js), so
      * the room as it is now is put away until flight resumes. */
     if (mode === 'replay') {
@@ -5872,7 +5879,7 @@ export async function boot({
       return;
     }
     const here = Boolean(view) && peer.profile && peer.profile.map === view.id;
-    const drawn = Boolean(scene) && here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
+    const drawn = Boolean(scene) && here && peer.last && peer.track.sample(drawNow, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
     )), roomDrawn);
     peer.drawnPose = drawn ? Object.assign(peer.drawnPose || {}, roomDrawn) : null;

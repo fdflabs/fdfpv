@@ -503,3 +503,60 @@ unchanged (no file it draws with moved).
   (as zones.js already mirrors it) would cut it to a texture read, at
   the price of the field's pixel fade (it reads the distance).
 - The lake bed in thermal: the sensor owner's call (above).
+
+## P7, feel: the other pilots in a room
+
+2026-10-05. `SIM_GPU=1 npm run perf:peers -- OUT_DIR` (scripts/perf-peers.js)
+puts one headless page in a room on a rooms server it starts, sitting on
+its pad on the Swiss valley, and flies a second pilot from Node over the
+real wire (hello, clock pings, a POSE every 33 ms), each pose held 50 ms
+give or take 10 before it is sent, round a level circle of 15 m at
+20 m/s (a 2.7 g turn): 25 m in front (near, drawn in the present by
+src/game/peer.js) and 160 m away (far, drawn 150 ms in the past). Every
+drawn frame's peer position against the circle says what moment it
+shows and how far off the path it is. Browser beat 60 Hz, 15 s each,
+GPU 0 at 56 to 81 % (another agent's page on it).
+
+| | near: clock jitter | near: kick mean / p95 / max | near: off path mean / p95 | far: clock jitter | far: kick mean / p95 / max | far: off path |
+| --- | --- | --- | --- | --- | --- | --- |
+| main | 0.59 ms | 27.4 / 59.8 / 111.1 mm | 10.6 / 16.8 cm | 0.13 ms | 1.3 / 2.4 / 6.0 mm | 0.3 cm |
+| this | 0.20 ms | 1.4 / 5.7 / 23.5 mm | 0.1 / 0.5 cm | 0.01 ms | 2.3 / 2.5 / 2.7 mm | 0.2 cm |
+
+(Clock jitter: the frame to frame change in the moment drawn less the
+frame's own, standard deviation. Kick: the drawn path's second
+difference less the circle's, scaled to a 90 Hz frame.)
+
+Two changes:
+
+- **The present is carried on the acceleration too** (peer.js ACCEL).
+  On its velocity alone a turning near peer was drawn on the tangent and
+  pulled back by every sample, 30 times a second: 10 cm off its path and
+  jolted 2.7 cm a frame on average, up to 11. The velocities the poses carry are the
+  plant's own, so the newest two give the acceleration; it is bounded at
+  80 m/s^2, taken only from samples at most 100 ms apart and neither
+  crashed, and run for the first 100 ms of the extrapolation, so a bounce
+  or a stalled stream is carried much as before. The referee harness
+  (`npm run midair:harness -- --seeds=4`), what each pilot drew of the
+  other at the contact, 50 ms links: straight passes 0.00 m before and
+  after; the 6 g turn median 0.38 m to 0.04 m, worst 1.46 m to 0.50 m.
+  Every row of the harness still passes. Nothing here reaches the
+  referee, which places aircraft by their stamps (src/game/midair.js).
+- **Peers are drawn at the frame's moment** (main.js roomFrame): the
+  room clock at the frame's timestamp, as this pilot's own craft is drawn
+  and as its own poses are stamped, instead of the room clock read part
+  way through the frame. Far clock jitter 0.13 to 0.01 ms. Small on this
+  light frame; the part of the frame before that line is what varies, so
+  it grows with a heavy frame.
+
+The far peer's mean kick rose from 1.3 to 2.3 mm while its maximum fell
+from 6.0 to 2.7: that is the straight line drawn between two samples
+turning a corner at each sample, now met on a steady beat instead of
+smeared by the clock's jitter. 2.5 mm a frame at 160 m is under a pixel.
+A curve through the samples' velocities (Hermite) would take it out;
+not built, for that reason.
+
+New checks in `npm run rooms:selftest`: a turning near peer is drawn
+within 1 cm of its path (8.5 cm on the tangent before, which fails it),
+a velocity reversal is carried at no more than 80 m/s^2, a crashed peer
+on its velocity alone, a stalled stream accelerated for 100 ms only.
+Three of the four fail on main's peer.js.

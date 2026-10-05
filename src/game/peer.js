@@ -5,7 +5,8 @@
  * Far peers are drawn in the past, DELAY_MS behind their newest sample,
  * interpolated between two real samples: smooth, and not a guess. Near
  * peers are drawn in the present: extrapolated from the newest sample by
- * its velocity and its angular velocity, at most EXTRAP_MAX_MS ahead, so a
+ * its velocity, the acceleration the last two samples' velocities give
+ * (ACCEL), and its angular velocity, at most EXTRAP_MAX_MS ahead, so a
  * pilot formating on another sees them where they are rather than a few
  * metres behind (docs/MULTIPLAYER-PLAN.md section 6.4). Between NEAR_M and
  * FAR_M the two blend.
@@ -40,11 +41,30 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { FLAG_CRASHED } from '../share/roomwire.js';
+
 export const DELAY_MS = 150;
 export const EXTRAP_MAX_MS = 250;
 export const NEAR_M = 60;
 export const FAR_M = 100;
 export const STALE_MS = 2000;
+/*
+ * ACCEL. Carried on its velocity alone, a turning peer is drawn on the
+ * tangent and pulled back onto its path by every new sample: at 30 Hz and
+ * a 40 ms link, a 2 g turn jolted it 3 to 5 cm a frame (scripts/
+ * perf-peers.js), and in the referee harness's 6 g turn it was drawn
+ * 0.38 m off at the contact (median). The velocities the samples carry
+ * are the plant's own, so their difference over the samples' spacing is
+ * the acceleration, and the present is carried on that too. Bounded:
+ * at most ACCEL_MAX (8 g, past a seven inch's full throttle), only from
+ * two samples at most ACCEL_GAP_MS apart and neither crashed (a bounce
+ * is a step in velocity, not an acceleration), and only for the first
+ * ACCEL_MS of the extrapolation, constant velocity after, so a stalled
+ * stream is carried as before and not flung off.
+ */
+export const ACCEL_MAX = 80;
+export const ACCEL_GAP_MS = 100;
+export const ACCEL_MS = 100;
 /* A sender's pose interval (src/main.js roomSendPose), the full rate. */
 export const SEND_MS = 1000 / 30;
 export const GAPS = 5;
@@ -52,6 +72,31 @@ export const GAPS = 5;
  * the delay moves. */
 export const DELAY_SLEW = 0.2;
 const RING = 48;
+
+/* The acceleration the newest two samples' velocities give, m/s^2 in
+ * `out`, bounded by ACCEL; nought where there is none to give. */
+function accelOf(a, b, out) {
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  const gap = b.t - a.t;
+  if (a === b || !(gap > 0) || gap > ACCEL_GAP_MS || ((a.flags | b.flags) & FLAG_CRASHED)) {
+    return;
+  }
+  const k = 1000 / gap;
+  let x = (b.vx - a.vx) * k;
+  let y = (b.vy - a.vy) * k;
+  let z = (b.vz - a.vz) * k;
+  const m = Math.sqrt(x * x + y * y + z * z);
+  if (m > ACCEL_MAX) {
+    x *= ACCEL_MAX / m;
+    y *= ACCEL_MAX / m;
+    z *= ACCEL_MAX / m;
+  }
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+}
 
 function median(list) {
   const sorted = [...list].sort((a, b) => a - b);
@@ -89,6 +134,7 @@ export class PeerTrack {
     this.gaps = []; /* the last GAPS sample intervals, ms */
     this.delay = DELAY_MS; /* how far in the past a far peer is drawn */
     this.sampledAt = null; /* room ms of the last sample(), for the slew */
+    this.acc = [0, 0, 0]; /* the newest samples' acceleration, m/s^2 (ACCEL) */
   }
 
   /* A decoded pose. Older than the newest held is dropped, never
@@ -181,10 +227,15 @@ export class PeerTrack {
     const rz = hz * k;
     const rw = Math.cos(angle);
     const q = newest;
+    /* At the acceleration for ACCEL_MS, at the velocity that leaves after:
+     * a dt past ACCEL_MS adds acc * ta * (dt - ta / 2). */
+    accelOf(this.poses.length > 1 ? this.poses[this.poses.length - 2] : q, q, this.acc);
+    const ta = Math.min(dt, ACCEL_MS / 1000);
+    const ka = ta * (dt - ta / 2);
     const now = {
-      px: q.px + q.vx * dt,
-      py: q.py + q.vy * dt,
-      pz: q.pz + q.vz * dt,
+      px: q.px + q.vx * dt + this.acc[0] * ka,
+      py: q.py + q.vy * dt + this.acc[1] * ka,
+      pz: q.pz + q.vz * dt + this.acc[2] * ka,
       qx: q.qw * rx + q.qx * rw + q.qy * rz - q.qz * ry,
       qy: q.qw * ry - q.qx * rz + q.qy * rw + q.qz * rx,
       qz: q.qw * rz + q.qx * ry - q.qy * rx + q.qz * rw,
