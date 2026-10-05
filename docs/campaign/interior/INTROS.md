@@ -62,7 +62,7 @@ players, usted between characters.
 Plays once before M1's intro the first time a pilot opens the campaign,
 and from the menu after. **Idea:** years of not finding, then a modern
 camera opening on the land. **Music:** none, then THE INTERIOR's first
-notes under the title. **Length:** about 60 s.
+notes under the title. **Length:** about 57 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ mission block (MISSIONS M1).
 **Idea:** a temporary room with nothing glamorous in it; three sectors on
 a map; a job described as routine by people who suspect it is not.
 **Grade:** room, then air. **Music:** none, THE INTERIOR bed at the
-launch. **Length:** about 55 s.
+launch. **Length:** about 53 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -139,7 +139,7 @@ inusual, márquenlo." "No inventen una historia alrededor."
 **Idea:** the night after; the squad's own stills; the symbol against an
 old photograph; the camp shrinking to nothing inside the region.
 **Grade:** room at night. **Music:** a single sustained COLUMN note,
-then nothing. **Length:** about 45 s. Plays after the ISR lands (fade
+then nothing. **Length:** about 43 s. Plays after the ISR lands (fade
 from the landing to the room).
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
@@ -172,7 +172,7 @@ else the analyst reconstruction frame marked RECONSTRUCTION (N8).
 
 **Idea:** the camp, empty, at ground level, as a body camera would see it
 with nobody in frame (TECH-NEEDS F5); then two stills side by side.
-**Length:** about 60 s.
+**Length:** about 49 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -204,7 +204,7 @@ with nobody in frame (TECH-NEEDS F5); then two stills side by side.
 ### M2 outro (`int2-outro`, M2_10)
 
 **Idea:** two camps side by side; history matches only the old one; then
-the alarm that starts Mission 3. **Length:** about 60 s.
+the alarm that starts Mission 3. **Length:** about 35 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -235,7 +235,7 @@ the alarm that starts Mission 3. **Length:** about 60 s.
 ### M3 intro (`int3-intro`, M3_00)
 
 **Idea:** rapid cuts of a post closing up, seen from high; then the map
-filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
+filling with UNKNOWN; Vega's mantra. **Length:** about 42 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -263,14 +263,14 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### M3 outro (`int3-outro`, M3_09)
 
-**Length:** about 35 s.
+**Length:** about 33 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 9 | board | | `stills [cap:north-vehicle or rec]` | the same | the strange vehicle's still: newer equipment, commercial containers, unfamiliar communications gear | hold | film-int3-12, film-int3-13, film-int3-14 | room tone, night | cut |
-| 2 | 8 | board | | the still | `zoom` into the containers | | io | film-int3-15 | | cut |
-| 3 | 8 | board | | another still of the same vehicle | the same | | hold | film-int3-16, film-int3-17 | | dip |
-| 4 | 2 | board | | black | | | hold | | | cut |
+| 1 | 10 | board | | `stills [cap:north-vehicle or rec]` | the same | the strange vehicle's still: newer equipment, commercial containers, unfamiliar communications gear | hold | film-int3-12, film-int3-13, film-int3-14 | room tone, night | cut |
+| 2 | 9 | board | | the still | `zoom` into the containers | | io | film-int3-15 | | cut |
+| 3 | 11 | board | | another still of the same vehicle | the same, held in silence after the line | | hold | film-int3-16, film-int3-17 | | dip |
+| 4 | 3 | board | | black | | | hold | | | cut |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -288,7 +288,7 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### M4 intro (`int4-intro`, M4_00)
 
-**Length:** about 55 s.
+**Length:** about 45 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -318,7 +318,7 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### M4 outro (`int4-outro`, M4_11)
 
-**Length:** about 50 s.
+**Length:** about 36 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -345,7 +345,7 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### M5 intro (`int5-intro`, M5_00)
 
-**Length:** about 45 s.
+**Length:** about 37 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -368,14 +368,14 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### Ending A, EXECUTE (`int5-end-a`)
 
-**Length:** about 40 s. Starts from the strike's white out in play.
+**Length:** about 34 s. Starts from the strike's white out in play.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 4 | drone | 85 | white | the feed returning: Rancho Sin Nombre, the boxes gone in smoke, no person shown | the camera ball's picture, the HUD | out | | silence | dip |
-| 2 | 9 | handheld | 35 | a small radio speaker on the table | the BOARD beyond it | the news heard faintly | hold | film-int5-a1 | the news under room tone | cut |
-| 3 | 7 | board | | `faction [network]` markers remaining | one new UNKNOWN appearing | | hold | film-int5-a2, film-int5-a3 | | cut |
-| 4 | 10 | drone | 35 | an empty clearing at Rincón Quemado, morning | the same, slow | | io | film-int5-a4, film-int5-a5 | wind | dip (to the final cinematic) |
+| 1 | 5 | drone | 85 | white | the feed returning: Rancho Sin Nombre, the boxes gone in smoke, no person shown | the camera ball's picture, the HUD | out | | silence | dip |
+| 2 | 10 | handheld | 35 | a small radio speaker on the table | the BOARD beyond it | the news heard faintly | hold | film-int5-a1 | the news under room tone | cut |
+| 3 | 8 | board | | `faction [network]` markers remaining | one new UNKNOWN appearing | | hold | film-int5-a2, film-int5-a3 | | cut |
+| 4 | 11 | drone | 35 | an empty clearing at Rincón Quemado, morning | the same, slow | | io | film-int5-a4, film-int5-a5 | wind | dip (to the final cinematic) |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -387,13 +387,13 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 
 ### Ending B, PRESERVE (`int5-end-b`)
 
-**Length:** about 40 s. Starts as ARCHIVE TRANSFER COMPLETE shows.
+**Length:** about 33 s. Starts as ARCHIVE TRANSFER COMPLETE shows.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 5 | drone | 85 | the archive in frame, the transfer bar full | the same | ARCHIVE TRANSFER COMPLETE | hold | | silence; Ibarra says nothing | dip |
-| 2 | 12 | board | | the network graph: the Column's few nodes | hundreds of connections; the Column shrinking inside, the Network growing | | io | film-int5-b1, film-int5-b2 | THE NETWORK, then quiet | cut |
-| 3 | 8 | handheld | 50 | the BOARD from the player's station | the same | the line is said to the station | hold | film-int5-b3 | | dip (to the final cinematic) |
+| 1 | 8 | drone | 85 | the archive in frame, the transfer bar full | the same | ARCHIVE TRANSFER COMPLETE | hold | | silence; Ibarra says nothing | dip |
+| 2 | 14 | board | | the network graph: the Column's few nodes | hundreds of connections; the Column shrinking inside, the Network growing | | io | film-int5-b1, film-int5-b2 | THE NETWORK, then quiet | cut |
+| 3 | 11 | handheld | 50 | the BOARD from the player's station | the same, held in silence after the line | the line is said to the station | hold | film-int5-b3 | | dip (to the final cinematic) |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -404,13 +404,13 @@ filling with UNKNOWN; Vega's mantra. **Length:** about 60 s.
 ### Ending C, FOLLOW (`int5-end-c`)
 
 The follow itself is play (MISSIONS M5 stage 6). The film starts when
-the two old men meet at Vado del Manso. **Length:** about 35 s.
+the two old men meet at Vado del Manso. **Length:** about 33 s.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 10 | drone | 200 | the ford from high, two small figures, a car | the boxes passing from one to the other | through the camera ball, the HUD; no weapons raised | hold | film-int5-c1 | water, birds | cut |
-| 2 | 8 | board | | `faction [network]` tracks on another screen | the same | | hold | film-int5-c2, film-int5-c3 | | cut |
-| 3 | 7 | board | | `alert OLD COLUMN ATTEMPTING SEPARATION FROM NETWORK` | the same | the card | hold | | silence | dip (to the final cinematic) |
+| 1 | 13 | drone | 200 | the ford from high, two small figures, a car | the boxes passing from one to the other | through the camera ball, the HUD; no weapons raised | hold | film-int5-c1 | water, birds | cut |
+| 2 | 10 | board | | `faction [network]` tracks on another screen | the same | | hold | film-int5-c2, film-int5-c3 | | cut |
+| 3 | 10 | board | | `alert OLD COLUMN ATTEMPTING SEPARATION FROM NETWORK` | the same | the card | hold | | silence | dip (to the final cinematic) |
 
 | id | cue | who | EN |
 | --- | --- | --- | --- |
@@ -423,20 +423,21 @@ the two old men meet at Vado del Manso. **Length:** about 35 s.
 Whatever the ending. **Idea:** the same farmland, river, road and forest
 as Mission 1, in morning light, no music at first; flashes of the
 campaign from the squad's own captures; Ibarra's question turned round.
-**Length:** about 75 s (the bound; if the measured lines push past it,
-the memory flashes in shot 2 shorten, never the lines).
+**Length:** about 68 s, leaving room under the 75 s bound for the
+measured Spanish lines; if they still push past it, the memory flashes in
+shot 2 shorten, never the lines.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 9 | drone | 24 | over Sector Alpha at morning, Puente Doble and Río Sereno | Ruta Vieja | rides a Bramor's route over M1's ground | lin | | wind only | match |
-| 2 | 10 | board | | `stills` in quick succession: the first thermal contacts, the hidden camp, the road watcher, the younger faction, the hostile drone, the Network meeting, the archive | the archive still | each from the squad's captures (`cap:*`), else the authored frame; the inserts read the flags (`M5_ARCHIVE_COMPLETE` adds archive frames) | lin, 1.4 s each | | a single note per still | match |
-| 3 | 9 | drone | 35 | over Rincón Quemado, abandoned | the forest | it looks almost insignificant | io | film-int5-f1 | wind | cut |
-| 4 | 6 | drone | 35 | Monte Cerrado filling the frame | the same | | lin | film-int5-f2 | | cut |
+| 1 | 8 | drone | 24 | over Sector Alpha at morning, Puente Doble and Río Sereno | Ruta Vieja | rides a Bramor's route over M1's ground | lin | | wind only | match |
+| 2 | 9 | board | | `stills` in quick succession: the first thermal contacts, the hidden camp, the road watcher, the younger faction, the hostile drone, the Network meeting, the archive | the archive still | each from the squad's captures (`cap:*`), else the authored frame; the inserts read the flags (`M5_ARCHIVE_COMPLETE` adds archive frames) | lin, 1.3 s each | | a single note per still | match |
+| 3 | 8 | drone | 35 | over Rincón Quemado, abandoned | the forest | it looks almost insignificant | io | film-int5-f1 | wind | cut |
+| 4 | 5 | drone | 35 | Monte Cerrado filling the frame | the same | | lin | film-int5-f2 | | cut |
 | 5 | 5 | drone | 35 | Ruta Vieja | the same | | lin | film-int5-f3 | | cut |
-| 6 | 6 | drone | 50 | Claro Viejo, empty | the same | | lin | film-int5-f4 | | cut |
-| 7 | 8 | crane | 24 | low over the forest | rising: the whole region | the drone climbs | io | film-int5-f5, film-int5-f6 | THE INTERIOR enters | cut |
-| 8 | 8 | drone | 18 | the whole Interior from high | the same | | hold | film-int5-f7 | | cut |
-| 9 | 7 | board | | the map, Old Column markers | the markers fading; new UNKNOWN markers appearing elsewhere | not enemies, just unknowns | io | | | smash |
+| 6 | 5 | drone | 50 | Claro Viejo, empty | the same | | lin | film-int5-f4 | | cut |
+| 7 | 7 | crane | 24 | low over the forest | rising: the whole region | the drone climbs | io | film-int5-f5, film-int5-f6 | THE INTERIOR enters | cut |
+| 8 | 7 | drone | 18 | the whole Interior from high | the same | | hold | film-int5-f7 | | cut |
+| 9 | 6 | board | | the map, Old Column markers | the markers fading; new UNKNOWN markers appearing elsewhere | not enemies, just unknowns | io | | | smash |
 | 10 | 3 | board | | black | black | three seconds of silence | hold | | silence | cut |
 | 11 | 5 | board | | black | the title: PARAGUAYAN / COMBAT DRONE / SIMULATOR, THE INTERIOR, CAMPAIGN COMPLETE | | hold | | | cut (to the credits) |
 
@@ -466,7 +467,11 @@ last frame fades. **Length:** 30 s.
 | 6 | 2 | board | | black | black | | hold | | silence | end |
 
 The frozen frame is the Bramor or the recon quad, whichever the squad
-flew most in M5 (the room knows).
+flew most in M5 (the room knows). The 6 s of black that opens it exists
+only to meet the 30 s floor. Appending the stinger to the final
+cinematic's film instead was considered and does not fit: about 68 s
+and 24 s of picture is over the 75 s bound. So the padding is the plan,
+and no threshold changes.
 
 ---
 

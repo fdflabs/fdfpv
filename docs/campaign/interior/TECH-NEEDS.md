@@ -2,7 +2,7 @@
 
 Written 2026-10-05 for the agents who build The Interior, one phase at a
 time (PLAN.md section 8). Every design in MISSIONS.md and INTROS.md cites
-a row here (N1 to N23). Each row says what exists today, read on
+a row here (N1 to N24). Each row says what exists today, read on
 `origin/main` at bfe2b425, what has to be built, the check named before
 building, and a rough size. **Verify each "today" claim before building
 on it**: this was written from a read of the tree, not from running every
@@ -378,6 +378,28 @@ what it needs.
 - **Check:** the war's music check, extended to the Interior's beds.
 - **Size:** M (P0), S per later identity.
 
+### N24. Films beyond the briefing (P0: outro and chaining; later: endings)
+
+- **Today:** `src/share/war/films/index.js` gives each mission one film,
+  played as the room's briefing (`filmFor`, `briefingMs`), and
+  `edge/rooms/war.js` holds the briefing for its length. Nothing plays
+  a film at a mission's end, chains two films, or plays one from a
+  menu; "watch again" is a rule of the house INTROS (section 3), not
+  code read here.
+- **Build:** a mission names an ordered film list by moment: `prologue`
+  (the campaign's opening, once, before M1's intro), `intro` (the
+  briefing, as today), `outro` (after the mission's end trigger, over
+  the debrief's stills), and for M5 `ending` by `M5_FINAL_CHOICE`, then
+  `final`, then `stinger` after the credits. The room holds each for its
+  length and runs the seen and skip rule for each; a menu entry plays
+  any film this pilot has seen.
+- **Phase 0:** the prologue then M1 intro chain, and M1's outro after
+  the landing. The endings, the final cinematic and the stinger are M5.
+- **Check:** `films:lint` over every listed film; the room selftest
+  proves an outro starts on the end trigger and a chain plays in order
+  for a late joiner too.
+- **Size:** M.
+
 ### N23. Props and assets
 
 Listed per mission in section 3; each made low detail, instanced where
@@ -401,7 +423,7 @@ repeated, checked by `interior:views`.
 | Camera ball | N14 | `camera:lock` | L |
 | Roles, deal, swap, guide routing (M1's roles: ISR, TRACKER) | N16 | `roles:deal` | L |
 | Camp alertness and standoff | N17 | in `interior:stages` | S |
-| BOARD insert; the opening film, M1 intro and outro | N18, N9 | `films:lint`, `films:time`, `board:render` | M |
+| BOARD insert; the opening film, M1 intro and outro; the prologue to intro chain and the outro after the landing | N18, N9, N24 | `films:lint`, `films:time`, `board:render` | M |
 | Four voices, the archive voices, M1's lines in en and es | N10 | `voice:check` | M |
 | Campaign card with all five, flags, consent | N20 | `campaign:selftest`, `campaign:check` | M |
 | Ambient world for M1 | N21 | `interior:views` | M |

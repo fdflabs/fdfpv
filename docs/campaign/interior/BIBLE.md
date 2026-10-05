@@ -89,11 +89,20 @@ It merely looks empty from the road").
 
 ### 2.2 The invented places
 
-Every name here is invented for the game. Each was searched with
-"Paraguay" on 2026-10-05 and found no town, district or locality of that
-name there (descriptive names such as "Silo Viejo" are common nouns, not
-places). Any new name follows the same rule and the same search before
-it is used.
+Every name here is invented for the game. On 2026-10-05 these were
+searched with "Paraguay" and no town, district or locality of that name
+was found there: Río Sereno (a town of that name exists in Panama, none
+in Paraguay), Colonia Arroyo Manso, Arroyo Manso, Puesto Arenal, Estancia
+La Ceniza, Rincón Quemado, Puente Doble, Claro Viejo, Claro Nuevo, Pista
+Cero, Monte Cerrado (only the cerrado biome came up), Loma del Vigía,
+Cruce Tranquera, Corral Viejo, La Pista Larga, Vado del Manso, Rancho
+Sin Nombre. Two candidates were dropped on that search: "Los Tres
+Cedros" (too close to the real Los Cedrales district) and a name with
+"Mojón" (a real border marker). Not searched, because they are common
+nouns the rule treats as descriptions rather than places: Ruta Vieja,
+Ruta Nueva, Senda del Vigía, Galpones del Cruce, Silo Viejo, the cañada.
+A web search is not proof of absence, so the owner's eye is the last
+check; any new name follows the same rule and the same search.
 
 | Name | What it is | First used |
 | --- | --- | --- |

@@ -4,7 +4,7 @@ Written 2026-10-05. The five missions of The Interior, each planned to
 the depth needed to build it later without re-planning, on the model of
 Defend the Paraná's Act 1 (docs/campaign/MISSIONS.md). The world, the
 voices, the HUD words and the mark are BIBLE.md; each mission's films are
-INTROS.md; the engine parts cited as N1 to N23 are TECH-NEEDS.md.
+INTROS.md; the engine parts cited as N1 to N24 are TECH-NEEDS.md.
 
 **Scope (owner, 2026-10-05):** only Mission 1 is built now, to
 completion. Missions 2 to 5 are planned here in full and show **Under
@@ -187,8 +187,10 @@ release):
 
 - **Ids:** `int<N>-<stage>-<slug>`, the mission's films `film-int<N>-<n>`,
   shared lines `int-<slug>`.
-- **Columns:** id, cue (the trigger and offset), who, heard (all or a
-  role), EN. Lines wait their turn in the radio's queue; a story line
+- **Columns:** id, cue (the trigger and offset), who, heard, EN.
+  **Heard** is `all`, a role, or a seat ("the pilot crossing": the
+  boundary lines go only to the seat that crossed), so N16's routing
+  needs both role and seat targets. Lines wait their turn in the radio's queue; a story line
   outranks a guide line; an end line outranks everything.
 - **Spanish:** every line gets its es text in the same row of the voice
   file when it is generated (the brief: no es table now). Ustedes when the
