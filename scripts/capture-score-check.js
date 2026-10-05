@@ -228,7 +228,19 @@ console.log('the wire: a real room, the client module');
   const camDir = { dir: unit(P1, sym), tanHalf: 0.004, aspect: 16 / 9 };
   c1.sample(client.view(), 0, P1, camDir);
   const st1 = c1.still(client.view(), 0, P1, camDir);
-  check('the scorer flags the same still as outside its band', st1.item === 'symbol' && st1.band === false, JSON.stringify(st1));
+  check('the room says what has opened (the view\'s `opened`), and the mark is not yet', Array.isArray(client.view().opened) && !client.view().opened.includes('symbol'), JSON.stringify(client.view().opened));
+  check('so the scorer predicts the same refusal and sends nothing (angle)', st1.why === 'angle', JSON.stringify(st1));
+  const opened = { ...client.view(), opened: ['symbol'] };
+  const c2 = createCapture(M, W);
+  c2.sample(opened, 0, P1, camDir);
+  const st2 = c2.still(opened, 0, P1, camDir);
+  check('once the room says the mark has opened, the same still is proposed', st2.item === 'symbol' && st2.band === true && Boolean(st2.msg), JSON.stringify(st2.framing ?? st2.why));
+  const old = { ...client.view() };
+  delete old.opened;
+  const c3 = createCapture(M, W);
+  c3.sample(old, 0, P1, camDir);
+  const st3 = c3.still(old, 0, P1, camDir);
+  check('a room that does not say what has opened is still asked', st3.item === 'symbol' && st3.band === false && Boolean(st3.msg), JSON.stringify(st3.framing ?? st3.why));
 }
 
 console.log('stills');

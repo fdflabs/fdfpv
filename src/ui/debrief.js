@@ -248,9 +248,10 @@ export class Debrief {
     el('div', 'debrief-eyebrow', box, str('ops.debrief.eyebrow'));
     el('h2', '', box, word(mission.title));
     const won = view.result ? view.result.won : view.state === 'won';
-    el('div', `debrief-result${won ? '' : ' lost'}`, box, won
+    const ended = !won && view.state === 'ended';
+    el('div', `debrief-result${won || ended ? '' : ' lost'}`, box, won
       ? str('ops.debrief.won')
-      : str('ops.debrief.lost', { why: word(`ops.why.${skey(view.why ?? 'end')}`) }));
+      : ended ? str('ops.debrief.ended') : str('ops.debrief.lost', { why: word(`ops.why.${skey(view.why ?? 'end')}`) }));
     const stars = el('div', 'debrief-stars', box);
     const got = new Set((view.result && view.result.starIds) || []);
     for (const s of mission.stars ?? []) {

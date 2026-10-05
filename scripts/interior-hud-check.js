@@ -115,6 +115,8 @@ console.log('the rules');
 const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'bramor2300');
 Object.assign(seated, {
   map: 'swiss2', graphics: 'low', graphicsAuto: false, fpsCap: 0, airframeAsked: true, wingView: 'ball',
+  /* The consent answered: a joiner's is interior:coop's to check. */
+  interiorConsent: true,
 });
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};

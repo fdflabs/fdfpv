@@ -165,6 +165,16 @@ export function createRoomOps(send) {
     capture(msg) {
       send(msg);
     },
+    /* The films this pilot watched to their end, { id: version }
+     * (CONTRACT-P0.md 3 `seen`): the host's skip waits on everybody's. */
+    seen(films) {
+      say('seen', { films });
+    },
+    /* The host's end of the briefing for everybody, once every pilot here
+     * has seen its film (refused 'unwatched' otherwise). */
+    skipIntro() {
+      say('skipIntro');
+    },
     take(role) {
       say('take', { role });
     },

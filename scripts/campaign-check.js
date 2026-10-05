@@ -209,15 +209,22 @@ try {
     ops.cards.map((x) => `${x.name} ${x.box}`).join(' | '));
   await shot(page, 'operations');
 
-  /* THE INTERIOR'S CARD: one click onto its page, five missions, Mission
-   * 1 held until release and 2 to 5 Under development (the owner's
-   * words), no consent asked and no room made by the card. */
+  /* THE INTERIOR'S CARD: its first press plays the campaign's prologue
+   * (docs/campaign/interior/FILMS.md, once per pilot, unskippable the
+   * first time) over the Interior's world, then its page: five missions,
+   * Mission 1 held until release and 2 to 5 Under development (the
+   * owner's words), no consent asked and no room made by the card. */
   await click(page, '.gate-card-interior .gate-card-name');
   const INTERIOR_PAGE = `(() => {
     const box = document.querySelector('.ops-campaign-box');
     if (!box || document.querySelector('.name-dialog').hidden) { return null; }
     return [...box.querySelectorAll('.campaign-mission')].map((m) => ({ id: m.dataset.mission, play: m.querySelector('.campaign-play').textContent, on: !m.querySelector('.campaign-play').disabled }));
   })()`;
+  const PROLOGUE = "(window.__warIntro() || {}).for === 'ops:interior-prologue'";
+  await page.until(PROLOGUE, 600000).catch(() => {});
+  const prologue = await page.evaluate(`({ playing: ${PROLOGUE}, page: ${INTERIOR_PAGE} !== null, map: window.__map().id })`);
+  check('The Interior\'s first press plays its prologue over the Interior\'s world, before its page', prologue.playing && !prologue.page && prologue.map === 'interior', JSON.stringify(prologue));
+  await page.until(`!(${PROLOGUE})`, 300000).catch(() => {});
   await page.until(`${INTERIOR_PAGE} !== null`, 10000).catch(() => {});
   const interior = await page.evaluate(INTERIOR_PAGE);
   const iUnasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.interiorConsent === true })");

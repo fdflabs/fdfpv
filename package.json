@@ -135,6 +135,8 @@
     "interior:hud": "node scripts/interior-hud-check.js",
     "interior:debrief": "node scripts/interior-debrief-check.js",
     "interior:fly": "node scripts/interior-fly-check.js",
+    "interior:coop": "node scripts/interior-coop-check.js",
+    "interior:filmplay": "node scripts/interior-filmplay-check.js",
     "war:stagescreen": "node scripts/war-stage-screen-check.js",
     "films:time": "node scripts/films-time.js",
     "films:lint": "node scripts/films-lint.js",
