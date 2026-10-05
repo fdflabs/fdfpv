@@ -333,6 +333,61 @@ const GradeShader = {
   `,
 };
 
+/*
+ * A contrast adaptive sharpen, after AMD's CAS: five taps, and the weight
+ * falls where the neighbourhood is already near black or white, so edges
+ * firm up without haloes and flat sky stays flat. It runs last, on display
+ * values, and only while dynamic resolution has the frame below native
+ * (`enabled` is false at scale 1, and the composer then hands the screen
+ * to the pass before it, so a native frame is untouched). Fixed strength,
+ * so a scale step does not visibly change the look mid flight.
+ */
+const SharpenShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTexel: { value: new THREE.Vector2(1, 1) },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 uTexel;
+    varying vec2 vUv;
+    void main() {
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      vec3 n = texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb;
+      vec3 s = texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb;
+      vec3 e = texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb;
+      vec3 w = texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb;
+      vec3 mn = min(c, min(min(n, s), min(e, w)));
+      vec3 mx = max(c, max(max(n, s), max(e, w)));
+      vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
+      vec3 wt = amp * (-1.0 / 6.5);
+      gl_FragColor = vec4((c + (n + s + e + w) * wt) / (1.0 + 4.0 * wt), 1.0);
+    }
+  `,
+};
+
+/* The sharpen pass for a composer, disabled; see SharpenShader. */
+export function makeSharpenPass() {
+  const pass = new ShaderPass(SharpenShader);
+  pass.enabled = false;
+  return pass;
+}
+
+/* Keeps the sharpen pass's texel in step with the buffer it reads. */
+export function sizeSharpenPass(pass, width, height, ratio) {
+  pass.material.uniforms.uTexel.value.set(
+    1 / Math.max(1, Math.floor(width * ratio)),
+    1 / Math.max(1, Math.floor(height * ratio)),
+  );
+}
+
 export function buildComposer(renderer, scene, camera, quality) {
   const size = new THREE.Vector2();
   renderer.getSize(size);
@@ -445,6 +500,9 @@ export function buildComposer(renderer, scene, camera, quality) {
   }
   const grade = new ShaderPass(GradeShader);
   composer.addPass(grade);
+  const sharpen = makeSharpenPass();
+  composer.addPass(sharpen);
+  sizeSharpenPass(sharpen, w, h, 1);
 
   /*
    * The composer keeps two full size targets and swaps them, but only one
@@ -668,6 +726,7 @@ export function buildComposer(renderer, scene, camera, quality) {
      */
     composer.setPixelRatio(p);
     composer.setSize(width, height);
+    sizeSharpenPass(sharpen, width, height, p);
     if (normalTarget) {
       normalTarget.setSize(bw, bh);
     }
@@ -690,6 +749,7 @@ export function buildComposer(renderer, scene, camera, quality) {
       composer.render();
     },
     setSize,
+    sharpen,
     /*
      * Everything this composer owns, freed in one place. The render targets
      * are what the budget counts, but the PASS MATERIALS are what the
@@ -718,6 +778,7 @@ export function buildComposer(renderer, scene, camera, quality) {
         outline.material.dispose();
       }
       grade.material.dispose();
+      sharpen.material.dispose();
       composer.copyPass.material.dispose();
       if (normalMaterial) {
         normalMaterial.dispose();

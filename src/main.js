@@ -52,7 +52,7 @@
 import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
 import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
-import { createPace, PACE_COOL } from './render/pace.js';
+import { createDynRes } from './render/dynres.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
@@ -951,6 +951,9 @@ export async function boot({
   const gpuInfo = readGpuInfo(shell.renderer);
   ui.setGpuInfo(gpuInfo);
   window.__gpu = gpuInfo;
+  const dynres = createDynRes();
+  dynres.bind(shell.renderer.getContext(), gpuInfo.software);
+  dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
   /*
    * A machine with no usable GPU hands WebGL to SwiftShader or llvmpipe and
    * keeps drawing, so nothing fails and nothing says why. It just runs at a
@@ -1231,9 +1234,10 @@ export async function boot({
      * the ratio depends on the window's area through the field's pixel
      * budget, which by definition changes when the window does.
      */
-    const wantPr = pixelRatioFor(ui.settings.graphics, renderScaleOf(ui.settings));
+    const dyn = dynres.state.scale;
+    const wantPr = pixelRatioFor(ui.settings.graphics, renderScaleOf(ui.settings), null, dyn);
     if (Math.abs(wantPr - shell.pixelRatio) > 0.001) {
-      applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings));
+      applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings), null, dyn);
     }
     /* mapReady as well as view: a swap disposes the old pipeline before it
      * builds the new one, and a resize landing in that window used to call
@@ -1241,6 +1245,9 @@ export async function boot({
      * false for exactly that gap. */
     if (view && view.post && mapReady) {
       view.post.setSize(d.w, d.h);
+      if (view.post.sharpen) {
+        view.post.sharpen.enabled = dyn < 1;
+      }
     }
   }
   /*
@@ -11212,6 +11219,8 @@ export async function boot({
     } catch (e) {
       /* Already gone, or the last swap never produced a world. */
     }
+    /* A new world starts native: its cost is not the old one's. */
+    dynres.reset();
     applyPixelRatio(shell, wantQ, renderScaleOf(ui.settings));
     try {
       view = await loadMap(shell, wantId, loading, {
@@ -11593,7 +11602,10 @@ export async function boot({
      * walk the same guarded resize path a window resize takes, so the
      * composer and every prepass target follow in one place. */
     const userScale = renderScaleOf(s);
-    const wantPr = pixelRatioFor(s.graphics, userScale);
+    if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
+      resizeDirty = true;
+    }
+    const wantPr = pixelRatioFor(s.graphics, userScale, null, dynres.state.scale);
     const userChanged = !!(view && view.post && view.post.userScale != null
       && view.post.userScale !== userScale);
     if (view && view.post && view.post.userScale != null) {
@@ -11602,7 +11614,7 @@ export async function boot({
     /* An export surface re-applies the settings' size when it goes. */
     if (!exportShot && (shell.pixelRatio !== wantPr || userChanged)) {
       if (shell.pixelRatio !== wantPr) {
-        applyPixelRatio(shell, s.graphics, userScale);
+        applyPixelRatio(shell, s.graphics, userScale, null, dynres.state.scale);
       }
       const d = shell.resize();
       if (view && view.post && mapReady) {
@@ -16245,11 +16257,13 @@ export async function boot({
       /* With the Avionics HUD up the camera is a sensor: its picture in
        * picture, and the main view in its mode when the pilot puts the
        * sensor full screen (src/avionics/sensors.js). */
+      dynres.beginGpu();
       if (avionicsHud.on) {
         sensors.render(view.post);
       } else {
         view.post.render();
       }
+      dynres.endGpu();
       if (mode === 'replay') {
         crashCam.afterRender();
       } else if (warIntro) {
@@ -16922,14 +16936,15 @@ export async function boot({
      * hardware independent. Two scalars, written not allocated: P8 forbids
      * a new object here. */
     const blockMs = performance.now() - blockStart;
-    if (view && view.post && typeof view.post.applyPace === 'function') {
-      pace.observe(dt, renderMs, blockMs, view.post);
-      if (pace.state.dirty) {
-        if (view.post.applyPace(pace.state.want)) {
-          pace.state.cool = PACE_COOL;
-          pace.state.changes += 1;
+    if (drawThis && worldLive && mapReady && !exportShot && !ui.hangar.isOpen) {
+      const before = dynres.state.scale;
+      if (dynres.observe(performance.now(), blockMs - renderMs)) {
+        const pr = pixelRatioFor(ui.settings.graphics, renderScaleOf(ui.settings), null, dynres.state.scale);
+        if (Math.abs(pr - shell.pixelRatio) > 0.001) {
+          resizeDirty = true;
+        } else {
+          dynres.refuse(before);
         }
-        pace.state.dirty = 0;
       }
     }
     if (frames > 2) {
@@ -17009,36 +17024,10 @@ export async function boot({
   let frames = 0;
   /* Render statistics for the harness and the frame budget gate. */
   const renderStats = { calls: 0, triangles: 0 };
-  const pace = createPace();
   shell.renderer.info.autoReset = false;
   window.__renderStats = () => ({ ...renderStats });
-  window.__pace = () => ({
-    emaMs: pace.state.emaMs,
-    renderEma: pace.state.renderEma,
-    shellEma: pace.state.shellEma,
-    p95Ms: pace.p95(),
-    dtN: pace.state.dtN,
-    scale: pace.state.scaleNow,
-    ceil: pace.state.ceil,
-    floor: pace.state.floor,
-    want: pace.state.changes ? pace.state.want : pace.state.ceil,
-    cpuBound: pace.state.cpuBound,
-    changes: pace.state.changes,
-    warm: pace.state.warm,
-    rw: pace.state.rw,
-    rh: pace.state.rh,
-    fps,
-    gpu: gpuInfo ? {
-      name: gpuInfo.name,
-      display: gpuInfo.display,
-      software: gpuInfo.software,
-      raw: gpuInfo.raw,
-    } : null,
-  });
-  window.__paceReset = () => {
-    pace.resetSamples();
-    return pace.state.dtN;
-  };
+  /* Dynamic resolution's live state, for scripts/dynres-check.js. */
+  window.__dynres = () => ({ ...dynres.state, pixelRatio: shell.pixelRatio, fps });
   /*
    * What the GPU is holding, for scripts/memory-check.js. Three.js counts
    * live geometries and textures itself, and those two numbers are the ones

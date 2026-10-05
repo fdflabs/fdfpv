@@ -60,6 +60,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+import { makeSharpenPass, sizeSharpenPass } from '../../render/post.js';
 
 /*
  * The air. Extinction at the valley floor per metre, per channel: blue is
@@ -853,11 +854,15 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air 
   const fxaa = new ShaderPass(FXAAShader);
   fxaa.material.uniforms.resolution.value.set(1 / w, 1 / h);
   composer.addPass(fxaa);
+  const sharpen = makeSharpenPass();
+  composer.addPass(sharpen);
+  sizeSharpenPass(sharpen, w, h, 1);
 
   function setSize(width, height) {
     const p = renderer.getPixelRatio();
     composer.setPixelRatio(p);
     composer.setSize(width, height);
+    sizeSharpenPass(sharpen, width, height, p);
     fxaa.material.uniforms.resolution.value.set(1 / Math.max(1, Math.floor(width * p)), 1 / Math.max(1, Math.floor(height * p)));
     if (ao) {
       photo.material.uniforms.uAoTexel.value.set(1 / ao.target.width, 1 / ao.target.height);
@@ -870,6 +875,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air 
       composer.render();
     },
     setSize,
+    sharpen,
     /* The pass materials as well as the targets: three frees a compiled
      * program only when the material that owns it is disposed. The
      * FullScreenQuads are not disposed, for post.js's reason: their
@@ -893,6 +899,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air 
         ao.dispose();
       }
       fxaa.material.dispose();
+      sharpen.material.dispose();
       composer.copyPass.material.dispose();
     },
     outline: null,

@@ -38,9 +38,11 @@ import { str } from '../strings/index.js';
  *   Low / Medium / High mid session: a hitch in FPV is less honest
  *   than a menu the pilot opened on purpose. Internal resolution is the
  *   Render scale slider, which the pilot sets and which does not change
- *   the named preset. It is not automatic: the pacer that would have
- *   driven it needs a per map applyPace hook that no map implements,
- *   and pace.js says so at the top of the file.
+ *   the named preset. On top of both sits dynamic resolution
+ *   (src/render/dynres.js), which lowers the ratio a step at a time
+ *   while the GPU is over its frame budget and gives it back when there
+ *   is headroom. It is a ratio, never a preset: shadows, bloom and ink
+ *   stay as the pilot chose them.
  *
  *   "Low, a bit less grass."
  *   Blades are not drawn at any preset. The first 184000 world draws
@@ -218,7 +220,7 @@ export function detectDefaultGraphics() {
  * cannot afford that. The 0.5 floor still holds, below it text in the
  * world stops being text.
  */
-export function pixelRatioFor(id, scale = 1, viewport = null) {
+export function pixelRatioFor(id, scale = 1, viewport = null, dyn = 1) {
   const q = qualityFor(id);
   const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
   let pr = Math.min(dpr, q.pixelRatioCap) * q.resolutionScale * scale;
@@ -259,6 +261,21 @@ export function pixelRatioFor(id, scale = 1, viewport = null) {
       pr = cap;
     }
   }
+  /*
+   * Dynamic resolution multiplies AFTER the budget, or a 1440p screen that
+   * the budget already clamped could never drop at all. It never takes the
+   * frame under MIN_INTERNAL_PIXELS (rubric F4: a 1080p panel is not paced
+   * into 720p to buy a frame), and never raises a ratio the pilot or the
+   * budget already brought below that.
+   */
+  if (dyn < 1) {
+    let floor = pr;
+    if (vp && vp.w > 0 && vp.h > 0) {
+      const f4 = Math.sqrt(MIN_INTERNAL_PIXELS / (vp.w * vp.h));
+      floor = f4 < pr ? f4 : pr;
+    }
+    pr = Math.max(floor, pr * dyn);
+  }
   return Math.max(0.5, pr);
 }
 
@@ -274,51 +291,15 @@ function defaultViewport() {
   return w > 0 && h > 0 ? { w, h } : null;
 }
 
-export function applyPixelRatio(shell, id, scale = 1, viewport = null) {
-  const pr = pixelRatioFor(id, scale, viewport);
+export function applyPixelRatio(shell, id, scale = 1, viewport = null, dyn = 1) {
+  const pr = pixelRatioFor(id, scale, viewport, dyn);
   shell.pixelRatio = pr;
   shell.renderer.setPixelRatio(pr);
   return pr;
 }
 
 /*
- * Internal buffer scale for a compact map pipeline.
- *
- * pixelBudget is a ceiling on CSS width times height times scale
- * squared. minScale is the pacer floor as a fraction of CSS size, and
- * it must not raise the buffer above the budget: High used to take
- * max(minScale, budgetCap) with minScale 1, so a 3840x2160 panel
- * rendered native HalfFloat. preferScale is the authored look.
- * userScale is the Render scale slider. forceScale is the pacer; null
- * means "use the authored ceiling", 0 clamps to the floor.
- *
- * 1,200,000 is the absolute pixel floor so a 1080p panel cannot be
- * paced into 720p to buy a frame. That is rubric F4.
+ * 1,200,000 is the absolute pixel floor so a 1080p panel cannot be paced
+ * into 720p to buy a frame. That is rubric F4.
  */
 const MIN_INTERNAL_PIXELS = 1200 * 1000;
-
-export function internalScale(w, h, mapQ, forceScale, userScale) {
-  const area = Math.max(1, w * h);
-  const prefer = (mapQ.preferScale == null ? 1 : mapQ.preferScale)
-    * (userScale == null ? 1 : userScale);
-  const budget = mapQ.pixelBudget > 0 ? mapQ.pixelBudget : area;
-  const cap = Math.sqrt(budget / area);
-  const ceil = prefer < cap ? prefer : cap;
-  if (forceScale == null) {
-    return ceil;
-  }
-  const cssFloor = mapQ.minScale == null ? 0.75 : mapQ.minScale;
-  const absFloor = Math.sqrt(MIN_INTERNAL_PIXELS / area);
-  let floor = cssFloor > absFloor ? cssFloor : absFloor;
-  if (floor > ceil) {
-    floor = ceil;
-  }
-  let s = forceScale;
-  if (s > ceil) {
-    s = ceil;
-  }
-  if (s < floor) {
-    s = floor;
-  }
-  return s;
-}
