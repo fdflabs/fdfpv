@@ -47,9 +47,15 @@ import { makeVehicles } from '../../render/interior/vehicles.js';
 import { buildCamp } from '../../render/interior/camp.js';
 import { buildAmbient } from '../../render/interior/ambient.js';
 
-/* Clothes, linear: faded work shirts, olive and grey for the camp. */
-const TINTS = [[0.1, 0.12, 0.07], [0.13, 0.13, 0.12], [0.1, 0.08, 0.06], [0.18, 0.15, 0.1], [0.07, 0.09, 0.13], [0.26, 0.25, 0.22]];
-const tintOf = (id) => TINTS[Math.floor(hash01(id.length, id.charCodeAt(0) + id.charCodeAt(id.length - 1), 61) * TINTS.length)];
+/* Shirts, linear: faded olive, khaki and grey work shirts, a washed
+ * blue, a white one gone cream, black, a dull red, a camouflage brown. */
+const TINTS = [[0.1, 0.12, 0.07], [0.2, 0.17, 0.11], [0.15, 0.15, 0.14], [0.06, 0.1, 0.18], [0.3, 0.28, 0.23], [0.03, 0.03, 0.03], [0.26, 0.07, 0.05], [0.12, 0.1, 0.06]];
+/* Paint, linear: an old red, a faded blue, black, a sun bleached white. */
+const PAINTS = [[0.3, 0.03, 0.02], [0.04, 0.09, 0.25], [0.025, 0.025, 0.03], [0.45, 0.45, 0.42]];
+/* A whole number from a contact's id, so every screen dresses it alike. */
+const seedOf = (id) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7);
+const tintOf = (id) => TINTS[Math.floor(hash01(seedOf(id), 3, 61) * TINTS.length)];
+const paintOf = (id) => PAINTS[Math.floor(hash01(seedOf(id), 5, 62) * PAINTS.length)];
 
 /*
  * Build it before the colliders are built (camp.js and ambient.js add
@@ -83,24 +89,26 @@ export function buildLife({
       if (!p) {
         continue;
       }
-      const tint = c.tint || tintOf(c.id);
+      const seed = seedOf(c.id);
       if (c.kind === 'motorcycle' || c.kind === 'pickup') {
-        cars.push({ ...p, kind: c.kind, tint });
+        cars.push({ ...p, kind: c.kind, tint: c.tint || paintOf(c.id) });
         if (c.kind === 'motorcycle' && p.action === 'drive') {
-          people.push({ ...p, y: p.y + 0.35, action: 'sit', tint: [0.3, 0.3, 0.32] });
+          people.push({
+            ...p, action: 'ride', tint: [0.3, 0.3, 0.32], seed,
+          });
         }
       } else {
-        people.push({ ...p, tint });
+        people.push({ ...p, tint: c.tint || tintOf(c.id), seed });
         if (p.action === 'pushMotorcycle') {
           cars.push({
-            x: p.x + 0.9 * Math.sin(p.heading) - 0.6 * Math.cos(p.heading), y: p.y, z: p.z - 0.9 * Math.cos(p.heading) - 0.6 * Math.sin(p.heading), heading: p.heading, kind: 'motorcycle', tint: [0.4, 0.06, 0.05],
+            x: p.x + 0.9 * Math.sin(p.heading) - 0.6 * Math.cos(p.heading), y: p.y, z: p.z - 0.9 * Math.cos(p.heading) - 0.6 * Math.sin(p.heading), heading: p.heading, kind: 'motorcycle', tint: PAINTS[0],
           });
         }
       }
     }
     CAMP_PROPS.motorcycles.slice(0, parked).forEach((m, k) => {
       cars.push({
-        x: m.at[0], y: world.groundAt(m.at[0], m.at[1]), z: m.at[1], heading: Math.atan2(m.dir[0], -m.dir[1]), kind: 'motorcycle', tint: TINTS[(k * 2) % TINTS.length],
+        x: m.at[0], y: world.groundAt(m.at[0], m.at[1]), z: m.at[1], heading: Math.atan2(m.dir[0], -m.dir[1]), kind: 'motorcycle', tint: PAINTS[k % PAINTS.length],
       });
     });
     figures.set([...people, ...ambient.people(seconds)], roomMs);
@@ -141,6 +149,7 @@ export function buildLife({
     update(s) {
       seconds = s;
       ambient.update(s);
+      camp.update(s);
       draw();
     },
     stats: () => ({
