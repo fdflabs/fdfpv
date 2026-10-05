@@ -55,14 +55,16 @@ import {
 import { released } from '../../src/game/campaign.js';
 import { MISSIONS, worldFor } from '../../src/share/ops/missions.js';
 import {
-  centreOf, contactsView, discover, step as stepContacts,
+  centreOf, contactsView, discover, membersOf, step as stepContacts,
 } from '../../src/share/ops/contacts.js';
 import * as roles from '../../src/share/ops/roles.js';
 import { siteState, stepSite } from '../../src/share/ops/alert.js';
-import { judgeCapture, lower, rank, GRADES } from '../../src/share/ops/capture.js';
+import {
+  GRADES, inBand, judgeCapture, lower, rank,
+} from '../../src/share/ops/capture.js';
 import { validCam } from '../../src/share/ops/sight.js';
 import {
-  BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, starsOf, toldOf, trigger,
+  BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, resolve, starsOf, toldOf, trigger,
 } from '../../src/share/ops/stages.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -552,15 +554,22 @@ export class RoomOps {
     if (!cam) {
       return this.error(conn, 'capture', 'cam');
     }
-    let at = item.at;
-    if (item.contact) {
-      const c = m.contacts.find((x) => x.id === item.contact);
-      at = c ? centreOf(c, this.worldOf(), msg.t) : null;
-      if (!at) {
-        return this.error(conn, 'capture', 'item');
-      }
+    /* Where the item is at the still's ms: its place (a dial's), or each
+     * contact of its selection then, the best framed taken. */
+    const world = this.worldOf();
+    const spots = item.contact
+      ? membersOf(m.contacts, item.contact).map((c) => centreOf(c, world, msg.t)).filter(Boolean)
+      : [resolve(item.at, m.dials)];
+    if (!spots.length) {
+      return this.error(conn, 'capture', 'item');
     }
-    const j = judgeCapture(at, item.size, q.p, cam, this.worldOf());
+    const open = item.open ? fired(item.open, this.ctx(core, m.f)) != null : false;
+    const view = item.view ? { ...item.view, dir: resolve(item.view.dir, m.dials) } : null;
+    if (view && !open && !spots.some((at) => inBand(view, at, q.p))) {
+      return this.error(conn, 'capture', 'angle');
+    }
+    const tries = spots.map((at) => judgeCapture(at, item.size, q.p, cam, world));
+    const j = tries.filter((x) => !x.error).sort((a, b) => rank(b.grade) - rank(a.grade) || a.off - b.off)[0] ?? tries[0];
     if (j.error) {
       return this.error(conn, 'capture', j.error);
     }
@@ -598,6 +607,17 @@ export class RoomOps {
     let why = null;
     if (msg.op === 'take') {
       why = roles.take(m.roles, defs, s.seat, msg.role, roomNow);
+      const radio = this.mission().lines?.take;
+      if (!why && radio) {
+        return [...this.changed(core), {
+          send: conn,
+          data: JSON.stringify({
+            type: 'ops', op: 'cue', cues: [{
+              at: Math.ceil(roomNow), stage: m.stage?.id ?? null, heard: { seat: s.seat }, radio,
+            }],
+          }),
+        }];
+      }
     } else if (msg.op === 'swap') {
       why = roles.ask(m.roles, s.seat, msg.seat, msg.give ?? null, msg.take ?? null, roomNow).error ?? null;
     } else {
@@ -688,9 +708,16 @@ export class RoomOps {
       }
       const rec = this.seats.get(q.seat);
       if (q.crashed && !rec.crashed) {
+        const alone = !pilots.some((o) => o.seat !== q.seat && o.airborne && !o.crashed);
         m.downs.push({
-          seat: q.seat, t: g, roles: [...new Set((m.roles?.held[q.seat] ?? []).map(roles.roleOf))], alone: !pilots.some((o) => o.seat !== q.seat && o.airborne && !o.crashed),
+          seat: q.seat, t: g, roles: [...new Set((m.roles?.held[q.seat] ?? []).map(roles.roleOf))], alone,
         });
+        const radio = mission.lines?.downed;
+        if (!alone && radio) {
+          told.push({
+            at: g, stage: m.stage?.id ?? null, heard: 'all', radio,
+          });
+        }
         dirty = true;
       }
       rec.crashed = q.crashed;
@@ -703,8 +730,9 @@ export class RoomOps {
       m.next = null;
       dirty = true;
     }
-    if (m.stage && !m.next) {
-      const s = this.stageStep(core, g, pilots);
+    if (m.stage) {
+      /* In an exit's beat the stage's lines play on; only its exits wait. */
+      const s = this.stageStep(core, g, pilots, !m.next);
       dirty ||= s.dirty;
       told.push(...s.told);
     }
@@ -764,8 +792,8 @@ export class RoomOps {
   }
 
   /* The stage at grid ms g: its objectives, its cues and their effects,
-   * the mission's loss rules, then its exit. */
-  stageStep(core, g, pilots) {
+   * the mission's loss rules, then (unless in a beat) its exit. */
+  stageStep(core, g, pilots, exits = true) {
     const m = this.match;
     const mission = this.mission();
     const ctx = this.ctx(core, g, pilots);
@@ -793,17 +821,17 @@ export class RoomOps {
     for (const rule of mission.lost ?? []) {
       const t = fired(rule.when, ctx);
       if (t != null && (!loss || t < loss.t)) {
-        loss = { t, why: rule.why };
+        loss = { t, why: rule.why, radio: rule.radio };
       }
     }
     const out = m.bounds.find((b) => b.level === 'out' && b.t <= g);
     if (out && (!loss || out.t < loss.t)) {
       loss = { t: out.t, why: 'boundary' };
     }
-    const due = exitDue(ctx);
+    const due = exits ? exitDue(ctx) : null;
     if (loss && (!due || loss.t <= due.t)) {
       this.finish(core, loss.t, 'lost', loss.why);
-      told.push(...this.endLines(st, loss.t));
+      told.push(...this.endLines(st, loss.t, loss.radio));
       return { dirty: true, told };
     }
     if (!due) {
@@ -828,9 +856,9 @@ export class RoomOps {
     return { dirty: true, told };
   }
 
-  /* The mission's fail line, to everybody. */
-  endLines(st, t) {
-    const radio = this.mission().lines?.fail;
+  /* A fail's line (a loss rule's own, else the mission's), to everybody. */
+  endLines(st, t, own = undefined) {
+    const radio = own ?? this.mission().lines?.fail;
     return radio ? [{
       at: t, stage: st.id, heard: 'all', radio,
     }] : [];

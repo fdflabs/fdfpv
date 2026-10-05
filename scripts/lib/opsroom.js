@@ -97,6 +97,11 @@ export function opsRoom(mission, {
     e.join(i);
   }
   e.say = (i, obj) => e.apply(e.r.message(e.socks[i], JSON.stringify(obj), e.clock, e.socks[i].address));
+  /* A message sent with the pilot's lag, as its poses are. */
+  e.sayLate = (i, obj) => e.queue.push({
+    at: e.clock + (lagMs ? lagMs + 37 * i : 0), k: k += 1, i, data: JSON.stringify(obj),
+  });
+  let k = 0;
   /* Deliver what is due by the clock: the queued poses and reports. */
   const deliver = () => {
     e.queue.sort((a, b) => a.at - b.at || a.k - b.k);
@@ -108,7 +113,6 @@ export function opsRoom(mission, {
       }
     }
   };
-  let k = 0;
   e.fly = (until) => {
     for (let t = e.clock + 1; t <= until; t += 1) {
       e.clock = t;

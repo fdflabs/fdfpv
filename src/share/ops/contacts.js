@@ -138,7 +138,8 @@ export function viewers(pilots, world, at, size) {
  * known position and thresholds moved on. `track(c)` is the contact's
  * { soft, hard } in seconds, or null. points: the mission's named places
  * { name: { at: [x, y], r } } for `reached`. Returns the records whose
- * view changed (for the room to tell), so a quiet step tells nothing.
+ * state, route or class changed (for the room to tell), so a quiet step
+ * tells nothing.
  */
 export function step(list, t, pilots, world, { track = () => null, points = {} } = {}) {
   const changed = new Set();
@@ -165,10 +166,10 @@ export function step(list, t, pilots, world, { track = () => null, points = {} }
         c.reached[name] = t;
       }
     }
+    /* Who holds it in a frame is told with the next change, not as one:
+     * it moves at the grid's rate and would send the view ten times a
+     * second. */
     const by = viewers(pilots, world, at, c.size);
-    if (by.join() !== c.by.join()) {
-      changed.add(c);
-    }
     c.by = by;
     const tr = track(c);
     if (by.length) {
