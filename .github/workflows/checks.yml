@@ -54,6 +54,7 @@ jobs:
       - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
+      - run: npm run keynotes:selftest
       - run: npm run rooms:accounts
       # The checks' stand in for Google signs nobody in on the deployed
       # game: no production config names it, and the tracks server run as
