@@ -70,7 +70,7 @@ CLASS[LAND.pasture] = { col: [0.085, 0.088, 0.04], layer: 1 };
 CLASS[LAND.crop] = { col: [0.11, 0.085, 0.05], layer: 2 };
 CLASS[LAND.shrub] = { col: [0.06, 0.068, 0.03], layer: 2 };
 CLASS[LAND.wetland] = { col: [0.05, 0.07, 0.038], layer: 1 };
-CLASS[LAND.bare] = { col: [0.15, 0.082, 0.046], layer: 3 };
+CLASS[LAND.bare] = { col: [0.12, 0.06, 0.032], layer: 3 };
 CLASS[LAND.built] = { col: [0.16, 0.09, 0.05], layer: 4 };
 CLASS[LAND.burned] = { col: [0.05, 0.04, 0.031], layer: 3 };
 

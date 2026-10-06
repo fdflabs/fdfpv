@@ -58,7 +58,10 @@ Add a section per phase or mission (newest last) with:
    tripped the hard threshold while doing everything right. Lead
    decision (reversible): Mission 1's hard threshold is 60 s, and
    interior:stages orbits the pair at 150 m over all three routes with
-   no hard threshold. Still to check in the owner's flight. The dispersal routes' last
+   no hard threshold. Canopy round #467 measured up to 57.6 to 58.1 s
+   from the 150 m orbit, two seconds under 60: the threshold is now 75 s
+   (lead, reversible), and the orbit rows run at 150 m and 200 m. Still
+   to check in the owner's flight. The dispersal routes' last
    glimpse comes up to 22 s before they end (WATCH_MS is 30 s). The
    lookout's deck sits inside its own tree's crown, hidden from every
    side; its capture item is the foot of its ladder.

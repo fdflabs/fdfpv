@@ -222,3 +222,37 @@ zooms; (D) the colonia's houses, yards, school, the farm silo and sheds,
 and Puente Doble. Left for a later canopy data round: crown size and
 height variety, emergents, edge shrubs, pasture trees and creek gallery
 forest, which move canopyBlocks and so need interior:stages as a gate.
+
+### Round 2, colonia and camp (2026-10-05)
+
+- **2D, the colonia, Sector Alpha and Puente Doble (#464):** the houses'
+  walls were wound inward (a bug, not a missing feature); tile and tin
+  roofs, verandas, a chapel, the school's pitch, yards with fences, tanks
+  and washing lines, a ribbed silo and open sheds, a two-span bridge with
+  girders, a pier and rails. zoom-colonia-500 2.5 to 3, low-colonia 2 to
+  2.25. Mean 3.00 to 3.03.
+- **2C, the camp and its people (#465):** people with limbs, hats and
+  postures that read from the air, motorcycles with wheels and tanks in
+  four colours, sagging patched tarps, a fire ring with smoke, drums,
+  crates, hammocks, a lattice mast. low-camp 3 to 3.5, zoom-camp-600 3 to
+  3.5. Mean 3.03 to 3.08.
+
+### Round 3, canopy data and light (2026-10-05)
+
+- **3F, the canopy's data (#467):** about 200,000 more trees: stand
+  variety, emergents, edge shrubs, pasture trees and palms, gallery forest
+  along the river and creeks, no trunk in water (canopy digest
+  727a1246f9e5e6f7). Mission points unchanged; Mission 1's hard
+  lost-contact threshold raised to 75 s with it (#469). survey-bravo-1000 3
+  to 3.25, low-colonia 2.25 to 2.5, low-bridge 2.5 to 3. Mean 3.08 to 3.13.
+- **3E, the light (#470):** one light table by sun height drives sun, sky,
+  haze, fill, exposure and a grade, on one code path per hour, so the
+  mission clock's sunset is real and the camp stays readable at 18:08 (it
+  went black on main). Camp orbits, low-camp and zoom-camp 3.5 to 3.75,
+  low-colonia 2.5 to 2.75. Mean 3.13 to about 3.25.
+
+Round 4 targets (lead): (G) the clearing's light and the camp's density
+against the golden-hour mock (the shaded clearing is still far darker than
+the mock's, and the camp reads sparse in the middle); (H) the survey views:
+the river's water at range, field texture variety at 600 to 1800 m, and
+the haze's glow toward the sun.
