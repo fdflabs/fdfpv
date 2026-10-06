@@ -385,10 +385,10 @@ function flyRotation(axisName, turns, secs, extra) {
 
 const BUILDING_BLOCK = /^(1\/4|1\/2|3\/4|1) (Flip|Roll|Yaw)/;
 
-const REFUSE_CONTACT = 'needs a contact, which wants a wall and a collider';
+const REFUSE_CONTACT = 'a touch on a solid, and this rig flies in empty air';
 const REFUSE_PROXIMITY = 'needs proximity to a solid';
-const REFUSE_TWO_LAPS = 'two laps, which this planner does not sequence yet';
-const REFUSE_BARE_LAP = 'a lap carrying no rotation at all, which cannot be flown';
+const REFUSE_TWO_LAPS = 'a second lap, and this rig plans one lap at a time';
+const REFUSE_BARE_LAP = 'a lap with no turn of its own, which the rig has no way to fly';
 
 /* Everything the planner needs from one catalogue entry. */
 function readPattern(pat) {
