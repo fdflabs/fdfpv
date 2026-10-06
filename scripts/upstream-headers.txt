@@ -19,9 +19,7 @@ scripts/build-save-check.js
 scripts/build-selftest.js
 scripts/build-wasm.sh
 scripts/collider-audit.js
-scripts/contact-selftest.js
 scripts/craft-check.js
-scripts/crash-rules-selftest.js
 scripts/device-check.js
 scripts/drone-wireframe.js
 scripts/fc-catalog-lint.js
@@ -31,13 +29,9 @@ scripts/flight-report.js
 scripts/floats-shell.js
 scripts/frame-check.js
 scripts/gatecards.js
-scripts/ghost-selftest.js
 scripts/icons.js
-scripts/input-check.js
-scripts/input-selftest.js
 scripts/itaipu-check.js
 scripts/lib/flightrig.js
-scripts/link-selftest.js
 scripts/memory-check.js
 scripts/mouse-shell.js
 scripts/music.js
@@ -54,7 +48,6 @@ scripts/quality-check.js
 scripts/replay-log.js
 scripts/responsive-check.js
 scripts/run-bash.js
-scripts/score-selftest.js
 scripts/serve.js
 scripts/shell-check.js
 scripts/shots.js
@@ -62,15 +55,10 @@ scripts/track-mode-check.js
 scripts/trick-sweep.js
 scripts/wall-check.js
 src/boot.js
-src/fc/catalog.js
-src/fc/keynotes.js
 src/game/airframehull.js
 src/game/collide.js
-src/game/ghost.js
 src/game/proven.js
-src/game/race.js
 src/game/verify.js
-src/input/input.js
 src/main.js
 src/maps/build-cost.js
 src/maps/registry.js
@@ -85,7 +73,6 @@ src/native/plant.c
 src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
-src/render/audio.js
 src/render/pylons.js
 src/render/scene.js
 src/replay/crashcam.js
@@ -102,11 +89,9 @@ src/share/session.js
 src/share/stats.js
 src/share/summary.js
 src/share/windows.js
-src/trackbuilder/elements.js
 src/trackbuilder/faces.js
 src/trackbuilder/figures.js
 src/trackbuilder/index.html
-src/trackbuilder/model.js
 src/trackbuilder/path.js
 src/trackbuilder/storage.js
 src/ui/accountui.js

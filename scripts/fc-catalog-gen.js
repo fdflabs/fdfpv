@@ -44,10 +44,11 @@ const extraRow = (key) => ({
 });
 
 const HEADER = `/*
- * catalog-data.js: generated from vendor/betaflight 4.5.1 valueTable and
- * src/native/bf/bf_settings.c by scripts/fc-catalog-gen.js. Do not edit;
- * run npm run gen:catalog. One key per line, in valueTable order, then the
- * keys only bf_settings.c writes.
+ * catalog-data.js: generated from vendor/betaflight 4.5.1 (the CLI
+ * valueTable, its lookup tables and the integer macros its bounds name)
+ * and src/native/bf/bf_settings.c by scripts/fc-catalog-gen.js. Do not
+ * edit; run npm run gen:catalog. VALUE_TABLE has one key per line, in
+ * valueTable order, then the keys only bf_settings.c writes.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -68,7 +69,7 @@ const HEADER = `/*
 
 // Returns the file text and the counts the CLI prints.
 export async function renderCatalogData(root) {
-  const { table, live } = await loadFirmwareTables(root);
+  const { table, live, lookups, defines } = await loadFirmwareTables(root);
   const writes = new Set(live);
   const known = new Set(table.map((r) => r.key));
   const extras = live.filter((k) => !known.has(k));
@@ -80,7 +81,10 @@ export async function renderCatalogData(root) {
     );
   }
   const rows = [...table, ...extras.map(extraRow)].map((r) => ({ ...r, live: writes.has(r.key) }));
-  const text = `${HEADER}\nexport const VALUE_TABLE = [\n${rows.map((r) => `  ${JSON.stringify(r)},\n`).join('')}];\n`;
+  const lines = (entries) => entries.map((e) => `  ${e},\n`).join('');
+  const text = `${HEADER}\nexport const VALUE_TABLE = [\n${lines(rows.map((r) => JSON.stringify(r)))}];\n`
+    + `\nexport const FIRMWARE_LOOKUPS = {\n${lines(Object.entries(lookups).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`))}};\n`
+    + `\nexport const FIRMWARE_BOUNDS = {\n${lines(Object.entries(defines).map(([k, v]) => `${JSON.stringify(k)}: ${v}`))}};\n`;
   return { text, keys: rows.length, table: table.length, extras: extras.length, live: writes.size };
 }
 
