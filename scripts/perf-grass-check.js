@@ -15,7 +15,7 @@
  * the clouds and the wind follow the session's clock, which two page
  * loads cannot share, and the buffers are what the picture is drawn
  * from with an unchanged shader. Two page loads fly one replayed path,
- * the first with --base's grass.js served in place of this tree's
+ * the first with --base's grass.js and zones.js served in place of this tree's
  * (tests/lib/page.js override), the second with this tree's. The path is
  * stepped synchronously inside the page, a frame per step at 90 fps, so
  * the shell's own frames cannot move the camera between steps, while
@@ -68,10 +68,16 @@ if (process.env.SIM_GPU !== '1') {
   throw new Error('perf-grass-check: run with SIM_GPU=1; the meadow is drawn at High, which wants the GPU');
 }
 const base = (process.argv.find((a) => a.startsWith('--base=')) || '--base=origin/main').slice(7);
-const GRASS = 'src/maps/swiss2/vegetation/grass.js';
-const shown = spawnSync('git', ['-C', root, 'show', `${base}:${GRASS}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
-if (shown.status !== 0) {
-  throw new Error(`perf-grass-check: git show ${base}:${GRASS} failed: ${shown.stderr}`);
+/* The meadow's clumps come from grass.js and the field model it reads in
+ * zones.js; the base flies both of its own. */
+const BASE_FILES = ['src/maps/swiss2/vegetation/grass.js', 'src/maps/swiss2/vegetation/zones.js'];
+const baseOverride = {};
+for (const file of BASE_FILES) {
+  const shown = spawnSync('git', ['-C', root, 'show', `${base}:${file}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (shown.status !== 0) {
+    throw new Error(`perf-grass-check: git show ${base}:${file} failed: ${shown.stderr}`);
+  }
+  baseOverride[`/${file}`] = shown.stdout;
 }
 
 /* The layers by mesh name, and the squares their records are hashed by. */
@@ -214,7 +220,7 @@ async function fly(label, override, budgetMs = null) {
   }
 }
 
-const was = await fly(`base ${base}`, { [`/${GRASS}`]: shown.stdout });
+const was = await fly(`base ${base}`, baseOverride);
 const runs = [
   ['this tree', await fly('this tree', {})],
   [`this tree, background at ${SLOW_MS} ms a frame`, await fly(`this tree, background at ${SLOW_MS} ms a frame`, {}, SLOW_MS)],
