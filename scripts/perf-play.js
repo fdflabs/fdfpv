@@ -71,6 +71,20 @@
  * Long tasks come from a PerformanceObserver, garbage collection from the
  * JS heap (performance.memory) falling between two frames.
  *
+ * HITCHES. Every texture upload, buffer upload and program link on the
+ * view's context is timed and sized per frame, and each one over 1 ms is
+ * named (a texture by its size, a program by the defines that tell its
+ * variant apart and by the object being drawn when it was needed). The sampled profile is cut into busy runs, a run being
+ * the samples between two idle ones, and every run over 16.7 ms is
+ * reported with the shell subsystem its time went to. That needs idle
+ * time between frames, so read it from a --pace=raf run: free running
+ * never idles, and its runs are the whole window. raf's own "over 16.7
+ * ms" count is the beat's jitter round 16.7, not a result; the frame
+ * tail and the max are read from a free running run.
+ *
+ * itaipu-stream (not in the default list) flies Itaipu flat out across
+ * its town for the world streaming round a fast craft.
+ *
  * Multi pilot rooms are not flown: a second pilot is a second Chrome, and
  * this measures one browser at a time on purpose (docs/PERF.md).
  *
@@ -154,9 +168,103 @@ const INSTRUMENT = /* js */ `(() => {
     if (c && type === 'webgl2' && this.id === 'view' && !PP.gl) {
       PP.gl = c;
       PP.ext = c.getExtension('EXT_disjoint_timer_query_webgl2');
+      wrapUploads(c);
     }
     return c;
   };
+
+  /* WHAT A FRAME HANDED THE GPU. Texture uploads, buffer uploads and
+   * program links on the view's context, timed and sized per frame, and
+   * every one that took over 1 ms in a frame of the window named in
+   * PP.events: a texture by its size and format, a program by the
+   * SHADER_NAME three writes into its source. getProgramInfoLog is where
+   * three blocks on a link the driver runs in parallel, so the link's
+   * cost is charged there. The wrappers sit on the context object, so
+   * they see three's calls and nothing else's. */
+  PP.up = { texMs: 0, texBytes: 0, texN: 0, bufMs: 0, bufBytes: 0, progMs: 0, progN: 0 };
+  PP.events = [];
+  function wrapUploads(gl) {
+    const bytesOf = (a) => {
+      for (let k = a.length - 1; k >= 0; k -= 1) {
+        const v = a[k];
+        if (v && typeof v === 'object') {
+          if (ArrayBuffer.isView(v)) { return v.byteLength; }
+          if (typeof v.width === 'number' && typeof v.height === 'number') { return v.width * v.height * 4; }
+        }
+      }
+      return 0;
+    };
+    const describe = (a) => {
+      const src = a.find((v) => v && typeof v === 'object' && !ArrayBuffer.isView(v) && typeof v.width === 'number');
+      const nums = a.filter((v) => typeof v === 'number');
+      return (src ? (src.constructor && src.constructor.name) + ' ' + src.width + 'x' + src.height : 'data ' + nums.slice(0, 8).join(','));
+    };
+    const note = (kind, ms, what) => {
+      if (PP.rec && ms > 1) { PP.events.push({ t: now(), kind, ms: Math.round(ms * 100) / 100, what }); }
+    };
+    for (const name of ['texImage2D', 'texSubImage2D', 'texImage3D', 'texSubImage3D', 'compressedTexImage2D', 'compressedTexSubImage2D', 'compressedTexImage3D', 'compressedTexSubImage3D', 'texStorage2D', 'texStorage3D', 'generateMipmap']) {
+      const f = gl[name].bind(gl);
+      gl[name] = (...a) => {
+        const t = now();
+        try { return f(...a); } finally {
+          const ms = now() - t;
+          const b = name.startsWith('texStorage') || name === 'generateMipmap' ? 0 : bytesOf(a);
+          PP.up.texMs += ms; PP.up.texBytes += b; PP.up.texN += 1;
+          if (ms > 1) { note(name, ms, describe(a) + ' ' + Math.round(b / 1024) + ' KB'); }
+        }
+      };
+    }
+    for (const name of ['bufferData', 'bufferSubData']) {
+      const f = gl[name].bind(gl);
+      gl[name] = (...a) => {
+        const t = now();
+        try { return f(...a); } finally {
+          const ms = now() - t;
+          const b = a[1] && a[1].byteLength ? a[1].byteLength : (typeof a[1] === 'number' ? a[1] : 0);
+          PP.up.bufMs += ms; PP.up.bufBytes += b;
+          if (ms > 1) { note(name, ms, Math.round(b / 1024) + ' KB'); }
+        }
+      };
+    }
+    /* three's SHADER_NAME is the material's name, empty for most, so a
+     * program is also named by the defines that tell variants apart:
+     * the material's kind, fog, the thermal kind, and the colour space
+     * it writes (a screen and a render target differ there). */
+    const drawingName = () => {
+      const chain = [];
+      for (let o = PP.drawing; o && chain.length < 5; o = o.parent) { chain.push(o.name || o.type); }
+      const m = PP.drawingMat;
+      return chain.join(' < ') + (m ? ' [' + m.type + (m.name ? ' ' + m.name : '') + ']' : '');
+    };
+    const shaderName = (p) => {
+      try {
+        const src = (gl.getAttachedShaders(p) || []).map((sh) => gl.getShaderSource(sh) || '').join('\\n');
+        const name = (/#define SHADER_NAME (.*)/.exec(src) || [])[1] || '';
+        const kind = (/#define (STANDARD|PHYSICAL|PHONG|LAMBERT|TOON|MATCAP|BASIC|DEPTH|DISTANCE|NORMAL)\\b/.exec(src) || [])[1] || 'shader';
+        const tags = [];
+        if (/#define USE_FOG\\b/.test(src)) { tags.push('fog'); }
+        const th = /#define THERMAL_KIND (\\S+)/.exec(src);
+        if (th) { tags.push('thermal ' + th[1]); }
+        if (/#define USE_INSTANCING\\b/.test(src)) { tags.push('instanced'); }
+        if (/#define USE_SHADOWMAP\\b/.test(src)) { tags.push('shadowed'); }
+        const out = /linearToOutputTexel\\( vec4 value \\) \\{ return \\( sRGBTransferOETF/.test(src) ? 'srgb out' : 'linear out';
+        return [name || '(unnamed)', kind, out, ...tags].join(' ');
+      } catch (e) { /* A deleted program has no shaders to name it by. */ }
+      return '?';
+    };
+    for (const name of ['linkProgram', 'getProgramInfoLog', 'compileShader', 'getShaderInfoLog', 'getProgramParameter']) {
+      const f = gl[name].bind(gl);
+      gl[name] = (...a) => {
+        const t = now();
+        try { return f(...a); } finally {
+          const ms = now() - t;
+          PP.up.progMs += ms;
+          if (name === 'linkProgram') { PP.up.progN += 1; }
+          if (ms > 1) { note(name, ms, (name.includes('Program') ? shaderName(a[0]) : '') + ' for ' + drawingName()); }
+        }
+      };
+    }
+  }
 
   /* The exports object of an instance is frozen, so the shell is handed a
    * plain one with each function wrapped. Nested export calls (an export
@@ -286,11 +394,14 @@ const INSTRUMENT = /* js */ `(() => {
         start: t0, interval: lastStart ? t0 - lastStart : null, cb: t1 - t0, wait: waited, wasm: PP.wasmMs, render: PP.renderMs,
         calls: info ? info.calls : null, tris: info ? info.triangles : null,
         heap: performance.memory ? performance.memory.usedJSHeapSize : null, gpu: null,
+        up: PP.up,
       };
       rec.push(row);
       if (segs && segs.length) { pendingGpu.push({ segs, row }); }
     }
     lastStart = t0;
+    /* Uploads since the last frame ended, between frames included. */
+    PP.up = { texMs: 0, texBytes: 0, texN: 0, bufMs: 0, bufBytes: 0, progMs: 0, progN: 0 };
     if (gl && PP.ext && pendingGpu.length) { resolveGpu(); }
   };
   const kick = () => {
@@ -349,6 +460,14 @@ const INSTRUMENT = /* js */ `(() => {
         if (label !== 'other') { return PP.timedRender(() => rRender.apply(this, a)); }
         return PP.within(drawer(), () => PP.timedRender(() => rRender.apply(this, a)));
       };
+      /* The object being drawn, so a program linked in a frame can be
+       * named after what needed it. */
+      const rbd = r.renderBufferDirect;
+      r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        PP.drawing = object;
+        PP.drawingMat = material;
+        return rbd.call(this, camera, scene, geometry, material, object, group);
+      };
       const sm = r.shadowMap;
       const smRender = sm.render;
       sm.render = function (...b) { return PP.within('shadow', () => smRender.apply(this, b)); };
@@ -391,6 +510,7 @@ const INSTRUMENT = /* js */ `(() => {
   PP.record = async (seconds, free, cap) => {
     const heap0 = performance.memory ? performance.memory.usedJSHeapSize : null;
     longTasks.length = 0;
+    PP.events.length = 0;
     PP.dist = 0;
     PP.rec = [];
     PP.free = free;
@@ -411,7 +531,9 @@ const INSTRUMENT = /* js */ `(() => {
     if (crossOriginIsolated && performance.measureUserAgentSpecificMemory) {
       uaMemory = (await performance.measureUserAgentSpecificMemory()).bytes;
     }
-    return { rows, longTasks: longTasks.slice(), heap0, uaMemory, lostGpu: pendingGpu.length, errors: PP.errors.slice() };
+    const t0 = rows.length ? rows[0].start : 0;
+    const events = PP.events.splice(0).map((e) => ({ ...e, t: Math.round(e.t - t0) / 1000 }));
+    return { rows, events, longTasks: longTasks.slice(), heap0, uaMemory, lostGpu: pendingGpu.length, errors: PP.errors.slice() };
   };
 })();`;
 
@@ -467,6 +589,22 @@ const WING = /* js */ `
     const rightY = f.z * u.x - f.x * u.z;
     const roll = Math.max(-0.3, Math.min(0.3, rightY * 2));
     window.__stick(roll, pitch, 0, 1);`;
+
+/* A quad through a list of waypoints, world x and z: the yaw stick
+ * turns the nose toward the next one, the pitch is held, and a waypoint
+ * within 150 m is passed. Past the last it holds the last heading. */
+const QUAD_TO = (pitch, points) => /* js */ `
+    const P2 = globalThis.__PP;
+    const pts = ${JSON.stringify(points)};
+    P2.wp = P2.wp || 0;
+    if (P2.wp < pts.length - 1 && Math.hypot(pts[P2.wp][0] - c.worldX, pts[P2.wp][1] - c.worldZ) < 150) { P2.wp += 1; }
+    const goal = pts[P2.wp];
+    const want = Math.atan2(goal[0] - c.worldX, goal[1] - c.worldZ);
+    const have = Math.atan2(c.fwd.x, c.fwd.z);
+    const turn = Math.atan2(Math.sin(want - have), Math.cos(want - have));
+    const yaw = Math.max(-0.5, Math.min(0.5, -turn * 0.6));
+    const thr = Math.max(0.05, Math.min(1, 0.45 + ti + err * 0.04 - vy * 0.06));
+    window.__stick(0, ${pitch}, yaw, thr);`;
 
 function settingsSeed(s) {
   return `try {
@@ -543,6 +681,34 @@ const SCENARIOS = {
       return true;
     })`,
     summary: "(() => { const w = window.__war(); return { state: w.view.state, mission: w.view.mission || null, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length }; })()",
+  },
+  /* Itaipu at speed: thrown at 30 m/s over the river below the dam and
+   * flown flat out, 50 m up, north east across Hernandarias, the town's
+   * densest blocks (osm/buildings.json: 977 footprints in the square
+   * kilometre at x 1 to 2 km, z 3 to 4 km), toward the hero square's
+   * edge. What it measures is the world streaming round a fast craft:
+   * the terrain's chunk builds, the town's and the trees' collider
+   * refills, whatever the map uploads on the way. Free flight, no war. */
+  'itaipu-stream': {
+    map: 'itaipu',
+    airframe: '7inch',
+    async start(page) {
+      await fly(page, 'itaipu');
+      const from = [-600, 1200];
+      const path = [[1500, 3500], [3200, 4300], [5000, 5000]];
+      const h = await page.evaluate(`window.__heightAt(${from[0]}, ${from[1]})`);
+      const d = Math.hypot(path[0][0] - from[0], path[0][1] - from[1]);
+      const vx = (30 * (path[0][0] - from[0])) / d;
+      const vz = (30 * (path[0][1] - from[1])) / d;
+      const yaw = (Math.atan2(-vx, -vz) * 180) / Math.PI;
+      const thrown = await page.evaluate(`window.__crashThrow({ fresh: true, x: ${from[0]}, y: ${h + 50}, z: ${from[1]}, yaw: ${yaw}, pitch: 0, vx: ${vx}, vy: 0, vz: ${vz} }).ok`);
+      if (!thrown) {
+        throw new Error('perf-play: itaipu-stream: __crashThrow refused the throw');
+      }
+      await page.evaluate(PILOT(50, QUAD_TO(-0.9, path)));
+      /* No settling wait: the streaming is the point. */
+      await page.sleep(1000);
+    },
   },
   /* The Swiss valley at eight metres, forward and circling. */
   'swiss-low': {
@@ -638,6 +804,17 @@ function summarise(raw) {
     trisM: { avg: mean(rows.map((r) => (r.tris ?? 0) / 1e6)), max: Math.max(...rows.map((r) => (r.tris ?? 0) / 1e6)) },
     longTasks: { count: raw.longTasks.length, totalMs: raw.longTasks.reduce((a, t) => a + t.ms, 0), maxMs: Math.max(0, ...raw.longTasks.map((t) => t.ms)) },
     gc: { count: gcCount, mb: gcMb, heapMb: rows.length && rows[rows.length - 1].heap ? rows[rows.length - 1].heap / 1048576 : null },
+    uploads: {
+      texMb: rows.reduce((a, r) => a + (r.up ? r.up.texBytes : 0), 0) / 1048576,
+      texMs: rows.reduce((a, r) => a + (r.up ? r.up.texMs : 0), 0),
+      texN: rows.reduce((a, r) => a + (r.up ? r.up.texN : 0), 0),
+      bufMb: rows.reduce((a, r) => a + (r.up ? r.up.bufBytes : 0), 0) / 1048576,
+      bufMs: rows.reduce((a, r) => a + (r.up ? r.up.bufMs : 0), 0),
+      progN: rows.reduce((a, r) => a + (r.up ? r.up.progN : 0), 0),
+      progMs: rows.reduce((a, r) => a + (r.up ? r.up.progMs : 0), 0),
+      maxFrameMs: Math.max(0, ...rows.map((r) => (r.up ? r.up.texMs + r.up.bufMs + r.up.progMs : 0))),
+      events: (raw.events || []).slice().sort((a, b) => b.ms - a.ms).slice(0, 20),
+    },
     uaMemory: raw.uaMemory,
     lostGpu: raw.lostGpu,
     errors: raw.errors,
@@ -686,7 +863,93 @@ function profileTop(profile, seconds) {
     if (by) { callers.set(by, (callers.get(by) || 0) + ms); }
   }
   const top = (m, n) => [...m].sort((a, b) => b[1] - a[1]).slice(0, n).map(([what, ms]) => ({ what, msPerS: ms / seconds }));
-  return { functions: top(fns, 15), files: top(files, 10), shell: top(callers, 10) };
+  return {
+    functions: top(fns, 15), files: top(files, 10), shell: top(callers, 10), hitches: hitchesOf(profile, byId, parent, nameOf),
+  };
+}
+
+/*
+ * WHAT THE LONG STRETCHES WERE. The table above averages the window, and a
+ * hitch is a tenth of a percent of it. So the samples are walked in time
+ * order and cut into busy runs: consecutive samples that are not
+ * "(idle)". A run is one task, a frame or whatever ran between two
+ * frames (a fetch's continuation, a decode, a collection), and one over
+ * HITCH_MS is a hitch whatever it was. Each is reported with the shell
+ * functions its time went to, each sample charged to the OUTERMOST src/
+ * frame under the map or main.js's frame callback that is not the frame
+ * loop itself, and to the innermost src/ frame, so "terrain buildSome"
+ * and "three's uploadTexture under look/ground.js" can both be read off.
+ */
+const HITCH_MS = 1000 / 60;
+
+function hitchesOf(profile, byId, parent, nameOf) {
+  const src = (cf) => /\/src\//.test(cf.url);
+  /* The innermost src/ frame, and the frame under main.js nearest the
+   * root that is not main.js itself: which subsystem the frame loop
+   * called. */
+  const chargeCache = new Map();
+  const charge = (id) => {
+    if (chargeCache.has(id)) { return chargeCache.get(id); }
+    let inner = null;
+    let outer = null;
+    for (let p = id; p != null; p = parent.get(p)) {
+      const cf = byId.get(p).callFrame;
+      if (!src(cf)) { continue; }
+      if (!inner) { inner = nameOf(cf); }
+      if (!/\/src\/main\.js$/.test(cf.url.replace(/\?.*$/, ''))) { outer = nameOf(cf); }
+    }
+    const leaf = byId.get(id).callFrame;
+    const c = { inner: inner || leaf.functionName || '(native)', outer: outer || inner || leaf.functionName || '(native)', leaf: nameOf(leaf) };
+    chargeCache.set(id, c);
+    return c;
+  };
+  const runs = [];
+  let run = null;
+  let t = profile.startTime;
+  for (let k = 0; k < profile.samples.length; k += 1) {
+    t += profile.timeDeltas[k] ?? 0;
+    const id = profile.samples[k];
+    const dt = (profile.timeDeltas[k + 1] ?? 0) / 1000;
+    const idle = byId.get(id).callFrame.functionName === '(idle)';
+    if (idle) {
+      if (run) { runs.push(run); run = null; }
+      continue;
+    }
+    if (!run) { run = { at: (t - profile.startTime) / 1e6, ms: 0, samples: [] }; }
+    run.ms += dt;
+    run.samples.push([id, dt]);
+  }
+  if (run) { runs.push(run); }
+  const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
+  const top = (m, n) => [...m].sort((a, b) => b[1] - a[1]).slice(0, n).map(([what, ms]) => ({ what, ms: Math.round(ms * 10) / 10 }));
+  const all = { outer: new Map(), inner: new Map(), leaf: new Map() };
+  /* The last run is the profiler being stopped and the window's result
+   * handed back, not the shell. */
+  const end = (profile.endTime - profile.startTime) / 1e6 - 0.3;
+  const list = runs.filter((r) => r.ms > HITCH_MS && r.at < end).map((r) => {
+    const outer = new Map();
+    const inner = new Map();
+    const leaf = new Map();
+    for (const [id, dt] of r.samples) {
+      const c = charge(id);
+      add(outer, c.outer, dt);
+      add(inner, c.inner, dt);
+      add(leaf, c.leaf, dt);
+      add(all.outer, c.outer, dt);
+      add(all.inner, c.inner, dt);
+      add(all.leaf, c.leaf, dt);
+    }
+    return { at: Math.round(r.at * 100) / 100, ms: Math.round(r.ms * 10) / 10, outer: top(outer, 4), inner: top(inner, 4), leaf: top(leaf, 4) };
+  });
+  return {
+    count: list.length,
+    over33: list.filter((h) => h.ms > 1000 / 30).length,
+    totalMs: Math.round(list.reduce((a, h) => a + h.ms, 0)),
+    byOuter: top(all.outer, 10),
+    byInner: top(all.inner, 10),
+    byLeaf: top(all.leaf, 10),
+    worst: list.sort((a, b) => b.ms - a.ms).slice(0, 12),
+  };
 }
 
 /* Every bucket a frame's time was measured in, CPU and GPU, by mean ms. */
@@ -714,14 +977,30 @@ function table(id, s) {
     `  gpu parts  ${Object.entries(s.gpuParts).sort((a, b) => b[1].mean - a[1].mean).slice(0, opts.objects ? 40 : Infinity).map(([k, v]) => `${k} ${f(v.mean)}/${f(v.p10)}`).join(opts.objects ? '\n             ' : '  ')}`,
     `  draws      calls avg ${f(s.calls.avg, 0)} max ${s.calls.max}  tris avg ${f(s.trisM.avg)} M max ${f(s.trisM.max)} M`,
     `  main       long tasks ${s.longTasks.count} (${f(s.longTasks.totalMs, 0)} ms, max ${f(s.longTasks.maxMs, 0)})  gc ${s.gc.count} (${f(s.gc.mb, 0)} MB)  heap ${f(s.gc.heapMb, 0)} MB`,
+    `  uploads    textures ${s.uploads.texN} (${f(s.uploads.texMb, 1)} MB, ${f(s.uploads.texMs, 1)} ms)  buffers ${f(s.uploads.bufMb, 1)} MB (${f(s.uploads.bufMs, 1)} ms)  programs linked ${s.uploads.progN} (${f(s.uploads.progMs, 1)} ms)  worst frame ${f(s.uploads.maxFrameMs, 1)} ms`,
+    ...s.uploads.events.slice(0, 8).map((e) => `    at ${f(e.t, 1).padStart(5)} s  ${f(e.ms, 1).padStart(6)} ms  ${e.kind} ${e.what}`),
     `  hotspots   ${s.hotspots.map((h, i) => `${i + 1}. ${h.what} ${f(h.ms)}`).join('  ')}`,
     '  main thread self time, ms per second:',
     ...s.profile.files.slice(0, 6).map((x) => `    file ${f(x.msPerS, 1).padStart(6)}  ${x.what}`),
     ...s.profile.functions.slice(0, 8).map((x) => `    fn   ${f(x.msPerS, 1).padStart(6)}  ${x.what}`),
     ...s.profile.shell.slice(0, 8).map((x) => `    from ${f(x.msPerS, 1).padStart(6)}  ${x.what}`),
+    `  hitches    main thread runs over ${f(HITCH_MS, 1)} ms: ${s.profile.hitches.count} (${s.profile.hitches.over33} over 33.3), ${s.profile.hitches.totalMs} ms in all; by subsystem, ms:`,
+    ...s.profile.hitches.byOuter.slice(0, 6).map((x) => `    sub  ${f(x.ms, 1).padStart(7)}  ${x.what}`),
+    ...s.profile.hitches.byLeaf.slice(0, 6).map((x) => `    leaf ${f(x.ms, 1).padStart(7)}  ${x.what}`),
+    ...s.profile.hitches.worst.slice(0, 6).map((h) => `    at ${f(h.at, 1).padStart(5)} s  ${f(h.ms, 1).padStart(6)} ms  ${h.outer.slice(0, 2).map((x) => `${x.what} ${f(x.ms, 1)}`).join('; ')}`),
   ];
   return lines.join('\n');
 }
+
+/* The swiss2 meadow's streaming counters (vegetation/grass.js), by
+ * layer; maxFrameMs is since the map was built. */
+const GRASS_STATS = `(() => {
+  const out = {};
+  if (window.__PP.scene) {
+    window.__PP.scene.traverse((o) => { if (o.userData && o.userData.grassStats) { out[o.name] = { ...o.userData.grassStats }; } });
+  }
+  return out;
+})()`;
 
 async function runScenario(id) {
   const sc = SCENARIOS[id];
@@ -762,6 +1041,7 @@ async function runScenario(id) {
       const n = await page.evaluate('window.__PP.tagObjects()');
       console.log(`  objects: ${n} meshes tagged`);
     }
+    const grassBefore = await page.evaluate(GRASS_STATS);
     const raw = await page.evaluate(`window.__PP.record(${opts.seconds}, ${opts.pace === 'free'}, ${Number(opts.cap) || 0})`);
     const { profile } = await page.cdp.send('Profiler.stop', {}, page.sessionId);
     const loadAfter = gpuLoad();
@@ -772,9 +1052,21 @@ async function runScenario(id) {
     s.path = await page.evaluate('({ metres: window.__PP.dist || 0, clearance: window.__PP.clr })');
     s.pace = await page.evaluate('(() => { const p = window.__dynres(); const c = document.getElementById(\'view\'); return { scale: p.scale, rw: c.width, rh: c.height, gpu: window.__gpu && window.__gpu.name }; })()');
     s.state = sc.summary ? await page.evaluate(sc.summary) : await page.evaluate('(() => { const c = window.__craftState(); return { mode: c.mode, crashed: c.crashed, speed: c.speed }; })()');
+    /* The swiss2 meadow's streaming (vegetation/grass.js stats), where
+     * the map has it: tiles worked out, how many in the frame that
+     * needed them, and the main thread time that cost. */
+    const grassAfter = await page.evaluate(GRASS_STATS);
+    s.grass = {};
+    for (const [name, g] of Object.entries(grassAfter)) {
+      const g0 = grassBefore[name] || { built: 0, forced: 0, buildMs: 0 };
+      s.grass[name] = { ...g, built: g.built - g0.built, forced: g.forced - g0.forced, buildMs: g.buildMs - g0.buildMs };
+    }
     s.load = { before: loadBefore, after: loadAfter };
     s.consoleErrors = page.errors.filter((e) => !String(e).startsWith('network:')).slice(0, 5);
     console.log(table(id, s));
+    for (const [name, g] of Object.entries(s.grass)) {
+      console.log(`  ${name}: tiles built ${g.built} (${g.forced} in the frame that needed them), ${f(g.buildMs, 0)} ms in all, ${f(g.buildMs / Math.max(1, g.built), 2)} ms a tile, worst frame since the build ${f(g.maxFrameMs, 1)} ms, pending ${g.pending}`);
+    }
     console.log(`  crashes ${s.crashes}  flown ${f(s.path.metres, 0)} m, ending ${f(s.path.clearance, 1)} m up  pace scale ${f(s.pace.scale)} (${s.pace.rw}x${s.pace.rh})  gpu load ${loadBefore.gpus.map((g) => `${g[0]}:${g[1]}%`).join(' ')} host ${loadBefore.load[0]}  state ${JSON.stringify(s.state)}`);
     return { id, map: sc.map, airframe: sc.airframe, summary: s, rows: raw.rows, longTasks: raw.longTasks };
   } finally {

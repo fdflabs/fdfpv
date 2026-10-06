@@ -171,6 +171,11 @@ export function describe(obj) {
  * page's storage before the app runs. SIM_ACCOUNT=1 turns it on, as
  * 'Tester', for every page a check opens. Off, the page is the loopback
  * build with no accounts server, where nothing asks anybody to sign in.
+ *
+ * `override` maps a path the page fetches from its own server
+ * ('/src/maps/swiss2/vegetation/grass.js') to the JavaScript served in its
+ * place, so a check can run another version of one module beside this
+ * tree's (scripts/perf-grass-check.js runs main's).
  */
 export async function openPage({
   root,
@@ -181,6 +186,7 @@ export async function openPage({
   seed = [],
   args = [],
   account = process.env.SIM_ACCOUNT === '1' ? 'Tester' : null,
+  override = {},
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
@@ -290,7 +296,8 @@ export async function openPage({
     } else if (msg.method === 'Fetch.requestPaused') {
       const { requestId, request } = msg.params;
       try {
-        const buf = await cdnBytes(request.url);
+        const own = Object.keys(override).find((path) => new URL(request.url).pathname === path);
+        const buf = own ? Buffer.from(override[own]) : await cdnBytes(request.url);
         await cdp.send('Fetch.fulfillRequest', {
           requestId,
           responseCode: 200,
@@ -311,7 +318,7 @@ export async function openPage({
   await cdp.send('Log.enable', {}, sessionId);
   await cdp.send('Page.enable', {}, sessionId);
   await cdp.send('Fetch.enable', {
-    patterns: [{ urlPattern: 'https://cdn.jsdelivr.net/*' }],
+    patterns: [{ urlPattern: 'https://cdn.jsdelivr.net/*' }, ...Object.keys(override).map((path) => ({ urlPattern: `*${path}*` }))],
   }, sessionId);
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width: Number(width), height: Number(height), deviceScaleFactor: 1, mobile: false,

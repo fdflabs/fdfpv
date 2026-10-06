@@ -228,13 +228,32 @@ function roadMaterial(THREE) {
 /*
  * The water's material: aStrip (across, the water's half width, the
  * bend: how sharply the river turns there, signed toward the inside).
+ *
+ * WHAT THE WATER IS AT RANGE. From a survey's altitude a silty river is
+ * as much what it reflects as its own brown: Fresnel's share of the sky
+ * grows from 4 per cent looking straight down to a fifth and more at the
+ * survey views' 15 to 25 degrees, so the water reads brown under the
+ * nadir camera and blue grey with the sky toward the horizon, and throws
+ * the sun's glint where the camera looks toward it. Round 3's water was a
+ * red brown (0.1, 0.07, 0.042) with the environment at 0.45, and ripples
+ * tipping the normal at every pixel whatever its footprint, which a
+ * camera a kilometre off averaged into a matte surface: a pinkish ribbon.
+ * So the brown is a third darker and olive (a red brown under a blue sky
+ * printed lavender), the environment is the sky at full (it is baked at
+ * the hour's share already, look.js), and the ripples fade with the
+ * pixel's footprint into a rougher surface, which is what they are when
+ * too small to see; close up (low-bridge) the water stays the muddy
+ * brown of the references, with its glint. The sand bars stand only in
+ * the tighter bends and take at most about a quarter of the width: at up
+ * to two fifths of it in every bend of a river that meanders everywhere,
+ * round 3's sand left a thin dark thread inside a pale ribbon.
  */
 function waterMaterial(THREE) {
   const m = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    roughness: 0.14,
+    roughness: 0.12,
     metalness: 0,
-    envMapIntensity: 0.45,
+    envMapIntensity: 1,
     transparent: true,
     depthWrite: false,
     polygonOffset: true,
@@ -244,51 +263,72 @@ function waterMaterial(THREE) {
   patch(m, 'interior-water', (fs) => fs
     .replace('#include <map_fragment>', `#include <map_fragment>
       float rbBar = 0.0;
+      float rbFp = 1.0;
       {
         vec2 w = vRbWorld.xz;
+        vec2 dw = fwidth(w);
+        rbFp = max(dw.x, dw.y);
         float a = vRbStrip.x;
         float hw = vRbStrip.y;
         float bend = vRbStrip.z;
         float t = a / max(hw, 0.1);
-        /* Deep water brown with silt, the shallows toward each side
-         * lighter where the bed shows through. */
-        float shallow = smoothstep(0.55, 1.0, abs(t));
-        vec3 deep = vec3(0.1, 0.07, 0.042);
-        vec3 shoal = vec3(0.15, 0.115, 0.075);
-        float swirl = rbNoise(w * 0.03) * 0.6 + rbNoise(w * 0.11) * 0.4;
-        vec3 col = mix(deep, shoal, shallow * 0.8) * (0.85 + 0.3 * swirl);
-        /* Sand bars on the inside of a bend (bend's sign is the inside),
-         * longer and wider where it turns harder, broken along it. */
+        /* Deep water dark with silt, the shallows toward each side
+         * lighter where the bed shows through, and plumes of muddier
+         * water drawn out by the current. */
+        float shallow = smoothstep(0.6, 1.0, abs(t));
+        vec3 deep = vec3(0.068, 0.056, 0.035);
+        vec3 shoal = vec3(0.11, 0.092, 0.06);
+        float swirl = rbNoise(w * 0.008) * 0.5 + rbNoise(w * 0.03) * 0.3 + rbNoise(w * 0.11) * 0.2;
+        vec3 col = mix(deep, shoal, shallow * 0.75) * (0.8 + 0.45 * swirl);
+        /* Sand bars on the inside of a tighter bend (bend's sign is the
+         * inside), wider where it turns harder, broken along it. */
         float inside = t * sign(bend);
-        float reach = clamp(abs(bend), 0.0, 1.0);
+        float reach = smoothstep(0.3, 1.0, abs(bend));
         float n = rbNoise(w * 0.012) * 0.65 + rbNoise(w * 0.05) * 0.35;
-        float bar = smoothstep(1.0 - 0.85 * reach, 1.05 - 0.85 * reach, inside + (n - 0.5) * 0.6) * step(0.05, reach);
+        float bar = smoothstep(1.0 - 0.5 * reach, 1.04 - 0.5 * reach, inside + (n - 0.5) * 0.35)
+          * step(0.01, reach) * smoothstep(0.35, 0.55, n);
         rbBar = bar;
-        vec3 sand = mix(vec3(0.25, 0.21, 0.155), vec3(0.2, 0.17, 0.125), rbNoise(w * 0.3));
+        vec3 sand = mix(vec3(0.21, 0.175, 0.13), vec3(0.16, 0.135, 0.1), rbNoise(w * 0.3));
+        /* Wet sand at the bar's edge, darker. */
+        sand *= mix(0.65, 1.0, smoothstep(0.0, 0.5, bar));
         diffuseColor.rgb = mix(col, sand, bar);
         /* The edge laps the bank under it. */
-        diffuseColor.a = max(bar, 1.0 - smoothstep(0.75, 1.0, abs(t) + (rbNoise(w * 0.2) - 0.5) * 0.12)) * mix(0.93, 1.0, bar);
+        diffuseColor.a = max(bar, 1.0 - smoothstep(0.8, 1.0, abs(t) + (rbNoise(w * 0.2) - 0.5) * 0.12)) * mix(0.96, 1.0, bar);
       }`)
     .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-      roughnessFactor = mix(roughnessFactor, 1.0, rbBar);`)
+      /* Ripples too small for a pixel to hold are a rougher surface,
+       * rougher in the reaches the wind catches than in the calm
+       * slicks, which are what a river seen from far shows of its
+       * surface. */
+      {
+        float slick = rbNoise(vRbWorld.xz * 0.006 + 3.7) * 0.7 + rbNoise(vRbWorld.xz * 0.02) * 0.3;
+        float far = mix(0.1, 0.3, smoothstep(0.3, 0.75, slick));
+        roughnessFactor = mix(mix(roughnessFactor, far, smoothstep(0.5, 6.0, rbFp)), 1.0, rbBar);
+      }`)
     .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
       {
         /* Ripples: the noise's slope tips the normal a few degrees, so
-         * the sky and the sun break up on the surface. */
+         * the sky and the sun break up on the surface, faded before a
+         * pixel is too big to hold one. */
         vec2 w = vRbWorld.xz;
         float e = 0.7;
         float h0 = rbNoise(w * 0.45) + 0.5 * rbNoise(w * 1.7);
         float hx = rbNoise((w + vec2(e, 0.0)) * 0.45) + 0.5 * rbNoise((w + vec2(e, 0.0)) * 1.7);
         float hz = rbNoise((w + vec2(0.0, e)) * 0.45) + 0.5 * rbNoise((w + vec2(0.0, e)) * 1.7);
-        vec3 tip = vec3(h0 - hx, 0.0, h0 - hz) * 0.12 * (1.0 - rbBar);
+        float seen = 1.0 - smoothstep(0.4, 2.5, rbFp);
+        vec3 tip = vec3(h0 - hx, 0.0, h0 - hz) * 0.12 * (1.0 - rbBar) * seen;
         normal = normalize(normal + (viewMatrix * vec4(tip, 0.0)).xyz);
       }`));
   return thermalKind(m, 'water');
 }
 
 /*
- * The banks' material: sand going to dry grass away from the water,
- * aStrip (across, the bank's outer half width, the water's half width).
+ * The banks' material, aStrip (across, the bend as the water's, the
+ * water's half width; the bank reaches BANK + 2 past that, buildWater's
+ * bank columns). Sand where a bend's inside leaves it; on the outside of
+ * a bend and along the straights a strip of wet mud going to the
+ * gallery's grass and scrub. Round 3's bank was dry sand the whole way,
+ * a pale border either side of the river at range.
  */
 function bankMaterial(THREE) {
   const m = new THREE.MeshStandardMaterial({
@@ -305,14 +345,20 @@ function bankMaterial(THREE) {
     {
       vec2 w = vRbWorld.xz;
       float d = abs(vRbStrip.x);
-      float outer = vRbStrip.y;
+      float bend = vRbStrip.y;
       float water = vRbStrip.z;
+      float outer = water + ${(BANK + 2).toFixed(1)};
       float k = clamp((d - water) / max(outer - water, 1.0), 0.0, 1.0);
       float n = rbNoise(w * 0.08) * 0.6 + rbNoise(w * 0.4) * 0.4;
-      vec3 wet = vec3(0.1, 0.08, 0.058);
-      vec3 dry = vec3(0.19, 0.165, 0.125);
-      diffuseColor.rgb = mix(wet, dry, smoothstep(0.0, 0.35, k)) * (0.85 + 0.3 * n);
-      diffuseColor.a = 1.0 - smoothstep(0.35, 1.0, k + (n - 0.5) * 0.5);
+      float bars = rbNoise(w * 0.012) * 0.65 + rbNoise(w * 0.05) * 0.35;
+      float beach = smoothstep(0.15, 0.6, bend * sign(vRbStrip.x)) * smoothstep(0.35, 0.6, bars);
+      vec3 wet = vec3(0.07, 0.056, 0.04);
+      vec3 dry = vec3(0.18, 0.155, 0.118);
+      vec3 grass = vec3(0.062, 0.07, 0.034);
+      vec3 sand = mix(wet, dry, smoothstep(0.0, 0.35, k));
+      vec3 mud = mix(wet, grass, smoothstep(0.05, 0.4, k + (n - 0.5) * 0.4));
+      diffuseColor.rgb = mix(mud, sand, beach) * (0.85 + 0.3 * n);
+      diffuseColor.a = 1.0 - smoothstep(mix(0.2, 0.45, beach), 1.0, k + (n - 0.5) * 0.5);
     }`));
   return m;
 }
@@ -394,7 +440,7 @@ export function buildWater({ THREE, ground }) {
   banks.add(ss, {
     across: (s) => [-halfW(s) - BANK, -halfW(s) + 2, halfW(s) - 2, halfW(s) + BANK],
     yAt: (x, z) => ground(x, z) + 0.1,
-    half: (s) => halfW(s) + BANK,
+    half: (s) => bendAt.get(s),
     extra: (s) => halfW(s) - 2,
   });
   for (const st of STREAMS) {
