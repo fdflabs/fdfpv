@@ -70,7 +70,6 @@ src/fc/catalog-data.js
 src/fc/catalog.js
 src/fc/dump.js
 src/fc/keynotes.js
-src/fc/ratescurve.js
 src/game/airframehull.js
 src/game/collide.js
 src/game/ghost.js
