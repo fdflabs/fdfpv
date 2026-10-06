@@ -69,6 +69,7 @@
     "crash:stand-fault": "node scripts/stand-fault-check.js",
     "score:selftest": "node scripts/score-selftest.js",
     "tricks:golden": "node scripts/tricks-golden.js",
+    "tricks:gen": "node scripts/tricks-gen.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
     "crashrecord:selftest": "node scripts/crashrecord-selftest.js",
