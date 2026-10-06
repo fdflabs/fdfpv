@@ -137,6 +137,7 @@ jobs:
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
       - run: npm run obstacles:golden
+      - run: npm run track:golden
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
