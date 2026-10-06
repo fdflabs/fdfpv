@@ -1,17 +1,18 @@
 /*
- * dump.js: parse and serialize Betaflight CLI text, and the only place
- * a tune, a PID adjustment and a rate profile are joined.
+ * dump.js: Betaflight CLI text in and out, and composeConfig, the single
+ * place a tune, the pilot's PID adjustment and the pilot's rates become
+ * the text the module boots on.
  *
- * The UI never writes CLI text of its own: the menu offers the registry
- * tunes, the pilot's PID adjustment (configs/pids.js) and the pilot's
- * rates (configs/rates.js), and composeConfig is the one join, so boot
- * and the Tune row cannot diverge. The wider surface here (setCliValue, exportCli, the
- * use-dump policy, featureEnabled) is no longer reached from the shell. It
- * stays because scripts/fc-trace.js drives it against the compiled module:
- * those traces are what prove a CLI line written here actually lands in
- * Betaflight, which is the claim the two shipped tunes rest on.
+ * The shell writes no CLI of its own. Boot and the Tune row both call
+ * composeConfig, so they cannot drift apart. Several helpers here
+ * (setCliValue, exportCli, featureEnabled, the use-dump policy) have no
+ * caller in the shell any more; scripts/fc-trace.js drives them against
+ * the compiled module, and those traces are the evidence that a line
+ * written here lands in Betaflight.
  *
- * This file does not talk to WebGL.
+ * Text conventions every function shares: lines split on \n with one
+ * trailing \r dropped, a line is matched on its trimmed form, and text
+ * this module builds ends in exactly one newline.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -35,36 +36,25 @@ export const RATES_KEEP = 'keep-mine';
 export const RATES_DUMP = 'use-dump';
 
 /*
- * Where the Flight controller screen's saved dump lives. Its own key
- * rather than a field in the settings blob, because it is a 20 kB
- * document and the settings are read and rewritten on every knob turn.
- * The value stored is tuneBody(dump): the pilot's rates are stripped on
- * the way in and appended from the menu on every compose, so the saved
- * dump can never smuggle a rate profile past the Rates screen.
+ * localStorage key for the Flight controller screen's saved dump, kept out
+ * of the settings blob because it is tens of kilobytes and settings are
+ * rewritten on every control change. What is stored is tuneBody(dump), so
+ * a saved dump never carries rates past the Rates screen.
  */
 export const FC_DUMP_KEY = 'webfpv.fc.v1';
+
 /*
- * WHICH AIRCRAFT THE DUMP WAS SAVED ON, beside it. A dump is one machine's
- * whole configuration and it was being offered as "Your edits" on both
- * aircraft, so a 6S five inch dump could be loaded onto a 1S whoop. Written
- * by the shell with the dump; read by the Tune row to decide whether to
- * offer it. Absent means the five inch, which is every dump saved before
- * there was a second aircraft.
+ * localStorage key for the airframe that dump was saved on, so a dump from
+ * one aircraft is not offered on another. Missing means the dump predates
+ * a second aircraft.
  */
 export const FC_DUMP_AIRFRAME_KEY = 'webfpv.fc.airframe.v1';
 
 /*
- * Keys the pilot owns. Switching a registry tune must not overwrite them,
- * so composeConfig strips every one of these out of the tune body and
- * appends the pilot's own instead. That is the whole reason a shipped tune
- * and the pilot's own dump can be compared: neither can quietly halve the
- * stick authority on its way in.
- *
- * The use-dump half of that story, where a dropped dump's rate lines were
- * appended last so they won over the menu, has no caller in the shell any
- * more: the drop-a-diff import went with the flight-controller screen. It
- * is still reached by scripts/fc-trace.js F7 and F8, which is what makes
- * the keep-mine claim above testable rather than asserted.
+ * Keys that belong to the pilot rather than the tune. composeConfig strips
+ * them from every tune and appends the pilot's own, so switching tune can
+ * never change stick authority and two tunes stay comparable. fc-trace F7
+ * and F8 hold it to that.
  */
 export const RATE_KEYS = new Set([
   'rates_type',
@@ -87,68 +77,72 @@ export const RATE_KEYS = new Set([
   'throttle_limit_percent',
 ]);
 
-function setKey(line) {
-  const t = line.trim();
-  if (!t.startsWith('set ')) {
-    return null;
-  }
-  const rest = t.slice(4);
-  let i = 0;
-  while (i < rest.length && rest[i] !== ' ' && rest[i] !== '=') {
-    i += 1;
-  }
-  return i > 0 ? rest.slice(0, i) : null;
+const APPLY = 'simplified_tuning apply';
+const WEIGHT_KEYS = ['rpm_filter_weights_1', 'rpm_filter_weights_2', 'rpm_filter_weights_3'];
+
+const dropCR = (line) => line.replace(/\r$/, '');
+const rawLines = (text) => (text ?? '').split('\n');
+const lines = (text) => rawLines(text).map(dropCR);
+
+// The key of a `set` line, or null. Betaflight's CLI ends a key at a
+// space or `=`, so `set key=value` and `set key = value` name the same key.
+function keyOfSet(line) {
+  const m = /^set ([^ =]+)/.exec(line.trim());
+  return m ? m[1] : null;
 }
 
+const isRateLine = (line) => RATE_KEYS.has(keyOfSet(line)) || line.trim().startsWith('rateprofile ');
+
+function withoutTrailingBlanks(list) {
+  let end = list.length;
+  while (end > 0 && list[end - 1] === '') end -= 1;
+  return list.slice(0, end);
+}
+
+// Lines back to text ending in one newline, however many blank lines the
+// list ended on.
+const closed = (list) => `${list.join('\n').replace(/\n+$/, '')}\n`;
+
+// Lines back to text, adding a final newline only to non-empty text.
+function terminated(list) {
+  const text = list.join('\n');
+  return text && !text.endsWith('\n') ? `${text}\n` : text;
+}
+
+/*
+ * The `set` assignments and the other commands in a dump, in order.
+ * A set needs a key, an `=` and a non-empty value, and its value is the
+ * first word after the `=`. A command is recorded as its first two words.
+ * Blank lines and # comments are skipped.
+ */
 export function parseCli(text) {
   const sets = [];
   const commands = [];
   for (const raw of text.split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    let k = 0;
-    while (k < line.length && (line[k] === ' ' || line[k] === '\t')) {
-      k += 1;
-    }
-    const t = line.slice(k);
-    if (!t || t.startsWith('#')) {
+    const line = dropCR(raw).replace(/^[ \t]+/, '');
+    if (!line || line.startsWith('#')) continue;
+    if (!line.startsWith('set ')) {
+      const [w0, rest = ''] = splitWord(line);
+      commands.push({ w0, w1: splitWord(rest.trim())[0] });
       continue;
     }
-    if (t.startsWith('set ')) {
-      const key = setKey(t);
-      if (!key) {
-        continue;
-      }
-      const eq = t.indexOf('=');
-      if (eq < 0) {
-        continue;
-      }
-      let v = t.slice(eq + 1).trim();
-      const sp = v.search(/\s/);
-      if (sp >= 0) {
-        v = v.slice(0, sp);
-      }
-      if (v.length === 0) {
-        continue;
-      }
-      sets.push({ key, value: v });
-      continue;
-    }
-    const sp = t.search(/\s/);
-    const w0 = sp < 0 ? t : t.slice(0, sp);
-    let rest = sp < 0 ? '' : t.slice(sp).trim();
-    const sp2 = rest.search(/\s/);
-    const w1 = sp2 < 0 ? rest : rest.slice(0, sp2);
-    commands.push({ w0, w1 });
+    const key = keyOfSet(line);
+    const eq = line.indexOf('=');
+    const value = eq < 0 ? '' : splitWord(line.slice(eq + 1).trim())[0];
+    if (key && value) sets.push({ key, value });
   }
   return { sets, commands };
 }
 
+// [first word, everything after it], split at the first whitespace.
+function splitWord(s) {
+  const at = s.search(/\s/);
+  return at < 0 ? [s] : [s.slice(0, at), s.slice(at)];
+}
+
+// Last assignment wins; a key keeps the position of its first assignment.
 export function cliMap(text) {
-  const map = new Map();
-  for (const s of parseCli(text).sets) {
-    map.set(s.key, s.value);
-  }
-  return map;
+  return new Map(parseCli(text).sets.map(({ key, value }) => [key, value]));
 }
 
 export function cliGet(text, key) {
@@ -156,350 +150,220 @@ export function cliGet(text, key) {
 }
 
 export function dumpCarriesRates(text) {
-  for (const s of parseCli(text).sets) {
-    if (RATE_KEYS.has(s.key)) {
-      return true;
-    }
-  }
-  return false;
+  return parseCli(text).sets.some(({ key }) => RATE_KEYS.has(key));
 }
 
+// true or false from the last `feature NAME` / `feature -NAME` line, null
+// when the text never mentions it.
 export function featureEnabled(text, name) {
+  const verdicts = { [`feature ${name}`]: true, [`feature -${name}`]: false };
   let on = null;
-  const pos = `feature ${name}`;
-  const neg = `feature -${name}`;
-  for (const raw of (text ?? '').split('\n')) {
-    const t = raw.replace(/\r$/, '').trim();
-    if (t === pos) {
-      on = true;
-    } else if (t === neg) {
-      on = false;
-    }
+  for (const line of lines(text)) {
+    const t = line.trim();
+    if (Object.hasOwn(verdicts, t)) on = verdicts[t];
   }
   return on;
 }
 
 export function setFeatureLine(text, name, on) {
-  const want = on ? `feature ${name}` : `feature -${name}`;
-  const pos = `feature ${name}`;
-  const neg = `feature -${name}`;
-  const lines = [];
-  for (const raw of (text ?? '').split('\n')) {
-    const t = raw.replace(/\r$/, '').trim();
-    if (t === pos || t === neg) {
-      continue;
-    }
-    lines.push(raw.replace(/\r$/, ''));
-  }
-  while (lines.length && lines[lines.length - 1] === '') {
-    lines.pop();
-  }
-  lines.push(want);
-  return `${lines.join('\n')}\n`;
+  const mine = new Set([`feature ${name}`, `feature -${name}`]);
+  const kept = lines(text).filter((line) => !mine.has(line.trim()));
+  return `${[...withoutTrailingBlanks(kept), on ? `feature ${name}` : `feature -${name}`].join('\n')}\n`;
 }
 
+// A tune without the pilot's keys: no rate assignments, no rateprofile.
 export function tuneBody(text) {
-  const kept = [];
-  for (const raw of (text ?? '').split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    const t = line.trim();
-    if (t.startsWith('set ')) {
-      const key = setKey(t);
-      if (key && RATE_KEYS.has(key)) {
-        continue;
-      }
-    }
-    if (t.startsWith('rateprofile ')) {
-      continue;
-    }
-    kept.push(line);
-  }
-  let out = kept.join('\n');
-  if (out.length && !out.endsWith('\n')) {
-    out += '\n';
-  }
-  return out;
-}
-
-function hasCommand(text, cmd) {
-  const want = cmd.trim();
-  for (const raw of (text ?? '').split('\n')) {
-    if (raw.replace(/\r$/, '').trim() === want) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isSimplifiedKey(key) {
-  return key.startsWith('simplified_');
-}
-
-export function ensureSimplifiedApply(text) {
-  /*
-   * Apply has to be last. A WASM dump is the live PGs, including expert
-   * P/I/D that simplified_tuning already wrote on the previous init. If
-   * apply sits above those expert lines, moving a slider writes the
-   * slider and changes nothing, which is a LIVE control that lies.
-   */
-  const kept = [];
-  for (const raw of (text ?? '').split('\n')) {
-    if (raw.replace(/\r$/, '').trim() === 'simplified_tuning apply') {
-      continue;
-    }
-    kept.push(raw);
-  }
-  while (kept.length && kept[kept.length - 1] === '') {
-    kept.pop();
-  }
-  kept.push('simplified_tuning apply');
-  return `${kept.join('\n')}\n`;
-}
-
-function moveSetAfterApply(text, key) {
-  const lines = (text ?? '').split('\n');
-  let applyAt = -1;
-  let keyAt = -1;
-  let keyLine = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const t = lines[i].replace(/\r$/, '').trim();
-    if (t === 'simplified_tuning apply') {
-      applyAt = i;
-    }
-    if (setKey(t) === key) {
-      keyAt = i;
-      keyLine = lines[i];
-    }
-  }
-  if (applyAt < 0 || keyAt < 0 || keyAt > applyAt) {
-    return text;
-  }
-  lines.splice(keyAt, 1);
-  if (keyAt < applyAt) {
-    applyAt -= 1;
-  }
-  lines.splice(applyAt + 1, 0, keyLine);
-  return `${lines.join('\n').replace(/\n+$/, '')}\n`;
-}
-
-export function setCliValue(text, key, value) {
-  const line = `set ${key} = ${value}`;
-  const lines = (text ?? '').split('\n');
-  let found = -1;
-  for (let i = 0; i < lines.length; i += 1) {
-    if (setKey(lines[i].replace(/\r$/, '').trim()) === key) {
-      found = i;
-    }
-  }
-  if (found >= 0) {
-    lines[found] = line;
-  } else {
-    while (lines.length && lines[lines.length - 1] === '') {
-      lines.pop();
-    }
-    lines.push(line);
-  }
-  let out = `${lines.join('\n').replace(/\n+$/, '')}\n`;
-  if (isSimplifiedKey(key)) {
-    out = ensureSimplifiedApply(out);
-  } else if (hasCommand(out, 'simplified_tuning apply')) {
-    out = moveSetAfterApply(out, key);
-  }
-  return out;
-}
-
-const WEIGHT_KEYS = ['rpm_filter_weights_1', 'rpm_filter_weights_2', 'rpm_filter_weights_3'];
-
-export function exportCli(text) {
-  const map = cliMap(text);
-  const lines = [];
-  for (const raw of (text ?? '').split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    const key = setKey(line.trim());
-    if (key && WEIGHT_KEYS.includes(key)) {
-      continue;
-    }
-    lines.push(line);
-  }
-  if (WEIGHT_KEYS.some((k) => map.has(k))) {
-    const w = WEIGHT_KEYS.map((k) => map.get(k) ?? '100').join(',');
-    while (lines.length && lines[lines.length - 1] === '') {
-      lines.pop();
-    }
-    lines.push(`set rpm_filter_weights = ${w}`);
-  }
-  return `${lines.join('\n').replace(/\n+$/, '')}\n`;
+  return terminated(lines(text).filter((line) => !isRateLine(line)));
 }
 
 /*
- * A dropped dump's rate profile, as the profile the menu holds.
- *
- * EVERY TYPE, not just ACTUAL. The old five knob model could only read an
- * ACTUAL dump, because a BETAFLIGHT roll_rc_rate of 100 is RC Rate 1.00 and
- * not 1000 deg/s of centre sensitivity, and writing that through the menu
- * would have replaced the profile the firmware was flying with a different
- * one. The menu now holds the same three uint8s per axis the firmware does,
- * plus the type they are read under, so a dump of any type reads straight
- * across and nothing has to be reinterpreted.
- *
- * Reached by scripts/fc-trace.js rather than by the shell: the drop-a-diff
- * import went with the flight-controller screen. It is what makes the
- * keep-mine claim in composeConfig testable rather than asserted.
+ * Exactly one `simplified_tuning apply`, as the last line. A dump read back
+ * from the module carries the expert P/I/D the previous apply wrote; an
+ * apply above them would be undone by them, and a slider would move and
+ * change nothing.
+ */
+export function ensureSimplifiedApply(text) {
+  const kept = rawLines(text).filter((raw) => dropCR(raw).trim() !== APPLY);
+  return `${[...withoutTrailingBlanks(kept), APPLY].join('\n')}\n`;
+}
+
+const lastIndex = (list, test) => list.findLastIndex(test);
+
+/*
+ * Assign one key. An existing assignment (the last one) is rewritten in
+ * place, otherwise the line is appended. A simplified_ key is followed by
+ * an apply. Any other key written into text that has an apply goes after
+ * the apply, or the apply would overwrite it.
+ */
+export function setCliValue(text, key, value) {
+  const assignment = `set ${key} = ${value}`;
+  const list = rawLines(text);
+  const at = lastIndex(list, (raw) => keyOfSet(dropCR(raw)) === key);
+  const edited = at >= 0
+    ? list.map((raw, i) => (i === at ? assignment : raw))
+    : [...withoutTrailingBlanks(list), assignment];
+  const out = closed(edited);
+  if (key.startsWith('simplified_')) return ensureSimplifiedApply(out);
+  return afterApply(out, key);
+}
+
+function afterApply(text, key) {
+  const list = rawLines(text);
+  const isApply = (raw) => dropCR(raw).trim() === APPLY;
+  const apply = lastIndex(list, isApply);
+  const at = lastIndex(list, (raw) => keyOfSet(dropCR(raw)) === key);
+  if (apply < 0 || at < 0 || at > apply) return text;
+  const moved = list.filter((_, i) => i !== at);
+  moved.splice(apply, 0, list[at]);
+  return closed(moved);
+}
+
+/*
+ * The dump as Betaflight's own CLI writes it: the module stores the RPM
+ * filter weights as three keys, the CLI as one comma list, with a missing
+ * weight written as 100.
+ */
+export function exportCli(text) {
+  const map = cliMap(text);
+  const kept = lines(text).filter((line) => !WEIGHT_KEYS.includes(keyOfSet(line)));
+  if (!WEIGHT_KEYS.some((k) => map.has(k))) return closed(kept);
+  const list = WEIGHT_KEYS.map((k) => map.get(k) ?? '100').join(',');
+  return closed([...withoutTrailingBlanks(kept), `set rpm_filter_weights = ${list}`]);
+}
+
+/*
+ * A dump's rate profile as the Rates screen holds it. The screen stores the
+ * same uint8 fields as the firmware under the dump's own rates_type, so
+ * every type reads straight across; normaliseRates fills and clamps the
+ * rest. Reached from scripts/fc-trace.js, not from the shell.
  */
 export function ratesFromDump(text) {
   const map = cliMap(text);
   const num = (key) => {
-    const v = Number(map.get(key));
-    return Number.isFinite(v) ? v : undefined;
+    const n = Number(map.get(key));
+    return Number.isFinite(n) ? n : undefined;
   };
+  const axis = (a) => ({ rcRate: num(`${a}_rc_rate`), srate: num(`${a}_srate`), expo: num(`${a}_expo`) });
   return normaliseRates({
     type: map.get('rates_type'),
-    roll: { rcRate: num('roll_rc_rate'), srate: num('roll_srate'), expo: num('roll_expo') },
-    pitch: { rcRate: num('pitch_rc_rate'), srate: num('pitch_srate'), expo: num('pitch_expo') },
-    yaw: { rcRate: num('yaw_rc_rate'), srate: num('yaw_srate'), expo: num('yaw_expo') },
+    roll: axis('roll'),
+    pitch: axis('pitch'),
+    yaw: axis('yaw'),
     throttleCap: num('throttle_limit_percent'),
     thrMid: num('thr_mid'),
     thrExpo: num('thr_expo'),
   });
 }
 
+/*
+ * The inverse of exportCli: a `set rpm_filter_weights = a,b,c` line (the
+ * last, if several) becomes the three keys the module stores, each
+ * replacing that key's first assignment or appended. An empty or missing
+ * weight is 100. Text without the line is returned as given.
+ */
 export function expandRpmWeights(text) {
-  const lines = [];
   let weights = null;
-  for (const raw of (text ?? '').split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    const key = setKey(line.trim());
-    if (key === 'rpm_filter_weights') {
-      const eq = line.indexOf('=');
-      weights = eq >= 0 ? line.slice(eq + 1).trim() : '';
+  const kept = [];
+  for (const line of lines(text)) {
+    if (keyOfSet(line) !== 'rpm_filter_weights') {
+      kept.push(line);
       continue;
     }
-    lines.push(line);
+    const eq = line.indexOf('=');
+    weights = eq < 0 ? '' : line.slice(eq + 1).trim();
   }
-  if (weights == null) {
-    return text ?? '';
-  }
-  const parts = weights.split(',').map((s) => s.trim());
-  const names = WEIGHT_KEYS;
-  for (let i = 0; i < names.length; i += 1) {
-    const v = parts[i] && parts[i] !== '' ? parts[i] : '100';
-    let found = false;
-    for (let j = 0; j < lines.length; j += 1) {
-      if (setKey(lines[j].trim()) === names[i]) {
-        lines[j] = `set ${names[i]} = ${v}`;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      lines.push(`set ${names[i]} = ${v}`);
-    }
-  }
-  return `${lines.join('\n').replace(/\n+$/, '')}\n`;
+  if (weights === null) return text ?? '';
+  const given = weights.split(',').map((w) => w.trim());
+  WEIGHT_KEYS.forEach((key, i) => {
+    const assignment = `set ${key} = ${given[i] || '100'}`;
+    const at = kept.findIndex((line) => keyOfSet(line) === key);
+    if (at < 0) kept.push(assignment);
+    else kept[at] = assignment;
+  });
+  return closed(kept);
 }
 
 /*
- * The one join. Tune body first, then the pilot's PID adjustment, then the
- * pilot's rates.
+ * The text the module boots on: the tune without the pilot's keys, then
+ * the PID block configs/pids.js chose for this tune, then the menu rates.
+ * The PID block re-runs its apply over the tune's slider state, as moving
+ * a slider in Configurator does, and the rates come last so they decide
+ * their own keys. With no PID block the text is exactly what it was before
+ * the PID screen existed, which keeps stored best-lap keys valid.
  *
- * `pidsText` is the CLI block configs/pids.js emits for the loaded tune,
- * and it is a STRING, already chosen for a tune id, because this module
- * does not know which tune it is composing: the caller does. It sits
- * AFTER the tune body so its `simplified_tuning apply` re-runs on top of
- * whatever slider state the tune set up, which is exactly what dragging a
- * slider in Configurator does with a preset loaded, and BEFORE the rates
- * so the rates stay the last word on their own keys. Empty by default, and
- * an empty block composes byte-identically to the pre-PID-screen text, so
- * stored best-lap keys survive for anyone who has not touched a slider.
+ * RATES_DUMP, which only fc-trace F7 uses as the control for the keep-mine
+ * traces, appends the tune's own rate lines after the menu's.
  */
 export function composeConfig(tuneText, rates, policy = RATES_KEEP, pidsText = '') {
-  const kept = [];
-  const dumpRateLines = [];
-  const src = expandRpmWeights(tuneText ?? '');
-  for (const raw of src.split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    const t = line.trim();
-    if (t.startsWith('set ')) {
-      const key = setKey(t);
-      if (key && RATE_KEYS.has(key)) {
-        dumpRateLines.push(line);
-        continue;
-      }
-    }
-    if (t.startsWith('rateprofile ')) {
-      continue;
-    }
-    kept.push(line);
-  }
-  let out = kept.join('\n');
-  if (out.length && !out.endsWith('\n')) {
-    out += '\n';
-  }
-  out += pidsText || '';
-  const menuRates = ratesDiff(rates);
-  /* The use-dump policy has no caller in the shell; scripts/fc-trace.js F7
-   * is the only one left. Do not prune: it is the control the keep-mine
-   * traces are measured against. */
-  if (policy === RATES_DUMP && dumpRateLines.length > 0) {
-    return out + menuRates + dumpRateLines.join('\n') + '\n';
-  }
-  return out + menuRates;
+  const tune = expandRpmWeights(tuneText ?? '');
+  const composed = tuneBody(tune) + (pidsText || '') + ratesDiff(rates);
+  if (policy !== RATES_DUMP) return composed;
+  const tuneRates = lines(tune).filter((line) => RATE_KEYS.has(keyOfSet(line)));
+  return tuneRates.length ? `${composed}${tuneRates.join('\n')}\n` : composed;
 }
 
-function cString(sim, ptr, n) {
-  if (n <= 0) {
-    return '';
-  }
-  const bytes = new Uint8Array(sim.e.memory.buffer, ptr, n);
-  return new TextDecoder().decode(bytes);
+/*
+ * Module memory helpers. Every buffer is malloc'd in the module and freed
+ * on the way out, success or not.
+ */
+function borrow(sim, size, what) {
+  const ptr = sim.e.malloc(size);
+  if (!ptr) throw new Error(`sim.wasm malloc failed for ${what} buffer`);
+  return ptr;
 }
+
+function textAt(sim, ptr, length) {
+  return length > 0 ? new TextDecoder().decode(new Uint8Array(sim.e.memory.buffer, ptr, length)) : '';
+}
+
+function requireExport(sim, name) {
+  if (typeof sim.e[name] !== 'function') {
+    throw new Error(`sim.wasm does not export ${name}; rebuild with npm run build:wasm`);
+  }
+}
+
+/*
+ * The module's live settings as CLI text. sim_bf_dump returns the length it
+ * needed; when that does not fit, ask again with room for it and its NUL,
+ * a few times at most.
+ */
+const DUMP_ATTEMPTS = 4;
 
 export function moduleDump(sim, cap = 65536) {
-  if (typeof sim.e.sim_bf_dump !== 'function') {
-    throw new Error('sim.wasm does not export sim_bf_dump; rebuild with npm run build:wasm');
-  }
-  let size = cap;
-  for (let i = 0; i < 4; i += 1) {
-    const ptr = sim.e.malloc(size);
-    if (!ptr) {
-      throw new Error('sim.wasm malloc failed for dump buffer');
-    }
+  requireExport(sim, 'sim_bf_dump');
+  let room = cap;
+  for (let attempt = 0; attempt < DUMP_ATTEMPTS; attempt += 1) {
+    const buf = borrow(sim, room, 'dump');
+    let needed;
     try {
-      const n = sim.e.sim_bf_dump(ptr, size);
-      if (n < 0) {
-        throw new Error('sim_bf_dump failed');
-      }
-      if (n < size) {
-        return cString(sim, ptr, n);
-      }
-      size = n + 2;
+      needed = sim.e.sim_bf_dump(buf, room);
+      if (needed < 0) throw new Error('sim_bf_dump failed');
+      if (needed < room) return textAt(sim, buf, needed);
     } finally {
-      sim.e.free(ptr);
+      sim.e.free(buf);
     }
+    room = needed + 2;
   }
   throw new Error('sim_bf_dump did not fit');
 }
 
+// One key's current value as the module prints it, or null for a key it
+// does not know. Values are short; the answer is cut at 63 bytes.
+const GET_ROOM = 64;
+
 export function moduleGet(sim, key) {
-  if (typeof sim.e.sim_bf_get !== 'function') {
-    throw new Error('sim.wasm does not export sim_bf_get; rebuild with npm run build:wasm');
-  }
-  const kbytes = new TextEncoder().encode(`${key}\0`);
-  const kp = sim.e.malloc(kbytes.length);
-  const cap = 64;
-  const op = sim.e.malloc(cap);
-  if (!kp || !op) {
-    throw new Error('sim.wasm malloc failed for get buffer');
-  }
+  requireExport(sim, 'sim_bf_get');
+  const name = new TextEncoder().encode(`${key}\0`);
+  const held = [];
   try {
-    new Uint8Array(sim.e.memory.buffer, kp, kbytes.length).set(kbytes);
-    const n = sim.e.sim_bf_get(kp, op, cap);
-    if (n < 0) {
-      return null;
-    }
-    return cString(sim, op, Math.min(n, cap - 1));
+    const namePtr = borrow(sim, name.length, 'get');
+    held.push(namePtr);
+    const out = borrow(sim, GET_ROOM, 'get');
+    held.push(out);
+    new Uint8Array(sim.e.memory.buffer, namePtr, name.length).set(name);
+    const n = sim.e.sim_bf_get(namePtr, out, GET_ROOM);
+    return n < 0 ? null : textAt(sim, out, Math.min(n, GET_ROOM - 1));
   } finally {
-    sim.e.free(kp);
-    sim.e.free(op);
+    for (const ptr of held) sim.e.free(ptr);
   }
 }
