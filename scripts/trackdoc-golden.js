@@ -157,7 +157,7 @@ function sayCorridor(s, course) {
   for (const sp of SPACINGS) {
     s.call(`corridorSamples(${String(sp)})`, () => (sp === undefined ? corridorSamples(course) : corridorSamples(course, sp)));
   }
-  s.say('corridorSamples left the course alone', canon(course) === before);
+  s.say('corridorSamples left its input alone', canon(course) === before);
 }
 
 /* One document through courseFromDocument, and everything a caller can see. */
