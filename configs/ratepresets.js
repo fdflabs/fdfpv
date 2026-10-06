@@ -8,7 +8,7 @@
  * the track the same way.
  *
  * Presets exist only in this browser's storage, under one versioned key,
- * webfpv.rates.library.v1, holding every preset by id (the same shape as
+ * fdfpv.rates.library.v1, holding every preset by id (the same shape as
  * the track library in src/trackbuilder/storage.js). Reads and writes go
  * through src/share/session.js, which turns a private window or a full
  * quota into a fallback value or `false`; a refused save is reported back
@@ -35,7 +35,35 @@
 import { normaliseRates, ratesDiff, ratesSummary } from './rates.js';
 import { readJson, writeJson } from '../src/share/session.js';
 
-const STORAGE_KEY = 'webfpv.rates.library.v1';
+const STORAGE_KEY = 'fdfpv.rates.library.v1';
+
+/*
+ * The library was stored under webfpv.rates.library.v1 before the project
+ * took its own name. moveRenamedPresetLibrary copies it to the new key
+ * unless that already holds a library (then the old one is the stale
+ * copy), and deletes the old key only after that, so a refused write
+ * leaves it to try again next load. Running it again changes nothing.
+ * src/share/move.js carries fdfpv.* keys between origins as it did
+ * webfpv.* ones.
+ */
+const OLD_STORAGE_KEY = 'webfpv.rates.library.v1';
+
+export function moveRenamedPresetLibrary(storage) {
+  const value = storage.getItem(OLD_STORAGE_KEY);
+  if (value === null) return;
+  if (storage.getItem(STORAGE_KEY) === null) storage.setItem(STORAGE_KEY, value);
+  storage.removeItem(OLD_STORAGE_KEY);
+}
+
+// On load, before any preset is read. A browser that refuses storage has
+// no library to move, and every read here already treats it as empty.
+if (typeof localStorage !== 'undefined') {
+  try {
+    moveRenamedPresetLibrary(localStorage);
+  } catch {
+    /* storage unavailable: nothing to move */
+  }
+}
 
 // Shown on the Rates screen, the Preset row and the save dialog. One
 // sentence in one place, so three screens state one fact one way.

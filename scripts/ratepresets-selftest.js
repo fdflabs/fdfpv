@@ -14,25 +14,26 @@
  * this file was written to hold still; see scripts/lib/transcript.js for
  * how to read a failure.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { canon, pick, seeded, transcript } from './lib/transcript.js';
 
-const KEY = 'webfpv.rates.library.v1';
+const KEY = 'fdfpv.rates.library.v1';
+const OLD_KEY = 'webfpv.rates.library.v1';
 const store = new Map();
 const faults = { refuseWrites: false, throwOnRead: false };
 globalThis.localStorage = {
@@ -131,4 +132,26 @@ for (let session = 0; session < 60; session += 1) {
   }
 }
 
-t.finish('configs/ratepresets.js', 'b61bcd36d497ce63ade966aa68ef519fe84b2b49a2275665182c8762435daab0');
+// The storage rename: a library under the old key reaches the new key
+// once, a library already under the new key wins, a second run changes
+// nothing, and a refused write keeps the old key.
+const OLD_LIBRARY = JSON.stringify({ 'rp-0000beef': { id: 'rp-0000beef', name: 'Old field', savedUtc: '2026-09-01T00:00:00.000Z', rates: RATE_DEFAULTS } });
+for (const [label, seed] of [['old only', { [OLD_KEY]: OLD_LIBRARY }], ['both', { [OLD_KEY]: OLD_LIBRARY, [KEY]: '{}' }], ['none', {}]]) {
+  store.clear();
+  faults.refuseWrites = false;
+  faults.throwOnRead = false;
+  for (const [k, v] of Object.entries(seed)) store.set(k, v);
+  R.moveRenamedPresetLibrary(globalThis.localStorage);
+  t.note(`migrate ${label}`, Object.fromEntries(store));
+  const once = JSON.stringify([...store]);
+  R.moveRenamedPresetLibrary(globalThis.localStorage);
+  t.rec(`migrate ${label} twice is a no-op`, () => JSON.stringify([...store]) === once);
+  rec(`migrate ${label} list`, () => R.listRatePresets().map((p) => p.name));
+}
+store.clear();
+store.set(OLD_KEY, OLD_LIBRARY);
+faults.refuseWrites = true;
+t.rec('migrate refused write', () => R.moveRenamedPresetLibrary(globalThis.localStorage));
+t.note('migrate refused write keeps', Object.fromEntries(store));
+
+t.finish('configs/ratepresets.js', 'bb34d82a915e721f70b75ee3a757baeecb7314b0c5250f8072eb99a43db46b3d');
