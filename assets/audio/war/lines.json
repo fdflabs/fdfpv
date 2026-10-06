@@ -1,5 +1,5 @@
 {
-  "about": "The war mode's radio script, the source for every voice file. tools/voice/build.py reads it. Rules (docs/WARFARE-PLAN.md section 7.1): the enemy is never named; the defenders are the pilots of both banks; no real figure is spoken until a source for it is in the plan. It also carries The Interior's voices and lines (group interior and its films, docs/campaign/interior/BIBLE.md 5), whose own rules are BIBLE.md 0: ustedes to the players and usted between characters, spelled numbers allowed and never a digit. This file is part of WebFPVSimulator, licensed GPLv3 or later.",
+  "about": "The war mode's radio script, the source for every voice file. tools/voice/build.py reads it. Rules (docs/WARFARE-PLAN.md section 7.1): the enemy is never named; the defenders are the pilots of both banks; no real figure is spoken until a source for it is in the plan. It also carries The Interior's voices and lines (group interior and its films, docs/campaign/interior/BIBLE.md 5), whose own rules are BIBLE.md 0: ustedes to the players and usted between characters, spelled numbers allowed and never a digit. This file is part of the Paraguayan Drone Combat Simulator, licensed GPLv3 or later.",
   "voices": {
     "crest": {
       "role": "CREST, Crest Control: the commander. Orders, the plant, the frame (docs/campaign/BIBLE.md 5.2).",

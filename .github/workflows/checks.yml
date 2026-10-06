@@ -31,6 +31,7 @@ jobs:
       - run: npm run ratepresets:selftest
       - run: npm run lint:nouns
       - run: npm run lint:copy
+      - run: npm run lint:header
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
