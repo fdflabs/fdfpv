@@ -61,7 +61,6 @@ scripts/serve.js
 scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
-scripts/trick-sweep.js
 scripts/wall-check.js
 src/art/banners.js
 src/art/startblock.js
