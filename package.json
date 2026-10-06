@@ -18,6 +18,7 @@
     "rates:selftest": "node scripts/rates-selftest.js",
     "combat:derive": "node scripts/combat-derive.js",
     "combat:gates": "node scripts/combat-gates.js",
+    "dump:selftest": "node scripts/dump-selftest.js",
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
     "perf:overlay": "node scripts/perf-overlay-check.js",

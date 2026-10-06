@@ -65,7 +65,6 @@ src/art/banners.js
 src/art/startblock.js
 src/boot.js
 src/fc/catalog.js
-src/fc/dump.js
 src/fc/keynotes.js
 src/fc/ratescurve.js
 src/game/airframehull.js
