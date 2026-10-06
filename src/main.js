@@ -18463,6 +18463,8 @@ export async function boot({
     rest: REST_HEIGHT,
     hits: lastGroundHits,
     contactSteps: groundContactSteps,
+    /* The material the plant was last given for the ground under the craft. */
+    material: SURFACES[groundMaterialNow],
   });
   /* An optional seventh argument pins the vertical fov as well: without it
    * the parked camera keeps whatever lens the shell last set, which is the
@@ -19860,6 +19862,8 @@ export async function boot({
    * `fromY` is what makes a deck climbable from above and transparent from
    * below, so a capture can assert that rather than describe it. */
   window.__surface = (x, z, fromY) => view.height(x, z, fromY);
+  /* The map's name for the ground's material at a point, as the crash model reads it. */
+  window.__surfaceMaterial = (x, z, y) => (view.surfaceAt ? view.surfaceAt(x, z, y) : null);
   /*
    * Where the camera is, and what is directly under it. The intro camera
    * once ended its pan INSIDE a launch block and the only way to see it was

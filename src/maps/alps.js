@@ -289,6 +289,16 @@ export async function buildValley(shell, progress, q, style) {
     }
     return h < LAKE_Y ? LAKE_Y : h;
   };
+  /* The headwall's material where its grid is the ground, else null: the
+   * ledge's turf top is grass and the face rock (nature.js buildHeadwall).
+   * The terrain painted under the wall says nothing about what is drawn. */
+  const wallSurface = (x, z) => {
+    if (!nature.groundSurface || !(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
+      return null;
+    }
+    const wall = nature.ground(x, z);
+    return wall >= Math.max(field.height(x, z), far.height(x, z)) ? nature.groundSurface(x, z) : null;
+  };
   /* The ground's material off the painted zones. */
   const terrainSurface = (x, z) => {
     if (!(Math.abs(x) <= HALF && Math.abs(z) <= HALF)) {
@@ -346,7 +356,7 @@ export async function buildValley(shell, progress, q, style) {
      * a roof's covering where y is a roof's top, else read off the same
      * zones the ground is painted by, so the snow a wing digs into is the
      * snow on screen. The far range is rock. */
-    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)) ?? terrainSurface(x, z),
+    surfaceAt: (x, z, y) => (y == null ? null : roofs.materialAt(x, z, y)) ?? wallSurface(x, z) ?? terrainSurface(x, z),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,
