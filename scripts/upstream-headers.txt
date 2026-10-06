@@ -19,7 +19,6 @@ scripts/build-save-check.js
 scripts/build-selftest.js
 scripts/build-wasm.sh
 scripts/collider-audit.js
-scripts/contact-selftest.js
 scripts/craft-check.js
 scripts/crash-rules-selftest.js
 scripts/device-check.js
