@@ -1,411 +1,361 @@
 /*
- * budget.js: measure the hardware contract, rather than assert it.
+ * budget.js: what one frame of the current view asks of the GPU, read off
+ * the live renderer, scene and post chain rather than off a list kept by
+ * hand.
  *
- * The minimum spec for this project is a mid range laptop from five years
- * ago at 1920 by 1080 and 60 frames per second. Absolute frame rate is not
- * measurable in a software rasterised container, so the contract is a set
- * of proxies that are: draw calls, triangles, full resolution post passes,
- * texture taps per output pixel, render target bytes, load time, the worst
- * synchronous block, shadow maps, and resident vertex attribute bytes.
+ * The hardware contract (a five year old mid range laptop, 1080p, 60 fps)
+ * cannot be timed on a software rasteriser, so it is held as proxies that
+ * can be counted anywhere: draw calls and triangles, passes drawn at full
+ * resolution and the texture fetches each makes per pixel, render target
+ * memory, shadow maps and vertex memory. The pass figures come from
+ * watching one real frame, because only the frame knows which passes ran
+ * and at what size.
  *
- * Everything here reads the live objects. Nothing is a constant copied out
- * of a comment. The pass count and the tap count in particular come from
- * instrumenting one real frame and reading the fragment shader source that
- * was actually bound, because a pass list read from a source file does not
- * know which passes are enabled or what resolution they ran at.
+ * window.__budget (src/main.js) asks for a ledger on demand, for the
+ * capture harness. The frame loop never calls this.
  *
- * Called on demand from the capture harness through window.__budget. It is
- * never called from the frame loop.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
 import { str } from '../strings/index.js';
 
-const CHANNELS = new Map([
-  [THREE.RedFormat, 1],
-  [THREE.RGFormat, 2],
-  [THREE.RGBFormat, 3],
-  [THREE.RGBAFormat, 4],
-  [THREE.DepthFormat, 1],
-  [THREE.DepthStencilFormat, 1],
-]);
+/* Texel size is channels times bytes per channel. Anything not listed
+ * counts as four one byte channels, the RGBA8 every default target is. */
+const CHANNELS_OF = {
+  [THREE.RedFormat]: 1,
+  [THREE.RGFormat]: 2,
+  [THREE.RGBAFormat]: 4,
+  [THREE.DepthFormat]: 1,
+  [THREE.DepthStencilFormat]: 1,
+};
+const BYTES_PER_CHANNEL = {
+  [THREE.ByteType]: 1,
+  [THREE.UnsignedByteType]: 1,
+  [THREE.ShortType]: 2,
+  [THREE.UnsignedShortType]: 2,
+  [THREE.HalfFloatType]: 2,
+  [THREE.IntType]: 4,
+  [THREE.UnsignedIntType]: 4,
+  [THREE.FloatType]: 4,
+  [THREE.UnsignedInt248Type]: 4,
+};
 
-const TYPE_BYTES = new Map([
-  [THREE.UnsignedByteType, 1],
-  [THREE.ByteType, 1],
-  [THREE.ShortType, 2],
-  [THREE.UnsignedShortType, 2],
-  [THREE.IntType, 4],
-  [THREE.UnsignedIntType, 4],
-  [THREE.HalfFloatType, 2],
-  [THREE.FloatType, 4],
-  [THREE.UnsignedInt248Type, 4],
-]);
-
-function texelBytes(texture) {
-  const ch = CHANNELS.get(texture.format) ?? 4;
-  const by = TYPE_BYTES.get(texture.type) ?? 1;
-  return ch * by;
+function texelSize(texture) {
+  return (CHANNELS_OF[texture.format] ?? 4) * (BYTES_PER_CHANNEL[texture.type] ?? 1);
 }
 
 /*
- * A multisampled colour target costs the resolve texture plus one
- * renderbuffer per sample, because the driver keeps both: the samples are
- * written during rasterisation and resolved into the texture afterwards.
- * That is why samples: 4 on an RGBA16F target at 1080p is 5 x 8.3 MB and
- * not 8.3 MB, and it is the single largest line in this ledger.
+ * Bytes a render target holds. Multisampled colour is the samples written
+ * while rasterising plus the texture they resolve into, both resident: four
+ * samples of RGBA16F at 1080p is five copies, the largest line a ledger
+ * usually has. A depth buffer with no depth texture is DEPTH_COMPONENT24
+ * or DEPTH24_STENCIL8 as three.js allocates it, four bytes a pixel either
+ * way, per sample.
  */
-function targetBytes(rt, label) {
-  if (!rt) {
-    return null;
-  }
-  const w = rt.width;
-  const h = rt.height;
+function targetCost(rt) {
+  const pixels = rt.width * rt.height;
   const samples = rt.samples > 1 ? rt.samples : 1;
-  const colour = w * h * texelBytes(rt.texture) * (samples > 1 ? samples + 1 : 1);
+  const colourCopies = samples > 1 ? samples + 1 : 1;
   let depth = 0;
   if (rt.depthTexture) {
-    depth = w * h * texelBytes(rt.depthTexture);
+    depth = pixels * texelSize(rt.depthTexture);
   } else if (rt.depthBuffer) {
-    /* three.js allocates DEPTH_COMPONENT24 without a stencil buffer, and
-     * DEPTH24_STENCIL8 with one. Both are four bytes per pixel. */
-    depth = w * h * 4 * (samples > 1 ? samples : 1);
+    depth = pixels * 4 * samples;
   }
-  return { label, w, h, samples, bytes: colour + depth };
+  return { samples, bytes: pixels * texelSize(rt.texture) * colourCopies + depth };
 }
 
-const TAP_CALL = /\btexture(2D|Cube|2DProj|Lod|Grad)?\s*\(/g;
+const FETCH = /\btexture(?:2D|Cube|2DProj|Lod|Grad)?\s*\(/g;
+const FOR_LOOP = /\bfor\s*\(/g;
+const FUNCTION_START = /\b(?:void|float|int|bool|u?vec[234]|mat[234])\s+(\w+)\s*\([^)]*\)\s*\{/g;
 
-function strip(source) {
-  return String(source || '')
+function count(text, pattern) {
+  return (text.match(pattern) || []).length;
+}
+
+/* The text between a function's opening brace (just before `from`) and
+ * the brace that closes it. */
+function braceBody(code, from) {
+  let depth = 1;
+  let end = from;
+  while (end < code.length && depth > 0) {
+    const ch = code[end];
+    depth += ch === '{' ? 1 : ch === '}' ? -1 : 0;
+    end += 1;
+  }
+  return code.slice(from, end - 1);
+}
+
+/*
+ * Texture fetches per output pixel of a fragment shader, which is the
+ * dynamic count: a helper that fetches twice and is called three times
+ * from main costs six, though the source shows two. Each function becomes
+ * a node with its own fetches and its calls to the others, and main's total
+ * is resolved down that graph. GLSL has no recursion, so the walk ends; a
+ * cycle in a malformed source counts as nothing rather than hanging. A loop
+ * repeats fetches this cannot count statically, so loops are reported
+ * beside the figure instead of folded into it. Comments are dropped first,
+ * because a fetch written in a comment costs nothing.
+ */
+function fetchesPerPixel(fragmentShader) {
+  const code = String(fragmentShader || '')
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/\/\/[^\n]*/g, ' ');
-}
-
-function countIn(code, re) {
-  const m = code.match(re);
-  return m ? m.length : 0;
-}
-
-/*
- * Taps per output pixel, which is not the same as the number of times
- * texture2D appears in the file. A shader that writes one fetch inside a
- * helper and calls the helper five times costs five fetches per pixel and
- * reads as one in the source. P4 is a bandwidth budget, so it has to be
- * the dynamic figure.
- *
- * So: pull out every user defined function with a brace matched body,
- * count each one's direct taps and its calls to the others, and resolve
- * main by substitution. Recursion is impossible in GLSL, so the
- * substitution terminates. Loops are the one thing this cannot see, and a
- * pass containing one is flagged rather than guessed at.
- */
-function countTaps(source) {
-  const code = strip(source);
-  const defs = new Map();
-  const bodies = [];
-  const head = /\b(?:void|float|int|bool|u?vec[234]|mat[234])\s+(\w+)\s*\([^)]*\)\s*\{/g;
-  let m;
-  while ((m = head.exec(code)) !== null) {
-    let depth = 1;
-    let i = head.lastIndex;
-    while (i < code.length && depth > 0) {
-      if (code[i] === '{') {
-        depth += 1;
-      } else if (code[i] === '}') {
-        depth -= 1;
-      }
-      i += 1;
-    }
-    const body = code.slice(head.lastIndex, i - 1);
-    defs.set(m[1], body);
-    bodies.push(body);
+  const nodes = new Map();
+  let loops = 0;
+  for (const m of code.matchAll(FUNCTION_START)) {
+    const body = braceBody(code, m.index + m[0].length);
+    loops += count(body, FOR_LOOP);
+    nodes.set(m[1], { body, own: count(body, FETCH) });
   }
-  const cache = new Map();
-  function cost(name, seen) {
-    if (cache.has(name)) {
-      return cache.get(name);
-    }
-    const body = defs.get(name);
-    if (body == null || seen.has(name)) {
-      return 0;
-    }
-    seen.add(name);
-    let total = countIn(body, TAP_CALL);
-    for (const other of defs.keys()) {
-      if (other === name || other === 'main') {
+  if (!nodes.has('main')) {
+    return { taps: count(code, FETCH), loops };
+  }
+  for (const [name, node] of nodes) {
+    node.calls = [];
+    for (const callee of nodes.keys()) {
+      if (callee === name || callee === 'main') {
         continue;
       }
-      const calls = countIn(body, new RegExp(`\\b${other}\\s*\\(`, 'g'));
-      if (calls > 0) {
-        total += calls * cost(other, seen);
+      const n = count(node.body, new RegExp(`\\b${callee}\\s*\\(`, 'g'));
+      if (n > 0) {
+        node.calls.push([callee, n]);
       }
     }
-    seen.delete(name);
-    cache.set(name, total);
-    return total;
   }
-  const taps = defs.has('main') ? cost('main', new Set()) : countIn(code, TAP_CALL);
-  return { taps, loops: countIn(bodies.join('\n'), /\bfor\s*\(/g) };
+  const total = new Map();
+  const open = new Set();
+  const resolve = (name) => {
+    if (total.has(name)) {
+      return total.get(name);
+    }
+    if (open.has(name)) {
+      return 0;
+    }
+    open.add(name);
+    const node = nodes.get(name);
+    const sum = node.calls.reduce((acc, [callee, n]) => acc + n * resolve(callee), node.own);
+    open.delete(name);
+    total.set(name, sum);
+    return sum;
+  };
+  return { taps: resolve('main'), loops };
 }
 
 /*
- * One instrumented frame. Every fullscreen quad in three.js goes through
- * renderer.render with a Mesh as the scene argument, so patching
- * setRenderTarget and render for the duration of one frame records what
- * resolution each pass ran at and which fragment shader was bound. That is
- * a measurement of the frame that ran, not a reading of the pass list.
+ * Runs `draw` with the renderer's target binds and draws observed, and
+ * hands back every draw (where it went, at what size, and for a full
+ * screen quad, which is a Mesh passed as the scene, its fragment cost) and
+ * every target bound. Watching the binds is what finds targets nobody
+ * listed: three's shadow maps and the bloom mip chain among them. The
+ * renderer's own methods, wrappers included, are put back afterwards.
  */
-function traceFrame(renderer, renderFrame) {
-  const passes = [];
-  /*
-   * Every render target the frame binds, collected from the bind itself
-   * rather than from a hand written list. An earlier version of this file
-   * listed the targets it knew about and deduplicated them on rt.uuid,
-   * which WebGLRenderTarget does not have, so the whole ledger collapsed
-   * to whichever target was added first and reported 116 MB where the
-   * real figure was more than twice that. Watching the binds cannot miss
-   * a target, including ones inside three.js that this file has never
-   * heard of, such as the shadow map and the bloom mip chain.
-   */
-  const targets = new Set();
-  const realSetTarget = renderer.setRenderTarget.bind(renderer);
-  const realRender = renderer.render.bind(renderer);
-  let cur = null;
-  let curW = renderer.domElement.width;
-  let curH = renderer.domElement.height;
-
-  renderer.setRenderTarget = (rt, ...rest) => {
-    cur = rt || null;
+function observeFrame(renderer, draw) {
+  const canvas = renderer.domElement;
+  const draws = [];
+  const bound = new Set();
+  const bind = renderer.setRenderTarget;
+  const render = renderer.render;
+  let into = { target: null, w: canvas.width, h: canvas.height };
+  renderer.setRenderTarget = function observedBind(rt, ...rest) {
     if (rt) {
-      targets.add(rt);
-      curW = rt.width;
-      curH = rt.height;
+      bound.add(rt);
+      into = { target: rt, w: rt.width, h: rt.height };
     } else {
-      curW = renderer.domElement.width;
-      curH = renderer.domElement.height;
+      into = { target: null, w: canvas.width, h: canvas.height };
     }
-    return realSetTarget(rt, ...rest);
+    return bind.call(renderer, rt, ...rest);
   };
-  renderer.render = (scene, camera) => {
+  renderer.render = function observedRender(scene, camera) {
     const quad = scene.isMesh === true;
-    const t = quad ? countTaps(scene.material.fragmentShader) : { taps: 0, loops: 0 };
-    passes.push({
-      w: curW,
-      h: curH,
+    const cost = quad ? fetchesPerPixel(scene.material.fragmentShader) : { taps: 0, loops: 0 };
+    draws.push({
+      ...into,
       quad,
-      target: cur,
-      name: quad ? (scene.material.name || scene.material.type) : (scene.type || 'scene'),
-      taps: t.taps,
-      loops: t.loops,
+      name: quad ? scene.material.name || scene.material.type : scene.type || 'scene',
+      ...cost,
     });
-    return realRender(scene, camera);
+    return render.call(renderer, scene, camera);
   };
   try {
-    renderFrame();
+    draw();
   } finally {
-    renderer.setRenderTarget = realSetTarget;
-    renderer.render = realRender;
+    renderer.setRenderTarget = bind;
+    renderer.render = render;
   }
-  return { passes, targets };
+  return { draws, bound };
 }
 
+const megabytes = (bytes) => +(bytes / 1e6).toFixed(1);
+
 /*
- * `shell` is the session (renderer, camera) and `view` is the active map
- * (scene, post chain). They used to be one object; they are two because the
- * two maps share a renderer and own separate scenes and post chains, and a
- * ledger that read the renderer off the map would report the wrong map's
- * frame the moment one was swapped out.
+ * The ledger for one frame from where the camera is now. `shell` carries
+ * the renderer, `view` the active map's scene and post chain: the maps
+ * share one renderer, so the scene and passes must come from the view that
+ * is up, not from whichever map built the renderer.
  */
 export function measureBudget(shell, view, extra) {
-  const renderer = shell.renderer;
-  const post = view.post;
+  const { renderer } = shell;
+  const { post, scene } = view;
   const canvasW = renderer.domElement.width;
   const canvasH = renderer.domElement.height;
 
-  /* P3 and P4: instrument one real frame. P1 and P2 come from the same
-   * frame, counted the way the frame loop counts them, so every number in
-   * this ledger refers to one frame from one camera position. */
+  /* Calls and triangles are read from the same observed frame as the
+   * passes, so every figure describes one frame. */
   renderer.info.reset();
-  const traced = traceFrame(renderer, () => post.render());
-  const fullRes = traced.passes.filter(
-    (p) => p.quad && p.w === canvasW && p.h === canvasH,
-  );
-  const fullResPasses = fullRes.length;
-  const fullResTaps = fullRes.reduce((a, p) => a + p.taps, 0);
-  const fullResLoops = fullRes.reduce((a, p) => a + p.loops, 0);
+  const frame = observeFrame(renderer, () => post.render());
+  const fullRes = frame.draws.filter((d) => d.quad && d.w === canvasW && d.h === canvasH);
 
-  /* P5: every render target the frame bound, named by what was drawn into
-   * it, plus the composer's back buffer, which the frame allocates and
-   * swaps to even when a given frame's pass order happens not to bind it. */
-  const named = new Map();
-  for (const p of traced.passes) {
-    if (p.target && !named.has(p.target)) {
-      named.set(p.target, p.name);
+  /* Each target is named after the first thing drawn into it. The
+   * composer's ping pong pair is always resident, bound this frame or not. */
+  const firstDraw = new Map();
+  for (const d of frame.draws) {
+    if (d.target && !firstDraw.has(d.target)) {
+      firstDraw.set(d.target, d.name);
     }
   }
-  const rts = new Set(traced.targets);
+  const resident = new Set(frame.bound);
   if (post.composer) {
-    rts.add(post.composer.renderTarget1);
-    rts.add(post.composer.renderTarget2);
+    resident.add(post.composer.renderTarget1);
+    resident.add(post.composer.renderTarget2);
   }
-  /* A shadow map's size is authored, not derived from the panel, so it is
-   * the one target that does not scale with resolution. Collected here so
-   * that the figure derived for 1080p from a 900p capture is right: an
-   * earlier version scaled the whole total by pixel area and over
-   * reported by 12.8 percent. */
-  const shadowRts = new Set();
-  view.scene.traverse((o) => {
-    if (o.isLight && o.castShadow && o.shadow && o.shadow.map) {
-      shadowRts.add(o.shadow.map);
+
+  const castsShadow = [];
+  scene.traverse((o) => {
+    if (o.isLight && o.castShadow) {
+      castsShadow.push(o);
     }
   });
+  /* A shadow map is sized by its light, not by the canvas, so it is the one
+   * target that stays put when the 1080p figure is derived below. */
+  const shadowMaps = new Set(castsShadow.map((l) => l.shadow && l.shadow.map).filter(Boolean));
 
   const targets = [];
-  for (const rt of rts) {
+  for (const rt of resident) {
     if (!rt) {
       continue;
     }
-    const t = targetBytes(rt, str('budget.x', { width: rt.width, height: rt.height, v3: named.get(rt) || str('budget.allocated_not_bound_this_frame') }));
-    if (t) {
-      t.scales = !shadowRts.has(rt);
-      targets.push(t);
-    }
+    const { samples, bytes } = targetCost(rt);
+    targets.push({
+      label: str('budget.x', { width: rt.width, height: rt.height, v3: firstDraw.get(rt) || str('budget.allocated_not_bound_this_frame') }),
+      w: rt.width,
+      h: rt.height,
+      samples,
+      bytes,
+      scales: !shadowMaps.has(rt),
+    });
   }
 
-  /*
-   * The default framebuffer. It is a render target the frame writes into
-   * every single frame, it is the size of the panel, and an earlier
-   * version of this file could not see it because it only counted objects
-   * passed to setRenderTarget and the canvas is passed as null. That is
-   * 16.6 MB at 1080p missing from a 120 MB budget. Read from the context's
-   * actual attributes rather than assumed: a browser is free to give the
-   * canvas a stencil buffer nobody asked for, and this one does.
-   */
+  /* The canvas is a target too, written every frame though it is never
+   * passed to setRenderTarget. Its depth and stencil are whatever the
+   * context actually granted, which a browser may exceed. */
   const gl = renderer.getContext();
-  const attrs = gl.getContextAttributes ? gl.getContextAttributes() : {};
-  const fbDepthBytes = (attrs.stencil ? 4 : (attrs.depth ? 4 : 0));
+  const granted = gl.getContextAttributes ? gl.getContextAttributes() : {};
   targets.push({
-    label: str('budget.x_the_default_framebuffer_rgba', { canvasW, canvasH, v3: attrs.depth ? str('budget.depth') : '', v4: attrs.stencil ? str('budget.stencil') : '' }),
+    label: str('budget.x_the_default_framebuffer_rgba', {
+      canvasW,
+      canvasH,
+      v3: granted.depth ? str('budget.depth') : '',
+      v4: granted.stencil ? str('budget.stencil') : '',
+    }),
     w: canvasW,
     h: canvasH,
     samples: 1,
-    bytes: canvasW * canvasH * (4 + fbDepthBytes),
+    bytes: canvasW * canvasH * (4 + (granted.stencil || granted.depth ? 4 : 0)),
     scales: true,
   });
   targets.sort((a, b) => b.bytes - a.bytes);
+  const targetTotal = targets.reduce((sum, t) => sum + t.bytes, 0);
 
-  /* P9: shadow maps, from the lights themselves. */
-  const shadows = [];
-  view.scene.traverse((o) => {
-    if (o.isLight && o.castShadow) {
-      shadows.push({
-        light: o.type,
-        size: `${o.shadow.mapSize.x}x${o.shadow.mapSize.y}`,
-        allocated: !!(o.shadow && o.shadow.map),
-      });
-    }
-  });
-  const targetBytesTotal = targets.reduce((a, t) => a + t.bytes, 0);
-
-  /* P10: resident vertex attribute bytes, each geometry counted once. */
-  const geos = new Set();
-  let attrBytes = 0;
-  let indexBytes = 0;
+  /* Vertex memory counts each geometry once however many meshes draw it.
+   * The heaviest geometries are listed with what decides whether they can
+   * be skipped: the cull flag, and a bounding radius, since a merged mesh
+   * spanning the world is never outside the frustum. */
+  const seen = new Set();
+  const listed = [];
   let meshes = 0;
-  /*
-   * Where the triangles ARE, not just how many there are.
-   *
-   * P2 has failed at about 1.6x for five rounds and the ledger could not say
-   * which meshes carried it, which is the same defect a reviewer found in the
-   * P5 breakdown: an instrument that reports a total it cannot attribute
-   * cannot tell anyone what to fix. Each row is a mesh's triangle count, its
-   * material type, whether the renderer is allowed to frustum cull it, and
-   * its bounding sphere radius, because a merged mesh whose bounds span the
-   * world is culled by nothing even when the flag is on.
-   */
-  const heavy = [];
-  view.scene.traverse((o) => {
-    if (!o.isMesh && !o.isPoints && !o.isLine) {
+  let attributeBytes = 0;
+  let indexBytes = 0;
+  scene.traverse((o) => {
+    if (!(o.isMesh || o.isPoints || o.isLine)) {
       return;
     }
     meshes += 1;
     const g = o.geometry;
-    if (!g || geos.has(g.uuid)) {
+    if (!g || seen.has(g.uuid)) {
       return;
     }
-    geos.add(g.uuid);
-    if (g.attributes.position) {
-      if (!g.boundingSphere) {
-        g.computeBoundingSphere();
-      }
-      heavy.push({
-        material: o.material && o.material.type ? o.material.type : 'unknown',
-        triangles: Math.round(g.index ? g.index.count / 3 : g.attributes.position.count / 3),
-        frustumCulled: Boolean(o.frustumCulled),
-        boundsRadius: g.boundingSphere ? Math.round(g.boundingSphere.radius * 10) / 10 : -1,
-      });
-    }
-    for (const name of Object.keys(g.attributes)) {
-      attrBytes += g.attributes[name].array.byteLength;
+    seen.add(g.uuid);
+    for (const attr of Object.values(g.attributes)) {
+      attributeBytes += attr.array.byteLength;
     }
     if (g.index) {
       indexBytes += g.index.array.byteLength;
     }
+    const position = g.attributes.position;
+    if (!position) {
+      return;
+    }
+    if (!g.boundingSphere) {
+      g.computeBoundingSphere();
+    }
+    listed.push({
+      material: o.material?.type || 'unknown',
+      triangles: Math.round((g.index ? g.index.count : position.count) / 3),
+      frustumCulled: Boolean(o.frustumCulled),
+      boundsRadius: g.boundingSphere ? Math.round(g.boundingSphere.radius * 10) / 10 : -1,
+    });
   });
 
-  /* Scale the resolution dependent lines to the 1080p the contract is
-   * written against, so a capture at 1600 by 900 still answers P5. Only
-   * the lines that actually scale: the shadow map's size is authored, and
-   * scaling the whole total by pixel area over reported a 900p capture's
-   * 1080p equivalent by 12.8 percent. The scaled figure is derived, and it
-   * is labelled as derived. */
-  const scale = (1920 * 1080) / (canvasW * canvasH);
-  const scaledBytes = targets.reduce(
-    (a, t) => a + (t.scales === false ? t.bytes : t.bytes * scale),
-    0,
-  );
+  /* The contract is written for 1920 by 1080, so the lines that follow the
+   * canvas are scaled to it and the shadow maps are not; scaling the whole
+   * total overstates a 900p capture's 1080p figure by about an eighth. */
+  const toFullHd = (1920 * 1080) / (canvasW * canvasH);
+  const fullHdBytes = targets.reduce((sum, t) => sum + (t.scales === false ? t.bytes : t.bytes * toFullHd), 0);
 
   return {
-    view: extra && extra.view ? extra.view : 'unnamed',
+    view: extra?.view || 'unnamed',
     canvas: { w: canvasW, h: canvasH, dpr: renderer.getPixelRatio() },
     p1_calls: renderer.info.render.calls,
     p2_triangles: renderer.info.render.triangles,
-    p3_fullres_passes: fullResPasses,
-    p4_fullres_taps: fullResTaps,
-    p4_fullres_loops: fullResLoops,
-    /* Bytes, and then the same bytes in both units, because the ceiling is
-     * written as "120 MB" and a ledger that quietly reports mebibytes
-     * under a megabyte heading is 4.9 percent lenient at this scale. Both
-     * are printed so neither reading can be the flattering one by
-     * accident. */
-    p5_target_bytes: targetBytesTotal,
-    p5_target_MB: +(targetBytesTotal / 1e6).toFixed(1),
-    p5_target_MiB: +(targetBytesTotal / 1048576).toFixed(1),
-    p5_target_MB_at_1080p: +(scaledBytes / 1e6).toFixed(1),
+    p3_fullres_passes: fullRes.length,
+    p4_fullres_taps: fullRes.reduce((sum, d) => sum + d.taps, 0),
+    p4_fullres_loops: fullRes.reduce((sum, d) => sum + d.loops, 0),
+    /* Megabytes and mebibytes both: the ceiling is written in MB, and
+     * printing only one unit would let the flattering one pass for it. */
+    p5_target_bytes: targetTotal,
+    p5_target_MB: megabytes(targetTotal),
+    p5_target_MiB: +(targetTotal / 1048576).toFixed(1),
+    p5_target_MB_at_1080p: megabytes(fullHdBytes),
     p5_targets: targets,
-    p9_shadow_maps: shadows,
-    p10_attribute_bytes: attrBytes,
-    p10_attribute_MB: +(attrBytes / 1e6).toFixed(1),
+    p9_shadow_maps: castsShadow.map((l) => ({
+      light: l.type,
+      size: `${l.shadow.mapSize.x}x${l.shadow.mapSize.y}`,
+      allocated: Boolean(l.shadow && l.shadow.map),
+    })),
+    p10_attribute_bytes: attributeBytes,
+    p10_attribute_MB: megabytes(attributeBytes),
     p10_index_bytes: indexBytes,
     meshes,
-    geometries: geos.size,
-    p2_top_meshes: heavy.sort((a, b) => b.triangles - a.triangles).slice(0, 10),
-    passes: traced.passes.map((p) => `${p.name} ${p.w}x${p.h}${p.quad ? ` taps=${p.taps}${p.loops ? ` loops=${p.loops}` : ''}` : ''}`),
+    geometries: seen.size,
+    p2_top_meshes: listed.sort((a, b) => b.triangles - a.triangles).slice(0, 10),
+    passes: frame.draws.map((d) => {
+      const cost = d.quad ? ` taps=${d.taps}${d.loops ? ` loops=${d.loops}` : ''}` : '';
+      return `${d.name} ${d.w}x${d.h}${cost}`;
+    }),
   };
 }

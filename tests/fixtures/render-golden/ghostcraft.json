@@ -1,0 +1,907 @@
+{
+ "build": [
+  {
+   "id": "interceptor",
+   "ghost": {
+    "keys": [
+     "group",
+     "setLabel",
+     "setPresence"
+    ],
+    "name": "ghost-craft",
+    "visible": false,
+    "meshes": [
+     [
+      {
+       "ref": "m0",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "the rest"
+     ],
+     [
+      {
+       "ref": "m1",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "discs"
+     ]
+    ],
+    "tag": {
+     "p": [
+      0,
+      0.34,
+      0
+     ],
+     "s": [
+      1.5,
+      0.28,
+      1
+     ],
+     "renderOrder": 3,
+     "visible": true,
+     "material": {
+      "ref": "m2",
+      "type": "SpriteMaterial",
+      "name": "",
+      "transparent": true,
+      "opacity": 0,
+      "depthWrite": false,
+      "depthTest": true,
+      "side": 0,
+      "fog": false,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "sizeAttenuation": true,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "rotation": 0,
+      "color": "ffffff",
+      "map": {
+       "ref": "t3",
+       "type": "CanvasTexture",
+       "size": [
+        512,
+        96,
+        null
+       ],
+       "data": null,
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1006,
+        1008
+       ],
+       "mips": true,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "srgb",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": true,
+       "anisotropy": 1
+      },
+      "onBeforeCompile": false,
+      "cacheKey": null,
+      "userData": []
+     },
+     "map": "t3",
+     "parentIsGroup": true
+    }
+   },
+   "drawn": [],
+   "builderSame": true,
+   "keptAllButRotors": true,
+   "freedMaterials": true,
+   "freedRotorGeometry": true,
+   "freedOther": []
+  },
+  {
+   "id": "7inch",
+   "ghost": {
+    "keys": [
+     "group",
+     "setLabel",
+     "setPresence"
+    ],
+    "name": "ghost-craft",
+    "visible": false,
+    "meshes": [
+     [
+      {
+       "ref": "m0",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "the rest"
+     ],
+     [
+      {
+       "ref": "m1",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "discs"
+     ]
+    ],
+    "tag": {
+     "p": [
+      0,
+      0.34,
+      0
+     ],
+     "s": [
+      1.5,
+      0.28,
+      1
+     ],
+     "renderOrder": 3,
+     "visible": true,
+     "material": {
+      "ref": "m2",
+      "type": "SpriteMaterial",
+      "name": "",
+      "transparent": true,
+      "opacity": 0,
+      "depthWrite": false,
+      "depthTest": true,
+      "side": 0,
+      "fog": false,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "sizeAttenuation": true,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "rotation": 0,
+      "color": "ffffff",
+      "map": {
+       "ref": "t3",
+       "type": "CanvasTexture",
+       "size": [
+        512,
+        96,
+        null
+       ],
+       "data": null,
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1006,
+        1008
+       ],
+       "mips": true,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "srgb",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": true,
+       "anisotropy": 1
+      },
+      "onBeforeCompile": false,
+      "cacheKey": null,
+      "userData": []
+     },
+     "map": "t3",
+     "parentIsGroup": true
+    }
+   },
+   "drawn": [],
+   "builderSame": true,
+   "keptAllButRotors": true,
+   "freedMaterials": true,
+   "freedRotorGeometry": true,
+   "freedOther": []
+  },
+  {
+   "id": "10inch",
+   "ghost": {
+    "keys": [
+     "group",
+     "setLabel",
+     "setPresence"
+    ],
+    "name": "ghost-craft",
+    "visible": false,
+    "meshes": [
+     [
+      {
+       "ref": "m0",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "the rest"
+     ],
+     [
+      {
+       "ref": "m1",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "discs"
+     ]
+    ],
+    "tag": {
+     "p": [
+      0,
+      0.34,
+      0
+     ],
+     "s": [
+      1.5,
+      0.28,
+      1
+     ],
+     "renderOrder": 3,
+     "visible": true,
+     "material": {
+      "ref": "m2",
+      "type": "SpriteMaterial",
+      "name": "",
+      "transparent": true,
+      "opacity": 0,
+      "depthWrite": false,
+      "depthTest": true,
+      "side": 0,
+      "fog": false,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "sizeAttenuation": true,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "rotation": 0,
+      "color": "ffffff",
+      "map": {
+       "ref": "t3",
+       "type": "CanvasTexture",
+       "size": [
+        512,
+        96,
+        null
+       ],
+       "data": null,
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1006,
+        1008
+       ],
+       "mips": true,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "srgb",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": true,
+       "anisotropy": 1
+      },
+      "onBeforeCompile": false,
+      "cacheKey": null,
+      "userData": []
+     },
+     "map": "t3",
+     "parentIsGroup": true
+    }
+   },
+   "drawn": [],
+   "builderSame": true,
+   "keptAllButRotors": true,
+   "freedMaterials": true,
+   "freedRotorGeometry": true,
+   "freedOther": []
+  },
+  {
+   "id": "undefined",
+   "ghost": {
+    "keys": [
+     "group",
+     "setLabel",
+     "setPresence"
+    ],
+    "name": "ghost-craft",
+    "visible": false,
+    "meshes": [
+     [
+      {
+       "ref": "m0",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "the rest"
+     ],
+     [
+      {
+       "ref": "m1",
+       "type": "MeshBasicMaterial",
+       "name": "",
+       "transparent": true,
+       "opacity": 0,
+       "depthWrite": false,
+       "depthTest": true,
+       "side": 0,
+       "fog": true,
+       "blending": 1,
+       "vertexColors": false,
+       "alphaTest": 0,
+       "polygonOffset": false,
+       "polygonOffsetFactor": 0,
+       "polygonOffsetUnits": 0,
+       "colorWrite": true,
+       "toneMapped": true,
+       "wireframe": false,
+       "dithering": false,
+       "premultipliedAlpha": false,
+       "visible": true,
+       "stencilWrite": false,
+       "alphaToCoverage": false,
+       "color": "7dffb4",
+       "onBeforeCompile": false,
+       "cacheKey": null,
+       "userData": []
+      },
+      "discs"
+     ]
+    ],
+    "tag": {
+     "p": [
+      0,
+      0.34,
+      0
+     ],
+     "s": [
+      1.5,
+      0.28,
+      1
+     ],
+     "renderOrder": 3,
+     "visible": true,
+     "material": {
+      "ref": "m2",
+      "type": "SpriteMaterial",
+      "name": "",
+      "transparent": true,
+      "opacity": 0,
+      "depthWrite": false,
+      "depthTest": true,
+      "side": 0,
+      "fog": false,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "sizeAttenuation": true,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "rotation": 0,
+      "color": "ffffff",
+      "map": {
+       "ref": "t3",
+       "type": "CanvasTexture",
+       "size": [
+        512,
+        96,
+        null
+       ],
+       "data": null,
+       "wrap": [
+        1001,
+        1001
+       ],
+       "filter": [
+        1006,
+        1008
+       ],
+       "mips": true,
+       "format": 1023,
+       "dataType": 1009,
+       "colorSpace": "srgb",
+       "repeat": [
+        1,
+        1
+       ],
+       "offset": [
+        0,
+        0
+       ],
+       "flipY": true,
+       "anisotropy": 1
+      },
+      "onBeforeCompile": false,
+      "cacheKey": null,
+      "userData": []
+     },
+     "map": "t3",
+     "parentIsGroup": true
+    }
+   },
+   "drawn": [],
+   "builderSame": true,
+   "keptAllButRotors": true,
+   "freedMaterials": true,
+   "freedRotorGeometry": true,
+   "freedOther": []
+  }
+ ],
+ "label": [
+  {
+   "text": "Ana",
+   "drawn": [
+    [
+     "clearRect",
+     "512x96",
+     "10px sans-serif",
+     "start",
+     "alphabetic",
+     "#000000",
+     0,
+     0,
+     512,
+     96
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "rgba(12, 18, 14, 0.85)",
+     "Ana",
+     259,
+     51
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     "Ana",
+     256,
+     48
+    ]
+   ],
+   "visible": true,
+   "uploads": 1
+  },
+  {
+   "text": "Ana",
+   "drawn": [],
+   "visible": true,
+   "uploads": 0
+  },
+  {
+   "text": "",
+   "drawn": [
+    [
+     "clearRect",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     0,
+     0,
+     512,
+     96
+    ]
+   ],
+   "visible": false,
+   "uploads": 1
+  },
+  {
+   "text": "null",
+   "drawn": [],
+   "visible": false,
+   "uploads": 0
+  },
+  {
+   "text": "A name far longer than thirty two characters in all",
+   "drawn": [
+    [
+     "clearRect",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     0,
+     0,
+     512,
+     96
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "rgba(12, 18, 14, 0.85)",
+     "A name far longer than thirty tw",
+     259,
+     51
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     "A name far longer than thirty tw",
+     256,
+     48
+    ]
+   ],
+   "visible": true,
+   "uploads": 1
+  },
+  {
+   "text": "42",
+   "drawn": [
+    [
+     "clearRect",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     0,
+     0,
+     512,
+     96
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "rgba(12, 18, 14, 0.85)",
+     "42",
+     259,
+     51
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     "42",
+     256,
+     48
+    ]
+   ],
+   "visible": true,
+   "uploads": 1
+  },
+  {
+   "text": "Ana",
+   "drawn": [
+    [
+     "clearRect",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     0,
+     0,
+     512,
+     96
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "rgba(12, 18, 14, 0.85)",
+     "Ana",
+     259,
+     51
+    ],
+    [
+     "fillText",
+     "512x96",
+     "600 52px system-ui, sans-serif",
+     "center",
+     "middle",
+     "#7dffb4",
+     "Ana",
+     256,
+     48
+    ]
+   ],
+   "visible": true,
+   "uploads": 1
+  }
+ ],
+ "presence": [
+  [
+   "-1",
+   false,
+   0,
+   0,
+   0
+  ],
+  [
+   "0",
+   false,
+   0,
+   0,
+   0
+  ],
+  [
+   "0.004",
+   false,
+   0.0016,
+   0.0004,
+   0.00352
+  ],
+  [
+   "0.0041",
+   true,
+   0.0016400000000000002,
+   0.00041000000000000005,
+   0.0036080000000000005
+  ],
+  [
+   "0.5",
+   true,
+   0.2,
+   0.05,
+   0.44
+  ],
+  [
+   "1",
+   true,
+   0.4,
+   0.1,
+   0.88
+  ],
+  [
+   "2",
+   true,
+   0.4,
+   0.1,
+   0.88
+  ],
+  [
+   "NaN",
+   false,
+   null,
+   null,
+   null
+  ]
+ ]
+}
