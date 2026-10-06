@@ -64,7 +64,6 @@ scripts/wall-check.js
 src/boot.js
 src/game/airframehull.js
 src/game/collide.js
-src/game/ghost.js
 src/game/proven.js
 src/game/verify.js
 src/input/input.js

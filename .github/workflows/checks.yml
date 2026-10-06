@@ -146,6 +146,7 @@ jobs:
       - run: npm run guide:golden
       - run: npm run trackdoc:golden
       - run: npm run race:golden
+      - run: npm run ghost:golden
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
