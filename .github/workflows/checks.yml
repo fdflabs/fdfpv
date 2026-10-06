@@ -25,9 +25,9 @@ jobs:
       # edge/rooms/node.js, and speaks to it.
       - run: npm ci
       - run: npm run lint:fc
+      - run: npm run rates:selftest
       - run: npm run lint:presets
       - run: npm run lint:catalog
-      - run: npm run rates:selftest
       - run: npm run lint:nouns
       - run: npm run lint:copy
       - run: npm run lint:header
