@@ -1283,11 +1283,17 @@ rigid contact left it (0.26 mm).
   kg m^2 in roll against the airframe's 0.0125). What it would turn with
   past its accounts is taken out of spin, first the new free bodies' and
   then the craft's, and a free body flown without its products is held to
-  the energy its parts had. Before, the box stayed in the craft as well and
-  a Slow Stick that lost its wing in a 30 rad/s roll left the break with
-  1.93 times the energy it went in with; crash:core now breaks every part
-  of every airframe, alone and one after another, at four spins, and none
-  gains more than rounding.
+  the energy its parts had. What even the craft's whole spin cannot pay
+  for (`part_ways`) is taken out of the speed the pieces part with: the
+  craft's and the new free bodies' motion about their common centre of
+  mass is scaled down together, so momentum is kept and the joint takes
+  the energy. Without it a Bramor that lost both wings at (25, 25, 0)
+  rad/s left with 1.28 times its energy, a Zagi 1.13, a Striker 1.09.
+  Before, the box stayed in the craft as well and a Slow Stick that lost
+  its wing in a 30 rad/s roll left the break with 1.93 times the energy it
+  went in with; crash:core now breaks every part of every airframe the
+  module flies, alone, one after another from either end and in twelve
+  shuffled orders, at eight spins, and none gains more than rounding.
 - **The rates of a damaged airframe**: once any flight effect is in force
   (`CRASH.active`), both plants step I omega_dot = tau - omega x (I omega
   + h) with the free rigid body split by axis (each part an exact

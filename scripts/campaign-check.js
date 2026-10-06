@@ -511,9 +511,23 @@ const DEV_TAP = `(() => {
     return got;
   };
 })();`;
+/* Holds every PUT of the account's progress back by window.__slowSync
+ * ms once it is set, so a check can land a result while a sync is out. */
+const SLOW_SYNC = `(() => {
+  window.__slowSync = 0;
+  const f = window.fetch;
+  window.fetch = function (input, init) {
+    const got = f.call(this, input, init);
+    const hold = window.__slowSync;
+    if (hold > 0 && init && init.method === 'PUT' && /\\/api\\/account\\/progress$/.test(String(input && input.url ? input.url : input))) {
+      return got.then((r) => new Promise((done) => { setTimeout(() => done(r), hold); }));
+    }
+    return got;
+  };
+})();`;
 const signedUrl = `/index.html?rooms=${encodeURIComponent(signed.url)}`;
 const page2 = await openPage({
-  root, url: `${signedUrl}&missions=dev`, width: 1280, height: 720, seed: [DEV_TAP, seedSignedIn(accounts.origin, pilot)],
+  root, url: `${signedUrl}&missions=dev`, width: 1280, height: 720, seed: [DEV_TAP, SLOW_SYNC, seedSignedIn(accounts.origin, pilot)],
 });
 const openCampaign = async () => {
   await page2.until('window.__shellReady === true', 300000);
@@ -583,6 +597,34 @@ try {
   await page2.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const took = await page2.evaluate("(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, error: v.error ?? null }; })()");
   check('and Start now starts mission 2 there', took.mission === 'itaipu-2' && ['briefing', 'countdown', 'live'].includes(took.state), JSON.stringify(took));
+
+  /* A RESULT RECORDED WHILE A SYNC IS OUT, then a reload at the result
+   * card: the sync's answer is from before the result, and put over it
+   * the stars were gone from the page, its storage and the account. A
+   * result the check chooses, on a war of its own, first seen undecided. */
+  const MISSION1 = "JSON.stringify((window.__ui.settings.campaign.missions || {})['itaipu-1'] || null)";
+  const STARS3 = JSON.stringify({ stars: 3, won: true, credits: 330 });
+  const outSync = await page2.evaluate(`(async () => {
+    window.__slowSync = 1500;
+    const out = window.__accountSync();
+    await new Promise((done) => { setTimeout(done, 300); });
+    window.__campaign.observe({ id: 9901, mission: 'itaipu-1', state: 'live', result: null }, 'SYNCRACE');
+    window.__campaign.observe({ id: 9901, mission: 'itaipu-1', state: 'won', result: { won: true, stars: 3, credits: 330 } }, 'SYNCRACE');
+    const during = ${MISSION1};
+    await out;
+    window.__slowSync = 0;
+    return { during, after: ${MISSION1}, stored: JSON.stringify((JSON.parse(localStorage.getItem('webfpv.settings.v3')).campaign.missions || {})['itaipu-1'] || null) };
+  })()`);
+  check('three stars recorded while a sync is out are still there when its answer lands, here and in storage',
+    outSync.during === STARS3 && outSync.after === STARS3 && outSync.stored === STARS3, JSON.stringify(outSync));
+  await reload(signedUrl);
+  const back = await openCampaign();
+  check('and after a reload the campaign page shows them', back.screen && back.screen.missions[0].stars === 3, JSON.stringify(back.screen && back.screen.missions[0]));
+  const heldBy = async () => ((await accounts.api('GET', '/api/account/progress', undefined, owner.session)).progress.data.campaign?.missions || {})['itaipu-1'] || null;
+  for (let i = 0; i < 40 && (await heldBy())?.stars !== 3; i += 1) {
+    await page2.sleep(250);
+  }
+  check('and the account holds them', JSON.stringify(await heldBy()) === STARS3, JSON.stringify(await heldBy()));
 
   const errs = page2.errors.filter((e) => !e.startsWith('network:'));
   check('no page error, signed in', errs.length === 0, errs.slice(0, 3).join(' | '));

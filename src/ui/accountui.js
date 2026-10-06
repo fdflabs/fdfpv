@@ -69,10 +69,11 @@ import {
   GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, mayPlay, onSignInNeeded, progressChanged, pullProgress,
   settled, signIn, signOut, signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
-import { SYNCED_SECTIONS, pickSynced } from '../share/progressmerge.js';
+import {
+  SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
+} from '../share/progressmerge.js';
 import { tracksOrigin } from '../share/cloud.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
-import { mergeFlightTime } from '../share/flighttime.js';
 import {
   buildsBlob, buildsFromBlob, fitBuild, saveBuilds, stockView, unfitFamily,
 } from './builds.js';
@@ -422,22 +423,27 @@ export function createAccountUi({ ui, identity, say }) {
    *
    * No `builds` in the merge leaves this computer's alone: a tracks
    * server from before the builds synced drops the section, and that is
-   * not the account having none. */
-  function apply(merged) {
+   * not the account having none.
+   *
+   * WHAT CHANGED HERE WHILE THE SYNC WAS OUT (`sent` is the view it
+   * sent) is not in the answer, so put under it, it would be lost: a
+   * war's stars recorded during the round trip, the seconds flown in it.
+   * Those changes are merged over the answer as the server would merge
+   * them sent now, stamped now, and their sections are settled as the
+   * account holds them, so they read as unsent and go up with the next
+   * sync. A pull sends nothing and passes no `sent`: it is dropped
+   * instead when anything changed while it was out (sync). */
+  function apply(answer, sent = null) {
     const s = ui.settings;
+    const here = sent ? pickSynced(syncedView()) : null;
+    const late = sent ? Object.keys(SYNCED_SECTIONS).filter((k) => JSON.stringify(here[k]) !== JSON.stringify(sent[k])) : [];
+    const merged = late.length ? mergeBlobs({ v: 1, data: here, stamps: stampChanges(here, sent, Date.now()) }, answer) : answer;
     const worn = Object.values(s.buildFits || {}).map((e) => e.build);
     const fitsBefore = JSON.stringify(s.buildFits || {});
     for (const land of Object.keys(s.buildFits || {})) {
       unfitFamily(s, land);
     }
     const { builds, ...data } = merged.data;
-    /* Flight time grows on this computer while the sync is out, so the
-     * merge is merged again with what is here now rather than put over
-     * it: put over it, the seconds flown during the round trip would be
-     * lost (src/share/flighttime.js). */
-    if (data.flightTime !== undefined) {
-      data.flightTime = mergeFlightTime(s.flightTime, data.flightTime);
-    }
     let changed = false;
     if (builds !== undefined) {
       const list = buildsFromBlob(builds);
@@ -479,11 +485,11 @@ export function createAccountUi({ ui, identity, say }) {
       }
       ui.renderMenu();
     }
-    /* Settled as the account holds it, not as this computer does, so
-     * time flown during the round trip still reads as unsent and goes up
-     * with the next sync rather than waiting for the next flight. */
     const view = syncedView();
-    settled(merged.data.flightTime === undefined ? view : { ...view, flightTime: merged.data.flightTime }, merged);
+    for (const k of late) {
+      view[k] = answer.data[k];
+    }
+    settled(view, answer);
     return changed;
   }
 
@@ -497,11 +503,13 @@ export function createAccountUi({ ui, identity, say }) {
       return syncing || Promise.resolve(false);
     }
     lastSync = Date.now();
-    syncing = (pull ? pullProgress(syncedView()) : syncProgress(syncedView())).then((merged) => {
+    /* A copy: the settings are changed in place. */
+    const sent = pickSynced(syncedView());
+    syncing = (pull ? pullProgress(sent) : syncProgress(sent)).then((merged) => {
       if (pull && progressChanged(syncedView())) {
         return false;
       }
-      const changed = merged ? apply(merged) : false;
+      const changed = merged ? apply(merged, pull ? null : sent) : false;
       if (loud || changed) {
         say(str('account.synced'));
       }
