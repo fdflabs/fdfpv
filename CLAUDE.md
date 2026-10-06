@@ -33,7 +33,7 @@ You should have received a copy of the GNU General Public License
 along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
 ```
 
-A file that still holds WebFPVSimulator code keeps its existing header, and any "Copyright (C) 2026 Mathew Harvey" line, untouched until that code is rewritten: GPLv3 sections 4 and 5 require those notices to travel with the code. Never copy upstream code into a new file; write it fresh. `~/Desktop/fdfpv-loop/upstream/upstream-share.sh` measures what is left.
+A file that still holds WebFPVSimulator code keeps its existing header, and any "Copyright (C) 2026 Mathew Harvey" line, untouched until that code is rewritten: GPLv3 sections 4 and 5 require those notices to travel with the code. Never copy upstream code into a new file; write it fresh. `~/Desktop/fdfpv-loop/upstream/upstream-share.sh` measures what is left. `npm run lint:header` (in CI) enforces it: only files listed in `scripts/upstream-headers.txt` may carry the upstream header, and that list only shrinks. Rewriting a listed file means switching its header and deleting its line; never add a line.
 
 **Coordinate convention.** Physics is right-handed, Z-up, body frame, matching Betaflight and the flight dynamics literature. Three.js is Y-up. Convert exactly once, at the render boundary, in `src/render/frame.js`. Nowhere else. Sign errors in yaw two months from now all trace back to breaking this.
 
