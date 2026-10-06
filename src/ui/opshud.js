@@ -57,6 +57,10 @@ const DEG = 180 / Math.PI;
 const SAY_MS = 2600;
 const CARD_EVENT_MS = 4200;
 const STAGE_LINE_MS = 5200;
+/* A radio subtitle stays this long after its line, and at most this many
+ * wait behind the one shown (the war's, src/ui/warhud.js). */
+const SUB_TAIL_MS = 600;
+const SUB_QUEUE = 3;
 /* Compass tape: degrees either side of the heading. */
 const TAPE_SPAN = 60;
 /* The minimap's width in metres, folded and open (MAP). */
@@ -138,6 +142,10 @@ const CSS = `
   pointer-events: none; font-family: ${FONT}; font-size: clamp(11px, 1.6vh, 15px); letter-spacing: 0.12em; color: ${INK};
   text-shadow: 0 1px 2px ${HALO}; white-space: nowrap; display: none; }
 .ops-brief.on { display: block; }
+.ops-subtitle { position: absolute; left: 50%; bottom: max(9vh, 56px); transform: translateX(-50%); max-width: min(88vw, 62ch);
+  box-sizing: border-box; text-align: center; white-space: normal; font-family: var(--ui-font, sans-serif); font-size: clamp(13px, 1.4vw, 19px);
+  letter-spacing: 0.02em; line-height: 1.35; color: ${INK}; background: rgba(6, 10, 12, 0.55); padding: 0.25em 0.9em; }
+.ops-subtitle:empty { display: none; }
 .ops-brief.wait { color: ${AMBER}; }
 .ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
 .ops-touch.on { display: flex; }
@@ -287,6 +295,10 @@ export class OpsHud {
     this.say = new Field(this.el, 'ops-say');
     this.tut = new Field(this.el, 'ops-tut');
     this.bound = new Field(this.el, 'ops-bound');
+    this.sub = new Field(this.el, 'ops-subtitle');
+    this.subs = [];
+    this.subUntil = 0;
+    this.subTimer = 0;
     this.row = el('div', 'ops-panel ops-row', this.el);
     this.rowCells = {};
     for (const k of ['eo', 'ir', 'map', 'tgt', 'lrf']) {
@@ -384,6 +396,7 @@ export class OpsHud {
       row: Object.fromEntries(Object.entries(this.rowCells).map(([k, f]) => [k, { text: f.v, on: f.el.classList.contains('on') }])),
       rects: this.rects(),
       briefing: this.briefText ? this.brief.textContent : null,
+      subtitle: this.sub.v,
     });
   }
 
@@ -437,6 +450,34 @@ export class OpsHud {
   }
 
   /* A stage entered: its title in the lower third, for a while. */
+  /* The ops room's voices on the screen as well as in the ear, one line
+   * at a time for its measured length: a pilot with the sound off, or who
+   * missed a word, still hears the room. A line due while one shows waits
+   * its turn, as the voice does. */
+  subtitle(text, ms) {
+    this.subs.push({ text, ms });
+    if (this.subs.length > SUB_QUEUE) {
+      this.subs.shift();
+    }
+    if (performance.now() >= this.subUntil) {
+      this.nextSub();
+    }
+  }
+
+  nextSub() {
+    clearTimeout(this.subTimer);
+    const s = this.subs.shift();
+    if (!s) {
+      this.sub.set('');
+      this.subUntil = 0;
+      return;
+    }
+    this.sub.set(s.text);
+    const hold = s.ms + SUB_TAIL_MS;
+    this.subUntil = performance.now() + hold;
+    this.subTimer = setTimeout(() => this.nextSub(), hold);
+  }
+
   stageEntered(title) {
     this.stageLine = { text: title, until: performance.now() + STAGE_LINE_MS };
   }

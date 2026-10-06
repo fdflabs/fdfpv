@@ -16,6 +16,9 @@
  *     loops, from the room's view (not a demo)
  *   - a capture proposed on the rail is refused `frame`, not `pose` or
  *     `cam`: the room took this page's real pose and camera report
+ *   - over 500 m the room moves to stage 2 and its radio cue is heard:
+ *     the line's audio element is playing it (not only queued), its
+ *     subtitle is on the quiet HUD, the cue's next line follows
  *   - no page errors; pictures outside the repository
  *
  * This file is part of WebFPVSimulator.
@@ -147,6 +150,35 @@ try {
   const ok = /NOTHING TO CAPTURE IN FRAME|BLOCKED BY CANOPY/.test(said || '');
   const still = await page.evaluate('window.__ops.sent().filter((m) => m.op === "capture").slice(-1)[0]');
   check('a capture proposed on the rail is refused frame or canopy, not pose or cam: the room has this page\'s pose and camera', ok, ok ? said : `${said}; still ${JSON.stringify(still)}; room ${JSON.stringify(held)}`);
+  /* The ops room's voices: a click wakes the sound (the gesture a
+   * browser wants, as a pilot's own clicks are), and over 500 m the room
+   * moves to stage 2, whose cue is the telemetry exchange. The line must
+   * be heard: the radio's element playing it, not a line queued, and its
+   * subtitle up. The Bramor is thrown at cruise speed, so it glides on
+   * and the ISR is not lost under the check. */
+  for (const type of ['mousePressed', 'mouseReleased']) {
+    await page.cdp.send('Input.dispatchMouseEvent', {
+      type, x: 640, y: 360, button: 'left', clickCount: 1,
+    }, page.sessionId);
+  }
+  await page.until("window.__audio.ctx && window.__audio.ctx.state === 'running'", 5000).catch(() => {});
+  await page.evaluate(`(() => {
+    const s = window.__craftState();
+    return window.__crashThrow({ fresh: true, x: s.worldX, y: s.worldY - s.groundClearance + 650, z: s.worldZ, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -18 }).ok;
+  })()`);
+  await page.until("window.__ops.view().stage && window.__ops.view().stage.id === 'M1_CP_AIRBORNE'", 30000).catch(() => {});
+  await page.until("window.__audio.warRadio && window.__audio.warRadio.status().started.includes('int1-s1-clean')", 20000).catch(() => {});
+  const radio = await page.evaluate(`(() => {
+    const r = window.__audio.warRadio;
+    return { stage: window.__ops.view().stage && window.__ops.view().stage.id, enabled: window.__audio.enabled, ctx: window.__audio.ctx && window.__audio.ctx.state, status: r ? r.status() : null, subtitle: window.__opsHud().subtitle };
+  })()`);
+  check('stage 2\'s radio is heard: the telemetry line plays on the radio\'s element, its subtitle shown',
+    radio.stage === 'M1_CP_AIRBORNE' && radio.status && radio.status.started.includes('int1-s1-clean') && radio.status.volume > 0 && /telemetry/i.test(radio.subtitle || ''),
+    JSON.stringify({ stage: radio.stage, enabled: radio.enabled, said: radio.status && radio.status.said, ext: radio.status && radio.status.ext, ctx: radio.ctx, started: radio.status && radio.status.started, volume: radio.status && radio.status.volume, subtitle: radio.subtitle }));
+  await page.until("window.__audio.warRadio && window.__audio.warRadio.status().started.includes('int1-s1-proceed')", 15000).catch(() => {});
+  const next = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.status().started : null');
+  check('and the cue\'s second line after it, in turn', Array.isArray(next) && next.indexOf('int1-s1-proceed') > next.indexOf('int1-s1-clean'), JSON.stringify(next));
+  await shot('interior-stage2-radio.png');
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
