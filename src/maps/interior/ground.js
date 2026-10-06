@@ -65,14 +65,14 @@ import { thermalKind } from '../../render/thermal.js';
  */
 const CLASS = [];
 CLASS[LAND.water] = { col: [0.1, 0.075, 0.05], layer: 3 };
-CLASS[LAND.forest] = { col: [0.03, 0.048, 0.018], layer: 0 };
+CLASS[LAND.forest] = { col: [0.034, 0.052, 0.02], layer: 0 };
 CLASS[LAND.pasture] = { col: [0.085, 0.088, 0.04], layer: 1 };
 CLASS[LAND.crop] = { col: [0.11, 0.085, 0.05], layer: 2 };
 CLASS[LAND.shrub] = { col: [0.06, 0.068, 0.03], layer: 2 };
 CLASS[LAND.wetland] = { col: [0.05, 0.07, 0.038], layer: 1 };
 CLASS[LAND.bare] = { col: [0.12, 0.06, 0.032], layer: 3 };
 CLASS[LAND.built] = { col: [0.16, 0.09, 0.05], layer: 4 };
-CLASS[LAND.burned] = { col: [0.05, 0.04, 0.031], layer: 3 };
+CLASS[LAND.burned] = { col: [0.058, 0.05, 0.04], layer: 3 };
 
 const v3 = (c) => `vec3(${c.map((x) => x.toFixed(4)).join(', ')})`;
 const f1 = (x) => x.toFixed(1);
@@ -163,34 +163,80 @@ InField inFarm(vec2 w) {
   vec2 nv = vec2(-nu.y, nu.x);
   vec2 uv = vec2(dot(w, nu), dot(w, nv)) + inHash(bid + 5.0) * 977.0;
   float W = mix(180.0, 460.0, inHash(bid + 23.0));
+  /* A strip is sometimes one field with the next, and a field with the
+   * one beyond its end, so a block's fields are not all one width and
+   * the sizes run from one strip's to four times it (round 3's equal
+   * strips read as a printed grid at range). */
   float col = floor(uv.x / W);
-  float fu = uv.x / W - col;
+  float pairU = floor(col * 0.5);
+  float spanU = inHash(vec2(pairU, 2.5) + bid * 13.0) < 0.35 ? 2.0 : 1.0;
+  col = spanU > 1.5 ? pairU * 2.0 : col;
+  float fu = (uv.x / W - col) / spanU;
   float L = mix(260.0, 1100.0, inHash(vec2(col, 0.5) + bid * 13.0));
   float vv = uv.y + inHash(vec2(col, 1.5) + bid * 13.0) * L;
   float row = floor(vv / L);
-  float fv = vv / L - row;
+  float pairV = floor(row * 0.5);
+  float spanV = inHash(vec2(col, pairV) + bid * 17.0) < 0.3 ? 2.0 : 1.0;
+  row = spanV > 1.5 ? pairV * 2.0 : row;
+  float fv = (vv / L - row) / spanV;
   InField f;
   f.id = bid * 61.0 + vec2(col, row);
   f.uv = uv;
-  f.eu = min(fu, 1.0 - fu) * W;
+  f.eu = min(fu, 1.0 - fu) * W * spanU;
   f.su = fu < 0.5 ? -1.0 : 1.0;
-  f.ev = min(fv, 1.0 - fv) * L;
+  f.ev = min(fv, 1.0 - fv) * L * spanV;
   f.sv = fv < 0.5 ? -1.0 : 1.0;
   f.eb = eb;
   f.nu = nu;
   f.nb = nb;
   f.sb = sb;
-  f.side = inHash(bid * 7.0 + vec2(col + (fu < 0.5 ? 0.0 : 1.0), 9.5));
-  f.end = inHash(bid * 7.0 + vec2(col, row + (fv < 0.5 ? 0.0 : 1.0)) + 0.5);
-  f.wide = W;
-  vec2 cuv = vec2((col + 0.5) * W, (row + 0.5) * L - inHash(vec2(col, 1.5) + bid * 13.0) * L) - inHash(bid + 5.0) * 977.0;
+  f.side = inHash(bid * 7.0 + vec2(col + (fu < 0.5 ? 0.0 : spanU), 9.5));
+  f.end = inHash(bid * 7.0 + vec2(col, row + (fv < 0.5 ? 0.0 : spanV)) + 0.5);
+  f.wide = W * spanU;
+  vec2 cuv = vec2((col + 0.5 * spanU) * W, (row + 0.5 * spanV) * L - inHash(vec2(col, 1.5) + bid * 13.0) * L) - inHash(bid + 5.0) * 977.0;
   f.centre = nu * cuv.x + nv * cuv.y;
   return f;
 }
 
-/* The red earth of the region's tracks and ploughed land. */
-const vec3 IN_EARTH = vec3(0.13, 0.071, 0.043);
-const vec3 IN_DUST = vec3(0.17, 0.115, 0.075);
+/* The red earth of the region's tracks and ploughed land: a dry, dusty
+ * red brown. Round 3's (0.13, 0.071, 0.043) printed maroon blocks at
+ * range once the grade's saturation was on it; the reference aerials'
+ * worked fields are a browner red, paler where they are dry. */
+const vec3 IN_EARTH = vec3(0.145, 0.1, 0.07);
+const vec3 IN_DUST = vec3(0.19, 0.14, 0.095);
+/* The cattle's trodden earth in a paddock, darker than a track's packed
+ * dust: at the dust's lightness the paddocks' trails printed as contour
+ * lines across low-colonia's pasture. */
+const vec3 IN_TRAIL = vec3(0.17, 0.115, 0.075);
+
+/*
+ * What a field shows a survey camera, a kilometre off at 2 to 10 m a
+ * pixel, where its rows and passes have faded to their mean: the soil
+ * and the crop's own patches over a hundred metres and more (wetter
+ * hollows, a sandier rise, a corner sown late), stronger in some fields
+ * than others, and the harvester's or the planter's swaths, pairs of
+ * passes 30 m across that catch the low sun alternately. Round 3 had
+ * neither at that scale, so each field was one flat colour at range.
+ */
+float inPatches(InField f, vec2 w) {
+  float k = 0.12 + 0.2 * inHash(f.id + 41.0);
+  float n = inFbm(w + f.id * 3.7, 150.0) * 0.65 + inFbm(w, 55.0) * 0.35;
+  return 1.0 + (n - 0.5) * 2.0 * k;
+}
+
+/* Contour terraces in a sloping field, now and then: the level lines of
+ * a slow noise every few tens of metres, a low bank of darker earth and
+ * weeds each, faded before a pixel is too large to hold the spacing. */
+float inTerraces(InField f, vec2 w) {
+  if (inHash(f.id + 53.0) > 0.18) {
+    return 0.0;
+  }
+  float q = (inTex(w, 420.0, 0.47).r * 0.8 + inTex(w, 160.0, 0.11).g * 0.2) * 24.0;
+  float dq = max(fwidth(q), 1e-4);
+  float toLevel = abs(fract(q + 0.5) - 0.5);
+  float line = 1.0 - smoothstep(0.04, 0.04 + dq, toLevel);
+  return line * (1.0 - smoothstep(0.08, 0.3, dq));
+}
 
 /* Cropland: what the field is this week of the dry season's end, and the
  * rows across it. */
@@ -201,28 +247,34 @@ vec3 inCrop(InField f, vec2 w, float fp) {
   float s = head ? f.uv.y : f.uv.x;
   float pass = inRows(s, 11.0, fp);
   float rows = inRows(s, 0.76, fp);
+  float swath = inRows(s + inHash(f.id + 8.0) * 30.0, 30.0, fp) * smoothstep(0.3, 0.7, inFbm(w + 211.0, 70.0));
   float moist = inFbm(w, 31.0);
   vec3 col;
-  if (h < 0.22) {
+  if (h < 0.2) {
     /* Ploughed or no-till red earth, darker where it holds moisture. */
-    col = IN_EARTH * (0.78 + 0.32 * moist) * (1.0 + 0.07 * pass + 0.22 * rows);
+    col = IN_EARTH * (0.86 + 0.24 * moist) * (1.0 + 0.07 * pass + 0.22 * rows + 0.04 * swath);
   } else if (h < 0.55) {
     /* Stubble: the harvester's swaths alternately catching the light,
-     * more in some places than others. */
-    vec3 straw = vec3(0.16, 0.125, 0.075);
+     * more in some places than others, the straw grey or gold by the
+     * crop and the days since. */
+    vec3 straw = mix(vec3(0.15, 0.125, 0.085), vec3(0.165, 0.13, 0.075), inHash(f.id + 6.0));
     float sheen = 0.015 + 0.055 * inFbm(w, 19.0);
-    col = straw * (0.85 + 0.22 * moist) * (1.0 + sheen * inRows(s, 9.0, fp) + 0.03 * rows);
-  } else if (h < 0.82) {
-    /* Young soy in rows over the red earth, fuller where it is wetter. */
-    vec3 leaf = vec3(0.05, 0.085, 0.03);
-    float cover = clamp(0.45 + 0.4 * moist + 0.45 * rows, 0.0, 1.0);
-    col = mix(IN_EARTH * 0.9, leaf, cover) * (1.0 + 0.05 * pass);
+    col = straw * (0.85 + 0.22 * moist) * (1.0 + sheen * inRows(s, 9.0, fp) + 0.03 * rows + 0.08 * swath);
+  } else if (h < 0.8) {
+    /* Young soy in rows over the red earth, fuller where it is wetter,
+     * some fields further on than others. */
+    vec3 leaf = vec3(0.052, 0.08, 0.032);
+    float grown = inHash(f.id + 2.0) * 0.4 - 0.15;
+    float cover = clamp(0.45 + grown + 0.4 * moist + 0.45 * rows, 0.0, 1.0);
+    col = mix(IN_EARTH * 0.95, leaf, cover) * (1.0 + 0.05 * pass + 0.03 * swath);
   } else {
     /* Maize or wheat, green going to straw. */
-    vec3 green = vec3(0.07, 0.09, 0.035);
-    vec3 dry = vec3(0.13, 0.11, 0.06);
-    col = mix(green, dry, inHash(f.id + 4.0)) * (0.9 + 0.15 * moist) * (1.0 + 0.06 * pass + 0.12 * rows);
+    vec3 green = vec3(0.068, 0.085, 0.036);
+    vec3 dry = vec3(0.13, 0.112, 0.068);
+    col = mix(green, dry, inHash(f.id + 4.0)) * (0.9 + 0.15 * moist) * (1.0 + 0.06 * pass + 0.12 * rows + 0.05 * swath);
   }
+  col *= inPatches(f, w);
+  col = mix(col, IN_EARTH * 0.85, inTerraces(f, w) * 0.45);
   return col;
 }
 
@@ -235,6 +287,7 @@ vec3 inPasture(InField f, vec2 w, float fp) {
   float big = inFbm(w, 47.0);
   vec3 col = mix(green, straw, clamp(h * 1.1 - 0.15 + (big - 0.5) * 1.1, 0.0, 1.0));
   col *= 0.88 + 0.24 * inTex(w, 3.1, 0.41).b;
+  col *= inPatches(f, w);
   /* Tracks: contour lines of a slow noise, a metre wide. */
   float n = inTex(w, 70.0, 0.27).r * 0.65 + inTex(w, 23.0, 0.83).g * 0.35;
   float grad = max(fwidth(n) / max(fp, 0.01), 2e-4);
@@ -243,11 +296,11 @@ vec3 inPasture(InField f, vec2 w, float fp) {
     float lev = 0.38 + 0.12 * float(k);
     track = max(track, inBand((n - lev) / grad, 0.55, fp));
   }
-  col = mix(col, IN_DUST * 0.85, track * 0.75);
+  col = mix(col, IN_TRAIL * 0.85, track * 0.75);
   /* Trodden bare round the paddock's corners, where the gate and the
    * water are. */
   float corner = length(vec2(f.eu, f.ev));
-  col = mix(col, IN_DUST * 0.8, (1.0 - smoothstep(12.0, 45.0 + 20.0 * big, corner)) * 0.8);
+  col = mix(col, IN_TRAIL * 0.8, (1.0 - smoothstep(12.0, 45.0 + 20.0 * big, corner)) * 0.8);
   /* Termite mounds, a metre across, one in a 14 m square now and then. */
   vec2 mc = floor(w / 14.0);
   if (inHash(mc + 71.0) > 0.86) {
@@ -264,7 +317,13 @@ vec3 inForest(vec2 w, float fp) {
   float fade = 1.0 - smoothstep(3.0, 12.0, fp);
   float patchy = inFbm(w, 37.0);
   vec3 col = ${v3(CLASS[LAND.forest].col)} * (0.8 + 0.45 * patchy);
-  return col * (1.0 + (crowns - 0.5) * 0.9 * fade);
+  col *= 1.0 + (crowns - 0.5) * 0.9 * fade;
+  /* Past the drawn trees (the far tier ends at about 11.5 km, and none
+   * stand past the data's square) the ground is the forest, and lit
+   * flat it was a dark grey slab beside the drawn crowns, which the low
+   * sun lights on their sides: so at a footprint no drawn tree reaches it
+   * takes the crowns' lighter, yellower mean. */
+  return mix(col, vec3(0.055, 0.07, 0.026) * (0.85 + 0.3 * patchy), smoothstep(6.0, 20.0, fp));
 }
 
 bool inIsFarm(uint k) {
@@ -314,10 +373,15 @@ vec3 inEdge(vec3 col, float d, vec2 n, float h, float fp, float isField, inout f
     if (toward < 0.0 && d > hw) {
       shade *= mix(1.0, 0.72, 1.0 - smoothstep(len * 0.5, len, d - hw));
     }
-  } else if (h < 0.45 && isField > 0.5) {
-    /* An earth track, its dusty verge either side. */
-    col = mix(col, IN_DUST, inBand(d, 3.8, fp) * 0.7);
-    col = mix(col, IN_EARTH * 1.15, inBand(d, 2.0, fp));
+  } else if (h < 0.5 && isField > 0.5) {
+    /* An earth track, packed pale by the trucks, its wheel ruts redder
+     * close up and a dusty verge either side: from a survey's altitude
+     * the pale line between the fields that ties them into a network,
+     * as the reference aerials' tracks do. Round 3's tracks were the
+     * ploughed earth's own colour and vanished between ploughed fields. */
+    col = mix(col, IN_DUST * 0.9, inBand(d, 6.0, fp) * 0.5);
+    col = mix(col, IN_DUST * 1.15, inBand(d, 3.0, fp));
+    col = mix(col, IN_EARTH * 1.1, inBand(abs(d) - 1.0, 0.3, fp) * 0.6);
   } else {
     col = mix(col, vec3(0.06, 0.075, 0.032), inBand(d, 1.2, fp) * 0.6);
   }
@@ -356,12 +420,31 @@ export function paintedLand(world) {
 }
 
 /*
+ * THE FAR GROUND IS THE AIR. Past FAR_AIR[0] metres the ground gives way
+ * to the air's own light, wholly by FAR_AIR[1], short of the apron's end
+ * (terrain.js APRON). Two reasons. The post chain veils a pixel by the
+ * air only where the depth buffer holds less than 1 (swiss2/post.js), and
+ * at a hundred kilometres and more it rounds to 1, so the apron's last
+ * hills were drawn unveiled: the dark dashes along the horizon in every
+ * survey view. And the thinned air (look.js AIR_THIN), right for the
+ * fields at five kilometres, left the land at fifty as clear as at five,
+ * where the reference aerials and the owner's mocks fade it into a haze
+ * that glows toward the sun. The air's light is the post chain's own
+ * (post.js airT: the haze plus the sun's colour times the glow's share,
+ * through the same phase function), so the ground fades into the sky
+ * below the horizon with no line, and toward the sun it glows.
+ */
+const FAR_AIR = [20000, 140000];
+
+/*
  * The material: `land` landTexture's, `arrays` itaipu/look/ground.js
  * loadGroundArrays's, `noise` its noiseTexture's, `sunDir` the live
- * Vector3 toward the sun (look.js moves it); the caller owns them.
+ * Vector3 toward the sun (look.js moves it), `air` the live { haze, glow }
+ * the air is made of (the sky's uHaze and uAirSun, look.js); the caller
+ * owns them.
  */
 export function groundMaterial({
-  land, arrays, noise, sunDir,
+  land, arrays, noise, sunDir, air,
 }) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   m.onBeforeCompile = (shader) => {
@@ -369,12 +452,14 @@ export function groundMaterial({
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uLayerCol = { value: arrays.col };
     shader.uniforms.uSunDir = { value: sunDir };
+    shader.uniforms.uAirHaze = { value: air.haze };
+    shader.uniforms.uAirGlow = { value: air.glow };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vInWorld;')
       .replace('#include <project_vertex>', `#include <project_vertex>
         vInWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${GLSL}`)
+      .replace('#include <common>', `#include <common>\n${GLSL}\nuniform vec3 uAirHaze;\nuniform vec3 uAirGlow;\nfloat inFar = 0.0;`)
       .replace('#include <map_fragment>', `#include <map_fragment>
         {
           vec2 w = vInWorld.xz;
@@ -413,7 +498,7 @@ export function groundMaterial({
             /* The nearest edge of the three, each lined its own way. */
             col = inEdge(col, f.eu, f.nu * -f.su, f.side, fp, 1.0, shade);
             col = inEdge(col, f.ev, vec2(-f.nu.y, f.nu.x) * -f.sv, f.end + 0.25 * (1.0 - isCrop), fp, isCrop, shade);
-            col = inEdge(col, f.eb, f.nb, f.sb * 0.6, fp, 1.0, shade);
+            col = inEdge(col, f.eb, f.nb, f.sb * 0.52, fp, 1.0, shade);
           }
           /* Patches: dry against lush over tens of metres. */
           float big = inTex(w, 41.0, 0.13).r * 0.6 + inTex(w, 13.0, 0.57).g * 0.4;
@@ -430,7 +515,16 @@ export function groundMaterial({
             vec3 mean = textureLod(uLayerCol, vec3(0.5, 0.5, float(layer)), 12.0).rgb;
             col *= mix(vec3(1.0), clamp(grain / max(mean, vec3(0.01)), 0.3, 2.2), near * 0.8);
           }
-          diffuseColor.rgb = col * shade;
+          inFar = smoothstep(${f1(FAR_AIR[0])}, ${f1(FAR_AIR[1])}, length(vInWorld - cameraPosition));
+          diffuseColor.rgb = col * shade * (1.0 - inFar);
+        }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        if (inFar > 0.0) {
+          vec3 toward = normalize(vInWorld - cameraPosition);
+          const float g = 0.72;
+          float mu = dot(toward, uSunDir);
+          float hg = (1.0 - g * g) / (4.0 * PI * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+          totalEmissiveRadiance += (uAirHaze + uAirGlow * hg) * inFar;
         }`);
   };
   m.customProgramCacheKey = () => 'interior-ground';

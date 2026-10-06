@@ -377,7 +377,7 @@ export async function makeLook({
   const noise = own(noiseTexture(aniso));
   const landTex = own(landTexture(land));
   const ground = groundMaterial({
-    land: landTex, arrays, noise, sunDir,
+    land: landTex, arrays, noise, sunDir, air: { haze: su.uHaze.value, glow: su.uAirSun.value },
   });
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
   const look = makePhotoLook({
