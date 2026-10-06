@@ -82,6 +82,7 @@
     "trick:golden": "node scripts/trickdetect-golden.js",
     "obstacles:golden": "node scripts/obstacles-golden.js",
     "track:golden": "node scripts/track-golden.js",
+    "guide:golden": "node scripts/guide-golden.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
     "crashrecord:selftest": "node scripts/crashrecord-selftest.js",

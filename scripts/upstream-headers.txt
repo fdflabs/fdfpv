@@ -67,7 +67,6 @@ src/fc/keynotes.js
 src/game/airframehull.js
 src/game/collide.js
 src/game/ghost.js
-src/game/guide.js
 src/game/proven.js
 src/game/race.js
 src/game/trackdoc.js
