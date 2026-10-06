@@ -1,7 +1,7 @@
 # Python environment for the Itaipu map's data pipeline. The wheels bring
 # their own GDAL and PROJ, so nothing needs installing on the host.
 #
-# This file is part of WebFPVSimulator, licensed GPLv3 or later.
+# This file is part of the Paraguayan Drone Combat Simulator, licensed GPLv3 or later.
 
 [project]
 name = "fdfpv-itaipu-data"
