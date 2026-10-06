@@ -110,7 +110,6 @@ src/render/craftpose.js
 src/render/frame.js
 src/render/ghostcraft.js
 src/render/gpuinfo.js
-src/render/lens.js
 src/render/music.js
 src/render/post.js
 src/render/pylons.js
