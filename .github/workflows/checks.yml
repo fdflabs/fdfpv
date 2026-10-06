@@ -130,6 +130,8 @@ jobs:
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
       - run: npm run score:golden
+      - run: npm run tricks:golden
+      - run: npm run tricks:gen -- --check
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
