@@ -25101,7 +25101,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -25224,7 +25224,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -29077,7 +29077,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -32577,7 +32577,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -36077,7 +36077,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -36200,7 +36200,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -39768,7 +39768,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -43268,7 +43268,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -46716,7 +46716,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"
@@ -50216,7 +50216,7 @@
          "TOON": ""
         },
         "onBeforeCompile": true,
-        "cacheKey": "celattribute vec2 aCloth;\n  {\n    vec3 clothWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\n    float clothPh = uCelTime * 2.9 + clothWorld.x * 0.55 + clothWorld.z * 0.41;\n    /* Squared, so the seam is still and the free edge carries the travel. */\n    float clothAmt = aCloth.x * aCloth.x;\n    float clothFlap =\n      sin(clothPh + aCloth.y * 3.4) * 0.62 +\n      sin(clothPh * 1.73 + aCloth.x * 5.1) * 0.38;\n    transformed += normalize(normal) * (clothFlap * clothAmt * uCloth);\n    /* A little lift on the free edge as it snaps, so the cloth reads as\n     * light fabric rather than as a swinging plank. */\n    transformed.y += clothFlap * clothAmt * uCloth * 0.22;\n  }\n",
+        "cacheKey": "celattribute vec2 aCloth;<celmat CLOTH_CHUNK>",
         "userData": [
          "cel",
          "celKey"

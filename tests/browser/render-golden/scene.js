@@ -30,7 +30,7 @@
 import * as THREE from 'three';
 import * as sceneModule from '../../../src/render/scene.js';
 import * as pylonsModule from '../../../src/render/pylons.js';
-import { updateCelTime } from '../../../src/render/celmat.js';
+import { updateCelTime, CLOTH_CHUNK } from '../../../src/render/celmat.js';
 import { describeObject, makeTable, picture, canvas2d } from '../render-golden-lib.js';
 
 const {
@@ -158,6 +158,18 @@ function rounded(v) {
  * repeats, which keeps that it is a geometry of its own and keeps the
  * golden a readable size.
  */
+/*
+ * A cel material's program cache key carries celmat.js's cloth shader text
+ * (the key is the injected source itself, so it cannot disagree with the
+ * shader). That text is celmat's to change, and celmat's own golden pins
+ * what it draws; here it stands as a name, found by celmat's own export,
+ * so this golden still tells a cloth program from a plain one and from any
+ * other key without pinning another module's source.
+ */
+function programKey(key) {
+  return typeof key === 'string' ? key.split(CLOTH_CHUNK).join('<celmat CLOTH_CHUNK>') : key;
+}
+
 function scrub(v, seen = new Map()) {
   if (Array.isArray(v)) {
     return v.map((x) => scrub(x, seen));
@@ -178,7 +190,7 @@ function scrub(v, seen = new Map()) {
     if ((k === 'vertexShader' || k === 'fragmentShader') && v.type === 'ShaderMaterial') {
       continue;
     }
-    out[k] = scrub(x, seen);
+    out[k] = k === 'cacheKey' ? programKey(x) : scrub(x, seen);
   }
   return out;
 }
