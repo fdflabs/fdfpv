@@ -64,7 +64,7 @@ import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
-import { InputManager, NAV_DEFLECT } from './input/input.js';
+import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
@@ -138,7 +138,10 @@ import { resolve as opsResolve } from './share/ops/stages.js';
 import { localHour } from './share/interior/clock.js';
 import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics/camball.js';
 import { createCapture, createStillStore } from './avionics/capture.js';
-import { OpsHud } from './ui/opshud.js';
+import { OpsHud, heldRolesOf } from './ui/opshud.js';
+import {
+  FAR_M as GUIDE_FAR_M, briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
+} from './share/ops/guide.js';
 import { RolesBoard } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
@@ -1633,7 +1636,177 @@ export async function boot({
       touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
+      /* The guide's line and marks, under the Mission guidance setting. */
+      guide: v && ui.settings.missionGuidance && opsGuide.focus ? opsGuide : null,
+      edgeDir: opsEdgeDir,
     };
+  }
+
+  /* The first flight start's card stays this long unless skipped, ms. */
+  const FIRST_MS = 16000;
+  /* A key code as its cap says it. */
+  const KEY_WORD = (code) => ({
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+  })[code] ?? code.replace(/^Key/, '');
+  /*
+   * The first flight's card from this pilot's own controls: the throttle
+   * key of their stick mode on a keyboard, the pad's buttons on a
+   * standard gamepad, the touch controls on a touch screen. A radio flies
+   * the aircraft and the keyboard still works the ball (ballInput).
+   */
+  function firstFlightCard() {
+    const gp = input.firstGamepad();
+    const src = input.stats().source;
+    const radio = src === str('input.a_radio') || src === str('input.a_radio_whose_stick_order_is');
+    const kind = touch ? 'touch' : radio ? 'radio' : gp && gp.mapping === 'standard' ? 'pad' : 'keys';
+    const pick = (keys, pad, tap) => (kind === 'pad' ? pad : kind === 'touch' ? tap : keys);
+    const launch = kind === 'keys' ? str('ops.first.launch_keys', { up: KEY_WORD(throttleKeys(ui.settings.stickMode).up) }) : str('ops.first.launch_stick');
+    const rows = [
+      [str('ops.first.launch'), launch],
+      ...(kind === 'touch' ? [] : [[str('ops.first.view'), 'C']]),
+      [str('ops.first.pan'), pick('Q E · Y H', str('ops.first.pad_pan'), str('ops.first.touch_pan'))],
+      [str('ops.first.zoom'), pick(str('ops.first.keys_zoom'), str('ops.first.pad_zoom'), str('ops.first.touch_zoom'))],
+      [str('ops.first.lock'), pick('U', str('ops.first.pad_lock'), str('ops.first.touch_lock'))],
+      [str('ops.first.capture'), pick(str('ops.first.space'), str('ops.first.pad_capture'), str('ops.first.touch_capture'))],
+      ...(kind === 'touch' ? [] : [[str('ops.first.map'), 'M']]),
+    ];
+    return {
+      title: str('ops.first.title'), rows, look: str('ops.first.look'), skip: str('ops.first.skip'), kind,
+    };
+  }
+
+  /*
+   * THE GUIDE (src/share/ops/guide.js): this screen's objective, where it
+   * is, and the ops room's voice for it, per pilot and local; nothing new
+   * crosses the wire. Its guide (the mission's role data, Ibarra for the
+   * Interior's ISR and TRACKER) says each objective's task once when it
+   * becomes this screen's, and nudges with a clock bearing and a distance
+   * when nothing has moved for a while or the pilot is far from it. A
+   * guide line waits for a quiet radio (a story line outranks it,
+   * MISSIONS.md 1.8) and is never started over the pause menu or a film.
+   * The marks and the objective line are the Mission guidance setting's;
+   * the voice is not.
+   */
+  const GUIDE_EVERY_MS = 250;
+  const opsNudger = createNudger();
+  const opsGuide = {
+    at: 0, focus: null, target: null, line: '', briefed: null, queue: [], said: [], first: null,
+  };
+  /* The first flight start: once per pilot per campaign, kept in the
+   * synced progress (progress.seen) so a second computer does not show it
+   * again. */
+  const FIRST_KEY = (campaign) => `guide:first:${campaign}`;
+  const firstSeen = (campaign) => Boolean(ui.settings.progress && ui.settings.progress.seen && ui.settings.progress.seen[FIRST_KEY(campaign)]);
+  function firstDone(campaign) {
+    if (!firstSeen(campaign)) {
+      ui.settings.progress.seen[FIRST_KEY(campaign)] = true;
+      ui.persistSettings();
+    }
+    opsHud.firstFlight(null);
+    opsGuide.first = null;
+  }
+  const radioQuiet = () => !audio.warRadio || (!audio.warRadio.current && !audio.warRadio.queue.length);
+
+  function opsGuideFrame(v, mission, flying, nowWall) {
+    if (!roomOps.live() || !mission || !flying) {
+      opsGuide.focus = null;
+      opsGuide.target = null;
+      opsGuide.line = '';
+      return;
+    }
+    const held = heldRolesOf(v, roomOps.seat());
+    const active = v.roles && v.roles.active ? String(v.roles.active[roomOps.seat()] ?? '').split(':')[0] : '';
+    const quietNow = ui.screen === 'paused' || Boolean(warIntro);
+    if (nowWall >= opsGuide.at) {
+      opsGuide.at = nowWall + GUIDE_EVERY_MS;
+      threePosToDoc(pCurr.x, pCurr.y, pCurr.z, guideDoc);
+      threePosToDoc(camFwd.x, camFwd.y, camFwd.z, guideFwd);
+      const here = [guideDoc.x, guideDoc.y, guideDoc.z];
+      here.agl = opsAgl();
+      const heading = Math.atan2(guideFwd.x, guideFwd.y);
+      const world = opsWorld(mission);
+      const now = roomLinkState.roomNow();
+      const poseOf = (c) => (world ? centreOf({ ...c, size: c.size ?? CONTACT_SIZE[c.kind] ?? 2 }, world, now) : null);
+      const focus = focusOf(mission, v, held.length ? held : [active]);
+      const target = targetOf(mission, v, focus, here, poseOf);
+      opsGuide.focus = focus;
+      opsGuide.target = target;
+      opsGuide.line = goalLine(focus, target, here, opsSay);
+      /* Progress: a count moved, a card done, a contact told or seen, a
+       * search area drawn or cleared, the stage moved on. */
+      opsNudger.progress([
+        v.stage && v.stage.id, focus && focus.card.id, focus && JSON.stringify(focus.card.progress ?? null), (v.captures || []).length,
+        (v.contacts || []).map((c) => `${c.cls ?? ''}${c.state}`).join(), (v.search || []).map((s) => s.id).join(),
+        target && target.kind === 'climb' ? Math.floor(here.agl / 50) : '',
+      ].join('|'), nowWall);
+      /* The first flight start, before anything else is said. */
+      if (mission.campaign && !firstSeen(mission.campaign) && !opsGuide.first) {
+        opsGuide.first = { campaign: mission.campaign, until: nowWall + FIRST_MS };
+        opsHud.firstFlight(firstFlightCard());
+        opsGuide.queue.push(['int-g-first-1', 'int-g-first-2']);
+      }
+      if (opsGuide.first && nowWall >= opsGuide.first.until) {
+        firstDone(opsGuide.first.campaign);
+      }
+      const key = focus ? `${v.id}:${v.stage.id}:${focus.card.id}:${active}` : null;
+      if (key && key !== opsGuide.briefed) {
+        opsGuide.briefed = key;
+        const brief = briefOf(focus, active);
+        /* A brief or nudge still waiting is about an objective that is
+         * no longer this pilot's: only the first flight's lines wait on. */
+        opsGuide.queue = opsGuide.queue.filter((item) => item[0] === 'int-g-first-1');
+        if (brief) {
+          opsGuide.queue.push([brief]);
+        }
+      }
+      const far = Boolean(target && target.at && Math.hypot(target.at[0] - here[0], target.at[1] - here[1]) > GUIDE_FAR_M);
+      if (!quietNow && !opsGuide.queue.length && radioQuiet() && opsNudger.due(nowWall, far)) {
+        const said = nudgeOf(target, here, heading, briefOf(focus, active));
+        if (said) {
+          opsGuide.queue.push(said);
+          opsNudger.nudged(nowWall);
+        }
+      }
+    }
+    if (!quietNow && opsGuide.queue.length && radioQuiet()) {
+      const item = opsGuide.queue.shift();
+      opsGuide.said.push(item.join('+'));
+      opsNudger.spoke(nowWall);
+      warSay([item], 'guide', opsHud);
+    }
+  }
+  const guideDoc = { x: 0, y: 0, z: 0 };
+  const guideFwd = { x: 0, y: 0, z: 0 };
+  opsHud.onFirstSkip = () => {
+    if (opsGuide.first) {
+      firstDone(opsGuide.first.campaign);
+    }
+  };
+
+  /* Which way an ops frame point lies from the screen's middle, as a unit
+   * vector in CSS px (y down), in front of the camera or behind it: the
+   * guide's edge chevron. */
+  function opsEdgeDir(p) {
+    docPosToThree(p[0], p[1], p[2], projV);
+    projC.copy(projV).applyMatrix4(shell.camera.matrixWorldInverse);
+    let x;
+    let y;
+    if (projC.z < -0.5) {
+      projV.project(shell.camera);
+      const cw = shell.canvas.clientWidth || window.innerWidth;
+      const ch = shell.canvas.clientHeight || window.innerHeight;
+      x = projV.x * cw;
+      y = -projV.y * ch;
+    } else {
+      /* Behind: the side it is on, and down when it is straight behind. */
+      x = projC.x;
+      y = -projC.y;
+      if (Math.hypot(x, y) < 1e-3) {
+        y = 1;
+      }
+    }
+    const n = Math.hypot(x, y);
+    return n > 0 ? { x: x / n, y: y / n } : null;
   }
 
   const lockV = new THREE.Vector3();
@@ -1687,6 +1860,18 @@ export async function boot({
       type: 'ops', op: 'capture', item, t: opsStillT(), grade: 'poor', framing: { size: 0.02, off: 0, blur: 0 },
     }),
     project: (p) => opsProject(p),
+    /* What the guide works on and has said, for the checks. */
+    guide: () => ({
+      line: opsGuide.line,
+      target: opsGuide.target ? JSON.parse(JSON.stringify(opsGuide.target)) : null,
+      card: opsGuide.focus ? opsGuide.focus.card.id : null,
+      said: opsGuide.said.slice(),
+      queue: opsGuide.queue.map((q) => q.join('+')),
+      first: opsGuide.first ? { ...opsGuide.first } : null,
+      firstSeen: (c) => firstSeen(c),
+      nudger: opsNudger.state(),
+    }),
+    edgeDir: (p) => opsEdgeDir(p),
     /* The ground under a picture position (NDC), ops frame, or null. */
     groundAtNdc: (x, y) => {
       const k = ballOn ? sensors.state.zoom : 1;
@@ -4520,11 +4705,19 @@ export async function boot({
     if (!items.length || mode === 'replay') {
       return;
     }
-    warSubtitles(items, prio, hud);
+    /* In an ops match with the sound on, each line's subtitle comes up as
+     * the radio starts it, so the words on the screen are the voice in the
+     * ear even when the story and the guide take turns; without sound
+     * they run on their own measured clock, as the war's do. */
+    const followVoice = audio.enabled && hud === opsHud;
+    if (!followVoice) {
+      warSubtitles(items, prio, hud);
+    }
     if (!audio.enabled) {
       return;
     }
     const radio = audio.war();
+    radio.onLine = followVoice ? (id) => warSubtitles([id], 'story', opsHud, true) : null;
     radio.setLang(currentLocale());
     for (const item of items) {
       radio.say(item, performance.now(), prio);
@@ -4537,8 +4730,8 @@ export async function boot({
    * are lines.json's, in the page's language, fetched once. */
   const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
   let warLineWords = null;
-  function warSubtitles(items, prio, hud) {
-    const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || WAR_SUBTITLED.has(id)));
+  function warSubtitles(items, prio, hud, now = false) {
+    const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || prio === 'guide' || WAR_SUBTITLED.has(id)));
     if (!ids.length) {
       return;
     }
@@ -4551,7 +4744,7 @@ export async function boot({
         const l = words.get(id);
         const text = l && (l[lang] ?? l.en);
         if (text) {
-          hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000));
+          hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000), now);
         }
       }
     }).catch((e) => {
@@ -14535,6 +14728,10 @@ export async function boot({
       }
       return;
     }
+    if (ui.screen === 'flight' && opsGuide.first && code === 'Enter') {
+      firstDone(opsGuide.first.campaign);
+      return;
+    }
     /* The quiet HUD's own: M the tactical map, ` the role board. */
     if (ui.screen === 'flight' && opsHud.on && code === 'KeyM') {
       opsHud.toggleMap();
@@ -17991,6 +18188,7 @@ export async function boot({
       sensors.update(telemetry.state.tS, dt / 1000, avxVideo);
     }
     opsFrame(mode === 'flight' && (ui.screen === 'flight' || ui.screen === 'paused'));
+    opsGuideFrame(roomOps.view(), roomOps.on() ? roomOps.mission() : null, (mode === 'flight' || mode === 'paused') && (ui.screen === 'flight' || ui.screen === 'paused'), nowWall);
     const opsHudUp = (ballHudUp || (roomOps.on() && mode === 'flight' && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused')));
     opsHud.tick(opsHudUp, ui.screen === 'paused', nowWall, opsHudUp ? opsHudSrc() : null);
     rolesBoard.update(roomOps.on() ? roomOps.view() : null, roomOps.seat(), opsHost(), opsHudUp);
@@ -18469,6 +18667,8 @@ export async function boot({
     rest: REST_HEIGHT,
     hits: lastGroundHits,
     contactSteps: groundContactSteps,
+    /* The material the plant was last given for the ground under the craft. */
+    material: SURFACES[groundMaterialNow],
   });
   /* An optional seventh argument pins the vertical fov as well: without it
    * the parked camera keeps whatever lens the shell last set, which is the
@@ -19866,6 +20066,8 @@ export async function boot({
    * `fromY` is what makes a deck climbable from above and transparent from
    * below, so a capture can assert that rather than describe it. */
   window.__surface = (x, z, fromY) => view.height(x, z, fromY);
+  /* The map's name for the ground's material at a point, as the crash model reads it. */
+  window.__surfaceMaterial = (x, z, y) => (view.surfaceAt ? view.surfaceAt(x, z, y) : null);
   /*
    * Where the camera is, and what is directly under it. The intro camera
    * once ended its pan INSIDE a launch block and the only way to see it was
