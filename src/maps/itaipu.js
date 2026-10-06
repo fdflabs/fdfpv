@@ -468,6 +468,9 @@ async function buildItaipu(shell, progress, q, time) {
       aimDrop: 40,
     },
     height: (x, z, fromY) => roofs.height(x, z, fromY, wet(x, z)),
+    /* A spawn somewhere else: the terrain selects round it before its
+     * ground is read (src/main.js spawnHeight, terrain/engine.js settleAt). */
+    settleGround: (x, z) => terrain.settleAt(new THREE.Vector3(x, terrain.finestAt(x, z), z)),
     /* The ground or a roof at or under fromY, never the water: where a
      * broken chunk's piece comes to rest (src/share/war/debris.js). The
      * ground's finest level, as the parts place on, not the drawn one,

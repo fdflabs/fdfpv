@@ -5,8 +5,9 @@
  *
  * Which servers the page picks (src/share/api.js, and the three readers of
  * it: rooms.js, cloud.js, board.js) on the new domain, its www, the old
- * GitHub Pages address and loopback, and the probe's fallback to the VM's
- * bare address while the API name's DNS spreads. Then the rooms server's
+ * GitHub Pages address and loopback, and that no served file names the
+ * VM's bare address any more (the name's DNS settled; the page's fallback
+ * to the address is gone). Then the rooms server's
  * origin allowlist (edge/rooms/front.js), through its own fetch handler,
  * and the Caddyfile's two sites. The Caddyfile is read as text here; it
  * is run for real with `caddy validate` by deploy/vm/install.sh.
@@ -30,7 +31,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const store = new Map();
 globalThis.localStorage = {
@@ -71,21 +72,8 @@ function at(hostname) {
   win.location = { search: '', hostname, href: `https://${hostname}/` };
 }
 
-/* A fetch that answers per origin: true is a 200, false a refused
- * connection, as a name that does not resolve yet fails. */
-function fetchFor(answers) {
-  const asked = [];
-  const impl = (url) => {
-    asked.push(url);
-    const origin = new URL(url).origin;
-    return answers[origin] ? Promise.resolve(new Response('{"ok":true}', { status: 200 })) : Promise.reject(new TypeError('fetch failed'));
-  };
-  return { impl, asked };
-}
-
 console.log('the servers the page picks');
-check('the API is the VM by name', api.API_ORIGIN === NAME && api.FALLBACK_API_ORIGIN === ADDRESS);
-check('before any probe, the name', api.apiOrigin() === NAME);
+check('the API is the VM by name, with no fallback and no probe', api.API_ORIGIN === NAME && !('FALLBACK_API_ORIGIN' in api) && !('probeApi' in api), Object.keys(api).join(' '));
 for (const host of ['paraguayandronecombatsimulator.com', 'www.paraguayandronecombatsimulator.com', 'fdflabs.github.io']) {
   at(host);
   check(`on ${host}: rooms, tracks and board all at the name`,
@@ -97,53 +85,19 @@ check('on loopback: no rooms, no tracks, the local board', roomsOrigin() === nul
   `${roomsOrigin()} ${tracksOrigin()} ${boardOrigin()}`);
 check('the board constant is the name\'s /board', PRODUCTION_BOARD_ORIGIN === `${NAME}/board`);
 
-console.log('the probe');
+console.log('the address');
 {
-  api.resetApiProbe();
-  const f = fetchFor({ [NAME]: true, [ADDRESS]: true });
-  const got = await api.probeApi({ fetchImpl: f.impl });
-  check('the name answers: the name, and the address is never asked', got === NAME && f.asked.length === 1 && f.asked[0] === `${NAME}/api/health`, f.asked.join(' '));
-}
-{
-  api.resetApiProbe();
-  const f = fetchFor({ [NAME]: false, [ADDRESS]: true });
-  const got = await api.probeApi({ fetchImpl: f.impl });
-  check('the name fails and the address answers: the address', got === ADDRESS && api.apiOrigin() === ADDRESS, got);
-  at('paraguayandronecombatsimulator.com');
-  check('and rooms, tracks and board follow it', roomsOrigin() === ADDRESS && tracksOrigin() === ADDRESS && boardOrigin() === `${ADDRESS}/board`,
-    `${roomsOrigin()} ${tracksOrigin()} ${boardOrigin()}`);
-  check('nothing about it is stored', ![...store.keys()].some((k) => /rooms|tracks\.origin|board\.origin/.test(k)), [...store.keys()].join(' '));
-  const again = await api.probeApi({ fetchImpl: () => { throw new Error('asked twice'); } });
-  check('one probe a page: a second call is the first answer', again === ADDRESS);
-}
-{
-  api.resetApiProbe();
-  const f = fetchFor({});
-  const got = await api.probeApi({ fetchImpl: f.impl });
-  check('neither answers (offline): the name stays', got === NAME && f.asked.length === 2, got);
-}
-{
-  api.resetApiProbe();
-  const timed = (url, init) => new Promise((resolve, reject) => {
-    if (url.startsWith(ADDRESS)) {
-      resolve(new Response('{}', { status: 200 }));
-      return;
-    }
-    init.signal.addEventListener('abort', () => reject(init.signal.reason));
+  /* Caddy still serves the address for pages built before the move; the
+   * page itself never asks it. */
+  const files = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const rel = `${dir}/${d.name}`;
+    return d.isDirectory() ? files(rel) : [rel];
   });
-  /* AbortSignal.timeout's timer does not hold Node open; this one does. */
-  const hold = setTimeout(() => {}, 5000);
-  const got = await api.probeApi({ fetchImpl: timed, timeoutMs: 50 });
-  clearTimeout(hold);
-  check('a name that hangs is given up on: the address', got === ADDRESS, got);
+  const served = [...files('src').filter((f) => /\.(js|html)$/.test(f)), 'index.html', 'landing.html', 'admin.html', 'privacy.html', 'terms.html'];
+  const host = new URL(ADDRESS).hostname;
+  const naming = served.filter((f) => readFileSync(f, 'utf8').includes(host));
+  check(`no served file names the VM by address (${served.length} files)`, naming.length === 0, naming.join(', '));
 }
-{
-  api.resetApiProbe();
-  const status500 = (url) => Promise.resolve(new Response('', { status: url.startsWith(NAME) ? 502 : 200 }));
-  const got = await api.probeApi({ fetchImpl: status500 });
-  check('a name that answers but not ok (a 502) while the address answers: the address', got === ADDRESS, got);
-}
-api.resetApiProbe();
 store.clear();
 
 console.log('the rooms server\'s origins');

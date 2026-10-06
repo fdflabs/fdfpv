@@ -50,7 +50,7 @@
 
 import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
-import { API_ORIGIN, apiOrigin } from './api.js';
+import { API_ORIGIN } from './api.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
 
@@ -101,7 +101,7 @@ export function defaultBoardOrigin() {
   try {
     return LOOPBACK_HOSTS.has(window.location.hostname)
       ? DEFAULT_BOARD_ORIGIN
-      : `${apiOrigin()}${BOARD_MOUNT}`;
+      : `${API_ORIGIN}${BOARD_MOUNT}`;
   } catch (e) {
     /* No window, as in Node, where the board is the local one or nothing. */
     return DEFAULT_BOARD_ORIGIN;

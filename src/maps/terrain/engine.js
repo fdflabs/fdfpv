@@ -665,6 +665,33 @@ export class Terrain {
     progress(1);
   }
 
+  /*
+   * A craft put somewhere else between frames (a respawn): the selection
+   * round its new place now, from the tiles already held, built with no
+   * budget, as load() does round the spawn. Until the next update() the
+   * selection was the old place's, so the new spot was drawn from a
+   * coarse node and height() there read that node: Itaipu seated a craft
+   * on it 9.4 m under the finest data, and the next frame's finer leaf
+   * left it buried. Tiles not held yet are asked for and stream in as
+   * they do in flight; nothing here waits on the network.
+   */
+  settleAt(craft) {
+    this.focus[0].copy(craft);
+    for (;;) {
+      this.store.commit();
+      this.store.pinned.clear();
+      this.prefetch(this.focus[0]);
+      const leaves = [];
+      for (const r of this.roots) {
+        this.visit(r, leaves);
+      }
+      if (!this.buildSome(Infinity)) {
+        break;
+      }
+    }
+    this.select();
+  }
+
   /* The coarsest level's height, for the apron's border. */
   coarseAt(x, z) {
     const cell = cellOf(this.f.coarsest);

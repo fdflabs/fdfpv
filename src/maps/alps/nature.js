@@ -709,9 +709,12 @@ export function buildStream(ctx, sites) {
  * slope that shallow read as a white stripe painted on the hill. So
  * the lip gets a cliff of its own: banded rock from the foot of the
  * lip to its top, broken into crags by the noise, with a turf ledge
- * back to where the ground comes up to meet it. No collider: its
- * nearest end is twelve hundred metres from the strip, past the seven
- * hundred the brief gives colliders.
+ * back to where the ground comes up to meet it.
+ *
+ * Returns the ground the plant meets there: the wall as seen from above
+ * (topDown), which the map raises its heightfield to. Without it the
+ * craft met the heightfield's forty five degree slope, which stands up
+ * to sixty metres behind the drawn face, and flew through the rock.
  */
 export function buildHeadwall(ctx, sites) {
   const { scene, heightAt, valleyAxis, look } = ctx;
@@ -778,7 +781,117 @@ export function buildHeadwall(ctx, sites) {
     wall.castShadow = true;
     wall.receiveShadow = true;
     scene.add(wall);
+    return topDown(pos, HEADWALL_CELL, HEADWALL_RISE);
   }
+}
+
+/* The headwall's ground grid, metres a cell: under a metre, so the
+ * crags the face is broken into (3.2 m deep) stand where they are drawn. */
+const HEADWALL_CELL = 0.5;
+/* The steepest the plant is handed the face, metres up a metre out. The
+ * ground plane's normal is sampled across 0.35 m and refreshed every
+ * eighth step (src/main.js sampleGroundNormal), so a craft pressed a
+ * metre or two into a sheer face stood its probe on the ledge behind it,
+ * read the ledge's level normal there, and was thrown fifty metres up
+ * onto it. At this rise the face is a slope the probe stays on. */
+const HEADWALL_RISE = 20;
+
+/*
+ * A heightfield of triangle soup `pos` (x, y, z triples), as a ray from
+ * straight above meets it: each cell holds the highest point of any
+ * triangle over it, -Infinity where none is. A cell's centre takes the
+ * triangles whose plan covers it; the edges are walked at a quarter cell
+ * as well, for the faces near vertical, whose plan is a sliver no centre
+ * falls in and whose highest point is on an edge.
+ *
+ * Then no cell is let stand more than `rise` times its width over the
+ * cell before it on the -x side, which is where the face looks: a cell
+ * that would is raised, so the face leans out over its foot as a slope
+ * that steep, never back behind what is drawn.
+ *
+ * Returns (x, z) => height, bilinear between the four cells round the
+ * point when all four hold the wall, else the highest of those that do,
+ * so the face is never drawn in front of what the grid holds.
+ */
+function topDown(pos, cell, rise) {
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  let y0 = Infinity, y1 = -Infinity;
+  for (let k = 0; k < pos.length; k += 3) {
+    x0 = Math.min(x0, pos[k]);
+    x1 = Math.max(x1, pos[k]);
+    y0 = Math.min(y0, pos[k + 1]);
+    y1 = Math.max(y1, pos[k + 1]);
+    z0 = Math.min(z0, pos[k + 2]);
+    z1 = Math.max(z1, pos[k + 2]);
+  }
+  /* Room on the -x side for the slope's foot. */
+  x0 -= cell + (y1 - y0) / rise;
+  z0 -= cell;
+  const nx = Math.ceil((x1 - x0) / cell) + 2;
+  const nz = Math.ceil((z1 - z0) / cell) + 2;
+  const top = new Float32Array(nx * nz).fill(-Infinity);
+  const put = (i, j, y) => {
+    if (i >= 0 && j >= 0 && i < nx && j < nz && y > top[j * nx + i]) {
+      top[j * nx + i] = y;
+    }
+  };
+  const edge = (ax, ay, az, bx, by, bz) => {
+    const n = Math.ceil(Math.hypot(bx - ax, bz - az) / (cell / 4)) + 1;
+    for (let q = 0; q <= n; q += 1) {
+      const t = q / n;
+      put(Math.round((ax + (bx - ax) * t - x0) / cell), Math.round((az + (bz - az) * t - z0) / cell), ay + (by - ay) * t);
+    }
+  };
+  for (let k = 0; k < pos.length; k += 9) {
+    const [ax, ay, az, bx, by, bz, cx, cy, cz] = pos.slice(k, k + 9);
+    edge(ax, ay, az, bx, by, bz);
+    edge(bx, by, bz, cx, cy, cz);
+    edge(cx, cy, cz, ax, ay, az);
+    const area = (bx - ax) * (cz - az) - (cx - ax) * (bz - az);
+    if (Math.abs(area) < 1e-6) {
+      continue;
+    }
+    const i0 = Math.ceil((Math.min(ax, bx, cx) - x0) / cell);
+    const i1 = Math.floor((Math.max(ax, bx, cx) - x0) / cell);
+    const j0 = Math.ceil((Math.min(az, bz, cz) - z0) / cell);
+    const j1 = Math.floor((Math.max(az, bz, cz) - z0) / cell);
+    for (let j = j0; j <= j1; j += 1) {
+      const z = z0 + j * cell;
+      for (let i = i0; i <= i1; i += 1) {
+        const x = x0 + i * cell;
+        const u = ((bx - x) * (cz - z) - (cx - x) * (bz - z)) / area;
+        const v = ((cx - x) * (az - z) - (ax - x) * (cz - z)) / area;
+        const w = 1 - u - v;
+        if (u >= 0 && v >= 0 && w >= 0) {
+          put(i, j, u * ay + v * by + w * cy);
+        }
+      }
+    }
+  }
+  for (let j = 0; j < nz; j += 1) {
+    for (let i = nx - 2; i >= 0; i -= 1) {
+      top[j * nx + i] = Math.max(top[j * nx + i], top[j * nx + i + 1] - rise * cell);
+    }
+  }
+  return (x, z) => {
+    const gx = (x - x0) / cell;
+    const gz = (z - z0) / cell;
+    const i = Math.floor(gx);
+    const j = Math.floor(gz);
+    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) {
+      return -Infinity;
+    }
+    const a = top[j * nx + i];
+    const b = top[j * nx + i + 1];
+    const c = top[(j + 1) * nx + i];
+    const d = top[(j + 1) * nx + i + 1];
+    if (a === -Infinity || b === -Infinity || c === -Infinity || d === -Infinity) {
+      return Math.max(a, b, c, d);
+    }
+    const fu = gx - i;
+    const fv = gz - j;
+    return (a * (1 - fu) + b * fu) * (1 - fv) + (c * (1 - fu) + d * fu) * fv;
+  };
 }
 
 /*
@@ -1156,7 +1269,7 @@ export async function buildNature(ctx) {
   await ctx.paint(0.5);
 
   const rivers = buildStream(ctx, sites);
-  buildHeadwall(ctx, sites);
+  const headwall = buildHeadwall(ctx, sites);
   buildFall(ctx, sites, waterMat);
   buildFoam(ctx, sites);
   await ctx.paint(0.54);
@@ -1171,6 +1284,7 @@ export async function buildNature(ctx) {
 
   return {
     pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers, roofs: shore.roofs,
+    ground: headwall,
     setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
   };
 }
