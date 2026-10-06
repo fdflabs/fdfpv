@@ -21,6 +21,8 @@
  *                        camp's fixed parts, with their colliders and
  *                        roofs
  *   interior/ribbons.js  the roads, the river and its streams
+ *   interior/nearfield.js  grass, weeds and shrubs round a camera low
+ *                        over the ground
  *
  * TIME OF DAY: options.hour (a local solar hour, 16.6667 for Mission 1's
  * 16:40), or ?hour= in the address, else 16:40; map.setLocalTime(h)
@@ -51,6 +53,7 @@ import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
+import { loadAtlases } from './swiss2/vegetation/atlas.js';
 import { HALF, PLAY_HALF } from '../share/interior/frame.js';
 import { makeWorld, fetchWorldBytes } from '../share/interior/world.js';
 import { landEdit, PLACES, dirOf } from '../share/interior/places.js';
@@ -60,6 +63,7 @@ import { buildTerrain, TERRAIN_Q } from './interior/terrain.js';
 import { makeLook } from './interior/look.js';
 import { paintedLand } from './interior/ground.js';
 import { buildTrees } from './interior/trees.js';
+import { buildNearField } from './interior/nearfield.js';
 import { buildBuilt } from './interior/built.js';
 import { buildLife } from './interior/life.js';
 
@@ -130,10 +134,16 @@ async function buildInterior(shell, progress, q, hours) {
   const ground = world.groundAt;
   progress(0.5, 'vegetation');
   await yieldToPaint();
+  /* swiss2's grass and broadleaf atlases and its bark, for what grows
+   * close to a low camera. */
+  const atlases = await loadAtlases();
   const trees = buildTrees({
-    THREE, scene, quality: q.id, canopy, world, sunDir: look.sunDir,
+    THREE, scene, quality: q.id, canopy, world, sunDir: look.sunDir, bark: atlases.bark,
   });
   trees.setSun(look.sunIrradiance());
+  const nearField = buildNearField({
+    THREE, scene, world, canopy, quality: q.id, atlases,
+  });
   progress(0.7, 'town');
   await yieldToPaint();
   const colliders = new Colliders();
@@ -153,6 +163,7 @@ async function buildInterior(shell, progress, q, hours) {
   look.setHeights(ground, PLAY_HALF + 500, 30);
   camera.position.copy(spawnAt).add(new THREE.Vector3(0, 2, 0));
   trees.settle(camera);
+  nearField.view(camera);
   look.finish();
   progress(0.93, 'shaders');
   scene.add(shell.quad);
@@ -160,7 +171,7 @@ async function buildInterior(shell, progress, q, hours) {
   progress(1);
 
   scene.userData.interior = {
-    terrain, camera, look, world, canopy, trees, built, colliders, life,
+    terrain, camera, look, world, canopy, trees, nearField, built, colliders, life,
   };
   const height = (x, z, fromY) => roofs.height(x, z, fromY, terrain.height(x, z));
   return {
@@ -209,6 +220,7 @@ async function buildInterior(shell, progress, q, hours) {
       look.updateShadowFocus(target);
       terrain.update(target, camera.position);
       trees.view(camera, target);
+      nearField.view(camera);
       built.view(camera);
     },
     updateWind() {},
@@ -224,12 +236,15 @@ async function buildInterior(shell, progress, q, hours) {
       terrain: terrain.stats(),
       colliders: colliders.stats(),
       trees: trees.stats(),
+      nearField: nearField.stats(),
       built: built.stats(),
       life: life.stats(),
     }),
     dispose() {
       terrain.dispose();
       trees.dispose();
+      nearField.dispose();
+      atlases.dispose();
       built.dispose();
       life.dispose();
       scene.userData.interior = null;
