@@ -46,14 +46,13 @@ DNS, at Hostinger:
 
 What each piece does:
 
-- `src/share/api.js` names the servers once. The page asks
-  `https://api.paraguayandronecombatsimulator.com/api/health` as it boots,
-  and only when the name does not answer (its DNS still spreading, or Caddy
-  still waiting for its certificate) it uses https://129.151.39.48, the
-  address it used before. The answer is never stored. Delete the fallback
-  once the name answers everywhere.
+- `src/share/api.js` names the servers once, by name. Until 6 October 2026
+  the page also probed the name as it booted and fell back to
+  https://129.151.39.48, the address it used before, while the name's DNS
+  spread; that fallback is gone (`npm run domain:selftest` fails if a served
+  file names the address again).
 - `deploy/vm/Caddyfile` serves the same routes at the name and at the bare
-  address. Caddy fetches the name's certificate by itself once its DNS
+  address, which pages built before the move still ask. Caddy fetches the name's certificate by itself once its DNS
   points at the VM: rerun
   `deploy/vm/deploy.sh` after the DNS is in.
 - The rooms server allows the apex, its www and fdflabs.github.io
@@ -87,8 +86,8 @@ The order:
 
 1. Merge and deploy the domain change (Pages, then `deploy/vm/deploy.sh`
    for the rooms allowlist and the Caddyfile). The game still runs at
-   https://fdflabs.github.io/fdfpv/ and now speaks to the API name, falling
-   back to the address while DNS spreads.
+   https://fdflabs.github.io/fdfpv/ and now speaks to the API name (it fell
+   back to the address while DNS spread, until 6 October 2026).
 2. Merge the carry. On the old address it does nothing; it waits for the
    domain.
 3. With the DNS above in place, set the custom domain in the repository's

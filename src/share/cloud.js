@@ -54,7 +54,7 @@ import {
 import { sha256Base64, trackDeleteMessage, trackMessage } from './identity.js';
 import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
-import { API_ORIGIN, apiOrigin } from './api.js';
+import { API_ORIGIN } from './api.js';
 
 /*
  * The deployed server: tracks-api/node.js on the owner's VM, behind Caddy
@@ -106,7 +106,7 @@ export function tracksOrigin() {
   } catch (e) {
     return '';
   }
-  return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN ? '' : apiOrigin();
+  return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN ? '' : PRODUCTION_TRACKS_ORIGIN;
 }
 
 export function tracksConfigured() {
