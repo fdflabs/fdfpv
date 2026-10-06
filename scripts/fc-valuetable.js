@@ -25,12 +25,14 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+const FIRMWARE = 'vendor/betaflight/src/main';
 const SOURCES = {
-  names: 'vendor/betaflight/src/main/fc/parameter_names.h',
-  settings: 'vendor/betaflight/src/main/cli/settings.c',
+  names: `${FIRMWARE}/fc/parameter_names.h`,
+  settings: `${FIRMWARE}/cli/settings.c`,
+  settingsHeader: `${FIRMWARE}/cli/settings.h`,
   writer: 'src/native/bf/bf_settings.c',
 };
 
@@ -42,11 +44,14 @@ const CATALOG_TYPES = new Set(['UINT8', 'UINT16', 'INT8', 'INT16', 'UINT32']);
 // Blank out comments and preprocessor lines but keep every other character
 // where it was, so slices of the result are the source text the catalog
 // quotes for bounds like `VTX_TABLE_MAX_POWER_LEVELS - 1`.
-function blankNonCode(src) {
+function blankComments(src) {
   return src
     .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
-    .replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length))
-    .replace(/^[ \t]*#[^\n]*/gm, (c) => ' '.repeat(c.length));
+    .replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length));
+}
+
+function blankNonCode(src) {
+  return blankComments(src).replace(/^[ \t]*#[^\n]*/gm, (c) => ' '.repeat(c.length));
 }
 
 // Split on commas that are not inside braces, brackets, parentheses or a
@@ -181,10 +186,81 @@ export function parseBfSettingsKeys(src, names) {
   return keys;
 }
 
+/*
+ * The CLI's lookup tables by TABLE_ name (without the prefix), with their
+ * values as the CLI prints them. lookupTableIndex_e in settings.h and
+ * lookupTables[] in settings.c list the tables in the same order under
+ * the same #if guards, so they are paired by position. Values under an
+ * #if inside a table are included, the same every-branch reading the
+ * valueTable gets. A table whose array is defined outside settings.c is
+ * left out.
+ */
+export function parseLookupTables(settingsSrc, headerSrc) {
+  const header = blankNonCode(headerSrc);
+  const enumEnd = header.indexOf('lookupTableIndex_e;');
+  const enumBody = header.slice(header.lastIndexOf('{', enumEnd) + 1, header.lastIndexOf('}', enumEnd));
+  const ids = splitTopLevel(enumBody).map((id) => id.split('=')[0].trim()).filter((id) => id.startsWith('TABLE_'));
+  const entries = arrayInitialiser(blankNonCode(settingsSrc), 'const lookupTableEntry_t lookupTables[]');
+  const arrays = [...entries.matchAll(/LOOKUP_TABLE_ENTRY\(\s*(\w+)\s*\)/g)].map((m) => m[1]);
+  if (arrays.length !== ids.length) {
+    throw new Error(`lookupTables[] has ${arrays.length} entries, lookupTableIndex_e has ${ids.length}`);
+  }
+  const tables = {};
+  ids.forEach((id, i) => {
+    const decl = new RegExp(`\\b${arrays[i]}\\s*\\[\\s*\\]\\s*=\\s*\\{([^}]*)\\}`).exec(settingsSrc);
+    if (!decl) return;
+    const items = splitTopLevel(blankNonCode(decl[1]));
+    if (!items.every((v) => /^"[^"]*"$/.test(v))) return;
+    tables[id.slice('TABLE_'.length)] = items.map((v) => v.slice(1, -1));
+  });
+  return tables;
+}
+
+async function sourceFiles(dir) {
+  const files = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...await sourceFiles(path));
+    else if (/\.[ch]$/.test(entry.name)) files.push(path);
+  }
+  return files.sort();
+}
+
+/*
+ * Integer values of the named macros, from `#define NAME <integer>`
+ * anywhere in the given sources. A macro defined as an expression, or to
+ * different integers in different places (a per-target value), is left
+ * out rather than guessed.
+ */
+export function parseIntegerDefines(sources, wanted) {
+  const seen = new Map();
+  const define = /^[ \t]*#[ \t]*define[ \t]+([A-Z_][A-Z0-9_]*)[ \t]+(-?\d+)[ \t]*$/gm;
+  for (const src of sources) {
+    for (const [, name, value] of blankComments(src).matchAll(define)) {
+      if (!wanted.has(name)) continue;
+      if (!seen.has(name)) seen.set(name, new Set());
+      seen.get(name).add(Number(value));
+    }
+  }
+  const defines = {};
+  for (const name of wanted) {
+    const values = seen.get(name);
+    if (values?.size === 1) [defines[name]] = values;
+  }
+  return defines;
+}
+
+const isMacroName = (token) => typeof token === 'string' && /^[A-Z_][A-Z0-9_]*$/.test(token);
+
 export async function loadFirmwareTables(root) {
   const read = (rel) => readFile(join(root, rel), 'utf8');
   const names = parseParamNames(await read(SOURCES.names));
-  const table = parseValueTable(await read(SOURCES.settings), names);
+  const settings = await read(SOURCES.settings);
+  const table = parseValueTable(settings, names);
   const live = parseBfSettingsKeys(await read(SOURCES.writer), names);
-  return { names, table, live };
+  const lookups = parseLookupTables(settings, await read(SOURCES.settingsHeader));
+  const bounds = new Set(table.flatMap((r) => [r.min, r.max]).filter(isMacroName));
+  const firmware = await Promise.all((await sourceFiles(join(root, FIRMWARE))).map((f) => readFile(f, 'utf8')));
+  const defines = parseIntegerDefines(firmware, bounds);
+  return { names, table, live, lookups, defines };
 }

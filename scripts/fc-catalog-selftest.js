@@ -33,7 +33,7 @@ import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { VALUE_TABLE } from '../src/fc/catalog-data.js';
+import { FIRMWARE_BOUNDS, FIRMWARE_LOOKUPS, VALUE_TABLE } from '../src/fc/catalog-data.js';
 import { loadFirmwareTables } from './fc-valuetable.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -43,6 +43,10 @@ const digest = (value) => createHash('sha256').update(JSON.stringify(value)).dig
 const PINS = [
   ['VALUE_TABLE rows', VALUE_TABLE.length, 686],
   ['VALUE_TABLE digest', digest(VALUE_TABLE), 'fbbbbdd81f877479c66e62b0f231f6c2447cce8f7d35de4cf005d6573ea613c5'],
+  ['FIRMWARE_LOOKUPS tables', Object.keys(FIRMWARE_LOOKUPS).length, 57],
+  ['FIRMWARE_LOOKUPS digest', digest(FIRMWARE_LOOKUPS), 'ac41cdf8c82d626025c521325b9dba49015c3cba6c652e7ee6e5621736a91be5'],
+  ['FIRMWARE_BOUNDS macros', Object.keys(FIRMWARE_BOUNDS).length, 66],
+  ['FIRMWARE_BOUNDS digest', digest(FIRMWARE_BOUNDS), 'ecad8ca36388e5fca9c415abb2af567e6bc8d91144a9a507b95e3c85a018c3c4'],
 ];
 
 const fw = await loadFirmwareTables(root);
