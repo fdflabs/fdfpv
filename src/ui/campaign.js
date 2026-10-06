@@ -94,6 +94,10 @@ export function createCampaignScreen({
   const store = createCampaignStore(ui.settings, () => ui.persistSettings());
   /* Read fresh each time: an account sync may replace the section. */
   const cur = () => store.load();
+  /* A developer's page tests a mission in development without winning
+   * the ones before it first (the owner, 2026-10-06: the dev link showed
+   * The Spillway as "Win mission 1 first"). */
+  const flyable = (i) => devMissions || unlocked(cur(), i);
   /* The loadout the room is told: the campaign's, with the warhead the
    * seated aircraft carries when it carries one, a combat quad's payload
    * (docs/COMBAT-DRONES.md section 3). craftWarhead(allowed, equipped) is
@@ -191,7 +195,7 @@ export function createCampaignScreen({
     let why = null;
     if (!released(m.id, devMissions)) {
       why = str(`campaign.release_${m.release}`);
-    } else if (!unlocked(cur(), i)) {
+    } else if (!flyable(i)) {
       why = str('campaign.locked', { n: i });
     } else if (!gateOpen(i)) {
       why = str('campaign.tag');
@@ -399,7 +403,7 @@ export function createCampaignScreen({
     /* The missions this pilot may start, in order: released, open (the
      * one before won) and inside the full game's gate (Make a room's
      * Mission row, src/ui/roombrowser.js, and the lobby's). */
-    playable: () => ACT1.filter((m, i) => released(m.id, devMissions) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
+    playable: () => ACT1.filter((m, i) => released(m.id, devMissions) && flyable(i) && gateOpen(i)).map((m) => m.id),
     /* For the checks. */
     observe,
     state: cur,

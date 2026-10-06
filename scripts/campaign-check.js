@@ -440,6 +440,8 @@ try {
   const dev = await page.evaluate(SCREEN);
   check('with ?missions=dev, back in the room: mission 2 playable, 5 to 7 still Coming soon', dev && dev.missions[1].play === 'Play' && dev.missions[1].playable
     && dev.missions.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
+  check('with ?missions=dev, missions in development need no win before them: 3 and 4 playable with mission 2 never won',
+    dev && [2, 3].every((i) => dev.missions[i].play === 'Play' && dev.missions[i].playable), JSON.stringify(dev && dev.missions.map((m) => m.play)));
 
   /* PLAY MISSION 2, from the lobby's Campaign row: the lobby says mission
    * 2 (the owner saw "Start mission 1" there, 2026-09-30) and Start now
