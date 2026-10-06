@@ -36,11 +36,13 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The host's start of a campaign mission, the briefing's intro first as
- * the Defend Itaipu start row does (src/main.js warStart). */
-export function startMessage(missionId, loadout) {
+/* The host's start of a campaign mission, as the Defend Itaipu start row
+ * makes it (src/main.js warStart): `how` is { intro: true }, the briefing's
+ * intro first, or { from: 'checkpoint' }, a lost mission again from its
+ * lost stage. */
+export function startMessage(missionId, loadout, how = { intro: true }) {
   return {
-    type: 'war', op: 'start', mission: missionId, intro: true, loadout,
+    type: 'war', op: 'start', mission: missionId, ...how, loadout,
   };
 }
 

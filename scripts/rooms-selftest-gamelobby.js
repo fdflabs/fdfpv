@@ -43,6 +43,9 @@ import { GOALS } from '../src/share/roomtag.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { PROTO } from '../src/share/roomwire.js';
+import { RESTART_STARS } from '../edge/rooms/war.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { stagesOf } from '../src/share/war/stages.js';
 
 /* A room at room ms 0, its `n` pilots seated: made for the war unless
  * `mode` says otherwise. `dev` starts the campaign's missions in
@@ -225,6 +228,59 @@ export function warLobbySection(check) {
     e.ready(1);
     e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
     check('a match ended, not lost, starts again from its film', e.war().state === 'briefing' && e.war().restarted == null, e.war().state);
+  }
+  {
+    /* The host's two starts after a loss (src/main.js warStart): Start
+     * now's from 'checkpoint', the lost stage with two stars at most, and
+     * Restart from the beginning's intro, the mission from its film with
+     * every star. After a win, Start now's intro starts it fresh. The
+     * Spillway's the same: nothing here is First Light's. */
+    for (const [mission, stage] of [['itaipu-1', 'pressure'], ['itaipu-2', 'channel']]) {
+      const e = lobbyRoom({ mission, dev: true });
+      const loseIn = () => {
+        e.say(0, { type: 'war', op: 'start', mission });
+        e.at(e.war().goAt + 200);
+        const idx = stagesOf(MISSIONS[mission]).findIndex((s) => s.id === stage);
+        e.r.war.enterStage(e.r, idx, e.r.war.match.f);
+        e.r.war.finish(e.r.war.match.f, 'lost', 'output');
+        e.at(e.clock + 100);
+        return idx;
+      };
+      /* Every star's criterion met (war.js resultOf), so the result is
+       * what the start allows. */
+      const winIt = () => {
+        const m = e.r.war.match;
+        Object.assign(m, { results: ['win'], lossy: false, output: MISSIONS[mission].starMw ?? MISSIONS[mission].floorMw });
+        e.r.war.finish(m.f, 'won', 'stages');
+        e.at(e.clock + 100);
+        return e.war().result;
+      };
+      const idx = loseIn();
+      check(`${mission} lost in its stage ${stage}: the view names it`, e.war().state === 'lost' && e.war().checkpoint && e.war().checkpoint.stage === stage
+        && e.war().checkpoint.n === idx && idx > 0, JSON.stringify(e.war().checkpoint));
+      e.say(0, { type: 'war', op: 'start', mission, from: 'checkpoint', loadout: { rack: 4, warhead: 'standard', speedMul: 1 } });
+      check(`${mission}: the host's start from 'checkpoint' counts down into that stage, no briefing`, e.war().state === 'countdown' && e.war().restarted === stage
+        && e.r.war.match.from === idx, JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
+      e.at(e.war().goAt + 200);
+      check(`${mission}: at the go it is in that stage`, e.war().stage && e.war().stage.id === stage, JSON.stringify(e.war().stage && e.war().stage.id));
+      const capped = winIt();
+      check(`${mission}: won from there, every criterion met, ${RESTART_STARS} stars`, capped.won && capped.stars === RESTART_STARS && capped.criteria.every((c) => c.met),
+        JSON.stringify(capped));
+      e.say(0, { type: 'war', op: 'start', mission, from: 'checkpoint' });
+      check(`${mission}: after a win there is no stage to go back to: refused, the match as it was`, e.socks[0].got.at(-1).type === 'war'
+        && e.socks[0].got.at(-1).error === 'checkpoint' && e.war().state === 'won', JSON.stringify(e.socks[0].got.at(-1)));
+      e.say(0, { type: 'war', op: 'start', mission, intro: true });
+      check(`${mission}: and the host's start after a win is the mission from its film`, e.war().state === 'briefing' && e.war().restarted == null,
+        JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
+      e.say(0, { type: 'war', op: 'end' });
+      e.at(e.clock + 100);
+      loseIn();
+      e.say(0, { type: 'war', op: 'start', mission, intro: true });
+      check(`${mission}: lost again, the host's start with the intro is the mission from its film, not a restart`, e.war().state === 'briefing' && e.war().restarted == null
+        && e.r.war.match.from == null, JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
+      const full = winIt();
+      check(`${mission}: won from there, every criterion met, all 3 stars`, full.won && full.stars === 3, JSON.stringify(full));
+    }
   }
   {
     const e = lobbyRoom();

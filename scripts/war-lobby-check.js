@@ -22,6 +22,13 @@
  *   Hot join: B leaves; A's room goes to battle; B finds it in Rooms as in
  *     battle with its wave and joins: straight into the battle, flying,
  *     never the lobby.
+ *   After a loss in a later stage (the owner, 2 Oct: "a lost mission
+ *     restarts from the lost stage, max 2 stars"): the host's Start now
+ *     restarts from that stage, two stars at most; Restart from the
+ *     beginning, a row only then, starts from the briefing with every
+ *     star; after a win Start now starts fresh. The Spillway the same
+ *     (this check's room starts missions in development), and the
+ *     campaign's start, its loadout, from the lost stage too.
  *   Campaign Play makes a lobby too.
  *
  * Pictures of the lobby at 1920 by 1080 and 390 by 844 in outdir (not in
@@ -50,6 +57,9 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
+import { RESTART_STARS } from '../edge/rooms/war.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { stagesOf } from '../src/share/war/stages.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -109,6 +119,16 @@ const LOBBY = `(() => {
   };
 })()`;
 
+/* Every text message the page puts on a socket, from before the app runs. */
+const SOCKET_TAP = `(() => {
+  window.__sent = [];
+  const send = WebSocket.prototype.send;
+  WebSocket.prototype.send = function (data) {
+    if (typeof data === 'string') { try { window.__sent.push(JSON.parse(data)); } catch (e) { window.__sent.push(data); } }
+    return send.call(this, data);
+  };
+})();`;
+
 const SEED_A = `(() => {
   const s = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}');
   localStorage.setItem('webfpv.settings.v3', JSON.stringify({
@@ -118,7 +138,8 @@ const SEED_A = `(() => {
 
 const dir = mkdtempSync(join(tmpdir(), 'war-lobby-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+/* devMissions: the Spillway's rows below start mission 2, in development. */
+const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`the war's lobby, rooms at ${rooms}`);
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
@@ -127,15 +148,37 @@ const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
  * lost the instant the output is under the mission's floor), in this
  * process's room server: the output taken to nothing, settled, and sent
  * the way the room sends any change. Flying it to a loss takes minutes. */
-function loseNow(code) {
-  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.meta.code === code);
-  const { core } = room.host;
+function roomOf(code) {
+  return [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.meta.code === code).host;
+}
+/* `stage`: the stage the live match is put in first (war.js enterStage,
+ * which keeps it as the match's checkpoint), so a restart from it is told
+ * apart from a start. */
+function loseNow(code, stage = null) {
+  const room = roomOf(code);
+  const { core } = room;
+  if (stage != null) {
+    core.war.enterStage(core, stagesOf(MISSIONS[core.war.match.mission]).findIndex((s) => s.id === stage), core.war.match.f);
+  }
   core.war.match.output = 0;
   core.war.settle(core.war.match.f);
-  room.host.run(core.war.changed(core));
+  room.run(core.war.changed(core));
   return core.war.match.state;
 }
-const a = await openPage({ root, url, width: 1920, height: 1080, seed: [SEED_A] });
+/* A WIN with every star's criterion met (war.js resultOf): every round
+ * held, no airframe lost, the output at the mission's starMw. What the
+ * room's result then gives is what the start earned, three or the cap. */
+function winNow(code) {
+  const room = roomOf(code);
+  const { core } = room;
+  const m = core.war.match;
+  const mission = MISSIONS[m.mission];
+  Object.assign(m, { results: ['win'], lossy: false, output: Math.max(m.output, mission.starMw ?? mission.floorMw) });
+  core.war.finish(m.f, 'won', 'stages');
+  room.run(core.war.changed(core));
+  return core.war.view(core).result;
+}
+const a = await openPage({ root, url, width: 1920, height: 1080, seed: [SOCKET_TAP, SEED_A] });
 const b = await openPage({ root, url, width: 390, height: 844 });
 try {
   for (const p of [a, b]) {
@@ -266,7 +309,8 @@ try {
   const startRow = await a.evaluate("(window.__ui.items()[window.__ui.cursor] || {}).label");
   await a.tap('Enter');
   await a.until(briefing, 10000).catch(() => {});
-  check('the host\'s Start now: at once, nobody ready', startRow === 'Start now' && await b.evaluate(briefing), String(startRow));
+  check('the host\'s Start now: at once, nobody ready, the mission from its start', startRow === 'Start now' && await b.evaluate(briefing)
+    && (await a.evaluate('window.__war().view.restarted ?? null')) === null, String(startRow));
   await a.evaluate("(() => { window.__warDo('end'); return true; })()");
   await a.until("window.__war().view.state === 'ended'", 15000).catch(() => {});
 
@@ -298,7 +342,7 @@ try {
   /* A LOSS IN THE AIR, the owner's report (2026-10-01): a pilot who is
    * not the host, on a lost mission's banner, read "WAITING FOR THE HOST
    * TO RESTART" and had no way forward. */
-  const lost = loseNow(code);
+  const lost = loseNow(code, 'pressure');
   await b.until("window.__war().view.state === 'lost' && /^BACK TO THE LOBBY IN [1-8]$/.test(window.__war().hud.restart || '')", 10000).catch(() => {});
   const said = await b.evaluate("({ state: window.__war().view.state, restart: window.__war().hud.restart || null })");
   check('the mission lost, B flying and not the host: the banner reads BACK TO THE LOBBY IN n', lost === 'lost' && said.state === 'lost'
@@ -307,6 +351,107 @@ try {
   const after = await b.evaluate(LOBBY);
   check('and B is put in the lobby with nothing pressed, its Ready under the cursor', after.shown && after.screen === 'friends' && after.here === 'friends-lobby-ready'
     && after.flying !== 'flight', JSON.stringify({ shown: after.shown, screen: after.screen, here: after.here, flying: after.flying }));
+
+  /* START NOW AFTER A LOSS (the owner, 2 Oct: "a lost mission restarts
+   * from the lost stage, max 2 stars"): the host's Start now restarts it
+   * from the stage it was lost in, as Deploy does; a row of its own starts
+   * it from the beginning, its film first, every star to win. A won
+   * mission's Start now starts it from its beginning. */
+  const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+  const ROWS = `(() => {
+    const row = (action) => window.__ui.items().find((it) => it.action === action) || null;
+    const s = row('friends-war-start');
+    const f = row('friends-war-fresh');
+    return { start: s && s.label, fresh: f && { label: f.label, note: f.note } };
+  })()`;
+  const WAR = '(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, restarted: v.restarted ?? null }; })()';
+  const press = async (action) => {
+    await a.evaluate(`(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})); return true; })()`);
+    await a.tap('Enter');
+  };
+  /* The host back in its lobby after the end banner, the war `state`. */
+  const hostBack = async (state) => {
+    await a.until(`${IN_LOBBY} && window.__war().view.state === ${JSON.stringify(state)}`, 20000).catch(() => {});
+    await a.sleep(500);
+    return a.evaluate(ROWS);
+  };
+  const flyLive = async (mission) => {
+    await a.evaluate(`(() => { window.__warDo('start', ${JSON.stringify(mission)}); return true; })()`);
+    await a.until(`window.__war().view.state === 'live' && window.__war().view.mission === ${JSON.stringify(mission)}`, 60000).catch(() => {});
+  };
+  const endIt = async () => {
+    await a.evaluate("(() => { window.__warDo('end'); return true; })()");
+    await a.until("window.__war().view.state === 'ended'", 15000).catch(() => {});
+  };
+  /* The host's Mission row, as the lobby takes it (gamelobby.js message). */
+  const setMission = (mission) => {
+    const room = roomOf(code);
+    const { core } = room;
+    const [conn, s] = [...core.seats].find(([, x]) => x.seat === core.host());
+    room.run(core.gameLobby.message(core, conn, s, { type: 'lobby', op: 'mission', mission }, Date.now()));
+  };
+  const lostRows = await hostBack('lost');
+  check('the host\'s lobby after a loss in stage 3: Start now, and Restart from the beginning saying where Start now goes back to', lostRows.start === 'Start now'
+    && lostRows.fresh && lostRows.fresh.label === 'Restart from the beginning' && /stage 3\b/.test(lostRows.fresh.note), JSON.stringify(lostRows));
+  await press('friends-war-start');
+  await a.until("['countdown', 'briefing', 'live'].includes(window.__war().view.state)", 10000).catch(() => {});
+  const again = await a.evaluate(WAR);
+  check('Start now after the loss: mission 1 again from the stage it was lost in, no briefing', again.state === 'countdown' && again.mission === 'itaipu-1'
+    && again.restarted === 'pressure', JSON.stringify(again));
+  await a.until("window.__war().view.state === 'live'", 30000).catch(() => {});
+  const capped = winNow(code);
+  check(`and won from there, every criterion met, it earns ${RESTART_STARS} stars`, capped && capped.won && capped.stars === RESTART_STARS
+    && capped.criteria.every((c) => c.met), JSON.stringify(capped));
+  const wonRows = await hostBack('won');
+  check('after the win: Start now, and no Restart from the beginning', wonRows.start === 'Start now' && wonRows.fresh === null, JSON.stringify(wonRows));
+  await press('friends-war-start');
+  await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
+  const afterWin = await a.evaluate(WAR);
+  check('and Start now after a win starts mission 1 fresh: its briefing, not a restart', afterWin.state === 'briefing' && afterWin.mission === 'itaipu-1'
+    && afterWin.restarted === null, JSON.stringify(afterWin));
+  await endIt();
+  await flyLive('itaipu-1');
+  loseNow(code, 'pressure');
+  await hostBack('lost');
+  await press('friends-war-fresh');
+  await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
+  const over = await a.evaluate(WAR);
+  check('Restart from the beginning after the loss: mission 1 from its briefing, not a restart', over.state === 'briefing' && over.mission === 'itaipu-1'
+    && over.restarted === null, JSON.stringify(over));
+  const full = winNow(code);
+  check('and won from there, every criterion met, it earns all 3 stars', full && full.won && full.stars === 3, JSON.stringify(full));
+
+  /* THE SPILLWAY, the same rows: nothing of them is First Light's. */
+  await hostBack('won');
+  setMission('itaipu-2');
+  await a.until("window.__ui.items().some((it) => it.action === 'friends-war-start') && /Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
+  await press('friends-war-start');
+  await a.until("window.__war().view.state === 'briefing'", 15000).catch(() => {});
+  const spill = await a.evaluate(WAR);
+  check('the Spillway set, after First Light\'s win: Start now starts mission 2 from its briefing', spill.state === 'briefing' && spill.mission === 'itaipu-2'
+    && spill.restarted === null, JSON.stringify(spill));
+  await endIt();
+  await flyLive('itaipu-2');
+  loseNow(code, 'channel');
+  const spillLost = await hostBack('lost');
+  check('the Spillway lost in stage 2: Restart from the beginning offered, saying stage 2', spillLost.fresh && /stage 2\b/.test(spillLost.fresh.note), JSON.stringify(spillLost));
+  /* The checkpoint is the lost mission's: the host setting another one
+   * has no stage to go back to. */
+  setMission('itaipu-1');
+  await a.until("/Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
+  await a.sleep(500);
+  const other = await a.evaluate(ROWS);
+  check('mission 1 set over the Spillway\'s loss: no Restart from the beginning, nothing to go back to', other.start === 'Start now' && other.fresh === null, JSON.stringify(other));
+  setMission('itaipu-2');
+  await a.until("/Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
+  await a.sleep(500);
+  await press('friends-war-start');
+  await a.until("['countdown', 'briefing', 'live'].includes(window.__war().view.state)", 10000).catch(() => {});
+  const spillAgain = await a.evaluate(WAR);
+  check('and back on the Spillway, Start now restarts it from the stage it was lost in', spillAgain.state === 'countdown' && spillAgain.mission === 'itaipu-2'
+    && spillAgain.restarted === 'channel', JSON.stringify(spillAgain));
+  await endIt();
+  setMission('itaipu-1');
 
   /* CAMPAIGN PLAY makes a lobby too. */
   await a.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('title'); window.__campaign.open(); return true; })()");
@@ -317,6 +462,20 @@ try {
   const lc = await a.evaluate(LOBBY);
   check('campaign Play lands on a lobby too, the cursor on Ready', lc.shown && lc.title === 'BRIEFING' && lc.here === 'friends-lobby-ready' && lc.flying !== 'flight',
     JSON.stringify({ shown: lc.shown, here: lc.here, flying: lc.flying }));
+  /* And the campaign's start (src/ui/campaign.js startSelected, with this
+   * pilot's loadout) restarts a lost mission from its lost stage too. */
+  const campaignCode = await a.evaluate('window.__rooms().code');
+  await flyLive('itaipu-1');
+  const lostAt = loseNow(campaignCode, 'probe');
+  const cRows = await hostBack('lost');
+  await a.evaluate('(() => { window.__sent.length = 0; return true; })()');
+  await press('friends-war-start');
+  await a.until("['countdown', 'briefing', 'live'].includes(window.__war().view.state)", 10000).catch(() => {});
+  const cSent = await a.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
+  const cWar = await a.evaluate(WAR);
+  check('in campaign Play\'s room, lost in stage 2: Start now sends the campaign\'s start, its loadout, from the lost stage', lostAt === 'lost'
+    && cRows.fresh !== null && cSent && cSent.from === 'checkpoint' && cSent.intro === undefined && Boolean(cSent.loadout) && cSent.mission === 'itaipu-1'
+    && cWar.state === 'countdown' && cWar.restarted === 'probe', JSON.stringify({ cRows, cSent, cWar }));
 
   const errs = [a, b].flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
