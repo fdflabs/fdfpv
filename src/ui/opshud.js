@@ -25,6 +25,15 @@
  * minimap with a scale bar, the boundary warning, and the stage's
  * tutorial prompts (the screen's own: the room cannot see a mode switch).
  *
+ * THE GUIDE'S MARKS (src/share/ops/guide.js), under the same rule: the
+ * objective as one line with its count under the compass tape, a ring
+ * on it and its distance when it is on screen, a chevron at the screen's
+ * edge toward it when it is not, and a small diamond on the minimap. The
+ * guide only ever names a place the mission names, a search area, or a
+ * contact the room has told, so these never point at an undiscovered
+ * contact. The first flight's card (keys from the pilot's own bindings)
+ * is drawn here and dismissed by the shell.
+ *
  * IT DRAWS STATE AND COMPUTES NONE: the room's view, the ball, the
  * sensor, the capture scorer and the shell's projection hand it every
  * number. Campaign agnostic: every word is a string key, classes and
@@ -74,6 +83,20 @@ const RING = 40;
 const KEEP_OUT_MS = 1000;
 const PANEL_EDGE = 16;
 const PANEL_GAP = 8;
+/* The guide's edge chevron sits this far in from the screen's edge, CSS
+ * px; a target nearer the edge than this counts as off screen. */
+const EDGE_PX = 40;
+/* The guide's targets that get a ring of their own: the room's search
+ * areas and last known positions have theirs, a contact in frame its box. */
+const RINGED = new Set(['item', 'zone', 'home']);
+/* The edge arrow's half length, CSS px, and the room under it for its
+ * distance. */
+const ARROW_R = 16;
+const ARROW_LABEL = 18;
+/* Where panels fill the arrow's own line from the middle, it may sit up
+ * to ARROW_SWING either side of it, tried every ARROW_STEP (rad). */
+const ARROW_SWING = Math.PI / 2;
+const ARROW_STEP = Math.PI / 36;
 
 const meets = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
@@ -142,10 +165,21 @@ const CSS = `
   pointer-events: none; font-family: ${FONT}; font-size: clamp(11px, 1.6vh, 15px); letter-spacing: 0.12em; color: ${INK};
   text-shadow: 0 1px 2px ${HALO}; white-space: nowrap; display: none; }
 .ops-brief.on { display: block; }
-.ops-subtitle { position: absolute; left: 50%; bottom: max(9vh, 56px); transform: translateX(-50%); max-width: min(88vw, 62ch);
-  box-sizing: border-box; text-align: center; white-space: normal; font-family: var(--ui-font, sans-serif); font-size: clamp(13px, 1.4vw, 19px);
+.ops-subtitle { max-width: min(88vw, 62ch); box-sizing: border-box; text-align: center; white-space: normal; font-family: var(--ui-font, sans-serif); font-size: clamp(13px, 1.4vw, 19px);
   letter-spacing: 0.02em; line-height: 1.35; color: ${INK}; background: rgba(6, 10, 12, 0.55); padding: 0.25em 0.9em; }
 .ops-subtitle:empty { display: none; }
+.ops-goal { max-width: min(62ch, 90vw); text-align: center; white-space: normal; letter-spacing: 0.12em; line-height: 1.4;
+  padding: 0.2em 0.7em; background: rgba(6, 10, 12, 0.35); }
+.ops-first { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; box-sizing: border-box;
+  max-width: min(92vw, 520px); padding: 0.9em 1.2em; border: 1px solid rgba(236, 244, 240, 0.45); background: rgba(6, 10, 12, 0.78);
+  letter-spacing: 0.1em; line-height: 1.55; }
+.ops-first:empty { display: none; }
+.ops-first-title { letter-spacing: 0.24em; color: ${DIM}; margin-bottom: 0.5em; }
+.ops-first-row { display: grid; grid-template-columns: minmax(8ch, auto) 1fr; gap: 0 1em; }
+.ops-first-row .ops-k { margin: 0; }
+.ops-first-look { margin-top: 0.6em; white-space: normal; }
+.ops-first button { margin-top: 0.8em; font: inherit; letter-spacing: inherit; color: ${INK}; background: transparent;
+  border: 1px solid rgba(236, 244, 240, 0.55); padding: 0.3em 0.9em; cursor: pointer; }
 .ops-brief.wait { color: ${AMBER}; }
 .ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
 .ops-touch.on { display: flex; }
@@ -295,7 +329,16 @@ export class OpsHud {
     this.say = new Field(this.el, 'ops-say');
     this.tut = new Field(this.el, 'ops-tut');
     this.bound = new Field(this.el, 'ops-bound');
-    this.sub = new Field(this.el, 'ops-subtitle');
+    /* A panel, placed above the bottom row and clear of the game's own
+     * furniture (the stick displays, the weight slider). */
+    this.sub = new Field(this.el, 'ops-panel ops-subtitle');
+    /* The guide's objective line, a panel placed under the tape. */
+    this.goal = el('div', 'ops-panel ops-goal', this.el);
+    this.goalText = null;
+    /* The first flight's card; onFirstSkip is the shell's. */
+    this.first = el('div', 'ops-first', this.el);
+    this.firstKey = null;
+    this.onFirstSkip = null;
     this.subs = [];
     this.subUntil = 0;
     this.subTimer = 0;
@@ -397,6 +440,8 @@ export class OpsHud {
       rects: this.rects(),
       briefing: this.briefText ? this.brief.textContent : null,
       subtitle: this.sub.v,
+      goal: this.goalText,
+      first: this.firstKey ? this.first.textContent : null,
     });
   }
 
@@ -419,6 +464,9 @@ export class OpsHud {
       map: r(this.mapBox),
       inset: r(this.inset),
       touch: r(this.touchEl),
+      goal: r(this.goal),
+      subtitle: r(this.sub.el),
+      first: r(this.first),
     };
   }
 
@@ -453,8 +501,14 @@ export class OpsHud {
   /* The ops room's voices on the screen as well as in the ear, one line
    * at a time for its measured length: a pilot with the sound off, or who
    * missed a word, still hears the room. A line due while one shows waits
-   * its turn, as the voice does. */
-  subtitle(text, ms) {
+   * its turn, as the voice does; `now` (the radio has just started it)
+   * puts it up at once. */
+  subtitle(text, ms, now = false) {
+    if (now) {
+      /* The voice is saying it now: up at once, over whatever showed. */
+      this.subs.length = 0;
+      this.subUntil = 0;
+    }
     this.subs.push({ text, ms });
     if (this.subs.length > SUB_QUEUE) {
       this.subs.shift();
@@ -476,6 +530,30 @@ export class OpsHud {
     const hold = s.ms + SUB_TAIL_MS;
     this.subUntil = performance.now() + hold;
     this.subTimer = setTimeout(() => this.nextSub(), hold);
+  }
+
+  /* The first flight's card: { title, rows: [[what, keys]], look, skip },
+   * or null to take it down. */
+  firstFlight(card) {
+    const key = card ? JSON.stringify(card) : null;
+    if (key === this.firstKey) {
+      return;
+    }
+    this.firstKey = key;
+    this.first.textContent = '';
+    if (!card) {
+      return;
+    }
+    el('div', 'ops-first-title', this.first, card.title);
+    for (const [what, keys] of card.rows) {
+      const row = el('div', 'ops-first-row', this.first);
+      el('span', 'ops-k', row, what);
+      el('span', '', row, keys);
+    }
+    el('div', 'ops-first-look', this.first, card.look);
+    const b = el('button', '', this.first, card.skip);
+    b.type = 'button';
+    b.addEventListener('click', () => this.onFirstSkip && this.onFirstSkip());
   }
 
   stageEntered(title) {
@@ -540,7 +618,15 @@ export class OpsHud {
     this.tapeTop = tape.y + 12;
     this.tapeRect = this.src && this.src.craft ? tape : null;
     const placed = this.src && this.src.craft ? [tape] : [];
-    const order = [[this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.touchEl, 'c', 't']];
+    /* The stage's title line stands where CSS puts it: the panels (the
+     * subtitle above the bottom row) keep clear of it while it shows. */
+    if (this.stage.v) {
+      const r = this.stage.el.getBoundingClientRect();
+      placed.push({
+        x: r.left, y: r.top, w: r.width, h: r.height,
+      });
+    }
+    const order = [[this.goal, 'c', 't'], [this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.sub.el, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.touchEl, 'c', 't']];
     for (const [p] of order) {
       p.classList.remove('ops-off');
     }
@@ -557,6 +643,9 @@ export class OpsHud {
       p.style.top = `${Math.round(me.y)}px`;
       placed.push(me);
     }
+    /* Where the guide's edge arrow may not go: every panel placed here,
+     * the tape among them, and the game's own furniture. */
+    this.guideAvoid = [...this.keepOut.filter((r) => !r.soft), ...placed];
   }
 
   slide(p, ax, ay, W, H, against) {
@@ -724,6 +813,11 @@ export class OpsHud {
     }
     this.stage.set(this.stageLine ? this.stageLine.text : '');
     this.tut.set(src.tutorial ? say(src.tutorial) : '');
+    const goal = src.guide ? src.guide.line : '';
+    if (goal !== this.goalText) {
+      this.goalText = goal;
+      this.goal.textContent = goal;
+    }
     const bound = v && v.boundary ? v.boundary[src.seat] : null;
     this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : '');
 
@@ -770,7 +864,7 @@ export class OpsHud {
 
   /* What changes the panels' sizes: placed again when it does. */
   shapeKey() {
-    return [this.readEl, this.obj, this.row, this.mapBox, this.inset].map((e) => `${e.offsetWidth}x${e.offsetHeight}`).join();
+    return [this.readEl, this.obj, this.row, this.mapBox, this.inset, this.goal, this.sub.el, this.stage.el].map((e) => `${e.offsetWidth}x${e.offsetHeight}`).join();
   }
 
   resize() {
@@ -807,6 +901,9 @@ export class OpsHud {
     }
     if (src.craft) {
       this.paintTape();
+    }
+    if (src.guide && src.project) {
+      this.paintGuide();
     }
     g.shadowBlur = 0;
   }
@@ -954,6 +1051,136 @@ export class OpsHud {
     }
   }
 
+  /*
+   * The guide's marks (src/share/ops/guide.js), in the quiet HUD's ink
+   * with a dark outline so they read at a glance over any ground: on
+   * screen, a ring on the ground round the objective (an item, a marker,
+   * the strip home: the room's own rings already mark a search area and a
+   * last known position, a box a contact in frame) and a solid caret over
+   * it with the distance; off screen, a solid arrow toward it with the
+   * distance under it, inside the safe frame: never on the compass tape,
+   * the objective line, a readout or a bottom panel (guideAvoid, set by
+   * place()). One target, a projection and a few strokes a paint.
+   */
+  paintGuide() {
+    const { g, w, h, src } = this;
+    const t = src.guide && src.guide.target;
+    if (!t || !t.at || !src.craft) {
+      return;
+    }
+    const c = src.craft;
+    const d = Math.hypot(t.at[0] - c.p[0], t.at[1] - c.p[1]);
+    const words = d >= 1000 ? str('ops.guide.km', { n: (d / 1000).toFixed(1) }) : str('ops.guide.m', { n: Math.round(d / 10) * 10 });
+    const z = src.ground(t.at[0], t.at[1]);
+    const p = src.project([t.at[0], t.at[1], z]);
+    const inside = p && p.x > EDGE_PX && p.x < w - EDGE_PX && p.y > EDGE_PX && p.y < h - EDGE_PX;
+    const outlined = (draw) => {
+      g.lineJoin = 'round';
+      g.strokeStyle = HALO;
+      g.lineWidth = 4;
+      draw();
+      g.stroke();
+      g.fillStyle = INK;
+      g.fill();
+    };
+    const label = (x, y) => {
+      g.textAlign = 'center';
+      g.lineWidth = 3;
+      g.strokeStyle = HALO;
+      g.strokeText(words, x, y);
+      g.fillStyle = INK;
+      g.fillText(words, x, y);
+      g.textAlign = 'start';
+    };
+    if (inside) {
+      if (RINGED.has(t.kind)) {
+        g.strokeStyle = HALO;
+        g.lineWidth = 3.5;
+        this.groundRing(t.at, t.r, [7, 5]);
+        g.strokeStyle = INK;
+        g.lineWidth = 1.75;
+        this.groundRing(t.at, t.r, [7, 5]);
+      }
+      /* A solid caret pointing down at the place, the distance over it. */
+      const a = 10;
+      outlined(() => {
+        g.beginPath();
+        g.moveTo(p.x - a, p.y - a * 2.6);
+        g.lineTo(p.x + a, p.y - a * 2.6);
+        g.lineTo(p.x, p.y - a * 1.1);
+        g.closePath();
+      });
+      label(p.x, p.y - a * 2.6 - 7);
+      this.marks.push({
+        kind: 'guide', of: t.kind, x: p.x, y: p.y, words,
+      });
+      return;
+    }
+    const dir = src.edgeDir([t.at[0], t.at[1], z]);
+    if (!dir) {
+      return;
+    }
+    /* The arrow and its label as one box: centred on (x, y), the label
+     * under the glyph. */
+    const tw = g.measureText(words).width;
+    const bw = Math.max(ARROW_R * 2, tw + 8);
+    const boxAt = (x, y) => ({
+      x: x - bw / 2, y: y - ARROW_R, w: bw, h: ARROW_R * 2 + ARROW_LABEL,
+    });
+    /* From the edge EDGE_PX in, along `dir` from the middle, inward
+     * until the box is clear of every panel and the game's furniture;
+     * where panels fill that whole line (a phone's readout column), the
+     * nearest clear line beside it. The arrow still points along `dir`. */
+    const cx = w / 2;
+    const cy = h / 2;
+    const avoid = this.guideAvoid || [];
+    const ang = Math.atan2(dir.y, dir.x);
+    const clear = (b) => b.x >= 4 && b.y >= 4 && b.x + b.w <= w - 4 && b.y + b.h <= h - 4 && !avoid.some((r) => meets(r, b));
+    /* The search is kept while the direction, the panels and the label's
+     * width hold, so a steady arrow costs nothing a paint. */
+    const memo = this.arrowMemo;
+    const same = memo && memo.avoid === avoid && memo.w === w && memo.h === h && memo.bw === bw && Math.abs(memo.ang - ang) < 0.01;
+    let at = same ? memo.at : null;
+    for (let i = 0; !same && i <= 2 * ARROW_SWING / ARROW_STEP && !at; i += 1) {
+      const a = ang + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * ARROW_STEP;
+      const ux = Math.cos(a);
+      const uy = Math.sin(a);
+      const k0 = Math.min((cx - EDGE_PX) / Math.max(1e-6, Math.abs(ux)), (cy - EDGE_PX) / Math.max(1e-6, Math.abs(uy)));
+      for (let k = k0; k > ARROW_R * 3; k -= 4) {
+        if (clear(boxAt(cx + ux * k, cy + uy * k))) {
+          at = [cx + ux * k, cy + uy * k];
+          break;
+        }
+      }
+    }
+    if (!same) {
+      this.arrowMemo = {
+        avoid, w, h, bw, ang, at,
+      };
+    }
+    if (!at) {
+      return;
+    }
+    const [x, y] = at;
+    const box = boxAt(x, y);
+    g.save();
+    g.translate(x, y);
+    g.rotate(ang);
+    outlined(() => {
+      g.beginPath();
+      g.moveTo(ARROW_R, 0);
+      g.lineTo(-ARROW_R * 0.75, -ARROW_R * 0.8);
+      g.lineTo(-ARROW_R * 0.3, 0);
+      g.lineTo(-ARROW_R * 0.75, ARROW_R * 0.8);
+      g.closePath();
+    });
+    g.restore();
+    label(x, y + ARROW_R + ARROW_LABEL - 3);
+    this.marks.push({
+      kind: 'edge', of: t.kind, x, y, angle: ang, words, box,
+    });
+  }
+
   /* The compass tape, top centre, with bearing hints: ticks toward the
    * search areas and last known positions, never toward a contact the
    * room has not told. */
@@ -1082,6 +1309,21 @@ export class OpsHud {
           g.stroke();
         }
       }
+    }
+    /* The guide's objective: a small open diamond. */
+    const gt = src.guide && src.guide.target;
+    if (gt && gt.at) {
+      const [x, y] = to(gt.at);
+      const cx2 = Math.max(4, Math.min(w - 4, x));
+      const cy2 = Math.max(4, Math.min(h - 4, y));
+      g.strokeStyle = INK;
+      g.beginPath();
+      g.moveTo(cx2, cy2 - 4);
+      g.lineTo(cx2 + 4, cy2);
+      g.lineTo(cx2, cy2 + 4);
+      g.lineTo(cx2 - 4, cy2);
+      g.closePath();
+      g.stroke();
     }
     /* Where the camera looks: a line to its aim. */
     if (src.aim) {

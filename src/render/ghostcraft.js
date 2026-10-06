@@ -1,177 +1,153 @@
 /*
- * ghostcraft.js: the ghost's airframe.
+ * ghostcraft.js: a recorded lap's craft drawn as a ghost: the airframe
+ * the pilot flew, in translucent mint, with a name tag over it.
  *
- * The same machine the player flies, built by the same builder, wearing a
- * hologram: every panel and motor is replaced with one translucent mint
- * material, mint because that is the colour this product paints a record
- * in, and a ghost IS a record, flying. Reusing the craft's own builder is
- * the point: the ghost must read as "that exact aircraft, again", not as a
- * second model that drifts out of step the next time the airframe changes.
+ * The model comes from the same builder table the shell flies with
+ * (craft.js), in its light variant, so the ghost of a lap is the machine
+ * that set it. Every mesh then wears one of two shared translucent
+ * materials, the body's or the spinning discs', drawn after the opaque
+ * world with depth writes off, so the panels never cut holes in each
+ * other or in the scenery. The blades are taken out altogether and their
+ * geometry freed: a ghost is always flying, and hidden rotors would sit on
+ * the GPU all session drawing nothing. The model's own materials are freed
+ * too, so nothing it compiled stays with the cel clock.
  *
- * The builder comes from src/render/craft.js's table by airframe id, so a
- * wing's ghost is a wing. The id is optional and defaults to the five inch,
- * which is what every caller passed by omission before there was a choice.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * Session lived, like the hero craft in craft.js: built once, re-parented
- * into whichever scene is active by the shell, never disposed with a map.
- * The lite build is used (no inverted hulls, no shadow casters), the blade
- * rotors are removed in favour of the spun-up prop discs, since a ghost is
- * always in flight, and every original material is disposed after the swap
- * so nothing it compiled stays registered with the cel clock.
- *
- * Above the craft floats a small name tag, a sprite drawn once per label
- * change, so a pilot two gates back can see who they are chasing.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 
-const GHOST_MINT = 0x7dffb4;
-/* Body opacity at full presence. The discs sit far lower, as they do on
- * the hero craft, so the silhouette stays an airframe and not a coin. */
-const BODY_OPACITY = 0.40;
-const DISC_OPACITY = 0.10;
-const LABEL_OPACITY = 0.88;
+const MINT = 0x7dffb4;
+const MINT_CSS = '#7dffb4';
 
-export function buildGhostCraft(airframeId = DEFAULT_AIRFRAME) {
-  const craft = craftBuilderFor(airframeId)({
-    name: 'ghost-craft',
-    lite: true,
-    fog: true,
-    worldScale: true,
-  });
-  const { group } = craft;
+/* Opacity of each part at full presence. The discs stay faint, as on the
+ * flown craft, so the outline reads as an airframe rather than a coin. */
+const FULL = { body: 0.40, disc: 0.10, tag: 0.88 };
 
-  const bodyMat = new THREE.MeshBasicMaterial({
-    color: GHOST_MINT,
-    transparent: true,
-    opacity: BODY_OPACITY,
-    depthWrite: false,
-    fog: true,
-  });
-  const discMat = new THREE.MeshBasicMaterial({
-    color: GHOST_MINT,
-    transparent: true,
-    opacity: DISC_OPACITY,
-    depthWrite: false,
-    fog: true,
-  });
+/* Draw order: after the opaque world, and the tag after the ghost. */
+const GHOST_ORDER = 2;
+const TAG_ORDER = 3;
 
-  /* A ghost is always flying, so it wears the spun-up discs and no blades.
-   * The rotors go entirely rather than being hidden: their geometry would
-   * otherwise sit on the GPU for the whole session drawing nothing. */
-  const doomedGeo = new Set();
-  for (const rotor of craft.blades) {
-    rotor.traverse((n) => {
-      if (n.geometry) {
-        doomedGeo.add(n.geometry);
+/* The tag texture, and the most characters it shows. */
+const TAG_W = 512;
+const TAG_H = 96;
+const TAG_MAX_CHARS = 32;
+
+function ghostMaterial(opacity) {
+  return new THREE.MeshBasicMaterial({ color: MINT, transparent: true, opacity, depthWrite: false, fog: true });
+}
+
+/* Detaches every rotor and returns the geometries they held. */
+function pullRotors(blades) {
+  const geometries = new Set();
+  for (const rotor of blades) {
+    rotor.traverse((part) => {
+      if (part.geometry) {
+        geometries.add(part.geometry);
       }
     });
     rotor.removeFromParent();
   }
+  return geometries;
+}
 
-  const discSet = new Set(craft.discs);
-  const doomedMat = new Set();
-  group.traverse((n) => {
-    if (!n.isMesh) {
+/*
+ * The name tag: a sprite over the airframe, sized as a caption, which a
+ * sprite being world sized turns into a mint spark at distance, the
+ * locator a chase wants. Its canvas is redrawn only when the text changes,
+ * an ink shadow under the mint so it reads over bright sky and pale field
+ * markings alike.
+ */
+function nameTag() {
+  const canvas = document.createElement('canvas');
+  canvas.width = TAG_W;
+  canvas.height = TAG_H;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: FULL.tag, depthWrite: false, fog: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(0, 0.34, 0);
+  sprite.scale.set(1.5, 0.28, 1);
+  sprite.renderOrder = TAG_ORDER;
+  let shown = '';
+  function draw(text) {
+    const next = String(text || '').slice(0, TAG_MAX_CHARS);
+    if (next === shown) {
       return;
     }
-    doomedMat.add(n.material);
-    n.material = discSet.has(n) ? discMat : bodyMat;
-    n.castShadow = false;
-    n.receiveShadow = false;
-    /* After the opaque world, with depth write off, so the translucent
-     * panels never punch holes in each other or in the scenery. */
-    n.renderOrder = 2;
-  });
-  for (const m of doomedMat) {
-    m.dispose();
-  }
-  for (const g of doomedGeo) {
-    g.dispose();
-  }
-
-  /* The name tag. One canvas, redrawn only when the label changes. */
-  const tagCanvas = document.createElement('canvas');
-  tagCanvas.width = 512;
-  tagCanvas.height = 96;
-  const tagTexture = new THREE.CanvasTexture(tagCanvas);
-  tagTexture.colorSpace = THREE.SRGBColorSpace;
-  const tagMat = new THREE.SpriteMaterial({
-    map: tagTexture,
-    transparent: true,
-    opacity: LABEL_OPACITY,
-    depthWrite: false,
-    fog: false,
-  });
-  const tag = new THREE.Sprite(tagMat);
-  /* Above the airframe, small enough to be a caption rather than a banner.
-   * A sprite is world sized, so it shrinks with distance and becomes a mint
-   * spark on the horizon, which is exactly the locator a chase needs. */
-  tag.position.set(0, 0.34, 0);
-  tag.scale.set(1.5, 0.28, 1);
-  tag.renderOrder = 3;
-  group.add(tag);
-  let tagText = '';
-
-  function setLabel(text) {
-    const next = String(text || '').slice(0, 32);
-    if (next === tagText) {
-      return;
-    }
-    tagText = next;
-    const ctx = tagCanvas.getContext('2d');
-    ctx.clearRect(0, 0, tagCanvas.width, tagCanvas.height);
+    shown = next;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, TAG_W, TAG_H);
     if (next) {
       ctx.font = '600 52px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      /* An ink shadow first, so the mint stays readable over a bright sky
-       * and over the cream field markings alike. */
       ctx.fillStyle = 'rgba(12, 18, 14, 0.85)';
-      ctx.fillText(next, tagCanvas.width / 2 + 3, tagCanvas.height / 2 + 3);
-      ctx.fillStyle = '#7dffb4';
-      ctx.fillText(next, tagCanvas.width / 2, tagCanvas.height / 2);
+      ctx.fillText(next, TAG_W / 2 + 3, TAG_H / 2 + 3);
+      ctx.fillStyle = MINT_CSS;
+      ctx.fillText(next, TAG_W / 2, TAG_H / 2);
     }
-    tag.visible = Boolean(next);
-    tagTexture.needsUpdate = true;
+    sprite.visible = next !== '';
+    texture.needsUpdate = true;
   }
-  setLabel('');
+  return { sprite, material, draw };
+}
 
-  /*
-   * Presence, 0 to 1. Zero hides the group entirely so a parked ghost
-   * costs no draw calls; anything above it scales every opacity together,
-   * which is how the shell fades the ghost in at the line, out at its
-   * finish, and across a recorded crash recovery.
-   */
+/*
+ * Returns { group, setLabel, setPresence }. setPresence takes 0 to 1 and
+ * scales every opacity together, which is how the shell fades a ghost in
+ * at the line, out at its finish and across a recorded crash; at zero the
+ * whole group is hidden, so a parked ghost costs no draws. It starts at
+ * zero.
+ */
+export function buildGhostCraft(airframeId = DEFAULT_AIRFRAME) {
+  const craft = craftBuilderFor(airframeId)({ name: 'ghost-craft', lite: true, fog: true, worldScale: true });
+  const { group } = craft;
+  const body = ghostMaterial(FULL.body);
+  const disc = ghostMaterial(FULL.disc);
+
+  const rotorGeometry = pullRotors(craft.blades);
+  const discs = new Set(craft.discs);
+  const replaced = new Set();
+  group.traverse((part) => {
+    if (!part.isMesh) {
+      return;
+    }
+    replaced.add(part.material);
+    part.material = discs.has(part) ? disc : body;
+    part.castShadow = false;
+    part.receiveShadow = false;
+    part.renderOrder = GHOST_ORDER;
+  });
+  replaced.forEach((m) => m.dispose());
+  rotorGeometry.forEach((g) => g.dispose());
+
+  const tag = nameTag();
+  group.add(tag.sprite);
+
   function setPresence(a) {
     const k = Math.max(0, Math.min(1, a));
     group.visible = k > 0.004;
-    bodyMat.opacity = BODY_OPACITY * k;
-    discMat.opacity = DISC_OPACITY * k;
-    tagMat.opacity = LABEL_OPACITY * k;
+    body.opacity = FULL.body * k;
+    disc.opacity = FULL.disc * k;
+    tag.material.opacity = FULL.tag * k;
   }
   setPresence(0);
 
-  return {
-    group,
-    setLabel,
-    setPresence,
-  };
+  return { group, setLabel: tag.draw, setPresence };
 }
