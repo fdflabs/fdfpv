@@ -74,7 +74,7 @@
  * HITCHES. Every texture upload, buffer upload and program link on the
  * view's context is timed and sized per frame, and each one over 1 ms is
  * named (a texture by its size, a program by the defines that tell its
- * variant apart). The sampled profile is cut into busy runs, a run being
+ * variant apart and by the object being drawn when it was needed). The sampled profile is cut into busy runs, a run being
  * the samples between two idle ones, and every run over 16.7 ms is
  * reported with the shell subsystem its time went to. That needs idle
  * time between frames, so read it from a --pace=raf run: free running
@@ -230,6 +230,12 @@ const INSTRUMENT = /* js */ `(() => {
      * program is also named by the defines that tell variants apart:
      * the material's kind, fog, the thermal kind, and the colour space
      * it writes (a screen and a render target differ there). */
+    const drawingName = () => {
+      const chain = [];
+      for (let o = PP.drawing; o && chain.length < 5; o = o.parent) { chain.push(o.name || o.type); }
+      const m = PP.drawingMat;
+      return chain.join(' < ') + (m ? ' [' + m.type + (m.name ? ' ' + m.name : '') + ']' : '');
+    };
     const shaderName = (p) => {
       try {
         const src = (gl.getAttachedShaders(p) || []).map((sh) => gl.getShaderSource(sh) || '').join('\\n');
@@ -254,7 +260,7 @@ const INSTRUMENT = /* js */ `(() => {
           const ms = now() - t;
           PP.up.progMs += ms;
           if (name === 'linkProgram') { PP.up.progN += 1; }
-          if (ms > 1) { note(name, ms, name.includes('Program') ? shaderName(a[0]) : ''); }
+          if (ms > 1) { note(name, ms, (name.includes('Program') ? shaderName(a[0]) : '') + ' for ' + drawingName()); }
         }
       };
     }
@@ -453,6 +459,14 @@ const INSTRUMENT = /* js */ `(() => {
       r.render = function (...a) {
         if (label !== 'other') { return PP.timedRender(() => rRender.apply(this, a)); }
         return PP.within(drawer(), () => PP.timedRender(() => rRender.apply(this, a)));
+      };
+      /* The object being drawn, so a program linked in a frame can be
+       * named after what needed it. */
+      const rbd = r.renderBufferDirect;
+      r.renderBufferDirect = function (camera, scene, geometry, material, object, group) {
+        PP.drawing = object;
+        PP.drawingMat = material;
+        return rbd.call(this, camera, scene, geometry, material, object, group);
       };
       const sm = r.shadowMap;
       const smRender = sm.render;

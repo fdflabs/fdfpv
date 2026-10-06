@@ -785,13 +785,17 @@ merges, by its own design: grass.js's hunks here are not shader text.
 
 ### What is next
 
-- **Programs linked in flight**: 18 to 49 ms, swiss-low at 8.5 s every
-  run, itaipu-war 31 ms at 5.3 s, itaipu-stream 10 ms. Each is a
-  STANDARD or LAMBERT program for a render target ("linear out"). The
-  maps' own `renderer.compile(scene, camera)` runs with no target bound,
-  so it builds each material's screen variant, which nothing draws; the
-  composer's variant is linked the first time a material is seen.
-  The next PR.
+- **Programs linked in flight**: 18 to 62 ms, swiss-low at 8.5 s every
+  run (the lake's bed, the reeds), itaipu-war and itaipu-stream 6 to
+  31 ms (Itaipu's canopy bark, a town ring). The maps' own
+  `renderer.compile(scene, camera)` runs with no target bound, so it
+  builds each material's screen variant, which nothing draws, and the
+  waves handed over when a run starts change the water's programs
+  again; each composer variant was linked the first time its mesh was
+  seen. Compiling the scene for the composer at each hand over (#468)
+  takes them to none in the window. Uploading every scene texture at
+  load was tried and not kept: 605 ms on the title for textures the
+  title never drew.
 - Garbage: 24 to 34 ms collections remain, 35 MB a second (P2's).
 - wing-cruise uploads 1.4 GB of buffer data in 30 s (bufferSubData,
   35 ms in all): throughput, not a hitch; whose it is was not traced.
