@@ -306,6 +306,7 @@
     "canopy:los": "node scripts/canopy-los.js",
     "people:route": "node scripts/people-route.js",
     "lint:copy": "node scripts/copy-lint.js",
+    "lint:header": "node scripts/header-lint.js",
     "lint:bf": "node scripts/brand-lint.js",
     "lint:devices": "node scripts/device-check.js",
     "lint:arcade": "node scripts/arcade-check.js",
