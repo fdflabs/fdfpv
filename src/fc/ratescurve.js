@@ -1,149 +1,122 @@
 /*
- * ratescurve.js: a preview of Betaflight 4.5.1's rate curves.
+ * ratescurve.js: Betaflight 4.5.1's five rate curves, for drawing.
  *
- * DISPLAY ONLY, and the distinction is the whole reason this file is
- * allowed to exist next to CLAUDE.md's rule against reimplementing a rates
- * curve in JavaScript. The plant runs applyRates from fc/rc.c inside the
- * WASM module and always will. These copies exist so the Rates screen can
- * DRAW the curve, and so scripts/fc-trace.js can assert that the drawing
- * agrees with the firmware. Nothing here reaches the integrator.
+ * Display only. The flown curve is applyRates in fc/rc.c inside the WASM
+ * module, which is why CLAUDE.md's rule against JavaScript rate curves
+ * allows this: src/ui/ratespanel.js needs points to draw before and apart
+ * from the module, and scripts/fc-trace.js F15 checks these against the
+ * compiled firmware for every type. Nothing here reaches the integrator.
  *
- * Formulas are applyBetaflightRates, applyRaceFlightRates, applyKissRates,
- * applyActualRates and applyQuickRates in vendor/betaflight/src/main/fc/rc.c.
- * All five stay, though the menu only writes ACTUAL: gates.config.json P2
- * checks all four named types against the compiled module, and a preview
- * that only knew one of them could not be checked at all.
+ * Each curve is a port of its function in vendor/betaflight/src/main/fc/
+ * rc.c (applyBetaflightRates, applyRaceFlightRates, applyKissRates,
+ * applyActualRates, applyQuickRates), in rc.c's order of operations, in
+ * doubles. All five stay although the menu defaults to ACTUAL, because
+ * the menu offers all five and F15 checks all five.
  *
- * The Configurator table this used to feed went with the flight-controller
- * screen: no ratesColumns, no formatDisplay, no per-axis model read out of
- * a CLI dump. src/ui/ratespanel.js builds its two curves from the pilot's
- * settings and asks angleRateDeg for points on them.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Points per curve the Rates screen draws across the stick's travel.
 export const ANGLE_RATE_SAMPLES = 80;
 
-/* Firmware default, CONTROL_RATE_CONFIG_RATE_LIMIT_MAX. */
-const RATE_LIMIT_DEFAULT = 1998;
+// rc.c's SETPOINT_RATE_LIMIT_MAX, which is also the default rate_limit
+// (CONTROL_RATE_CONFIG_RATE_LIMIT_MAX).
+const SETPOINT_LIMIT = 1998;
 const RC_RATE_INCREMENTAL = 14.54;
-const SETPOINT_RATE_LIMIT = 1998;
 
-function power3(x) {
-  return x * x * x;
-}
+const cube = (x) => x * x * x;
+// Grouped as (x*x)^2 * x, which the pinned preview has always used; the
+// firmware's power5 macro groups left to right. Same polynomial, and F15
+// compares the two within its tolerance.
+const fifth = (x) => {
+  const sq = x * x;
+  return sq * sq * x;
+};
 
-function power5(x) {
-  const x2 = x * x;
-  return x2 * x2 * x;
-}
-
-function constrainf(v, lo, hi) {
-  if (v < lo) {
-    return lo;
-  }
-  if (v > hi) {
-    return hi;
-  }
+// Betaflight's constrainf, NaN passing through unchanged.
+function clampf(v, lo, hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
   return v;
 }
 
-function applyBetaflightRates(rcRateCli, srate, expo, rcCommandf, rcCommandfAbs) {
-  let cmd = rcCommandf;
-  if (expo) {
-    const expof = expo / 100;
-    cmd = cmd * power3(rcCommandfAbs) * expof + cmd * (1 - expof);
-  }
-  let rcRate = rcRateCli / 100;
-  if (rcRate > 2) {
-    rcRate += RC_RATE_INCREMENTAL * (rcRate - 2);
-  }
-  let angleRate = 200 * rcRate * cmd;
-  if (srate) {
-    const rcSuperfactor = 1 / constrainf(1 - (rcCommandfAbs * (srate / 100)), 0.01, 1);
-    angleRate *= rcSuperfactor;
-  }
-  return angleRate;
-}
-
-function applyRaceFlightRates(rcRateCli, srate, expo, rcCommandf, rcCommandfAbs) {
-  const cmd = (1 + 0.01 * expo * (rcCommandf * rcCommandf - 1)) * rcCommandf;
-  let angleRate = 10 * rcRateCli * cmd;
-  angleRate = angleRate * (1 + rcCommandfAbs * srate * 0.01);
-  return angleRate;
-}
-
-function applyKissRates(rcRateCli, srate, expo, rcCommandf, rcCommandfAbs) {
-  const rcCurvef = expo / 100;
-  const kissRpyUseRates = 1 / constrainf(1 - (rcCommandfAbs * (srate / 100)), 0.01, 1);
-  const kissRcCommandf = (power3(rcCommandf) * rcCurvef + rcCommandf * (1 - rcCurvef)) * (rcRateCli / 1000);
-  return constrainf((2000 * kissRpyUseRates) * kissRcCommandf, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
-}
-
-function applyActualRates(rcRateCli, srate, expo, rcCommandf, rcCommandfAbs) {
-  let expof = expo / 100;
-  expof = rcCommandfAbs * (power5(rcCommandf) * expof + rcCommandf * (1 - expof));
-  const centerSensitivity = rcRateCli * 10;
-  const stickMovement = Math.max(0, srate * 10 - centerSensitivity);
-  return rcCommandf * centerSensitivity + stickMovement * expof;
-}
-
-function applyQuickRates(rcRateCli, srate, expo, rcCommandf, rcCommandfAbs, quickRcExpo) {
-  const rcRate = rcRateCli * 2;
-  const maxDPS = Math.max(srate * 10, rcRate);
-  const expof = expo / 100;
-  const superFactorConfig = (maxDPS / rcRate - 1) / (maxDPS / rcRate);
-  if (quickRcExpo) {
-    const curve = power3(rcCommandf) * expof + rcCommandf * (1 - expof);
-    const superFactor = 1 / constrainf(1 - (rcCommandfAbs * superFactorConfig), 0.01, 1);
-    return constrainf(curve * rcRate * superFactor, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
-  }
-  const curve = power3(rcCommandfAbs) * expof + rcCommandfAbs * (1 - expof);
-  const superFactor = 1 / constrainf(1 - (curve * superFactorConfig), 0.01, 1);
-  return constrainf(rcCommandf * rcRate * superFactor, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
-}
+const superFactor = (stickAbs, ratio) => 1 / clampf(1 - stickAbs * ratio, 0.01, 1);
 
 /*
- * Stick in -1..1. rcRate, srate, expo are the CLI uint8 fields, not the
- * Configurator display numbers. limit is roll_rate_limit etc.
+ * Each curve takes the profile's CLI fields { rcRate, srate, expo,
+ * quickRcExpo } (srate is rc.c's rates[axis], expo its rcExpo[axis]), the
+ * stick in -1..1 and its magnitude, and returns deg/s before rate_limit.
+ */
+const CURVES = {
+  BETAFLIGHT({ rcRate, srate, expo }, stick, stickAbs) {
+    let x = stick;
+    if (expo) {
+      const e = expo / 100;
+      x = x * cube(stickAbs) * e + x * (1 - e);
+    }
+    let rate = rcRate / 100;
+    if (rate > 2) rate += RC_RATE_INCREMENTAL * (rate - 2);
+    const deg = 200 * rate * x;
+    return srate ? deg * superFactor(stickAbs, srate / 100) : deg;
+  },
+
+  RACEFLIGHT({ rcRate, srate, expo }, stick, stickAbs) {
+    const x = (1 + 0.01 * expo * (stick * stick - 1)) * stick;
+    const deg = 10 * rcRate * x;
+    return deg * (1 + stickAbs * srate * 0.01);
+  },
+
+  KISS({ rcRate, srate, expo }, stick, stickAbs) {
+    const curve = expo / 100;
+    const useRates = superFactor(stickAbs, srate / 100);
+    const x = (cube(stick) * curve + stick * (1 - curve)) * (rcRate / 1000);
+    return clampf((2000 * useRates) * x, -SETPOINT_LIMIT, SETPOINT_LIMIT);
+  },
+
+  ACTUAL({ rcRate, srate, expo }, stick, stickAbs) {
+    const e = expo / 100;
+    const shaped = stickAbs * (fifth(stick) * e + stick * (1 - e));
+    const centre = rcRate * 10;
+    const reach = Math.max(0, srate * 10 - centre);
+    return stick * centre + reach * shaped;
+  },
+
+  QUICK({ rcRate, srate, expo, quickRcExpo }, stick, stickAbs) {
+    const centre = rcRate * 2;
+    const max = Math.max(srate * 10, centre);
+    const e = expo / 100;
+    const stretch = (max / centre - 1) / (max / centre);
+    if (quickRcExpo) {
+      const curve = cube(stick) * e + stick * (1 - e);
+      return clampf(curve * centre * superFactor(stickAbs, stretch), -SETPOINT_LIMIT, SETPOINT_LIMIT);
+    }
+    const curve = cube(stickAbs) * e + stickAbs * (1 - e);
+    return clampf(stick * centre * superFactor(curve, stretch), -SETPOINT_LIMIT, SETPOINT_LIMIT);
+  },
+};
+
+/*
+ * deg/s at a stick position in -1..1 for a rates type and one axis of a
+ * profile in CLI units. An unknown type draws the BETAFLIGHT curve, as the
+ * firmware's switch does. axis.limit is that axis's rate_limit; anything
+ * but a positive number means the default.
  */
 export function angleRateDeg(type, axis, stick) {
-  const rcCommandf = stick;
-  const rcCommandfAbs = stick < 0 ? -stick : stick;
-  const rcRate = axis.rcRate;
-  const srate = axis.srate;
-  const expo = axis.expo;
-  let angleRate;
-  switch (type) {
-    case 'RACEFLIGHT':
-      angleRate = applyRaceFlightRates(rcRate, srate, expo, rcCommandf, rcCommandfAbs);
-      break;
-    case 'KISS':
-      angleRate = applyKissRates(rcRate, srate, expo, rcCommandf, rcCommandfAbs);
-      break;
-    case 'ACTUAL':
-      angleRate = applyActualRates(rcRate, srate, expo, rcCommandf, rcCommandfAbs);
-      break;
-    case 'QUICK':
-      angleRate = applyQuickRates(rcRate, srate, expo, rcCommandf, rcCommandfAbs, axis.quickRcExpo);
-      break;
-    default:
-      angleRate = applyBetaflightRates(rcRate, srate, expo, rcCommandf, rcCommandfAbs);
-      break;
-  }
-  const limit = Number.isFinite(axis.limit) && axis.limit > 0 ? axis.limit : RATE_LIMIT_DEFAULT;
-  return constrainf(angleRate, -limit, limit);
+  const curve = Object.hasOwn(CURVES, type) ? CURVES[type] : CURVES.BETAFLIGHT;
+  const deg = curve(axis, stick, stick < 0 ? -stick : stick);
+  const limit = Number.isFinite(axis.limit) && axis.limit > 0 ? axis.limit : SETPOINT_LIMIT;
+  return clampf(deg, -limit, limit);
 }

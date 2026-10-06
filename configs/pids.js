@@ -1,52 +1,31 @@
 /*
- * pids.js: the pilot's PID adjustment, and the only place it is decided.
+ * pids.js: the pilot's PID adjustment for each tune, owned here and
+ * nowhere else.
  *
- * WHAT THIS IS. The flight-controller screen went because eight tabs and a
- * CLI textarea helped nobody, and for a while the PIDs went with it: two
- * fixed tunes and no way to move them. A beta tester then reported both
- * tunes floppy and said they used to push the PIDs to 200-300 percent.
- * This module is the answer: Betaflight Configurator's own tuning sliders,
- * and an expert table for setting PIDs directly, with no CLI paste
- * anywhere. That report was once answered with a preset as well, a stiff
- * cut shipped beside the default. The presets are gone and the control is
- * the whole answer now, which is the right way round: a pilot who wants a
- * stiffer quad should move the knob and know what they moved.
+ * Two ways to adjust, both Configurator's: its tuning sliders, and its
+ * expert table of gains. Neither is computed here. Sliders are written as
+ * the firmware's `set simplified_*` keys and the CLI command
+ * `simplified_tuning apply`, so Betaflight's own simplified_tuning.c,
+ * compiled into the module, turns a master of 185 into gains. The expert
+ * table is written as plain `set p_roll = ...` lines under
+ * `simplified_pids_mode = OFF`, which is what Configurator's expert mode
+ * writes.
  *
- * NOTHING HERE COMPUTES A PID. A slider adjustment is emitted as the
- * firmware's own `set simplified_*` keys followed by the real CLI command
- * `simplified_tuning apply`, so the arithmetic that turns a master
- * multiplier of 185 into P83 is Betaflight's config/simplified_tuning.c,
- * compiled into the module, exactly as it is when Configurator drags a
- * slider. The expert table is emitted as plain `set p_roll = ...` lines
- * with `simplified_pids_mode = OFF`, which is exactly what Configurator's
- * expert mode writes. Per CLAUDE.md: the behaviour was already compiled,
- * this file only asks for it.
+ * Adjustments are keyed by tune id, unlike rates: gains belong to the
+ * tune, and one global override would make every tune fly the same.
  *
- * PER TUNE, NOT PER PILOT, and this is the decision that makes the tunes
- * stay comparable. Rates are global because how far the stick goes belongs
- * to the hand that holds it; PIDs belong to the tune, so an adjustment is
- * keyed by tune id and switching tunes switches to that tune's own
- * adjustment (usually none). A single global override would make the Tune
- * row a lie: every choice would fly the same numbers.
+ * Storage is sparse. A slider is stored only while it differs from the
+ * tune's own value; returning it removes it, and an entry that adjusts
+ * nothing is removed, so "back where it was" and "stock" are the same
+ * blob and compose to the same config text, which keeps best-lap keys
+ * (a hash of that text) stable.
  *
- * SPARSE ON PURPOSE. A slider the pilot has not moved is not stored and
- * not emitted, so the tune's own value keeps governing it; move the master
- * on a tune and that tune's own I, D and feedforward sliders keep doing
- * their work underneath it, which is what Configurator does with a preset
- * loaded. Putting a slider back on the tune's own value deletes the
- * override rather than storing a copy, so "back where it was" and "stock"
- * are the same state and the same config text, and the best-lap record key
- * (a hash of that text) agrees.
- *
- * UNITS AND BOUNDS. Sliders are the firmware's uint8 percent, 100 is the
- * tune's own scale. The compiled CLI shim does not enforce the valueTable
- * ranges (it took 250 and flew it, measured), so the menu owns the clamp:
- * 200 is SIMPLIFIED_TUNING_MAX and the six sliders that scale a gain are
- * floored at 30 here, because a master of zero is a craft with no
- * controller, reported as a physics bug by whoever types it. Zero of
- * feedforward and zero of dynamic damping are real setups and stay legal.
- * The expert table uses the firmware's own bounds from the 4.5.1
- * valueTable: PID_GAIN_MAX 250, D_MIN_GAIN_MAX 250, F_GAIN_MAX 1000.
+ * Bounds are enforced here because the module's CLI shim does not enforce
+ * valueTable ranges (it accepted 250 and flew it). Sliders are percent up
+ * to SIMPLIFIED_TUNING_MAX, 200; the ones that scale a gain stop at 30,
+ * since 0 is a quad with no controller, while 0 feedforward and 0 dynamic
+ * damping are real setups. Expert gains use the 4.5.1 valueTable limits:
+ * PID_GAIN_MAX 250, D_MIN_GAIN_MAX 250, F_GAIN_MAX 1000.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -66,316 +45,250 @@
 
 import { CUSTOM_TUNE, TUNES } from './registry.js';
 
-/* Every id an adjustment may be keyed by: the shipped tunes plus the
- * pilot's own saved dump, which the PIDs screen adjusts like any other
- * tune once it exists. */
-const ADJUSTABLE = [...TUNES, CUSTOM_TUNE];
+// Ids an adjustment can be stored under, in the order normalisePids
+// writes them: the shipped tunes, then the pilot's saved dump.
+const TUNE_IDS = [...TUNES, CUSTOM_TUNE].map((tune) => tune.id);
+
+const SLIDER_MAX = 200;
+const GAIN_FLOOR = 30;
 
 /*
- * One slider, in the shape src/ui/ui.js number() rows read: cliMin and
- * cliMax are the stored bounds, scale and decimals say how the number is
- * written, unit is printed after the field. One arrow press is one
- * percent, because the firmware holds whole percent and there is nothing
- * finer to move to.
+ * Configurator's sliders, master first. Each row is
+ * [menu key, CLI key, label, lowest value, note]; the menu shows them as
+ * whole percent, one arrow press per percent.
  */
-function slider(cli, label, cliMin, note) {
-  return {
-    cli, label, cliMin, cliMax: 200, scale: 1, decimals: 0, unit: '%', note,
-  };
-}
+const SLIDER_ROWS = [
+  ['master', 'simplified_master_multiplier', 'Master multiplier', GAIN_FLOOR,
+    'Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the "make it stiffer" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.'],
+  ['pi', 'simplified_pi_gain', 'Tracking, P and I', GAIN_FLOOR,
+    'How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.'],
+  ['i', 'simplified_i_gain', 'Drift and wobble, I', GAIN_FLOOR,
+    'The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.'],
+  ['d', 'simplified_d_gain', 'Damping, D', GAIN_FLOOR,
+    'Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.'],
+  ['dmax', 'simplified_dmax_gain', 'Dynamic damping, D max', 0,
+    'How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.'],
+  ['ff', 'simplified_feedforward_gain', 'Stick response, FF', 0,
+    'Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.'],
+  ['pitchPi', 'simplified_pitch_pi_gain', 'Pitch tracking', GAIN_FLOOR,
+    'Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.'],
+  ['pitchD', 'simplified_pitch_d_gain', 'Pitch damping', GAIN_FLOOR,
+    'Pitch D relative to roll, for the same reason pitch tracking exists.'],
+];
 
-/* Configurator's slider set, master first because it is the one the
- * feedback asked for. The keys are this module's own short names; the CLI
- * key each one writes is in `cli`. */
-export const SLIDER_KEYS = ['master', 'pi', 'i', 'd', 'dmax', 'ff', 'pitchPi', 'pitchD'];
+export const SLIDER_KEYS = SLIDER_ROWS.map(([key]) => key);
 
-export const SLIDERS = {
-  master: slider('simplified_master_multiplier', 'Master multiplier', 30,
-    'Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the "make it stiffer" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.'),
-  pi: slider('simplified_pi_gain', 'Tracking, P and I', 30,
-    'How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.'),
-  i: slider('simplified_i_gain', 'Drift and wobble, I', 30,
-    'The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.'),
-  d: slider('simplified_d_gain', 'Damping, D', 30,
-    'Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.'),
-  dmax: slider('simplified_dmax_gain', 'Dynamic damping, D max', 0,
-    'How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.'),
-  ff: slider('simplified_feedforward_gain', 'Stick response, FF', 0,
-    'Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.'),
-  pitchPi: slider('simplified_pitch_pi_gain', 'Pitch tracking', 30,
-    'Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.'),
-  pitchD: slider('simplified_pitch_d_gain', 'Pitch damping', 30,
-    'Pitch D relative to roll, for the same reason pitch tracking exists.'),
-};
+export const SLIDERS = Object.fromEntries(SLIDER_ROWS.map(([key, cli, label, cliMin, note]) => [key, {
+  cli, label, cliMin, cliMax: SLIDER_MAX, scale: 1, decimals: 0, unit: '%', note,
+}]));
 
-/* The expert table, Configurator's columns in Configurator's order. The
- * naming trap is written down where it bites: the column Configurator
- * calls D is the CLI's d_min_*, and the column it calls D Max is the
- * CLI's d_*, because Betaflight 4.3 renamed the display and not the
- * firmware. pidCliKey below is the one place the mapping exists. */
 export const PID_AXES = ['roll', 'pitch', 'yaw'];
 export const PID_FIELDS = ['p', 'i', 'd', 'dmax', 'f'];
 
-function pidField(label, cliMax, note) {
-  return {
-    label, cliMin: 0, cliMax, scale: 1, decimals: 0, unit: '', note,
-  };
-}
+/*
+ * The expert columns, Configurator's names and order. Since Betaflight 4.3
+ * the column Configurator calls D is the CLI's d_min_<axis> and the one it
+ * calls D max is d_<axis>; the display was renamed and the firmware was
+ * not. CLI_STEM is the only place that mapping lives.
+ */
+const CLI_STEM = { p: 'p', i: 'i', d: 'd_min', dmax: 'd', f: 'f' };
+
+const gainColumn = (label, cliMax, note) => ({
+  label, cliMin: 0, cliMax, scale: 1, decimals: 0, unit: '', note,
+});
 
 export const PID_FIELD_SPECS = {
-  p: pidField('P', 250,
+  p: gainColumn('P', 250,
     'Proportional: how hard the quad pushes toward the rate the stick asks for, right now. The stiffness knob.'),
-  i: pidField('I', 250,
+  i: gainColumn('I', 250,
     'Integral: holds attitude against slow, persistent error. Too high winds during a held move and twitches when the stick centres.'),
-  d: pidField('D', 250,
+  d: gainColumn('D', 250,
     'Damping. This is the CLI’s d_min: the D flown most of the time. Configurator apps call it D, the firmware calls it d_min, and both mean this number.'),
-  dmax: pidField('D max', 250,
+  dmax: gainColumn('D max', 250,
     'The ceiling D rises to during fast moves and stops. This is the CLI’s d_roll / d_pitch / d_yaw. Careful at the bottom: at or below D the firmware turns the D-to-D-max range off and flies THIS value constant (pid_init.c gates on d_min < D), so D max 0 is zero damping, not damping held at D.'),
-  f: pidField('Feedforward', 1000,
+  f: gainColumn('Feedforward', 1000,
     'Pushes on stick movement itself, before any error exists. The immediacy knob.'),
 };
 
 export function pidCliKey(field, axis) {
-  const stem = { p: 'p', i: 'i', d: 'd_min', dmax: 'd', f: 'f' }[field];
-  return `${stem}_${axis}`;
+  return `${Object.hasOwn(CLI_STEM, field) ? CLI_STEM[field] : undefined}_${axis}`;
 }
 
 /*
- * Betaflight 4.5.1's own factory PIDs, in this module's display shape (d
- * is d_min, dmax is d). From pgResetTemplate in flight/pid.c, and read
- * back identically from the compiled module. The panel notches its bars
- * with these, and the expert table falls back to them when it has to be
- * seeded before the module has been read.
+ * Betaflight 4.5.1's factory gains (pgResetTemplate in flight/pid.c, and
+ * what the compiled module reads back), in the expert table's columns.
+ * The panel marks its bars with them and seeds the table from them when
+ * the module has not been read.
  */
+const frozenRow = (p, i, d, dmax, f) => Object.freeze({ p, i, d, dmax, f });
+
 export const STOCK_PIDS = Object.freeze({
-  roll: Object.freeze({ p: 45, i: 80, d: 30, dmax: 40, f: 120 }),
-  pitch: Object.freeze({ p: 47, i: 84, d: 34, dmax: 46, f: 125 }),
-  yaw: Object.freeze({ p: 45, i: 80, d: 0, dmax: 0, f: 120 }),
+  roll: frozenRow(45, 80, 30, 40, 120),
+  pitch: frozenRow(47, 84, 34, 46, 125),
+  yaw: frozenRow(45, 80, 0, 0, 120),
 });
 
-function clampTo(spec, value) {
-  /* null and '' are ABSENT, not zero. Number(null) is 0, so without this
-   * a hand-edited blob with "master": null would clamp to the floor and
-   * fly it instead of being dropped. */
-  if (value == null || value === '') {
-    return null;
-  }
+const isRecord = (v) => Boolean(v) && typeof v === 'object';
+
+/*
+ * A stored or typed value onto a column, or null when there is no number.
+ * null and '' are absent, not zero (Number(null) is 0, and a hand-edited
+ * "master": null must be dropped, not flown at the floor).
+ */
+function onColumn(spec, value) {
+  if (value === null || value === undefined || value === '') return null;
   const n = Math.round(Number(value));
-  if (!Number.isFinite(n)) {
-    return null;
+  return Number.isFinite(n) ? Math.min(spec.cliMax, Math.max(spec.cliMin, n)) : null;
+}
+
+// A complete expert table from `source`, or null when any gain is missing.
+function fullTable(source) {
+  const table = {};
+  for (const axis of PID_AXES) {
+    const row = isRecord(source[axis]) ? source[axis] : {};
+    table[axis] = {};
+    for (const f of PID_FIELDS) {
+      const gain = onColumn(PID_FIELD_SPECS[f], row[f]);
+      if (gain === null) return null;
+      table[axis][f] = gain;
+    }
   }
-  return Math.max(spec.cliMin, Math.min(spec.cliMax, n));
+  return table;
 }
 
 /*
- * Clamp a stored adjustment onto what the firmware and the menu will take.
- * Same contract as normaliseRates: a localStorage blob from an older
- * build, a hand edit, or a bug upstream cannot put an out-of-range number
- * into a uint8 field or an unknown tune id into the emitter. An expert
- * entry whose table is incomplete falls back to sliders rather than
- * flying a half-table, and an entry adjusting nothing is dropped, so
- * "stock" has exactly one representation.
+ * A stored blob onto what the menu and firmware accept, as normaliseRates
+ * does for rates: unknown tune ids, out of range or missing numbers are
+ * dropped or clamped. An incomplete expert table is dropped (the entry
+ * falls back to sliders rather than flying half a table), and an entry
+ * that adjusts nothing is dropped, so stock has one representation.
  */
 export function normalisePids(p) {
   const out = {};
-  if (!p || typeof p !== 'object') {
-    return out;
-  }
-  for (const t of ADJUSTABLE) {
-    const e = p[t.id];
-    if (!e || typeof e !== 'object') {
-      continue;
-    }
-    const given = e.sliders && typeof e.sliders === 'object' ? e.sliders : {};
+  if (!isRecord(p)) return out;
+  for (const id of TUNE_IDS) {
+    const stored = p[id];
+    if (!isRecord(stored)) continue;
+    const given = isRecord(stored.sliders) ? stored.sliders : {};
     const sliders = {};
-    for (const k of SLIDER_KEYS) {
-      const v = clampTo(SLIDERS[k], given[k]);
-      if (v != null && k in given) {
-        sliders[k] = v;
-      }
+    for (const key of SLIDER_KEYS) {
+      const v = onColumn(SLIDERS[key], given[key]);
+      if (v !== null) sliders[key] = v;
     }
-    let pids = null;
-    if (e.pids && typeof e.pids === 'object') {
-      pids = {};
-      for (const axis of PID_AXES) {
-        const a = e.pids[axis] && typeof e.pids[axis] === 'object' ? e.pids[axis] : {};
-        pids[axis] = {};
-        for (const f of PID_FIELDS) {
-          const v = clampTo(PID_FIELD_SPECS[f], a[f]);
-          if (v == null) {
-            pids = null;
-            break;
-          }
-          pids[axis][f] = v;
-        }
-        if (!pids) {
-          break;
-        }
-      }
-    }
-    const mode = e.mode === 'expert' && pids ? 'expert' : 'sliders';
-    if (!pids && Object.keys(sliders).length === 0) {
-      continue;
-    }
-    const entry = { mode, sliders };
-    if (pids) {
-      entry.pids = pids;
-    }
-    out[t.id] = entry;
+    const pids = isRecord(stored.pids) ? fullTable(stored.pids) : null;
+    if (!pids && Object.keys(sliders).length === 0) continue;
+    out[id] = { mode: stored.mode === 'expert' && pids ? 'expert' : 'sliders', sliders };
+    if (pids) out[id].pids = pids;
   }
   return out;
 }
 
-/* The stored entry for one tune, or null. The rows mutate this through
- * the helpers below; loadSettings has already normalised it. */
+// The stored entry for a tune, which the editing helpers below change in
+// place; the settings loader has normalised it already.
 export function pidsEntry(p, tuneId) {
-  const e = p && typeof p === 'object' ? p[tuneId] : null;
-  return e && typeof e === 'object' ? e : null;
+  const entry = isRecord(p) ? p[tuneId] : null;
+  return isRecord(entry) ? entry : null;
 }
 
-function ensureEntry(p, tuneId) {
-  if (!pidsEntry(p, tuneId)) {
-    p[tuneId] = { mode: 'sliders', sliders: {} };
-  }
+function entryFor(p, tuneId) {
+  if (!pidsEntry(p, tuneId)) p[tuneId] = { mode: 'sliders', sliders: {} };
   return p[tuneId];
 }
 
-/* Drop an entry that no longer adjusts anything, so that walking a slider
- * back to the tune's own value IS reverting and the record key agrees. */
-function pruneEntry(p, tuneId) {
-  const e = pidsEntry(p, tuneId);
-  if (e && e.mode !== 'expert' && Object.keys(e.sliders).length === 0 && !e.pids) {
-    delete p[tuneId];
-  }
+// Remove an entry that no longer changes anything, so undoing every edit
+// is the same as never having made one.
+function dropIfEmpty(p, tuneId) {
+  const entry = pidsEntry(p, tuneId);
+  if (!entry || entry.mode === 'expert' || entry.pids) return;
+  if (Object.keys(entry.sliders).length === 0) delete p[tuneId];
 }
 
 /*
- * Move one slider. `tuneValue` is the value the TUNE itself holds for
- * this slider, read out of the running module; landing back on it deletes
- * the override instead of storing a copy of the tune.
+ * Move one slider. tuneValue is what the tune itself holds for it, read
+ * from the running module; landing on it removes the override.
  */
 export function setPidSlider(p, tuneId, key, value, tuneValue) {
-  const v = clampTo(SLIDERS[key], value);
-  if (v == null) {
-    return;
-  }
-  const e = ensureEntry(p, tuneId);
-  if (tuneValue != null && v === tuneValue) {
-    delete e.sliders[key];
-  } else {
-    e.sliders[key] = v;
-  }
-  pruneEntry(p, tuneId);
+  const v = onColumn(SLIDERS[key], value);
+  if (v === null) return;
+  const { sliders } = entryFor(p, tuneId);
+  if (tuneValue !== null && tuneValue !== undefined && v === tuneValue) delete sliders[key];
+  else sliders[key] = v;
+  dropIfEmpty(p, tuneId);
 }
 
 /*
- * Enter or leave the expert table. Entering seeds the table from `seed`,
- * which the caller reads out of the running module, so the first edit
- * starts from exactly what is flying; the stored slider overrides are
- * kept, inactive, so leaving expert restores them. Leaving keeps the
- * table too, inactive, so a pilot can flip back without losing work.
+ * Switch the expert table on or off. The first switch on fills the table
+ * from `seed` (the gains the module is flying, read by the caller), any
+ * gap from STOCK_PIDS. Both the table and the slider overrides survive a
+ * switch either way, inactive, so flipping back loses nothing.
  */
 export function setPidsExpert(p, tuneId, on, seed) {
-  const e = ensureEntry(p, tuneId);
-  if (on) {
-    e.mode = 'expert';
-    if (!e.pids) {
-      const src = seed || STOCK_PIDS;
-      e.pids = {};
-      for (const axis of PID_AXES) {
-        e.pids[axis] = {};
-        for (const f of PID_FIELDS) {
-          e.pids[axis][f] = clampTo(PID_FIELD_SPECS[f], src[axis] ? src[axis][f] : null)
-            ?? STOCK_PIDS[axis][f];
-        }
+  const entry = entryFor(p, tuneId);
+  entry.mode = on ? 'expert' : 'sliders';
+  if (on && !entry.pids) {
+    const source = seed || STOCK_PIDS;
+    entry.pids = {};
+    for (const axis of PID_AXES) {
+      const row = source[axis] ? source[axis] : {};
+      entry.pids[axis] = {};
+      for (const f of PID_FIELDS) {
+        entry.pids[axis][f] = onColumn(PID_FIELD_SPECS[f], row[f]) ?? STOCK_PIDS[axis][f];
       }
     }
-  } else {
-    e.mode = 'sliders';
   }
-  pruneEntry(p, tuneId);
+  dropIfEmpty(p, tuneId);
 }
 
 export function clearPidsFor(p, tuneId) {
-  if (p && typeof p === 'object') {
-    delete p[tuneId];
-  }
+  if (isRecord(p)) delete p[tuneId];
 }
 
 export function pidsAdjusted(p, tuneId) {
   return pidsDiffFor(p, tuneId) !== '';
 }
 
-/*
- * The adjustment as Betaflight CLI text, appended to the tune by
- * composeConfig in src/fc/dump.js, BEFORE the rates block so the rates
- * stay the last word on their own keys. Empty when nothing is adjusted,
- * and that emptiness is a contract: an untouched tune composes to exactly
- * the text it composed to before this module existed, so every stored
- * best lap keeps its key.
- *
- * The sliders block does not set simplified_pids_mode. The tune's own
- * mode governs, which is why the master reaches yaw on the shipped default
- * (RPY) and leaves yaw alone on a dump that carries RP, exactly as
- * Configurator behaves with those loaded. No shipped tune is RP any more,
- * the two that were are gone, but a pilot's own dump still can be and the
- * yaw note on the PIDs screen still reads the live baseline to say so.
- */
-export function pidsDiffFor(p, tuneId) {
-  const e = normalisePids(p)[tuneId];
-  if (!e) {
-    return '';
-  }
-  if (e.mode === 'expert') {
-    const lines = [
-      '',
-      '# PIDs, set by hand on the PIDs screen. See configs/pids.js.',
-      'profile 0',
-      'set simplified_pids_mode = OFF',
-    ];
-    for (const axis of PID_AXES) {
-      for (const f of PID_FIELDS) {
-        lines.push(`set ${pidCliKey(f, axis)} = ${e.pids[axis][f]}`);
-      }
-    }
-    lines.push('');
-    return lines.join('\n');
-  }
-  const keys = SLIDER_KEYS.filter((k) => k in e.sliders);
-  if (keys.length === 0) {
-    return '';
-  }
-  const lines = [
-    '',
-    '# PID sliders, from the PIDs screen. See configs/pids.js.',
-    'profile 0',
-  ];
-  for (const k of keys) {
-    lines.push(`set ${SLIDERS[k].cli} = ${e.sliders[k]}`);
-  }
-  lines.push('simplified_tuning apply', '');
-  return lines.join('\n');
+function activeEntry(p, tuneId) {
+  const all = normalisePids(p);
+  return Object.hasOwn(all, tuneId) ? all[tuneId] : null;
 }
 
-/* One phrase for the menu row, so the pilot can see whether the tune
- * under the cursor is stock without opening the screen. */
+const movedSliders = (entry) => SLIDER_KEYS.filter((key) => Object.hasOwn(entry.sliders, key));
+
+/*
+ * The adjustment as CLI text, which composeConfig puts after the tune and
+ * before the rates. It is empty for an unadjusted tune, and that is a
+ * contract: the composed text is then what it was before this module
+ * existed, so stored best laps keep their keys.
+ *
+ * The slider block leaves simplified_pids_mode alone, so the tune's own
+ * mode decides whether the sliders reach yaw, as in Configurator.
+ */
+export function pidsDiffFor(p, tuneId) {
+  const entry = activeEntry(p, tuneId);
+  if (!entry) return '';
+  if (entry.mode === 'expert') {
+    const gains = PID_AXES.flatMap((axis) => PID_FIELDS.map((f) => `set ${pidCliKey(f, axis)} = ${entry.pids[axis][f]}`));
+    return ['', '# PIDs, set by hand on the PIDs screen. See configs/pids.js.', 'profile 0',
+      'set simplified_pids_mode = OFF', ...gains, ''].join('\n');
+  }
+  const moved = movedSliders(entry);
+  if (moved.length === 0) return '';
+  const sets = moved.map((key) => `set ${SLIDERS[key].cli} = ${entry.sliders[key]}`);
+  return ['', '# PID sliders, from the PIDs screen. See configs/pids.js.', 'profile 0',
+    ...sets, 'simplified_tuning apply', ''].join('\n');
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+// A short phrase for the Tune row: is this tune stock, and if not, how.
 export function pidsSummary(p, tuneId) {
-  const e = normalisePids(p)[tuneId];
-  if (!e) {
-    return 'Stock';
-  }
-  if (e.mode === 'expert') {
-    return 'Set by hand';
-  }
-  const keys = SLIDER_KEYS.filter((k) => k in e.sliders);
-  if (keys.length === 0) {
-    return 'Stock';
-  }
-  if ('master' in e.sliders) {
-    const rest = keys.length - 1;
-    return rest === 0
-      ? `Master ${e.sliders.master}%`
-      : `Master ${e.sliders.master}%, ${rest} more slider${rest === 1 ? '' : 's'}`;
-  }
-  return `${keys.length} slider${keys.length === 1 ? '' : 's'} moved`;
+  const entry = activeEntry(p, tuneId);
+  if (!entry) return 'Stock';
+  if (entry.mode === 'expert') return 'Set by hand';
+  const moved = movedSliders(entry);
+  if (moved.length === 0) return 'Stock';
+  if (!Object.hasOwn(entry.sliders, 'master')) return `${plural(moved.length, 'slider')} moved`;
+  const others = moved.length - 1;
+  const master = `Master ${entry.sliders.master}%`;
+  return others === 0 ? master : `${master}, ${others} more ${others === 1 ? 'slider' : 'sliders'}`;
 }
