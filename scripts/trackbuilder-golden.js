@@ -1159,6 +1159,18 @@ function modelCases() {
     });
   out['model/deepClone'] = [null, 1, 'x', [1, [2]], { a: { b: [1, { c: 2 }] } }, { u: undefined, n: null }].map((v) => attempt(() => m.deepClone(v)));
   out['model/logosOf'] = [null, {}, { branding: null }, { branding: { logos: 'x' } }, { branding: { logos: [1] } }].map((d) => attempt(() => m.logosOf(d)));
+  /* A type named like an Object prototype member. The code before the
+   * rewrite threw on these; reading must not throw (schema.md), so they are
+   * now dropped as unknown types and the rest of the track survives. These
+   * rows were written from the rewrite, deliberately. */
+  out['model/prototypeTypes'] = ['toString', 'constructor', '__proto__', 'hasOwnProperty'].map((type) => attempt(() => {
+    const { doc, repairs } = m.normalize({
+      schemaVersion: 3, id: 'trk-0000beef', name: 'Proto', createdUtc: '2026-01-01T00:00:00Z', modifiedUtc: '2026-01-01T00:00:00Z',
+      elements: [{ id: 'el-1', type }, { id: 'el-2', type: 'gate', position: { x: 5, y: 5, z: 0 } }],
+      sequence: [{ id: 'sq-1', elementId: 'el-1' }, { id: 'sq-2', elementId: 'el-2', apertureIndex: 0, entry: 1 }],
+    });
+    return { repairs, serialized: m.serialize(doc) };
+  }));
   return out;
 }
 

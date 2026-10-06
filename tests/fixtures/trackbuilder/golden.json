@@ -39,6 +39,7 @@
  "model/deserialize": "dcfde901e8f70daa1516",
  "model/deepClone": "e9a0e6e5825a0f700238",
  "model/logosOf": "36a843aebcaa95f6f776",
+ "model/prototypeTypes": "a4f322b8dd122fd1147a",
  "storage/scenario": "c0666f9051fba7e28220",
  "storage/autosaver": "664c45a0c4202099facb",
  "doc/schema-example-v2/model": "4004fd26feb4efcd5ae8",
