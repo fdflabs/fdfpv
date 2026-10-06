@@ -712,9 +712,11 @@ export function buildStream(ctx, sites) {
  * back to where the ground comes up to meet it.
  *
  * Returns the ground the plant meets there: the wall as seen from above
- * (topDown), which the map raises its heightfield to. Without it the
- * craft met the heightfield's forty five degree slope, which stands up
- * to sixty metres behind the drawn face, and flew through the rock.
+ * (topDown), which the map raises its heightfield to, and the material of
+ * it: the ledge's flat top is turf as drawn, so grass to the crash model;
+ * the face, and the slope the grid leans out of it, are rock. Without it
+ * the craft met the heightfield's forty five degree slope, which stands
+ * up to sixty metres behind the drawn face, and flew through the rock.
  */
 export function buildHeadwall(ctx, sites) {
   const { scene, heightAt, valleyAxis, look } = ctx;
@@ -726,6 +728,8 @@ export function buildHeadwall(ctx, sites) {
     const col = [];
     const face = [];
     const ledge = [];
+    /* Per triangle, in the order tri() lays them: whether it is turf. */
+    const isTurf = [];
     const rockLight = new THREE.Color(0xa99c8a);
     const rockDark = new THREE.Color(0x88796a);
     const turf = new THREE.Color(0x6d7f45);
@@ -746,6 +750,7 @@ export function buildHeadwall(ctx, sites) {
       ledge.push([[fx, top, z], [ax + BACK_DX, top, z]]);
     }
     const tri = (a, b, c, colour) => {
+      isTurf.push(colour === turf);
       pos.push(...a, ...b, ...c);
       for (let q = 0; q < 3; q += 1) {
         col.push(colour.r, colour.g, colour.b);
@@ -781,7 +786,7 @@ export function buildHeadwall(ctx, sites) {
     wall.castShadow = true;
     wall.receiveShadow = true;
     scene.add(wall);
-    return topDown(pos, HEADWALL_CELL, HEADWALL_RISE);
+    return topDown(pos, isTurf, HEADWALL_CELL, HEADWALL_RISE);
   }
 }
 
@@ -809,11 +814,18 @@ const HEADWALL_RISE = 20;
  * that would is raised, so the face leans out over its foot as a slope
  * that steep, never back behind what is drawn.
  *
- * Returns (x, z) => height, bilinear between the four cells round the
- * point when all four hold the wall, else the highest of those that do,
- * so the face is never drawn in front of what the grid holds.
+ * `isTurf[t]` says triangle t (pos, nine numbers a triangle) is drawn as
+ * turf. Each cell remembers whether the triangle that set its height is,
+ * and a cell the slope raised is rock: that is the face leaning out.
+ *
+ * Returns { height, surface }. height(x, z) is bilinear between the four
+ * cells round the point when all four hold the wall, else the highest of
+ * those that do, so the face is never drawn in front of what the grid
+ * holds. surface(x, z) is 'grass' where all four cells round the point are
+ * turf, so the level ledge and not its lip, where a cell holds the face's
+ * top beside the ledge's; else 'rock'; null where none holds the wall.
  */
-function topDown(pos, cell, rise) {
+function topDown(pos, isTurf, cell, rise) {
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
   let y0 = Infinity, y1 = -Infinity;
   for (let k = 0; k < pos.length; k += 3) {
@@ -830,9 +842,19 @@ function topDown(pos, cell, rise) {
   const nx = Math.ceil((x1 - x0) / cell) + 2;
   const nz = Math.ceil((z1 - z0) / cell) + 2;
   const top = new Float32Array(nx * nz).fill(-Infinity);
+  const turfCell = new Uint8Array(nx * nz);
+  let turfNow = false;
+  /* The ledge wins a tie with the face: the ledge's lip is where the
+   * face's top row meets it, at the same height. */
   const put = (i, j, y) => {
-    if (i >= 0 && j >= 0 && i < nx && j < nz && y > top[j * nx + i]) {
-      top[j * nx + i] = y;
+    if (i < 0 || j < 0 || i >= nx || j >= nz) {
+      return;
+    }
+    const at = j * nx + i;
+    const f = Math.fround(y);
+    if (f > top[at] || (f === top[at] && turfNow)) {
+      top[at] = f;
+      turfCell[at] = turfNow ? 1 : 0;
     }
   };
   const edge = (ax, ay, az, bx, by, bz) => {
@@ -844,6 +866,7 @@ function topDown(pos, cell, rise) {
   };
   for (let k = 0; k < pos.length; k += 9) {
     const [ax, ay, az, bx, by, bz, cx, cy, cz] = pos.slice(k, k + 9);
+    turfNow = isTurf[k / 9];
     edge(ax, ay, az, bx, by, bz);
     edge(bx, by, bz, cx, cy, cz);
     edge(cx, cy, cz, ax, ay, az);
@@ -870,10 +893,14 @@ function topDown(pos, cell, rise) {
   }
   for (let j = 0; j < nz; j += 1) {
     for (let i = nx - 2; i >= 0; i -= 1) {
-      top[j * nx + i] = Math.max(top[j * nx + i], top[j * nx + i + 1] - rise * cell);
+      const raised = top[j * nx + i + 1] - rise * cell;
+      if (raised > top[j * nx + i]) {
+        top[j * nx + i] = raised;
+        turfCell[j * nx + i] = 0;
+      }
     }
   }
-  return (x, z) => {
+  const height = (x, z) => {
     const gx = (x - x0) / cell;
     const gz = (z - z0) / cell;
     const i = Math.floor(gx);
@@ -892,6 +919,19 @@ function topDown(pos, cell, rise) {
     const fv = gz - j;
     return (a * (1 - fu) + b * fu) * (1 - fv) + (c * (1 - fu) + d * fu) * fv;
   };
+  const surface = (x, z) => {
+    const i = Math.floor((x - x0) / cell);
+    const j = Math.floor((z - z0) / cell);
+    if (i < 0 || j < 0 || i >= nx - 1 || j >= nz - 1) {
+      return null;
+    }
+    const around = [j * nx + i, j * nx + i + 1, (j + 1) * nx + i, (j + 1) * nx + i + 1];
+    if (around.every((k) => top[k] === -Infinity)) {
+      return null;
+    }
+    return around.every((k) => turfCell[k]) ? 'grass' : 'rock';
+  };
+  return { height, surface };
 }
 
 /*
@@ -1284,7 +1324,8 @@ export async function buildNature(ctx) {
 
   return {
     pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers, roofs: shore.roofs,
-    ground: headwall,
+    ground: headwall.height,
+    groundSurface: headwall.surface,
     setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
   };
 }
