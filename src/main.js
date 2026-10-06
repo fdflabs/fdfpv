@@ -1752,6 +1752,9 @@ export async function boot({
       if (key && key !== opsGuide.briefed) {
         opsGuide.briefed = key;
         const brief = briefOf(focus, active);
+        /* A brief or nudge still waiting is about an objective that is
+         * no longer this pilot's: only the first flight's lines wait on. */
+        opsGuide.queue = opsGuide.queue.filter((item) => item[0] === 'int-g-first-1');
         if (brief) {
           opsGuide.queue.push([brief]);
         }

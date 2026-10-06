@@ -457,6 +457,42 @@ try {
     await shot(`guide-${name}-390x844.png`);
     await resize(1280, 720);
   }
+  /* The edge arrow, glyph and label as one box, stays in the safe
+   * frame: clear of the tape, the objective line, the readouts and every
+   * other panel, at every stage and every device size. */
+  for (const [w, h] of SIZES) {
+    await resize(w, h);
+    const hits = [];
+    let arrows = 0;
+    for (const [name, v] of STAGES) {
+      await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+      await page.sleep(1300);
+      const hh = await page.evaluate('window.__opsHud()');
+      const edge = hh.marks.find((m) => m.kind === 'edge');
+      const placedTarget = (await page.evaluate('window.__ops.guide().target')) || {};
+      /* An objective with a place and no mark in the picture must have
+       * its arrow, whatever the panels leave free. */
+      if (!edge) {
+        if (placedTarget.at && !hh.marks.some((m) => m.kind === 'guide')) {
+          hits.push(`${name}:no arrow`);
+        }
+        continue;
+      }
+      arrows += 1;
+      const b = edge.box;
+      const inWindow = b.x >= 0 && b.y >= 0 && b.x + b.w <= w && b.y + b.h <= h;
+      const on = Object.entries(hh.rects).filter(([, r]) => r && b.x < r.x + r.w && r.x < b.x + b.w && b.y < r.y + r.h && r.y < b.y + b.h).map(([k]) => k);
+      if (!inWindow || on.length) {
+        hits.push(`${name}:${on.join('+') || 'window'}`);
+      }
+    }
+    check(`${w}x${h}: the edge arrow and its label, at every stage, drawn, inside the window and clear of every panel (${arrows} drawn)`, arrows > 0 && !hits.length, hits.join(', '));
+    if (w === 1280 && h === 720) {
+      await shot('guide-arrow-camp-1280x720.png');
+    }
+  }
+  await resize(1280, 720);
+
   /* The count moves when the card's does. */
   {
     const v = STAGES[1][1];
