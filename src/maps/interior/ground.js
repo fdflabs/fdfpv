@@ -54,6 +54,7 @@
 import * as THREE from 'three';
 import { HALF, L_CELL, L_N } from '../../share/interior/frame.js';
 import { LAND } from '../../share/interior/world.js';
+import { LAND_EDITS } from '../../share/interior/places.js';
 import { thermalKind } from '../../render/thermal.js';
 
 /*
@@ -437,6 +438,59 @@ export function paintedLand(world) {
 const FAR_AIR = [20000, 140000];
 
 /*
+ * NEAR THE CAMERA, what a man standing on bare earth sees that the
+ * paint above leaves to a pixel's mean: on places.js's bare strips
+ * (Pista Cero's), the truck's wheel ruts along it, two pairs wandering a
+ * little, darker and redder where they are pressed and damp, the tread
+ * across them, pale dry patches between, and the laterite's gravel. The
+ * detail is a ratio round the colour the paint gives, so the strip's
+ * mean holds, and it fades out between NEAR_M's distances from the
+ * camera: no view but a low one changes.
+ */
+const NEAR_M = [40, 90];
+function nearGround() {
+  const strips = LAND_EDITS.filter((e) => e.cls === LAND.bare && e.strip)
+    .map(({ strip: { points: [[ax, az], [bx, bz]] } }) => new THREE.Vector4(ax, az, bx, bz));
+  const glsl = /* glsl */ `
+uniform vec4 uInStrips[${strips.length}];
+vec3 inNear(vec3 col, vec2 w, uint k, float fp) {
+  float kn = 1.0 - smoothstep(${f1(NEAR_M[0])}, ${f1(NEAR_M[1])}, length(vInWorld - cameraPosition));
+  if (kn <= 0.0 || k != ${LAND.bare}u) { return col; }
+  float across = 1e9;
+  float along = 0.0;
+  for (int i = 0; i < ${strips.length}; i++) {
+    vec2 a = uInStrips[i].xy;
+    vec2 t = normalize(uInStrips[i].zw - a);
+    vec2 r = w - a;
+    float c = t.x * r.y - t.y * r.x;
+    if (abs(c) < abs(across)) { across = c; along = dot(r, t); }
+  }
+  /* The wheels' line wanders a metre and a half over tens of metres. */
+  float wander = (inTex(vec2(along, 3.0), 30.0, 0.21).r - 0.5) * 3.0;
+  float s1 = across + wander;
+  float s2 = across + wander * 0.6 - 4.6;
+  float rut = max(inBand(abs(s1) - 0.95, 0.3, fp), 0.6 * inBand(abs(s2) - 0.95, 0.26, fp));
+  float worn = max(inBand(s1, 1.7, fp), 0.6 * inBand(s2, 1.6, fp));
+  float dust = inFbm(w, 1.9);
+  vec3 c2 = col * (0.86 + 0.3 * dust);
+  c2 = mix(c2, col * vec3(1.2, 1.12, 1.02), smoothstep(0.58, 0.78, dust) * 0.55 * (1.0 - worn));
+  c2 = mix(c2, col * vec3(1.08, 1.0, 0.95), worn * 0.4);
+  vec3 mud = col * vec3(0.74, 0.58, 0.52) * (0.9 + 0.2 * inFbm(w, 0.7));
+  c2 = mix(c2, mud, rut * 0.85);
+  c2 *= 1.0 + 0.14 * inRows(along, 0.2, fp) * rut;
+  /* Gravel: a nodule of laterite a few centimetres across, now and then. */
+  vec2 gc = floor(w / 0.3);
+  if (inHash(gc + 19.0) > 0.9) {
+    vec2 gp = (gc + 0.25 + 0.5 * vec2(inHash(gc + 3.0), inHash(gc + 9.0))) * 0.3;
+    c2 = mix(c2, col * vec3(1.3, 0.95, 0.8), inBand(length(w - gp), 0.035, fp) * 0.8);
+  }
+  return mix(col, c2, kn);
+}
+`;
+  return { glsl, uniforms: { uInStrips: { value: strips } } };
+}
+
+/*
  * The material: `land` landTexture's, `arrays` itaipu/look/ground.js
  * loadGroundArrays's, `noise` its noiseTexture's, `sunDir` the live
  * Vector3 toward the sun (look.js moves it), `air` the live { haze, glow }
@@ -447,7 +501,9 @@ export function groundMaterial({
   land, arrays, noise, sunDir, air,
 }) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
+  const near = nearGround();
   m.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, near.uniforms);
     shader.uniforms.uLand = { value: land };
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uLayerCol = { value: arrays.col };
@@ -459,7 +515,7 @@ export function groundMaterial({
       .replace('#include <project_vertex>', `#include <project_vertex>
         vInWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${GLSL}\nuniform vec3 uAirHaze;\nuniform vec3 uAirGlow;\nfloat inFar = 0.0;`)
+      .replace('#include <common>', `#include <common>\n${GLSL}\n${near.glsl}\nuniform vec3 uAirHaze;\nuniform vec3 uAirGlow;\nfloat inFar = 0.0;`)
       .replace('#include <map_fragment>', `#include <map_fragment>
         {
           vec2 w = vInWorld.xz;
@@ -515,6 +571,7 @@ export function groundMaterial({
             vec3 mean = textureLod(uLayerCol, vec3(0.5, 0.5, float(layer)), 12.0).rgb;
             col *= mix(vec3(1.0), clamp(grain / max(mean, vec3(0.01)), 0.3, 2.2), near * 0.8);
           }
+          col = inNear(col, w, kk, fp);
           inFar = smoothstep(${f1(FAR_AIR[0])}, ${f1(FAR_AIR[1])}, length(vInWorld - cameraPosition));
           diffuseColor.rgb = col * shade * (1.0 - inFar);
         }`)
