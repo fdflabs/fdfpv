@@ -1,0 +1,2552 @@
+{
+ "shape": [
+  "div.touch-fly",
+  [
+   [
+    "div.touch-zone.touch-zone-left{contextmenu,pointercancel,pointerdown,pointermove,pointerup}",
+    [
+     [
+      "div.touch-gimbal",
+      [
+       [
+        "div.osd-gimbal-plate.touch-plate",
+        [
+         "div.osd-cross-x",
+         "div.osd-cross-y",
+         "div.osd-nub.touch-nub"
+        ]
+       ],
+       "div.osd-gimbal-cap \"Yaw · throttle\""
+      ]
+     ]
+    ]
+   ],
+   [
+    "div.touch-zone.touch-zone-right{contextmenu,pointercancel,pointerdown,pointermove,pointerup}",
+    [
+     [
+      "div.touch-gimbal",
+      [
+       [
+        "div.osd-gimbal-plate.touch-plate",
+        [
+         "div.osd-cross-x",
+         "div.osd-cross-y",
+         "div.osd-nub.touch-nub"
+        ]
+       ],
+       "div.osd-gimbal-cap \"Roll · pitch\""
+      ]
+     ]
+    ]
+   ],
+   "button.bug-chip.touch-pause{click} \"Pause\"",
+   "button.bug-chip.touch-swap{click} \"Aircraft\"",
+   "div.touch-rotate \"Turn your phone sideways to fly\""
+  ]
+ ],
+ "captures": [
+  [
+   1,
+   2,
+   10,
+   20,
+   23,
+   24,
+   11
+  ],
+  [
+   3,
+   5,
+   21
+  ]
+ ],
+ "trace": [
+  {
+   "label": "mounted, before anything is shown",
+   "active": false,
+   "nubs": [
+    " ",
+    " "
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mounted and shown",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "down pointerdown prevented=true",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag 20,0",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.220458553792,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "61.022927689594354% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.220458553792,
+     "throttle": 0
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag 0,-30",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.238095238095
+   },
+   "active": true,
+   "nubs": [
+    "50% 76.19047619047619%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.238095238095
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag -45,45",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": -0.496031746032,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "25.198412698412696% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": -0.496031746032,
+     "throttle": 0
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag 200,0",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 1,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "100% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 1,
+     "throttle": 0
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag 0,200",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag -200,-200",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": -1,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "0% 0%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": -1,
+     "throttle": 1
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left drag 3,-7",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.0330687830688,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.0330687830688,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "a move from a pointer this zone never saw",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.0330687830688,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.0330687830688,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 1 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.0250687830688,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.0250687830688,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 16 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 16 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 33 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 50 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 100 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 250 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "released, 1000 ms",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.0555555555556
+   },
+   "active": true,
+   "nubs": [
+    "51.65343915343915% 94.44444444444444%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.0555555555556
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "two thumbs",
+   "sample": {
+    "roll": 0.27557319224,
+    "pitch": 0.661375661376,
+    "yaw": -0.330687830688,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "33.46560846560847% 62.698412698412696%",
+    "63.77865961199295% 83.06878306878306%"
+   ],
+   "held": [
+    true,
+    true
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0.27557319224,
+     "pitch": 0.661375661376,
+     "yaw": -0.330687830688,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": true,
+     "right": true
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "a second finger on the held left plate",
+   "sample": {
+    "roll": 0.27557319224,
+    "pitch": 0.661375661376,
+    "yaw": -0.330687830688,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "33.46560846560847% 62.698412698412696%",
+    "63.77865961199295% 83.06878306878306%"
+   ],
+   "held": [
+    true,
+    true
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0.27557319224,
+     "pitch": 0.661375661376,
+     "yaw": -0.330687830688,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": true,
+     "right": true
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "the second finger lifts",
+   "sample": {
+    "roll": 0.27557319224,
+    "pitch": 0.661375661376,
+    "yaw": -0.330687830688,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "33.46560846560847% 62.698412698412696%",
+    "63.77865961199295% 83.06878306878306%"
+   ],
+   "held": [
+    true,
+    true
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0.27557319224,
+     "pitch": 0.661375661376,
+     "yaw": -0.330687830688,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": true,
+     "right": true
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "right cancelled",
+   "sample": {
+    "roll": 0.14757319224,
+    "pitch": 0.533375661376,
+    "yaw": -0.330687830688,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "33.46560846560847% 62.698412698412696%",
+    "63.77865961199295% 83.06878306878306%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0.14757319224,
+     "pitch": 0.533375661376,
+     "yaw": -0.330687830688,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "right cancelled, later",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": -0.330687830688,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "33.46560846560847% 62.698412698412696%",
+    "63.77865961199295% 83.06878306878306%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": -0.330687830688,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 1 while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "50% 62.698412698412696%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · pitch",
+    "Roll · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 3 while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "50% 62.698412698412696%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Roll · pitch",
+    "Yaw · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 4 while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 62.698412698412696%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Roll · throttle",
+    "Yaw · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 2 while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 62.698412698412696%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode x while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 62.698412698412696%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 3 while left is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "50% 62.698412698412696%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Roll · pitch",
+    "Yaw · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left lifts in mode 3",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "50% 62.698412698412696%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Roll · pitch",
+    "Yaw · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "left lifts in mode 3, later",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.373015873016
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "50% 62.698412698412696%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Roll · pitch",
+    "Yaw · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.373015873016
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mode 3 right stick",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.440917107584,
+    "throttle": 0.690476190476
+   },
+   "active": true,
+   "nubs": [
+    "50% 50%",
+    "72.04585537918871% 30.952380952380953%"
+   ],
+   "held": [
+    false,
+    true
+   ],
+   "caps": [
+    "Roll · pitch",
+    "Yaw · throttle"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.440917107584,
+     "throttle": 0.690476190476
+    },
+    "held": {
+     "left": false,
+     "right": true
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "back to mode 2 while right is held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.690476190476
+   },
+   "active": true,
+   "nubs": [
+    "50% 30.952380952380953%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.690476190476
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "hidden while held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.690476190476
+   },
+   "active": false,
+   "nubs": [
+    "50% 30.952380952380953%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.690476190476
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "a move while hidden",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.690476190476
+   },
+   "active": false,
+   "nubs": [
+    "50% 30.952380952380953%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.690476190476
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "shown again",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.690476190476
+   },
+   "active": true,
+   "nubs": [
+    "50% 30.952380952380953%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.690476190476
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "reset while held",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "a move after reset from the old finger",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "the old finger lifts",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mouse pointer down and move, prevented=false",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "mouse pointer up",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "pen pointer down and move, prevented=false",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "pen pointer up",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "touch pointer down and move, prevented=true",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.110229276896,
+    "throttle": 0.15873015873
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.110229276896,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "touch pointer up",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.15873015873
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": ""
+  },
+  {
+   "label": "click bug-chip touch-pause \"Pause\"",
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause"
+  },
+  {
+   "label": "click bug-chip touch-swap \"Aircraft\"",
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap"
+  },
+  {
+   "label": "hidden, click bug-chip touch-pause",
+   "active": false,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause"
+  },
+  {
+   "label": "hidden, click bug-chip touch-swap",
+   "active": false,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.15873015873
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "both held off centre",
+   "sample": {
+    "roll": -0.330687830688,
+    "pitch": 0.330687830688,
+    "yaw": 0.330687830688,
+    "throttle": 0.396825396825
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    true
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": -0.330687830688,
+     "pitch": 0.330687830688,
+     "yaw": 0.330687830688,
+     "throttle": 0.396825396825
+    },
+    "held": {
+     "left": true,
+     "right": true
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "the mode it already had, while held",
+   "sample": {
+    "roll": -0.330687830688,
+    "pitch": 0.330687830688,
+    "yaw": 0.440917107584,
+    "throttle": 0.47619047619
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    true
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": -0.330687830688,
+     "pitch": 0.330687830688,
+     "yaw": 0.440917107584,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": true,
+     "right": true
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "hidden while held off centre",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": false,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "hidden, time passes",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": false,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "hidden, more time",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": false,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|true||",
+   "debug": {
+    "visible": false,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "lifted after showing again",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "a blank pointer type",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "a blank pointer type lifts",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.47619047619
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.47619047619
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "touchdown far from the plate",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.220458553792,
+    "throttle": 0.555555555556
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.220458553792,
+     "throttle": 0.555555555556
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "the plate grows mid drag",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.440917107584,
+    "throttle": 0.634920634921
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.440917107584,
+     "throttle": 0.634920634921
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "lift",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.634920634921
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.634920634921
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "a plate with no size",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.5,
+    "throttle": 0.801587301587
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    true,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.5,
+     "throttle": 0.801587301587
+    },
+    "held": {
+     "left": true,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "lift from the sizeless plate",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "throttle": 0.801587301587
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0,
+     "throttle": 0.801587301587
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "spring at dt 0",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.694444444444,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.694444444444,
+     "throttle": 1
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "spring at dt 0.5",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.690444444444,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.690444444444,
+     "throttle": 1
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "spring at dt 4",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.658444444444,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.658444444444,
+     "throttle": 1
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "spring at dt 0.001",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.658436444444,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.658436444444,
+     "throttle": 1
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  },
+  {
+   "label": "spring at dt 16",
+   "sample": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0.530436444444,
+    "throttle": 1
+   },
+   "active": true,
+   "nubs": [
+    "50% 100%",
+    "50% 50%"
+   ],
+   "held": [
+    false,
+    false
+   ],
+   "caps": [
+    "Yaw · throttle",
+    "Roll · pitch"
+   ],
+   "root": "touch-fly|false||",
+   "debug": {
+    "visible": true,
+    "channels": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0.530436444444,
+     "throttle": 1
+    },
+    "held": {
+     "left": false,
+     "right": false
+    }
+   },
+   "calls": "pause,swap,pause,swap"
+  }
+ ]
+}

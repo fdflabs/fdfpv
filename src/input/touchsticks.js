@@ -1,355 +1,244 @@
 /*
- * touchsticks.js: two thumbs on glass, flying the quad.
+ * touchsticks.js: two on-screen gimbals for flying with thumbs on glass.
  *
- * A phone had no way to fly at all: the keyboard needs keys and a radio
- * needs a radio. This is the third stick source, virtual gimbals for the
- * thumbs in landscape, and it slots into InputManager UNDER a connected
- * radio and OVER the keyboard: plug a radio into a tablet and the radio
- * wins, exactly as it wins over the keys.
+ * Each stick is a catchment zone with a drawn plate in the OSD gimbal's
+ * style. A thumb that lands anywhere in the zone owns that stick until it
+ * lifts; where it landed is the stick's centre, so the pilot never has to
+ * find the plate by eye. Sprung channels read the drag from that point and
+ * run back to centre when the thumb lifts, like a gimbal spring. Throttle
+ * has no spring: it stays where it was left, and a new touch carries on
+ * from there instead of snapping to the bottom.
  *
- * RELATIVE FROM TOUCHDOWN, NEVER A JUMP. The thumb lands wherever it
- * lands, and that point is zero: deflection is the drag from there, full
- * deflection TRAVEL_FRACTION of the plate width. The alternative,
- * absolute mapping, spikes the channel to wherever the thumb happened to
- * hit, which on the throttle is a punch the pilot did not fly. Because
- * the mapping is relative, the whole lower corner of the screen is
- * catchment, not just the drawn plate: a thumb that grabs 40 px off the
- * gimbal still flies. Throttle runs on its own scale, one plate height
- * for the full sweep, a radio's ratio, and stays reachable whatever the
- * deflection travel is tuned to.
+ * The zones answer only to touch pointers, so a touchscreen laptop keeps
+ * its mouse and keyboard. The input ladder in input.js reads sample()
+ * once a frame; main.js decides visibility and calls paint().
  *
- * THROTTLE IS STICKY, EVERYTHING ELSE SPRINGS. A radio's throttle stays
- * where the thumb left it and so does this one: lift the thumb and the
- * hover you trimmed is still trimmed. Yaw, roll and pitch run back to
- * centre at SPRING_RATE when released, a spring rather than a snap, so
- * the setpoint does not step and feedforward does not kick.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * The nub draws at the CHANNEL, not under the thumb. The thumb may be
- * anywhere in the catchment; the nub is the instrument, and an instrument
- * that showed the finger instead of the value would be decoration.
- *
- * TOUCH POINTERS ONLY. A touchscreen laptop keeps its mouse: pointer
- * events that are not touches fall through to nothing (the zones sit over
- * bare world), and the overlay only mounts at all on a device that
- * reports touch points. Menus never see these zones; the overlay is shown
- * in flight and hidden everywhere else by the shell.
- *
- * Channel signs are the keyboard's, which are the radio's: yaw and roll
- * positive rightward, throttle 0 at the bottom of the plate, and stick
- * forward is NEGATIVE pitch, the same sign the up arrow feeds and
- * placeSticks draws.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { stickChannels, stickCaption, DEFAULT_STICK_MODE } from './stickmode.js';
+import { stickChannels, stickCaption, DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import { str } from '../strings/index.js';
 
-/* Released channels run back to centre at this rate, full scale per
- * second. 8 is about 125 ms from the stop, the pace of a real spring,
- * and slow enough that the D term sees a ramp rather than an edge. */
-const SPRING_RATE = 8;
+/* Full scale per second back towards centre after a lift: about 125 ms
+ * from the stop, so the D term sees a ramp instead of a step. */
+const RETURN_PER_SEC = 8;
 
-/*
- * Thumb travel for full deflection, as a fraction of the plate width.
- * It was one plate-half, 0.5, and the first phone pilot reported the
- * rates "way too fast": at that scale a 126 px plate put full stick 63 px
- * from touchdown, so a millimetre of thumb shake was tens of degrees a
- * second. 0.72 buys 44 percent more glass per degree without pushing the
- * stop out of a thumb's reach, and it works WITH the gentler touch rate
- * profile in configs/rates.js rather than instead of it: this constant
- * calibrates the transducer, the rates stay the pilot's and stay on the
- * Rates screen.
- */
-const TRAVEL_FRACTION = 0.72;
+/* Drag for full deflection on a sprung channel, as a share of the plate's
+ * width. Half a plate made a millimetre of thumb shake tens of degrees a
+ * second on a phone; this gives more glass per degree while the stop stays
+ * within a thumb's reach. The floor keeps an unlaid-out or tiny plate from
+ * turning a twitch into full stick. */
+const SPRUNG_SPAN_OF_WIDTH = 0.72;
+const SPRUNG_SPAN_MIN_PX = 40;
 
-/*
- * Whether this device wants thumb sticks at all. Touch points are the
- * signal: a phone and a tablet report them, a desktop does not, and a
- * touchscreen laptop reports them and ALSO keeps its keyboard, which
- * still works because the zones only answer to touch pointers.
- */
+/* Throttle spans the plate's full height, bottom to top, with the same
+ * kind of floor. */
+const THROTTLE_SPAN_MIN_PX = 60;
+
+const CAPTION_SEP = ' · ';
+
+/* A phone or tablet reports touch points; a desktop reports none. A
+ * touchscreen laptop reports them too and gets the sticks alongside its
+ * keyboard. Some embedded browsers throw on the property itself. */
 export function touchWanted() {
+  let points = 0;
   try {
-    return (navigator.maxTouchPoints || 0) > 0;
+    points = Number(navigator.maxTouchPoints) || 0;
   } catch (e) {
-    return false;
+    /* No navigator to ask: no thumbs. */
   }
+  return points > 0;
 }
 
-function el(tag, cls, text) {
+function node(tag, classes, text) {
   const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
+  n.className = classes;
+  if (text !== undefined) {
     n.textContent = text;
   }
   return n;
 }
 
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-/* One plate, in the OSD gimbal's visual language, sized for a thumb. */
-function makePlate(caption) {
-  const zone = el('div', 'touch-zone');
-  const plate = el('div', 'osd-gimbal-plate touch-plate');
-  plate.append(el('div', 'osd-cross-x'), el('div', 'osd-cross-y'));
-  const nub = el('div', 'osd-nub touch-nub');
-  plate.append(nub);
-  const wrap = el('div', 'touch-gimbal');
-  const cap = el('div', 'osd-gimbal-cap', caption);
-  wrap.append(plate, cap);
-  zone.append(wrap);
-  return {
-    zone, plate, nub, cap,
-  };
-}
+const within = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 export function mountTouchSticks({ onPause, onSwap } = {}) {
-  const root = el('div', 'touch-fly');
+  const root = node('div', 'touch-fly');
   root.hidden = true;
 
-  /* Which thumb carries what. Mode 2 until the shell says otherwise, which
-   * is what this overlay has always been. See stickmode.js. */
   let layout = stickChannels(DEFAULT_STICK_MODE);
-  const left = makePlate(stickCaption(layout.mode, 'left', ' · '));
-  left.zone.classList.add('touch-zone-left');
-  const right = makePlate(stickCaption(layout.mode, 'right', ' · '));
-  right.zone.classList.add('touch-zone-right');
+  const value = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
 
-  const pause = el('button', 'bug-chip touch-pause', str('ui.pause'));
-  pause.type = 'button';
+  /* One gimbal: its elements, and the thumb that holds it, if any. */
+  function buildStick(side) {
+    const zone = node('div', `touch-zone touch-zone-${side}`);
+    const gimbal = node('div', 'touch-gimbal');
+    const plate = node('div', 'osd-gimbal-plate touch-plate');
+    const nub = node('div', 'osd-nub touch-nub');
+    plate.append(node('div', 'osd-cross-x'), node('div', 'osd-cross-y'), nub);
+    const cap = node('div', 'osd-gimbal-cap', stickCaption(layout.mode, side, CAPTION_SEP));
+    gimbal.append(plate, cap);
+    zone.append(gimbal);
+    return { side, zone, plate, nub, cap, thumb: null };
+  }
+  const sticks = [buildStick('left'), buildStick('right')];
+  const channelsOf = (stick) => layout[stick.side];
+
+  function letGo(stick) {
+    stick.thumb = null;
+    stick.plate.classList.remove('is-held');
+  }
+
+  /* Releases every thumb and puts the sprung channels straight back to
+   * centre; used when the sticks change meaning or leave the screen, where
+   * a slow spring would fly the craft on input nobody is giving. */
+  function dropAll() {
+    for (const stick of sticks) {
+      letGo(stick);
+    }
+    value.roll = 0;
+    value.pitch = 0;
+    value.yaw = 0;
+  }
+
+  function follow(stick, e) {
+    const t = stick.thumb;
+    const { horiz, vert } = channelsOf(stick);
+    value[horiz] = within((e.clientX - t.x0) / t.sprungSpan, -1, 1);
+    const dy = e.clientY - t.y0;
+    value[vert] = vert === 'throttle'
+      ? within(t.throttleAtDown - dy / t.throttleSpan, 0, 1)
+      : within(dy / t.sprungSpan, -1, 1);
+  }
+
+  for (const stick of sticks) {
+    const { zone } = stick;
+    zone.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' || stick.thumb) {
+        return;
+      }
+      e.preventDefault();
+      zone.setPointerCapture(e.pointerId);
+      /* Spans are fixed at touchdown so a layout change mid drag cannot
+       * move the stick under a still thumb. */
+      const box = stick.plate.getBoundingClientRect();
+      stick.thumb = {
+        id: e.pointerId,
+        x0: e.clientX,
+        y0: e.clientY,
+        sprungSpan: Math.max(SPRUNG_SPAN_OF_WIDTH * box.width, SPRUNG_SPAN_MIN_PX),
+        throttleSpan: Math.max(box.height, THROTTLE_SPAN_MIN_PX),
+        throttleAtDown: value.throttle,
+      };
+      stick.plate.classList.add('is-held');
+    });
+    zone.addEventListener('pointermove', (e) => {
+      if (!stick.thumb || stick.thumb.id !== e.pointerId) {
+        return;
+      }
+      e.preventDefault();
+      follow(stick, e);
+    });
+    const lift = (e) => {
+      if (stick.thumb && stick.thumb.id === e.pointerId) {
+        letGo(stick);
+      }
+    };
+    zone.addEventListener('pointerup', lift);
+    zone.addEventListener('pointercancel', lift);
+    /* A long press on glass opens a context menu over the stick. */
+    zone.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  const pause = node('button', 'bug-chip touch-pause', str('ui.pause'));
   pause.addEventListener('click', () => {
     if (onPause) {
       onPause();
     }
   });
-
-  /* The swap in place (src/main.js hotSwap), under Pause: a thumb has no
-   * Tab key. */
-  const swap = el('button', 'bug-chip touch-swap', str('ui.aircraft'));
-  swap.type = 'button';
+  const swap = node('button', 'bug-chip touch-swap', str('ui.aircraft'));
   swap.addEventListener('click', () => {
     if (onSwap) {
       onSwap();
     }
   });
+  /* Shown by the stylesheet in portrait, where two thumbs do not fit. */
+  const rotate = node('div', 'touch-rotate', str('touchsticks.turn_your_phone_sideways_to_fly'));
+  root.append(sticks[0].zone, sticks[1].zone, pause, swap, rotate);
 
-  const rotate = el('div', 'touch-rotate', str('touchsticks.turn_your_phone_sideways_to_fly'));
-
-  root.append(left.zone, right.zone, pause, swap, rotate);
-
-  /* The channel state. `springing` marks channels whose thumb has lifted
-   * and which sample() is still walking back to centre. */
-  const ch = {
-    roll: 0, pitch: 0, yaw: 0, throttle: 0,
-  };
-  const grip = {
-    left: null, /* { id, x, y, throttle } */
-    right: null, /* { id, x, y } */
-  };
-  let visible = false;
-
-  /* Full deflection is TRAVEL_FRACTION of the plate's width of thumb
-   * travel, measured off the plate actually drawn so the feel follows
-   * the size on this screen. The height is the throttle's own scale. */
-  function travelOf(plate) {
-    const r = plate.getBoundingClientRect();
-    return {
-      deflect: Math.max(40, r.width * TRAVEL_FRACTION),
-      sweep: Math.max(60, r.height),
-    };
-  }
-
-  function bindZone(side, stick) {
-    const { zone, plate } = stick;
-    zone.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'touch' || grip[side]) {
-        return;
-      }
-      e.preventDefault();
-      zone.setPointerCapture(e.pointerId);
-      const t = travelOf(plate);
-      grip[side] = {
-        id: e.pointerId,
-        x: e.clientX,
-        y: e.clientY,
-        throttle: ch.throttle,
-        deflect: t.deflect,
-        sweep: t.sweep,
-      };
-      plate.classList.add('is-held');
-    });
-    zone.addEventListener('pointermove', (e) => {
-      const g = grip[side];
-      if (!g || e.pointerId !== g.id) {
-        return;
-      }
-      e.preventDefault();
-      const dx = (e.clientX - g.x) / g.deflect;
-      const dyPx = g.y - e.clientY;
-      /* The plate writes whichever channels this mode put under this thumb.
-       * It used to branch on the side, which is the same thing only in
-       * Mode 2. */
-      const map = layout[side];
-      ch[map.horiz] = clamp(dx, -1, 1);
-      if (map.vert === 'throttle') {
-        /* One plate height is one full throttle sweep, a radio's ratio,
-         * on its own scale so tuning the deflection travel cannot push
-         * full throttle off the glass. */
-        ch.throttle = clamp(g.throttle + dyPx / g.sweep, 0, 1);
-      } else {
-        ch.pitch = clamp(-(dyPx / g.deflect), -1, 1);
-      }
-    });
-    const drop = (e) => {
-      const g = grip[side];
-      if (!g || e.pointerId !== g.id) {
-        return;
-      }
-      grip[side] = null;
-      plate.classList.remove('is-held');
-    };
-    zone.addEventListener('pointerup', drop);
-    zone.addEventListener('pointercancel', drop);
-    /* A long press is a stick hold, not a text selection. */
-    zone.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
-  bindZone('left', left);
-  bindZone('right', right);
-
-  function springToward(value, step) {
-    if (value > 0) {
-      return Math.max(0, value - step);
-    }
-    return Math.min(0, value + step);
-  }
+  /* Where a channel sits on its plate's vertical, -1 bottom to 1 top.
+   * Throttle runs 0 to 1, and pushing a pitch stick up is negative pitch. */
+  const upness = (ch) => (ch === 'throttle' ? value.throttle * 2 - 1 : -value[ch]);
 
   return {
     root,
-
-    /* The InputManager source contract: active() gates the poll branch,
-     * sample(dtMs) advances the springs and returns the channels. The
-     * throttle deliberately never springs; see the header. */
     active() {
-      return visible;
+      return !root.hidden;
     },
+    /* The sticks as of this frame, after `dtMs` of spring on any channel
+     * whose thumb has lifted. Throttle never springs. */
     sample(dtMs) {
-      const step = SPRING_RATE * (Math.min(dtMs, 100) / 1000);
-      for (const side of ['left', 'right']) {
-        if (grip[side]) {
+      const step = (RETURN_PER_SEC * dtMs) / 1000;
+      for (const stick of sticks) {
+        if (stick.thumb) {
           continue;
         }
-        const map = layout[side];
-        ch[map.horiz] = springToward(ch[map.horiz], step);
-        /* Throttle never springs, whichever thumb is holding it. */
-        if (map.vert !== 'throttle') {
-          ch[map.vert] = springToward(ch[map.vert], step);
+        for (const ch of [channelsOf(stick).horiz, channelsOf(stick).vert]) {
+          if (ch !== 'throttle') {
+            const v = value[ch];
+            value[ch] = v > 0 ? Math.max(0, v - step) : Math.min(0, v + step);
+          }
         }
       }
-      return { ...ch };
+      return { roll: value.roll, pitch: value.pitch, yaw: value.yaw, throttle: value.throttle };
     },
-
-    /*
-     * The pilot's stick mode. The captions are redrawn with it, because a
-     * plate labelled for the wrong mode is worse than one with no label at
-     * all. Any grip is released on the same call, so a thumb that was
-     * flying throttle is not left holding pitch at whatever the throttle
-     * happened to be.
-     */
     setStickMode(mode) {
-      const next = stickChannels(mode);
-      if (next.mode === layout.mode) {
+      if (normaliseStickMode(mode) === layout.mode) {
         return;
       }
-      layout = next;
-      grip.left = null;
-      grip.right = null;
-      left.plate.classList.remove('is-held');
-      right.plate.classList.remove('is-held');
-      ch.roll = 0;
-      ch.pitch = 0;
-      ch.yaw = 0;
-      left.cap.textContent = stickCaption(layout.mode, 'left', ' · ');
-      right.cap.textContent = stickCaption(layout.mode, 'right', ' · ');
+      layout = stickChannels(mode);
+      dropAll();
+      for (const stick of sticks) {
+        stick.cap.textContent = stickCaption(layout.mode, stick.side, CAPTION_SEP);
+      }
     },
-
-    /* Shown in flight, hidden everywhere else; the shell owns the call.
-     * Hiding drops any held grip, because the pointer capture dies with
-     * the layout and a grip that survived it would fly a stale thumb. */
     setVisible(on) {
-      const want = Boolean(on);
-      if (want === visible) {
-        return;
-      }
-      visible = want;
-      root.hidden = !want;
-      if (!want) {
-        grip.left = null;
-        grip.right = null;
-        left.plate.classList.remove('is-held');
-        right.plate.classList.remove('is-held');
-        /* Pointer capture dies with the overlay. Leaving roll and pitch
-         * where they were made Resume inherit a poke the thumb was no
-         * longer making. Throttle stays: it is sticky on a radio too. */
-        ch.roll = 0;
-        ch.pitch = 0;
-        ch.yaw = 0;
+      root.hidden = !on;
+      if (!on) {
+        dropAll();
       }
     },
-
-    /* Once per rendered frame, from the shell's loop, and only while
-     * shown: the nubs draw the CHANNELS, springs included, in the same
-     * mapping placeSticks uses for the keyboard ghost. */
     paint() {
-      if (!visible) {
+      if (root.hidden) {
         return;
       }
-      for (const side of ['left', 'right']) {
-        const map = layout[side];
-        const stick = side === 'left' ? left : right;
-        const vert = map.vert === 'throttle' ? ch.throttle * 2 - 1 : -ch.pitch;
-        stick.nub.style.left = `${50 + ch[map.horiz] * 50}%`;
-        stick.nub.style.top = `${50 - vert * 50}%`;
+      for (const stick of sticks) {
+        const { horiz, vert } = channelsOf(stick);
+        stick.nub.style.left = `${50 + value[horiz] * 50}%`;
+        stick.nub.style.top = `${50 - upness(vert) * 50}%`;
       }
     },
-
-    /* A fresh craft gets fresh sticks, throttle included: resetCraft
-     * zeroes the keyboard for the same reason, and a crash recovery that
-     * kept a sticky full throttle would relaunch the wreck by itself. */
     reset() {
-      ch.roll = 0;
-      ch.pitch = 0;
-      ch.yaw = 0;
-      ch.throttle = 0;
-      grip.left = null;
-      grip.right = null;
-      left.plate.classList.remove('is-held');
-      right.plate.classList.remove('is-held');
+      dropAll();
+      value.throttle = 0;
     },
-
-    /* Harness window: what the overlay believes, for scripts/shots.js. */
     debug() {
       return {
-        visible,
-        channels: { ...ch },
-        held: { left: Boolean(grip.left), right: Boolean(grip.right) },
+        visible: !root.hidden,
+        channels: { ...value },
+        held: { left: Boolean(sticks[0].thumb), right: Boolean(sticks[1].thumb) },
       };
     },
   };
