@@ -73,6 +73,7 @@
     "ghost:golden": "node scripts/ghost-golden.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
+    "collide:golden": "node scripts/collide-golden.js",
     "crash:core": "node scripts/crash-core-selftest.js",
     "crash:handoff": "node scripts/solid-handoff-check.js",
     "crash:identity": "node scripts/crash-identity.js",

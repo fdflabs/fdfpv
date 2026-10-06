@@ -56,7 +56,6 @@ scripts/trick-sweep.js
 scripts/wall-check.js
 src/boot.js
 src/game/airframehull.js
-src/game/collide.js
 src/game/proven.js
 src/game/verify.js
 src/main.js
