@@ -5,7 +5,9 @@
  * M1 section (from the owner's mission script v1.0): its stages (the
  * script's checkpoint names), triggers, objectives, recovery, dials,
  * stars, flags, roles and radio. Text is string keys only; the voices are
- * a later track and the line ids are the contract with it.
+ * lines.json's, by line id. A primary objective's `guide` is the line its
+ * role's guide says when it becomes a screen's objective (one id, or one
+ * per role id; src/share/ops/guide.js).
  *
  * Positions are the ops frame (z up, metres). The places are WORLD's
  * (src/share/interior/places.js, routes.js: docs/campaign/interior/
@@ -27,20 +29,20 @@
  *                                      over when its walker is gone
  *   bravo-moto                         the motorcycle on the colonia's road
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { threePosToDoc } from '../../../render/frame.js';
@@ -270,7 +272,7 @@ export default {
       cues: [{ at: 0, spawn: CAMP.map((id) => ({ id, route: `${id}-loop` })) }],
       objectives: [
         {
-          id: 'launch', text: 'ops.interior.m1.obj.launch', tier: 'primary', done: { above: 500, roles: ['isr'] },
+          id: 'launch', text: 'ops.interior.m1.obj.launch', tier: 'primary', done: { above: 500, roles: ['isr'] }, guide: { isr: 'int1-g-launch', tracker: 'int1-g-tr-launch' },
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -281,13 +283,13 @@ export default {
       title: 'ops.interior.m1.s2',
       objectives: [
         {
-          id: 'alpha', text: 'ops.interior.m1.obj.alpha', tier: 'primary', done: { captured: { set: 'alpha' }, n: 3 },
+          id: 'alpha', text: 'ops.interior.m1.obj.alpha', tier: 'primary', done: { captured: { set: 'alpha' }, n: 3 }, guide: 'int1-g-alpha',
         },
         {
           id: 'burned', text: 'ops.interior.m1.obj.burned', tier: 'optional', done: { captured: 'burned' },
         },
         {
-          id: 'bravo', text: 'ops.interior.m1.obj.bravo', tier: 'primary', after: 'alpha', done: { captured: { set: 'bravo' }, n: 2 },
+          id: 'bravo', text: 'ops.interior.m1.obj.bravo', tier: 'primary', after: 'alpha', done: { captured: { set: 'bravo' }, n: 2 }, guide: 'int1-g-bravo',
         },
       ],
       cues: [
@@ -312,7 +314,7 @@ export default {
       title: 'ops.interior.m1.s3',
       objectives: [
         {
-          id: 'charlie', text: 'ops.interior.m1.obj.charlie', tier: 'primary', done: { discovered: 'pair' },
+          id: 'charlie', text: 'ops.interior.m1.obj.charlie', tier: 'primary', done: { discovered: 'pair' }, guide: 'int1-g-charlie',
         },
       ],
       cues: [
@@ -347,7 +349,7 @@ export default {
       title: 'ops.interior.m1.s4',
       objectives: [
         {
-          id: 'observe', text: 'ops.interior.m1.obj.observe', tier: 'primary', done: { route: 'pair', point: 'camp-edge' },
+          id: 'observe', text: 'ops.interior.m1.obj.observe', tier: 'primary', done: { route: 'pair', point: 'camp-edge' }, guide: { isr: 'int1-g-follow', tracker: 'int1-g-tr-follow' },
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -386,7 +388,7 @@ export default {
       title: 'ops.interior.m1.s5',
       objectives: [
         {
-          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 },
+          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 }, guide: 'int1-g-camp',
         },
         {
           id: 'lookout', text: 'ops.interior.m1.obj.lookout', tier: 'optional', done: { captured: 'lookout' },
@@ -401,7 +403,7 @@ export default {
           id: 'distant', text: 'ops.interior.m1.obj.distant', tier: 'optional', done: { vanished: 'camp', watched: true },
         },
         {
-          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', after: 'document', done: { landed: 'pista-cero', roles: ['isr'] },
+          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', after: 'document', done: { landed: 'pista-cero', roles: ['isr'] }, guide: 'int1-g-rtb',
         },
       ],
       cues: [

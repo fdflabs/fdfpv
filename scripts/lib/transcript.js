@@ -11,20 +11,20 @@
  * writes the transcript, so a failing digest can be diffed against the
  * same dump taken at the old revision.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { createHash } from 'node:crypto';
@@ -42,7 +42,11 @@ export function canon(v, seen = new Set()) {
   const frozen = Object.isFrozen(v) ? '!' : '';
   let out;
   if (Array.isArray(v)) {
-    out = `${frozen}[${v.map((x) => canon(x, seen)).join(',')}]`;
+    // Array.from rather than map: an array carrying its own `constructor`
+    // property (a malformed stored blob can) breaks map's species lookup.
+    const extra = Object.keys(v).filter((k) => !/^\d+$/.test(k));
+    const props = extra.map((k) => `,${JSON.stringify(k)}:${canon(v[k], seen)}`).join('');
+    out = `${frozen}[${Array.from(v, (x) => canon(x, seen)).join(',')}${props}]`;
   } else if (v instanceof Map) {
     out = `${frozen}Map{${[...v].map(([k, x]) => `${canon(k, seen)}=>${canon(x, seen)}`).join(',')}}`;
   } else if (v instanceof Set) {

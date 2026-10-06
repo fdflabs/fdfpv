@@ -1,0 +1,2034 @@
+{
+ "integrated": [
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A6) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) HD Graphics 520, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) HD Graphics 4000 Direct3D9Ex vs_3_0 ps_3_0, igdumdim64.dll)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A770 Graphics (0x000056A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(TM) Plus Graphics OpenGL Engine, OpenGL 4.1)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX Vega 8 Graphics, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 7900 XTX Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (AMD, Radeon RX 580 Series Direct3D11 vs_5_0 ps_5_0, D3D11-27.20.20903.8001)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Pro 5500M OpenGL Engine, OpenGL 4.1)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce GTX 1650, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Ti Direct3D12 vs_5_1 ps_5_1, D3D12)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2, OpenGL 4.5.0 NVIDIA 595.45.04)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce RTX 4070, Vulkan 1.3.277)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.242 (NVIDIA NVIDIA GeForce RTX 3080 (0x00002206)), NVIDIA)",
+   false
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   false
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero), SwiftShader driver)",
+   false
+  ],
+  [
+   "ANGLE (Mesa, llvmpipe (LLVM 15.0.7, 256 bits), OpenGL 4.5)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Graphics (renoir, LLVM 15.0.7, DRM 3.49, 6.1.0-18-amd64), OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Custom GPU 0405 (vangogh, LLVM 15.0.7, DRM 3.54), OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "Mesa Intel(R) UHD Graphics 620 (KBL GT2)",
+   true
+  ],
+  [
+   "Mesa Intel(R) Xe Graphics (TGL GT2)",
+   false
+  ],
+  [
+   "AMD Radeon RX 6800 (navi21, LLVM 15.0.7, DRM 3.49, 6.1.0)",
+   false
+  ],
+  [
+   "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2",
+   false
+  ],
+  [
+   "llvmpipe (LLVM 15.0.7, 256 bits)",
+   false
+  ],
+  [
+   "softpipe",
+   false
+  ],
+  [
+   "lavapipe",
+   false
+  ],
+  [
+   "GDI Generic",
+   false
+  ],
+  [
+   "Mali-G78",
+   true
+  ],
+  [
+   "Mali-G715-Immortalis MC11",
+   true
+  ],
+  [
+   "Adreno (TM) 650",
+   true
+  ],
+  [
+   "Adreno (TM) 740",
+   true
+  ],
+  [
+   "PowerVR Rogue GE8320",
+   true
+  ],
+  [
+   "VideoCore IV HW",
+   true
+  ],
+  [
+   "V3D 4.2",
+   false
+  ],
+  [
+   "Apple GPU",
+   false
+  ],
+  [
+   "Apple M1",
+   false
+  ],
+  [
+   "WebKit WebGL",
+   false
+  ],
+  [
+   "WebGL",
+   false
+  ],
+  [
+   "Mozilla",
+   false
+  ],
+  [
+   "ANGLE",
+   false
+  ],
+  [
+   "ANGLE ()",
+   false
+  ],
+  [
+   "ANGLE (Intel)",
+   false
+  ],
+  [
+   "ANGLE (Intel, )",
+   false
+  ],
+  [
+   "ANGLE (A, B)",
+   false
+  ],
+  [
+   "ANGLE (A, B, C, D)",
+   false
+  ],
+  [
+   "  ANGLE (NVIDIA, NVIDIA GeForce GTX 980, D3D11)  ",
+   false
+  ],
+  [
+   "Intel Intel(R) HD Graphics 630",
+   true
+  ],
+  [
+   "NVIDIA NVIDIA GeForce GTX 970",
+   false
+  ],
+  [
+   "Qualcomm qualcomm Adreno 630",
+   true
+  ],
+  [
+   "Radeon (TM) Graphics",
+   true
+  ],
+  [
+   "AMD Radeon Vega 3 Graphics",
+   true
+  ],
+  [
+   "Vega10",
+   false
+  ],
+  [
+   "D3D11 only",
+   false
+  ],
+  [
+   "OpenGL ES 3.2",
+   false
+  ],
+  [
+   "Something (0xABCDEF) else",
+   false
+  ],
+  [
+   "",
+   false
+  ],
+  [
+   "null",
+   false
+  ],
+  [
+   "undefined",
+   false
+  ],
+  [
+   "0",
+   false
+  ],
+  [
+   "42",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) UHD Graphics 770 (0x00005678)), Intel driver)",
+   true
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) UHD Graphics 770, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) UHD Graphics 770, D3D11)",
+   true
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (ADL-S GT1)",
+   true
+  ],
+  [
+   "Intel Intel(R) UHD Graphics 770",
+   true
+  ],
+  [
+   "  Intel(R) UHD Graphics 770   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Iris(R) Xe Graphics (0x00005678)), Intel driver)",
+   true
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(R) Xe Graphics, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) Iris(R) Xe Graphics, D3D11)",
+   true
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (ADL-S GT1)",
+   true
+  ],
+  [
+   "Intel Intel(R) Iris(R) Xe Graphics",
+   true
+  ],
+  [
+   "  Intel(R) Iris(R) Xe Graphics   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics, OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Arc(TM) A380 Graphics (0x00005678)), Intel driver)",
+   false
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Arc(TM) A380 Graphics, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) Arc(TM) A380 Graphics, D3D11)",
+   false
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (ADL-S GT1)",
+   false
+  ],
+  [
+   "Intel Intel(R) Arc(TM) A380 Graphics",
+   false
+  ],
+  [
+   "  Intel(R) Arc(TM) A380 Graphics   ps_5_0  ",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon(TM) Graphics (0x00005678)), AMD driver)",
+   true
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon(TM) Graphics, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon(TM) Graphics, D3D11)",
+   true
+  ],
+  [
+   "AMD Radeon(TM) Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "AMD Radeon(TM) Graphics (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "AMD Radeon(TM) Graphics (ADL-S GT1)",
+   true
+  ],
+  [
+   "AMD AMD Radeon(TM) Graphics",
+   true
+  ],
+  [
+   "  AMD Radeon(TM) Graphics   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT, OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon RX 6700 XT (0x00005678)), AMD driver)",
+   false
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon RX 6700 XT, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon RX 6700 XT, D3D11)",
+   false
+  ],
+  [
+   "AMD Radeon RX 6700 XT (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "AMD Radeon RX 6700 XT (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "AMD Radeon RX 6700 XT (ADL-S GT1)",
+   false
+  ],
+  [
+   "AMD AMD Radeon RX 6700 XT",
+   false
+  ],
+  [
+   "  AMD Radeon RX 6700 XT   ps_5_0  ",
+   false
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon Vega 11 Graphics (0x00005678)), AMD driver)",
+   true
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Vega 11 Graphics, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon Vega 11 Graphics, D3D11)",
+   true
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (ADL-S GT1)",
+   true
+  ],
+  [
+   "AMD AMD Radeon Vega 11 Graphics",
+   true
+  ],
+  [
+   "  AMD Radeon Vega 11 Graphics   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER, OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce RTX 2070 SUPER (0x00005678)), NVIDIA driver)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce RTX 2070 SUPER, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce RTX 2070 SUPER, D3D11)",
+   false
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (ADL-S GT1)",
+   false
+  ],
+  [
+   "NVIDIA NVIDIA GeForce RTX 2070 SUPER",
+   false
+  ],
+  [
+   "  NVIDIA GeForce RTX 2070 SUPER   ps_5_0  ",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350, OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce MX350 (0x00005678)), NVIDIA driver)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce MX350, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce MX350, D3D11)",
+   false
+  ],
+  [
+   "NVIDIA GeForce MX350 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "NVIDIA GeForce MX350 (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "NVIDIA GeForce MX350 (ADL-S GT1)",
+   false
+  ],
+  [
+   "NVIDIA NVIDIA GeForce MX350",
+   false
+  ],
+  [
+   "  NVIDIA GeForce MX350   ps_5_0  ",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max, OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Vulkan 1.3.260 (Apple M2 Max (0x00005678)), Apple driver)",
+   false
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (Apple, Apple Apple M2 Max, D3D11)",
+   false
+  ],
+  [
+   "Apple M2 Max (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "Apple M2 Max (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "Apple M2 Max (ADL-S GT1)",
+   false
+  ],
+  [
+   "Apple Apple M2 Max",
+   false
+  ],
+  [
+   "  Apple M2 Max   ps_5_0  ",
+   false
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Vulkan 1.3.260 (Adreno (TM) 730 (0x00005678)), Qualcomm driver)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, ANGLE Metal Renderer: Adreno (TM) 730, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (Qualcomm, Qualcomm Adreno (TM) 730, D3D11)",
+   true
+  ],
+  [
+   "Adreno (TM) 730 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "Adreno (TM) 730 (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "Adreno (TM) 730 (ADL-S GT1)",
+   true
+  ],
+  [
+   "Qualcomm Adreno (TM) 730",
+   true
+  ],
+  [
+   "  Adreno (TM) 730   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   true
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   true
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6, OpenGL ES 3.2)",
+   true
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   true
+  ],
+  [
+   "ANGLE (ARM, Vulkan 1.3.260 (Mali-G610 MC6 (0x00005678)), ARM driver)",
+   true
+  ],
+  [
+   "ANGLE (ARM, ANGLE Metal Renderer: Mali-G610 MC6, Unspecified Version)",
+   true
+  ],
+  [
+   "ANGLE (ARM, ARM Mali-G610 MC6, D3D11)",
+   true
+  ],
+  [
+   "Mali-G610 MC6 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   true
+  ],
+  [
+   "Mali-G610 MC6 (rembrandt, LLVM 16.0.6)",
+   true
+  ],
+  [
+   "Mali-G610 MC6 (ADL-S GT1)",
+   true
+  ],
+  [
+   "ARM Mali-G610 MC6",
+   true
+  ],
+  [
+   "  Mali-G610 MC6   ps_5_0  ",
+   true
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   false
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   false
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero), OpenGL ES 3.2)",
+   false
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   false
+  ],
+  [
+   "ANGLE (Google, Vulkan 1.3.260 (SwiftShader Device (Subzero) (0x00005678)), Google driver)",
+   false
+  ],
+  [
+   "ANGLE (Google, ANGLE Metal Renderer: SwiftShader Device (Subzero), Unspecified Version)",
+   false
+  ],
+  [
+   "ANGLE (Google, Google SwiftShader Device (Subzero), D3D11)",
+   false
+  ],
+  [
+   "SwiftShader Device (Subzero) (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   false
+  ],
+  [
+   "SwiftShader Device (Subzero) (rembrandt, LLVM 16.0.6)",
+   false
+  ],
+  [
+   "SwiftShader Device (Subzero) (ADL-S GT1)",
+   false
+  ],
+  [
+   "Google SwiftShader Device (Subzero)",
+   false
+  ],
+  [
+   "  SwiftShader Device (Subzero)   ps_5_0  ",
+   false
+  ]
+ ],
+ "read": {
+  "none": {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "No WebGL context. The world cannot draw."
+  },
+  "noGetParameter": {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "No WebGL context. The world cannot draw."
+  },
+  "lost": {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "The WebGL context was lost. Reload the page."
+  },
+  "discrete": {
+   "raw": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "integrated": false,
+   "vendor": "Google Inc. (NVIDIA)",
+   "name": "NVIDIA GeForce RTX 3060",
+   "display": "NVIDIA GeForce RTX 3060",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "NVIDIA GeForce RTX 3060. WebGL is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "discrete2": {
+   "raw": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "integrated": false,
+   "vendor": "Google Inc. (NVIDIA)",
+   "name": "NVIDIA GeForce RTX 3060",
+   "display": "NVIDIA GeForce RTX 3060",
+   "software": false,
+   "usable": true,
+   "webgl2": true,
+   "hidden": false,
+   "note": "NVIDIA GeForce RTX 3060. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "integrated": {
+   "raw": "ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "integrated": true,
+   "vendor": "Google Inc. (Intel)",
+   "name": "Intel(R) UHD Graphics 620",
+   "display": "Intel(R) UHD Graphics 620",
+   "software": false,
+   "usable": true,
+   "webgl2": true,
+   "hidden": false,
+   "note": "Intel(R) UHD Graphics 620. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "software": {
+   "raw": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   "integrated": false,
+   "vendor": "Google Inc. (Google)",
+   "name": "Google Inc. (Google)",
+   "display": "Software (Google Inc. (Google))",
+   "software": true,
+   "usable": true,
+   "webgl2": true,
+   "hidden": false,
+   "note": "WebGL 2 is running on the CPU, not a GPU (ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)). Headless Chrome does this. Low is the preset that will run. Nothing is uploaded."
+  },
+  "softwareBare": {
+   "raw": "SwiftShader",
+   "integrated": false,
+   "vendor": "",
+   "name": "SwiftShader",
+   "display": "Software (SwiftShader)",
+   "software": true,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "WebGL is running on the CPU, not a GPU (SwiftShader). Headless Chrome does this. Low is the preset that will run. Nothing is uploaded."
+  },
+  "appleGpu": {
+   "raw": "Apple GPU",
+   "integrated": false,
+   "vendor": "Apple Inc.",
+   "name": "Apple GPU",
+   "display": "Apple GPU",
+   "software": false,
+   "usable": true,
+   "webgl2": true,
+   "hidden": false,
+   "note": "Apple GPU. WebGL 2 is drawing. Safari hides the chip model. On a dual-GPU machine this is the device the tab bound after asking for high-performance. Nothing is uploaded."
+  },
+  "hidden": {
+   "raw": "WebKit WebGL",
+   "integrated": false,
+   "vendor": "WebKit",
+   "name": "WebKit WebGL",
+   "display": "Hidden by this browser",
+   "software": false,
+   "usable": true,
+   "webgl2": true,
+   "hidden": true,
+   "note": "WebGL 2 is drawing, so a GPU is in use, but this browser will not name the chip. Firefox's resist-fingerprinting and some Safari builds do that. Nothing is uploaded."
+  },
+  "hiddenMozilla": {
+   "raw": "Mozilla",
+   "integrated": false,
+   "vendor": "Mozilla",
+   "name": "Mozilla",
+   "display": "Hidden by this browser",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": true,
+   "note": "WebGL is drawing, so a GPU is in use, but this browser will not name the chip. Firefox's resist-fingerprinting and some Safari builds do that. Nothing is uploaded."
+  },
+  "nothing": {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Hidden by this browser",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": true,
+   "note": "WebGL is drawing, so a GPU is in use, but this browser will not name the chip. Firefox's resist-fingerprinting and some Safari builds do that. Nothing is uploaded."
+  },
+  "vendorOnly": {
+   "raw": "",
+   "integrated": false,
+   "vendor": "Qualcomm",
+   "name": "Qualcomm",
+   "display": "Qualcomm",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "Qualcomm. WebGL is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "debugThrows": {
+   "raw": "Adreno (TM) 650",
+   "integrated": true,
+   "vendor": "Qualcomm",
+   "name": "Adreno (TM) 650",
+   "display": "Adreno (TM) 650",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "Adreno (TM) 650. WebGL is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "basicFallback": {
+   "raw": "Mali-G78",
+   "integrated": true,
+   "vendor": "ARM",
+   "name": "Mali-G78",
+   "display": "Mali-G78",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "Mali-G78. WebGL is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  },
+  "mesa": {
+   "raw": "Mesa Intel(R) Xe Graphics (TGL GT2)",
+   "integrated": false,
+   "vendor": "Intel",
+   "name": "Mesa Intel(R) Xe Graphics (TGL GT2)",
+   "display": "Mesa Intel(R) Xe Graphics (TGL GT2)",
+   "software": false,
+   "usable": true,
+   "webgl2": false,
+   "hidden": false,
+   "note": "Mesa Intel(R) Xe Graphics (TGL GT2). WebGL is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+  }
+ },
+ "readNothing": [
+  {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "No WebGL context. The world cannot draw."
+  },
+  {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "No WebGL context. The world cannot draw."
+  },
+  {
+   "raw": "",
+   "integrated": false,
+   "vendor": "",
+   "name": "",
+   "display": "Unknown",
+   "software": false,
+   "usable": false,
+   "webgl2": false,
+   "hidden": true,
+   "note": "No WebGL context. The world cannot draw."
+  }
+ ],
+ "readRenderer": {
+  "raw": "ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "integrated": true,
+  "vendor": "Google Inc. (Intel)",
+  "name": "Intel(R) UHD Graphics 620",
+  "display": "Intel(R) UHD Graphics 620",
+  "software": false,
+  "usable": true,
+  "webgl2": true,
+  "hidden": false,
+  "note": "Intel(R) UHD Graphics 620. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded."
+ },
+ "tidy": [
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) UHD Graphics 620"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A6) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) HD Graphics 520, D3D11)",
+   "Intel(R) HD Graphics 520"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) HD Graphics 4000 Direct3D9Ex vs_3_0 ps_3_0, igdumdim64.dll)",
+   "Intel(R) HD Graphics 4000 Direct3D9Ex"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A770 Graphics (0x000056A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Arc(TM) A770 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(TM) Plus Graphics OpenGL Engine, OpenGL 4.1)",
+   "Intel(R) Iris(TM) Plus Graphics OpenGL Engine"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX Vega 8 Graphics, D3D11)",
+   "AMD Radeon RX Vega 8 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 7900 XTX Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon RX 7900 XTX"
+  ],
+  [
+   "ANGLE (AMD, Radeon RX 580 Series Direct3D11 vs_5_0 ps_5_0, D3D11-27.20.20903.8001)",
+   "Radeon RX 580 Series"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Pro 5500M OpenGL Engine, OpenGL 4.1)",
+   "AMD Radeon Pro 5500M OpenGL Engine"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "NVIDIA GeForce RTX 3060"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce GTX 1650, D3D11)",
+   "NVIDIA GeForce GTX 1650"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Ti Direct3D12 vs_5_1 ps_5_1, D3D12)",
+   "NVIDIA GeForce GTX 1050 Ti"
+  ],
+  [
+   "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2, OpenGL 4.5.0 NVIDIA 595.45.04)",
+   "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce RTX 4070, Vulkan 1.3.277)",
+   "NVIDIA GeForce RTX 4070"
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.242 (NVIDIA NVIDIA GeForce RTX 3080 (0x00002206)), NVIDIA)",
+   ""
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+   "Apple M1 Pro"
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)",
+   "Apple M3"
+  ],
+  [
+   "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+   ""
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero), SwiftShader driver)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Mesa, llvmpipe (LLVM 15.0.7, 256 bits), OpenGL 4.5)",
+   "llvmpipe"
+  ],
+  [
+   "ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)",
+   "Mesa Intel(R) UHD Graphics 620 (KBL GT2)"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Graphics (renoir, LLVM 15.0.7, DRM 3.49, 6.1.0-18-amd64), OpenGL 4.6)",
+   "AMD Radeon Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Custom GPU 0405 (vangogh, LLVM 15.0.7, DRM 3.54), OpenGL 4.6)",
+   "AMD Custom GPU 0405"
+  ],
+  [
+   "ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Microsoft Basic Render Driver"
+  ],
+  [
+   "Mesa Intel(R) UHD Graphics 620 (KBL GT2)",
+   "Mesa Intel(R) UHD Graphics 620 (KBL GT2)"
+  ],
+  [
+   "Mesa Intel(R) Xe Graphics (TGL GT2)",
+   "Mesa Intel(R) Xe Graphics (TGL GT2)"
+  ],
+  [
+   "AMD Radeon RX 6800 (navi21, LLVM 15.0.7, DRM 3.49, 6.1.0)",
+   "AMD Radeon RX 6800"
+  ],
+  [
+   "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2",
+   "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+  ],
+  [
+   "llvmpipe (LLVM 15.0.7, 256 bits)",
+   "llvmpipe"
+  ],
+  [
+   "softpipe",
+   "softpipe"
+  ],
+  [
+   "lavapipe",
+   "lavapipe"
+  ],
+  [
+   "GDI Generic",
+   "GDI Generic"
+  ],
+  [
+   "Mali-G78",
+   "Mali-G78"
+  ],
+  [
+   "Mali-G715-Immortalis MC11",
+   "Mali-G715-Immortalis MC11"
+  ],
+  [
+   "Adreno (TM) 650",
+   "Adreno (TM) 650"
+  ],
+  [
+   "Adreno (TM) 740",
+   "Adreno (TM) 740"
+  ],
+  [
+   "PowerVR Rogue GE8320",
+   "PowerVR Rogue GE8320"
+  ],
+  [
+   "VideoCore IV HW",
+   "VideoCore IV HW"
+  ],
+  [
+   "V3D 4.2",
+   "V3D 4.2"
+  ],
+  [
+   "Apple GPU",
+   "Apple GPU"
+  ],
+  [
+   "Apple M1",
+   "Apple M1"
+  ],
+  [
+   "WebKit WebGL",
+   "WebKit WebGL"
+  ],
+  [
+   "WebGL",
+   "WebGL"
+  ],
+  [
+   "Mozilla",
+   "Mozilla"
+  ],
+  [
+   "ANGLE",
+   "ANGLE"
+  ],
+  [
+   "ANGLE ()",
+   "ANGLE ()"
+  ],
+  [
+   "ANGLE (Intel)",
+   "Intel"
+  ],
+  [
+   "ANGLE (Intel, )",
+   "Intel"
+  ],
+  [
+   "ANGLE (A, B)",
+   "B"
+  ],
+  [
+   "ANGLE (A, B, C, D)",
+   "B, C"
+  ],
+  [
+   "  ANGLE (NVIDIA, NVIDIA GeForce GTX 980, D3D11)  ",
+   "NVIDIA GeForce GTX 980"
+  ],
+  [
+   "Intel Intel(R) HD Graphics 630",
+   "Intel Intel(R) HD Graphics 630"
+  ],
+  [
+   "NVIDIA NVIDIA GeForce GTX 970",
+   "NVIDIA GeForce GTX 970"
+  ],
+  [
+   "Qualcomm qualcomm Adreno 630",
+   "Qualcomm Adreno 630"
+  ],
+  [
+   "Radeon (TM) Graphics",
+   "Radeon (TM) Graphics"
+  ],
+  [
+   "AMD Radeon Vega 3 Graphics",
+   "AMD Radeon Vega 3 Graphics"
+  ],
+  [
+   "Vega10",
+   "Vega10"
+  ],
+  [
+   "D3D11 only",
+   "only"
+  ],
+  [
+   "OpenGL ES 3.2",
+   ""
+  ],
+  [
+   "Something (0xABCDEF) else",
+   "Something else"
+  ],
+  [
+   "",
+   ""
+  ],
+  [
+   "null",
+   ""
+  ],
+  [
+   "undefined",
+   ""
+  ],
+  [
+   "0",
+   ""
+  ],
+  [
+   "42",
+   "42"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770, OpenGL ES 3.2)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) UHD Graphics 770 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) UHD Graphics 770 (0x00005678)), Intel driver)",
+   ""
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) UHD Graphics 770, Unspecified Version)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) UHD Graphics 770, D3D11)",
+   "Intel Intel(R) UHD Graphics 770"
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (rembrandt, LLVM 16.0.6)",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "Intel(R) UHD Graphics 770 (ADL-S GT1)",
+   "Intel(R) UHD Graphics 770 (ADL-S GT1)"
+  ],
+  [
+   "Intel Intel(R) UHD Graphics 770",
+   "Intel Intel(R) UHD Graphics 770"
+  ],
+  [
+   "  Intel(R) UHD Graphics 770   ps_5_0  ",
+   "Intel(R) UHD Graphics 770"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics, OpenGL ES 3.2)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Iris(R) Xe Graphics (0x00005678)), Intel driver)",
+   ""
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(R) Xe Graphics, Unspecified Version)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) Iris(R) Xe Graphics, D3D11)",
+   "Intel Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (rembrandt, LLVM 16.0.6)",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "Intel(R) Iris(R) Xe Graphics (ADL-S GT1)",
+   "Intel(R) Iris(R) Xe Graphics (ADL-S GT1)"
+  ],
+  [
+   "Intel Intel(R) Iris(R) Xe Graphics",
+   "Intel Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "  Intel(R) Iris(R) Xe Graphics   ps_5_0  ",
+   "Intel(R) Iris(R) Xe Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics, OpenGL ES 3.2)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel(R) Arc(TM) A380 Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Vulkan 1.3.260 (Intel(R) Arc(TM) A380 Graphics (0x00005678)), Intel driver)",
+   ""
+  ],
+  [
+   "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Arc(TM) A380 Graphics, Unspecified Version)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (Intel, Intel Intel(R) Arc(TM) A380 Graphics, D3D11)",
+   "Intel Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (rembrandt, LLVM 16.0.6)",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "Intel(R) Arc(TM) A380 Graphics (ADL-S GT1)",
+   "Intel(R) Arc(TM) A380 Graphics (ADL-S GT1)"
+  ],
+  [
+   "Intel Intel(R) Arc(TM) A380 Graphics",
+   "Intel Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "  Intel(R) Arc(TM) A380 Graphics   ps_5_0  ",
+   "Intel(R) Arc(TM) A380 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics, OpenGL ES 3.2)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon(TM) Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon(TM) Graphics (0x00005678)), AMD driver)",
+   ""
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon(TM) Graphics, Unspecified Version)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon(TM) Graphics, D3D11)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "AMD Radeon(TM) Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "AMD Radeon(TM) Graphics (rembrandt, LLVM 16.0.6)",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "AMD Radeon(TM) Graphics (ADL-S GT1)",
+   "AMD Radeon(TM) Graphics (ADL-S GT1)"
+  ],
+  [
+   "AMD AMD Radeon(TM) Graphics",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "  AMD Radeon(TM) Graphics   ps_5_0  ",
+   "AMD Radeon(TM) Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT, OpenGL ES 3.2)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon RX 6700 XT OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon RX 6700 XT (0x00005678)), AMD driver)",
+   ""
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon RX 6700 XT, Unspecified Version)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon RX 6700 XT, D3D11)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "AMD Radeon RX 6700 XT (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "AMD Radeon RX 6700 XT (rembrandt, LLVM 16.0.6)",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "AMD Radeon RX 6700 XT (ADL-S GT1)",
+   "AMD Radeon RX 6700 XT (ADL-S GT1)"
+  ],
+  [
+   "AMD AMD Radeon RX 6700 XT",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "  AMD Radeon RX 6700 XT   ps_5_0  ",
+   "AMD Radeon RX 6700 XT"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics, OpenGL ES 3.2)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD Radeon Vega 11 Graphics OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, Vulkan 1.3.260 (AMD Radeon Vega 11 Graphics (0x00005678)), AMD driver)",
+   ""
+  ],
+  [
+   "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Vega 11 Graphics, Unspecified Version)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (AMD, AMD AMD Radeon Vega 11 Graphics, D3D11)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (rembrandt, LLVM 16.0.6)",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "AMD Radeon Vega 11 Graphics (ADL-S GT1)",
+   "AMD Radeon Vega 11 Graphics (ADL-S GT1)"
+  ],
+  [
+   "AMD AMD Radeon Vega 11 Graphics",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "  AMD Radeon Vega 11 Graphics   ps_5_0  ",
+   "AMD Radeon Vega 11 Graphics"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER, OpenGL ES 3.2)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 SUPER OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce RTX 2070 SUPER (0x00005678)), NVIDIA driver)",
+   ""
+  ],
+  [
+   "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce RTX 2070 SUPER, Unspecified Version)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce RTX 2070 SUPER, D3D11)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (rembrandt, LLVM 16.0.6)",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "NVIDIA GeForce RTX 2070 SUPER (ADL-S GT1)",
+   "NVIDIA GeForce RTX 2070 SUPER (ADL-S GT1)"
+  ],
+  [
+   "NVIDIA NVIDIA GeForce RTX 2070 SUPER",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "  NVIDIA GeForce RTX 2070 SUPER   ps_5_0  ",
+   "NVIDIA GeForce RTX 2070 SUPER"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350, OpenGL ES 3.2)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA GeForce MX350 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, Vulkan 1.3.260 (NVIDIA GeForce MX350 (0x00005678)), NVIDIA driver)",
+   ""
+  ],
+  [
+   "ANGLE (NVIDIA, ANGLE Metal Renderer: NVIDIA GeForce MX350, Unspecified Version)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (NVIDIA, NVIDIA NVIDIA GeForce MX350, D3D11)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "NVIDIA GeForce MX350 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "NVIDIA GeForce MX350 (rembrandt, LLVM 16.0.6)",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "NVIDIA GeForce MX350 (ADL-S GT1)",
+   "NVIDIA GeForce MX350 (ADL-S GT1)"
+  ],
+  [
+   "NVIDIA NVIDIA GeForce MX350",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "  NVIDIA GeForce MX350   ps_5_0  ",
+   "NVIDIA GeForce MX350"
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max, OpenGL ES 3.2)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Apple M2 Max OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Vulkan 1.3.260 (Apple M2 Max (0x00005678)), Apple driver)",
+   ""
+  ],
+  [
+   "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Apple, Apple Apple M2 Max, D3D11)",
+   "Apple M2 Max"
+  ],
+  [
+   "Apple M2 Max (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Apple M2 Max"
+  ],
+  [
+   "Apple M2 Max (rembrandt, LLVM 16.0.6)",
+   "Apple M2 Max"
+  ],
+  [
+   "Apple M2 Max (ADL-S GT1)",
+   "Apple M2 Max (ADL-S GT1)"
+  ],
+  [
+   "Apple Apple M2 Max",
+   "Apple M2 Max"
+  ],
+  [
+   "  Apple M2 Max   ps_5_0  ",
+   "Apple M2 Max"
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730, OpenGL ES 3.2)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Adreno (TM) 730 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Vulkan 1.3.260 (Adreno (TM) 730 (0x00005678)), Qualcomm driver)",
+   ""
+  ],
+  [
+   "ANGLE (Qualcomm, ANGLE Metal Renderer: Adreno (TM) 730, Unspecified Version)",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (Qualcomm, Qualcomm Adreno (TM) 730, D3D11)",
+   "Qualcomm Adreno (TM) 730"
+  ],
+  [
+   "Adreno (TM) 730 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Adreno"
+  ],
+  [
+   "Adreno (TM) 730 (rembrandt, LLVM 16.0.6)",
+   "Adreno"
+  ],
+  [
+   "Adreno (TM) 730 (ADL-S GT1)",
+   "Adreno (TM) 730 (ADL-S GT1)"
+  ],
+  [
+   "Qualcomm Adreno (TM) 730",
+   "Qualcomm Adreno (TM) 730"
+  ],
+  [
+   "  Adreno (TM) 730   ps_5_0  ",
+   "Adreno (TM) 730"
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6, OpenGL ES 3.2)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, Mali-G610 MC6 OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, Vulkan 1.3.260 (Mali-G610 MC6 (0x00005678)), ARM driver)",
+   ""
+  ],
+  [
+   "ANGLE (ARM, ANGLE Metal Renderer: Mali-G610 MC6, Unspecified Version)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (ARM, ARM Mali-G610 MC6, D3D11)",
+   "ARM Mali-G610 MC6"
+  ],
+  [
+   "Mali-G610 MC6 (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "Mali-G610 MC6 (rembrandt, LLVM 16.0.6)",
+   "Mali-G610 MC6"
+  ],
+  [
+   "Mali-G610 MC6 (ADL-S GT1)",
+   "Mali-G610 MC6 (ADL-S GT1)"
+  ],
+  [
+   "ARM Mali-G610 MC6",
+   "ARM Mali-G610 MC6"
+  ],
+  [
+   "  Mali-G610 MC6   ps_5_0  ",
+   "Mali-G610 MC6"
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) (0x00001234) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) Direct3D12 vs_5_1 ps_5_1, D3D12-31.0.101.4502)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero), OpenGL ES 3.2)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, SwiftShader Device (Subzero) OpenGL 4.6.0 Core Profile, OpenGL 4.6)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, Vulkan 1.3.260 (SwiftShader Device (Subzero) (0x00005678)), Google driver)",
+   ""
+  ],
+  [
+   "ANGLE (Google, ANGLE Metal Renderer: SwiftShader Device (Subzero), Unspecified Version)",
+   "SwiftShader Device (Subzero)"
+  ],
+  [
+   "ANGLE (Google, Google SwiftShader Device (Subzero), D3D11)",
+   "Google SwiftShader Device (Subzero)"
+  ],
+  [
+   "SwiftShader Device (Subzero) (LLVM 16.0.6, DRM 3.54, 6.5.0)",
+   "SwiftShader Device"
+  ],
+  [
+   "SwiftShader Device (Subzero) (rembrandt, LLVM 16.0.6)",
+   "SwiftShader Device"
+  ],
+  [
+   "SwiftShader Device (Subzero) (ADL-S GT1)",
+   "SwiftShader Device (Subzero) (ADL-S GT1)"
+  ],
+  [
+   "Google SwiftShader Device (Subzero)",
+   "Google SwiftShader Device (Subzero)"
+  ],
+  [
+   "  SwiftShader Device (Subzero)   ps_5_0  ",
+   "SwiftShader Device (Subzero)"
+  ]
+ ]
+}
