@@ -80,7 +80,8 @@ import { RESULT_MS } from '../edge/rooms/war.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { poseAt } from '../src/share/war/routes.js';
-import { MISSIONS, waveTarget } from '../src/share/war/missions/index.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { idsMayBe } from '../src/share/war/stages.js';
 
 const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -123,9 +124,11 @@ if (!MISSION) {
   throw new Error(`war-balance: no mission ${arg('mission', '')}`);
 }
 function damOf(mission) {
-  /* A working set's target may be any it is drawn from. */
-  const sets = Object.fromEntries(Object.entries(mission.sets ?? {}).map(([name, d]) => [name, d.from]));
-  const at = mission.waves.flatMap((w) => [0, 1, 2, 3, 4, 5].map((k) => waveTarget(w, k, sets))).filter(Boolean).map((id) => mission.targets[id].at);
+  /* A working set's target may be any it is drawn from (idsMayBe). */
+  const at = mission.waves.flatMap((w) => {
+    const may = idsMayBe(mission, w.target);
+    return [0, 1, 2, 3, 4, 5].map((k) => (may.length ? may[k % may.length] : null));
+  }).filter(Boolean).map((id) => mission.targets[id].at);
   return [0, 1, 2].map((i) => at.reduce((sum, p) => sum + p[i], 0) / at.length);
 }
 const SKILLS = {

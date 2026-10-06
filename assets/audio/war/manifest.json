@@ -9024,6 +9024,58 @@
     }
    }
   },
+  "itaipu-2-s1-eyes.en": {
+   "text": "Something high, circling slow. It's watching the right bank.",
+   "speaker": "mirador",
+   "seconds": 4.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3692731390,
+     "heard": "Something high, circling slow. It's watching the right bank.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18881,
+     "sha256": "77a2aa2587755446898b3628fa61e6a04f9f6f8b32af1a2e7d21eb7d38ed629e"
+    },
+    "mp3": {
+     "bytes": 17996,
+     "sha256": "0e568b067722f0adacfe285b975fdec686acab694c016c3db0cf77f2785d67f6"
+    }
+   }
+  },
+  "itaipu-2-s1-eyes.es": {
+   "text": "Algo en altura, dando vueltas lentas. Está mirando la margen derecha.",
+   "speaker": "mirador",
+   "seconds": 4.595,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3583899106,
+     "heard": "Algo en altura, dando vueltas lentas. Está mirando la margen derecha.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 90
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20776,
+     "sha256": "c1fd60ecd4dc173262d9efa5c24232479442b9cec6e7dd87429af975945b449e"
+    },
+    "mp3": {
+     "bytes": 19604,
+     "sha256": "c6055b73bcebbabefca62028f702f321a9ac2fd6a5691e0e56fea582a63a1fa1"
+    }
+   }
+  },
   "itaipu-2-s1-high.en": {
    "text": "Loiterers. They'll circle, then drop on the gates. Get above them.",
    "speaker": "crest",
@@ -9073,6 +9125,58 @@
     "mp3": {
      "bytes": 23588,
      "sha256": "8802feb0c8e42a8cc8c884574cf7ebc28c5fbbc38fcf1440f6876a75d4727a80"
+    }
+   }
+  },
+  "itaipu-2-s2-clear.en": {
+   "text": "Channel's clean. Nothing on the water.",
+   "speaker": "mirador",
+   "seconds": 2.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1032265588,
+     "heard": "Channels clean. Nothing on the water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12623,
+     "sha256": "c7f1c9149eb309cf4cf8c363317d4ff605dcb31f6ac34d42d416e4dcb054e7a0"
+    },
+    "mp3": {
+     "bytes": 12212,
+     "sha256": "ad819ec0cbf9559cb57c3960a810c2738ff0615d2b2c46f81673c90365d723d9"
+    }
+   }
+  },
+  "itaipu-2-s2-clear.es": {
+   "text": "El canal está limpio. Nada sobre el agua.",
+   "speaker": "mirador",
+   "seconds": 2.665,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1602288165,
+     "heard": "El canal está limpio, nada sobre el agua.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 70
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12290,
+     "sha256": "a54df58148528f871b6b73ccfb36664a74be2a15bce575379b43d3fa5fbc3158"
+    },
+    "mp3": {
+     "bytes": 12524,
+     "sha256": "142894e6cce56079276b4ceabbf2102107504ccaa41edac51a03a28d2010d3a1"
     }
    }
   },
@@ -9440,6 +9544,110 @@
     }
    }
   },
+  "itaipu-2-s4-hold.en": {
+   "text": "That's it. Keep that water running.",
+   "speaker": "taller",
+   "seconds": 2.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1357291902,
+     "heard": "That's it. Keep that water running.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10056,
+     "sha256": "e0c7dcf206911974185ef316251a48b7731b5ca8841b59ef255926462ee28ef9"
+    },
+    "mp3": {
+     "bytes": 10676,
+     "sha256": "a9a2df1ede3b535a4be6844ecd2720b193f1a9aa6d1a11475e6ddd70480d55bc"
+    }
+   }
+  },
+  "itaipu-2-s4-hold.es": {
+   "text": "Eso es. Que el agua siga corriendo.",
+   "speaker": "taller",
+   "seconds": 2.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1311328388,
+     "heard": "Eso es, que el agua siga corriendo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11076,
+     "sha256": "586516766fb8ef8981523dff13c27689919ad49bc88eb6e8b2ea45189a42445c"
+    },
+    "mp3": {
+     "bytes": 11708,
+     "sha256": "10b35cde7079081b1b45db59242c11b5c539b89500d6aae12897aa61b0436b0d"
+    }
+   }
+  },
+  "itaipu-2-s4-order.en": {
+   "text": "Stay on the working gates. Let the others go if you have to.",
+   "speaker": "crest",
+   "seconds": 4.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 35985842,
+     "heard": "Stay on the working gates. Let the others go if you have to.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19084,
+     "sha256": "e10fd2d5460d8892bb100ee66c251ffc48a8219fb37ba60d6f725f695ee98e67"
+    },
+    "mp3": {
+     "bytes": 17612,
+     "sha256": "88d6ffc3674bbcee21813e82d42bd3a07541f6168c04a2abf28abf17ac9f7e5c"
+    }
+   }
+  },
+  "itaipu-2-s4-order.es": {
+   "text": "Quédense sobre las compuertas en servicio. Si hace falta, dejen las otras.",
+   "speaker": "crest",
+   "seconds": 4.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1038377868,
+     "heard": "Quédense sobre las compuertas en servicio. Si hace falta, dejen las otras.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21972,
+     "sha256": "d8491f4fe23718d34eef78feabf405d46b01c1909dd05b56250ce3d2cc59f12e"
+    },
+    "mp3": {
+     "bytes": 19460,
+     "sha256": "a1d54463b474a910ebdc8f2f173d347e3a34bf01b8d589fdb6bea8968cfdc4e7"
+    }
+   }
+  },
   "itaipu-2-ta-turn.en": {
    "text": "Something in the spray. I can't hold it on the scope.",
    "speaker": "mirador",
@@ -9489,6 +9697,58 @@
     "mp3": {
      "bytes": 15044,
      "sha256": "83aedb9011e82ad4fba2c7a82158878df66d492236b692ebb767dba16005d29b"
+    }
+   }
+  },
+  "itaipu-2-ta-why.en": {
+   "text": "The spray's hiding them. Stay close to the gates and trust your eyes.",
+   "speaker": "crest",
+   "seconds": 4.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3192836552,
+     "heard": "The spray's hiding them. Stay close to the gates and trust your eyes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19213,
+     "sha256": "cab6b7c8a053abbcec4af669bbf365c43fa93ca6fe6b50e7e0c41e7592ad8b4c"
+    },
+    "mp3": {
+     "bytes": 16844,
+     "sha256": "8819b2a7b051e2b68aa7de815fa598fc55c76f5c00827e044aacddd4b4469a16"
+    }
+   }
+  },
+  "itaipu-2-ta-why.es": {
+   "text": "La bruma los esconde. Quédense cerca de las compuertas y confíen en sus ojos.",
+   "speaker": "crest",
+   "seconds": 4.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 491960100,
+     "heard": "La bruma los esconde. Quédense cerca de las compuertas y confíen en sus ojos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21289,
+     "sha256": "1c26db63f667db4a8f7f7c5335f5cb893d5de3b494f9a31c8487d3d64b67e805"
+    },
+    "mp3": {
+     "bytes": 19268,
+     "sha256": "5c760dd5d44450c635d2bf6a6da932205f0ea269e8fee13dfff5244f06e7d13e"
     }
    }
   },
@@ -9544,6 +9804,58 @@
     }
    }
   },
+  "itaipu-2-tb-why.en": {
+   "text": "Boats, hugging the west shore. Somebody get down on the water, now.",
+   "speaker": "crest",
+   "seconds": 4.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1317598936,
+     "heard": "Boats hugging the west shore. Somebody get down on the water now.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19058,
+     "sha256": "aab193fa85a409bc23f4b8962465f4fb03103bb0ac87e618d8029b2b08406689"
+    },
+    "mp3": {
+     "bytes": 17348,
+     "sha256": "d1583f2f08f9fccc7196e1c4d87b83f72b506a539008565f9020e59f0389c8b6"
+    }
+   }
+  },
+  "itaipu-2-tb-why.es": {
+   "text": "Lanchas, pegadas a la costa oeste. Que alguien baje al agua, ya.",
+   "speaker": "crest",
+   "seconds": 4.595,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2046763819,
+     "heard": "Lanchas pegadas a la costa oeste. Que alguien baje al agua ya.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21078,
+     "sha256": "7528ddb29347aaf8029f434b267a979da0d5ccd1c13b3519caebf49981ca8243"
+    },
+    "mp3": {
+     "bytes": 19676,
+     "sha256": "fc8e5e33429d60a774d6503c637fad7cca99abf3cc575ba354e05cea08d99768"
+    }
+   }
+  },
   "itaipu-2-tc-turn.en": {
    "text": "Hunters over the chute. Anyone low on the channel, you've got company.",
    "speaker": "crest",
@@ -9593,6 +9905,58 @@
     "mp3": {
      "bytes": 22892,
      "sha256": "0bdefaf4a59d9ebfad40e2934d2236c3e255ebab142e2ffa74f03efaeaddec14"
+    }
+   }
+  },
+  "itaipu-2-tc-why.en": {
+   "text": "Go down there in pairs. I can't build birds that fast.",
+   "speaker": "taller",
+   "seconds": 3.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 202264638,
+     "heard": "Go down there in pairs. I can't build birds that fast.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16878,
+     "sha256": "de47cc017a797d2ca16652787d0fa5194b3a239005c8dec2d6d10aa382f32b6d"
+    },
+    "mp3": {
+     "bytes": 17684,
+     "sha256": "d34bbee4a6d1e806b4f915daba484100917d22ee8da1c946b3c1f988f673eaa8"
+    }
+   }
+  },
+  "itaipu-2-tc-why.es": {
+   "text": "Bajen de a dos. No armo aparatos tan rápido.",
+   "speaker": "taller",
+   "seconds": 3.075,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3139474320,
+     "heard": "Bajen de a dos. No armo aparatos tan rápido.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14069,
+     "sha256": "6240fdca50a7b97b562dd925765b2044b85d3c3caa416a3bf18ffa929ca375b6"
+    },
+    "mp3": {
+     "bytes": 14132,
+     "sha256": "e79575a823110cd42fd900f38a8b5e3bbdd33ce13db1c776228e60ea735651ec"
     }
    }
   },

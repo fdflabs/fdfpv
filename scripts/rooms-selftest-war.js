@@ -34,7 +34,7 @@ import {
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
-import { waveTarget } from '../src/share/war/missions/index.js';
+import { idsMayBe } from '../src/share/war/stages.js';
 import { contactAt } from '../src/share/war/contact.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { filmFor } from '../src/share/war/films/index.js';
@@ -242,8 +242,8 @@ export function warSection(check) {
     let ok = true;
     const unplanned = [];
     for (const m of Object.values(MISSIONS)) {
-      /* A working set's spawn may go for any target the set is drawn from. */
-      const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
+      /* A working set's spawn may go for any target the set is drawn from
+       * (idsMayBe). */
       for (const w of m.waves) {
         const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
           ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
@@ -251,7 +251,7 @@ export function warSection(check) {
           for (const route of routes) {
             try {
               planAgent(m, {
-                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0, sets),
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: idsMayBe(m, w.target)[0] ?? null,
               });
             } catch (x) {
               ok = false;

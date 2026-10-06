@@ -91,10 +91,13 @@ export function waveCall(agents) {
 }
 
 /* The callout for an attacker at its target: hit (with the megawatts it
- * took) or off it. */
+ * took), a hit on a target already down (which takes none), or off it. */
 export function hitCall(ev) {
   if (!ev.hit) {
     return str('war.miss');
+  }
+  if (ev.mw === 0) {
+    return str('war.hit.down');
   }
   const m = /^(intake|gate|penstock)-(\d+)$/.exec(ev.target);
   if (m) {
