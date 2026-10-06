@@ -110,10 +110,10 @@ export const STAND = {
 };
 /* Chance a square holds a tree, by stand where not by land class. */
 const STAND_DENSITY = [];
-STAND_DENSITY[STAND.gallery] = 0.85;
-STAND_DENSITY[STAND.scrub] = 0.5;
+STAND_DENSITY[STAND.gallery] = 0.93;
+STAND_DENSITY[STAND.scrub] = 0.7;
 STAND_DENSITY[STAND.edge] = 0.45;
-STAND_DENSITY[STAND.clump] = 0.4;
+STAND_DENSITY[STAND.clump] = 0.55;
 /* The river's flood bank, scrub up to SCRUB_M from the water's edge
  * (past its BANK_M of bare bank), then gallery forest to GALLERY_RIVER,
  * metres; a stream's gallery reaches galleryHalf from its water. */
@@ -127,8 +127,8 @@ function galleryHalf(km2) {
 const EDGE_REACH = 10;
 /* The paddocks' clumps: a noise CLUMP_CELL metres a feature over
  * CLUMP_AT. */
-const CLUMP_CELL = 56;
-const CLUMP_AT = 0.8;
+const CLUMP_CELL = 36;
+const CLUMP_AT = 0.84;
 /* The share of an opening's edge squares that hold a bush. */
 const UNDERSTORY = 0.6;
 /* Where the mission needs open grass: the canada's strip (WORLD.md 5,
