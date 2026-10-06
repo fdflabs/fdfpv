@@ -103,7 +103,6 @@ src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
 src/render/attract.js
-src/render/audio.js
 src/render/celmat.js
 src/render/craft.js
 src/render/craftpose.js
