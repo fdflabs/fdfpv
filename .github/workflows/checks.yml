@@ -195,3 +195,7 @@ jobs:
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
+      # src/render and src/art outputs on a fixed stage against goldens
+      # recorded from each module before its track U rewrite
+      # (tests/browser/render-golden/).
+      - run: npm run render:golden
