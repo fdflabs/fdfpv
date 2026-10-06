@@ -275,11 +275,15 @@ export async function buildValley(shell, progress, q, style) {
   /* The terrain, the strip and the lake, with no roof. */
   const ground = (x, z) => {
     /* Inside the field the far range sits under the valley's ground, so
-     * the higher of the two is the ground. Outside it only the far range
-     * is drawn: the heightfield there is its own edge clamped outward, an
-     * invisible floor that is not what the pilot sees. */
+     * the higher of the two is the ground, and so is ground a style's
+     * nature draws over the field (the cel style's headwall, nature.js).
+     * Outside it only the far range is drawn: the heightfield there is
+     * its own edge clamped outward, an invisible floor that is not what
+     * the pilot sees. */
     const inField = Math.abs(x) <= HALF && Math.abs(z) <= HALF;
-    const h = inField ? Math.max(field.height(x, z), far.height(x, z)) : far.height(x, z);
+    const h = inField
+      ? Math.max(field.height(x, z), far.height(x, z), nature.ground ? nature.ground(x, z) : -Infinity)
+      : far.height(x, z);
     if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
       return Math.max(h, STRIP_Y);
     }
