@@ -3057,6 +3057,8 @@ export default {
   "lobby.unready_note": "Retíralo. Vuelve a esperarte.",
   "lobby.start_now": "Empezar ya",
   "lobby.start_now_note": "Empiézalo ya para todos aquí, listos o no.",
+  "lobby.restart_fresh": "Reiniciar desde el principio",
+  "lobby.restart_fresh_note": "La misión otra vez desde la fase 1, primero su introducción, con las tres estrellas en juego. Si no, vuelven a la fase {n}, donde la perdieron: dos estrellas como máximo.",
   "lobby.mission": "Misión",
   "lobby.mission_note": "La misión que esta sala empieza después. Izquierda y Derecha la cambian.",
   "lobby.minutes": "Ronda",

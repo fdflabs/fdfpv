@@ -161,7 +161,10 @@ const l = { rack: 5, warhead: 'emp', speedMul: 1 };
 check('the start carries mission, intro and loadout', same(startMessage('itaipu-1', l), {
   type: 'war', op: 'start', mission: 'itaipu-1', intro: true, loadout: l,
 }));
-check('the loadout message', same(loadoutMessage(l), { type: 'war', op: 'loadout', loadout: l }));
+check('after a loss the start carries from checkpoint and the loadout, no intro', same(startMessage('itaipu-1', l, { from: 'checkpoint' }), {
+  type: 'war', op: 'start', mission: 'itaipu-1', from: 'checkpoint', loadout: l,
+}));
+check('the loadout message',same(loadoutMessage(l), { type: 'war', op: 'loadout', loadout: l }));
 check('no loadout to a room that echoes none', !loadoutDue({ state: 'lobby' }, 1, l));
 check('a loadout before the go when the echo differs', loadoutDue({ state: 'briefing', loadouts: { 1: { rack: 4, warhead: 'standard', speedMul: 1 } } }, 1, l));
 check('none once it matches, none after the go', !loadoutDue({ state: 'briefing', loadouts: { 1: l } }, 1, l)
