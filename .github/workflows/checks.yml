@@ -131,6 +131,7 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest
+      - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
       - run: npm run score:golden
