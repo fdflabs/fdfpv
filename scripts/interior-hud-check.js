@@ -26,23 +26,33 @@
  *   - the role board: your role and its guide, the free roles, a swap
  *     request with accept and decline, and its buttons send the room the
  *     contract's messages
+ *   - the guide (src/share/ops/guide.js), stage by stage of Mission 1 as
+ *     the room's view says it: the first flight's card once (keys from
+ *     this page's bindings), its two lines, never again once dismissed;
+ *     each stage's brief heard on the radio (its element playing); the
+ *     objective line with the card's count, which moves when the count
+ *     does; a caret on an objective in the picture, an edge chevron
+ *     pointing at one off it (within 10 degrees of its direction in the
+ *     camera's axes); a nudge after the idle wait; Mission guidance off hides
+ *     the line and the marks and keeps the voice; a picture of each
+ *     stage at 1280x720 and 390x844
  *   - pictures at every device size, the HUD's panels inside the window
  *     and clear of each other; no page errors
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -264,8 +274,31 @@ try {
     restarted: null,
     ...over,
   });
+  /* A click: the gesture a browser wants before sound, as a pilot's own
+   * clicks into a room are, so the guide's lines can be heard. */
+  for (const type of ['mousePressed', 'mouseReleased']) {
+    await page.cdp.send('Input.dispatchMouseEvent', {
+      type, x: 6, y: 300, button: 'left', clickCount: 1,
+    }, page.sessionId);
+  }
   await page.evaluate(`(window.__ops.welcome({ seat: 1, code: 'HUD000', ops: ${JSON.stringify(baseView())} }), true)`);
   await page.sleep(900);
+  {
+    const g = await page.evaluate('window.__ops.guide()');
+    const card = (await page.evaluate('window.__opsHud()')).first || '';
+    check('first flight: its card is up, with this page\'s own keys (W to throttle up in mode 2, C, Q E Y H, U, SPACE, M)',
+      Boolean(g.first) && /FIRST FLIGHT/.test(card) && /THROTTLE UP \(W\) OR L/.test(card) && /Q E · Y H/.test(card) && /SPACE/.test(card),
+      JSON.stringify({ card, first: g.first, said: g.said, errors: page.errors.slice(0, 3) }));
+    await shot('guide-first-1280x720.png');
+    await page.until("window.__audio.warRadio && window.__audio.warRadio.status().started.includes('int-g-first-1')", 15000).catch(() => {});
+    const st = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.status().started : []');
+    check('first flight: the guide says it (int-g-first-1 playing on the radio)', st.includes('int-g-first-1'), JSON.stringify(st));
+    await page.tap('Enter');
+    await page.sleep(300);
+    const after = await page.evaluate("({ g: window.__ops.guide(), card: window.__opsHud().first, seen: window.__ops.guide().firstSeen('interior'), stored: (JSON.parse(localStorage.getItem(" + JSON.stringify(SETTINGS_KEY) + ")).progress || {}).seen || {} })");
+    check('first flight: Enter takes it down and the pilot\'s progress keeps it seen (synced progress.seen)',
+      !after.g.first && !after.card && after.seen && after.stored['guide:first:interior'] === true, JSON.stringify(after.stored));
+  }
   const hud = await page.evaluate('window.__opsHud()');
   const px = await page.evaluate(`(() => {
     const at = ${JSON.stringify(spots)};
@@ -346,6 +379,164 @@ try {
   check('its buttons send the contract\'s messages', sent.length === 2 && sent[0].op === 'swapAccept' && sent[0].id === 'sw1' && sent[1].op === 'take' && sent[1].role === 'tracker', JSON.stringify(sent));
   await shot('roles-1280x720.png');
   await page.evaluate("(document.querySelector('.roles-box button[data-act=\"close\"]').click(), true)");
+
+  /* THE GUIDE, stage by stage: Mission 1's views as the room would send
+   * them, this page an ISR. */
+  const stageView = (id, n, title, cards, over = {}) => baseView({
+    id: 20 + n,
+    stage: {
+      id, n, at: 1000, title, text: null, music: null, lockRoles: false,
+    },
+    cards,
+    contacts: [],
+    search: [],
+    roles: { ...baseView().roles, swaps: [] },
+    ...over,
+  });
+  const card = (id, progress = null, state = 'active') => ({
+    id, text: `ops.interior.m1.obj.${id}`, tier: 'primary', state, roles: null, star: false, ...(progress ? { progress } : {}),
+  });
+  const STAGES = [
+    ['launch', stageView('M1_CP_START', 0, 'ops.interior.m1.s1', [card('launch')]), 'int1-g-launch', /^CLIMB ABOVE 500 M/],
+    ['alpha', stageView('M1_CP_AIRBORNE', 1, 'ops.interior.m1.s2', [card('alpha', [0, 3])]), 'int1-g-alpha', /^CAPTURE: .* · 0\/3$/],
+    ['bravo', stageView('M1_CP_AIRBORNE', 1, 'ops.interior.m1.s2', [card('alpha', [3, 3], 'done'), card('bravo', [0, 2])], {
+      id: 22, captures: ['bridge', 'road', 'sheds'].map((item) => ({ item, seat: 1, t: 1, grade: 'clean' })),
+    }), 'int1-g-bravo', /^CAPTURE: .* · 0\/2$/],
+    ['charlie', stageView('M1_CP_BRAVO_COMPLETE', 2, 'ops.interior.m1.s3', [card('charlie')]), 'int1-g-charlie', /^FLY TO THE MARKER/],
+    ['follow', stageView('M1_CP_CONTACT_FOUND', 3, 'ops.interior.m1.s4', [card('observe')], {
+      search: [{ id: 'pair-lkp', at: [spots.search[0], spots.search[1]], r: 25, contact: 'pair' }],
+    }), 'int1-g-follow', /^SEARCH THE CIRCLE/],
+    ['camp', stageView('M1_CP_CAMP_FOUND', 4, 'ops.interior.m1.s5', [card('document', [0, 5])]), 'int1-g-camp', /^CAPTURE: .* · 0\/5$/],
+    ['rtb', stageView('M1_CP_CAMP_FOUND', 4, 'ops.interior.m1.s5', [card('document', [5, 5], 'done'), card('rtb')], { id: 25 }), 'int1-g-rtb', /^RETURN TO BASE AND LAND$/],
+  ];
+  const DEG = 180 / Math.PI;
+  for (const [name, v, brief, line] of STAGES) {
+    /* This stage's brief, not one said before: the radio keeps its last 40
+     * lines started, so count them. */
+    const heardN = `(window.__audio.warRadio ? window.__audio.warRadio.status().started.filter((x) => x === ${JSON.stringify(brief)}).length : 0)`;
+    const before = await page.evaluate(heardN);
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+    await page.until(`${heardN} > ${before}`, 25000).catch(() => {});
+    await page.sleep(400);
+    const g = await page.evaluate('window.__ops.guide()');
+    const h = await page.evaluate('window.__opsHud()');
+    const started = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.status().started : []');
+    const words = await page.evaluate(`fetch('assets/audio/war/lines.json').then((r) => r.json()).then((j) => j.lines.find((l) => l.id === ${JSON.stringify(brief)}).en)`);
+    check(`guide, ${name}: the brief ${brief} is heard now (the radio's element playing it) and its words are the subtitle`,
+      (await page.evaluate(heardN)) > before && h.subtitle === words,
+      JSON.stringify({ started: started.slice(-4), said: g.said.slice(-3), subtitle: h.subtitle }));
+    check(`guide, ${name}: the objective line from the stage's data`, line.test(h.goal || ''), h.goal);
+    const mark = h.marks.find((m) => m.kind === 'guide' || m.kind === 'edge');
+    check(`guide, ${name}: a mark for it (on screen, or a chevron at the edge)`, g.target && (g.target.kind === 'climb' || Boolean(mark)), JSON.stringify({ target: g.target, mark }));
+    /* An edge chevron points where the objective is: its angle on the
+     * screen against the objective's direction in the camera's own axes,
+     * worked out here from the camera the room is told of (its position
+     * and look direction, no roll) and the ground under the objective. */
+    if (mark && mark.kind === 'edge') {
+      const cam = await page.evaluate('window.__ops.cam()');
+      const z = await page.evaluate(`window.__heightAt(${g.target.at[0]}, ${-g.target.at[1]})`);
+      const d = cam.dir;
+      const n = Math.hypot(d[1], d[0]);
+      const right = [d[1] / n, -d[0] / n, 0];
+      const up = [right[1] * d[2] - right[2] * d[1], right[2] * d[0] - right[0] * d[2], right[0] * d[1] - right[1] * d[0]];
+      const t = [g.target.at[0] - cam.p[0], g.target.at[1] - cam.p[1], z - cam.p[2]];
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const want = Math.atan2(-dot(t, up), dot(t, right));
+      const off = Math.abs(((mark.angle - want) * DEG + 540) % 360 - 180);
+      check(`guide, ${name}: the edge chevron points at the objective, within 10 degrees (${Math.round(off)})`, off <= 10,
+        JSON.stringify({ angle: Math.round(mark.angle * DEG), want: Math.round(want * DEG), at: g.target.at, words: mark.words }));
+    }
+    if (mark && mark.kind === 'guide' && g.target.kind === 'search') {
+      check(`guide, ${name}: the caret sits on the search area in the picture`, Math.hypot(mark.x - px.search.x, mark.y - px.search.y) < 40, JSON.stringify({ mark, at: px.search }));
+    }
+    await shot(`guide-${name}-1280x720.png`);
+    await resize(390, 844);
+    await page.sleep(300);
+    const narrow = await page.evaluate('window.__opsHud()');
+    check(`guide, ${name}: at 390x844 the objective line is inside the window`, narrow.rects.goal && narrow.rects.goal.x >= 0 && narrow.rects.goal.x + narrow.rects.goal.w <= 391, JSON.stringify(narrow.rects.goal));
+    await shot(`guide-${name}-390x844.png`);
+    await resize(1280, 720);
+  }
+  /* The edge arrow, glyph and label as one box, stays in the safe
+   * frame: clear of the tape, the objective line, the readouts and every
+   * other panel, at every stage and every device size. */
+  for (const [w, h] of SIZES) {
+    await resize(w, h);
+    const hits = [];
+    let arrows = 0;
+    for (const [name, v] of STAGES) {
+      await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+      await page.sleep(1300);
+      const hh = await page.evaluate('window.__opsHud()');
+      const edge = hh.marks.find((m) => m.kind === 'edge');
+      const placedTarget = (await page.evaluate('window.__ops.guide().target')) || {};
+      /* An objective with a place and no mark in the picture must have
+       * its arrow, whatever the panels leave free. */
+      if (!edge) {
+        if (placedTarget.at && !hh.marks.some((m) => m.kind === 'guide')) {
+          hits.push(`${name}:no arrow`);
+        }
+        continue;
+      }
+      arrows += 1;
+      const b = edge.box;
+      const inWindow = b.x >= 0 && b.y >= 0 && b.x + b.w <= w && b.y + b.h <= h;
+      const on = Object.entries(hh.rects).filter(([, r]) => r && b.x < r.x + r.w && r.x < b.x + b.w && b.y < r.y + r.h && r.y < b.y + b.h).map(([k]) => k);
+      if (!inWindow || on.length) {
+        hits.push(`${name}:${on.join('+') || 'window'}`);
+      }
+    }
+    check(`${w}x${h}: the edge arrow and its label, at every stage, drawn, inside the window and clear of every panel (${arrows} drawn)`, arrows > 0 && !hits.length, hits.join(', '));
+    if (w === 1280 && h === 720) {
+      await shot('guide-arrow-camp-1280x720.png');
+    }
+  }
+  await resize(1280, 720);
+
+  /* The count moves when the card's does. */
+  {
+    const v = STAGES[1][1];
+    const moved = { ...v, captures: [{ item: 'bridge', seat: 1, t: 1, grade: 'clean' }], cards: [card('alpha', [1, 3])] };
+    const before = await page.evaluate('window.__ops.guide().target');
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+    await page.sleep(400);
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(moved)} }), true)`);
+    await page.sleep(500);
+    const g = await page.evaluate('window.__ops.guide()');
+    check('guide: a capture in, the line counts 1/3 and the target is no longer the bridge', /· 1\/3$/.test(g.line) && g.target && g.target.item !== 'bridge', JSON.stringify({ line: g.line, target: g.target, before }));
+    /* Nothing moves now: a nudge (lead, clock, distance) after the idle wait. */
+    const t0 = Date.now();
+    await page.until("window.__ops.guide().said.some((x) => x.startsWith('int-g-next+int-g-clock-'))", 45000).catch(() => {});
+    const said = (await page.evaluate('window.__ops.guide()')).said;
+    const nudge = said.find((x) => x.startsWith('int-g-next+int-g-clock-'));
+    await page.until("window.__audio.warRadio && window.__audio.warRadio.status().started.includes('int-g-next')", 10000).catch(() => {});
+    const started = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.status().started : []');
+    check(`guide: after the idle wait a nudge is said and heard (${Math.round((Date.now() - t0) / 1000)} s)`, Boolean(nudge) && /int-g-dist-/.test(nudge) && started.includes('int-g-next'), JSON.stringify({ nudge, started: started.slice(-4) }));
+  }
+  /* Mission guidance off: no line, no marks; the voice stays. */
+  {
+    await page.evaluate("(window.__ui.settings.missionGuidance = false, true)");
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(STAGES[3][1])} }), true)`);
+    await page.sleep(600);
+    const h = await page.evaluate('window.__opsHud()');
+    check('Mission guidance off: no objective line and no guide marks', !h.goal && !h.marks.some((m) => m.kind === 'guide' || m.kind === 'edge'), JSON.stringify({ goal: h.goal, marks: h.marks.filter((m) => m.kind === 'guide' || m.kind === 'edge') }));
+    await shot('guide-off-1280x720.png');
+    const v = { ...STAGES[2][1], id: 40 };
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+    await page.until("window.__ops.guide().said.filter((x) => x === 'int1-g-bravo').length >= 2", 15000).catch(() => {});
+    const g = await page.evaluate('window.__ops.guide()');
+    check('Mission guidance off: the stage brief is still said', g.said.filter((x) => x === 'int1-g-bravo').length >= 2, JSON.stringify(g.said.slice(-3)));
+    await page.evaluate("(window.__ui.settings.missionGuidance = true, true)");
+  }
+  /* A new match: the first flight's card never again. */
+  {
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify({ ...STAGES[0][1], id: 41 })} }), true)`);
+    await page.sleep(800);
+    const g = await page.evaluate('window.__ops.guide()');
+    check('first flight: a new match, and no card again', !g.first && !(await page.evaluate('window.__opsHud().first')), JSON.stringify(g.first));
+  }
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(baseView())} }), true)`);
+  await page.sleep(300);
 
   for (const [w, h] of SIZES) {
     await resize(w, h);

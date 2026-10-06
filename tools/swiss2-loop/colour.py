@@ -20,7 +20,7 @@
 # Every image is first cropped to 16:9 and scaled to 640x360 as sheet.py
 # does, so a photograph and a render are measured over the same framing.
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import json, os, sys
 from PIL import Image

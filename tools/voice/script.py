@@ -8,20 +8,20 @@
 # person has listened and chosen, the pinned `take` (a seed per language,
 # build.py --takes).
 #
-# This file is part of WebFPVSimulator.
+# This file is part of the Paraguayan Drone Combat Simulator.
 #
-# WebFPVSimulator is free software: you can redistribute it and/or modify
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or (at
 # your option) any later version.
 #
-# WebFPVSimulator is distributed in the hope that it will be useful, but
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY, without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import os
@@ -45,7 +45,7 @@ ID = re.compile(r'^[a-z][a-z0-9-]*$')
 G2P = ('en-us', 'en-gb', 'es-419')
 # The radio's colour for each speaker (radio.py), named here so a check
 # with no numpy can hold lines.json to it.
-PRESETS = ('crest', 'mirador', 'taller', 'despacho', 'carancho', 'consola', 'analista', 'campo', 'banco', 'archivo')
+PRESETS = ('crest', 'mirador', 'taller', 'despacho', 'carancho', 'consola', 'analista', 'campo', 'banco', 'archivo', 'guia')
 # The plan's rule is that no real figure is spoken until the plan sources
 # it. No line has a sourced figure yet, so no line may speak a digit or a
 # spelled number that reads as a quantity; the one year in the intro is

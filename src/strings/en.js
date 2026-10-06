@@ -5,20 +5,20 @@
  * inline literals and maintained by hand from here on; lint:copy fails on
  * any prose literal that is not in a table.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 export default {
@@ -1170,6 +1170,8 @@ export default {
   "ui.frame_cap": "Frame cap",
   "ui.frame_readout": "Frame readout",
   "ui.frame_readout_note": "A small box low on the left with the frame rate, the slowest 1 percent of frames, how long a frame takes and what it draws. F3 shows and hides it anywhere.",
+  "ui.mission_guidance": "Mission guidance",
+  "ui.mission_guidance_note": "In an ops mission, one objective line with its count, a ring on the objective and a chevron at the edge toward it. Off leaves the mission's voice and its briefs as they are.",
   "perf.line_fps": "{fps} fps   1% low {low}",
   "perf.line_ms": "frame {frame} ms   CPU {cpu}   GPU {gpu}",
   "perf.line_draw": "{calls} draw calls   {tris} M triangles",
@@ -3507,6 +3509,38 @@ export default {
   "ops.tut.climb": "CLIMB TO SURVEY ALTITUDE",
   "ops.tut.eo_thermal": "SWITCH EO / THERMAL: C FOR THE CAMERA BALL, THEN J",
   "ops.tut.map": "OPEN THE TACTICAL MAP: M",
+  "ops.goal.count": "{n}/{of}",
+  "ops.goal.climb": "CLIMB ABOVE {m} M · NOW {now} M",
+  "ops.goal.item": "CAPTURE: {item}",
+  "ops.goal.zone": "FLY TO THE MARKER AND WATCH FOR MOVEMENT",
+  "ops.goal.search": "SEARCH THE CIRCLE FOR MOVEMENT",
+  "ops.goal.contact": "KEEP THE CONTACTS IN FRAME FROM HIGH UP",
+  "ops.goal.lkp": "REACQUIRE: SEARCH THE LAST KNOWN POSITION",
+  "ops.goal.home": "RETURN TO BASE AND LAND",
+  "ops.guide.m": "{n} M",
+  "ops.guide.km": "{n} KM",
+  "ops.first.title": "FIRST FLIGHT",
+  "ops.first.launch": "LAUNCH",
+  "ops.first.launch_keys": "THROTTLE UP ({up}) OR L",
+  "ops.first.launch_stick": "THROTTLE UP",
+  "ops.first.view": "CAMERA BALL",
+  "ops.first.pan": "PAN · TILT",
+  "ops.first.zoom": "ZOOM",
+  "ops.first.lock": "GROUND LOCK",
+  "ops.first.capture": "CAPTURE",
+  "ops.first.map": "MAP",
+  "ops.first.pad_pan": "D-PAD",
+  "ops.first.pad_zoom": "TRIGGERS",
+  "ops.first.pad_lock": "RIGHT STICK CLICK",
+  "ops.first.pad_capture": "LEFT STICK CLICK",
+  "ops.first.touch_pan": "THE PAD",
+  "ops.first.touch_zoom": "+ / -",
+  "ops.first.touch_lock": "LOCK",
+  "ops.first.touch_capture": "CAPTURE",
+  "ops.first.keys_zoom": "= / -  OR WHEEL",
+  "ops.first.space": "SPACE",
+  "ops.first.look": "FOLLOW THE CHEVRON TO THE RING: THAT IS THE NEXT OBJECTIVE",
+  "ops.first.skip": "GOT IT (ENTER)",
   "ops.interior.m1.title": "MISSION 01: THE OLD WAR",
   "ops.interior.m1.s1": "LAUNCH",
   "ops.interior.m1.s2": "SURVEY: SECTORS ALPHA AND BRAVO",

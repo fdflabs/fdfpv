@@ -21,20 +21,20 @@
  *     subtitle is on the quiet HUD, the cue's next line follows
  *   - no page errors; pictures outside the repository
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { mkdtempSync } from 'node:fs';
@@ -121,6 +121,7 @@ try {
   check('nothing else draws over it: no OSD, no Avionics HUD, no \'alone in room\' bar', !others.osd && !others.avx && !others.alone, JSON.stringify(others));
   check('the quiet HUD: the launch card, the mission rule, a tutorial prompt', hud.on && hud.cards.some((c) => c.text === 'ops.interior.m1.obj.launch') && /ENGAGEMENT NOT AVAILABLE/.test(hud.rule || '') && Boolean(hud.tutorial),
     JSON.stringify({ on: hud.on, cards: hud.cards, rule: hud.rule, tutorial: hud.tutorial }));
+  check('the guide\'s objective line at the first checkpoint: climb past 500 m, how high now', /^CLIMB ABOVE 500 M · NOW \d+ M$/.test(hud.goal || ''), hud.goal);
   const life = await page.evaluate("(() => { const i = window.__mapScene().userData.interior; return i && i.life ? i.life.stats() : null; })()");
   const contacts = await page.evaluate('window.__ops.view().contacts.length');
   check('the map draws the room\'s contacts (the camp\'s loops)', life && life.people > 0 && contacts > 0, JSON.stringify({ life, contacts }));
