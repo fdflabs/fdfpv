@@ -1,0 +1,1126 @@
+{
+ "depth": {
+  "first": {
+   "count": 7,
+   "meshes": [
+    [
+     "plain",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "coloured",
+     "d1",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "plain2",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "notCasting",
+     null,
+     null
+    ],
+    [
+     "custom",
+     "d2",
+     [
+      "MeshDepthMaterial",
+      3200
+     ]
+    ],
+    [
+     "arrayMat",
+     null,
+     null
+    ],
+    [
+     "morph",
+     null,
+     null
+    ],
+    [
+     "alphaTested",
+     null,
+     null
+    ],
+    [
+     "alphaMapNoTest",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "displaced",
+     null,
+     null
+    ],
+    [
+     "displacedZero",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "clipped",
+     null,
+     null
+    ],
+    [
+     "clipNoShadow",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "notInstanced",
+     null,
+     null
+    ],
+    [
+     "batched",
+     "d3",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ]
+   ]
+  },
+  "again": 0,
+  "second": {
+   "count": 7,
+   "meshes": [
+    [
+     "plain",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "coloured",
+     "d1",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "plain2",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "notCasting",
+     null,
+     null
+    ],
+    [
+     "custom",
+     "d4",
+     [
+      "MeshDepthMaterial",
+      3200
+     ]
+    ],
+    [
+     "arrayMat",
+     null,
+     null
+    ],
+    [
+     "morph",
+     null,
+     null
+    ],
+    [
+     "alphaTested",
+     null,
+     null
+    ],
+    [
+     "alphaMapNoTest",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "displaced",
+     null,
+     null
+    ],
+    [
+     "displacedZero",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "clipped",
+     null,
+     null
+    ],
+    [
+     "clipNoShadow",
+     "d0",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ],
+    [
+     "notInstanced",
+     null,
+     null
+    ],
+    [
+     "batched",
+     "d3",
+     [
+      "MeshDepthMaterial",
+      3201
+     ]
+    ]
+   ]
+  }
+ },
+ "dispose": {
+  "stats": {
+   "geometries": 4,
+   "materials": 6,
+   "textures": 2,
+   "keptTextures": 1,
+   "shadowMaps": 1
+  },
+  "disposed": [
+   [
+    "geometry",
+    "sharedGeo"
+   ],
+   [
+    "geometry",
+    "sphere"
+   ],
+   [
+    "geometry",
+    "plane"
+   ],
+   [
+    "geometry",
+    "points"
+   ],
+   [
+    "material",
+    "a"
+   ],
+   [
+    "material",
+    "b"
+   ],
+   [
+    "material",
+    "c0"
+   ],
+   [
+    "material",
+    "c1"
+   ],
+   [
+    "material",
+    "d"
+   ],
+   [
+    "material",
+    "points"
+   ],
+   [
+    "texture",
+    "shared"
+   ],
+   [
+    "texture",
+    "uniform"
+   ],
+   [
+    "target",
+    "WebGLRenderTarget"
+   ]
+  ],
+  "cleared": 0,
+  "statsNoKeep": {
+   "geometries": 4,
+   "materials": 6,
+   "textures": 3,
+   "keptTextures": 0,
+   "shadowMaps": 1
+  },
+  "disposedNoKeep": [
+   [
+    "geometry",
+    "sharedGeo"
+   ],
+   [
+    "geometry",
+    "sphere"
+   ],
+   [
+    "geometry",
+    "plane"
+   ],
+   [
+    "geometry",
+    "points"
+   ],
+   [
+    "material",
+    "a"
+   ],
+   [
+    "material",
+    "b"
+   ],
+   [
+    "material",
+    "c0"
+   ],
+   [
+    "material",
+    "c1"
+   ],
+   [
+    "material",
+    "d"
+   ],
+   [
+    "material",
+    "points"
+   ],
+   [
+    "texture",
+    "shared"
+   ],
+   [
+    "texture",
+    "kept"
+   ],
+   [
+    "texture",
+    "uniform"
+   ],
+   [
+    "target",
+    "WebGLRenderTarget"
+   ]
+  ]
+ },
+ "shellDefault": {
+  "renderer": {
+   "attrs": {
+    "antialias": false,
+    "depth": false,
+    "stencil": false,
+    "powerPreference": "high-performance",
+    "failIfMajorPerformanceCaveat": false,
+    "desynchronized": false
+   },
+   "ratio": 1,
+   "pixelRatio": 1,
+   "colorSpace": "srgb",
+   "toneMapping": 0,
+   "shadows": true,
+   "size": [
+    640,
+    360
+   ],
+   "style": [
+    "",
+    ""
+   ]
+  },
+  "camera": {
+   "fov": 85,
+   "near": 0.2,
+   "far": 2600,
+   "aspect": 1.7777777777777777,
+   "layers": 7
+  },
+  "keys": [
+   "blades",
+   "camera",
+   "cameraMount",
+   "canvas",
+   "craftPaint",
+   "discs",
+   "evictSessionRoots",
+   "keepAcrossMaps",
+   "launcher",
+   "launcherRest",
+   "lookCraft",
+   "pixelRatio",
+   "propSpin",
+   "quad",
+   "redressCraft",
+   "renderer",
+   "repaintCraft",
+   "resize",
+   "setChute",
+   "setCraftLook",
+   "setFlaps",
+   "setGear",
+   "setProp",
+   "setSurfaces",
+   "swapCraft"
+  ],
+  "canvas": true,
+  "resize": {
+   "w": 640,
+   "h": 360
+  },
+  "resizedStyle": [
+   "",
+   ""
+  ],
+  "keep": [
+   true,
+   null,
+   true
+  ],
+  "lookOther": true,
+  "swap": {
+   "returned": true,
+   "inOldParent": true,
+   "oldDetached": true,
+   "pose": [
+    1,
+    2,
+    3,
+    0,
+    0.6,
+    0,
+    0.8,
+    false
+   ],
+   "handles": {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   "oldFreed": true,
+   "newKept": true
+  },
+  "paint": {
+   "keys": [
+    "id",
+    "regions",
+    "drawn",
+    "finishes",
+    "decals",
+    "wear"
+   ],
+   "id": "7inch",
+   "regions": true,
+   "drawn": true
+  },
+  "lookOtherOff": null,
+  "looks": [
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "look",
+    false,
+    "other"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    false,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ]
+  ],
+  "evict": [
+   0,
+   2,
+   true,
+   true,
+   true,
+   0
+  ],
+  "looseSwap": {
+   "parent": true,
+   "handles": {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   }
+  },
+  "optionalSwaps": [
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      true
+     ],
+     [
+      "setChute",
+      true
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      true
+     ],
+     [
+      "launcherRest",
+      true
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      true
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      true
+     ],
+     [
+      "setGear",
+      true
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   }
+  ]
+ },
+ "shellOptions": {
+  "renderer": {
+   "attrs": {
+    "antialias": false,
+    "depth": false,
+    "stencil": false,
+    "powerPreference": "low-power",
+    "failIfMajorPerformanceCaveat": false,
+    "desynchronized": false
+   },
+   "ratio": 0.75,
+   "pixelRatio": 0.75,
+   "colorSpace": "srgb",
+   "toneMapping": 0,
+   "shadows": true,
+   "size": [
+    480,
+    270
+   ],
+   "style": [
+    "",
+    ""
+   ]
+  },
+  "camera": {
+   "fov": 85,
+   "near": 0.2,
+   "far": 2600,
+   "aspect": 1.7777777777777777,
+   "layers": 7
+  },
+  "keys": [
+   "blades",
+   "camera",
+   "cameraMount",
+   "canvas",
+   "craftPaint",
+   "discs",
+   "evictSessionRoots",
+   "keepAcrossMaps",
+   "launcher",
+   "launcherRest",
+   "lookCraft",
+   "pixelRatio",
+   "propSpin",
+   "quad",
+   "redressCraft",
+   "renderer",
+   "repaintCraft",
+   "resize",
+   "setChute",
+   "setCraftLook",
+   "setFlaps",
+   "setGear",
+   "setProp",
+   "setSurfaces",
+   "swapCraft"
+  ],
+  "canvas": true,
+  "resize": {
+   "w": 640,
+   "h": 360
+  },
+  "resizedStyle": [
+   "",
+   ""
+  ],
+  "keep": [
+   true,
+   null,
+   true
+  ],
+  "lookOther": true,
+  "swap": {
+   "returned": true,
+   "inOldParent": true,
+   "oldDetached": true,
+   "pose": [
+    1,
+    2,
+    3,
+    0,
+    0.6,
+    0,
+    0.8,
+    false
+   ],
+   "handles": {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   "oldFreed": true,
+   "newKept": true
+  },
+  "paint": {
+   "keys": [
+    "id",
+    "regions",
+    "drawn",
+    "finishes",
+    "decals",
+    "wear"
+   ],
+   "id": "7inch",
+   "regions": true,
+   "drawn": true
+  },
+  "lookOtherOff": null,
+  "looks": [
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "look",
+    false,
+    "other"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    false,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ],
+   [
+    "look",
+    true,
+    "craft"
+   ],
+   [
+    "undo",
+    "craft"
+   ]
+  ],
+  "evict": [
+   0,
+   2,
+   true,
+   true,
+   true,
+   0
+  ],
+  "looseSwap": {
+   "parent": true,
+   "handles": {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   }
+  },
+  "optionalSwaps": [
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      true
+     ],
+     [
+      "setChute",
+      true
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      true
+     ],
+     [
+      "launcherRest",
+      true
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      true
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      true
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      true
+     ],
+     [
+      "setGear",
+      true
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   },
+   {
+    "quad": true,
+    "discs": true,
+    "blades": true,
+    "cameraMount": true,
+    "propSpin": true,
+    "optional": [
+     [
+      "setSurfaces",
+      null
+     ],
+     [
+      "setProp",
+      null
+     ],
+     [
+      "setChute",
+      null
+     ],
+     [
+      "setFlaps",
+      null
+     ],
+     [
+      "setGear",
+      null
+     ],
+     [
+      "launcher",
+      null
+     ],
+     [
+      "launcherRest",
+      null
+     ]
+    ]
+   }
+  ]
+ }
+}

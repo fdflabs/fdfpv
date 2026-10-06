@@ -1,180 +1,153 @@
 /*
- * tracks.js: the record crates. Recorded tracks as data, no audio code.
+ * tracks.js: the recorded music, as data. src/render/music.js plays it.
  *
- * The bed used to be a generated drum and bass and lofi performer. That
- * crate is gone. These are the files in assets/music, played by
- * src/render/music.js through one MediaElementSource on the mix bus.
+ * Two crates. TRACKS is the flight crate: what plays while flying, and
+ * what the Music track setting chooses from. MENU_TRACKS is the bed under
+ * every other screen, quieter and re-rolled each time the menus return,
+ * because rows being read want something that does not ask for attention.
+ * Both live in assets/music and share one namespace of ids, since they
+ * share one directory, one URL space and one cache rule.
  *
- * There are TWO crates and they are not interchangeable. TRACKS is the
- * flight crate, what plays while the pilot is flying, and it is the crate
- * the Music track setting picks from. MENU_TRACKS is the menu bed, what
- * plays on every screen that is not a flight, quieter, chosen at random
- * each time the menus come back. A menu is a place where somebody is
- * reading rows and deciding something, and twelve tracks written to be
- * flown to are the wrong thing to read over.
+ * A record is its id: the files are assets/music/<id>.webm and .mp3,
+ * written by scripts/music.js, and the displayed name is the id read back
+ * as words. One fact cannot disagree with itself, and a slug keeps spaces
+ * and brackets out of media URLs. WebM (Opus) averages 2.6 MB a record and
+ * the mp3 fallback 3.1 MB; music.js picks by canPlayType and falls back on
+ * a load error.
  *
- * Both crates live in the same assets/music directory and share one id
- * namespace, checked below, because they share one URL space and one
- * cache rule in render.yaml.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * There is no filename column any more. Every track is
- * assets/music/<id>.webm and assets/music/<id>.mp3, written by
- * scripts/music.js from the id below, which is why the id is the slug of
- * the title. That is one fact instead of two that could disagree, and it
- * takes the percent encoding out of the URL: the crate used to carry
- * names like 'Neon Gate take 2.mp3' and 'Pace Shift Skyline (1).mp3',
- * and a space and a bracket in a media URL is a thing that works
- * everywhere until it does not.
- *
- * Two formats because they are not the same price. Opus in a WebM
- * averages 2.6 MB a track across this crate, the mp3 fallback 3.1 MB, the
- * masters they came from 4.2 to 5.9 MB. src/render/music.js picks with
- * canPlayType and falls back on a load error. See scripts/music.js for
- * the encode.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
- * THE ONE THING TO REMEMBER ABOUT THIS FILE.
- *
- * render.yaml serves /assets/music/* immutable for a year, because a
- * three minute track that has to be revalidated on every visit is a round
- * trip nobody is paid for. The filenames below never change, so the only
- * thing that can tell a browser the audio did is this number. RE-ENCODE
- * THE CRATE, BUMP THIS. A visitor who does not is holding last year's
- * mix and there is no way for them to find out.
- *
- * Adding a record or dropping one is NOT that, and does not want a bump.
- * A new id is a URL nobody has cached and a dropped id is a URL nothing
- * asks for any more, so neither can go stale. Bumping over either would
- * re-fetch every track that did not change, which on this crate is forty
- * megabytes charged to a returning visitor for nothing. The bump is for
- * bytes moving under a filename that stayed put.
+ * The crate's revision, on every media URL. render.yaml serves
+ * /assets/music/* immutable for a year and the file names never change, so
+ * this is the only way a returning browser learns that the audio did:
+ * bump it whenever the crate is re-encoded. Not when a record is added or
+ * dropped: a new id is a URL nobody has cached, and bumping for it would
+ * make every returning visitor fetch some forty megabytes again for
+ * nothing.
  */
 export const MUSIC_REV = 1;
 
 /*
- * Every record's integrated loudness, LUFS (ITU-R BS.1770-4), of its WebM,
- * measured with ffmpeg's ebur128 on 2026-10-02. They spread 4.2 LU, from
- * -13.0 to -17.2, and nothing levelled them, so a skip could jump 4 dB.
- * src/render/music.js plays each at trackGain(): ATTENUATION only, down to
- * the quietest record, MUSIC_REF_LUFS, on the media element's own volume
- * (no node, and no record is ever pushed past its master's peak). The bus
- * after it sets where the levelled bed sits in the mix (docs/AUDIO.md).
- * A new record needs its figure here; the module refuses to load without.
+ * Each record's integrated loudness, LUFS (ITU-R BS.1770-4), of its WebM:
+ * the figures scripts/music-loudness.js measures from the files (--check
+ * compares). Unlevelled they span 4.2 LU, a 4 dB jump on a skip, so each
+ * record plays at trackGain(): turned down to the quietest record,
+ * MUSIC_REF_LUFS, on the media element's volume, never up past its own
+ * master. Where the levelled bed sits in the mix is the bus's business
+ * (docs/AUDIO.md). A record without a figure stops the module loading.
  */
 export const MUSIC_REF_LUFS = -17.2;
 
-function rec(id, name, lufs) {
-  if (!Number.isFinite(lufs) || lufs > 0) {
-    throw new Error(`tracks: ${id} has no measured loudness`);
+const FLIGHT_CRATE = [
+  ['tarmac-pulse', -13.0],
+  ['neon-horizon', -17.2],
+  ['pace-shift-skyline', -13.5],
+  ['fractal-current', -16.5],
+  ['subway-rattle', -14.4],
+  ['shroom-spiral', -14.0],
+  ['barnstorm-break', -15.6],
+  ['bluegrass-circuit', -14.0],
+  ['celtic-riser', -13.3],
+  ['driving-tension', -14.3],
+  ['gritty-breakbeats', -13.5],
+  ['hypnotic-acid-loop', -13.4],
+  ['prop-wash', -13.8],
+  ['ground-effect', -13.7],
+];
+
+/* Two takes from one sitting, made to sit behind a menu. They are not
+ * quiet files (mid crate, as measured); how quiet the menu plays is the
+ * menu bus's decision in music.js, made once, never baked into a file. */
+const MENU_CRATE = [
+  ['neon-gate', -14.2],
+  ['neon-gate-take-2', -13.6],
+];
+
+/* 'neon-gate-take-2' reads back as 'Neon Gate Take 2'. */
+const titleOf = (id) => id.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+
+function records(crate, label) {
+  if (crate.length === 0) {
+    throw new Error(`tracks: ${label} crate is empty`);
   }
-  return { id, name, lufs };
+  return crate.map(([id, lufs]) => {
+    if (!Number.isFinite(lufs) || lufs > 0) {
+      throw new Error(`tracks: ${id} has no measured loudness`);
+    }
+    return { id, name: titleOf(id), lufs };
+  });
 }
 
-/* The element volume that levels a record to MUSIC_REF_LUFS: at most 1. */
+export const TRACKS = records(FLIGHT_CRATE, 'flight');
+export const MENU_TRACKS = records(MENU_CRATE, 'menu');
+
+/* An id is half a URL and a file name both crates write: a duplicate would
+ * make one record overwrite another at encode time, and anything but a
+ * lower case slug would 404 in one deploy or another. */
+{
+  const ids = new Set();
+  for (const { id } of [...TRACKS, ...MENU_TRACKS]) {
+    if (ids.has(id)) {
+      throw new Error(`tracks: duplicate id ${id}`);
+    }
+    if (!/^[a-z0-9-]+$/.test(id)) {
+      throw new Error(`tracks: id ${id} is not a slug`);
+    }
+    ids.add(id);
+  }
+}
+
+/* The element volume that brings a record down to MUSIC_REF_LUFS: never
+ * above 1. */
 export function trackGain(t) {
-  return Math.min(1, 10 ** ((MUSIC_REF_LUFS - t.lufs) / 20));
+  const decibelsDown = MUSIC_REF_LUFS - t.lufs;
+  return Math.min(1, Math.pow(10, decibelsDown / 20));
 }
 
-export const TRACKS = [
-  rec('tarmac-pulse', 'Tarmac Pulse', -13.0),
-  rec('neon-horizon', 'Neon Horizon', -17.2),
-  rec('pace-shift-skyline', 'Pace Shift Skyline', -13.5),
-  rec('fractal-current', 'Fractal Current', -16.5),
-  rec('subway-rattle', 'Subway Rattle', -14.4),
-  rec('shroom-spiral', 'Shroom Spiral', -14.0),
-  rec('barnstorm-break', 'Barnstorm Break', -15.6),
-  rec('bluegrass-circuit', 'Bluegrass Circuit', -14.0),
-  rec('celtic-riser', 'Celtic Riser', -13.3),
-  rec('driving-tension', 'Driving Tension', -14.3),
-  rec('gritty-breakbeats', 'Gritty Breakbeats', -13.5),
-  rec('hypnotic-acid-loop', 'Hypnotic Acid Loop', -13.4),
-  rec('prop-wash', 'Prop Wash', -13.8),
-  rec('ground-effect', 'Ground Effect', -13.7),
-];
-
-/*
- * The menu bed. Two takes of the same piece, which is why one is named
- * Take 2 of the other: they came out of one sitting and they are meant to
- * sit behind a list of rows without asking for anything.
- *
- * These are NOT quiet files. They measure -14.2 and -13.6 LUFS
- * integrated, which lands them mid crate against the flight records'
- * -12.9 to -17.1. The quiet is a mix decision and it is made once, in
- * MENU_BUS in src/render/music.js, for the same reason scripts/music.js
- * refuses to put a gain in the encode: a loudness that lives in the file
- * is a loudness nobody can find later.
- */
-export const MENU_TRACKS = [
-  rec('neon-gate', 'Neon Gate', -14.2),
-  rec('neon-gate-take-2', 'Neon Gate Take 2', -13.6),
-];
-
+/* A flight record by id; an unknown id plays the first. */
 export function trackById(id) {
   return TRACKS.find((t) => t.id === id) ?? TRACKS[0];
 }
 
-/* Rotation's first record of a visit. Math.random is fine: this is the
- * crate, not the plant. */
+/* Random picks are fine here: this is the jukebox, not the plant. A
+ * flight visit starts on a random record; the menu bed re-rolls on every
+ * return, since a menu visit is half a minute and the same intro each time
+ * would wear, and music.js resumes each menu record where it stopped. */
+const anyOf = (crate) => crate[Math.floor(Math.random() * crate.length)];
+
 export function pickTrack() {
-  return TRACKS[Math.floor(Math.random() * TRACKS.length)];
+  return anyOf(TRACKS);
 }
 
-/* Which menu record. Rolled every time the menus come back rather than
- * once a visit, because a menu visit is thirty seconds and a once a visit
- * pick would mean hearing the same thirty seconds of the same intro every
- * time. music.js resumes each menu track where it left off, so a re-roll
- * is a change of record, not a restart. */
 export function pickMenuTrack() {
-  return MENU_TRACKS[Math.floor(Math.random() * MENU_TRACKS.length)];
+  return anyOf(MENU_TRACKS);
 }
 
-/* The Music track setting picks from the flight crate only. The menu bed
- * is not a choice, it is furniture. */
+/* The Music track setting's choices: rotation, then the flight crate. The
+ * menu bed is not a choice. */
 export function musicIds() {
   return ['rotation', ...TRACKS.map((t) => t.id)];
 }
 
+/* Resolved against this module, not the site root, so a shell served
+ * under a sub path still finds the crate. */
 export function trackUrl(id, ext) {
-  /* Resolved against this module rather than the site root, so a shell
-   * mounted under /sim/ still finds the crate. */
-  return new URL(`../../assets/music/${id}.${ext}?v=${MUSIC_REV}`, import.meta.url).href;
-}
-
-if (TRACKS.length === 0) {
-  throw new Error('tracks: flight crate is empty');
-}
-if (MENU_TRACKS.length === 0) {
-  throw new Error('tracks: menu crate is empty');
-}
-/* One namespace across both crates, because both write into
- * assets/music/<id>.<ext>. A menu id that collided with a flight id would
- * not fail here, it would fail as one file overwriting another at encode
- * time and a menu bed that is quietly the wrong song. */
-const seen = new Set();
-for (const t of [...TRACKS, ...MENU_TRACKS]) {
-  if (seen.has(t.id)) {
-    throw new Error(`tracks: duplicate id ${t.id}`);
-  }
-  if (!/^[a-z0-9-]+$/.test(t.id)) {
-    /* The id is half a URL now. A capital or a space here would not fail
-     * until a deploy served a 404 for one track in fourteen. */
-    throw new Error(`tracks: id ${t.id} is not a slug`);
-  }
-  seen.add(t.id);
+  const url = new URL(`../../assets/music/${id}.${ext}`, import.meta.url);
+  url.search = `v=${MUSIC_REV}`;
+  return url.href;
 }
