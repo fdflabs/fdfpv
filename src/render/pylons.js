@@ -15,20 +15,20 @@
  * each as a post of its own (sim_obstacle_compliance), so a clip high on
  * the cone folds the top of it and not the whole thing.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
@@ -309,6 +309,62 @@ function rimGeometry(Rc, t) {
   return geo;
 }
 
+/*
+ * The light across a hoop's opening, D across: a band on the rim and a
+ * faint wash inside it, on a plane 1.3 D square so the band clears the
+ * tube. It breathes, PULSE_DEPTH deep every PULSE_S, on the page's clock
+ * read as it draws, and only ever in uFront: the target's two sides are
+ * told apart by colourTargetSide, which writes both. Additive and
+ * unfogged, on the lit layer, like the square gates' glow in scene.js.
+ */
+const PULSE_RATE = ((2 * Math.PI) / PULSE_S).toFixed(4);
+const DISC_GLOW_FRAGMENT = /* glsl */ `
+  uniform vec3 uFront;
+  uniform float uGain;
+  uniform float uEdge;
+  uniform float uTime;
+  varying vec2 vUv;
+  void main() {
+    float d = length(vUv - 0.5);
+    float rim = exp(-pow((d - uEdge) / 0.05, 2.0));
+    float breath = 1.0 - ${PULSE_DEPTH.toFixed(2)} * (0.5 + 0.5 * sin(uTime * ${PULSE_RATE}));
+    gl_FragColor = vec4(uFront * (rim + smoothstep(uEdge, 0.0, d) * 0.2) * uGain * breath, 1.0);
+  }
+`;
+
+function discGlow(colour, D) {
+  const side = D * 1.3;
+  const clock = { value: 0 };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uFront: { value: new THREE.Color(colour) },
+      uBack: { value: new THREE.Color(colour) },
+      uGain: { value: 0.1 },
+      uEdge: { value: (D / 2) / side },
+      uTime: clock,
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: DISC_GLOW_FRAGMENT,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+  });
+  const disc = new THREE.Mesh(new THREE.PlaneGeometry(side, side), mat);
+  disc.layers.set(1);
+  disc.onBeforeRender = () => {
+    clock.value = performance.now() / 1000;
+  };
+  return disc;
+}
+
 /* The far light's picture, a soft red dot, drawn once for every hoop. */
 let beaconTex = null;
 function beaconTexture() {
@@ -358,51 +414,9 @@ function hoop(spec, index, isStart) {
     g.add(m);
   }
 
-  const uniforms = {
-    uFront: { value: new THREE.Color(ringColor) },
-    uBack: { value: new THREE.Color(ringColor) },
-    uGain: { value: 0.1 },
-    uEdge: { value: (D / 2) / (D * 1.3) },
-    uTime: { value: 0 },
-  };
-  const glowMat = new THREE.ShaderMaterial({
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    fog: false,
-    side: THREE.DoubleSide,
-    uniforms,
-    vertexShader: /* glsl */ `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      varying vec2 vUv;
-      uniform vec3 uFront;
-      uniform float uGain;
-      uniform float uEdge;
-      uniform float uTime;
-      void main() {
-        /* A round band on the rim and a soft wash across the disc, the
-         * square gate's glow (scene.js apertureMarkers) made round, with
-         * a slow breath on it. */
-        float r = length(vUv - 0.5);
-        float band = exp(-pow((r - uEdge) / 0.05, 2.0));
-        float fill = smoothstep(uEdge, 0.0, r) * 0.2;
-        float pulse = 1.0 - ${PULSE_DEPTH.toFixed(2)} * (0.5 + 0.5 * sin(uTime * ${(2 * Math.PI / PULSE_S).toFixed(4)}));
-        gl_FragColor = vec4(uFront * (band + fill) * uGain * pulse, 1.0);
-      }
-    `,
-  });
-  const glow = new THREE.Mesh(new THREE.PlaneGeometry(D * 1.3, D * 1.3), glowMat);
+  const glow = discGlow(ringColor, D);
+  const glowMat = glow.material;
   glow.position.y = cy;
-  glow.layers.set(1);
-  glow.onBeforeRender = () => {
-    uniforms.uTime.value = performance.now() / 1000;
-  };
   g.add(glow);
   const cue = gateCue(D, D, true);
   cue.position.y = cy;

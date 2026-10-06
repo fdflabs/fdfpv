@@ -113,9 +113,7 @@ src/render/gpuinfo.js
 src/render/lens.js
 src/render/music.js
 src/render/post.js
-src/render/pylons.js
 src/render/quality.js
-src/render/scene.js
 src/render/session-textures.js
 src/render/shell.js
 src/render/showcase.js
