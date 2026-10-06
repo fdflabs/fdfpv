@@ -2450,6 +2450,54 @@ function realCases() {
   return cases;
 }
 
+/*
+ * The Itaipu dam adds its gate capsules, then writes their posed ends
+ * straight into the construction columns before build (dam/index.js,
+ * poseBuilt), and widens their footprints with sweep. A rewrite that kept
+ * those columns private broke the map's load, which nothing above saw.
+ */
+function endpointWriteCases() {
+  return [{
+    id: 'prebuild-endpoint-writes',
+    run(s) {
+      seat();
+      const r = seeded(4242);
+      const c = new m.Colliders();
+      const ids = [];
+      for (let i = 0; i < 12; i += 1) {
+        const x = r.range(-20, 20);
+        const z = r.range(-20, 20);
+        c.add(i % 3 === 0 ? 'wire' : 'pole', x, 0, z, x, r.range(1, 6), z, r.range(0.05, 0.4));
+        ids.push(i);
+      }
+      s.say('columns before', [c.ax.length, c.ay.length, c.az.length, c.bx.length, c.by.length, c.bz.length]);
+      for (const i of ids.filter((_, k) => k % 2 === 0)) {
+        const a = [r.range(-20, 20), r.range(0, 3), r.range(-20, 20)];
+        const b = [a[0] + r.range(-4, 4), a[1] + r.range(0.5, 4), a[2] + r.range(-4, 4)];
+        c.ax[i] = a[0];
+        c.ay[i] = a[1];
+        c.az[i] = a[2];
+        c.bx[i] = b[0];
+        c.by[i] = b[1];
+        c.bz[i] = b[2];
+        c.sweep(i, Math.min(a[0], b[0]) - 1, Math.min(a[2], b[2]) - 1, Math.max(a[0], b[0]) + 1, Math.max(a[2], b[2]) + 1);
+      }
+      c.build();
+      sayState(s, 'built', c);
+      sayViews(s, 'built', c);
+      for (let k = 0; k < 400; k += 1) {
+        const p = [r.range(-25, 25), r.range(-1, 8), r.range(-25, 25)];
+        const q = [p[0] + r.range(-6, 6), p[1] + r.range(-3, 3), p[2] + r.range(-6, 6)];
+        hitCall(s, `hit ${k}`, c, r, k, p, q);
+        const axis = c.axisAt(...p, 3)
+          ? [c.axisGap, c.axisDx, c.axisDy, c.axisDz, c.axisCx, c.axisCy, c.axisCz]
+          : null;
+        s.say(`gap ${k}`, [c.gapAt(...p, 3), axis]);
+      }
+    },
+  }];
+}
+
 /* ------------------------------------------------------------------ the list */
 
 const cases = [
@@ -2469,6 +2517,7 @@ const cases = [
   ...freeCases(),
   ...airframeCases(),
   ...prebuildCases(),
+  ...endpointWriteCases(),
   ...errorCases(),
   ...tieCases(),
   ...streamCases(),

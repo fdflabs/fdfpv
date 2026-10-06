@@ -77,6 +77,7 @@
   "airframe-sequence": "8389908d4eaf859ccbd426b78e3ea637cb86cbbe0f15a356757c969163a8c801",
   "prebuild-fields": "5fc5993ef779160acd8bfdad29e997e0ba15b1e9ea21f4796c50d1514eda9657",
   "prebuild-report-carryover": "d0ed948730a445c2b44687cd1f9c14c5a9f1d05b6e94296040d4267987a6e4ca",
+  "prebuild-endpoint-writes": "4bf01544faeb2d3cc5d478b04c9e917ce7c677f246bb58a8615cacaefa19ed2b",
   "errors-adds": "da098ec04ae53b1f3797ac1e73e81b9bff31e5ce1f5830ef398a17fcc3f52538",
   "errors-build": "3933e19d48370dba83224cc50f8bcfde63a178cd46b152e81040f442fb604d5f",
   "errors-after-build": "aa52077342e1b07d31735aafe5588fae13d7225b57b44863a858e4e218dbb9f1",
