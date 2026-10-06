@@ -132,7 +132,7 @@ try {
   /* The camera report goes two a second; give it one, then propose. */
   await page.sleep(1500);
   await page.evaluate("(window.__ops.proposeCapture('bridge'), true)");
-  await page.until("/CAPTURE|POSITION|CAMERA/.test(window.__opsHud().say || '')", 10000).catch(() => {});
+  await page.until("/CAPTURE|POSITION|CAMERA|CANOPY/.test(window.__opsHud().say || '')", 10000).catch(() => {});
   const said = await page.evaluate('window.__opsHud().say');
   /* What the room holds of this seat, for the detail of a refusal. */
   const held = [...server.env.ROOMS.objects.values()].map((r) => r.host.core).filter((c) => c && c.ops && c.ops.match).map((c) => ({
@@ -141,9 +141,12 @@ try {
     tracks: [...c.ops.seats.entries()].map(([seat, rec]) => ({ seat, n: rec.track.s.length, ts: rec.track.s.slice(-12).map((x) => x.t), cams: rec.cams.map((x) => x.t).slice(-4) })),
     now: c.roomMs(Date.now()),
   }));
-  const ok = /NOTHING TO CAPTURE IN FRAME/.test(said || '');
+  /* Judged on this seat's pose and camera: the bridge out of the rail's
+   * frame, or behind the river bank's scrub from it (canopy.js), never
+   * refused for want of a pose or a camera. */
+  const ok = /NOTHING TO CAPTURE IN FRAME|BLOCKED BY CANOPY/.test(said || '');
   const still = await page.evaluate('window.__ops.sent().filter((m) => m.op === "capture").slice(-1)[0]');
-  check('a capture proposed on the rail is refused frame, not pose or cam: the room has this page\'s pose and camera', ok, ok ? said : `${said}; still ${JSON.stringify(still)}; room ${JSON.stringify(held)}`);
+  check('a capture proposed on the rail is refused frame or canopy, not pose or cam: the room has this page\'s pose and camera', ok, ok ? said : `${said}; still ${JSON.stringify(still)}; room ${JSON.stringify(held)}`);
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

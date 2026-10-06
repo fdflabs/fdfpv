@@ -71,7 +71,7 @@
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { HALF } from '../../share/interior/frame.js';
 import {
-  KIND, TREE_CELL, hash01, noise,
+  KIND, STAND, TREE_CELL, hash01, noise,
 } from '../../share/interior/canopy.js';
 import { LAND } from '../../share/interior/world.js';
 import { opened } from '../../share/interior/places.js';
@@ -125,14 +125,21 @@ const PALETTE = [
 const DRY = [0.078, 0.07, 0.046];
 const PINK = [0.16, 0.06, 0.09];
 const YELLOW = [0.17, 0.13, 0.03];
+const KIND_TONE = [];
+KIND_TONE[KIND.broadleaf] = [1, 1, 1];
+KIND_TONE[KIND.emergent] = [1, 1, 1];
+KIND_TONE[KIND.lone] = [1, 1, 1];
+KIND_TONE[KIND.palm] = [1.1, 1.1, 1];
+KIND_TONE[KIND.shrub] = [1.3, 1.18, 1.05];
 const out3 = [0, 0, 0];
 /* A tree's crown colour into out3. `flowers` false for a block, a
  * dozen crowns' worth: one tree in flower is no block's colour. */
 function crownColour(t, flowers = true) {
-  if (flowers && t.kind === KIND.broadleaf && t.tint > 0.9986) {
+  const roof = t.kind === KIND.broadleaf || t.kind === KIND.emergent;
+  if (flowers && roof && t.tint > 0.9986) {
     return PINK;
   }
-  if (flowers && t.kind === KIND.broadleaf && t.tint > 0.9978) {
+  if (flowers && roof && t.tint > 0.9978) {
     return YELLOW;
   }
   const r1 = hash01(Math.floor(t.tint * 4096), 7, 41);
@@ -150,10 +157,12 @@ function crownColour(t, flowers = true) {
   const b = PALETTE[Math.min(PALETTE.length - 1, k + 1)];
   const u = f - k;
   const lum = 0.85 + 0.3 * r2;
-  const palm = t.kind === KIND.palm ? 1.1 : 1;
-  out3[0] = (a[0] + (b[0] - a[0]) * u) * lum * palm;
-  out3[1] = (a[1] + (b[1] - a[1]) * u) * lum * palm;
-  out3[2] = (a[2] + (b[2] - a[2]) * u) * lum;
+  /* A palm's fronds a little lighter; a shrub's scrub paler, drier and
+   * yellower than the roof over it. */
+  const [kr, kg, kb] = KIND_TONE[t.kind];
+  out3[0] = (a[0] + (b[0] - a[0]) * u) * lum * kr;
+  out3[1] = (a[1] + (b[1] - a[1]) * u) * lum * kg;
+  out3[2] = (a[2] + (b[2] - a[2]) * u) * lum * kb;
   return out3;
 }
 /* A tree's seed for the hand overs, in [0, 1), not its colour's. */
@@ -621,8 +630,8 @@ export function buildTrees({
     }
   }
 
-  /* THE BLOCKS: a point a FAR_BLOCK square that is forest (or shrub)
-   * and not opened, at the block's middle jittered, as wide as a block
+  /* THE BLOCKS: a point a FAR_BLOCK square that canopy.js grows closed
+   * or gallery forest on (or shrub land) and not opened, at the block's middle jittered, as wide as a block
    * and a half so the forest closes, over the whole of the ground's data
    * (the ground is drawn to its edge, and a forest that stopped short
    * left a bare band round the map). */
@@ -636,18 +645,21 @@ export function buildTrees({
       const bj = Math.floor((z + HALF) / FAR_BLOCK);
       const px = x + FAR_BLOCK * (0.2 + 0.6 * hash01(bi, bj, 21));
       const pz = z + FAR_BLOCK * (0.2 + 0.6 * hash01(bi, bj, 22));
-      const cls = world.landAt(px, pz);
-      if (cls !== LAND.forest && cls !== LAND.shrub) {
+      /* The closed forest and the gallery forest, as canopy.js grows
+       * them (a gallery along a creek through pasture is forest too). */
+      const stand = canopy.standAt(px, pz);
+      if (stand !== STAND.closed && stand !== STAND.gallery) {
         continue;
       }
+      const cls = world.landAt(px, pz);
       if (opened(px, pz, 4)) {
         continue;
       }
       /* The block's own tree for its height: the one in the square its
        * middle falls in, if any. */
       const t = canopy.treeAt(Math.floor((px + HALF) / TREE_CELL), Math.floor((pz + HALF) / TREE_CELL));
-      const h = t ? t.h : 14;
-      const r = cls === LAND.forest ? FAR_BLOCK * 0.72 : FAR_BLOCK * 0.4;
+      const h = t && t.kind === KIND.broadleaf ? t.h : 14;
+      const r = cls === LAND.shrub ? FAR_BLOCK * 0.4 : FAR_BLOCK * 0.72;
       const ry = Math.min(r, 0.42 * h);
       farPos.push(px, world.groundAt(px, pz) + h - ry, pz);
       const c = crownColour({
