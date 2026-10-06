@@ -91,7 +91,14 @@ try {
   for (const name of await page.evaluate('window.__golden.names()')) {
     const slash = name.indexOf('/');
     const [mod, key] = [name.slice(0, slash), name.slice(slash + 1)];
-    const got = JSON.parse(await page.evaluate(`window.__golden.run(${JSON.stringify(name)})`));
+    let got;
+    try {
+      got = JSON.parse(await page.evaluate(`window.__golden.run(${JSON.stringify(name)})`));
+    } catch (e) {
+      failed += 1;
+      console.log(`  FAIL  ${name}: the case threw: ${e.message.split('\n')[0]}`);
+      continue;
+    }
     ran += 1;
     if (write) {
       recorded[mod][key] = got;
