@@ -193,6 +193,7 @@ export const THRASH_MS = 700;
 export const THRASH_TRAVEL = 0.60;
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const clampTo = (v, lo, hi) => (v < lo ? lo : (v > hi ? hi : v));
 
 /* Scratch for the attitude of the free functions below. */
 const AXES = new Float64Array(9);
@@ -397,10 +398,10 @@ function writeQuat(o, w, x, y, z) {
 }
 
 /*
- * Slerp without trigonometry: t is quantised to tenths of a thousandth
- * (k / 1024), the relative rotation is halved ten times by normalised
- * half angle steps, and the halvings whose bit is set in k are composed.
- * Square roots only, so it replays bit for bit.
+ * Slerp without trigonometry: t is quantised to k / 1024, the relative
+ * rotation is halved ten times by normalised half angle steps, and the
+ * halvings whose bit is set in k are composed. Square roots only, so it
+ * replays bit for bit.
  */
 export function turtleSlerpQuat(aw, ax, ay, az, bw, bx, by, bz, t, out) {
   const o = out || [0, 0, 0, 0];
@@ -630,28 +631,27 @@ function newDraft() {
   return d;
 }
 
-function pushRow(d, kind, box, a, b, r, frame) {
+/* Corners a and b, radius r, and a turned box's frame (zeros otherwise). */
+function pushRow(d, kind, box, ax, ay, az, bx, by, bz, r, ux, uz, u0, u1, w0, w1) {
   d.kind.push(kind);
   d.box.push(box);
-  d.fax.push(a[0]);
-  d.fay.push(a[1]);
-  d.faz.push(a[2]);
-  d.fbx.push(b[0]);
-  d.fby.push(b[1]);
-  d.fbz.push(b[2]);
+  d.fax.push(ax);
+  d.fay.push(ay);
+  d.faz.push(az);
+  d.fbx.push(bx);
+  d.fby.push(by);
+  d.fbz.push(bz);
   d.fr.push(r);
-  d.fux.push(frame[0]);
-  d.fuz.push(frame[1]);
-  d.fu0.push(frame[2]);
-  d.fu1.push(frame[3]);
-  d.fw0.push(frame[4]);
-  d.fw1.push(frame[5]);
+  d.fux.push(ux);
+  d.fuz.push(uz);
+  d.fu0.push(u0);
+  d.fu1.push(u1);
+  d.fw0.push(w0);
+  d.fw1.push(w1);
 }
 
-const NO_FRAME = [0, 0, 0, 0, 0, 0];
-
 function draftCapsule(d, kindName, ax, ay, az, bx, by, bz, r) {
-  pushRow(d, kindIndex(kindName), 0, [ax, ay, az], [bx, by, bz], r, NO_FRAME);
+  pushRow(d, kindIndex(kindName), 0, ax, ay, az, bx, by, bz, r, 0, 0, 0, 0, 0, 0);
   if (r > d.maxR) {
     d.maxR = r;
   }
@@ -678,9 +678,14 @@ const EMPTY = freeze(newDraft());
 class Registrar {
   constructor(set, sweeps) {
     this.set = set;
-    this.sweeps = sweeps;
+    this.sweeps = sweeps && sweeps.size > 0 ? sweeps : null;
     this.grid = new Map();
-    this.fill = new Map();
+    /* Each cell's slot, so the filing pass finds its list and cursor with
+     * one lookup. */
+    this.slots = new Map();
+    this.sizes = [];
+    this.entries = null;
+    this.cursor = null;
     this.foot = new Int32Array(set.n * 4);
     this.filing = false;
     this.next = 0;
@@ -726,20 +731,39 @@ class Registrar {
       throw new Error(`collide: a ${KINDS[s.fkind[j]]} from (${s.fax[j]}, ${s.faz[j]}) to (${s.fbx[j]}, ${s.fbz[j]}) is outside `
         + 'the grid, which reaches 16384 m from the origin');
     }
-    this.foot.set([cx0, cx1, cz0, cz1], j * 4);
+    const f = this.foot;
+    f[j * 4] = cx0;
+    f[j * 4 + 1] = cx1;
+    f[j * 4 + 2] = cz0;
+    f[j * 4 + 3] = cz1;
     for (let cx = cx0; cx <= cx1; cx += 1) {
       for (let cz = cz0; cz <= cz1; cz += 1) {
         const key = cellKey(cx, cz);
-        this.fill.set(key, (this.fill.get(key) || 0) + 1);
+        const slot = this.slots.get(key);
+        if (slot === undefined) {
+          this.slots.set(key, this.sizes.length);
+          this.sizes.push(1);
+        } else {
+          this.sizes[slot] += 1;
+        }
       }
     }
     return (cx1 - cx0 + 1) * (cz1 - cz0 + 1);
   }
 
+  /* Every cell's list is a window on one buffer: a map holds hundreds of
+   * thousands of cells, and a buffer each costs more than the filing. */
   startFiling() {
-    for (const [key, n] of this.fill) {
-      this.grid.set(key, new Int32Array(n));
-      this.fill.set(key, 0);
+    let total = 0;
+    this.cursor = new Int32Array(this.sizes.length);
+    for (let slot = 0; slot < this.sizes.length; slot += 1) {
+      this.cursor[slot] = total;
+      total += this.sizes[slot];
+    }
+    this.entries = new Int32Array(total);
+    for (const [key, slot] of this.slots) {
+      const at = this.cursor[slot];
+      this.grid.set(key, this.entries.subarray(at, at + this.sizes[slot]));
     }
     this.filing = true;
     this.next = 0;
@@ -747,13 +771,15 @@ class Registrar {
 
   file(j) {
     const f = this.foot;
-    const [cx0, cx1, cz0, cz1] = [f[j * 4], f[j * 4 + 1], f[j * 4 + 2], f[j * 4 + 3]];
+    const cx0 = f[j * 4];
+    const cx1 = f[j * 4 + 1];
+    const cz0 = f[j * 4 + 2];
+    const cz1 = f[j * 4 + 3];
     for (let cx = cx0; cx <= cx1; cx += 1) {
       for (let cz = cz0; cz <= cz1; cz += 1) {
-        const key = cellKey(cx, cz);
-        const at = this.fill.get(key);
-        this.grid.get(key)[at] = j;
-        this.fill.set(key, at + 1);
+        const slot = this.slots.get(cellKey(cx, cz));
+        this.entries[this.cursor[slot]] = j;
+        this.cursor[slot] += 1;
       }
     }
     return (cx1 - cx0 + 1) * (cz1 - cz0 + 1);
@@ -769,9 +795,8 @@ function registerWhole(set, sweeps) {
 /* The add methods shared by a Colliders before build and a refill before
  * its first step. */
 class Writer {
-  constructor(closedMessage) {
+  constructor() {
     this.draft = newDraft();
-    this.closedMessage = closedMessage;
   }
 
   /* Callers take ax.length as the index the next add gets. */
@@ -781,7 +806,7 @@ class Writer {
 
   open() {
     if (!this.draft) {
-      throw new Error(this.closedMessage);
+      this.refuseAdd();
     }
     return this.draft;
   }
@@ -803,8 +828,8 @@ class Writer {
     const d = this.open();
     const k = kindIndex(kindName);
     const i = d.kind.length;
-    pushRow(d, k, 1, [Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1)],
-      [Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1)], 0, NO_FRAME);
+    pushRow(d, k, 1, Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1), Math.max(x0, x1), Math.max(y0, y1),
+      Math.max(z0, z1), 0, 0, 0, 0, 0, 0, 0);
     return i;
   }
 
@@ -839,7 +864,7 @@ class Writer {
      * every point of the box inside them. */
     const pad = 1e-6 * (Math.abs(x0) + Math.abs(x1) + Math.abs(z0) + Math.abs(z1)) + 1e-6;
     const i = d.kind.length;
-    pushRow(d, k, TURNED, [x0 - pad, y0, z0 - pad], [x1 + pad, y1, z1 + pad], 0, [cx, cz, u0, u1, w0, w1]);
+    pushRow(d, k, TURNED, x0 - pad, y0, z0 - pad, x1 + pad, y1, z1 + pad, 0, cx, cz, u0, u1, w0, w1);
     return i;
   }
 
@@ -866,10 +891,14 @@ class Writer {
  */
 class StreamFill extends Writer {
   constructor(owner) {
-    super('collide: add to a streamed set after its first step');
+    super();
     this.owner = owner;
     this.set = null;
     this.reg = null;
+  }
+
+  refuseAdd() {
+    throw new Error('collide: add to a streamed set after its first step');
   }
 
   step(budget = STREAM_SLICE) {
@@ -993,21 +1022,25 @@ function slabWalk(w) {
 
 /* Signed depth of p into [lo, hi]: the least way out inside, minus the
  * distance outside. */
+const overhang = (v, lo, hi) => (v < lo ? v - lo : v > hi ? v - hi : 0);
+const wayOut = (v, lo, hi) => (v - lo < hi - v ? v - lo : hi - v);
+
 function boxDepth(lo, hi, p) {
-  const out = (k) => (p[k] < lo[k] ? lo[k] - p[k] : p[k] > hi[k] ? p[k] - hi[k] : 0);
-  const ox = out(0);
-  const oy = out(1);
-  const oz = out(2);
+  const ox = overhang(p[0], lo[0], hi[0]);
+  const oy = overhang(p[1], lo[1], hi[1]);
+  const oz = overhang(p[2], lo[2], hi[2]);
   if (ox !== 0 || oy !== 0 || oz !== 0) {
     return -Math.sqrt(ox * ox + oy * oy + oz * oz);
   }
-  const way = (k) => (p[k] - lo[k] < hi[k] - p[k] ? p[k] - lo[k] : hi[k] - p[k]);
-  const ix = way(0);
-  const iy = way(1);
-  const iz = way(2);
+  const ix = wayOut(p[0], lo[0], hi[0]);
+  const iy = wayOut(p[1], lo[1], hi[1]);
+  const iz = wayOut(p[2], lo[2], hi[2]);
   const m = ix < iy ? ix : iy;
   return iz < m ? iz : m;
 }
+
+/* The travel from c by d stays wholly below lo or wholly above hi. */
+const missesSpan = (c, d, lo, hi) => (c < lo && c + d < lo) || (c > hi && c + d > hi);
 
 /* Did a to b enter one face of [lo, hi] and leave by the opposite one? */
 function crossesBox(lo, hi, a, b) {
@@ -1088,7 +1121,7 @@ function copyContact(src, dst) {
  */
 export class Colliders extends Writer {
   constructor() {
-    super('collide: add after build');
+    super();
     this.built = false;
     this.count = undefined;
     this.baseCount = undefined;
@@ -1133,6 +1166,8 @@ export class Colliders extends Writer {
     this.axisCz = 0;
 
     this.store = null;
+    this.staticMaxR = 0;
+    this.nearGap = Infinity;
     this.stream = { set: EMPTY, grid: null };
     this.gates = { set: EMPTY, grid: null };
     this.refill = null;
@@ -1155,6 +1190,12 @@ export class Colliders extends Writer {
     this.got = hullContact();
     this.best = hullContact();
     this.nrm = new Float64Array(3);
+    this.faces = new Float64Array(6);
+    this.trip = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, dx: 0, dy: 0, dz: 0, a: 0, vh: 0, crx: 0, crz: 0 };
+  }
+
+  refuseAdd() {
+    throw new Error('collide: add after build');
   }
 
   build() {
@@ -1620,29 +1661,30 @@ export class Colliders extends Writer {
     const lo = this.lo3;
     const hi = this.hi3;
     const n = this.nrm;
-    const l = [lx, ly, lz];
-    for (let k = 0; k < 3; k += 1) {
-      n[k] = l[k] < lo[k] ? l[k] - lo[k] : l[k] > hi[k] ? l[k] - hi[k] : 0;
-    }
+    set3(n, overhang(lx, lo[0], hi[0]), overhang(ly, lo[1], hi[1]), overhang(lz, lo[2], hi[2]));
     if (n[0] !== 0 || n[1] !== 0 || n[2] !== 0) {
       const o = ellipsoidOverlap(n[0], n[1], n[2], rx, ry, rz);
       this.hitOverlap = o > REPORT_CAP ? REPORT_CAP : o;
       return;
     }
-    const semi = [rx, ry, rz];
-    let best = lx - lo[0];
+    /* Faces -x, +x, -y, +y, -z, +z: the nearest, first on a tie. */
+    const f = this.faces;
+    f[0] = lx - lo[0];
+    f[1] = hi[0] - lx;
+    f[2] = ly - lo[1];
+    f[3] = hi[1] - ly;
+    f[4] = lz - lo[2];
+    f[5] = hi[2] - lz;
     let face = 0;
-    for (let f = 1; f < 6; f += 1) {
-      const k = f >> 1;
-      const dist = f & 1 ? hi[k] - l[k] : l[k] - lo[k];
-      if (dist < best) {
-        best = dist;
-        face = f;
+    for (let k = 1; k < 6; k += 1) {
+      if (f[k] < f[face]) {
+        face = k;
       }
     }
+    const axis = face >> 1;
     set3(n, 0, 0, 0);
-    n[face >> 1] = face & 1 ? 1 : -1;
-    const pen = best + semi[face >> 1];
+    n[axis] = face & 1 ? 1 : -1;
+    const pen = f[face] + (axis === 0 ? rx : axis === 1 ? ry : rz);
     this.hitPen = pen > REPORT_CAP ? REPORT_CAP : pen;
   }
 
@@ -1688,8 +1730,20 @@ export class Colliders extends Writer {
       qy += e[4] * vOff;
       qz += e[5] * vOff;
     }
-    const trip = { px, py, pz, qx, qy, qz, dx: qx - px, dy: qy - py, dz: qz - pz, a: 0, vh, crx, crz };
+    const trip = this.trip;
+    trip.px = px;
+    trip.py = py;
+    trip.pz = pz;
+    trip.qx = qx;
+    trip.qy = qy;
+    trip.qz = qz;
+    trip.dx = qx - px;
+    trip.dy = qy - py;
+    trip.dz = qz - pz;
     trip.a = trip.dx * trip.dx + trip.dy * trip.dy + trip.dz * trip.dz;
+    trip.vh = vh;
+    trip.crx = crx;
+    trip.crz = crz;
     const pad = CRAFT_WORLD_R + this.pad;
     const n = this.gather(Math.min(px, qx) - pad, Math.max(px, qx) + pad, Math.min(pz, qz) - pad, Math.max(pz, qz) + pad);
     let bestT = Infinity;
@@ -1949,7 +2003,6 @@ export class Colliders extends Writer {
   partsIntoBox(hull, axes, px, py, pz, dx, dy, dz) {
     const lo = this.lo3;
     const hi = this.hi3;
-    const d = [dx, dy, dz];
     let won = false;
     for (let k = 0; k < hull.n; k += 1) {
       if (!hull.live[k]) {
@@ -1957,15 +2010,8 @@ export class Colliders extends Writer {
       }
       const c = partCentre(hull, k, axes, px, py, pz, this.c3);
       const g = hull.rho[k];
-      let misses = false;
-      for (let j = 0; j < 3; j += 1) {
-        const lg = lo[j] - g;
-        const hg = hi[j] + g;
-        if ((c[j] < lg && c[j] + d[j] < lg) || (c[j] > hg && c[j] + d[j] > hg)) {
-          misses = true;
-        }
-      }
-      if (misses) {
+      if (missesSpan(c[0], dx, lo[0] - g, hi[0] + g) || missesSpan(c[1], dy, lo[1] - g, hi[1] + g)
+        || missesSpan(c[2], dz, lo[2] - g, hi[2] + g)) {
         continue;
       }
       const t = sweepPartBox(hull, k, axes, px, py, pz, dx, dy, dz, lo, hi, this.got);
@@ -2030,24 +2076,27 @@ export class Colliders extends Writer {
 
   partsIntoMoving(hull, m, ax9, px, py, pz, qx, qy, qz, reach) {
     const { hx, hy, hz } = this.movers[m];
-    const rp = [px - this.movingPx[m], py - this.movingPy[m], pz - this.movingPz[m]];
-    const rd = [(qx - this.movingCx[m]) - rp[0], (qy - this.movingCy[m]) - rp[1], (qz - this.movingCz[m]) - rp[2]];
-    const h = [hx, hy, hz];
-    for (let j = 0; j < 3; j += 1) {
-      const g = h[j] + reach;
-      if ((rp[j] < -g && rp[j] + rd[j] < -g) || (rp[j] > g && rp[j] + rd[j] > g)) {
-        return false;
-      }
+    const rpx = px - this.movingPx[m];
+    const rpy = py - this.movingPy[m];
+    const rpz = pz - this.movingPz[m];
+    const rdx = (qx - this.movingCx[m]) - rpx;
+    const rdy = (qy - this.movingCy[m]) - rpy;
+    const rdz = (qz - this.movingCz[m]) - rpz;
+    const gx = hx + reach;
+    const gy = hy + reach;
+    const gz = hz + reach;
+    if (missesSpan(rpx, rdx, -gx, gx) || missesSpan(rpy, rdy, -gy, gy) || missesSpan(rpz, rdz, -gz, gz)) {
+      return false;
     }
     set3(this.lo3, -hx, -hy, -hz);
     set3(this.hi3, hx, hy, hz);
-    if (!this.partsIntoBox(hull, ax9, rp[0], rp[1], rp[2], rd[0], rd[1], rd[2])) {
+    if (!this.partsIntoBox(hull, ax9, rpx, rpy, rpz, rdx, rdy, rdz)) {
       return false;
     }
     const b = this.best;
-    b.px += (px + (qx - px) * b.t) - (rp[0] + rd[0] * b.t);
-    b.py += (py + (qy - py) * b.t) - (rp[1] + rd[1] * b.t);
-    b.pz += (pz + (qz - pz) * b.t) - (rp[2] + rd[2] * b.t);
+    b.px += (px + (qx - px) * b.t) - (rpx + rdx * b.t);
+    b.py += (py + (qy - py) * b.t) - (rpy + rdy * b.t);
+    b.pz += (pz + (qz - pz) * b.t) - (rpz + rdz * b.t);
     return true;
   }
 
@@ -2139,37 +2188,39 @@ export class Colliders extends Writer {
     const lu = u1 - u0;
     const ly = y1 - y0;
     const lw = w1 - w0;
-    let dx;
-    let dy;
-    let dz;
-    if (lu >= ly && lu >= lw) {
-      [dx, dy, dz] = [ux, 0, uz];
-      cu = qu < u0 ? u0 : (qu > u1 ? u1 : qu);
-    } else if (ly >= lu && ly >= lw) {
-      [dx, dy, dz] = [0, 1, 0];
-      cy = py < y0 ? y0 : (py > y1 ? y1 : py);
-    } else {
-      [dx, dy, dz] = [-uz, 0, ux];
-      cw = qw < w0 ? w0 : (qw > w1 ? w1 : qw);
-    }
     const n2 = ux * ux + uz * uz;
-    this.setAxis(dx, dy, dz, (cu * ux - cw * uz) / n2, cy, (cu * uz + cw * ux) / n2);
+    if (lu >= ly && lu >= lw) {
+      cu = clampTo(qu, u0, u1);
+      this.setAxis(ux, 0, uz, (cu * ux - cw * uz) / n2, cy, (cu * uz + cw * ux) / n2);
+    } else if (ly >= lu && ly >= lw) {
+      cy = clampTo(py, y0, y1);
+      this.setAxis(0, 1, 0, (cu * ux - cw * uz) / n2, cy, (cu * uz + cw * ux) / n2);
+    } else {
+      cw = clampTo(qw, w0, w1);
+      this.setAxis(-uz, 0, ux, (cu * ux - cw * uz) / n2, cy, (cu * uz + cw * ux) / n2);
+    }
   }
 
   boxAxis(i, px, py, pz) {
-    const lo = [this.fax[i], this.fay[i], this.faz[i]];
-    const hi = [this.fbx[i], this.fby[i], this.fbz[i]];
-    const p = [px, py, pz];
-    const len = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
-    let k = 2;
-    if (len[0] >= len[1] && len[0] >= len[2]) {
-      k = 0;
-    } else if (len[1] >= len[0] && len[1] >= len[2]) {
-      k = 1;
+    const x0 = this.fax[i];
+    const y0 = this.fay[i];
+    const z0 = this.faz[i];
+    const x1 = this.fbx[i];
+    const y1 = this.fby[i];
+    const z1 = this.fbz[i];
+    const w = x1 - x0;
+    const h = y1 - y0;
+    const d = z1 - z0;
+    const mx = (x0 + x1) * 0.5;
+    const my = (y0 + y1) * 0.5;
+    const mz = (z0 + z1) * 0.5;
+    if (w >= h && w >= d) {
+      this.setAxis(1, 0, 0, clampTo(px, x0, x1), my, mz);
+    } else if (h >= w && h >= d) {
+      this.setAxis(0, 1, 0, mx, clampTo(py, y0, y1), mz);
+    } else {
+      this.setAxis(0, 0, 1, mx, my, clampTo(pz, z0, z1));
     }
-    const c = [(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5];
-    c[k] = p[k] < lo[k] ? lo[k] : (p[k] > hi[k] ? hi[k] : p[k]);
-    this.setAxis(k === 0 ? 1 : 0, k === 1 ? 1 : 0, k === 2 ? 1 : 0, c[0], c[1], c[2]);
   }
 
   /* A sphere has no axis: found stays false, the gap just written stays. */
