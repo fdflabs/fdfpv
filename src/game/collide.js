@@ -799,9 +799,32 @@ class Writer {
     this.draft = newDraft();
   }
 
-  /* Callers take ax.length as the index the next add gets. */
+  /* The corner columns as written so far. Callers take ax.length as the
+   * index the next add gets, and the Itaipu dam rewrites its gates'
+   * capsule ends through them before build, so build freezes whatever
+   * they hold then. */
   get ax() {
     return this.draft ? this.draft.fax : null;
+  }
+
+  get ay() {
+    return this.draft ? this.draft.fay : null;
+  }
+
+  get az() {
+    return this.draft ? this.draft.faz : null;
+  }
+
+  get bx() {
+    return this.draft ? this.draft.fbx : null;
+  }
+
+  get by() {
+    return this.draft ? this.draft.fby : null;
+  }
+
+  get bz() {
+    return this.draft ? this.draft.fbz : null;
   }
 
   open() {
