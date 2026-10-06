@@ -82,7 +82,6 @@ src/native/plant.c
 src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
-src/render/audio.js
 src/render/pylons.js
 src/render/scene.js
 src/replay/crashcam.js
