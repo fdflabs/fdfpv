@@ -51,6 +51,7 @@ jobs:
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
+      - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run rooms:accounts

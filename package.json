@@ -35,6 +35,7 @@
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "lint:boot": "node scripts/boot-check.js",
     "lint:memory": "node scripts/memory-check.js",
+    "catalog-rules:selftest": "node scripts/catalog-rules-selftest.js",
     "lint:fc": "node scripts/fc-trace.js",
     "failsafe:trace": "node scripts/failsafe-trace.js",
     "lint:frame": "node scripts/frame-check.js",

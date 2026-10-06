@@ -62,7 +62,6 @@ scripts/track-mode-check.js
 scripts/trick-sweep.js
 scripts/wall-check.js
 src/boot.js
-src/fc/catalog.js
 src/fc/keynotes.js
 src/game/airframehull.js
 src/game/collide.js
