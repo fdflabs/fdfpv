@@ -1,39 +1,33 @@
 /*
- * shell.js: everything that outlives a map.
+ * shell.js: the session, which outlives every map.
  *
- * Every map is a world built by its own module with its own post chain: the
- * Alps, the Swiss valley and Itaipu. What they share is
- * a renderer, a canvas, a camera and an airframe, and none of those may be
- * rebuilt when the player changes map: a WebGL context is expensive, the
- * camera's layer mask is a contract the post chains read, and re-creating the
- * craft would recompile its cel materials for nothing.
+ * Each map (the Alps, the Swiss valley, Itaipu, the Interior) builds its
+ * own world and post chain. What they share is one renderer and canvas,
+ * one camera and one airframe, and none of those is rebuilt on a map
+ * change: a WebGL context is expensive, the post chains read the camera's
+ * layer mask, and a new craft would recompile its cel materials for
+ * nothing. A map owns its scene, post chain, colliders and contact data
+ * and frees all of them when it is swapped out, so only one map's render
+ * targets are alive at a time (src/maps/README.md has the contract).
  *
- * So the split is: this file owns the session, a MapInstance owns the world.
- * A MapInstance owns its scene, its post chain, its colliders and its contact
- * data, and disposes all of it when it is swapped out, which is what keeps
- * only one map's render targets alive at a time. The contract a MapInstance
- * must satisfy is written down in src/maps/README.md.
+ * Renderer state that maps disagree about (shadow filtering, clear
+ * colour) is deliberately not set here: each map applies its own, so no
+ * map silently inherits the last one's.
  *
- * The renderer's own state is deliberately NOT set here. The two maps want
- * different shadow filtering and different clear colours, and a map that
- * silently inherits the other one's renderer state is the kind of defect that
- * only shows up on the second map you load. Each map applies what it needs in
- * applyRendererState.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
@@ -45,166 +39,143 @@ import { dressParts } from './partsfit.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
 /*
- * One shadow depth material per kind of instanced caster.
+ * Shadow depth materials shared per kind of instanced caster.
  *
- * Three.js r160 draws every plain shadow caster with ONE shared
- * MeshDepthMaterial, and its program carries whether the object is
- * instanced, has instance colours or is batched. A shadow pass that walks a
- * plain mesh, then an InstancedMesh, then a plain mesh rebuilds that
- * material's program parameters and cache key string at every switch:
- * 29 times a frame in the Swiss valley, measured, about 0.3 ms of main
- * thread and 1.4 MB/s of garbage. Giving each kind of caster its own copy of
- * the same material ends the switching. The pixels are the same: it is the
- * material three would have used, and three still copies the source
- * material's side, map and alpha onto it every draw.
- *
- * A material whose shadow needs three's per material variant (an alpha
- * tested map, a displacement map, clip planes) is left to three, which
- * already gives it its own copy. Kinds are keyed by what the program keys:
- * index 1 instanced, 2 instance coloured, 4 batched.
+ * three r160 draws plain shadow casters with one MeshDepthMaterial whose
+ * program depends on whether the object is instanced, instance coloured or
+ * batched, so a shadow pass alternating between kinds rebuilds that
+ * program's parameters at every switch (29 times a frame in the Swiss
+ * valley: about 0.3 ms and 1.4 MB/s of garbage). One copy per kind ends the
+ * switching with the same pixels, since it is the material three would use
+ * and three still copies side, map and alpha onto it each draw. Materials
+ * that need three's own per material copy (alpha tested maps, displacement,
+ * shadow clipping) are left to it. Index: 1 instanced, 2 instance colours,
+ * 4 batched.
  */
-const SHARED_DEPTH = [];
+const DEPTH_BY_KIND = [];
 
-function needsDepthVariant(m) {
-  return (m.clipShadows === true && Array.isArray(m.clippingPlanes) && m.clippingPlanes.length !== 0)
-    || (m.displacementMap && m.displacementScale !== 0)
-    || ((m.alphaMap || m.map) && m.alphaTest > 0);
+function needsOwnDepth(m) {
+  const clips = m.clipShadows === true && Array.isArray(m.clippingPlanes) && m.clippingPlanes.length !== 0;
+  const displaces = Boolean(m.displacementMap) && m.displacementScale !== 0;
+  const cutsOut = Boolean(m.alphaMap || m.map) && m.alphaTest > 0;
+  return clips || displaces || cutsOut;
 }
 
+/* Gives every eligible instanced or batched shadow caster under `root` its
+ * kind's shared depth material, and returns how many it gave one to. */
 export function shareInstancedDepth(root) {
-  let shared = 0;
-  root.traverse((obj) => {
-    if (!(obj.isInstancedMesh || obj.isBatchedMesh) || !obj.castShadow || obj.customDepthMaterial) {
+  let count = 0;
+  root.traverse((o) => {
+    const eligible = (o.isInstancedMesh || o.isBatchedMesh)
+      && o.castShadow
+      && !o.customDepthMaterial
+      && !Array.isArray(o.material)
+      && !o.isSkinnedMesh
+      && !o.geometry.morphAttributes.position
+      && !needsOwnDepth(o.material);
+    if (!eligible) {
       return;
     }
-    const m = obj.material;
-    if (Array.isArray(m) || obj.isSkinnedMesh || obj.geometry.morphAttributes.position || needsDepthVariant(m)) {
-      return;
-    }
-    const kind = (obj.isInstancedMesh ? 1 : 0) + (obj.instanceColor ? 2 : 0) + (obj.isBatchedMesh ? 4 : 0);
-    if (!SHARED_DEPTH[kind]) {
-      SHARED_DEPTH[kind] = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
-    }
-    obj.customDepthMaterial = SHARED_DEPTH[kind];
-    shared += 1;
+    const kind = (o.isInstancedMesh ? 1 : 0) | (o.instanceColor ? 2 : 0) | (o.isBatchedMesh ? 4 : 0);
+    DEPTH_BY_KIND[kind] ??= new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+    o.customDepthMaterial = DEPTH_BY_KIND[kind];
+    count += 1;
   });
-  return shared;
+  return count;
+}
+
+/* Every texture a material holds, in its own properties or its uniforms. */
+function texturesOf(material) {
+  const found = Object.values(material).filter((v) => v && v.isTexture);
+  for (const uniform of Object.values(material.uniforms || {})) {
+    const v = uniform && uniform.value;
+    if (v && v.isTexture) {
+      found.push(v);
+    }
+  }
+  return found;
 }
 
 /*
- * Free every GPU resource a map's scene graph owns.
- *
- * This is what makes "only the active map exists" true rather than asserted.
- * Without it a swap leaks the whole previous world: three.js holds geometry
- * and texture handles until dispose is called, garbage collection does not
- * reach them, and P5's render target budget is measured against a driver that
- * is still holding the field's 42.8 MB of attributes while the city builds
- * its own. Textures are collected into a Set first because a city material
- * atlas is shared by hundreds of meshes and disposing it hundreds of times is
- * merely wasteful the first time and a no-op after.
- *
- * The craft is re-parented out before this runs, so it is never reachable
- * from here. Anything else in the graph is the map's and dies with it.
+ * Frees every GPU resource a map's scene graph holds, which is what makes
+ * "only the active map exists" true: three keeps buffers and textures until
+ * dispose is called, whatever the garbage collector does. Each resource is
+ * freed once however many meshes share it. Shadow maps are found through
+ * their lights, since nothing else reaches them, and missing them leaked a
+ * 33.5 MB target per map change. `keepTextures` names textures that belong
+ * to the session (the cel ramp every cel material shares, the craft's
+ * included). The craft and other session roots must be handed back
+ * (evictSessionRoots) before this runs. Returns what was freed.
  */
 export function disposeSceneGraph(root, keepTextures) {
-  const textures = new Set();
-  const materials = new Set();
-  const geometries = new Set();
-  const shadows = new Set();
-  root.traverse((obj) => {
-    /*
-     * A light owns a render target and nothing else here would have found it.
-     * `light.shadow.map` is a 2048 by 2048 target the renderer allocates
-     * lazily and frees only on an explicit dispose, and it is reachable from
-     * neither `geometry` nor `material`. Missing it leaked one shadow map per
-     * map swap, 33.5 MB each against a 120 MB budget, invisible to
-     * `__budget` because the leaked targets belong to a scene nothing
-     * traverses any more.
-     */
-    if (obj.isLight && obj.shadow && obj.shadow.map) {
-      shadows.add(obj.shadow.map);
+  const found = { geometries: new Set(), materials: new Set(), textures: new Set(), shadowMaps: new Set() };
+  root.traverse((o) => {
+    if (o.isLight && o.shadow && o.shadow.map) {
+      found.shadowMaps.add(o.shadow.map);
     }
-    if (obj.geometry) {
-      geometries.add(obj.geometry);
+    if (o.geometry) {
+      found.geometries.add(o.geometry);
     }
-    const m = obj.material;
-    if (!m) {
-      return;
-    }
-    const list = Array.isArray(m) ? m : [m];
-    for (const mat of list) {
-      materials.add(mat);
-      for (const key of Object.keys(mat)) {
-        const v = mat[key];
-        if (v && v.isTexture) {
-          textures.add(v);
-        }
-      }
-      const uniforms = mat.uniforms;
-      if (uniforms) {
-        for (const key of Object.keys(uniforms)) {
-          const v = uniforms[key] && uniforms[key].value;
-          if (v && v.isTexture) {
-            textures.add(v);
-          }
-        }
-      }
+    for (const material of o.material ? [o.material].flat() : []) {
+      found.materials.add(material);
+      texturesOf(material).forEach((t) => found.textures.add(t));
     }
   });
-  for (const g of geometries) {
-    g.dispose();
-  }
-  for (const m of materials) {
-    m.dispose();
-  }
-  let kept = 0;
-  for (const t of textures) {
-    /*
-     * Some textures are the SESSION's, not the map's. Every cel material
-     * shares one gradient ramp singleton from celmat.js, and the airframe's
-     * four cel materials are session lived and still hold it, so disposing it
-     * with the map would free a texture that live materials point at. The
-     * caller names what to keep.
-     */
-    if (keepTextures && keepTextures.has(t)) {
-      kept += 1;
-      continue;
+  found.geometries.forEach((g) => g.dispose());
+  found.materials.forEach((m) => m.dispose());
+  const kept = [...found.textures].filter((t) => keepTextures && keepTextures.has(t));
+  found.textures.forEach((t) => {
+    if (!kept.includes(t)) {
+      t.dispose();
     }
-    t.dispose();
-  }
-  for (const m of shadows) {
-    m.dispose();
-  }
+  });
+  found.shadowMaps.forEach((target) => target.dispose());
   root.clear();
   return {
-    geometries: geometries.size,
-    materials: materials.size,
-    textures: textures.size - kept,
-    keptTextures: kept,
-    shadowMaps: shadows.size,
+    geometries: found.geometries.size,
+    materials: found.materials.size,
+    textures: found.textures.size - kept.length,
+    keptTextures: kept.length,
+    shadowMaps: found.shadowMaps.size,
   };
 }
 
+/* Frees a replaced airframe. Nothing in a craft is shared: its meshes and
+ * cel materials are made per build. */
+function freeCraft(group) {
+  group.traverse((o) => {
+    o.geometry?.dispose();
+    for (const m of o.material ? [o.material].flat() : []) {
+      m?.dispose?.();
+    }
+  });
+}
+
+/* The craft's optional handles, each null on an aircraft without it:
+ * control surfaces, a folding prop, the Bramor's parachute, flaps,
+ * retracts, and a launch rail with its pose. */
+const OPTIONAL_HANDLES = ['setSurfaces', 'setProp', 'setChute', 'setFlaps', 'setGear', 'launcher', 'launcherRest'];
+
+/*
+ * The session: renderer, camera and the flown airframe.
+ *
+ * opts.airframe is the aircraft to build. opts.pixelRatio and
+ * opts.powerPreference are for the orbit thumbnail page, which must not
+ * take a retina buffer or the high-performance GPU for a 480p clip, and
+ * opts.desynchronized lets the canvas skip the compositor's frame queue
+ * (felt in the sticks, invisible in the frame rate) at the cost of tearing;
+ * it stays off unless asked, because the thumbnail page reads its frames
+ * back and a buffer bypassing the compositor may read empty.
+ */
 export function buildShell(canvas, opts) {
-  /* No depth and no stencil on the default framebuffer. The only thing ever
-   * drawn into it is a fullscreen quad from whichever map's post chain is
-   * active, which is neither depth tested nor stencilled, and a browser hands
-   * out a D24S8 buffer by default: measured, 8.3 MB of the frame's 120 MB
-   * render target budget for a buffer nothing reads. antialias stays off
-   * because both post chains allocate their own targets, so the flag would
-   * multisample that same one quad.
-   *
-   * opts.pixelRatio and opts.powerPreference are for the orbit thumbnail
-   * page, which must not inherit a 2x retina buffer or a high-performance
-   * GPU hint while it records a 480p clip. */
   const options = opts || {};
   /*
-   * high-performance, not default: on a dual-GPU laptop "default" often
-   * picks the battery iGPU and the discrete chip sits idle. Quality
-   * presets then scale resolution and effects; they do not pick the
-   * device. failIfMajorPerformanceCaveat stays false so a machine with
-   * only a software rasteriser still boots. Orbit thumbnails pass
-   * low-power explicitly because they are a second context.
+   * The default framebuffer only ever receives a map's final full screen
+   * quad, so it gets no depth or stencil (a browser's default D24S8 is
+   * 8.3 MB of the 120 MB target budget nobody reads) and no antialiasing
+   * (the post chains keep their own targets). high-performance, because
+   * on a laptop with two GPUs "default" often wakes the integrated one;
+   * a machine with only a software rasteriser still boots.
    */
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -213,177 +184,100 @@ export function buildShell(canvas, opts) {
     stencil: false,
     powerPreference: options.powerPreference || 'high-performance',
     failIfMajorPerformanceCaveat: false,
-    /*
-     * Opt out of the compositor's frame queue when the caller asks.
-     *
-     * A canvas normally hands its finished frame to the browser compositor,
-     * which may hold one or two more before anything reaches the glass.
-     * That queue is invisible in the frame rate and is felt in the sticks:
-     * it is why a machine can report 45 frames per second and still fly
-     * like a late radio, because the number counts frames produced, not
-     * frames seen. desynchronized lets the canvas present closer to
-     * directly, at the cost of tearing.
-     *
-     * Off unless asked, because the orbit thumbnail page reads its frames
-     * back to record a clip, and a buffer that bypasses the compositor is
-     * exactly the one a reader may find empty.
-     */
     desynchronized: Boolean(options.desynchronized),
   });
-  const pixelRatio = options.pixelRatio != null
-    ? options.pixelRatio
-    : Math.min(window.devicePixelRatio, 2);
+  const pixelRatio = options.pixelRatio != null ? options.pixelRatio : Math.min(window.devicePixelRatio, 2);
   renderer.setPixelRatio(pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  /* No filmic tone curve: it desaturates exactly the flat saturated colour
-   * both of these styles are built on. Each map's last pass does the colour
-   * space conversion itself. */
+  /* No filmic curve: it greys out the flat saturated colour the looks are
+   * built on, and each map's last pass converts colour space itself. */
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.shadowMap.enabled = true;
 
   /*
-   * Near plane at 0.2 m, not 0.04. The camera sits inside a 150 mm airframe,
-   * so 4 cm buys nothing, and a 0.04 to 2600 range left the race field's
-   * outline prepass with under one depth code of separation past about 500 m.
-   *
-   * The far plane is a map's business, not the session's: 2600 m is the race
-   * field's valley and the city needs a fraction of it, so a map sets
-   * camera.far and calls updateProjectionMatrix in its own build. The value
-   * here is the field's, because the field is what boots.
+   * Near 0.2 m: the eye is inside a 150 mm airframe, and a 4 cm near plane
+   * left distant outlines without depth precision. The far plane is each
+   * map's to set; 2600 m is the boot value. The lens starts at the default
+   * until the pilot's settings apply (lens.js). Layers 1 (no ink) and 2
+   * stay on so one camera suits every post chain.
    */
-  /* The boot lens, replaced by the pilot's own on the first settings pass.
-   * lens.js is where the number is argued. */
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV_DEFAULT, 1, 0.2, 2600);
-  /* Layer 1 is the no ink layer. Layer 2 used to be the grass field; blades
-   * are not drawn. Both bits are still enabled so the race field's outline
-   * prepass in post.js keeps one camera good for both maps. The city's
-   * pipeline is screen space and puts everything on layer 0, so enabling
-   * these costs it nothing. */
   camera.layers.enable(1);
   camera.layers.enable(2);
 
-  let craft = buildCraft(opts.airframe);
+  let craft = buildCraft(options.airframe);
+
   /*
-   * A map may dress the aircraft in its own look: swiss2 draws it
-   * physically based where every other map keeps the builders' cel. A
-   * look is a function of a built craft that restyles it and returns its
-   * own undo. It is applied to each craft swapCraft builds and undone
-   * before one is disposed, so no builder knows about it; null is the
-   * craft as built. The ghost is its own flat mint and is not dressed.
+   * A map may restyle the airframe in its own look (swiss2 draws it
+   * physically based; the rest keep the builders' cel): a function of a
+   * built craft that restyles it and returns its undo. It goes on every
+   * craft this shell builds and comes off before one is freed, repainted
+   * or refitted, so no builder knows looks exist. The ghost is never
+   * dressed.
    */
-  let craftLook = null;
-  let undoCraftLook = null;
-  function setCraftLook(look) {
-    if (undoCraftLook) {
-      undoCraftLook();
+  const dress = { look: null, undo: null };
+  function undress() {
+    if (dress.undo) {
+      dress.undo();
     }
-    craftLook = look;
-    undoCraftLook = look ? look(craft) : null;
+  }
+  function redress() {
+    dress.undo = dress.look ? dress.look(craft) : null;
+  }
+  function setCraftLook(look) {
+    undress();
+    dress.look = look;
+    redress();
   }
 
+  /* The canvas fills the window by its stylesheet; inline sizes left by a
+   * setSize that styled it would pin it, so they are cleared and the
+   * window measured. */
   function resize() {
-    /*
-     * The stylesheet sizes the canvas (100 percent of the viewport). Measuring
-     * clientWidth after an inline width/height has been written returns that
-     * pinned size, not the window, which is how a resize left a band of page
-     * background under the world while the overlay still filled the frame.
-     * The city's vendored pipeline calls setSize with updateStyle true; even
-     * after we undo that, innerWidth is the size we actually want.
-     */
     canvas.style.width = '';
     canvas.style.height = '';
-    const w = Math.max(1, window.innerWidth);
-    const h = Math.max(1, window.innerHeight);
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+    const size = { w: Math.max(1, window.innerWidth), h: Math.max(1, window.innerHeight) };
+    renderer.setSize(size.w, size.h, false);
+    camera.aspect = size.w / size.h;
     camera.updateProjectionMatrix();
-    return { w, h };
+    return size;
   }
   resize();
 
   /*
-   * ROOTS THAT OUTLIVE A MAP.
-   *
-   * The craft is session lived and the maps are not: the shell builds it
-   * once and re-parents it into whichever map's scene is active. A map's
-   * dispose has to hand it back before disposeSceneGraph runs, or the walk
-   * frees the geometry and the cel materials of the aircraft the pilot is
-   * still flying. disposeSceneGraph's own header states that invariant.
-   *
-   * The field map used to keep it by capturing shell.quad at BUILD time,
-   * which is wrong twice over. Boot always builds a five inch and
-   * applySettings swaps to the whoop afterwards, AFTER loadMap has already
-   * captured, so on a whoop the map held the dead five inch group: its
-   * scene.remove was a no-op and the live craft was disposed with the
-   * world. Measured with a deleteBuffer hook over three forced rebuilds,
-   * that cost 320 buffer deletes on the first and 119 and 117 after, the
-   * extra 203 being the whoop. Nothing visibly broke because three
-   * re-uploads whatever it finds missing, which is most of why it survived.
-   *
-   * And the craft was never the only one. main.js parents the ghost rig
-   * into the same scene whenever a ghost is on screen and nothing ever
-   * detaches it, so its geometry, its two materials, its sprite material
-   * and its name tag canvas were freed on every map swap. The tag texture
-   * is not in SESSION_TEXTURES, so that one is a live object being freed,
-   * not merely a re-upload.
-   *
-   * So the register lives here rather than in each map. Anything session
-   * lived says so once with keepAcrossMaps, a map's dispose calls
-   * evictSessionRoots, and no map has to know what the list is. The craft
-   * is always in it and is read at call time, never captured, because
-   * swapCraft replaces craft.group and the register has to follow.
-   *
-   * DO NOT "tidy" this by calling keepAcrossMaps(craft.group) once at boot.
-   * The Set would pin the boot-time five inch for the life of the session
-   * and every aircraft swap after it would go unprotected, which is the
-   * exact defect this replaced, moved one level down.
+   * Session roots: groups that live across maps but sit in a map's scene
+   * while it is up (the craft, the ghost rig). A map's dispose calls
+   * evictSessionRoots before freeing its graph, or it frees the aircraft
+   * still being flown. The craft is always one, read when evicting rather
+   * than registered, because swapCraft replaces its group; registering it
+   * once would protect only the boot airframe.
    */
-  const sessionRoots = new Set();
-
+  const roots = new Set();
   function keepAcrossMaps(group) {
     if (group) {
-      sessionRoots.add(group);
+      roots.add(group);
     }
     return group;
   }
 
-  /*
-   * Detach every session lived root from this scene, so that what is left
-   * is the map's and dies with it. Walks up the parent chain rather than
-   * testing parent === scene, because a root re-parented under a group
-   * inside the map is just as reachable from the dispose walk and just as
-   * dead afterwards. No map nests the craft today, so this is insurance
-   * rather than a fix for a live case: both maps add it at depth one. A
-   * probe that nested it by hand two deep confirmed the walk still saves
-   * it where the old scene.remove(quad), which only unlinks direct
-   * children, would have let it be disposed.
-   *
-   * The null guard is not decoration. Without it the walk runs p up to
-   * null, `p === scene` is null === null, and every unparented root is
-   * "removed": harmless, because three's removeFromParent is a no-op
-   * without a parent, but the count returned would be a lie.
-   *
-   * Returns how many were detached. Nothing reads it today.
-   */
+  /* Detaches every session root found anywhere under `scene` (not only as
+   * a direct child) and returns how many. */
   function evictSessionRoots(scene) {
     if (!scene) {
       return 0;
     }
-    let removed = 0;
-    for (const root of [craft.group, ...sessionRoots]) {
-      if (!root) {
-        continue;
+    let detached = 0;
+    for (const root of [craft.group, ...roots]) {
+      let up = root ? root.parent : null;
+      while (up && up !== scene) {
+        up = up.parent;
       }
-      let p = root.parent;
-      while (p && p !== scene) {
-        p = p.parent;
-      }
-      if (p === scene) {
+      if (up === scene) {
         root.removeFromParent();
-        removed += 1;
+        detached += 1;
       }
     }
-    return removed;
+    return detached;
   }
 
   const api = {
@@ -391,104 +285,82 @@ export function buildShell(canvas, opts) {
     camera,
     canvas,
     pixelRatio,
-    quad: craft.group,
-    discs: craft.discs,
-    blades: craft.blades,
-    cameraMount: craft.cameraMount,
-    propSpin: craft.propSpin,
-    /* Only a craft with control surfaces has one; the wing does. */
-    setSurfaces: craft.setSurfaces ?? null,
-    /* Only a craft with a folding prop has one; the Radian does, and the
-     * Bramor. */
-    setProp: craft.setProp ?? null,
-    /* The Bramor's parachute; null on every other aircraft. See
-     * src/render/bramorcraft.js. */
-    setChute: craft.setChute ?? null,
-    /* Only a craft with flaps has one; the Timber does. */
-    setFlaps: craft.setFlaps ?? null,
-    /* Only a craft with retracts has one; the P-51 does. */
-    setGear: craft.setGear ?? null,
-    /* The launcher of an aircraft shot off a rail, the Bramor's and the
-     * Striker's, and its pose on the aircraft; null on every other. */
-    launcher: craft.launcher ?? null,
-    launcherRest: craft.launcherRest ?? null,
     resize,
     swapCraft,
     repaintCraft,
     redressCraft,
     craftPaint,
     setCraftLook,
-    /* The seated map's look put on another craft (the crash cam's replay
-     * craft), so it is drawn as the flown one is; returns its undo. */
-    lookCraft: (other) => (craftLook ? craftLook(other) : null),
+    /* The seated map's look on another craft (the crash cam's replay
+     * craft), returning its undo, or null with no look. */
+    lookCraft: (other) => (dress.look ? dress.look(other) : null),
     keepAcrossMaps,
     evictSessionRoots,
   };
+  /* The handles the shell publishes for the craft, set again on every
+   * swap so nobody animates a freed rotor. */
+  function publish(built) {
+    api.quad = built.group;
+    api.discs = built.discs;
+    api.blades = built.blades;
+    api.cameraMount = built.cameraMount;
+    api.propSpin = built.propSpin;
+    for (const name of OPTIONAL_HANDLES) {
+      api[name] = built[name] ?? null;
+    }
+  }
+  publish(craft);
 
   /*
-   * Build a different aircraft and put it where the last one was.
-   *
-   * The craft is SESSION LIVED and the maps are not: the shell builds one at
-   * boot and re-parents it into whichever map's scene is active, which is
-   * what src/render/craft.js's header is about. So swapping the aircraft has
-   * to keep that property. The new group goes into the old one's parent at
-   * the old one's pose, the old one is detached and its geometry released,
-   * and every reference the shell publishes is re-seated in one place so a
-   * caller holding shell.discs cannot end up animating a disposed rotor.
-   *
-   * Called between runs only. src/main.js applies the airframe on the same
-   * rule it applies pack charge and flight style: mid lap it would be
-   * changing the aircraft under the pilot.
+   * Another aircraft, in the old one's place: same parent, pose and
+   * visibility, the old one detached and freed, the look moved across.
+   * Between runs only; main.js never swaps the aircraft under a pilot.
    */
   function swapCraft(airframeId) {
-    const old = craft;
-    const parent = old.group.parent;
+    const old = craft.group;
     const next = buildCraft(airframeId);
-    next.group.position.copy(old.group.position);
-    next.group.quaternion.copy(old.group.quaternion);
-    next.group.visible = old.group.visible;
-    if (parent) {
+    next.group.position.copy(old.position);
+    next.group.quaternion.copy(old.quaternion);
+    next.group.visible = old.visible;
+    if (old.parent) {
+      const parent = old.parent;
       parent.add(next.group);
-      parent.remove(old.group);
+      parent.remove(old);
     }
-    if (undoCraftLook) {
-      undoCraftLook();
-    }
-    disposeTree(old.group);
+    undress();
+    freeCraft(old);
     craft = next;
-    undoCraftLook = craftLook ? craftLook(next) : null;
-    api.quad = next.group;
-    api.discs = next.discs;
-    api.blades = next.blades;
-    api.cameraMount = next.cameraMount;
-    api.propSpin = next.propSpin;
-    api.setSurfaces = next.setSurfaces ?? null;
-    api.setProp = next.setProp ?? null;
-    api.setChute = next.setChute ?? null;
-    api.setFlaps = next.setFlaps ?? null;
-    api.setGear = next.setGear ?? null;
-    api.launcher = next.launcher ?? null;
-    api.launcherRest = next.launcherRest ?? null;
+    redress();
+    publish(next);
     return next;
   }
 
-  /*
-   * Paint the craft in the air again, in the livery its airframe wears now
-   * (src/render/livery.js): no rebuild, the same meshes in the same place,
-   * so a wreck's pieces, which share its materials, change with it. A
-   * map's look made its twins from the old colours, so it is undone and
-   * made again round the paint.
-   */
-  /* What the craft is painted in, read back for a check: each region's
-   * colour on its own materials, and every colour on a mesh drawn now,
-   * which under a map's look is the look's twins. As #rrggbb. With them,
-   * each region's finish and what the decals are drawn as. */
+  /* The craft painted again in its airframe's current livery, or fitted
+   * with its current parts, in place: same meshes, so a wreck sharing its
+   * materials follows. The look made its twins from the old state, so it
+   * comes off first and goes back on after. */
+  function repaintCraft(airframeId) {
+    undress();
+    dressLivery(craft, airframeId);
+    redress();
+  }
+
+  function redressCraft(airframeId) {
+    undress();
+    dressParts(craft, airframeId);
+    redress();
+  }
+
+  /* The paint read back for checks, as #rrggbb: each livery region, every
+   * colour on a mesh drawn now (under a look, the look's twins), and the
+   * finish, decals and wear. */
   function craftPaint(airframeId) {
     const hex = (n) => `#${n.toString(16).padStart(6, '0')}`;
     const drawn = new Set();
     craft.group.traverse((o) => {
-      if (o.isMesh && o.visible && o.material && !Array.isArray(o.material) && o.material.color) {
-        drawn.add(hex(o.material.color.getHex()));
+      const m = o.material;
+      if (o.isMesh && o.visible && m && !Array.isArray(m) && m.color) {
+        drawn.add(hex(m.color.getHex()));
       }
     });
     const regions = craft.livery ? craft.livery.read() : null;
@@ -502,46 +374,5 @@ export function buildShell(canvas, opts) {
     };
   }
 
-  /* Fit the craft in the air with what its airframe is fitted with now
-   * (src/render/partsfit.js), in place, round a map's look as the paint. */
-  function redressCraft(airframeId) {
-    if (undoCraftLook) {
-      undoCraftLook();
-    }
-    dressParts(craft, airframeId);
-    undoCraftLook = craftLook ? craftLook(craft) : null;
-  }
-
-  function repaintCraft(airframeId) {
-    if (undoCraftLook) {
-      undoCraftLook();
-    }
-    dressLivery(craft, airframeId);
-    undoCraftLook = craftLook ? craftLook(craft) : null;
-  }
-
   return api;
-}
-
-/*
- * Release a craft's geometry and materials. Not shared with anything: every
- * mesh in a craft is built for that craft, and the cel materials are made per
- * build. A boot that never swaps aircraft never calls this.
- */
-function disposeTree(root) {
-  root.traverse((o) => {
-    if (o.geometry) {
-      o.geometry.dispose();
-    }
-    const m = o.material;
-    if (Array.isArray(m)) {
-      for (const one of m) {
-        if (one && one.dispose) {
-          one.dispose();
-        }
-      }
-    } else if (m && m.dispose) {
-      m.dispose();
-    }
-  });
 }
