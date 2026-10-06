@@ -209,6 +209,46 @@ Shared lines, every mission:
 | int-fail-function | a mission fail for lost capability | VEGA | all | (new) We've lost the picture. We go again. |
 | int-take-role | a pilot took a free role | FERRER | that pilot | (new) Feed's yours. |
 
+The guide's lines, every mission (src/share/ops/guide.js; the owner,
+2026-10-06: "no voice telling me what to do, no arrows pointing"). They
+are not cues: each screen plays them for its own pilot, nothing crosses
+the wire, and they wait for a quiet radio, so a story line always
+outranks them. IBARRA's voice read clean (lines.json `ibarra-guide`,
+preset `guia`): no crackle, the owner's rule of 2026-10-04 that crackle
+belongs only to scripted story moments. A nudge is a lead, a clock bearing
+off the nose and a distance band, said back to back; it comes after
+20 s with no progress, or when the pilot is over 1.5 km from the
+objective, and the gap between nudges grows while nothing changes.
+
+| id | cue | who | heard | EN |
+| --- | --- | --- | --- | --- |
+| int-g-next | a nudge toward an item or a marker | IBARRA | that pilot | (new) Next objective. |
+| int-g-search | a nudge toward the room's search area | IBARRA | that pilot | (new) Search area. |
+| int-g-contacts | a nudge toward the told contacts | IBARRA | that pilot | (new) Your contacts. |
+| int-g-lkp | a nudge toward a last known position | IBARRA | that pilot | (new) Last known position. |
+| int-g-home | a nudge toward the strip | IBARRA | that pilot | (new) Home strip. |
+| int-g-climb | a nudge while under the altitude asked | IBARRA | that pilot | (new) Keep climbing. |
+| int-g-clock-1 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) One o'clock. |
+| int-g-clock-2 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Two o'clock. |
+| int-g-clock-3 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Three o'clock. |
+| int-g-clock-4 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Four o'clock. |
+| int-g-clock-5 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Five o'clock. |
+| int-g-clock-6 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Six o'clock. |
+| int-g-clock-7 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Seven o'clock. |
+| int-g-clock-8 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Eight o'clock. |
+| int-g-clock-9 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Nine o'clock. |
+| int-g-clock-10 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Ten o'clock. |
+| int-g-clock-11 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Eleven o'clock. |
+| int-g-clock-12 | after a nudge's lead: the bearing off the nose | IBARRA | that pilot | (new) Twelve o'clock. |
+| int-g-dist-500 | after the bearing: under 750 m | IBARRA | that pilot | (new) About five hundred metres. |
+| int-g-dist-1k | after the bearing: under 1.5 km | IBARRA | that pilot | (new) About one kilometre away. |
+| int-g-dist-2k | after the bearing: under 2.5 km | IBARRA | that pilot | (new) About two kilometres. |
+| int-g-dist-3k | after the bearing: under 4 km | IBARRA | that pilot | (new) About three kilometres. |
+| int-g-dist-5k | after the bearing: under 6.5 km | IBARRA | that pilot | (new) About five kilometres. |
+| int-g-dist-far | after the bearing: farther | IBARRA | that pilot | (new) More than six kilometres. |
+| int-g-first-1 | a pilot's first flight in the campaign, once per account | IBARRA | that pilot | (new) First flight with us. Launch, climb, then work through the camera ball. |
+| int-g-first-2 | after first-1 | IBARRA | that pilot | (new) When I ask for something, centre it in the box and capture. |
+
 ### 1.9 The map, authored once for all five
 
 One map (N1), ~16 by 16 km. Positions are a design grid in km east and
@@ -503,6 +543,21 @@ Every line of the script's Mission 1, by trigger. The film lines
 | int1-tr-angle | stage 5, a TRACKER in its orbit sector | IBARRA | TRACKER | (new) Hold that side of the clearing. Different angle, same distance. |
 | int1-tr-split | the dispersal starts, a TRACKER given a direction | IBARRA | TRACKER | (new) Take the ones going your way. Don't go low. |
 | int1-fail | the mission failed | VEGA | all | (new) We lost the picture today. We go again tomorrow. |
+
+The guide's briefs (1.8's guide lines): each primary objective's `guide`,
+said when it becomes a pilot's objective, per the pilot's role.
+
+| id | cue | who | heard | EN |
+| --- | --- | --- | --- | --- |
+| int1-g-launch | stage 1, the launch objective | IBARRA | ISR | (new) Survey One, you're clear. Launch and climb above five hundred metres. |
+| int1-g-tr-launch | stage 1, the launch objective | IBARRA | TRACKER | (new) Survey Two, you're clear. Launch and climb above five hundred metres. |
+| int1-g-alpha | stage 2, Sector Alpha | IBARRA | that pilot | (new) Sector Alpha. The bridge, the road and the sheds. Centre each one in the box and capture. |
+| int1-g-bravo | stage 2, Sector Bravo once Alpha is in | IBARRA | that pilot | (new) Sector Bravo. The colonia from above, then the river crossing. |
+| int1-g-charlie | stage 3, Charlie | IBARRA | that pilot | (new) Charlie. Fly to the marker and watch the tree line for movement. |
+| int1-g-follow | stage 4, observe | IBARRA | ISR | (new) Keep them in frame from high up. If you lose them, search the circle. |
+| int1-g-tr-follow | stage 4, observe | IBARRA | TRACKER | (new) Survey Two, work ahead of them. Watch the next gap from high up. |
+| int1-g-camp | stage 5, document the site | IBARRA | that pilot | (new) Document the camp from standoff. Shelters, motorcycles, antenna, people, and the way in. |
+| int1-g-rtb | stage 5, return to base | IBARRA | that pilot | (new) That's the picture. Bring it home and land at Pista Cero. |
 
 The en text above becomes `lines.json` rows; each row's es text is
 written there when the lines are generated, with ustedes wherever the
