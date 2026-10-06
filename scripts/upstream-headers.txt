@@ -108,7 +108,6 @@ src/render/pylons.js
 src/render/scene.js
 src/render/session-textures.js
 src/render/shell.js
-src/render/showcase.js
 src/replay/crashcam.js
 src/share/board.js
 src/share/bugs.js
