@@ -294,6 +294,7 @@ SCENARIOS['the exports'] = () => [deep({
   calSteps: [[true, 0], [true, 8], [false, 0], [false, 4], [false, 5], [false, 8], [0, 6], [1, 3]]
     .map(([b, n]) => exported.calSteps(b, n)),
   calStepsDefault: exported.calSteps(false),
+  throttleKeys: [1, 2, 3, 4, 'x'].map((m) => exported.throttleKeys(m)),
   NAV_DEFLECT: exported.NAV_DEFLECT,
   MOUSE_SENS: exported.MOUSE_SENS,
   MOUSE_EXPOS: exported.MOUSE_EXPOS,

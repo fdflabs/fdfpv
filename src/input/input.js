@@ -671,8 +671,9 @@ function keyAxes(mode) {
   return out;
 }
 
-/* Whichever gimbal is carrying the collective this mode. */
-function throttleKeys(mode) {
+/* Whichever gimbal is carrying the collective this mode (also the first
+ * flight's card, src/main.js, so it names the pilot's own key). */
+export function throttleKeys(mode) {
   const c = stickChannels(mode);
   const side = c.left.vert === 'throttle' ? 'left' : 'right';
   return { up: KEY_STICKS[side].up, down: KEY_STICKS[side].down };
