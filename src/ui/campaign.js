@@ -87,9 +87,12 @@ const skey = (id) => id.replace(/-/g, '_');
  * card's way in, for that mission, resolving the code of the room it made,
  * or null. send(obj): the room's socket. view(): the war view
  * (roomWar.view()). room(): { phase, code, seat }.
+ * devAccount(): resolves whether the rooms server says this pilot is the
+ * owner (src/share/rooms.js devAccount), the same promise while its
+ * answer stands.
  */
 export function createCampaignScreen({
-  ui, devMissions = false, enterWarRoom, send, view, room, craftWarhead = null,
+  ui, devMissions = false, enterWarRoom, send, view, room, craftWarhead = null, devAccount = () => Promise.resolve(false),
 }) {
   const store = createCampaignStore(ui.settings, () => ui.persistSettings());
   /* Read fresh each time: an account sync may replace the section. */
@@ -118,6 +121,31 @@ export function createCampaignScreen({
    * clamps it to something else is not told again four times a second. */
   let loadoutSaid = null;
   let last = null;
+  /*
+   * MISSION N+1 NEEDS MISSION N WON, for everybody but the owner (the
+   * owner, 2026-10-06: "always make it so that you need to win it first
+   * to continue, EXCEPT for the admin account"). Whether this pilot is
+   * the owner is the rooms server's word for its session (devAccount),
+   * never ?missions=dev, which only offers what is in development and is
+   * nobody's identity. Until the server has answered, the lock holds.
+   */
+  let dev = false;
+  let devAsk = null;
+  function askDev() {
+    const asked = devAccount();
+    if (asked === devAsk) {
+      return;
+    }
+    devAsk = asked;
+    dev = false;
+    asked.then((yes) => {
+      if (devAsk === asked && yes !== dev) {
+        dev = yes;
+        draw();
+      }
+    });
+  }
+  const reached = (i) => dev || unlocked(cur(), i);
 
   function commit(change) {
     store.save(change(cur()));
@@ -133,6 +161,7 @@ export function createCampaignScreen({
       return;
     }
     page = to;
+    askDev();
     if (ui.nameDialog.hidden) {
       ui.nameWait = null;
       ui.nameKeyHandler = (e) => {
@@ -191,7 +220,7 @@ export function createCampaignScreen({
     let why = null;
     if (!released(m.id, devMissions)) {
       why = str(`campaign.release_${m.release}`);
-    } else if (!unlocked(cur(), i)) {
+    } else if (!reached(i)) {
       why = str('campaign.locked', { n: i });
     } else if (!gateOpen(i)) {
       why = str('campaign.tag');
@@ -397,9 +426,13 @@ export function createCampaignScreen({
     startSelected,
     selectedNumber,
     /* The missions this pilot may start, in order: released, open (the
-     * one before won) and inside the full game's gate (Make a room's
-     * Mission row, src/ui/roombrowser.js, and the lobby's). */
-    playable: () => ACT1.filter((m, i) => released(m.id, devMissions) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
+     * one before won, or the pilot is the owner) and inside the full
+     * game's gate (Make a room's Mission row, src/ui/roombrowser.js, and
+     * the lobby's). */
+    playable: () => {
+      askDev();
+      return ACT1.filter((m, i) => released(m.id, devMissions) && reached(i) && gateOpen(i)).map((m) => m.id);
+    },
     /* For the checks. */
     observe,
     state: cur,

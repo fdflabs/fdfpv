@@ -31,6 +31,15 @@
  * Campaign row: the lobby says mission 2 and Start now starts it, its
  * intro played.
  *
+ * Then the owner's unlock, on a fresh profile signed in through this
+ * check's own accounts server, against a rooms server of its own that
+ * checks sessions there and has the owner's account as DEV_ACCOUNTS, as
+ * the VM's does (a server named on the command line is not used for
+ * these rows): with mission 1 never won, a pilot not on the list sees
+ * mission 2 Win mission 1 first with ?missions=dev; the owner sees it
+ * Play; and the owner without ?missions=dev still sees it Under
+ * development.
+ *
  * No page error. Pictures in outdir, not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -54,6 +63,9 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { roomsServer } from '../tests/lib/roomsserver.js';
+import { seedSignedIn, startAccounts } from '../tests/lib/account.js';
+import { ACCOUNT_KEY } from '../src/share/pilot.js';
+import { KEY_STORAGE } from '../src/share/identity.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { filmFor } from '../src/share/war/films/index.js';
 
@@ -464,6 +476,96 @@ try {
 } finally {
   await page.close();
   await server.stop();
+}
+
+/*
+ * THE OWNER, AND NOBODY ELSE, SKIPS THE WIN FIRST LOCK (the owner,
+ * 2026-10-06: "always make it so that you need to win it first to
+ * continue, EXCEPT for the admin account"). A fresh profile, signed in,
+ * against a rooms server of this check's own that checks sessions with
+ * this check's accounts server and has the owner's account as its
+ * DEV_ACCOUNTS, as the VM's does. Mission 1 is never won here. A pilot
+ * not on the list, with ?missions=dev, still has mission 2 locked; the
+ * owner has it to play; and the owner without ?missions=dev still sees
+ * it Under development, the release gate as it was.
+ */
+const accounts = await startAccounts();
+const tag = `${process.pid}-${Date.now()}`;
+const pilot = await accounts.signUp(`campaign-pilot-${tag}`, 'Pilot');
+const owner = await accounts.signUp(`campaign-owner-${tag}`, 'Owner');
+const ownerId = (await accounts.api('GET', '/api/account', undefined, owner.session)).id;
+const signed = await roomsServer('', 'campaign-signed', { accountsOrigin: accounts.origin, devAccounts: String(ownerId) });
+const devOf = async (who) => (await (await fetch(`${signed.url}/v2/dev`, { headers: { authorization: `Bearer ${who.session}` } })).json()).dev;
+check('the rooms server says the owner is on its list and the pilot is not', (await devOf(owner)) === true && (await devOf(pilot)) === false);
+/* Every answer the page gets from GET /v2/dev, so a row reads the page
+ * after the server has answered it, not before. */
+const DEV_TAP = `(() => {
+  window.__devAnswers = [];
+  const f = window.fetch;
+  window.fetch = function (input, init) {
+    const got = f.call(this, input, init);
+    if (/\\/v2\\/dev$/.test(String(input && input.url ? input.url : input))) {
+      got.then((r) => r.clone().json()).then((b) => window.__devAnswers.push(b), () => window.__devAnswers.push(null));
+    }
+    return got;
+  };
+})();`;
+const signedUrl = `/index.html?rooms=${encodeURIComponent(signed.url)}`;
+const page2 = await openPage({
+  root, url: `${signedUrl}&missions=dev`, width: 1280, height: 720, seed: [DEV_TAP, seedSignedIn(accounts.origin, pilot)],
+});
+const openCampaign = async () => {
+  await page2.until('window.__shellReady === true', 300000);
+  await page2.evaluate('(() => { window.__campaign.open(); return true; })()');
+  await page2.until(`${SCREEN} !== null && window.__devAnswers.length > 0`, 15000).catch(() => {});
+  await page2.sleep(300);
+  return page2.evaluate(`({ screen: ${SCREEN}, answers: window.__devAnswers })`);
+};
+const reload = async (url) => {
+  await page2.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await page2.cdp.send('Page.navigate', { url: `${page2.origin}${url}` }, page2.sessionId);
+  await page2.until('window.__beforeReload !== true', 60000);
+};
+try {
+  const asPilot = await openCampaign();
+  const pm = asPilot.screen && asPilot.screen.missions;
+  check('a pilot not on the list, ?missions=dev, mission 1 not won: mission 2 says Win mission 1 first and is not playable',
+    pm && pm[0].best === 'Not flown yet' && pm[1].play === 'Win mission 1 first' && !pm[1].playable
+    && JSON.stringify(asPilot.answers) === '[{"dev":false}]', JSON.stringify(asPilot));
+  check('and the lobby\'s and Make a room\'s missions are mission 1 alone',
+    (await page2.evaluate('JSON.stringify(window.__campaign.playable())')) === '["itaipu-1"]');
+  await shot(page2, 'locked-pilot');
+
+  /* The same profile signed in as the owner instead. */
+  await page2.evaluate(`(() => {
+    localStorage.setItem(${JSON.stringify(ACCOUNT_KEY)}, ${JSON.stringify(JSON.stringify({
+    session: owner.session, callsign: owner.callsign, publicKey: owner.publicKey, keyIsAccounts: true,
+  }))});
+    localStorage.setItem(${JSON.stringify(KEY_STORAGE)}, ${JSON.stringify(owner.identity)});
+    return true;
+  })()`);
+  await reload(`${signedUrl}&missions=dev`);
+  const asOwner = await openCampaign();
+  const om = asOwner.screen && asOwner.screen.missions;
+  check('the owner, ?missions=dev, mission 1 never won: mission 2 is Play and playable',
+    om && om[0].best === 'Not flown yet' && om[0].stars === 0 && om[1].play === 'Play' && om[1].playable
+    && JSON.stringify(asOwner.answers) === '[{"dev":true}]', JSON.stringify(asOwner));
+  check('and 3 and 4 too, 5 to 7 still Coming soon', om && om.slice(2, 4).every((m) => m.play === 'Play' && m.playable)
+    && om.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(om && om.map((m) => m.play)));
+  await shot(page2, 'unlocked-owner');
+
+  await reload(signedUrl);
+  const plain = await openCampaign();
+  const nm = plain.screen && plain.screen.missions;
+  check('the owner without ?missions=dev: mission 2 Under development, not playable (the release gate is unchanged)',
+    nm && nm[1].play === 'Under development' && !nm[1].playable && nm[0].playable, JSON.stringify(nm && nm.map((m) => m.play)));
+
+  const errs = page2.errors.filter((e) => !e.startsWith('network:'));
+  check('no page error, signed in', errs.length === 0, errs.slice(0, 3).join(' | '));
+} finally {
+  await page2.close();
+  await signed.stop();
+  await accounts.stop();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

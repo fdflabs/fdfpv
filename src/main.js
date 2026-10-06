@@ -99,7 +99,7 @@ import { nameRules, readAccount, readPilotName, writePilotName } from './share/p
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
 import {
-  createRoomLink, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
+  createRoomLink, devAccount, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
 import { createVoice } from './share/voice.js';
@@ -6807,6 +6807,9 @@ export async function boot({
      * checks against their own rooms server (DEV_MISSIONS); the VM's room
      * refuses them whatever this page offers (edge/rooms/war.js). */
     devMissions: new URLSearchParams(window.location.search).get('missions') === 'dev',
+    /* The owner skips the win first lock: the rooms server's word for
+     * this session, not the page's. */
+    devAccount,
     /* From a war lobby (its Campaign row), Play sets that room's mission,
      * the host's to set, and the pilot is back in the lobby to say ready;
      * from anywhere else, the war's way in. */

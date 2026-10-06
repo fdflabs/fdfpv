@@ -293,7 +293,11 @@ ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 \
 To take it away, delete the file and restart `fdfpv-rooms`. The owner
 opens the page with `?missions=dev` so the campaign screens offer what is
 in development (the client's switch only; the room is the gate, and
-anybody else using it is refused `unreleased`). The accounts server must
+anybody else using it is refused `unreleased`). The same list lifts Act
+1's win first lock (mission N+1 needs mission N won) for those accounts
+alone: the page asks `GET /v2/dev` with its session, and the rooms
+server answers from the accounts server's id for it (edge/rooms/front.js
+devAccount), so a changed list needs only the restart above. The accounts server must
 be from this change on (its `GET /api/account` answers the account's
 `id`), so deploy both units.
 
