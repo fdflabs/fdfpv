@@ -37,7 +37,8 @@
  *
  * THE SOURCES THEMSELVES are one mesh of camera facing quads: a soft
  * halo round each lamp and fire, additive, with a hot core the thermal
- * picture sees (a lamp's glass, a fire's flames, hundreds of degrees),
+ * picture sees (a lamp's glass or a flame fifty degrees over what is
+ * behind it, the five over a fire's embers keeping it under 900 C),
  * the halo itself thin air to it. One draw call however many.
  *
  * This file is part of WebFPVSimulator.
@@ -67,7 +68,7 @@ const FILL_TINT = [0.9, 0.95, 0.78];
 /* The fill's irradiance as a share of the sun's (tuned against the mock's
  * shaded floor at 16:40, PR body), and how much of it a face turned to
  * the ground still gets (the sunlit earth's own bounce). */
-const FILL_SHARE = 0.06;
+const FILL_SHARE = 0.08;
 const FILL_DOWN = 0.55;
 
 const VERT_PARS = /* glsl */ `
@@ -230,6 +231,10 @@ export function makeCampLight(THREE, {
   geo.setAttribute('gAt', new THREE.Float32BufferAttribute(gAt, 4));
   geo.setAttribute('gCol', new THREE.Float32BufferAttribute(gCol, 4));
   geo.setIndex(index);
+  /* The corners are offsets the vertex shader spreads round gAt, so the
+   * bounds are the clearing's own, for the frustum test: the halos are
+   * drawn only where the camp is in view. */
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(at[0], lamps.length ? lamps[0].at[1] : 0, at[1]), outer);
   const uTime = { value: 0 };
   const mat = new THREE.ShaderMaterial({
     vertexShader: GLOW_VERT,
@@ -246,12 +251,12 @@ export function makeCampLight(THREE, {
     blendDstAlpha: THREE.OneFactor,
     side: THREE.DoubleSide,
   });
-  /* A lamp's glass and a fire's flames are hundreds of degrees; the halo
-   * round them is light in the air and adds nothing. */
-  thermalShader(mat, 'float thT = (1.0 - smoothstep(0.03, 0.12, length(vUv))) * 4.0;', 'camp-lamp');
+  /* A lamp's glass and a flame add fifty degrees each to what is behind
+   * them (a fire's five flames over its 600 C embers stay under 900 C);
+   * the halo round them is light in the air and adds nothing. */
+  thermalShader(mat, 'float thT = (1.0 - smoothstep(0.03, 0.12, length(vUv))) * 0.5;', 'camp-lamp');
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'interior-camp-glow';
-  mesh.frustumCulled = false;
   mesh.renderOrder = 3;
 
   function update(seconds) {
