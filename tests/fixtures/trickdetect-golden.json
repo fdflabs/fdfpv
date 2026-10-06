@@ -3,7 +3,7 @@
  "cases": {
   "exports": "dc0d9a928c986e895f89a691de34b7229cca33ef150045c0b19f7e782303e3cd",
   "snap": "f6344f11d056f6a8d6cee8c11dc370e3a6c4ebfd2e07a8a5ada6961cce5dcb8a",
-  "driver-score-selftest": "794995fa89e27abbf957fb597498b3e30f0b54dd97655d44876a648ae3f9a522",
+  "driver-score-selftest": "8b1831586621950c51ef115d0a49da20bf099440d6a52b28b566e37692ec032f",
   "driver-trick-sweep": "1192dd4023898bcf7747c862641f999c570344e8c9ce1e1a2141324a94faa4ee",
   "driver-path-check": "ebd93d6b89fce96562ffbe4f83052f4d3598b817655caf9b92f20b9279513234",
   "driver-orbit-check": "840780efa97dcc0d0a1686f838ced7077e596cb2236710ee39f80bba710347f4",

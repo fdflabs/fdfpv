@@ -1,22 +1,29 @@
 /*
- * ghost-selftest.js: the ghost pipeline, proven in Node.
+ * ghost-selftest.js: the ghost pipeline end to end in plain Node, no browser, no GL.
+ * Run with npm run ghost:selftest.
  *
- * Drives the three machines in src/game/ghost.js and the wire format in
- * src/share/ghostdata.js with no browser and no GL: a synthetic flight is
- * recorded at display rates, finished, encoded, carried through base64,
- * decoded, and flown back, with the replay compared against the analytic
- * path it was recorded from. The tamper cases a board must refuse are
- * checked against the same inspector the board mirrors.
+ * A lap with a known analytic path is fed to the recorder at display rates, finished,
+ * encoded, carried through base64, decoded and replayed, and every replay is measured
+ * against the path it came from. Then the blob validator is handed tampered blobs, the
+ * recorder's edges are poked and the per-course book is exercised. A ghost that drifts
+ * from the line it was flown on, or a blob the board would accept but the shell would
+ * misread, shows up here before anyone races against it. Exit code is the number of
+ * failed checks; an exception crashes the run, which is also a failure.
  *
- * Run: node scripts/ghost-selftest.js   (npm run ghost:selftest)
- * Exit code is the failure count, like the other selftests.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
+ *
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
@@ -32,321 +39,252 @@ import {
 import { GhostBook, GhostLap, GhostRecorder } from '../src/game/ghost.js';
 
 let failures = 0;
-
-function check(name, cond) {
-  if (cond) {
-    console.log(`  pass  ${name}`);
-  } else {
-    failures += 1;
-    console.log(`  FAIL  ${name}`);
-  }
+function report(ok, label) {
+  if (!ok) failures += 1;
+  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${label}`);
 }
 
-/*
- * The synthetic lap: a 20 m circle flown in 12 s at 3 m of height, banked
- * into the turn. Smooth, curved on every axis, and cheap to evaluate at
- * any t, which is what makes replay error measurable.
- */
 const LAP_MS = 12000;
 const RADIUS = 20;
+const BANK = 0.35;
+const SPLITS = [3000, 6000, 9000, 12000];
 
-function analyticPose(tMs) {
-  const a = (tMs / LAP_MS) * Math.PI * 2;
-  return {
-    x: Math.cos(a) * RADIUS,
-    y: 3 + Math.sin(a * 2) * 0.5,
-    z: Math.sin(a) * RADIUS,
-  };
+/* The reference lap: a 20 m circle at 3 m with a vertical wobble at twice the lap rate,
+ * yawing along the tangent with a constant bank. */
+function phase(t) {
+  return (t / LAP_MS) * Math.PI * 2;
 }
-
-/* The attitude: yaw about y following the circle, times a constant bank
- * roll about the craft's own z. */
-function analyticQuat(tMs) {
-  const a = (tMs / LAP_MS) * Math.PI * 2;
-  const yaw = a + Math.PI / 2;
-  const bank = 0.35;
-  const cy = Math.cos(yaw / 2);
-  const sy = Math.sin(yaw / 2);
-  const cb = Math.cos(bank / 2);
-  const sb = Math.sin(bank / 2);
+function truePos(t) {
+  const a = phase(t);
+  return { x: Math.cos(a) * RADIUS, y: 3 + Math.sin(a * 2) * 0.5, z: Math.sin(a) * RADIUS };
+}
+function trueQuat(t) {
+  const half = (phase(t) + Math.PI / 2) / 2;
+  const cy = Math.cos(half);
+  const sy = Math.sin(half);
+  const cb = Math.cos(BANK / 2);
+  const sb = Math.sin(BANK / 2);
   return { x: sy * sb, y: sy * cb, z: cy * sb, w: cy * cb };
 }
 
-function recordLap(feedHz, { cutAtMs = null, seed = true } = {}) {
+/* NaN must lose: a comparison against NaN is false, so these return Infinity instead. */
+function distance(dx, dy, dz) {
+  const d = Math.hypot(dx, dy, dz);
+  return Number.isNaN(d) ? Infinity : d;
+}
+function angleDeg(a, b) {
+  const dot = Math.abs(a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w);
+  const deg = (2 * Math.acos(Math.min(1, dot)) * 180) / Math.PI;
+  return Number.isNaN(deg) ? Infinity : deg;
+}
+function posError(s, t) {
+  const p = truePos(t);
+  return distance(s.px - p.x, s.py - p.y, s.pz - p.z);
+}
+function quatError(s, t) {
+  return angleDeg({ x: s.qx, y: s.qy, z: s.qz, w: s.qw }, trueQuat(t));
+}
+
+/* Worst of fn(t) over t = 0, step, 2 step, ... up to and including the lap length. */
+function worstOver(step, fn) {
+  let worst = 0;
+  for (let t = 0; t <= LAP_MS; t += step) worst = Math.max(worst, fn(t));
+  return worst;
+}
+
+/* Feeds the reference lap the way the shell does at a display rate of hz. With seeded,
+ * one frame lands half a step before the gate so the t = 0 grid point is interpolated
+ * across the crossing. With cutAt, cutHere() is called once at the first feed at or past
+ * that time and the craft is moved 60 m along +x from then on. Feed times accumulate by
+ * repeated addition on purpose: that is the exact grid geometry the thresholds were set on. */
+function recordLap(hz, { cutAt = null, seeded = true } = {}) {
   const rec = new GhostRecorder();
   rec.begin();
-  const step = 1000 / feedHz;
-  if (seed) {
-    /* What the shell does: the frame BEFORE the crossing is fed at its
-     * negative lap time, so the t = 0 keyframe is interpolated across the
-     * crossing rather than held from the first frame after it. */
-    const t0 = -step * 0.5;
-    const p0 = analyticPose(t0);
-    const q0 = analyticQuat(t0);
-    rec.push(t0, p0.x, p0.y, p0.z, q0.x, q0.y, q0.z, q0.w);
-  }
+  const step = 1000 / hz;
+  const feed = (t, shift) => {
+    const p = truePos(t);
+    const q = trueQuat(t);
+    rec.push(t, p.x + shift, p.y, p.z, q.x, q.y, q.z, q.w);
+  };
+  if (seeded) feed(-step * 0.5, 0);
   let cutDone = false;
   for (let t = step * 0.5; t <= LAP_MS + step; t += step) {
-    if (cutAtMs != null && !cutDone && t >= cutAtMs) {
+    const past = cutAt !== null && t >= cutAt;
+    if (past && !cutDone) {
       rec.cutHere();
       cutDone = true;
     }
-    const p = analyticPose(t);
-    const q = analyticQuat(t);
-    /* A teleport: the second half of the lap flies 60 m away. */
-    const dx = cutAtMs != null && t >= cutAtMs ? 60 : 0;
-    rec.push(t, p.x + dx, p.y, p.z, q.x, q.y, q.z, q.w);
+    feed(t, past ? 60 : 0);
   }
-  return rec.finish(LAP_MS, [3000, 6000, 9000, LAP_MS]);
+  return rec.finish(LAP_MS, SPLITS);
 }
 
-console.log('recorder');
-{
-  const lap = recordLap(144);
-  check('a lap comes back', lap !== null);
-  check('rate is the ghost grid', lap.rateHz === GHOST_RATE_HZ);
-  check('duration is the lap', lap.durationMs === LAP_MS);
-  const wantAtLeast = Math.floor((LAP_MS * GHOST_RATE_HZ) / 1000);
-  check(`grid covers the lap (${lap.count} frames)`, lap.count >= wantAtLeast);
-  check('splits kept in order', lap.splits.length === 4 && lap.splits[3] === LAP_MS);
-
-  /* Replay against the analytic path. The grid is linear between display
-   * feeds and the spline re-curves it; on a 20 m circle the worst error
-   * budget is a couple of centimetres. */
-  const ghost = new GhostLap(lap);
-  const out = {};
-  let worst = 0;
-  for (let t = 0; t <= LAP_MS; t += 37) {
-    ghost.sample(t, out);
-    const p = analyticPose(t);
-    const e = Math.hypot(out.px - p.x, out.py - p.y, out.pz - p.z);
-    if (e > worst) {
-      worst = e;
-    }
+function sameBytes(a, b) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+function quatAt(arr, i) {
+  return { x: arr[i * 4], y: arr[i * 4 + 1], z: arr[i * 4 + 2], w: arr[i * 4 + 3] };
+}
+function dot4(a, b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+/* Every consecutive pair on the same hemisphere; NaN counts as a break. */
+function oneHemisphere(quat, count) {
+  for (let i = 1; i < count; i += 1) {
+    if (!(dot4(quatAt(quat, i - 1), quatAt(quat, i)) >= 0)) return false;
   }
-  check(`replay position error under 5 cm (worst ${(worst * 100).toFixed(2)} cm)`, worst < 0.05);
-
-  let worstDeg = 0;
-  for (let t = 0; t <= LAP_MS; t += 53) {
-    ghost.sample(t, out);
-    const q = analyticQuat(t);
-    const dot = Math.abs(out.qx * q.x + out.qy * q.y + out.qz * q.z + out.qw * q.w);
-    const deg = (2 * Math.acos(Math.min(1, dot)) * 180) / Math.PI;
-    if (deg > worstDeg) {
-      worstDeg = deg;
-    }
-  }
-  check(`replay attitude error under 1 degree (worst ${worstDeg.toFixed(3)})`, worstDeg < 1);
-  check('sampling past the finish holds the finish', (() => {
-    ghost.sample(LAP_MS + 5000, out);
-    const p = analyticPose(LAP_MS);
-    return Math.hypot(out.px - p.x, out.py - p.y, out.pz - p.z) < 0.2;
-  })());
-  check('no cut on a clean lap', ghost.cut.every((c) => c === 0));
+  return true;
 }
 
-{
-  /* A slow feed, the dropped-frame case: 20 Hz display under a 30 Hz grid.
-   * The grid interpolates between feeds, so error grows but stays bounded
-   * by the chord of one feed interval. */
-  const lap = recordLap(20);
-  const ghost = new GhostLap(lap);
-  const out = {};
-  let worst = 0;
-  for (let t = 0; t <= LAP_MS; t += 41) {
-    ghost.sample(t, out);
-    const p = analyticPose(t);
-    const e = Math.hypot(out.px - p.x, out.py - p.y, out.pz - p.z);
-    if (e > worst) {
-      worst = e;
-    }
-  }
-  check(`20 Hz feed still under 5 cm (worst ${(worst * 100).toFixed(1)} cm)`, worst < 0.05);
+const s = {};
+
+console.log('recording and replay');
+const lap144 = recordLap(144);
+report(lap144 !== null, 'a 144 Hz lap finishes into a record');
+report(lap144.rateHz === GHOST_RATE_HZ, `it is stored on the ${GHOST_RATE_HZ} Hz grid`);
+report(lap144.durationMs === LAP_MS, 'with the lap time it was given');
+const minFrames = Math.floor((LAP_MS * GHOST_RATE_HZ) / 1000);
+report(lap144.count >= minFrames, `and at least ${minFrames} frames (${lap144.count})`);
+report(lap144.splits.length === 4 && lap144.splits[3] === LAP_MS, 'and the four splits, last one at the line');
+
+const replay144 = new GhostLap(lap144);
+const err144 = worstOver(37, (t) => {
+  replay144.sample(t, s);
+  return posError(s, t);
+});
+report(err144 < 0.05, `replay follows the flown path within 5 cm (worst ${(err144 * 100).toFixed(2)} cm)`);
+const ang144 = worstOver(53, (t) => {
+  replay144.sample(t, s);
+  return quatError(s, t);
+});
+report(ang144 < 1, `and its attitude within a degree (worst ${ang144.toFixed(3)} deg)`);
+replay144.sample(LAP_MS + 5000, s);
+report(posError(s, LAP_MS) < 0.2, 'sampling after the finish holds the finish pose');
+report(replay144.cut.every((c) => c === 0), 'a clean lap has no teleport segments');
+
+const replay20 = new GhostLap(recordLap(20));
+const err20 = worstOver(41, (t) => {
+  replay20.sample(t, s);
+  return posError(s, t);
+});
+report(err20 < 0.05, `a 20 Hz display under the grid still replays within 5 cm (worst ${(err20 * 100).toFixed(1)} cm)`);
+
+const replayBare = new GhostLap(recordLap(20, { seeded: false }));
+replayBare.sample(0, s);
+const errBare = posError(s, 0);
+report(errBare < 0.55, `with no frame before the gate the start is off by under a feed step (${(errBare * 100).toFixed(1)} cm)`);
+
+console.log('teleports');
+const replayCut = new GhostLap(recordLap(144, { cutAt: 6000 }));
+report(replayCut.cut.some((c) => c === 1), 'a cut mid lap marks a segment');
+report(replayCut.cut.reduce((n, c) => n + c, 0) === 1, 'exactly one segment');
+const seg = replayCut.cut.indexOf(1);
+const segMid = ((seg + 0.5) * 1000) / replayCut.rateHz;
+replayCut.sample(segMid, s);
+report(s.cut === true, 'sampling inside it says so');
+report(Math.abs(s.px - replayCut.pos[seg * 3]) < 1e-6, 'and holds the near side instead of sliding across');
+const before = segMid - 1000 / replayCut.rateHz;
+replayCut.sample(before, s);
+const pBefore = truePos(before);
+report(Math.hypot(s.px - pBefore.x, s.pz - pBefore.z) < 0.6, 'the segment before it does not bend toward the far side');
+
+console.log('blob');
+const wireLap = recordLap(144);
+const blob = encodeGhost(wireLap);
+report(inspectGhostBytes(blob) === null, 'an encoded lap passes inspection');
+const expectBytes = GHOST_HEADER_BYTES + 4 * 4 + wireLap.count * GHOST_SAMPLE_BYTES;
+report(blob.length === expectBytes, `it is header plus splits plus frames (${blob.length} bytes)`);
+report(sameBytes(encodeGhost(wireLap), blob), 'encoding twice gives the same bytes');
+const carried = ghostFromBase64(ghostToBase64(blob));
+report(sameBytes(carried, blob), 'base64 carries it unchanged');
+const dec = decodeGhost(carried);
+report(dec.rateHz === wireLap.rateHz && dec.count === wireLap.count && dec.durationMs === wireLap.durationMs,
+  'decoding restores rate, frame count and lap time');
+report(dec.splits.length === 4 && dec.splits[1] === 6000, 'and the splits');
+let posDrift = 0;
+for (let i = 0; i < wireLap.count * 3; i += 1) {
+  posDrift = Math.max(posDrift, distance(dec.pos[i] - wireLap.pos[i], 0, 0));
 }
-
-{
-  /* Without the seed frame the recorder holds the first feed back to t = 0,
-   * an error of at most one feed interval of travel. The fallback exists
-   * for a lap that starts with no previous frame; it must stay bounded. */
-  const lap = recordLap(20, { seed: false });
-  const ghost = new GhostLap(lap);
-  const out = {};
-  ghost.sample(0, out);
-  const p = analyticPose(0);
-  const e = Math.hypot(out.px - p.x, out.py - p.y, out.pz - p.z);
-  check(`unseeded start error stays under one feed step (${(e * 100).toFixed(1)} cm)`, e < 0.55);
+report(posDrift < 1e-4, 'and the positions');
+const replayDec = new GhostLap(dec);
+const angDec = worstOver(97, (t) => {
+  replayDec.sample(t, s);
+  return quatError(s, t);
+});
+report(angDec < 1, `a decoded replay keeps its attitude within a degree (worst ${angDec.toFixed(3)} deg)`);
+let normDrift = 0;
+for (let i = 0; i < dec.count; i += 1) {
+  const q = quatAt(dec.quat, i);
+  normDrift = Math.max(normDrift, distance(Math.hypot(q.x, q.y, q.z, q.w) - 1, 0, 0));
 }
+report(normDrift <= 1e-3, 'decoded quaternions are unit length');
+report(oneHemisphere(dec.quat, dec.count), 'and stay on one hemisphere');
 
-console.log('cuts');
-{
-  const lap = recordLap(144, { cutAtMs: 6000 });
-  const ghost = new GhostLap(lap);
-  check('the teleport reads as a cut', ghost.cut.some((c) => c === 1));
-  check('exactly one cut segment', ghost.cut.reduce((a, c) => a + c, 0) === 1);
-  const out = {};
-  /* Inside the cut the sampler holds the near side rather than sweeping. */
-  const cutIdx = ghost.cut.indexOf(1);
-  const tIn = ((cutIdx + 0.5) * 1000) / ghost.rateHz;
-  ghost.sample(tIn, out);
-  check('mid-cut reports cut', out.cut === true);
-  const nearX = ghost.pos[cutIdx * 3];
-  check('mid-cut holds the near side', Math.abs(out.px - nearX) < 1e-6);
-  /* The spline next to the cut must not bend toward the far side. */
-  ghost.sample(tIn - 1000 / ghost.rateHz, out);
-  const p = analyticPose(tIn - 1000 / ghost.rateHz);
-  check('the segment before the cut stays on the path', Math.hypot(out.px - p.x, out.pz - p.z) < 0.6);
+const flipper = new GhostRecorder();
+flipper.begin();
+for (let t = 8; t <= 2000; t += 16) {
+  const q = trueQuat(t);
+  const sign = Math.floor(t / 100) % 2 === 0 ? 1 : -1;
+  flipper.push(t, t / 1000, 3, 0, q.x * sign, q.y * sign, q.z * sign, q.w * sign);
 }
+const flipped = decodeGhost(encodeGhost(flipper.finish(2000, [2000])));
+report(oneHemisphere(flipped.quat, flipped.count), 'the encoder unflips a quaternion stream that keeps changing sign');
 
-console.log('wire format');
-{
-  const lap = recordLap(144);
-  const bytes = encodeGhost(lap);
-  check('inspect accepts the encoder\'s own output', inspectGhostBytes(bytes) === null);
-  check('size is header + splits + frames', bytes.length === GHOST_HEADER_BYTES + 4 * 4 + lap.count * GHOST_SAMPLE_BYTES);
-  const again = encodeGhost(lap);
-  check('encoding is deterministic', bytes.length === again.length && bytes.every((b, i) => b === again[i]));
-
-  const b64 = ghostToBase64(bytes);
-  const back = ghostFromBase64(b64);
-  check('base64 round trip is byte identical', back.length === bytes.length && back.every((b, i) => b === bytes[i]));
-
-  const dec = decodeGhost(back);
-  check('decode returns the header', dec.rateHz === lap.rateHz && dec.count === lap.count && dec.durationMs === lap.durationMs);
-  check('splits survive', dec.splits.length === 4 && dec.splits[1] === 6000);
-  let worstPos = 0;
-  for (let i = 0; i < lap.count * 3; i += 1) {
-    worstPos = Math.max(worstPos, Math.abs(dec.pos[i] - lap.pos[i]));
-  }
-  check('positions survive as float32', worstPos < 1e-4);
-  let worstQ = 0;
-  const out = {};
-  const ghost = new GhostLap(dec);
-  for (let t = 0; t <= LAP_MS; t += 97) {
-    ghost.sample(t, out);
-    const q = analyticQuat(t);
-    const dot = Math.abs(out.qx * q.x + out.qy * q.y + out.qz * q.z + out.qw * q.w);
-    worstQ = Math.max(worstQ, (2 * Math.acos(Math.min(1, dot)) * 180) / Math.PI);
-  }
-  check(`decoded attitude within 1 degree (worst ${worstQ.toFixed(3)})`, worstQ < 1);
-  check('decoded quats are unit', (() => {
-    for (let i = 0; i < dec.count; i += 1) {
-      const n = Math.hypot(dec.quat[i * 4], dec.quat[i * 4 + 1], dec.quat[i * 4 + 2], dec.quat[i * 4 + 3]);
-      if (Math.abs(n - 1) > 1e-3) {
-        return false;
-      }
-    }
-    return true;
-  })());
-  check('stored stream is hemisphere aligned', (() => {
-    for (let i = 1; i < dec.count; i += 1) {
-      const a = (i - 1) * 4;
-      const b = i * 4;
-      const dot = dec.quat[a] * dec.quat[b] + dec.quat[a + 1] * dec.quat[b + 1]
-        + dec.quat[a + 2] * dec.quat[b + 2] + dec.quat[a + 3] * dec.quat[b + 3];
-      if (dot < 0) {
-        return false;
-      }
-    }
-    return true;
-  })());
+console.log('tampered blobs');
+const good = encodeGhost(recordLap(60));
+function withU32(offset, value) {
+  const copy = good.slice();
+  new DataView(copy.buffer).setUint32(offset, value, true);
+  return copy;
 }
-
-{
-  /* A recorder that hands the encoder sign-flipped quaternions still
-   * produces a short-way stream: the encoder owns the hemisphere. */
-  const rec = new GhostRecorder();
-  rec.begin();
-  for (let t = 8; t <= 2000; t += 16) {
-    const q = analyticQuat(t);
-    const s = Math.floor(t / 100) % 2 === 0 ? 1 : -1;
-    rec.push(t, t / 1000, 3, 0, q.x * s, q.y * s, q.z * s, q.w * s);
-  }
-  const lap = rec.finish(2000, [2000]);
-  const dec = decodeGhost(encodeGhost(lap));
-  let aligned = true;
-  for (let i = 1; i < dec.count; i += 1) {
-    const a = (i - 1) * 4;
-    const b = i * 4;
-    if (dec.quat[a] * dec.quat[b] + dec.quat[a + 1] * dec.quat[b + 1]
-      + dec.quat[a + 2] * dec.quat[b + 2] + dec.quat[a + 3] * dec.quat[b + 3] < 0) {
-      aligned = false;
-    }
-  }
-  check('sign-flipped input still encodes short-way', aligned);
+report(inspectGhostBytes(good.subarray(0, 40)) !== null, 'a truncated blob is refused');
+report(inspectGhostBytes(new Uint8Array(0)) !== null, 'an empty blob is refused');
+const badMagic = good.slice();
+badMagic[0] = 88;
+report(inspectGhostBytes(badMagic) === 'wrong magic', 'a bad magic is named as such');
+report(inspectGhostBytes(withU32(8, 9)) !== null, 'an unknown version is refused');
+report(inspectGhostBytes(withU32(12, 100000)) !== null, 'an absurd rate is refused');
+report(inspectGhostBytes(withU32(16, 7)) !== null, 'a frame count that disagrees with the size is refused');
+report(inspectGhostBytes(withU32(20, 100)) === null
+  && inspectGhostBytes(withU32(20, 590000)) === 'grid ends before the lap does',
+  'a short claimed lap is fine, one longer than the grid is refused by name');
+report(inspectGhostBytes(withU32(24, 4096)) !== null, 'an absurd split count is refused');
+let threw = false;
+try {
+  encodeGhost({ ...recordLap(60), durationMs: 7_200_000 });
+} catch {
+  threw = true;
 }
-
-console.log('tampering');
-{
-  const lap = recordLap(60);
-  const good = encodeGhost(lap);
-  check('a truncated blob is named', inspectGhostBytes(good.subarray(0, 40)) !== null);
-  check('an empty blob is named', inspectGhostBytes(new Uint8Array(0)) !== null);
-  const magic = good.slice();
-  magic[0] = 88;
-  check('wrong magic is named', inspectGhostBytes(magic) === 'wrong magic');
-  const ver = good.slice();
-  new DataView(ver.buffer).setUint32(8, 9, true);
-  check('wrong version is named', inspectGhostBytes(ver) !== null);
-  const rate = good.slice();
-  new DataView(rate.buffer).setUint32(12, 100000, true);
-  check('an absurd rate is named', inspectGhostBytes(rate) !== null);
-  const count = good.slice();
-  new DataView(count.buffer).setUint32(16, 7, true);
-  check('a count that disagrees with the bytes is named', inspectGhostBytes(count) !== null);
-  const dur = good.slice();
-  new DataView(dur.buffer).setUint32(20, 100, true);
-  check('a grid that outruns its claimed lap is fine, the reverse is not', (() => {
-    /* Shrinking the claimed duration keeps the blob valid (grid covers it);
-     * inflating it past the grid must fail. */
-    if (inspectGhostBytes(dur) !== null) {
-      return false;
-    }
-    const dur2 = good.slice();
-    new DataView(dur2.buffer).setUint32(20, 590000, true);
-    return inspectGhostBytes(dur2) === 'grid ends before the lap does';
-  })());
-  const splits = good.slice();
-  new DataView(splits.buffer).setUint32(24, 4096, true);
-  check('a split flood is named', inspectGhostBytes(splits) !== null);
-  check('encode refuses a two hour lap', (() => {
-    try {
-      encodeGhost({ ...lap, durationMs: 7_200_000 });
-      return false;
-    } catch (e) {
-      return true;
-    }
-  })());
-}
+report(threw, 'encoding a two hour lap throws');
 
 console.log('recorder edges');
-{
-  const rec = new GhostRecorder();
-  rec.begin();
-  check('finishing an unfed recorder returns null', rec.finish(1000, []) === null);
-  rec.begin();
-  rec.push(700_000, 0, 0, 0, 0, 0, 0, 1);
-  check('a lap past the cap records nothing', rec.finish(700_000, []) === null);
-  const rec2 = new GhostRecorder();
-  rec2.push(50, 1, 2, 3, 0, 0, 0, 1);
-  check('an unarmed recorder ignores pushes', rec2.pos.length === 0);
-}
+const edge = new GhostRecorder();
+edge.begin();
+report(edge.finish(1000, []) === null, 'nothing fed, nothing recorded');
+edge.begin();
+edge.push(700000, 0, 0, 0, 0, 0, 0, 1);
+report(edge.finish(700000, []) === null, 'frames past the ten minute cap are dropped');
+const idle = new GhostRecorder();
+idle.push(50, 1, 2, 3, 0, 0, 0, 1);
+report(idle.pos.length === 0, 'a recorder that was never armed ignores pushes');
 
-console.log('the book');
-{
-  const book = new GhostBook();
-  const slow = recordLap(60);
-  slow.durationMs = 14000;
-  const fast = recordLap(60);
-  fast.durationMs = 11000;
-  const slower = recordLap(60);
-  slower.durationMs = 15000;
-  check('first lap is the session best', book.keep('field', slow).best === true);
-  check('a faster lap takes the best slot', book.keep('field', fast).best === true);
-  check('a slower lap does not', book.keep('field', slower).best === false);
-  check('previous is always the last lap', book.previous('field').durationMs === 15000);
-  check('best survives the slower lap', book.best('field').durationMs === 11000);
-  check('courses do not share slots', book.best('city') === null);
-}
+console.log('session book');
+const book = new GhostBook();
+const timed = (ms) => {
+  const lap = recordLap(60);
+  lap.durationMs = ms;
+  return lap;
+};
+const slow = timed(14000);
+const fast = timed(11000);
+const slower = timed(15000);
+report(book.keep('field', slow).best === true, 'the first lap is the best so far');
+report(book.keep('field', fast).best === true, 'a faster lap takes the best');
+report(book.keep('field', slower).best === false, 'a slower one does not');
+report(book.previous('field').durationMs === 15000, 'previous is the latest lap kept');
+report(book.best('field').durationMs === 11000, 'best is the fastest');
+report(book.best('city') === null, 'another course has its own empty slot');
 
-console.log(failures === 0 ? '\nall passed' : `\n${failures} FAILED`);
+console.log('');
+console.log(failures === 0 ? 'all passed' : `${failures} FAILED`);
 process.exit(failures);

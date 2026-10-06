@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 4,
+  "id": "trk-9471fdd3",
+  "name": "Pocho",
+  "createdUtc": "2026-09-29T15:37:25Z",
+  "modifiedUtc": "2026-10-03T18:29:48Z",
+  "trackClass": "full",
+  "map": "swiss2",
+  "field": {
+    "width": 60,
+    "depth": 40,
+    "gridSize": 1
+  },
+  "settings": {
+    "tangentScale": 1.1,
+    "minCurveRadius": 2.5,
+    "samplesPerSegment": 48
+  },
+  "branding": {
+    "logos": []
+  },
+  "credit": null,
+  "elements": [
+    {
+      "id": "el-1",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": -17.613931,
+        "y": 388.802143,
+        "z": 14.229239
+      },
+      "yaw": -1.534796,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": -0.999838,
+        "x": 0,
+        "y": 0,
+        "z": -0.017999
+      }
+    },
+    {
+      "id": "el-2",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 315.249941,
+        "y": 930.946315,
+        "z": 191.27957
+      },
+      "yaw": -2.444396,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": -0.905563,
+        "x": -0.031484,
+        "y": 0.014699,
+        "z": 0.422787
+      }
+    },
+    {
+      "id": "el-3",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 597.737816,
+        "y": 1064.369658,
+        "z": 210.241012
+      },
+      "yaw": -2.907233,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": -0.784927,
+        "x": 0,
+        "y": 0,
+        "z": 0.619588
+      }
+    },
+    {
+      "id": "el-4",
+      "type": "hoop250",
+      "name": "",
+      "position": {
+        "x": 838.065584,
+        "y": 1286.939909,
+        "z": 280.284292
+      },
+      "yaw": -1.520396,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.06,
+        "clearW": 2.5,
+        "clearH": 2.5,
+        "levelPitch": 2.5,
+        "tubeR": 0.03
+      },
+      "orientation": {
+        "w": -0.999683,
+        "x": 0,
+        "y": 0,
+        "z": -0.025197
+      }
+    },
+    {
+      "id": "el-5",
+      "type": "hoop175",
+      "name": "",
+      "position": {
+        "x": 659.053936,
+        "y": 1495.767445,
+        "z": 306.579717
+      },
+      "yaw": -0.147596,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.05,
+        "clearW": 1.75,
+        "clearH": 1.75,
+        "levelPitch": 1.75,
+        "tubeR": 0.025
+      },
+      "orientation": {
+        "w": -0.757318,
+        "x": 0,
+        "y": 0,
+        "z": -0.653046
+      }
+    },
+    {
+      "id": "el-6",
+      "type": "hoop175",
+      "name": "",
+      "position": {
+        "x": 476.556579,
+        "y": 1311.17223,
+        "z": 359.024604
+      },
+      "yaw": 2.154004,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.05,
+        "clearW": 1.75,
+        "clearH": 1.75,
+        "levelPitch": 1.75,
+        "tubeR": 0.025
+      },
+      "orientation": {
+        "w": -0.287489,
+        "x": 0,
+        "y": 0,
+        "z": 0.957784
+      }
+    },
+    {
+      "id": "el-7",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": 782.793543,
+        "y": 1292.611347,
+        "z": 258.01778
+      },
+      "yaw": -3.053982,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": -0.571919,
+        "x": 0.465465,
+        "y": -0.426373,
+        "z": 0.523886
+      }
+    },
+    {
+      "id": "el-8",
+      "type": "hoop30",
+      "name": "",
+      "position": {
+        "x": 764.40848,
+        "y": 1291.197876,
+        "z": 83.843431
+      },
+      "yaw": 0.111611,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 2,
+        "clearW": 30,
+        "clearH": 30,
+        "levelPitch": 30,
+        "tubeR": 1
+      },
+      "orientation": {
+        "w": -0.515613,
+        "x": 0.538361,
+        "y": -0.481394,
+        "z": 0.461053
+      }
+    },
+    {
+      "id": "el-9",
+      "type": "hoop175",
+      "name": "",
+      "position": {
+        "x": 384.328817,
+        "y": 1300.352572,
+        "z": 8.837519
+      },
+      "yaw": 0.102018,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 1,
+        "sillH": 0.05,
+        "clearW": 1.75,
+        "clearH": 1.75,
+        "levelPitch": 1.75,
+        "tubeR": 0.025
+      },
+      "orientation": {
+        "w": -0.670134,
+        "x": 0,
+        "y": 0,
+        "z": -0.74224
+      }
+    }
+  ],
+  "sequence": [
+    {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-5",
+      "elementId": "el-5",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-6",
+      "elementId": "el-6",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-7",
+      "elementId": "el-7",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-8",
+      "elementId": "el-8",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-9",
+      "elementId": "el-9",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    }
+  ]
+}

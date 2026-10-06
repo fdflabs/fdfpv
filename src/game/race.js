@@ -1,129 +1,73 @@
 /*
- * race.js: the race. Gate sequencing, lap timing, best lap, and gate
- * frame contact.
+ * race.js: the race referee. Given the gates of a course and the craft's
+ * position each frame, it decides which gate was flown through, times laps
+ * and splits, keeps the best lap record and, for planes, scores each pass by
+ * how near the centre it went.
  *
- * Scoring aperture is the glowing RING, not the outer frame: the ring is
- * what a pilot aims at. Detection is a swept box in the gate's local
- * frame, the opening extruded a short way along the direction of travel,
- * so a line through the hole at an angle still counts and a dive gate
- * scores against the same plane the mesh stands in.
+ * It only reads the world after physics and never writes back, so the same
+ * code judges a live flight in the browser and a posted ghost on the
+ * leaderboard (verify.js checkLap). A lap time there is compared to the bit,
+ * which is why the arithmetic below keeps a fixed operation order.
  *
- * Lap times run on the SIMULATION clock, interpolated to the crossing
- * point, not on the wall clock: a frame hitch freezes the quad, and a
- * scoreboard that keeps counting while the physics stands still would
- * punish slow machines. The whole project is built on deterministic
- * physics; the timing is only honest if it reads the same clock.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * Touching a gate frame voids the lap rather than destroying the craft:
- * no real race kills you for a gate tap, the penalty is your lap.
- *
- * All of this runs in Three.js world space (y up), downstream of the
- * physics. Nothing here feeds back into the simulation.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * The scoring aperture is the aperture the pilot can SEE, taken from the
- * scene's own measured openings rather than restated here.
- *
- * This file used to carry its own copy of the gate's geometry: GATE_HALF_W
- * 3.0, GATE_H 5.0, RING_R 1.9, CRAFT_R 0.25. Three of those four disagreed
- * with what scene.js drew, and the scoring test subtracted the craft radius
- * from the torus CENTRELINE while ignoring the tube, so a craft could be
- * credited with a clean pass while its body passed through the ring. A gate
- * that scores differently from how it looks is a gate the pilot cannot learn.
- *
- * Frame contact used to live here too and it voided the lap. It does not any
- * more: the frame is solid, collision is src/game/collide.js, and hitting
- * one is a crash. The owner's words were that the gates need to be solid.
- *
- * The scoring hole is the visible opening, minus a fingernail of margin.
- * Folding the craft radius in on top of that was a second shrink: a 1.75 m
- * gate offered 1.40 m, and a clean line near the stile did not count.
- * Collision already owns a clip of the tube.
- */
 import { fastestLap, fastestThreeConsecutive } from './track.js';
-import { str, plural } from '../strings/index.js';
+import { plural, str } from '../strings/index.js';
 
-/*
- * How far the scoring volume sticks out either side of the opening, metres.
- *
- * A zero-thickness plane is exact when you fly square through the middle
- * and silent when you do not: a dive, a split-S, a line that clips the
- * near edge of a thick hoop, all cross the midplane outside the rectangle
- * even though the craft went through the hole the pilot can see. Half a
- * metre of depth is the frame's own thickness plus a little, enough that
- * a path through the visible opening intersects the box, not enough that
- * flying past the gate to one side can clip it.
- */
-const PASS_DEPTH = 0.5;
-/* Keep the scoring hole a fingernail inside the PVC so a pass credited
- * here is a pass that did not have to tunnel the tube. Collision already
- * owns a real clip. This is not the craft radius: folding that in stole
- * 35 cm off a 1.75 m opening and made a clean edge line miss. */
-const PASS_MARGIN = 0.02;
-/*
- * A wing track's five metre gate, flown at 15 to 25 m/s by an aircraft
- * that cannot slow down for it. Half a metre of depth is a fiftieth of a
- * second at cruise, and a wing banked through the hole at forty degrees
- * crosses the midplane with its tips a metre either side of it. Two metres
- * is the frame plus the aircraft's own length plus a little, the same
- * reasoning as the field's half metre for a machine four times the size,
- * and the nearest two wing gates can stand is much further than a four
- * metre box. The margin is the field's: the tube is the same tube.
- */
-const PASS_DEPTH_WING = 2.0;
-
-/* The scoring box per class, in metres. See the derivations above. */
-const PASS_BY_CLASS = {
-  full: { depth: PASS_DEPTH, margin: PASS_MARGIN },
-  wing: { depth: PASS_DEPTH_WING, margin: PASS_MARGIN },
-};
-
-const DEFAULT_KEY = 'webfpv.bestLapMs';
-
-/*
- * A PLANE'S COURSE IS SCORED, NOT THREADED. The owner: "if i am even
- * within a 40m distance from the thing, count it as hitting it and you can
- * go on to the next one, but if you actually go inside the thing, then you
- * get scored by how much inside towards the middle you are... close enough
- * just move on to the other but more accurate is more points."
- *
- * So with a reach (the Race's opts.reach, PLANE_REACH for a fixed wing), a
- * gate is passed when the craft's centre crosses the gate's plane, forward,
- * in order, anywhere within the reach of its nearest structure, measured at
- * the crossing point in that plane (reachHits). Through the opening scores
- * by how near the middle: PASS_POINTS at the centre falling smoothly, as
- * the square of the way out, to half of that at the rim. Outside it but in
- * reach scores NEAR_POINTS, flat. What each is called on the OSD is the
- * CALLS table. A quad's race has no reach and is threaded as before.
- */
 export const PLANE_REACH = 40;
 export const PASS_POINTS = 100;
 export const NEAR_POINTS = 20;
-/* The call for a pass through the opening, by how far out it was (0 the
- * centre, 1 the rim), the first whose limit it is within. */
-const CALLS = [{ upTo: 0.25, code: 'centre' }, { upTo: 0.6, code: 'good' }, { upTo: 1, code: 'through' }];
 
-/* How far a point (x, y) in a gate's plane is from its nearest structure,
- * metres, 0 on or inside it: `frame` is the aperture's (src/builder/
- * course.js structureOf); an aperture with none is its own opening. Plain
- * arithmetic and Math.sqrt, which is exact, so it is the same number in
- * every engine. */
+const DEFAULT_RECORD_KEY = 'webfpv.bestLapMs';
+
+/* Scoring box per track class: depth either side of the gate plane and how
+ * far inside the visible opening the craft's centre must stay. A plain
+ * object, so an unknown class falls back to full, and a class named after an
+ * inherited property gives undefined sizes, as it always has. */
+const CLASS_BOX = {
+  full: { depth: 0.5, margin: 0.02 },
+  wing: { depth: 2.0, margin: 0.02 },
+};
+
+/* Inside the opening, the call is the first band whose limit holds. */
+const BANDS = [
+  { code: 'centre', limit: 0.25 },
+  { code: 'good', limit: 0.6 },
+  { code: 'through', limit: 1 },
+];
+
+/* The axis helpers are the one place this module uses Math.sin and cos.
+ * They run only for gates that bring heading and pitch instead of axes,
+ * and the leaderboard's laps go through them, so the expressions are fixed. */
+export function gateAcross(heading) {
+  return { x: -Math.cos(heading), y: 0, z: Math.sin(heading) };
+}
+
+export function gateUp(heading, pitch) {
+  const sp = Math.sin(pitch);
+  return { x: sp * Math.sin(heading), y: Math.cos(pitch), z: sp * Math.cos(heading) };
+}
+
+/* The sign stays on cp so that travelAxis(0, 0).x is -0, as before. */
+export function travelAxis(heading, pitch) {
+  const cp = Math.cos(pitch);
+  return { x: (-cp) * Math.sin(heading), y: Math.sin(pitch), z: (-cp) * Math.cos(heading) };
+}
+
 function coneGap(c, x, y) {
   const yc = Math.min(c.y0 + c.h, Math.max(c.y0, y));
   const r = c.r0 + ((c.r1 - c.r0) * (yc - c.y0)) / c.h;
@@ -134,652 +78,324 @@ function coneGap(c, x, y) {
 
 export function structureGap(ap, x, y) {
   const f = ap.frame ?? { kind: 'box', hw: ap.clearW / 2, hh: ap.clearH / 2 };
-  if (f.kind === 'ring') {
-    return Math.max(0, Math.sqrt(x * x + y * y) - f.r);
+  switch (f.kind) {
+    case 'ring':
+      return Math.max(0, Math.sqrt(x * x + y * y) - f.r);
+    case 'cones':
+      return Math.min(...f.cones.map((c) => coneGap(c, x, y)));
+    case 'cone':
+      /* A turned pylon is rounded on one side only. */
+      return (x - f.cone.x) * f.side < 0 ? Infinity : coneGap(f.cone, x, y);
+    default: {
+      const dx = Math.max(0, Math.abs(x) - f.hw);
+      const dy = Math.max(0, Math.abs(y) - f.hh);
+      return Math.sqrt(dx * dx + dy * dy);
+    }
   }
-  if (f.kind === 'cones') {
-    return Math.min(...f.cones.map((c) => coneGap(c, x, y)));
-  }
-  if (f.kind === 'cone') {
-    /* A pylon turned round on a set side is near missed on that side only:
-     * the other side is flying round it the wrong way. */
-    return (x - f.cone.x) * f.side < 0 ? Infinity : coneGap(f.cone, x, y);
-  }
-  const dx = Math.max(0, Math.abs(x) - f.hw);
-  const dy = Math.max(0, Math.abs(y) - f.hh);
-  return Math.sqrt(dx * dx + dy * dy);
 }
 
-/* The points and the call for a crossing reachHits found. */
 export function passScore(hit) {
-  if (!hit.inside) {
-    return { code: 'close', points: NEAR_POINTS };
+  if (!hit.inside) return { code: 'close', points: NEAR_POINTS };
+  const s = hit.s;
+  return { code: BANDS.find((b) => s <= b.limit).code, points: Math.round(PASS_POINTS * (1 - 0.5 * s * s)) };
+}
+
+/* The opening's centre sits centreY above the gate base along world y,
+ * not along the gate's up axis, whatever its tilt. */
+function toLocal(g, ap, p) {
+  const dx = p.x - g.x;
+  const dy = p.y - (g.y + ap.centreY);
+  const dz = p.z - g.z;
+  return {
+    x: dx * g.ax.x + dy * g.ax.y + dz * g.ax.z,
+    y: dx * g.ay.x + dy * g.ay.y + dz * g.ay.z,
+    z: dx * g.az.x + dy * g.az.y + dz * g.az.z,
+  };
+}
+
+/* Segment a to b against the thick box; the crossing parameter is the
+ * midplane crossing when it lies inside the box, else first contact. */
+function boxCrossing(a, b, halfW, halfH, depth) {
+  if (!(halfW > 0) || !(halfH > 0)) return -1;
+  const dZ = b.z - a.z;
+  if (dZ <= 1e-9) return -1;
+  let enter = 0;
+  let leave = 1;
+  for (const [p, d, half] of [[a.x, b.x - a.x, halfW], [a.y, b.y - a.y, halfH], [a.z, dZ, depth]]) {
+    if (Math.abs(d) < 1e-12) {
+      if (!(p >= -half && p <= half)) return -1;
+      continue;
+    }
+    let u0 = (-half - p) / d;
+    let u1 = (half - p) / d;
+    if (u0 > u1) [u0, u1] = [u1, u0];
+    if (u0 > enter) enter = u0;
+    if (u1 < leave) leave = u1;
+    if (!(enter <= leave)) return -1;
   }
-  const code = CALLS.find((c) => hit.s <= c.upTo).code;
-  return { code, points: Math.round(PASS_POINTS * (1 - 0.5 * hit.s * hit.s)) };
+  const tz = -a.z / dZ;
+  return tz >= enter && tz <= leave ? tz : enter;
 }
 
-/*
- * A gate's own frame, from its heading and pitch. Exported because
- * render/scene.js had travelAxis written out again, and the direction of
- * travel through a gate deciding two different things in two files is how a
- * dive gate ends up drawn along one axis and scored along another. The game
- * owns this: the renderer imports it, never the other way round.
- */
-export function gateAcross(heading) {
-  return { x: -Math.cos(heading), y: 0, z: Math.sin(heading) };
+/* A round opening has no depth: the centre must cross the disc itself. */
+function discCrossing(a, b, r) {
+  const dZ = b.z - a.z;
+  if (!(r > 0) || dZ <= 1e-9 || a.z > 0 || b.z < 0) return -1;
+  const t = -a.z / dZ;
+  const x = a.x + (b.x - a.x) * t;
+  const y = a.y + (b.y - a.y) * t;
+  return x * x + y * y <= r * r ? t : -1;
 }
 
-export function gateUp(heading, pitch) {
-  const sp = Math.sin(pitch);
-  return { x: sp * Math.sin(heading), y: Math.cos(pitch), z: sp * Math.cos(heading) };
+/* A plane's pass: the plane of the opening crossed forward anywhere within
+ * reach of the structure. No margin and no depth here. */
+function reachCrossing(a, b, ap, reach) {
+  const dZ = b.z - a.z;
+  if (dZ <= 1e-9 || a.z > 0 || b.z < 0) return null;
+  const t = -a.z / dZ;
+  const x = a.x + (b.x - a.x) * t;
+  const y = a.y + (b.y - a.y) * t;
+  const hw = ap.clearW * 0.5;
+  const s = ap.round ? Math.sqrt(x * x + y * y) / hw : Math.max(Math.abs(x) / hw, Math.abs(y) / (ap.clearH * 0.5));
+  if (s <= 1) return { t, s, inside: true, gap: 0 };
+  const gap = structureGap(ap, x, y);
+  return gap <= reach ? { t, s, inside: false, gap } : null;
 }
 
-export function travelAxis(heading, pitch) {
-  const cp = Math.cos(pitch);
-  return { x: -cp * Math.sin(heading), y: Math.sin(pitch), z: -cp * Math.cos(heading) };
-}
-
-/* The same shape ui.js formatTime writes: no leading "0:" under a minute.
- * The flash and the results table used to spell one lap two ways. */
-function fmt(ms) {
-  if (ms == null || !Number.isFinite(ms)) {
-    return '--:--.--';
-  }
+function clockText(ms) {
+  if (ms == null || !Number.isFinite(ms)) return '--:--.--';
   const total = ms / 1000;
   const m = Math.floor(total / 60);
   const s = total - m * 60;
-  if (m > 0) {
-    return `${m}:${s.toFixed(2).padStart(5, '0')}`;
+  return m > 0 ? `${m}:${s.toFixed(2).padStart(5, '0')}` : s.toFixed(2);
+}
+
+/* Storage is optional (Node, private windows): a missing or broken store
+ * means no record, never an error in the middle of a race. */
+function loadRecord(key) {
+  try {
+    const v = Number(localStorage.getItem(key));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch (e) {
+    return null;
   }
-  return s.toFixed(2);
+}
+
+function stationOf(g, idx) {
+  const axes = g.axes || {
+    across: gateAcross(g.heading),
+    up: gateUp(g.heading, g.pitch ?? 0),
+    travel: travelAxis(g.heading, g.pitch ?? 0),
+  };
+  return {
+    idx,
+    x: g.position.x,
+    y: g.position.y,
+    z: g.position.z,
+    ax: axes.across,
+    ay: axes.up,
+    az: axes.travel,
+    apertures: g.apertures ?? [g.aperture],
+    kindName: g.kindName ?? 'standardGate',
+    elementId: g.elementId ?? null,
+    apertureIndex: g.apertureIndex ?? null,
+    virtual: Boolean(g.virtual),
+  };
 }
 
 export class Race {
-  /* gates: [{ position: Vector3 (base, on terrain), heading: rad }] in
-   * scene order along the curve. The first non-virtual gate times the lap.
-   *
-   * The craft spawns facing opposite the curve's parameter direction
-   * (verified numerically: spawn forward dot tangent = -1), so the course
-   * as flown runs 0, 7, 6, ... 1, 0. The gates are stored in that flying
-   * order, and each heading is flipped so local +z is the direction of
-   * travel. */
   constructor(gates, trackClass = 'full', opts = {}) {
-    /*
-     * The track class, and it reaches here for one reason: the scoring
-     * volume. Everything else about a race is class free, because a lap is a
-     * lap and three consecutive is three consecutive whatever size the
-     * aircraft is. But the box a pass is measured against is a LENGTH, and a
-     * wing's is deeper than the field's.
-     */
-    const pass = PASS_BY_CLASS[trackClass] ?? PASS_BY_CLASS.full;
-    this.passDepth = pass.depth;
-    this.passMargin = pass.margin;
-    /*
-     * Appended to every record key the shell hands in. That key names the
-     * machine flying, not the course (main.js recordKey), and a course built
-     * inside a map is flown under the key the map's own flights already
-     * use: its laps must not land on that record.
-     */
-    this.recordSuffix = opts.recordSuffix ?? '';
-    /* A plane's reach round every gate, metres, or 0 for a precision race
-     * (PLANE_REACH above). */
+    const box = CLASS_BOX[trackClass] ?? CLASS_BOX.full;
+    this.passDepth = box.depth;
+    this.margin = box.margin;
+    this.suffix = opts.recordSuffix ?? '';
     this.reach = opts.reach ?? 0;
-    /*
-     * A map with no gates is a freestyle map, and it is not an error.
-     *
-     * This constructor used to dereference gates[0] unconditionally, which is
-     * why the shell could not boot a gateless map: `new Race([])` threw before
-     * the first frame. Every method below already reads this.gates, so making
-     * an empty course a real state costs one flag and a handful of guards, and
-     * it means the shell has ONE run object rather than a race and a null
-     * object that have to be kept in step. Nothing in a freestyle run is
-     * scored: there is no next gate, no lap, no clock and no record.
-     */
     this.freestyle = gates.length === 0;
     if (this.freestyle) {
       this.gates = [];
-      this.key = DEFAULT_KEY;
+      this.key = DEFAULT_RECORD_KEY;
       this.bestMs = null;
       this.reset();
       return;
     }
-    /*
-     * FLYING ORDER COMES FROM THE GATES, NOT FROM AN ASSUMPTION.
-     *
-     * This used to be `[0, n-1, n-2, ... 1]`, which is right for the built in
-     * circuit and right for nothing else. It is right there because that
-     * circuit lays its stations along a curve and the craft spawns facing
-     * against the curve's parameter, so array order happens to BE reverse
-     * flying order. A course somebody designed has its own order, written
-     * down in the document, and inferring one from an array index would fly
-     * it backwards.
-     *
-     * The scene has always stamped `flyOrder` on every gate. Sorting by it
-     * produces exactly the old sequence for the built in field, which
-     * tests/lib/checks.js asserts rather than takes on trust, and the right
-     * one everywhere else.
-     */
-    const order = gates
-      /* g.flyOrder, with no fallback. It used to default to
-       * `idx === 0 ? 0 : gates.length - idx`, which is scene.js's built in
-       * circuit ordering written out a second time, in the one file that
-       * must not have its own opinion about flying order. Every caller has
-       * supplied flyOrder for a while; a course that does not is a bug in
-       * the caller and should read as one rather than being silently
-       * scored in an order nobody chose. */
+    /* The native stable sort on exactly these entries: a missing flyOrder
+     * makes the comparator NaN, and only the same sort orders that the same. */
+    this.gates = gates
       .map((g, idx) => ({ idx, flyOrder: g.flyOrder }))
       .sort((a, b) => a.flyOrder - b.flyOrder)
-      .map((e) => e.idx);
-    this.gates = order.map((idx) => {
-      const g = gates[idx];
-      /*
-       * THE APERTURE FRAME.
-       *
-       * A gate's plane is fixed by a heading and, on a dive gate, a tilt.
-       * The frame below is the gate's own axes in world space, with the
-       * direction of travel as local +z, which is MINUS the plane normal:
-       * that convention is the field's, set by stations whose heading is the
-       * curve tangent, and every consumer of it is here.
-       *
-       *   yaw h alone gives normal (sin h, 0, cos h).
-       *   tilting by p about the gate's own x takes it to
-       *   (cos p sin h, -sin p, cos p cos h).
-       *
-       * At p = 0 every term below collapses to the two cosines and sines
-       * this used to carry, so the built in circuit is scored by identical
-       * arithmetic and the same lap times come out.
-       */
-      const h = g.heading;
-      const p = g.pitch ?? 0;
-      /*
-       * Or the whole frame, given. A gate built inside a map can stand at
-       * any orientation at all, rolled on its side as well as yawed and
-       * tilted, and a heading and a pitch cannot say that. The three axes
-       * are orthonormal, in world space, with the same meaning as the ones
-       * computed here: across, up the opening's own plane, and the
-       * direction of travel. src/builder/course.js makes them.
-       */
-      const ax = g.axes ? g.axes.across : gateAcross(h);
-      const ay = g.axes ? g.axes.up : gateUp(h, p);
-      const az = g.axes ? g.axes.travel : travelAxis(h, p);
-      return {
-        idx,
-        x: g.position.x,
-        y: g.position.y,
-        z: g.position.z,
-        ax,
-        ay,
-        az,
-        /* Every opening this STATION scores. A standard gate has one. The
-         * built in circuit's ladders pass every opening and count the
-         * structure as one gate. A designed stack names the hole, so the
-         * scene hands one aperture per station and a double stack flown as
-         * a spiral is two gates, not one. */
-        apertures: g.apertures ?? [g.aperture],
-        kindName: g.kindName ?? 'standardGate',
-        /* Same structure id on every station of a stacked gate. Null on the
-         * built in circuit, which has one station per obstacle. */
-        elementId: g.elementId ?? null,
-        apertureIndex: g.apertureIndex ?? null,
-        /* A flag or a cone scores as a square on its pass side, with no
-         * PVC. The first real opening is still the timing gate. */
-        virtual: Boolean(g.virtual),
-      };
-    });
-    this.timingIdx = 0;
-    for (let i = 0; i < this.gates.length; i += 1) {
-      if (!this.gates[i].virtual) {
-        this.timingIdx = i;
-        break;
-      }
-    }
-    this.key = DEFAULT_KEY;
-    this.bestMs = this.loadBest();
+      .map(({ idx }) => stationOf(gates[idx], idx));
+    const timing = this.gates.findIndex((g) => !g.virtual);
+    this.timingIdx = timing < 0 ? 0 : timing;
+    this.key = DEFAULT_RECORD_KEY;
+    this.bestMs = loadRecord(this.key);
     this.reset();
-  }
-
-  loadBest() {
-    try {
-      const v = Number(localStorage.getItem(this.key));
-      return Number.isFinite(v) && v > 0 ? v : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /* Best laps are only comparable on the same config and pack voltage;
-   * the shell keys the record accordingly and swaps it here. */
-  setRecordKey(key) {
-    if (this.freestyle) {
-      return;
-    }
-    this.key = key + this.recordSuffix;
-    this.bestMs = this.loadBest();
   }
 
   reset() {
     this.next = 0;
     this.lap = 0;
-    this.lapStartMs = null; /* sim clock */
+    this.lapStartMs = null;
     this.lastLapMs = null;
     this.prevSimMs = null;
-    this.flash = null; /* { text, untilMs } on the wall clock */
-    /*
-     * Gate times inside the RUNNING lap, ms from its start, one per
-     * crossing in flying order, ending with the finish. The ghost chase
-     * reads these: the k-th entry against the ghost's k-th split is the gap
-     * the OSD shows at each gate. lastSplits is the finished lap's list,
-     * which is what a recorded ghost carries.
-     */
+    this.banner = null;
     this.splits = [];
     this.lastSplits = [];
-    /* Every attempt at a lap, in order: { n, ms } for a clean lap and
-     * { n, ms: null, reason } for one thrown away. The results screen
-     * needs the thrown away ones too, or a run whose second lap was
-     * voided reports its third lap as lap two, which is a lie about what
-     * the player just did. */
     this.log = [];
-    this.laps = [];         /* completed clean lap times, in order */
-    /* A scored race's points: this lap's so far, the last lap's, and the
-     * run's, and the last gate's call { code, points, gate }. */
-    this.lapScore = 0;
+    this.laps = [];
+    this.lapPoints = 0;
     this.lastLapScore = null;
     this.runScore = 0;
     this.call = null;
-    /* The gate just passed, until the craft has been seen outside its
-     * scoring box. See leftGate. */
     this.leaving = -1;
-    /* The record as this run began. The live best updates on a faster
-     * lap, and the results screen needs the old figure to say whether
-     * this run beat it and by how much. */
     this.recordAtStart = this.bestMs;
   }
 
-  /* Number of the lap now being flown, counting voided attempts. */
-  lapNumber() {
-    return this.log.length + 1;
+  setRecordKey(key) {
+    if (this.freestyle) return;
+    this.key = key + this.suffix;
+    this.bestMs = loadRecord(this.key);
   }
 
-  /*
-   * A hit the pilot flies out of rather than a lap thrown away.
-   *
-   * Hitting something used to void the lap AND send the craft to the start
-   * line. Then it became a 1.4 s lockout plus a standing start on the
-   * course. There is no lockout now: the clock never stops, the plant
-   * keeps stepping, and the only cost is the time it takes to bounce,
-   * roll, or turtle back to flying. `next` is untouched.
-   */
-  recover(reason, wallMs) {
-    this.flash = { text: reason, untilMs: wallMs + 1800 };
-  }
-
-  /*
-   * Throw the running lap away and send the order back to the timing gate.
-   *
-   * NOTHING CALLS THIS ANY MORE and that is a statement of the rules rather
-   * than an oversight. A gate tap bounces and costs time, not the lap;
-   * flying a gate out of sequence costs nothing at all, by the owner's
-   * instruction; see update(). It stays because voiding a lap is a real
-   * operation on the run, the results screen still knows how to show one, and
-   * the next rule that needs it should not have to reinvent the bookkeeping.
-   */
-  voidLap(reason, wallMs) {
-    if (this.freestyle) {
-      /* Nothing to void, but a crash still says so. The shell calls this from
-       * one place for both maps on purpose: two crash paths is how the two
-       * drift apart. */
-      this.flash = { text: reason, untilMs: wallMs + 1800 };
-      return;
-    }
-    if (this.lapStartMs != null) {
-      this.log.push({ n: this.lapNumber(), ms: null, reason });
-    }
-    this.lapStartMs = null;
-    this.splits = [];
-    this.next = 0;
-    this.leaving = -1;
-    this.flash = { text: reason, untilMs: wallMs + 1800 };
-  }
-
-  /*
-   * World point into an OPENING's local frame: x across it, y up it in its
-   * own plane, z along the direction of travel, with the origin at the
-   * opening's centre.
-   *
-   * The origin moved from the gate's base to the opening's centre when the
-   * tilt arrived, because a tilted plane pivots about the hole rather than
-   * about the ground under it. For an upright gate the two frames differ by
-   * a shift along y that the caller used to make itself, so the test is the
-   * same one.
-   */
-  local(g, centreY, px, py, pz) {
-    const dx = px - g.x;
-    const dy = py - (g.y + centreY);
-    const dz = pz - g.z;
-    return {
-      x: dx * g.ax.x + dy * g.ax.y + dz * g.ax.z,
-      y: dx * g.ay.x + dy * g.ay.y + dz * g.ay.z,
-      z: dx * g.az.x + dy * g.az.y + dz * g.az.z,
-    };
-  }
-
-  /*
-   * Does the travel from local point a to local point b hit this opening?
-   * The opening is an AABB: the visible rectangle extruded PASS_DEPTH either
-   * side of the plane. Forward motion only, so a reverse pass does not
-   * count. Returns the parameter t in [0, 1] at first contact, or -1.
-   */
-  openingHits(a, b, halfW, halfH) {
-    if (!(halfW > 0) || !(halfH > 0)) {
-      return -1;
-    }
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const dz = b.z - a.z;
-    if (dz <= 1e-9) {
-      return -1;
-    }
-    let t0 = 0;
-    let t1 = 1;
-    const clip = (p, d, lo, hi) => {
-      if (Math.abs(d) < 1e-12) {
-        return p >= lo && p <= hi;
-      }
-      let u0 = (lo - p) / d;
-      let u1 = (hi - p) / d;
-      if (u0 > u1) {
-        const tmp = u0;
-        u0 = u1;
-        u1 = tmp;
-      }
-      if (u0 > t0) {
-        t0 = u0;
-      }
-      if (u1 < t1) {
-        t1 = u1;
-      }
-      return t0 <= t1;
-    };
-    if (!clip(a.x, dx, -halfW, halfW)) {
-      return -1;
-    }
-    if (!clip(a.y, dy, -halfH, halfH)) {
-      return -1;
-    }
-    if (!clip(a.z, dz, -this.passDepth, this.passDepth)) {
-      return -1;
-    }
-    /* Prefer the midplane if the clipped segment actually crosses it, so a
-     * square-on pass times the hole the pilot can see. An angled line that
-     * only clips the thick volume, never z = 0 inside the rectangle, still
-     * counts at first contact. */
-    const tz = -a.z / dz;
-    if (tz >= t0 && tz <= t1) {
-      return tz;
-    }
-    return t0;
-  }
-
-  /*
-   * Does the travel from local point a to local point b cross this ROUND
-   * opening, a sky hoop's disc of radius r? The craft's centre has to cross
-   * the disc's own plane, forward, inside the radius: the owner's rule, "a
-   * pass counts when the craft's centre crosses the hoop's disc inside its
-   * radius". A swept segment cannot step over a plane however fast it is
-   * flown, so the disc needs no depth to be caught, and a line that crosses
-   * beside the rim, however near, is not a pass: the square round the disc
-   * is not the hoop. Returns t in [0, 1] at the crossing, or -1.
-   */
-  discHits(a, b, r) {
-    const dz = b.z - a.z;
-    if (!(r > 0) || dz <= 1e-9 || a.z > 0 || b.z < 0) {
-      return -1;
-    }
-    const t = -a.z / dz;
-    const x = a.x + (b.x - a.x) * t;
-    const y = a.y + (b.y - a.y) * t;
-    return x * x + y * y <= r * r ? t : -1;
-  }
-
-  /*
-   * A scored race's crossing (see PLANE_REACH): the travel from local a to
-   * local b crossing the opening's plane forward, where it crosses, how far
-   * out through the opening that is (s, 0 the centre, 1 the rim, the
-   * disc's radius or the square's larger half), and whether it was inside
-   * it; or null where it crossed beyond the reach of the gate's structure,
-   * or did not cross. { t, s, inside, gap }.
-   */
-  reachHits(a, b, ap) {
-    const dz = b.z - a.z;
-    if (dz <= 1e-9 || a.z > 0 || b.z < 0) {
-      return null;
-    }
-    const t = -a.z / dz;
-    const x = a.x + (b.x - a.x) * t;
-    const y = a.y + (b.y - a.y) * t;
-    const hw = ap.clearW * 0.5;
-    const s = ap.round ? Math.sqrt(x * x + y * y) / hw : Math.max(Math.abs(x) / hw, Math.abs(y) / (ap.clearH * 0.5));
-    if (s <= 1) {
-      return {
-        t, s, inside: true, gap: 0,
-      };
-    }
-    const gap = structureGap(ap, x, y);
-    return gap <= this.reach ? {
-      t, s, inside: false, gap,
-    } : null;
-  }
-
-  /* Is a world point outside every scoring box of gate g? A disc's box is
-   * the cylinder through it, as deep as a square opening's. */
-  outsideBoxes(g, p) {
-    return g.apertures.every((ap) => {
-      const l = this.local(g, ap.centreY, p.x, p.y, p.z);
-      const r = ap.clearW * 0.5 - this.passMargin;
-      if (ap.round) {
-        return l.x * l.x + l.y * l.y > r * r || Math.abs(l.z) > this.passDepth;
-      }
-      return Math.abs(l.x) > r
-        || Math.abs(l.y) > ap.clearH * 0.5 - this.passMargin
-        || Math.abs(l.z) > this.passDepth;
-    });
-  }
-
-  /*
-   * A LAP OF ONE GATE IS LEAVING IT AND COMING BACK THROUGH IT.
-   *
-   * After a pass the order wraps to the next gate, and on a course of one
-   * gate the next gate is the one the craft is still inside. The scoring
-   * box is a metre deep, several frames of travel, and every one of those
-   * frames' segments starts inside it moving forward: each was scored as
-   * the next pass, so the lap that had just started finished on the frame
-   * after, and a three lap run was over before the craft had left the gate.
-   *
-   * So a gate just passed is not the next pass until the craft has been
-   * seen outside its box, and the segment that carries it out does not
-   * count either: it starts inside, moving forward, and is the same
-   * crossing. After that the craft has to fly back round to the entry side
-   * and through, which is a lap. On a course of two or more gates the next
-   * gate is never the one just passed, so nothing changes there.
-   */
-  leftGate(curr) {
-    if (this.leaving !== this.next) {
-      return true;
-    }
-    if (this.outsideBoxes(this.gates[this.leaving], curr)) {
-      this.leaving = -1;
-    }
-    return false;
-  }
-
-  /* Segment prev to curr against the next gate. A pass is the travel
-   * intersecting the opening's box in the direction of travel. Returns
-   * the sim time of first contact, or null. */
-  tryPass(prev, curr, prevSimMs, simMs, wallMs) {
-    if (!this.leftGate(curr)) {
-      return null;
-    }
-    const g = this.gates[this.next];
-    /*
-     * Every opening is tested in ITS OWN frame. On an upright stack all of
-     * them share one plane, so this is the single crossing test it always
-     * was, run once per opening against identical arithmetic. On a tilted
-     * one the planes are parallel but offset, because each hole leans about
-     * its own centre, and testing them against a plane through the base
-     * would score a dive gate against a hole that is not where it is.
-     *
-     * A square opening scores as a square. The test is a swept box, the
-     * visible hole extruded a short way along travel, so a line through
-     * the opening at an angle still counts. The craft radius is not
-     * folded in: collision already owns a clip of the tube, and shrinking
-     * the hole by that radius made a clean edge line miss.
-     */
-    let used = -1;
-    let t = 0;
-    let scored = null;
-    for (let k = 0; k < g.apertures.length; k += 1) {
-      const ap = g.apertures[k];
-      const a = this.local(g, ap.centreY, prev.x, prev.y, prev.z);
-      const b = this.local(g, ap.centreY, curr.x, curr.y, curr.z);
-      if (this.reach > 0) {
-        const hit = this.reachHits(a, b, ap);
-        if (!hit) {
-          continue;
-        }
-        scored = passScore(hit);
-        used = k;
-        t = hit.t;
-        break;
-      }
-      const halfW = ap.clearW * 0.5 - this.passMargin;
-      const halfH = ap.clearH * 0.5 - this.passMargin;
-      const tk = ap.round ? this.discHits(a, b, halfW) : this.openingHits(a, b, halfW, halfH);
-      if (tk < 0) {
-        continue;
-      }
-      used = k;
-      t = tk;
-      break;
-    }
-    if (used < 0) {
-      return null;
-    }
-    const crossMs = prevSimMs + (simMs - prevSimMs) * t;
-    const passed = this.next;
-    if (scored) {
-      this.call = { ...scored, gate: passed };
-      this.runScore += scored.points;
-      this.flash = { text: str(`race.call_${scored.code}`, { points: scored.points }), untilMs: wallMs + 1400 };
-    }
-    this.next = (this.next + 1) % this.gates.length;
-    this.leaving = this.outsideBoxes(g, curr) ? -1 : passed;
-    /* A crossing inside a running lap is a split, timed the same way the
-     * lap is: interpolated on the sim clock. The finish is the last one. */
-    if (this.lapStartMs != null) {
-      this.splits.push(crossMs - this.lapStartMs);
-    }
-    if (passed === this.timingIdx) {
-      if (this.lapStartMs != null) {
-        this.lastLapMs = crossMs - this.lapStartMs;
-        this.lastSplits = this.splits;
-        this.lap += 1;
-        this.laps.push(this.lastLapMs);
-        /* A scored lap's points are its gates' from the start crossing to
-         * the one before this, which starts the next lap. */
-        const lapScore = scored ? this.lapScore : null;
-        this.lastLapScore = lapScore;
-        this.log.push(scored ? { n: this.lapNumber(), ms: this.lastLapMs, score: lapScore } : { n: this.lapNumber(), ms: this.lastLapMs });
-        let msgText = scored
-          ? str('race.lap_flash_score', { n: this.log.length, time: fmt(this.lastLapMs), score: plural('count.points', lapScore) })
-          : str('race.lap_flash', { n: this.log.length, time: fmt(this.lastLapMs) });
-        if (this.bestMs == null || this.lastLapMs < this.bestMs) {
-          this.bestMs = this.lastLapMs;
-          msgText += `\n${str('ui.new_track_record')}`;
-          /* Off the flight frame. This runs from the render loop, and a
-           * synchronous localStorage write lands on exactly the frame the
-           * pilot is watching their personal best appear. */
-          const record = String(Math.round(this.bestMs));
-          const store = () => {
-            try {
-              localStorage.setItem(this.key, record);
-            } catch (e) {
-              /* private mode: best lap simply does not persist */
-            }
-          };
-          if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(store, { timeout: 2000 });
-          } else {
-            setTimeout(store, 0);
-          }
-        }
-        this.flash = { text: msgText, untilMs: wallMs + 2600 };
-      }
-      this.lapStartMs = crossMs;
-      this.splits = [];
-      this.lapScore = 0;
-    }
-    if (scored) {
-      this.lapScore += scored.points;
-    }
-    return passed;
-  }
-
-  /* Per frame. simMs is the simulation clock at the rendered state,
-   * wallMs the wall clock (flash expiry only). Returns
-   * { passed: gateIndex|null, hitFrame: bool }; a frame hit voids the
-   * running lap, it does not crash the craft. */
   update(prev, curr, simMs, wallMs, allow = true) {
-    if (this.freestyle) {
-      return { passed: null, hitFrame: false };
-    }
-    /*
-     * allow is the shell's judgement that this travel was flown, not a
-     * clip through the dirt or an inverted tumble on the grass. False
-     * still advances the clock so the next legal pass is not timed
-     * across the burial.
-     */
+    if (this.freestyle) return { passed: null, hitFrame: false };
     if (!allow) {
       this.prevSimMs = simMs;
       return { passed: null, hitFrame: false };
     }
-    const prevSimMs = this.prevSimMs ?? simMs;
+    const fromMs = this.prevSimMs ?? simMs;
     this.prevSimMs = simMs;
-    const passed = this.tryPass(prev, curr, prevSimMs, simMs, wallMs);
-    /*
-     * FLYING THROUGH A GATE THAT IS NOT THE TARGET COSTS NOTHING.
-     *
-     * This used to void the lap, on MultiGP's own rule, which track.js quotes
-     * verbatim: "If any obstacle is entered out of sequence or direction at
-     * any time the run is invalid." The owner has overruled it: "if i go
-     * through other gates that are not the target gate, then that is fine, no
-     * penalty, the lap can still be completed, assuming i run through the
-     * correct gate."
-     *
-     * It is the right call for this simulator even though it departs from the
-     * rulebook. These courses are imported from Velocidrone and several of
-     * them are dense: 2025 WA States has a five gate tunnel the lap crosses
-     * on the way to somewhere else, and WCMRC Round 5 flies one gate five
-     * times in a lap. On a course like that an incidental crossing is a
-     * feature of the geometry rather than a shortcut, and voiding for it
-     * punishes the pilot for the layout. Nothing is gained by cutting a gate
-     * either: the sequence still has to be flown in order, so an out of
-     * sequence pass advances nothing and only costs the time it took.
-     *
-     * The rule stays quoted in track.js because it is a citation of what
-     * MultiGP says, and this is a citation of what we do instead.
-     */
-    /* hitFrame is gone. The frame is solid geometry now and touching it is a
-     * crash, decided by src/game/collide.js in the shell, not a lap penalty
-     * decided here. The return shape keeps its second field so the shell's
-     * call site does not have to care which round it is. */
-    return { passed, hitFrame: false };
+    return { passed: this.judge(prev, curr, fromMs, simMs, wallMs), hitFrame: false };
   }
 
-  /* UTT is scored on one lap and chapter racing on three consecutive, so
-   * both are reported. A voided lap breaks a run of three, which is what
-   * the word consecutive means, and fastestThreeConsecutive enforces it by
-   * reading the log rather than the clean list. */
+  judge(prev, curr, fromMs, simMs, wallMs) {
+    /* On a one gate course the target is the gate just passed: it may not
+     * count again until the craft has been seen outside it. */
+    if (this.leaving === this.next) {
+      if (this.clearOf(this.gates[this.leaving], curr)) this.leaving = -1;
+      return null;
+    }
+    const g = this.gates[this.next];
+    const hit = this.crossing(g, prev, curr);
+    if (!hit) return null;
+    return this.pass(g, curr, fromMs + (simMs - fromMs) * hit.t, hit.award, wallMs);
+  }
+
+  /* The first aperture of the target the segment flies through, with its
+   * crossing parameter and, in a scored race, the points it earns. */
+  crossing(g, prev, curr) {
+    for (const ap of g.apertures) {
+      const a = toLocal(g, ap, prev);
+      const b = toLocal(g, ap, curr);
+      if (this.reach > 0) {
+        const hit = reachCrossing(a, b, ap, this.reach);
+        if (hit) return { t: hit.t, award: passScore(hit) };
+        continue;
+      }
+      const halfW = ap.clearW * 0.5 - this.margin;
+      const t = ap.round
+        ? discCrossing(a, b, halfW)
+        : boxCrossing(a, b, halfW, ap.clearH * 0.5 - this.margin, this.passDepth);
+      if (t < 0) continue;
+      return { t, award: null };
+    }
+    return null;
+  }
+
+  /* Always the class box, even in a scored race: reach does not widen it. */
+  clearOf(g, p) {
+    return g.apertures.every((ap) => {
+      const l = toLocal(g, ap, p);
+      const r = ap.clearW * 0.5 - this.margin;
+      if (ap.round) return l.x * l.x + l.y * l.y > r * r || Math.abs(l.z) > this.passDepth;
+      return Math.abs(l.x) > r || Math.abs(l.y) > ap.clearH * 0.5 - this.margin || Math.abs(l.z) > this.passDepth;
+    });
+  }
+
+  pass(g, curr, crossMs, award, wallMs) {
+    const passed = this.next;
+    if (award) {
+      this.call = { code: award.code, points: award.points, gate: passed };
+      this.runScore += award.points;
+      this.banner = { text: str(`race.call_${award.code}`, { points: award.points }), untilMs: wallMs + 1400 };
+    }
+    this.next = (passed + 1) % this.gates.length;
+    this.leaving = this.clearOf(g, curr) ? -1 : passed;
+    if (this.lapStartMs != null) this.splits.push(crossMs - this.lapStartMs);
+    if (passed === this.timingIdx) {
+      if (this.lapStartMs != null) this.closeLap(crossMs - this.lapStartMs, award != null, wallMs);
+      this.lapStartMs = crossMs;
+      this.splits = [];
+      /* The finishing crossing's points open the next lap's score. */
+      this.lapPoints = 0;
+    }
+    if (award) this.lapPoints += award.points;
+    return passed;
+  }
+
+  closeLap(ms, scored, wallMs) {
+    this.lastLapMs = ms;
+    /* The finished lap keeps its own list; pass() hands splits a new one. */
+    this.lastSplits = this.splits;
+    this.lap += 1;
+    this.laps.push(ms);
+    const score = scored ? this.lapPoints : null;
+    this.lastLapScore = score;
+    const n = this.log.length + 1;
+    this.log.push(scored ? { n, ms, score } : { n, ms });
+    const time = clockText(ms);
+    let text = scored
+      ? str('race.lap_flash_score', { n: this.log.length, time, score: plural('count.points', score) })
+      : str('race.lap_flash', { n: this.log.length, time });
+    if (this.bestMs == null || ms < this.bestMs) {
+      this.bestMs = ms;
+      text += `\n${str('ui.new_track_record')}`;
+      this.saveRecord(String(Math.round(ms)));
+    }
+    this.banner = { text, untilMs: wallMs + 2600 };
+  }
+
+  /* Deferred so a lap's close never waits on storage. The key is read when
+   * the write runs, so a key swap in between moves the write with it. */
+  saveRecord(record) {
+    const write = () => {
+      try {
+        localStorage.setItem(this.key, record);
+      } catch (e) {
+        /* No storage is the same as a refused write: the record lives on
+         * in bestMs for this session. */
+      }
+    };
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(write, { timeout: 2000 });
+    } else {
+      setTimeout(write, 0);
+    }
+  }
+
+  recover(reason, wallMs) {
+    this.banner = { text: reason, untilMs: wallMs + 1800 };
+  }
+
+  voidLap(reason, wallMs) {
+    if (!this.freestyle) {
+      if (this.lapStartMs != null) this.log.push({ n: this.log.length + 1, ms: null, reason });
+      this.lapStartMs = null;
+      this.splits = [];
+      this.next = 0;
+      this.leaving = -1;
+    }
+    this.banner = { text: reason, untilMs: wallMs + 1800 };
+  }
+
+  nextSceneIndex() {
+    return this.freestyle ? -1 : this.gates[this.next].idx;
+  }
+
+  followSceneIndex() {
+    if (this.freestyle || this.gates.length < 2) return -1;
+    return this.gates[(this.next + 1) % this.gates.length].idx;
+  }
+
   bestLapMs() {
     return fastestLap(this.laps);
   }
@@ -788,41 +404,12 @@ export class Race {
     return fastestThreeConsecutive(this.log);
   }
 
-  /* Scene index of the gate the race wants next, for highlighting. */
-  nextSceneIndex() {
-    return this.freestyle ? -1 : this.gates[this.next].idx;
-  }
-
-  /*
-   * Scene index of the gate AFTER the one the race wants next, so the
-   * renderer can put it on a quieter tier than the target.
-   *
-   * A pilot needs one gate of lookahead to choose an exit line, and the
-   * built in circuit was given fourteen stations for exactly that reason.
-   * The renderer cannot work this out for itself: flying order is the
-   * race's, not the scene's, and on the built in circuit scene index i is
-   * flown as gateCount - i. Wraps, because the last gate of a lap is
-   * followed by the first gate of the next one.
-   */
-  followSceneIndex() {
-    if (this.freestyle || this.gates.length < 2) {
-      return -1;
-    }
-    return this.gates[(this.next + 1) % this.gates.length].idx;
+  currentLapMs(simMs) {
+    if (this.freestyle || this.lapStartMs == null) return null;
+    return simMs - this.lapStartMs;
   }
 
   flashText(wallMs) {
-    if (this.flash && wallMs < this.flash.untilMs) {
-      return this.flash.text;
-    }
-    return null;
-  }
-
-  /* Running lap time on the sim clock, or null before the first gate. */
-  currentLapMs(simMs) {
-    if (this.freestyle) {
-      return null;
-    }
-    return this.lapStartMs != null ? simMs - this.lapStartMs : null;
+    return this.banner && wallMs < this.banner.untilMs ? this.banner.text : null;
   }
 }

@@ -38,20 +38,20 @@
  * engine arrives on `ready` (an AudioWorklet module loads asynchronously);
  * an offline render awaits it before scheduling anything.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { Music } from './music.js';
@@ -97,40 +97,58 @@ export function engineModelForCraft(airframeId, propulsionId) {
   return null;
 }
 
-/*
- * The master's ceiling: the Volume setting times this. With the soft clip
- * saturating, a render's true peak in dBTP came out equal to the master gain
- * in dB, so 1.0 measured 0.01 dBTP; 0.85 keeps the worst case under -1.4.
- */
 /* A running context's clock standing still this long, s of the page's own
  * time, is a stalled renderer (MotorAudio.watchClock): ten frames' worth
  * of nothing is not a slow frame. */
 const CLOCK_STALL_S = 1.5;
-const MASTER_CEILING = 0.85;
+
 /*
- * The binaural focus tone: a 6 Hz beat, in the theta band. Off by default,
- * a setting, and the interface says it needs headphones and claims nothing
- * else.
+ * The output stage's numbers. `ceiling` is what the Volume setting is
+ * multiplied by: with the soft clip saturating, a render's true peak in
+ * dBTP came out equal to the master gain in dB, so 1.0 measured 0.01 dBTP;
+ * 0.85 keeps the worst case under -1.4. The limiter holds the sum under
+ * -6 dBFS so that the clip after it is a safety net and not a sound, and
+ * the clip is a tanh driven to `clipDrive` and scaled back so that it
+ * still passes through plus and minus one. `glideS` is the time constant
+ * the master follows the Volume and the sound switch with.
  */
+const MASTER = {
+  ceiling: 0.85,
+  glideS: 0.05,
+  clipDrive: 1.6,
+  clipPoints: 1024,
+  limiter: {
+    threshold: -6, knee: 3, ratio: 20, attack: 0.002, release: 0.2,
+  },
+};
+
 /*
- * 1000 Hz, not 220 Hz, and the move is forced by a measurement.
+ * The binaural focus tone: a carrier in each ear, the right one `beatHz`
+ * above the left, so the 6 Hz beat (theta) exists only between the ears.
+ * Off by default; the setting says it needs headphones and promises
+ * nothing more.
  *
- * At 220 Hz the carrier sat inside the blade pass tone's own range. At hover
- * the left ear's motors run 209.4 and 211.7 Hz, 8 to 11 Hz from a 220 Hz
- * carrier, and a reviewer measured what that does: switching the focus tone on
- * raised the LEFT EAR'S OWN monaural amplitude modulation at 8.3 Hz by
- * 17.66 dB, to 10.8 percent depth. A binaural tone whose whole point is that
- * neither ear hears a modulation was generating a tremolo in one ear. It was
- * also 14.6 dB below the motor content in its own third octave, so it was
- * inaudible as a tone while being audible as an artefact.
+ * Why the carrier is 1000 Hz. It began at 220 Hz, inside the blade pass
+ * band: at hover the left ear's motors turn at 209.4 and 211.7 Hz, 8 to
+ * 11 Hz under a 220 Hz carrier, and with the tone on, that ear's own
+ * amplitude modulation at 8.3 Hz rose by 17.66 dB to 10.8 percent depth.
+ * A tone that must modulate in neither ear was putting a tremolo in one,
+ * while sitting 14.6 dB under the motors in its own third octave: no tone
+ * anyone could hear, an artefact anyone could. 1000 Hz is above the
+ * fundamental at any throttle and above its second harmonic at full
+ * throttle, and below the 2 kHz floor of the band A1 protects. A beat
+ * this high entrains less well; that is what refusing the tremolo costs.
  *
- * 1000 Hz is clear of the fundamental at every throttle setting and clear of
- * its second harmonic at full throttle, and it is below the 2 kHz floor of the
- * band A1 protects. Binaural beating is less effective this high, which is a
- * real cost, and it is the cost of not injecting a tremolo.
+ * `level` is the bus at a focus setting of 1: a tone under the mix, not a
+ * test signal, because two steady carriers any louder would mask the
+ * flight. `perEar` is each carrier into its channel.
  */
-const FOCUS_CARRIER_HZ = 1000;
-const FOCUS_BEAT_HZ = 6;
+const FOCUS_TONE = {
+  carrierHz: 1000,
+  beatHz: 6,
+  level: 0.15,
+  perEar: 0.5,
+};
 
 /*
  * Keep 30 percent of the motor and wind stems: the owner asked to drop both
@@ -144,6 +162,23 @@ const FLIGHT_STEM = 0.3;
  * so a returning player hears nothing move, and 10 is +6 dB.
  */
 const BUS_UNITY_AT = 0.5;
+
+/*
+ * The Settings buses, in the order the graph makes them: the field each is
+ * kept in, the node it feeds (buildBuses names them), and the gain its
+ * slider gives. Motors and wind are stems scaled by
+ * FLIGHT_STEM; the rest arrived with the engine and are unity at half
+ * travel; the focus tone is silent unless it is switched on.
+ */
+const BUSES = {
+  motorBus: { into: 'motorHp', gain: (mix) => mix.motors * FLIGHT_STEM },
+  windBus: { into: 'flightDuck', gain: (mix) => mix.wind * FLIGHT_STEM },
+  otherBus: { into: 'flightDuck', gain: (mix) => mix.other / BUS_UNITY_AT },
+  effectsBus: { into: 'inlet', gain: (mix) => mix.effects / BUS_UNITY_AT },
+  voiceBus: { into: 'inlet', gain: (mix) => mix.voice / BUS_UNITY_AT },
+  ambienceBus: { into: 'ambienceDuck', gain: (mix) => mix.ambience / BUS_UNITY_AT },
+  focusBus: { into: 'inlet', gain: (mix, focusOn) => (focusOn ? mix.focus * FOCUS_TONE.level : 0) },
+};
 
 /*
  * THE VOICE BUDGET for other pilots: how many are heard at once. Each is
@@ -192,87 +227,236 @@ const SCRAPE_GATE_HZ = 380;
 const SCRAPE_GATE_AMP = 0.375;
 
 /*
- * Duck a bus, starting from where it actually IS.
- *
- * cancelScheduledValues followed by setValueAtTime(1) is a JUMP TO UNITY
- * whenever a second cue arrives while the first one is still ducking: the
- * bus is at 0.28, the schedule is cleared, and the next sample is 1. That
- * is a step on the motors, the wind and the music, at the exact instant a
- * cue is playing over them, and a step is a click. Two gates a tenth of a
- * second apart put one in. It has to start from the current value.
- *
- * Deeper wins. If the bus is already further down than this cue asks for,
- * the duck stays where it is and only the release is rescheduled: raising
- * it to the shallower depth would be the same step in the other direction.
+ * THE CUES on the two pooled voices (attach, buildCueVoices): a tone, an
+ * oscillator through an envelope, and a hiss, the noise loop through a
+ * low pass and an envelope. Every cue below is numbers for those two and
+ * nothing else; strikeCue plays them. A `tone` starts at `from` and, when
+ * `to` is above zero, falls or rises to it over `glide` seconds; its
+ * envelope reaches `peak` at `attack` and is gone at `end`, seconds after
+ * the cue. A `hiss` is the filter's `hz` and `q` and the same envelope.
+ * Exponential envelopes cannot touch zero, so they rise from and fall to
+ * CUE_FLOOR.
  */
-function duckParam(g, t, depth, seconds, attack) {
-  const from = g.value;
-  if (typeof g.cancelAndHoldAtTime === 'function') {
-    g.cancelAndHoldAtTime(t);
-  } else {
-    g.cancelScheduledValues(t);
+const CUE_FLOOR = 0.0001;
+
+/*
+ * The race clicks. The owner asked for the gate by feel, a satisfying
+ * click rather than a beep: a short resonant knuckle of hiss with the tone
+ * dropping through it like a tongue click. 'clip', the frame graze, makes
+ * the same gesture an octave and a half lower through a duller filter, so
+ * it reads as the same family and plainly not the reward. Only the clip
+ * follows the contact's level; a gate is a gate. `flight` and `bed` are
+ * the ducks under each, depth and seconds.
+ *
+ * The click's energy sits between 2 and 5 kHz, the band the engine keeps
+ * its own tones out of (engine-worklet.js, the harshness guard), which is
+ * why it reads through a full throttle mix with a light duck.
+ */
+const CLICKS = {
+  gate: {
+    byLevel: false,
+    hiss: { hz: 4200, q: 1.6, peak: 1.35, attack: 0.002, end: 0.045 },
+    tone: { from: 1500, to: 720, glide: 0.03, peak: 0.75, attack: 0.003, end: 0.075 },
+    flight: [0.55, 0.22],
+    bed: [0.5, 0.25],
+  },
+  clip: {
+    byLevel: true,
+    hiss: { hz: 900, q: 0.8, peak: 1.1, attack: 0.002, end: 0.11 },
+    tone: { from: 300, to: 170, glide: 0.06, peak: 0.6, attack: 0.003, end: 0.12 },
+    flight: [0.5, 0.3],
+    bed: [0.45, 0.3],
+  },
+};
+
+/* The ground blips, tone only: a landing settles low, a takeoff climbs by
+ * `rise`. Any other kind plays the takeoff's note without the climb. */
+const BLIPS = {
+  land: { hz: 400, dur: 0.16, rise: 0 },
+  takeoff: { hz: 620, dur: 0.14, rise: 1.6 },
+};
+const BLIP_OTHER = { hz: 620, dur: 0.14, rise: 0 };
+const BLIP_PEAK = 0.62;
+const BLIP_ATTACK_S = 0.004;
+const BLIP_FLIGHT = [0.66, 0.26];
+const BLIP_BED = [0.6, 0.3];
+
+/*
+ * The menu's taps, the gate's family made small and dry: fingernails on
+ * glass, never louder than the row under the pointer deserves, and never
+ * ducking anything, because a menu is not a race. A falling tap glides
+ * over the first 60 percent of its tone. Any other kind taps as 'move'.
+ */
+function tap({ hz, to = 0, peak, dur }, hiss) {
+  return {
+    tone: { from: hz, to, glide: dur * 0.6, peak, attack: 0.002, end: dur },
+    hiss: { q: 1.3, attack: 0.0015, ...hiss },
+  };
+}
+const TAPS = {
+  move: tap({ hz: 1900, peak: 0.085, dur: 0.03 }, { hz: 5200, peak: 0.1, end: 0.016 }),
+  adjust: tap({ hz: 2100, peak: 0.1, dur: 0.035 }, { hz: 5200, peak: 0.12, end: 0.018 }),
+  select: tap({ hz: 1350, to: 850, peak: 0.16, dur: 0.055 }, { hz: 4400, peak: 0.18, end: 0.028 }),
+  back: tap({ hz: 950, to: 700, peak: 0.12, dur: 0.05 }, { hz: 3400, peak: 0.1, end: 0.022 }),
+};
+
+/* How long a duck takes to reach its depth, s. */
+const DUCK_ATTACK_S = 0.01;
+
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+
+/* The cues' integer generator (the noise loop, the explosion's crackle).
+ * Math.imul, not a float multiply: s * 1103515245 passes 2^53 and drops
+ * its low bits, and the float version repeats every 10466 samples, a
+ * 4.6 Hz buzz to the ear (docs/AUDIO.md, the audit). */
+const lcgNext = (s) => (Math.imul(s, 1103515245) + 12345) >>> 0;
+
+/* The soft clip's transfer curve, MASTER above. */
+function softClipCurve() {
+  const { clipDrive, clipPoints } = MASTER;
+  const unity = Math.tanh(clipDrive);
+  return Float32Array.from({ length: clipPoints }, (_, i) => Math.tanh((2 * (i / (clipPoints - 1)) - 1) * clipDrive) / unity);
+}
+
+/* One second of the generator's noise, the loop every noise voice plays. */
+function noiseLoop(ctx) {
+  const length = Math.floor(ctx.sampleRate);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const samples = buffer.getChannelData(0);
+  let state = 12345;
+  for (let i = 0; i < length; i += 1) {
+    state = lcgNext(state);
+    samples[i] = state / 0x80000000 - 1;
   }
-  g.setValueAtTime(from, t);
-  const to = from < depth ? from : depth;
-  g.linearRampToValueAtTime(to, t + attack);
-  g.linearRampToValueAtTime(1, t + seconds);
+  return buffer;
+}
+
+/* A node counted through `keep`, with its settings applied: an AudioParam
+ * takes the number as its value, anything else (type, curve, buffer, loop)
+ * is a plain property. */
+function make(keep, node, settings = {}) {
+  keep(node);
+  for (const [name, v] of Object.entries(settings)) {
+    if (node[name] && typeof node[name].setValueAtTime === 'function') {
+      node[name].value = v;
+    } else {
+      node[name] = v;
+    }
+  }
+  return node;
+}
+
+/* Each node into the next. */
+function wire(...chain) {
+  for (let i = 1; i < chain.length; i += 1) {
+    chain[i - 1].connect(chain[i]);
+  }
+}
+
+/* A param jumped to `v` at t, whatever was scheduled after. */
+function retune(param, t, v) {
+  param.cancelScheduledValues(t);
+  param.setValueAtTime(v, t);
+}
+
+/* A pitch: `from` at t, then exponentially to `to` over `glide` s when
+ * `to` is above zero. */
+function sweep(param, t, from, to, glide) {
+  retune(param, t, from);
+  if (to > 0) {
+    param.exponentialRampToValueAtTime(to, t + glide);
+  }
+}
+
+/* An envelope struck at t: up from the floor to `peak` at t + attack, back
+ * to the floor at t + end. */
+function strike(param, t, peak, attack, end) {
+  retune(param, t, CUE_FLOOR);
+  param.exponentialRampToValueAtTime(peak, t + attack);
+  param.exponentialRampToValueAtTime(CUE_FLOOR, t + end);
+}
+
+/*
+ * A gain ducked to `depth` and let back to 1 over `seconds`, starting from
+ * the value it holds now. Starting anywhere else is a click: clearing the
+ * schedule and setting 1 when a second cue lands on a bus still ducked by
+ * the first moves it from, say, 0.28 to 1 in one sample, a step on the
+ * motors, the wind and the music right under the cue, and two gates a
+ * tenth of a second apart do exactly that. For the same reason the deeper
+ * duck stands: a bus already below `depth` stays where it is and only its
+ * release moves, since lifting it to the shallower depth is the same step
+ * upwards.
+ */
+function duckFrom(param, t, depth, seconds) {
+  const now = param.value;
+  /* Held where the browser can hold; elsewhere cleared, which the set
+   * right after makes the same thing at t. */
+  const clear = typeof param.cancelAndHoldAtTime === 'function' ? 'cancelAndHoldAtTime' : 'cancelScheduledValues';
+  param[clear](t);
+  param.setValueAtTime(now, t);
+  param.linearRampToValueAtTime(depth > now ? now : depth, t + DUCK_ATTACK_S);
+  param.linearRampToValueAtTime(1, t + seconds);
 }
 
 export class MotorAudio {
   constructor() {
+    /* The context, once attach() has one, and the mix's own switch and
+     * levels: `level` is the Volume, `mix` the per bus rows (src/ui/ui.js
+     * DEFAULTS over ten), `focusOn` the focus tone's switch. */
     this.ctx = null;
-    /* What the worklets said went wrong (watchNode), and the context's
-     * state changes, newest last: for the checks and a bug report. */
-    this.faults = [];
-    this.states = [];
-    /* The clock watch (watchClock): the context's time and the page's
-     * when it last moved, and how many stalls it has seen. */
-    this.clock = { ctx: 0, wall: 0, kicked: false };
-    this.stalls = 0;
-    this.enabled = false;
     this.master = null;
-    this.level = 0.5; /* mix level, driven by the volume setting */
-    /* Per bus, each 0 to 1, driven by their own settings rows: the DEFAULTS
-     * in src/ui/ui.js divided by ten. */
+    this.enabled = false;
+    this.level = 0.5;
     this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, effects: 0.5, voice: 0.5, ambience: 0.5, other: 0.5 };
     this.focusOn = false;
+
+    /* What the machine sounds like: its voice, the engine model the shell
+     * asked for or null for the voice's own (setEngineModel), its numbers
+     * on that model (setEngineParams), and the hangar prop's blade count
+     * over the stock prop's (setBladeScale). */
     this.voice = VOICES.quad;
-    /* The engine model the shell asked for, or null for the voice's own
-     * (setEngineModel), and the hangar prop's blade count over the stock
-     * prop's (setBladeScale). */
     this.engineModel = null;
     this.engineParams = null;
     this.bladeScale = 1;
-    /* A seeded generator for the cues' variation, Math.imul so it does not
-     * repeat in a few thousand draws; seeded so an offline render is the
-     * same render twice. */
+
+    /* The cues' variation (jitter), a seeded LCG so that an offline render
+     * comes out the same twice. */
     this.vary = 0x6a09e667;
+
+    /* The bed, and what holds it off: the war's music on the war radio
+     * (src/render/warradio.js, made on the first war), and the crash cam's
+     * replay with its own radio and bed (setReplaying, replayBeds). */
     this.music = new Music();
-    /* The war mode's radio and music (src/render/warradio.js), made on
-     * the first war, and whether the music setting wants a bed at all:
-     * while the war's music plays, the crate's is held off. */
+    this.musicWanted = false;
     this.warRadio = null;
     this.warBed = false;
-    /* The crash cam's replay (setReplaying, replayBeds). */
     this.replaying = false;
     this.replayRadio = null;
-    this.musicWanted = false;
-    /* Every AudioNode this instance owns, for P12. A node created and
-     * dropped without being counted is exactly the leak P12 forbids, so
-     * the count is kept where the nodes are made rather than derived by
-     * reading the file later. */
+
+    /* P12 counts every AudioNode this instance owns. Each is counted where
+     * it is made (own(), the peer pool, the world node), so the count is
+     * the graph and not an estimate. */
     this.nodes = [];
-    /* The pilot's engine (src/render/engine-worklet.js), there once
-     * `ready` resolves. */
+    /* The pilot's engine (src/render/engine-worklet.js), there once `ready`
+     * resolves, and a world node handed to attachWorld before the graph. */
     this.engine = null;
     this.ready = Promise.resolve();
-    /* A world node handed to attachWorld before the graph existed. */
     this.worldNode = null;
-    /* Other pilots: the listener (setListener) and the voice pool
-     * (updatePeers), made on the first frame with a pilot to hear. */
+
+    /* Other pilots: where the player hears from (setListener) and the voice
+     * pool, made on the first frame with a pilot to hear (updatePeers). */
     this.listener = { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0, ground: null };
     this.peerSlots = null;
     this.peerRank = [];
+
+    /* For the checks and a bug report: what the worklets said went wrong
+     * (watchNode) and the context's state changes, newest last, and the
+     * clock watch's last sight of the context's clock against the page's
+     * (watchClock) with the stalls it has seen. */
+    this.faults = [];
+    this.states = [];
+    this.clock = { ctx: 0, wall: 0, kicked: false };
+    this.stalls = 0;
   }
 
   /* Which machine the engine voices, ENGINE_MODELS; null is the voice's
@@ -323,22 +507,30 @@ export class MotorAudio {
     return this.vary / 4294967296;
   }
 
-  /* P12: steady state AudioNode count. */
+  /* Adds a node to the P12 count and hands it back. */
+  own(node) {
+    this.nodes.push(node);
+    return node;
+  }
+
+  /* P12: how many AudioNodes the mix holds once built. */
   nodeCount() {
     return this.nodes.length;
   }
 
-  /* Volume from the settings screen, zero to one. */
-  setLevel(v) {
-    this.level = Math.max(0, Math.min(1, v));
+  /* The Volume setting, 0 to 1. */
+  setLevel(volume) {
+    this.level = clamp01(volume);
   }
 
+  /* The sound switch. Nothing can be on without a context; the bed follows
+   * the switch either way. */
   setEnabled(on) {
-    this.enabled = Boolean(on) && Boolean(this.ctx);
-    if (!this.enabled) {
-      this.music.pause();
-    } else {
+    this.enabled = Boolean(on && this.ctx);
+    if (this.enabled) {
       this.music.resume();
+    } else {
+      this.music.pause();
     }
   }
 
@@ -347,23 +539,22 @@ export class MotorAudio {
    * ambience, other. Any subset; a missing key is left alone, an unknown
    * one refused. Each lands on a real bus gain rather than on a label.
    */
-  setMix(m) {
-    if (!m) {
+  setMix(levels) {
+    if (!levels) {
       return;
     }
-    for (const [k, v] of Object.entries(m)) {
-      if (!(k in this.mix)) {
-        throw new Error(`audio: no bus named ${k}`);
+    /* In the caller's order, so a bad name stops the rest where it stands. */
+    for (const [bus, v] of Object.entries(levels)) {
+      if (!(bus in this.mix)) {
+        throw new Error(`audio: no bus named ${bus}`);
       }
       if (typeof v === 'number') {
-        this.mix[k] = Math.max(0, Math.min(1, v));
+        this.mix[bus] = clamp01(v);
       }
     }
-    if (typeof m.music === 'number') {
+    if (typeof levels.music === 'number') {
       this.music.setLevel(this.mix.music);
-      if (this.warRadio) {
-        this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-      }
+      this.warRadio?.setMusicLevel(this.musicWanted ? this.mix.music : 0);
     }
     this.applyBuses();
   }
@@ -423,10 +614,7 @@ export class MotorAudio {
     }
     if (this.ctx && !this.warRadio.ready) {
       this.warRadio.attach();
-      this.warRadio.route(this.ctx, this.voiceBus, this.music.duck, (n) => {
-        this.nodes.push(n);
-        return n;
-      });
+      this.warRadio.route(this.ctx, this.voiceBus, this.music.duck, (n) => this.own(n));
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
       this.warRadio.setOutput(1);
     }
@@ -475,25 +663,25 @@ export class MotorAudio {
     this.postEngineModel();
   }
 
-  /* Which music track, or 'rotation' for a random start then the crate
-   * in order. A setting, safe before attach: the player object holds it
-   * as data. This is the FLIGHT crate. The menu bed is not selectable. */
-  setMusicTrack(sel) {
-    this.music.setTrack(sel);
-  }
-
   /*
-   * 'flight' or 'menu': which crate the bed should be playing. Driven off
-   * the screen by the shell, because the shell is the only side that
-   * knows what is on screen, and safe before attach for the same reason
-   * setMusicTrack is.
+   * The bed's settings and controls, handed to src/render/music.js. All of
+   * them are safe before attach, because the bed keeps them as data until
+   * it has a context. setMusicTrack picks the FLIGHT crate's track, or
+   * 'rotation' (a random start, then the crate in order); the menu's bed is
+   * not a choice. setMusicContext says which crate should play, 'flight' or
+   * 'menu', and the shell drives it because only the shell knows what is on
+   * screen.
    */
-  setMusicContext(name) {
-    this.music.setContext(name);
+  setMusicTrack(track) {
+    this.music.setTrack(track);
   }
 
-  skipMusic(dir) {
-    this.music.skip(dir);
+  setMusicContext(screen) {
+    this.music.setContext(screen);
+  }
+
+  skipMusic(direction) {
+    this.music.skip(direction);
   }
 
   musicStatus() {
@@ -505,227 +693,181 @@ export class MotorAudio {
     this.applyBuses();
   }
 
+  /* Every bus to what its slider says now (BUSES); nothing to do before
+   * the graph exists, because attach applies them as it builds. */
   applyBuses() {
     if (!this.motorBus) {
       return;
     }
-    this.motorBus.gain.value = this.mix.motors * FLIGHT_STEM;
-    this.windBus.gain.value = this.mix.wind * FLIGHT_STEM;
-    this.otherBus.gain.value = this.mix.other / BUS_UNITY_AT;
-    this.effectsBus.gain.value = this.mix.effects / BUS_UNITY_AT;
-    this.voiceBus.gain.value = this.mix.voice / BUS_UNITY_AT;
-    this.ambienceBus.gain.value = this.mix.ambience / BUS_UNITY_AT;
-    /* The focus tone is quiet on purpose. It is a tone under a mix, not a
-     * test signal, and two steady carriers at any real level would mask the
-     * flight instrument. */
-    this.focusBus.gain.value = this.focusOn ? this.mix.focus * 0.15 : 0;
+    for (const [field, bus] of Object.entries(BUSES)) {
+      this[field].gain.value = bus.gain(this.mix, this.focusOn);
+    }
   }
 
-  /* Browsers require a user gesture before audio starts. */
+  /*
+   * A key or a press (src/main.js wakeAudio). The first one makes the
+   * context, which browsers allow only inside a user gesture. Later ones
+   * wake a context that stopped: 'suspended' (the browser's, after a device
+   * change or a sleep) or 'interrupted' (another app took the audio
+   * device), which only a gesture may start again. Either way the mix is
+   * on afterwards, unless there is no Web Audio at all.
+   */
   start() {
-    if (this.ctx) {
-      /* 'suspended' (the browser's, after a device change or a sleep) or
-       * 'interrupted' (another app took the audio device): a gesture is
-       * the one thing that may start it again. Every key and press comes
-       * here (src/main.js wakeAudio). */
-      if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') {
-        this.ctx.resume().catch((e) => console.error('audio: the context would not resume', e));
+    const ctx = this.ctx;
+    if (!ctx) {
+      const Context = window.AudioContext || window.webkitAudioContext;
+      if (!Context) {
+        return;
       }
-      this.enabled = true;
-      return;
+      this.attach(new Context());
+    } else if (ctx.state !== 'running' && ctx.state !== 'closed') {
+      ctx.resume().catch((e) => console.error('audio: the context would not resume', e));
     }
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) {
-      return;
-    }
-    this.attach(new Ctx());
     this.enabled = true;
   }
 
   /*
-   * Build the graph on any BaseAudioContext. Called by start() with a live
-   * AudioContext and by the offline renderers with an OfflineAudioContext.
-   * Does not set enabled: the caller decides, because a render wants the
-   * mix up from sample zero and the shell wants it to follow a setting.
+   * Builds the graph on any BaseAudioContext: start() hands it a live
+   * AudioContext, the offline renderers an OfflineAudioContext and, when
+   * they want one, a `destination` of their own. It leaves `enabled` alone,
+   * because a render wants the mix up from sample zero and the shell wants
+   * it to follow a setting. The parts are built in a fixed order, the
+   * order their nodes are counted in.
    */
   attach(ctx, destination) {
     this.ctx = ctx;
-    const out = destination || ctx.destination;
-    /* Every time the context stops or starts, said and kept: a context
-     * that left 'running' is the first thing to look at when the sound
-     * stops (window.__audio.states). */
-    if (typeof ctx.addEventListener === 'function' && !(typeof OfflineAudioContext !== 'undefined' && ctx instanceof OfflineAudioContext)) {
-      ctx.addEventListener('statechange', () => {
-        this.states.push({ at: Math.round(performance.now()), state: ctx.state });
-        if (this.states.length > 50) {
-          this.states.shift();
-        }
-        if (ctx.state !== 'running') {
-          console.warn(`audio: the context is ${ctx.state}; the next key or press resumes it`);
-        }
-      });
-    }
-    /* One place where nodes come into existence, so the P12 count cannot
-     * drift from the graph. */
-    const keep = (n) => {
-      this.nodes.push(n);
-      return n;
-    };
-
-    /*
-     * The master: a limiter, a soft clip, the Volume.
-     *
-     * The limiter is a fast, high ratio compressor holding the sum under
-     * -6 dBFS, so the tanh after it is a safety net rather than a sound;
-     * every render's true peak is held to -1 dBTP (tools/audio/render.js).
-     * The tanh is normalised so the curve still passes through plus and
-     * minus one: linear to about half scale, then bending.
-     */
-    const shaper = keep(ctx.createWaveShaper());
-    const CURVE = 1024;
-    const curve = new Float32Array(CURVE);
-    for (let i = 0; i < CURVE; i += 1) {
-      const x = (i / (CURVE - 1)) * 2 - 1;
-      curve[i] = Math.tanh(x * 1.6) / Math.tanh(1.6);
-    }
-    shaper.curve = curve;
-    shaper.oversample = '2x';
-    const master = keep(ctx.createGain());
-    master.gain.value = 0.0;
-    shaper.connect(master);
-    master.connect(out);
-    this.master = master;
-    this.preMaster = shaper;
-    const inlet = keep(ctx.createDynamicsCompressor());
-    inlet.threshold.value = -6;
-    inlet.knee.value = 3;
-    inlet.ratio.value = 20;
-    inlet.attack.value = 0.002;
-    inlet.release.value = 0.2;
-    inlet.connect(shaper);
-    this.inlet = inlet;
-
-    /*
-     * The flight duck: what masks a cue is the motors, the wind and the
-     * other aircraft, so those are what a cue ducks. Measured before it
-     * existed: a gate cue had -0.13 dB of advantage over its own masking and
-     * a crash -17.29 dB, so on a full throttle crash the player was told
-     * nothing at all.
-     */
-    const flightDuck = keep(ctx.createGain());
-    flightDuck.gain.value = 1;
-    flightDuck.connect(inlet);
-    this.flightDuck = flightDuck;
-    /* The ambience's duck, under impacts and explosions. */
-    const ambienceDuck = keep(ctx.createGain());
-    ambienceDuck.gain.value = 1;
-    ambienceDuck.connect(inlet);
-    this.ambienceDuck = ambienceDuck;
-    const bus = (to, value) => {
-      const g = keep(ctx.createGain());
-      g.gain.value = value;
-      g.connect(to);
-      return g;
-    };
-    /* Nothing below 60 Hz from the motors: everything it removes is rumble
-     * no headphone renders as pitch, and it is exactly the band the bass
-     * line needs. The engine's loudness targets were measured through it. */
-    const motorHp = keep(ctx.createBiquadFilter());
-    motorHp.type = 'highpass';
-    motorHp.frequency.value = 60;
-    motorHp.Q.value = 0.7;
-    motorHp.connect(flightDuck);
-    this.motorBus = bus(motorHp, this.mix.motors * FLIGHT_STEM);
-    this.windBus = bus(flightDuck, this.mix.wind * FLIGHT_STEM);
-    this.otherBus = bus(flightDuck, this.mix.other / BUS_UNITY_AT);
-    this.effectsBus = bus(inlet, this.mix.effects / BUS_UNITY_AT);
-    this.voiceBus = bus(inlet, this.mix.voice / BUS_UNITY_AT);
-    this.ambienceBus = bus(ambienceDuck, this.mix.ambience / BUS_UNITY_AT);
-    const focusBus = bus(inlet, 0);
-    this.focusBus = focusBus;
-
-    /*
-     * One second of noise for the cue voices. Math.imul, not a float
-     * multiply: s * 1103515245 passes 2^53 and loses its low bits, and the
-     * float version of this generator repeats every 10466 samples, which
-     * the ear hears as a 4.6 Hz buzz (docs/AUDIO.md, the audit).
-     */
-    const len = Math.floor(ctx.sampleRate);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const ch = buf.getChannelData(0);
-    let s = 12345;
-    for (let i = 0; i < len; i += 1) {
-      s = (Math.imul(s, 1103515245) + 12345) >>> 0;
-      ch[i] = s / 2147483648 - 1.0;
-    }
-
+    this.watchState(ctx);
+    const keep = (n) => this.own(n);
+    this.buildMaster(ctx, destination || ctx.destination, keep);
+    this.buildBuses(ctx, keep);
+    const noise = noiseLoop(ctx);
     this.attachEngine(ctx, keep);
+    this.buildFocusTone(ctx, keep);
+    this.buildCueVoices(ctx, keep, noise);
+    this.buildActionVoices(ctx, keep, noise);
+    /* The bed brings its own nodes and counts them through the same keep. */
+    this.music.attach(ctx, this.inlet, keep);
+    this.music.setLevel(this.mix.music);
+    this.applyBuses();
+  }
 
-    /*
-     * The binaural focus tone: one carrier per ear, differing by the beat
-     * frequency, merged so the left oscillator reaches only the left channel
-     * and the right only the right. That separation is the whole thing: a
-     * monaural beat puts both carriers in both ears and each ear hears the
-     * modulation, while a binaural beat gives each ear one steady tone and
-     * neither ear hears any modulation at all.
-     *
-     * Note for anyone measuring this: the mono SUM of a binaural pair does
-     * beat, because two carriers a few Hz apart added together are an
-     * amplitude modulation at their difference by simple trigonometry. The
-     * discriminator is per channel absence, not mono sum absence. The
-     * derivation is in .loop/threshold-disputes.md entry 5.
-     */
-    const merger = keep(ctx.createChannelMerger(2));
-    this.focusOscs = [];
-    for (let e = 0; e < 2; e += 1) {
-      const osc = keep(ctx.createOscillator());
-      osc.type = 'sine';
-      osc.frequency.value = FOCUS_CARRIER_HZ + (e === 1 ? FOCUS_BEAT_HZ : 0);
-      const g = keep(ctx.createGain());
-      g.gain.value = 0.5;
-      osc.connect(g);
-      g.connect(merger, 0, e);
-      osc.start();
-      this.focusOscs.push(osc);
+  /* Every time the context stops or starts, said and kept: a context
+   * that left 'running' is the first thing to look at when the sound
+   * stops (window.__audio.states). An offline render has no such moods. */
+  watchState(ctx) {
+    if (typeof ctx.addEventListener !== 'function' || (typeof OfflineAudioContext !== 'undefined' && ctx instanceof OfflineAudioContext)) {
+      return;
     }
-    merger.connect(focusBus);
+    ctx.addEventListener('statechange', () => {
+      this.states.push({ at: Math.round(performance.now()), state: ctx.state });
+      if (this.states.length > 50) {
+        this.states.shift();
+      }
+      if (ctx.state !== 'running') {
+        console.warn(`audio: the context is ${ctx.state}; the next key or press resumes it`);
+      }
+    });
+  }
 
-    /*
-     * One shot cues, pooled: a persistent oscillator and a persistent noise
-     * chain, shared by the gate and graze clicks, the landing and takeoff
-     * blips, the crash, and the menu's ui() taps. Nothing is created per
-     * event, which is what A10 asks for by name.
-     *
-     * They go in AHEAD of the soft clip but not through a stem bus, because
-     * a cue the player has turned down is a cue that costs them a race.
-     */
-    const cueOsc = keep(ctx.createOscillator());
-    cueOsc.type = 'triangle';
-    cueOsc.frequency.value = 880;
-    const cueGain = keep(ctx.createGain());
-    cueGain.gain.value = 0;
-    cueOsc.connect(cueGain);
-    cueGain.connect(inlet);
-    cueOsc.start();
-    this.cueOsc = cueOsc;
-    this.cueGain = cueGain;
+  /* The output stage, MASTER: everything lands on the limiter (`inlet`),
+   * which feeds the soft clip (`preMaster`), which feeds the Volume
+   * (`master`), silent until update() raises it. Every render's true peak
+   * is held to -1 dBTP (tools/audio/render.js). */
+  buildMaster(ctx, out, keep) {
+    const clip = make(keep, ctx.createWaveShaper(), { curve: softClipCurve(), oversample: '2x' });
+    const volume = make(keep, ctx.createGain(), { gain: 0 });
+    const limiter = make(keep, ctx.createDynamicsCompressor(), MASTER.limiter);
+    wire(limiter, clip, volume, out);
+    this.inlet = limiter;
+    this.preMaster = clip;
+    this.master = volume;
+  }
 
-    const crashSrc = keep(ctx.createBufferSource());
-    crashSrc.buffer = buf;
-    crashSrc.loop = true;
-    const crashLp = keep(ctx.createBiquadFilter());
-    crashLp.type = 'lowpass';
-    crashLp.frequency.value = 1400;
-    crashLp.Q.value = 1.1;
-    const crashGain = keep(ctx.createGain());
-    crashGain.gain.value = 0;
-    crashSrc.connect(crashLp);
-    crashLp.connect(crashGain);
-    crashGain.connect(inlet);
-    crashSrc.start();
-    this.crashGain = crashGain;
-    this.crashLp = crashLp;
+  /*
+   * The ducks and the Settings buses (BUSES).
+   *
+   * The flight duck: what masks a cue is the motors, the wind and the
+   * other aircraft, so those are what a cue ducks. Measured before it
+   * existed: a gate cue had -0.13 dB of advantage over its own masking and
+   * a crash -17.29 dB, so on a full throttle crash the player was told
+   * nothing at all. The ambience has a duck of its own, under impacts and
+   * explosions.
+   *
+   * Nothing below 60 Hz from the motors: everything it removes is rumble
+   * no headphone renders as pitch, and it is exactly the band the bass
+   * line needs. The engine's loudness targets were measured through it.
+   *
+   * The bus gains are set by applyBuses once the graph is whole.
+   */
+  buildBuses(ctx, keep) {
+    const flightDuck = make(keep, ctx.createGain(), { gain: 1 });
+    const ambienceDuck = make(keep, ctx.createGain(), { gain: 1 });
+    const motorHp = make(keep, ctx.createBiquadFilter(), { type: 'highpass', frequency: 60, Q: 0.7 });
+    flightDuck.connect(this.inlet);
+    ambienceDuck.connect(this.inlet);
+    motorHp.connect(flightDuck);
+    const feeds = { motorHp, flightDuck, ambienceDuck, inlet: this.inlet };
+    for (const [field, bus] of Object.entries(BUSES)) {
+      this[field] = make(keep, ctx.createGain());
+      this[field].connect(feeds[bus.into]);
+    }
+    this.flightDuck = flightDuck;
+    this.ambienceDuck = ambienceDuck;
+  }
 
+  /*
+   * The focus tone, FOCUS_TONE: each carrier reaches one channel only,
+   * through a merger. That is all a binaural beat is. Played into both
+   * ears, the two carriers beat in each ear and each ear hears the
+   * modulation; kept one to an ear, each ear hears a steady tone and the
+   * beat exists only between them.
+   *
+   * For anyone measuring it: the mono sum of the pair does beat, since two
+   * carriers a few Hz apart added together are an amplitude modulation at
+   * their difference. Check for the beat's absence per channel, never in
+   * the sum (.loop/threshold-disputes.md entry 5 has the working).
+   */
+  buildFocusTone(ctx, keep) {
+    const merger = make(keep, ctx.createChannelMerger(2));
+    this.focusOscs = [0, FOCUS_TONE.beatHz].map((above, channel) => {
+      const carrier = make(keep, ctx.createOscillator(), { type: 'sine', frequency: FOCUS_TONE.carrierHz + above });
+      const level = make(keep, ctx.createGain(), { gain: FOCUS_TONE.perEar });
+      carrier.connect(level);
+      level.connect(merger, 0, channel);
+      carrier.start();
+      return carrier;
+    });
+    merger.connect(this.focusBus);
+  }
+
+  /*
+   * The two pooled cue voices CLICKS, BLIPS and TAPS play on (strikeCue):
+   * the tone (`cueOsc` through `cueGain`) and the hiss (the noise loop
+   * through `crashLp` and `crashGain`). Both run for the life of the graph
+   * and a cue only moves their params, so no cue makes a node (A10).
+   *
+   * They feed the limiter directly, on no Settings bus: a race cue the
+   * player has turned down is a race cue that costs them a race.
+   */
+  buildCueVoices(ctx, keep, noise) {
+    const tone = make(keep, ctx.createOscillator(), { type: 'triangle', frequency: 880 });
+    const toneEnv = make(keep, ctx.createGain(), { gain: 0 });
+    const hiss = make(keep, ctx.createBufferSource(), { buffer: noise, loop: true });
+    const hissFilter = make(keep, ctx.createBiquadFilter(), { type: 'lowpass', frequency: 1400, Q: 1.1 });
+    const hissEnv = make(keep, ctx.createGain(), { gain: 0 });
+    wire(tone, toneEnv, this.inlet);
+    wire(hiss, hissFilter, hissEnv, this.inlet);
+    tone.start();
+    hiss.start();
+    this.cueOsc = tone;
+    this.cueGain = toneEnv;
+    this.crashLp = hissFilter;
+    this.crashGain = hissEnv;
+  }
+
+  /* The voices of things breaking and of the games' moments: the wreck,
+   * the SCHWING and the coin, all on the Effects bus. */
+  buildActionVoices(ctx, keep, noise) {
     /*
      * The wreck's voice: a third pooled noise chain, band passed, for the
      * sounds a breaking aircraft makes that the crash cue's low thump does
@@ -736,7 +878,7 @@ export class MotorAudio {
      * Three nodes, created once, like every cue here.
      */
     const wreckSrc = keep(ctx.createBufferSource());
-    wreckSrc.buffer = buf;
+    wreckSrc.buffer = noise;
     wreckSrc.loop = true;
     const wreckBp = keep(ctx.createBiquadFilter());
     wreckBp.type = 'bandpass';
@@ -849,11 +991,6 @@ export class MotorAudio {
     this.coinVoice = { osc: gateOsc, env: coinEnv };
     this.coins = 0;
     this.booms = 0;
-
-    /* The bed. It brings its own nodes and counts them through keep. */
-    this.music.attach(ctx, inlet, keep);
-    this.music.setLevel(this.mix.music);
-    this.applyBuses();
   }
 
   /*
@@ -1125,111 +1262,71 @@ export class MotorAudio {
     }
   }
 
+  /* The sound key: the first press is start(), after that it flips the
+   * switch. Says where the switch ended up. */
   toggle() {
-    if (!this.ctx) {
+    if (this.ctx) {
+      this.enabled = !this.enabled;
+    } else {
       this.start();
-      return this.enabled;
     }
-    this.enabled = !this.enabled;
     return this.enabled;
   }
 
   /*
-   * A one shot cue. kind is 'crash', 'gate', 'clip', 'land' or 'takeoff'.
-   * Safe to call before attach, and it creates no nodes: every cue is an
-   * envelope on a voice that already exists. `level` is optional and only
-   * the contact cues read it; see the note in the body.
+   * A race cue: 'crash', 'gate', 'clip', 'land' or 'takeoff' (any other
+   * kind blips). Safe before attach. It makes no node; every cue is
+   * envelopes on a voice that exists already (buildCueVoices). Each one
+   * ducks the flight and the bed under it, which is how it stays audible
+   * with every slider at the top.
    *
-   * A cue also ducks the bed, which is what keeps it audible with everything
-   * else at maximum.
+   * `level`, optional, is how hard the contact behind the cue was, 0 to 1.
+   * The hit text left the screen, so the sound alone now tells a pilot
+   * both that they touched something and how hard. Without it a cue plays
+   * as written, which is what every caller outside the contact path wants.
+   * With it the cue never goes below 0.42 of its written level: a contact
+   * scaled to silence is a cue the pilot swears never came, and nothing
+   * else is telling them.
    */
   event(kind, atTime, level) {
     if (!this.ctx || !this.cueGain) {
       return;
     }
     const t = atTime == null ? this.ctx.currentTime : atTime;
-    /*
-     * `level` is how hard the thing that caused this cue actually was, 0
-     * to 1, and it exists because the on-screen hit text is gone: the
-     * sound is now the whole of what a pilot is told about a contact, so
-     * it has to say how hard as well as that it happened. Absent, every
-     * cue plays at its written level, which is what every caller outside
-     * the contact path wants: a gate is a gate.
-     *
-     * The floor is deliberate. A cue scaled to nothing is a cue the
-     * player will swear did not fire, and this one is carrying the
-     * message on its own.
-     */
-    let lv = 1;
-    if (level != null && level === level) {
-      lv = level < 0 ? 0 : level > 1 ? 1 : level;
-      lv = 0.42 + 0.58 * lv;
-    }
+    const hard = level == null || Number.isNaN(level) ? 1 : 0.42 + 0.58 * clamp01(level);
     /* A crash is the engine's impact. The shell's crash call knows how hard
      * but not on what, so the surface is a middling one until the contact
      * path hands its material over (docs/AUDIO.md, roll out). */
     if (kind === 'crash') {
-      this.impact(4 * lv, 0.5, 12 * lv, t);
+      this.impact(4 * hard, 0.5, 12 * hard, t);
       return;
     }
-    if (kind === 'gate' || kind === 'clip') {
-      /*
-       * The gate click, which the owner asked for by feel: a satisfying
-       * click, not a beep. Two layers on the two pooled voices. The crash
-       * chain plays a resonant knuckle of noise a few tens of milliseconds
-       * long, and the cue oscillator drops through it like a tongue click.
-       * 'clip', the frame graze penalty, is the same gesture an octave and
-       * a half down with a duller filter: unmistakably the same family,
-       * unmistakably not the reward.
-       *
-       * The click's energy sits between 2 and 5 kHz, the band the engine
-       * keeps its own tones out of (engine-worklet.js, the harshness guard),
-       * which is why it reads through a full throttle mix with a light duck.
-       */
-      const gate = kind === 'gate';
-      const nf = this.crashLp.frequency;
-      nf.cancelScheduledValues(t);
-      nf.setValueAtTime(gate ? 4200 : 900, t);
-      this.crashLp.Q.cancelScheduledValues(t);
-      this.crashLp.Q.setValueAtTime(gate ? 1.6 : 0.8, t);
-      const ng = this.crashGain.gain;
-      ng.cancelScheduledValues(t);
-      ng.setValueAtTime(0.0001, t);
-      ng.exponentialRampToValueAtTime((gate ? 1.35 : 1.1) * (gate ? 1 : lv), t + 0.002);
-      ng.exponentialRampToValueAtTime(0.0001, t + (gate ? 0.045 : 0.11));
-      const f = this.cueOsc.frequency;
-      f.cancelScheduledValues(t);
-      f.setValueAtTime(gate ? 1500 : 300, t);
-      f.exponentialRampToValueAtTime(gate ? 720 : 170, t + (gate ? 0.03 : 0.06));
-      const g = this.cueGain.gain;
-      g.cancelScheduledValues(t);
-      g.setValueAtTime(0.0001, t);
-      g.exponentialRampToValueAtTime((gate ? 0.75 : 0.6) * (gate ? 1 : lv), t + 0.003);
-      g.exponentialRampToValueAtTime(0.0001, t + (gate ? 0.075 : 0.12));
-      this.duckFlight(t, gate ? 0.55 : 0.5, gate ? 0.22 : 0.3);
-      this.music.duckNow(t, gate ? 0.5 : 0.45, gate ? 0.25 : 0.3);
+    if (Object.hasOwn(CLICKS, kind)) {
+      const click = CLICKS[kind];
+      this.strikeCue(t, click.tone, click.hiss, click.byLevel ? hard : 1);
+      this.duckFlight(t, ...click.flight);
+      this.music.duckNow(t, ...click.bed);
       return;
     }
-    /* The blips. A landing is a low settle, a takeoff is a rising pair. */
-    let hz = 620;
-    let dur = 0.14;
-    if (kind === 'land') {
-      hz = 400;
-      dur = 0.16;
+    const blip = Object.hasOwn(BLIPS, kind) ? BLIPS[kind] : BLIP_OTHER;
+    const tone = {
+      from: blip.hz, to: blip.rise ? blip.hz * blip.rise : 0, glide: blip.dur, peak: BLIP_PEAK, attack: BLIP_ATTACK_S, end: blip.dur,
+    };
+    this.strikeCue(t, tone, null, 1);
+    this.duckFlight(t, ...BLIP_FLIGHT);
+    this.music.duckNow(t, ...BLIP_BED);
+  }
+
+  /* One cue on the pooled voices at t: the tone always, the hiss when the
+   * cue has one, both envelopes' peaks times `scale`. */
+  strikeCue(t, tone, hiss, scale) {
+    if (hiss) {
+      retune(this.crashLp.frequency, t, hiss.hz);
+      retune(this.crashLp.Q, t, hiss.q);
+      strike(this.crashGain.gain, t, hiss.peak * scale, hiss.attack, hiss.end);
     }
-    const f = this.cueOsc.frequency;
-    f.cancelScheduledValues(t);
-    f.setValueAtTime(hz, t);
-    if (kind === 'takeoff') {
-      f.exponentialRampToValueAtTime(hz * 1.6, t + dur);
-    }
-    const g = this.cueGain.gain;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(0.0001, t);
-    g.exponentialRampToValueAtTime(0.62, t + 0.004);
-    g.exponentialRampToValueAtTime(0.0001, t + dur);
-    this.duckFlight(t, 0.66, 0.26);
-    this.music.duckNow(t, 0.6, 0.3);
+    sweep(this.cueOsc.frequency, t, tone.from, tone.to, tone.glide);
+    strike(this.cueGain.gain, t, tone.peak * scale, tone.attack, tone.end);
   }
 
   /*
@@ -1455,7 +1552,7 @@ export class MotorAudio {
     v.scrapeEnv.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
     let s = 0x9e3779b9;
     for (let k = 0; k < 24; k += 1) {
-      s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+      s = lcgNext(s);
       gate.setValueAtTime(11 + 38 * ((s >>> 8) / 16777216), t + k * 0.11);
     }
     gate.setValueAtTime(SCRAPE_GATE_HZ, t + 2.9);
@@ -1464,80 +1561,23 @@ export class MotorAudio {
     this.duckAction(t, 0.4 + 0.4 * (1 - lv), 1.6);
   }
 
-  /*
-   * Menu sounds: the same click family as the gate, small and dry. kind is
-   * 'move', 'adjust', 'select' or 'back'. Runs on the same two pooled cue
-   * voices, so it creates nothing; it never ducks anything, because a menu
-   * is not a race. Quiet by design: these are fingernail taps, and the row
-   * under the pointer is the loudest thing a menu should ever say.
-   */
+  /* A menu tap, TAPS: 'move', 'adjust', 'select' or 'back'. Only while the
+   * sound is on, always now, never ducking. */
   ui(kind) {
     if (!this.ctx || !this.cueGain || !this.enabled) {
       return;
     }
-    const t = this.ctx.currentTime;
-    let oscHz = 1900;
-    let oscTo = 0;
-    let oscPeak = 0.085;
-    let oscDur = 0.030;
-    let nHz = 5200;
-    let nPeak = 0.10;
-    let nDur = 0.016;
-    if (kind === 'select') {
-      oscHz = 1350;
-      oscTo = 850;
-      oscPeak = 0.16;
-      oscDur = 0.055;
-      nHz = 4400;
-      nPeak = 0.18;
-      nDur = 0.028;
-    } else if (kind === 'adjust') {
-      oscHz = 2100;
-      oscPeak = 0.10;
-      oscDur = 0.035;
-      nPeak = 0.12;
-      nDur = 0.018;
-    } else if (kind === 'back') {
-      oscHz = 950;
-      oscTo = 700;
-      oscPeak = 0.12;
-      oscDur = 0.05;
-      nHz = 3400;
-      nDur = 0.022;
-    }
-    const nf = this.crashLp.frequency;
-    nf.cancelScheduledValues(t);
-    nf.setValueAtTime(nHz, t);
-    this.crashLp.Q.cancelScheduledValues(t);
-    this.crashLp.Q.setValueAtTime(1.3, t);
-    const ng = this.crashGain.gain;
-    ng.cancelScheduledValues(t);
-    ng.setValueAtTime(0.0001, t);
-    ng.exponentialRampToValueAtTime(nPeak, t + 0.0015);
-    ng.exponentialRampToValueAtTime(0.0001, t + nDur);
-    const f = this.cueOsc.frequency;
-    f.cancelScheduledValues(t);
-    f.setValueAtTime(oscHz, t);
-    if (oscTo > 0) {
-      f.exponentialRampToValueAtTime(oscTo, t + oscDur * 0.6);
-    }
-    const g = this.cueGain.gain;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(0.0001, t);
-    g.exponentialRampToValueAtTime(oscPeak, t + 0.002);
-    g.exponentialRampToValueAtTime(0.0001, t + oscDur);
+    const { tone, hiss } = Object.hasOwn(TAPS, kind) ? TAPS[kind] : TAPS.move;
+    this.strikeCue(this.ctx.currentTime, tone, hiss, 1);
   }
 
-  /*
-   * Pull the motors and the wind down so a cue can be heard through them, then
-   * let them back up. Depth and duration in the caller, because a crash needs
-   * more than a gate does.
-   */
+  /* The motors, the wind and the other aircraft pulled down under a cue
+   * and let back up (duckFrom). The caller picks how deep and how long: a
+   * crash needs more room than a gate. */
   duckFlight(atTime, depth, seconds) {
-    if (!this.flightDuck) {
-      return;
+    if (this.flightDuck) {
+      duckFrom(this.flightDuck.gain, atTime, depth, seconds);
     }
-    duckParam(this.flightDuck.gain, atTime, depth, seconds, 0.010);
   }
 
   /*
@@ -1641,7 +1681,7 @@ export class MotorAudio {
   /*
    * PUBLIC API: duck the music and the ambience under action, depth 0..1
    * (the gain at the bottom), recovering over `seconds`. Deeper wins over
-   * a duck already running (duckParam). For the world's explosions as well
+   * a duck already running (duckFrom). For the world's explosions as well
    * as for this file's.
    */
   duckAction(atTime, depth, seconds) {
@@ -1650,7 +1690,7 @@ export class MotorAudio {
     }
     const t = atTime == null ? this.ctx.currentTime : atTime;
     this.music.duckNow(t, depth, seconds);
-    duckParam(this.ambienceDuck.gain, t, depth, seconds, 0.010);
+    duckFrom(this.ambienceDuck.gain, t, depth, seconds);
   }
 
   /*
@@ -1658,24 +1698,28 @@ export class MotorAudio {
    * wing's engine in slot 0), speed the airspeed in m/s, atTime the context
    * time to schedule at (omitted live: ctx.currentTime), air the body frame
    * state updateEngine reads.
+   *
+   * The master follows the switch and the Volume every frame, on or off.
+   * A live frame also checks the clock; a scheduled one is an offline
+   * render's, whose clock does not run.
    */
   update(rpm, speed, atTime, air) {
     if (!this.ctx || !this.master) {
       return;
     }
-    if (atTime == null) {
+    const live = atTime == null;
+    if (live) {
       this.watchClock();
     }
-    const t = atTime == null ? this.ctx.currentTime : atTime;
-    const target = this.enabled ? this.level * MASTER_CEILING : 0.0;
-    this.master.gain.setTargetAtTime(target, t, 0.05);
-    if (!this.enabled) {
+    const t = live ? this.ctx.currentTime : atTime;
+    this.master.gain.setTargetAtTime(this.enabled ? this.level * MASTER.ceiling : 0, t, MASTER.glideS);
+    if (this.enabled) {
+      this.updateEngine(rpm, speed, t, air);
+      /* Ticked from here, so a bed the browser paused is restarted while
+       * the mix is on. */
+      this.music.tick(t);
+    } else {
       this.music.pause();
-      return;
     }
-    this.updateEngine(rpm, speed, t, air);
-    /* The bed. Ticked from here so a paused element is restarted while
-     * the mix is live. */
-    this.music.tick(t);
   }
 }
