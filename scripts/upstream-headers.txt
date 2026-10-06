@@ -82,7 +82,6 @@ src/game/score.js
 src/game/trackdoc.js
 src/game/track.js
 src/game/trickdetect.js
-src/game/tricks.js
 src/game/verify.js
 src/input/input.js
 src/input/link.js
