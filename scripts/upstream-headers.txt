@@ -32,7 +32,6 @@ scripts/gatecards.js
 scripts/icons.js
 scripts/itaipu-check.js
 scripts/memory-check.js
-scripts/mouse-shell.js
 scripts/music.js
 scripts/music-selftest.js
 scripts/noun-lint.js
