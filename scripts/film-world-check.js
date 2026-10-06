@@ -5,6 +5,13 @@
  *
  *   SIM_GPU=1 npm run film:world                 its own rooms server
  *   SIM_GPU=1 npm run film:world -- http://127.0.0.1:8797
+ *   SIM_GPU=1 npm run film:world -- --mission=itaipu-2
+ *
+ * --mission plays another Act 1 mission's film the same three ways. One
+ * still in development (src/game/campaign.js ACT1 release) is flown as
+ * its developer flies it: the page with ?missions=dev, the check's own
+ * rooms server starting missions in development, and the missions before
+ * it won in the page's saved campaign, so its Play is offered.
  *
  * A local browser check: it drives headless Chromium, so it is not in
  * checks.yml. One browser, one page, three ways in:
@@ -57,6 +64,9 @@ import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
 import { roomsServer } from '../tests/lib/roomsserver.js';
 import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
+import { ACT1, released } from '../src/game/campaign.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { filmFor } from '../src/share/war/films/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -114,7 +124,7 @@ const SAMPLE = `(() => {
   const w = window.__war().view;
   return {
     map: m.id, ready: m.ready, war: w.state, match: w.id, briefAt: w.briefAt, leaves: m.terrain ? m.terrain.leaves : null,
-    intro: i && { for: i.for, shot: i.shot, t: Math.round(i.t), ms: i.ms, n: i.shots.length, ids: i.shots.map((s) => s.id), camera: i.camera, ground: i.ground, orbit: Boolean(i.orbit) },
+    intro: i && { for: i.for, film: i.film, shot: i.shot, t: Math.round(i.t), ms: i.ms, n: i.shots.length, ids: i.shots.map((s) => s.id), camera: i.camera, ground: i.ground, orbit: Boolean(i.orbit) },
   };
 })()`;
 
@@ -144,6 +154,9 @@ function judge(label, samples, whole) {
   if (!film.length) {
     return;
   }
+  const own = filmFor(MISSIONS[MISSION]).id;
+  const other = [...new Set(film.map((s) => s.intro.film).filter((f) => f !== own))];
+  check(`${label}: the film is ${MISSION}'s own, ${own}`, other.length === 0, other.join(', '));
   const off = film.filter((s) => s.map !== MAP || !s.ready);
   check(`${label}: every sample of the film is drawn in ${MAP}, built`, off.length === 0,
     `${film.length} samples; off: ${off.slice(0, 3).map((s) => `${s.map} ready ${s.ready} shot ${s.intro.shot}`).join(' | ')}`);
@@ -187,9 +200,26 @@ function judge(label, samples, whole) {
   check(`${label}: the terrain drawn on every sample`, bare.length === 0, bare.length ? `${bare.length} samples with no leaves` : '');
 }
 
-const server = await roomsServer(process.argv[2], 'film-world');
-console.log(`Mission 1's film in its world, rooms at ${server.url}`);
-const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
+const MISSION = (process.argv.find((a) => a.startsWith('--mission=')) ?? '--mission=itaipu-1').slice('--mission='.length);
+const N = ACT1.findIndex((m) => m.id === MISSION) + 1;
+if (N < 1) {
+  throw new Error(`film-world-check: ${MISSION} is not an Act 1 mission`);
+}
+const DEV = !released(MISSION);
+const DEV_Q = DEV ? '&missions=dev' : '';
+/* The missions before it won, so the campaign offers its Play. */
+const seed = [`(() => {
+  const s = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}');
+  if (!s.filmWorldSeeded) {
+    const missions = Object.fromEntries(${JSON.stringify(ACT1.slice(0, N - 1).map((m) => m.id))}.map((id) => [id, { stars: 3, won: true, credits: 300 }]));
+    localStorage.setItem('webfpv.settings.v3', JSON.stringify({ ...s, filmWorldSeeded: true, campaign: { ...(s.campaign || { v: 1 }), missions } }));
+  }
+})();`];
+const server = await roomsServer(process.argv.slice(2).find((a) => !a.startsWith('--')), 'film-world', { devMissions: DEV });
+console.log(`Mission ${N}'s film (${MISSION}${DEV ? ', in development' : ''}) in its world, rooms at ${server.url}`);
+const page = await openPage({
+  root, url: `/index.html?rooms=${encodeURIComponent(server.url)}${DEV_Q}`, width: 1280, height: 720, seed: N > 1 ? seed : undefined,
+});
 let host = null;
 try {
   await page.until('window.__shellReady === true', 300000);
@@ -200,12 +230,12 @@ try {
   /* 1. PLAY, from home. */
   await page.sleep(1000);
   await click(page, '.gate-card-campaign');
-  await page.until("document.querySelector('[data-mission=\"itaipu-1\"] .campaign-play')", 15000);
-  await click(page, '[data-mission="itaipu-1"] .campaign-play');
+  await page.until(`document.querySelector('[data-mission="${MISSION}"] .campaign-play')`, 15000);
+  await click(page, `[data-mission="${MISSION}"] .campaign-play`);
   await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box'); })()", 15000);
   await page.sleep(700);
   await page.tap('Enter');
-  await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 60000);
+  await page.until(`window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && /Mission ${N}: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000);
   /* The host's Watch intro, pressed the moment the lobby is up: it waits
    * for the room's world, then plays in it. */
   await page.evaluate("window.__ui.act('friends-war-intro')");
@@ -262,7 +292,7 @@ try {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      map: MAP, friendly: false, public: false, name: null, mode: 'war', mission: 'itaipu-1',
+      map: MAP, friendly: false, public: false, name: null, mode: 'war', mission: MISSION,
     }),
   }).then((r) => r.json());
   host = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${made.code}`, { headers: { origin: 'https://fdflabs.github.io' } });
@@ -274,13 +304,13 @@ try {
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [2, 2, 12],
     profile: { airframe: '7inch', map: MAP, figure: 0, livery: null, parts: null, game: 'war' },
   }));
-  await page.cdp.send('Page.navigate', { url: `${page.origin}/index.html?rooms=${encodeURIComponent(server.url)}&room=${made.code}` }, page.sessionId);
+  await page.cdp.send('Page.navigate', { url: `${page.origin}/index.html?rooms=${encodeURIComponent(server.url)}&room=${made.code}${DEV_Q}` }, page.sessionId);
   await page.sleep(1500);
   await page.until('window.__shellReady === true', 300000);
   await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === '${made.code}'`, 60000);
   const joined = await page.evaluate("({ map: window.__map().id, host: window.__rooms().host === window.__rooms().seat })");
   check('the joiner is in the room, not its host', !joined.host, JSON.stringify(joined));
-  host.send(JSON.stringify({ type: 'war', op: 'start', mission: 'itaipu-1', intro: true }));
+  host.send(JSON.stringify({ type: 'war', op: 'start', mission: MISSION, intro: true }));
   judge('joiner', await watch(page, 240000), true);
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));

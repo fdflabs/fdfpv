@@ -417,15 +417,35 @@ derecha."
 
 | # | Stage | Opens on | Objectives | Groups | Exit |
 | --- | --- | --- | --- | --- | --- |
-| 1 | High Water | `go` | protect(gates) | scout (NW or HIGH); Loiterers on two gates from HIGH at `enter+[15,30]` | `cleared` |
-| 2 | The Channel | beat 10 to 15 s | protect(gates) | boats on WATER (`surface-gates` or `surface-west-arm`); `after(boats)+[0,10]` or `enter+[30,45]`, whichever first, Strikers low up `channel-low` | `cleared` |
-| 3 | Open the Gates | beat 15 s, then the working gates (seed: 3 of 14, 4 for 4+ pilots) are marked and start to open | hold(working gates, 120 s) | Loiterers onto working gates only; the twist fires at `enter+[40,60]` | `held` and `cleared` |
+| 1 | High Water | `go` | protect(gates) | scout (NW or N orbit); Loiterers on two gates that are not working from HIGH at `enter+[15,30]` | `cleared` |
+| 2 | The Channel | beat 10 to 15 s | protect(gates) | boats on WATER (`surface-gates` or `surface-west-arm`); `after(boats)+[0,10]` or `enter+[30,45]`, whichever first, Strikers low up `channel-low`; all onto gates that are not working | `cleared` |
+| 3 | Open the Gates | beat 15 s, then the working gates (seed: 3 of 14, 4 for 4+ pilots) are marked and start to open | hold(working gates, 240 s); the twist's own objective once it is born | Loiterers onto working gates only; the twist at `enter+[40,60]` (B at `enter+[15,30]`) | `held` and `cleared` |
 | 4 | Hold the River | beat 12 s | protect(working gates) | convergence: boats, Loiterers, Strikers onto the working gates within 40 s | `cleared` |
 
 The working gates are worth double while the spill runs (T1.9); the HUD
 outlines them. A hit working gate in stage 3 fails the hold: the spill
 continues on the rest, the debrief says the river was harder to hold, and
 the third star needs the hold.
+
+Built 6 October, against the code (war:stages flies it on the room):
+
+- **The hold is four minutes, not two.** Nothing born in stage 3 reaches
+  a gate sooner than 117 s after its birth (a Loiterer's circle, a boat's
+  run, measured on routes.js's plans), so a two minute hold from the
+  stage's entry was never under attack: the headless pass held it with
+  nobody flying. Four minutes holds the stage's arrivals; the hoists
+  open 2 m to 4 m over it. Twist B's boats start half way down the west
+  arm (`west-arm-mid`) and are born at 15 to 30 s, so they arrive inside
+  it.
+- **Stages 1 and 2 never go for a working gate** (`{ of, not }`
+  targets). The Aggressor keeps them for the spill, when a hit costs
+  double. Before, a working gate the draw shared with an early list
+  could be hit in stage 1, the hold then ran on fewer gates and stage 4
+  had nothing left to hit: the same headless pass won the mission with
+  nobody flying. Now, with nobody flying, it is lost in stage 3.
+- **A hit's death message carries what it cost** (700 for a working gate
+  in the spill, 0 for a target already down), so the HUD's call says the
+  real number.
 
 ### The twist (stage 3)
 
@@ -435,6 +455,11 @@ the third star needs the hold.
   high over the gates.
 - **C. Hunters at the chute.** Hunters come for the pilots who go low
   over the channel.
+
+Each twist puts its own objective on the HUD when it is born (`show`),
+not at the stage's entry, which would give it away: "Stop the Loiterers
+in the spray", "Stop the boats in the west arm", "Kill the Hunters over
+the chute".
 
 ### Climax
 
@@ -485,18 +510,25 @@ opened gate, and resumes after; the working gates must still be held.
 | --- | --- | --- | --- | --- | --- |
 | itaipu-2-s0-brief | countdown, first | CREST | firm | Reservoir's high and still rising. We spill this afternoon, whatever they think about it. | El embalse está alto y sigue subiendo. Esta tarde vertemos, piensen lo que piensen ellos. |
 | itaipu-2-s0-rules | countdown, second | MIRADOR | firm | They've been watching the right bank all morning. They know which gates move. | Estuvieron mirando la margen derecha toda la mañana. Saben qué compuertas se mueven. |
+| itaipu-2-s1-eyes | stage 1, scout born +3 s | MIRADOR | calm | Something high, circling slow. It's watching the right bank. | Algo en altura, dando vueltas lentas. Está mirando la margen derecha. |
 | itaipu-2-s1-high | stage 1, Loiterers born | CREST | firm | Loiterers. They'll circle, then drop on the gates. Get above them. | Merodeadores. Van a orbitar y después caer sobre las compuertas. Pónganse encima. |
 | itaipu-2-s1-clear | stage 1 `cleared` | TALLER | calm | Good. The gates don't know how close that was. | Bien. Las compuertas no saben lo cerca que estuvo. |
 | itaipu-2-s2-wakes | stage 2, boats born | MIRADOR | urgent | Wakes in the approach channel. They're using the current. | Estelas en el canal de aproximación. Están usando la corriente. |
 | itaipu-2-s2-fast | stage 2, Strikers born | CREST | urgent | And fast movers right behind them, low up the channel. | Y atrás vienen rápidos, bajos por el canal. |
+| itaipu-2-s2-clear | stage 2 `cleared` | MIRADOR | calm | Channel's clean. Nothing on the water. | El canal está limpio. Nada sobre el agua. |
 | itaipu-2-s3-open | stage 3 opens | CREST | firm | Opening the working gates now. Keep them alive until the spill is running. | Abriendo las compuertas que funcionan. Manténganlas vivas hasta que el vertido corra. |
 | itaipu-2-s3-half | hold at half | MIRADOR | calm | Water's over the sills. Halfway. | El agua pasa por los umbrales. Vamos por la mitad. |
 | itaipu-2-s3-held | `held` | CREST | firm | Spill's running. The river is ours to steer. | El vertido corre. El río lo manejamos nosotros. |
 | itaipu-2-s3-failed | a working gate hit during the hold | CREST | urgent | We lost a working gate. Spill on the rest. Protect what's left. | Perdimos una compuerta en servicio. Vertemos con las demás. Protejan lo que queda. |
 | itaipu-2-ta-turn | twist A | MIRADOR | urgent | Something in the spray. I can't hold it on the scope. | Hay algo en la bruma. No lo puedo mantener en pantalla. |
+| itaipu-2-ta-why | after ta-turn | CREST | urgent | The spray's hiding them. Stay close to the gates and trust your eyes. | La bruma los esconde. Quédense cerca de las compuertas y confíen en sus ojos. |
 | itaipu-2-tb-turn | twist B | MIRADOR | urgent | More wakes, out of the west arm. Everyone's too high. | Más estelas, desde el brazo oeste. Están todos muy altos. |
+| itaipu-2-tb-why | after tb-turn | CREST | firm | Boats, hugging the west shore. Somebody get down on the water, now. | Lanchas, pegadas a la costa oeste. Que alguien baje al agua, ya. |
 | itaipu-2-tc-turn | twist C | CREST | urgent | Hunters over the chute. Anyone low on the channel, you've got company. | Cazadores sobre el canal de descarga. Los que estén bajos en el canal, tienen compañía. |
+| itaipu-2-tc-why | after tc-turn | TALLER | firm | Go down there in pairs. I can't build birds that fast. | Bajen de a dos. No armo aparatos tan rápido. |
 | itaipu-2-s4-all | stage 4, first birth | MIRADOR | urgent | Everything's turning for the working gates. | Todo está girando hacia las compuertas en servicio. |
+| itaipu-2-s4-order | after s4-all | CREST | shout | Stay on the working gates. Let the others go if you have to. | Quédense sobre las compuertas en servicio. Si hace falta, dejen las otras. |
+| itaipu-2-s4-hold | stage 4, first kill | TALLER | calm | That's it. Keep that water running. | Eso es. Que el agua siga corriendo. |
 | debrief-itaipu-2-win | won | CREST | calm | The spill held and the river did what we told it. Nice work on the water. | El vertido aguantó y el río hizo lo que le dijimos. Buen trabajo sobre el agua. |
 | debrief-itaipu-2-lose | lost | CREST | calm | Too many gates down. We can't steer the river like this. Pull back. | Cayeron demasiadas compuertas. Así no manejamos el río. Repliéguense. |
 

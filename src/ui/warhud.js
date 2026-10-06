@@ -91,10 +91,13 @@ export function waveCall(agents) {
 }
 
 /* The callout for an attacker at its target: hit (with the megawatts it
- * took) or off it. */
+ * took), a hit on a target already down (which takes none), or off it. */
 export function hitCall(ev) {
   if (!ev.hit) {
     return str('war.miss');
+  }
+  if (ev.mw === 0) {
+    return str('war.hit.down');
   }
   const m = /^(intake|gate|penstock)-(\d+)$/.exec(ev.target);
   if (m) {
@@ -652,8 +655,13 @@ export function createWarHud(nameOf, restart = null) {
     if (over) {
       banner.firstChild.nodeValue = endText(v);
       const fromStage = v.state === 'lost' && v.checkpoint;
+      /* The stage as the HUD counted it ("Stage n/N", the view's round):
+       * the checkpoint's n is its place in the mission's list, which
+       * counts every twist's branch (First Light's last stage is its
+       * seventh, the Spillway's third its fifth). */
+      const stageN = v.round ?? (v.checkpoint ? v.checkpoint.n + 1 : 1);
       again.textContent = back != null ? str('war.back_lobby', { n: back })
-        : !host ? str('war.restart_wait') : fromStage ? str('war.restart_stage', { n: v.checkpoint.n + 1 }) : str('war.restart');
+        : !host ? str('war.restart_wait') : fromStage ? str('war.restart_stage', { n: stageN }) : str('war.restart');
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;

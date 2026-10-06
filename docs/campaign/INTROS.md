@@ -251,12 +251,17 @@ steel, low contrast, wet. **Music:** low pulse, rain texture.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 7 | telephoto | 135 | rain on the reservoir's surface, close | the gates in the distance | slow pan from the water to the fourteen gates on the right bank | io | | rain, distant thunder | match |
-| 2 | 8 | crane | 24 | at the waterline against a gate's skin, the water near its top | over the gate's hoist house, the spillway chute empty below | rises up the gate and over its pier | io | film-itaipu-2-1 | water against steel | cut |
+| 1 (`water`) | 7 | telephoto | 35 | the reservoir's surface, close, 300 m off the gates | the fourteen gates under the bridge | slow tilt from the water to the gates on the right bank, inside the 500 kV line that crosses the approach channel (on 135 mm from 650 m out its wires were black bands over the gates) | io | | water, distant thunder | match |
+| 2 (`skin`) | 8 | crane | 24 | at the waterline 35 m off the bridge, the gates' red skins under its deck, the water near their top | 42 m up, over the bridge, down the chute to the spray | rises up the bridge's face and over it | io | film-itaipu-2-1 | water against steel | cut |
 | 3 | 7 | SCOPE insert | | the reservoir, the west arm, quiet | tracks appearing in the west arm | contact marks fade in one by one (the mission's stage 1 and 2 groups, from their routes) | lin | film-itaipu-2-2 | the scope's tick | smash |
-| 4 | 7 | drone POV | 18 | over the approach channel at 30 m, flying toward the gates | the gates filling the frame | the camera rides `channel-low` as a Striker would, the gates growing | lin | film-itaipu-2-3 | wind, a motor | cut |
-| 5 | 6 | handheld | 50 | the crest road by the gates, a float plane on its dolly | the float plane, props turning | the Timber on floats, its warhead, rain on its wing | hold | | a glow engine starting | cut |
-| 6 | 15 | orbit | 35 | the right bank from the reservoir side, 150 m out, 60 m up | the gates and the chute, the town behind | a half orbit as the working gates (the seed's) are outlined and their hoists start to move; title "THE SPILLWAY" | io | film-itaipu-2-4 | music up; the hoists' motors | hand-off |
+| 4 (`channel`) | 7 | drone POV | 18 | 4 m behind a Striker 500 m short of the gates, under the 500 kV line | the gates and their red leaves ahead across the frame | rides the Striker's run up the channel; films:lint holds it wholly in frame and at least 150 px wide | lin | film-itaipu-2-3 | wind, a motor | cut |
+| 5 (`pier`) | 6 | handheld | 50 | low on the spillway bridge's road, the ten inch on its centre line, the parapets receding | the same, props turning | the ten inch (a war aircraft, not the Timber), its warhead slung, spins up | hold | | the motors' rising whine | cut |
+| 6 (`orbit`) | 15 | orbit | 35 | the right bank from the reservoir side, 160 m out, 60 m up | over the chute, onto the spill's spray | a half orbit as the working gates (the seed's) are bracketed, each bracket a gate's width; title "THE SPILLWAY" | io | film-itaipu-2-4 | music up | hand-off |
+
+As built (src/share/war/films/spillway.js, version 2, 52.5 s with its
+preload): no rain, which the world does not draw; the gates are not seen
+to open, since at the hoist's half a metre a minute a 15 s shot moves a
+leaf 12 cm, and the film does not fake a faster one.
 
 | id | cue | who | del | EN | ES |
 | --- | --- | --- | --- | --- | --- |

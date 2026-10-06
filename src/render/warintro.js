@@ -863,21 +863,27 @@ export function play(scene, camera, opts = {}) {
     state.scope = { contacts: contacts.length, onScope: contacts.filter((c) => Math.hypot(c.u, c.v) <= 1).length };
   }
 
-  /* Corner brackets round each named target in front of the camera. */
+  /* Corner brackets round each named target in front of the camera, as
+   * wide as OUTLINE_M of it at its distance (a spillway gate's bay; 14 px
+   * corners at a gate's foot 160 m off read as specks), never under 14 px. */
+  const OUTLINE_M = 10;
+  const side = new THREE.Vector3();
   function drawOutlines(w, h, dpr, t) {
     camera.updateMatrixWorld();
-    const a = 14 * dpr;
-    const leg = 7 * dpr;
+    side.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(OUTLINE_M);
     ink.lineWidth = 2 * dpr;
     ink.strokeStyle = `rgba(255, 224, 64, ${(0.75 + 0.25 * Math.sin(t / 160)).toFixed(3)})`;
     let drawn = 0;
     for (const p of opts.named) {
+      const edge = projected.set(p[0] + side.x, p[1] + side.y, p[2] + side.z).project(camera).x;
       const v = projected.set(p[0], p[1], p[2]).project(camera);
       if (v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) {
         continue;
       }
       const x = ((v.x + 1) / 2) * w;
       const y = ((1 - v.y) / 2) * h;
+      const a = Math.max(14 * dpr, (Math.abs(edge - v.x) / 2) * w);
+      const leg = a / 2;
       for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
         ink.beginPath();
         ink.moveTo(x + sx * a, y + sy * (a - leg));
