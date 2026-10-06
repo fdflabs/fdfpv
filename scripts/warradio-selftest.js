@@ -208,6 +208,24 @@ console.log('story over calls');
   check('and past that it goes too', s2.status().speaking === null);
 }
 
+console.log('a pause in an item');
+{
+  /* The Interior's exchanges carry a pause in seconds between two lines
+   * (CONTRACT-P0.md section 6): no file asked for it, the next line
+   * after it once it is over, the pause not counted as said. */
+  const heard = [];
+  const r = new WarRadio();
+  r.voice = { el: { play: () => null, pause: () => null, set src(url) { heard.push(url.split('/').slice(-1)[0].replace(/\..*$/, '')); } } };
+  r.bed = null;
+  r.say(['int1-s4-there', 0.05, 'int1-s4-goodeye'], 0, 'story');
+  r.next(10);
+  check('the pause asks for no file and is nobody speaking', heard.join(' ') === 'int1-s4-there' && r.status().speaking === null && r.status().said.join() === 'int1-s4-there,int1-s4-goodeye',
+    JSON.stringify({ heard, status: r.status() }));
+  await new Promise((done) => { setTimeout(done, 120); });
+  check('and the line after it plays once the pause is over', heard.join(' ') === 'int1-s4-there int1-s4-goodeye' && r.status().speaking === 'int1-s4-goodeye', heard.join(' '));
+  r.stop();
+}
+
 console.log('under voice chat');
 {
   /* A teammate speaking for a second, frames of 16 ms: the radio's and
