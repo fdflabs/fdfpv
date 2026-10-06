@@ -76,7 +76,6 @@ src/game/proven.js
 src/game/race.js
 src/game/trackdoc.js
 src/game/track.js
-src/game/trickdetect.js
 src/game/verify.js
 src/input/input.js
 src/main.js

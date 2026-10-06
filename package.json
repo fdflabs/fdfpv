@@ -76,6 +76,7 @@
     "score:golden": "node scripts/score-golden.js",
     "tricks:golden": "node scripts/tricks-golden.js",
     "tricks:gen": "node scripts/tricks-gen.js",
+    "trick:golden": "node scripts/trickdetect-golden.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
     "crashrecord:selftest": "node scripts/crashrecord-selftest.js",
