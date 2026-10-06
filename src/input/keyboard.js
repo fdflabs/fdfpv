@@ -158,13 +158,12 @@ export class KeyboardSticks {
   read(dtMs, down, keyDown, collective) {
     const holdStep = Math.min(dtMs, HOLD_CLOCK_MAX_MS);
     const seconds = dtMs / 1000;
-    const limit = (perSec) => Math.min(perSec * seconds, MOST_PER_READ);
     for (const [ch, minusKey, plusKey] of this.springs) {
       const sign = (down(plusKey) ? 1 : 0) - (down(minusKey) ? 1 : 0);
       if (sign === 0) {
         this.pressMs[ch] = 0;
         this.pressSign[ch] = 0;
-        this.stick[ch] = toward(this.stick[ch], 0, limit(SPRING_PER_SEC));
+        this.stick[ch] = toward(this.stick[ch], 0, Math.min(SPRING_PER_SEC * seconds, MOST_PER_READ));
         continue;
       }
       if (sign !== this.pressSign[ch]) {
@@ -177,10 +176,10 @@ export class KeyboardSticks {
     const up = keyDown(this.throttlePair.up);
     const back = keyDown(this.throttlePair.down);
     if (collective) {
-      this.flyCollective(holdStep, up, back, limit(COLLECTIVE_SPRING_PER_SEC));
+      this.flyCollective(holdStep, up, back, Math.min(COLLECTIVE_SPRING_PER_SEC * seconds, MOST_PER_READ));
     } else {
       const push = (up ? 1 : 0) - (back ? 1 : 0);
-      this.stick.throttle = Math.max(0, Math.min(1, this.stick.throttle + push * limit(SLIDER_PER_SEC)));
+      this.stick.throttle = Math.max(0, Math.min(1, this.stick.throttle + push * Math.min(SLIDER_PER_SEC * seconds, MOST_PER_READ)));
     }
     return { ...this.stick };
   }
