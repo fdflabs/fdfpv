@@ -45,6 +45,10 @@ from scipy.signal import butter, sosfilt
 #   banco     Ferrer's systems bench: clean with a soft fan
 #   archivo   the opening film's old recordings, years earlier: a narrow
 #             band, driven hard, heavy hiss and crackle
+#   guia      Ibarra's guide lines: analista's band and drive, read clean,
+#             with no crackle, hiss bed, key-up or squelch (the owner's
+#             rule, 2026-10-04: radio crackle only at scripted story
+#             moments, and a guide line is not one)
 # No preset drops or cuts a word: there is no radio breakup in any mission
 # (the lead's decision of 2 October, under the owner's no jamming rule).
 PRESETS = {
@@ -62,6 +66,7 @@ PRESETS = {
     'banco': {'band': (200.0, 5200.0), 'drive': 1.5, 'bed_db': -44.0, 'crackle': 1.0,
               'fan_hz': 141.0, 'fan_db': -46.0},
     'archivo': {'band': (420.0, 2600.0), 'drive': 3.2, 'bed_db': -25.0, 'crackle': 18.0},
+    'guia': {'band': (200.0, 5500.0), 'drive': 1.4, 'clean': True},
 }
 # Speech RMS before the drive, in dBFS. Sets how hard every line hits the
 # saturation, so a whisper and a shout come out of the radio at one level.
@@ -133,6 +138,16 @@ def radio(take, sr, seed, preset='crest'):
     # The drive makes harmonics above the band; take them back out so the
     # line stays inside its band.
     x = sosfilt(sos, x)
+
+    if p.get('clean'):
+        # No radio at all past the band and the drive: no key-up, squelch,
+        # hiss or crackle, and nothing drawn from rng for them.
+        pad = np.zeros(int(sr * PAD_S))
+        y = np.concatenate([pad, x, pad])
+        peak = np.max(np.abs(y))
+        if peak > PEAK:
+            y = y * (PEAK / peak)
+        return y.astype(np.float32)
 
     key = _burst(rng, sr, KEYUP_S, 0.002, 0.35)
     squelch = _burst(rng, sr, SQUELCH_S, 0.004, 0.22)
