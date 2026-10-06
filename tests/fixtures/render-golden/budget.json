@@ -1,0 +1,229 @@
+{
+ "bare": {
+  "view": "unnamed",
+  "canvas": {
+   "w": 640,
+   "h": 360,
+   "dpr": 1
+  },
+  "p1_calls": 6,
+  "p2_triangles": 412,
+  "p3_fullres_passes": 0,
+  "p4_fullres_taps": 0,
+  "p4_fullres_loops": 0,
+  "p5_target_bytes": 3022848,
+  "p5_target_MB": 3,
+  "p5_target_MiB": 2.9,
+  "p5_target_MB_at_1080p": 17.8,
+  "p5_targets": [
+   {
+    "label": "640x360 <- the default framebuffer, rgba + depth",
+    "w": 640,
+    "h": 360,
+    "samples": 1,
+    "bytes": 1843200,
+    "scales": true
+   },
+   {
+    "label": "512x256 <- allocated, not bound this frame",
+    "w": 512,
+    "h": 256,
+    "samples": 1,
+    "bytes": 1048576,
+    "scales": false
+   },
+   {
+    "label": "128x128 <- allocated, not bound this frame",
+    "w": 128,
+    "h": 128,
+    "samples": 1,
+    "bytes": 131072,
+    "scales": false
+   }
+  ],
+  "p9_shadow_maps": [
+   {
+    "light": "DirectionalLight",
+    "size": "512x256",
+    "allocated": true
+   },
+   {
+    "light": "SpotLight",
+    "size": "128x128",
+    "allocated": true
+   }
+  ],
+  "p10_attribute_bytes": 8564,
+  "p10_attribute_MB": 0,
+  "p10_index_bytes": 1272,
+  "meshes": 7,
+  "geometries": 6,
+  "p2_top_meshes": [
+   {
+    "material": "MeshLambertMaterial",
+    "triangles": 168,
+    "frustumCulled": true,
+    "boundsRadius": 0.5
+   },
+   {
+    "material": "MeshStandardMaterial",
+    "triangles": 44,
+    "frustumCulled": true,
+    "boundsRadius": 0.9
+   },
+   {
+    "material": "MeshPhongMaterial",
+    "triangles": 32,
+    "frustumCulled": true,
+    "boundsRadius": 5.7
+   },
+   {
+    "material": "PointsMaterial",
+    "triangles": 1,
+    "frustumCulled": true,
+    "boundsRadius": 0.5
+   },
+   {
+    "material": "LineBasicMaterial",
+    "triangles": 1,
+    "frustumCulled": true,
+    "boundsRadius": 1
+   }
+  ],
+  "passes": [
+   "Scene 640x360"
+  ]
+ },
+ "ledger": {
+  "view": "golden stage",
+  "canvas": {
+   "w": 640,
+   "h": 360,
+   "dpr": 1
+  },
+  "p1_calls": 1,
+  "p2_triangles": 1,
+  "p3_fullres_passes": 3,
+  "p4_fullres_taps": 8,
+  "p4_fullres_loops": 1,
+  "p5_target_bytes": 30901248,
+  "p5_target_MB": 30.9,
+  "p5_target_MiB": 29.5,
+  "p5_target_MB_at_1080p": 268.7,
+  "p5_targets": [
+   {
+    "label": "640x360 <- Scene",
+    "w": 640,
+    "h": 360,
+    "samples": 4,
+    "bytes": 12902400,
+    "scales": true
+   },
+   {
+    "label": "640x360 <- helpers",
+    "w": 640,
+    "h": 360,
+    "samples": 4,
+    "bytes": 12902400,
+    "scales": true
+   },
+   {
+    "label": "640x360 <- Scene",
+    "w": 640,
+    "h": 360,
+    "samples": 1,
+    "bytes": 1843200,
+    "scales": true
+   },
+   {
+    "label": "640x360 <- the default framebuffer, rgba + depth",
+    "w": 640,
+    "h": 360,
+    "samples": 1,
+    "bytes": 1843200,
+    "scales": true
+   },
+   {
+    "label": "512x256 <- allocated, not bound this frame",
+    "w": 512,
+    "h": 256,
+    "samples": 1,
+    "bytes": 1048576,
+    "scales": false
+   },
+   {
+    "label": "320x180 <- ShaderMaterial",
+    "w": 320,
+    "h": 180,
+    "samples": 1,
+    "bytes": 230400,
+    "scales": true
+   },
+   {
+    "label": "128x128 <- allocated, not bound this frame",
+    "w": 128,
+    "h": 128,
+    "samples": 1,
+    "bytes": 131072,
+    "scales": false
+   }
+  ],
+  "p9_shadow_maps": [
+   {
+    "light": "DirectionalLight",
+    "size": "512x256",
+    "allocated": true
+   },
+   {
+    "light": "SpotLight",
+    "size": "128x128",
+    "allocated": true
+   }
+  ],
+  "p10_attribute_bytes": 8564,
+  "p10_attribute_MB": 0,
+  "p10_index_bytes": 1272,
+  "meshes": 7,
+  "geometries": 6,
+  "p2_top_meshes": [
+   {
+    "material": "MeshLambertMaterial",
+    "triangles": 168,
+    "frustumCulled": true,
+    "boundsRadius": 0.5
+   },
+   {
+    "material": "MeshStandardMaterial",
+    "triangles": 44,
+    "frustumCulled": true,
+    "boundsRadius": 0.9
+   },
+   {
+    "material": "MeshPhongMaterial",
+    "triangles": 32,
+    "frustumCulled": true,
+    "boundsRadius": 5.7
+   },
+   {
+    "material": "PointsMaterial",
+    "triangles": 1,
+    "frustumCulled": true,
+    "boundsRadius": 0.5
+   },
+   {
+    "material": "LineBasicMaterial",
+    "triangles": 1,
+    "frustumCulled": true,
+    "boundsRadius": 1
+   }
+  ],
+  "passes": [
+   "Scene 640x360",
+   "ShaderMaterial 320x180 taps=1",
+   "Scene 640x360",
+   "helpers 640x360 taps=6",
+   "looped 640x360 taps=1 loops=1",
+   "ShaderMaterial 640x360 taps=1"
+  ]
+ }
+}

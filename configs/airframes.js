@@ -1,23 +1,19 @@
 /*
- * airframes.js: the aircraft the shell offers, and the only place any of
- * them is named.
+ * airframes.js: every aircraft the shell can seat, and the one place each
+ * is named and described.
  *
- * An AIRFRAME is a plant, not a tune. It is the mass, the inertia, the
- * motors, the rotors, the pack, the drag and the ducts, all of which are
- * compiled into dist/sim.wasm and selected at runtime by `sim_set_airframe`
- * (src/native/sim_abi.h). `simId` is that call's argument and it is the one
- * number in this file the module cares about; everything else here is the
- * shell's own knowledge of the machine.
+ * Each row is the shell's knowledge of one machine. The flight physics
+ * (mass, inertia, motors, props, pack, drag) are compiled into
+ * dist/sim.wasm, and `simId` is the plant number src/main.js hands to
+ * sim_set_airframe (src/native/sim_abi.h) to select them; nothing else in
+ * a row reaches the module. Tunes are separate (configs/registry.js) and
+ * written for a plant, so the Tune row only offers the seated aircraft's.
  *
- * A TUNE is a Betaflight CLI diff, lives in configs/registry.js, and belongs
- * to a PLANT: the Tune row offers the tunes written for the plant the seated
- * airframe selects. Loading a tune onto a plant it was never written for is
- * not a thing a pilot should be able to do by accident.
- *
- * `id` is what goes in localStorage and into the record key, so changing one
- * orphans a stored choice and every local best flown on it. An id this
- * build does not know falls back to DEFAULT_AIRFRAME rather than throwing,
- * because a stale setting must never stop the page booting.
+ * `id` is stored in settings, in record keys and on the board, so it never
+ * changes: a renamed id would orphan a pilot's choice and every best lap
+ * flown on it. A removed aircraft is listed in RETIRED_AIRFRAMES with its
+ * successor, and an id nobody has falls back to DEFAULT_AIRFRAME so a stale
+ * setting can never stop the page.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -75,6 +71,25 @@ export function airStartSpeed(af) {
   return af.fixedWing ? AIR_START_STALL_MARGIN * af.stall : 0;
 }
 
+/*
+ * What every aircraft starts on: the per cell pack states the pack row
+ * offers, and Betaflight 4.5.1's stock ACTUAL rates (70 / 670 deg/s, no
+ * expo) with no throttle limit, which seating an aircraft gives a pilot
+ * who has not set their own. Each row gets fresh copies, so nothing that
+ * edits one aircraft's can edit another's.
+ */
+function packStates() {
+  return {
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+  };
+}
+
+function stockRates() {
+  const axis = () => ({ rcRate: 7, srate: 67, expo: 0 });
+  return { type: 'ACTUAL', roll: axis(), pitch: axis(), yaw: axis(), throttleCap: 100 };
+}
+
 export const AIRFRAMES = [
   {
     /*
@@ -101,19 +116,12 @@ export const AIRFRAMES = [
     topSpeed: 33.4,
     thrustToWeight: 4.75,
     cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'betaflight-7inch',
     /* Its real weight, not the five inch's feel multiplier: the payload is
      * what makes it heavy (docs/COMBAT-DRONES.md section 1). */
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 90,
     cameraAngle: 25,
     dims: {
@@ -164,19 +172,12 @@ export const AIRFRAMES = [
     topSpeed: 33.3,
     thrustToWeight: 4.69,
     cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'betaflight-10inch',
     /* Its real weight, not the five inch's feel multiplier: the payload is
      * what makes it heavy (docs/COMBAT-DRONES.md section 1). */
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 90,
     cameraAngle: 20,
     dims: {
@@ -241,19 +242,12 @@ export const AIRFRAMES = [
     topSpeed: 55.9,
     thrustToWeight: 8.33,
     cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'betaflight-interceptor',
     /* Its real weight, as the other combat quads (docs/COMBAT-DRONES.md
      * section 1). */
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 95,
     cameraAngle: 45,
     dims: {
@@ -309,17 +303,10 @@ export const AIRFRAMES = [
     grams: 2100,
     trackClass: 'wing',
     cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'sky-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/skycraft.js SKY_DIMS: half span, the
@@ -362,17 +349,10 @@ export const AIRFRAMES = [
     grams: 1320,
     trackClass: 'wing',
     cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'cub-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/cubcraft.js CUB_DIMS: half span, the
@@ -412,17 +392,10 @@ export const AIRFRAMES = [
     grams: 980,
     trackClass: 'wing',
     cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'radian-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/glidercraft.js GLIDER_DIMS: the tip's
@@ -472,17 +445,10 @@ export const AIRFRAMES = [
     grams: 4500,
     trackClass: 'wing',
     cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'wing-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/bramorcraft.js BRAMOR_DIMS: half span,
@@ -528,17 +494,10 @@ export const AIRFRAMES = [
     grams: 420,
     trackClass: 'wing',
     cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'slowstick-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/slowstickcraft.js SLOWSTICK_DIMS: the
@@ -584,17 +543,10 @@ export const AIRFRAMES = [
     grams: 1700,
     trackClass: 'wing',
     cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'timber-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/timbercraft.js TIMBER_DIMS: the
@@ -642,17 +594,10 @@ export const AIRFRAMES = [
     grams: 1934,
     trackClass: 'wing',
     cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'timber-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine on floats, TIMBER_FLOAT_DIMS: the keels are its
@@ -692,17 +637,10 @@ export const AIRFRAMES = [
     grams: 1532,
     trackClass: 'wing',
     cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'cub-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine on floats, CUB_FLOAT_DIMS. */
@@ -751,17 +689,10 @@ export const AIRFRAMES = [
     grams: 559.9,
     trackClass: 'wing',
     cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'bombshell-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/bombshellcraft.js BOMBSHELL_DIMS: the
@@ -814,17 +745,10 @@ export const AIRFRAMES = [
     grams: 2721.6,
     trackClass: 'wing',
     cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'kadet-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/kadetcraft.js KADET_DIMS: the furthest
@@ -876,17 +800,10 @@ export const AIRFRAMES = [
     grams: 2721.6,
     trackClass: 'wing',
     cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'uglystik-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/uglystikcraft.js UGLYSTIK_DIMS: the
@@ -939,17 +856,10 @@ export const AIRFRAMES = [
     grams: 4649.3,
     trackClass: 'wing',
     cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'tigermoth-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/tigermothcraft.js TIGERMOTH_DIMS: the
@@ -998,17 +908,10 @@ export const AIRFRAMES = [
     grams: 2350,
     trackClass: 'wing',
     cells: 4,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'p51-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/p51craft.js P51_DIMS: the furthest
@@ -1058,17 +961,10 @@ export const AIRFRAMES = [
     grams: 2116,
     trackClass: 'wing',
     cells: 6,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'f16-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/f16craft.js F16_DIMS: the furthest
@@ -1110,17 +1006,10 @@ export const AIRFRAMES = [
     grams: 722.9,
     trackClass: 'wing',
     cells: 3,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'zagi-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/zagicraft.js ZAGI_DIMS: the furthest
@@ -1166,17 +1055,10 @@ export const AIRFRAMES = [
     grams: 213,
     trackClass: 'wing',
     cells: 1,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'nrj-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/dlgcraft.js DLG_DIMS: the tips'
@@ -1230,17 +1112,10 @@ export const AIRFRAMES = [
     trackClass: 'wing',
     /* The ignition's and the receiver's pack: the engine burns fuel. */
     cells: 2,
-    packVoltages: [4.2, 3.8, 3.5],
-    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    ...packStates(),
     defaultTune: 'striker-acro',
     gravityBase: 1.0,
-    rates: {
-      type: 'ACTUAL',
-      roll: { rcRate: 7, srate: 67, expo: 0 },
-      pitch: { rcRate: 7, srate: 67, expo: 0 },
-      yaw: { rcRate: 7, srate: 67, expo: 0 },
-      throttleCap: 100,
-    },
+    rates: stockRates(),
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine about its CG (combat-derive's hull): the furthest
@@ -1311,8 +1186,11 @@ if (!WAR_AIRFRAMES.includes(WAR_DEFAULT)) {
   throw new Error(`airframes: the war's default ${WAR_DEFAULT} is not a combat aircraft`);
 }
 
+const BY_ID = new Map(AIRFRAMES.map((a) => [a.id, a]));
+
+// The row for an id, or the default aircraft's for one this build lacks.
 export function airframeById(id) {
-  return AIRFRAMES.find((a) => a.id === id) ?? AIRFRAMES.find((a) => a.id === DEFAULT_AIRFRAME);
+  return BY_ID.get(id) ?? BY_ID.get(DEFAULT_AIRFRAME);
 }
 
 /*
@@ -1402,17 +1280,16 @@ export function isFloatVersion(id) {
   return Object.hasOwn(LAND_OF, id);
 }
 
-/* The sim_set_airframe argument for a stored id, falling back to the five
- * inch rather than throwing. A stale setting must not stop the page. */
+// The plant number for a stored id; an unknown id gets the default
+// aircraft's rather than an error.
 export function simIdFor(id) {
   return airframeById(id).simId;
 }
 
 /*
- * Which track class an airframe flies. 'full' is the 60 by 40 m field the
- * builder has always drawn; 'micro' is a RaceGOW room; 'wing' is a 400 by
- * 300 m airfield. The builder, the world, the gate meshes and the board
- * all read this.
+ * The kind of course an aircraft races: 'full' for the 60 by 40 m quad
+ * field, 'micro' for an indoor room, 'wing' for a 400 by 300 m airfield.
+ * The builder, the world, the gates and the board all go by it.
  */
 export function trackClassFor(id) {
   return airframeById(id).trackClass;

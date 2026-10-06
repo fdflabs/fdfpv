@@ -1,51 +1,41 @@
 /*
- * post.js: the post processing chain.
+ * post.js: the cel worlds' post processing chain.
  *
- * Three passes at full resolution, and they are three rather than four
- * because P3 allows four and the frame has to keep one in hand:
+ * Three full resolution passes, one under the budget's four:
  *
- * 1. A geometry prepass into one RGBA8 target, then an edge pass over it.
- *    The prepass packs the view space normal into rg and a linear view
- *    depth into ba, so the edge pass reads normal and depth in the same
- *    fetch. Inverted hull outlines only give you a silhouette around an
- *    object; an edge pass over depth and normals also finds the creases
- *    inside it and the line where an object meets the ground, which is
- *    what reads as ink.
+ * 1. Ink. A prepass draws the scene once more into a small RGBA8 target,
+ *    view normal in rg and linear depth packed in ba, and an edge pass
+ *    reads it: depth steps find silhouettes and where things meet the
+ *    ground, normal steps find creases, which together read as drawn
+ *    lines (a hull outline only gives a silhouette). The same fetches are
+ *    the frame's only antialiasing: two colour taps along each silhouette
+ *    resolve it, with a coverage threshold far below the ink's, so an
+ *    edge too faint to ink is still smoothed. Multisampling the composer
+ *    target instead would cost 116 MB of a 120 MB budget at 1080p.
+ * 2. Bloom, small and tight: enough for the gate rings and the sun to
+ *    glow and pull the eye, not enough to fight the cel look.
+ * 3. The grade, which is also the output: mild FPV barrel distortion, a
+ *    highlight shoulder, cool blacks against warm lights, vibrance, a
+ *    vignette and the sRGB transfer, done here rather than in a fourth
+ *    pass.
  *
- *    The same five geometry fetches also drive the antialiasing. There is
- *    no separate resolve: the composer target carries no multisampling,
- *    because 4x multisampling an RGBA16F target at 1080p costs 116 MB and
- *    the whole render target budget is 120 MB. The edge pass already knows
- *    where every silhouette in the frame is and which way it runs, so it
- *    resolves them with two colour taps along the depth gradient. The ink
- *    threshold is deliberately high, so it has its own much lower coverage
- *    threshold: a silhouette too subtle to ink still gets resolved.
+ * A sharpen pass sits at the end, enabled only while dynamic resolution
+ * draws below native.
  *
- * 2. Bloom, kept deliberately tight and low. Cel shading and heavy bloom
- *    fight each other; this is here only to make the gate rings and the
- *    sun glow, which is what pulls the eye to the next gate.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * 3. A grade, which is also the output pass: mild FPV barrel distortion, a
- *    highlight shoulder, a cool lift in the blacks against a warm gain in
- *    the lights, vibrance, a vignette, and then the sRGB transfer. It does
- *    the transfer itself rather than handing the frame to an OutputPass,
- *    because that was a fourth full resolution pass and a fourteenth
- *    texture tap to apply one curve.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
@@ -54,35 +44,36 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
+/* Every full screen pass here draws the same quad. */
+const QUAD_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
 /*
- * Depth is packed into two 8 bit channels rather than kept in a depth
- * texture, which is what takes the edge pass from eleven texture fetches
- * per pixel to six. The pair carries 16 bits over the whole 0.2 m to
- * 2600 m range, so a depth code is 4 cm everywhere. A 24 bit perspective
- * depth buffer has far more precision than that near the camera and far
- * less than that past a few hundred metres, which is exactly the wrong way
- * round for finding a mountain silhouette against another mountain.
+ * Depth as 16 bits in two 8 bit channels, linear from near to far: 4 cm
+ * steps over 0.2 to 2600 m everywhere, where a perspective depth buffer
+ * would be wasted near the camera and too coarse to tell one far ridge
+ * from the next. Two channels instead of a depth texture is also what
+ * lets one fetch carry normal and depth.
  */
-const PACK_GLSL = /* glsl */ `
+const DEPTH16_GLSL = /* glsl */ `
   vec2 packDepth16(float v) {
-    vec2 r = vec2(v, fract(v * 255.0));
-    r.x -= r.y / 255.0;
-    return r;
+    float low = fract(v * 255.0);
+    return vec2(v - low / 255.0, low);
   }
   float unpackDepth16(vec2 p) {
     return p.x + p.y * (1.0 / 255.0);
   }
 `;
 
-/*
- * The prepass vertex stage goes through three's own chunks rather than a
- * bare modelViewMatrix multiply, because the chunks carry the instance
- * matrix. Written bare, every InstancedMesh in the scene was drawn ONCE
- * at its own origin in the normal and depth buffers: an outline of one
- * tree stood in the middle of the strip with nothing inside it, and the
- * real trees had no outlines at all.
- */
-const GEO_VERT = /* glsl */ `
+/* The prepass's vertex stage uses three's own chunks, which carry the
+ * instance matrix; a bare model view transform drew every instanced mesh
+ * once at its origin. */
+const PREPASS_VERTEX = /* glsl */ `
   varying vec3 vNormalView;
   varying float vViewDepth;
   void main() {
@@ -95,49 +86,49 @@ const GEO_VERT = /* glsl */ `
   }
 `;
 
-function geoFragment(sentinel) {
+/*
+ * The prepass's output: packed normal and depth, or, for things that
+ * must hide what is behind them without being inked themselves (grass,
+ * water, the gate ring), a normal of zero, a value no real normal encodes,
+ * which the edge pass reads as "do not ink here or beside here".
+ */
+function prepassFragment(noInk) {
+  const write = noInk
+    ? 'gl_FragColor = vec4(0.0, 0.0, packDepth16(depth));'
+    : 'gl_FragColor = vec4(normalize(vNormalView).xy * 0.5 + 0.5, packDepth16(depth));';
   return /* glsl */ `
     uniform float uNear;
     uniform float uFar;
     varying vec3 vNormalView;
     varying float vViewDepth;
-    ${PACK_GLSL}
+    ${DEPTH16_GLSL}
     void main() {
-      float d = clamp((vViewDepth - uNear) / (uFar - uNear), 0.0, 1.0);
-      ${sentinel
-        ? 'gl_FragColor = vec4(0.0, 0.0, packDepth16(d));'
-        : `vec3 n = normalize(vNormalView);
-      gl_FragColor = vec4(n.xy * 0.5 + 0.5, packDepth16(d));`}
+      float depth = clamp((vViewDepth - uNear) / (uFar - uNear), 0.0, 1.0);
+      ${write}
     }
   `;
 }
 
-const OutlineShader = {
+/*
+ * The edge pass. Its numbers:
+ * uNormalBias is high enough that the roughly 42 degree facets of low
+ * poly canopies and rocks (a normal step near 0.7) stay clean while real
+ * corners near 90 degrees (about 1.4) ink; uAaBias, a twentieth of the
+ * ink's, asks for coverage on every silhouette and ink only on bold ones.
+ */
+const InkShader = {
   uniforms: {
     tDiffuse: { value: null },
     tGeo: { value: null },
     uResolution: { value: new THREE.Vector2(1, 1) },
     uLineColor: { value: new THREE.Color(0x1a2230) },
     uDepthBias: { value: 0.0016 },
-    /* High enough that the roughly 42 degree facet dihedral of the low
-     * poly canopies and rocks stays clean (normal delta about 0.7 per
-     * sample pair) while true corners near 90 degrees (delta 1.4) still
-     * ink. Facet creases were turning every near tree into a wire mesh. */
     uNormalBias: { value: 1.05 },
     uStrength: { value: 0.85 },
-    /* A twentieth of the ink threshold. Coverage is wanted on every
-     * silhouette in the frame; ink is wanted only on the ones that read as
-     * drawn. */
     uAaBias: { value: 0.00008 },
     uAaAmount: { value: 1.0 },
   },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
+  vertexShader: QUAD_VERTEX,
   fragmentShader: /* glsl */ `
     varying vec2 vUv;
     uniform sampler2D tDiffuse;
@@ -149,119 +140,91 @@ const OutlineShader = {
     uniform float uStrength;
     uniform float uAaBias;
     uniform float uAaAmount;
-    ${PACK_GLSL}
+    ${DEPTH16_GLSL}
 
-    /* Only xy is stored. z is reconstructed positive, which is what a
-     * front facing surface has in view space anyway, and the two places it
-     * is read (the crease term and the grazing angle term) both want a
-     * magnitude rather than a sign. */
-    vec3 decodeNormal(vec2 e) {
-      vec2 n = e * 2.0 - 1.0;
-      return vec3(n, sqrt(max(0.0, 1.0 - dot(n, n))));
+    /* Only xy is stored; z comes back positive, which a front face has,
+     * and both uses of it want a magnitude. */
+    vec3 normalOf(vec2 enc) {
+      vec2 xy = enc * 2.0 - 1.0;
+      return vec3(xy, sqrt(max(0.0, 1.0 - dot(xy, xy))));
+    }
+
+    /* Clamped to the frame: a tap past the border would wrap round and
+     * paint a false edge along it. */
+    vec2 inFrame(vec2 uv) {
+      return clamp(uv, vec2(0.0), vec2(1.0));
+    }
+
+    /* A sentinel (no ink) pixel: rg both zero. */
+    float noInk(vec4 g) {
+      return step(length(g.xy), 0.02);
     }
 
     void main() {
-      vec2 texel = 1.0 / uResolution;
-      vec4 base = texture2D(tDiffuse, vUv);
+      vec2 px = 1.0 / uResolution;
+      vec4 colour = texture2D(tDiffuse, vUv);
 
-      /* Five fetches, normal and depth in each. Clamped: sampling one
-       * texel outside the frame wraps and pulls in the opposite edge,
-       * which paints a false band along the border. */
-      vec4 g0 = texture2D(tGeo, vUv);
-      vec4 g1 = texture2D(tGeo, clamp(vUv + vec2( texel.x,  texel.y), vec2(0.0), vec2(1.0)));
-      vec4 g2 = texture2D(tGeo, clamp(vUv + vec2(-texel.x, -texel.y), vec2(0.0), vec2(1.0)));
-      vec4 g3 = texture2D(tGeo, clamp(vUv + vec2( texel.x, -texel.y), vec2(0.0), vec2(1.0)));
-      vec4 g4 = texture2D(tGeo, clamp(vUv + vec2(-texel.x,  texel.y), vec2(0.0), vec2(1.0)));
+      /* The pixel and its four diagonal neighbours: a Roberts cross. */
+      vec4 here = texture2D(tGeo, vUv);
+      vec4 ne = texture2D(tGeo, inFrame(vUv + vec2( px.x,  px.y)));
+      vec4 sw = texture2D(tGeo, inFrame(vUv + vec2(-px.x, -px.y)));
+      vec4 se = texture2D(tGeo, inFrame(vUv + vec2( px.x, -px.y)));
+      vec4 nw = texture2D(tGeo, inFrame(vUv + vec2(-px.x,  px.y)));
+      float dHere = unpackDepth16(here.zw);
+      float dNe = unpackDepth16(ne.zw);
+      float dSw = unpackDepth16(sw.zw);
+      float dSe = unpackDepth16(se.zw);
+      float dNw = unpackDepth16(nw.zw);
 
-      float d0 = unpackDepth16(g0.zw);
-      float d1 = unpackDepth16(g1.zw);
-      float d2 = unpackDepth16(g2.zw);
-      float d3 = unpackDepth16(g3.zw);
-      float d4 = unpackDepth16(g4.zw);
-      // Roberts cross over depth, and a normal difference for creases the
-      // depth pass cannot see (a fold where both faces are equidistant).
-      float depthEdge = length(vec2(d1 - d2, d3 - d4));
+      /* Depth finds silhouettes; the normal finds folds where both faces
+       * are equally far. */
+      float depthStep = length(vec2(dNe - dSw, dSe - dNw));
+      vec3 nHere = normalOf(here.xy);
+      float fold = length(normalOf(ne.xy) - normalOf(sw.xy)) + length(normalOf(se.xy) - normalOf(nw.xy));
 
-      vec3 n0 = decodeNormal(g0.xy);
-      float normalEdge =
-        length(decodeNormal(g1.xy) - decodeNormal(g2.xy)) +
-        length(decodeNormal(g3.xy) - decodeNormal(g4.xy));
+      /* Sentinel pixels are never inked, nor their neighbours, yet their
+       * depth still counts, so nothing hidden behind grass or water is
+       * inked through it. */
+      float sentinel = noInk(here);
+      float nearSentinel = max(max(noInk(ne), noInk(sw)), max(noInk(se), noInk(nw)));
 
-      /* Grass and sky pixels: rg stamped to zero, a value no encoded
-       * normal can take, because rg is n.xy * 0.5 + 0.5 and reaching zero
-       * in both would need an xy of length 1.41. Ink is suppressed on them
-       * and within one texel of them, so blades are not outlined and
-       * nothing is outlined through them. Their depth is still written and
-       * still read, which is what stops the ink pass drawing the
-       * silhouettes of gate legs behind the grass as empty rectangles
-       * floating in the meadow. */
-      float grass = step(length(g0.xy), 0.02);
-      float grassNear = max(
-        max(step(length(g1.xy), 0.02), step(length(g2.xy), 0.02)),
-        max(step(length(g3.xy), 0.02), step(length(g4.xy), 0.02))
-      );
-
-      /* A surface seen edge on has a huge depth gradient of its own, and a
-       * flat threshold inks it: the meadow carried a three pixel ink line
-       * across the full width of the frame, with the same colour on both
-       * sides of it. Divide the threshold by how square on the surface is,
-       * using the view space normal the prepass already wrote. */
-      float facing = max(abs(n0.z), 0.12);
-      float distScale = (1.0 + d0 * 260.0) / facing;
+      /* A surface seen edge on has a steep depth gradient of its own; the
+       * threshold grows as it turns away (and with distance), or the
+       * ground gets a line across the frame. */
+      float faceOn = max(abs(nHere.z), 0.12);
+      float farScale = 1.0 + dHere * 260.0;
+      float threshold = farScale / faceOn;
 
       /*
-       * Antialiasing, paid for entirely by fetches the ink already made.
-       * This is the frame's only antialiasing: the composer target carries
-       * no multisampling, because 4x on RGBA16F at 1080p is 116 MB against
-       * a 120 MB budget for every render target in the renderer.
-       *
-       * The two taps go ALONG the silhouette, not across it. The first
-       * version of this shader sampled across, on the reasoning that
-       * mixing the two sides of an edge softens the step, and a reviewer
-       * measured what that actually does: the sub pixel crossing of a near
-       * vertical edge held still for three rows and then jumped a pixel
-       * and a half, a period four staircase that 4x multisampling did not
-       * have, while the frame got softer everywhere. Second difference RMS
-       * of the crossing was 0.452 against multisampling's 0.304.
-       *
-       * A staircase is a discontinuity ALONG the edge, so that is where it
-       * has to be filtered. grad is the depth gradient, which points
-       * across; its perpendicular runs along. A one sample depth buffer
-       * carries no sub pixel coverage to recover, so this cannot equal
-       * multisampling, but filtering along the edge attacks the staircase
-       * itself rather than its contrast.
+       * Coverage, from the fetches above: two colour taps ALONG the
+       * silhouette, perpendicular to the depth gradient. A staircase is a
+       * discontinuity along the edge, so that is where it is filtered;
+       * mixing across the edge (tried first) only softened it and left a
+       * period four stair behind. A sentinel's normal is meaningless, so
+       * its coverage threshold ignores the facing term.
        */
-      vec2 grad = vec2((d1 + d3) - (d2 + d4), (d1 + d4) - (d2 + d3));
-      float glen = length(grad);
-      vec2 dir = glen > 1e-8 ? grad / glen : vec2(0.0, 0.0);
-      vec2 along = vec2(-dir.y, dir.x);
-      /* Grass writes a sentinel normal, so its reconstructed z is 0 and
-       * facing clamps to its 0.12 floor, which inflated the coverage
-       * threshold about eightfold on exactly the 184000 sub pixel blades
-       * that need resolving most. The ink term still wants the grazing
-       * angle division; the coverage term does not. */
-      float aaScale = mix(distScale, 1.0 + d0 * 260.0, grass);
-      float aaT = uAaBias * aaScale;
-      float aa = smoothstep(aaT, aaT * 5.0, depthEdge) * uAaAmount;
-      vec3 c1 = texture2D(tDiffuse, clamp(vUv + along * texel, vec2(0.0), vec2(1.0))).rgb;
-      vec3 c2 = texture2D(tDiffuse, clamp(vUv - along * texel, vec2(0.0), vec2(1.0))).rgb;
-      vec3 resolved = mix(base.rgb, (base.rgb * 2.0 + c1 + c2) * 0.25, aa);
+      vec2 across = vec2((dNe + dSe) - (dSw + dNw), (dNe + dNw) - (dSw + dSe));
+      float acrossLen = length(across);
+      vec2 unit = acrossLen > 1e-8 ? across / acrossLen : vec2(0.0, 0.0);
+      vec2 along = vec2(-unit.y, unit.x);
+      float coverT = uAaBias * mix(threshold, farScale, sentinel);
+      float cover = smoothstep(coverT, coverT * 5.0, depthStep) * uAaAmount;
+      vec3 tapA = texture2D(tDiffuse, inFrame(vUv + along * px)).rgb;
+      vec3 tapB = texture2D(tDiffuse, inFrame(vUv - along * px)).rgb;
+      vec3 softened = mix(colour.rgb, (colour.rgb * 2.0 + tapA + tapB) * 0.25, cover);
 
-      /* Ink. smoothstep rather than step on both terms: a binary edge test
-       * draws a binary line, and an aliased ink line on an antialiased
-       * silhouette is worse than no antialiasing at all. */
-      float dt = uDepthBias * distScale;
-      float de = smoothstep(dt, dt * 1.7, depthEdge);
-      // Crease lines are a near field effect. Past a short distance they
-      // turn low poly scenery into a wire mesh, so fade them out early
-      // and leave silhouettes to the depth term alone.
-      float nearness = 1.0 - smoothstep(0.010, 0.055, d0);
-      float ne = smoothstep(uNormalBias, uNormalBias * 1.35, normalEdge) * nearness;
-      float edge = clamp(max(de, ne), 0.0, 1.0) * uStrength * (1.0 - max(grass, grassNear));
-      // never draw on the sky, and let very distant geometry go clean
-      edge *= step(d0, 0.999) * (1.0 - smoothstep(0.16, 0.42, d0));
+      /* Ink, with soft thresholds: a hard edged line on a smoothed
+       * silhouette is worse than none. Folds only near the camera, where
+       * they read as drawing rather than as wireframe. */
+      float inkT = uDepthBias * threshold;
+      float silhouette = smoothstep(inkT, inkT * 1.7, depthStep);
+      float closeBy = 1.0 - smoothstep(0.010, 0.055, dHere);
+      float crease = smoothstep(uNormalBias, uNormalBias * 1.35, fold) * closeBy;
+      float ink = clamp(max(silhouette, crease), 0.0, 1.0) * uStrength * (1.0 - max(sentinel, nearSentinel));
+      /* Never on the sky, and fading out over the far distance. */
+      ink *= step(dHere, 0.999) * (1.0 - smoothstep(0.16, 0.42, dHere));
 
-      gl_FragColor = vec4(mix(resolved, uLineColor, edge), base.a);
+      gl_FragColor = vec4(mix(softened, uLineColor, ink), colour.a);
     }
   `,
 };
@@ -273,13 +236,7 @@ const GradeShader = {
     uVignette: { value: 0.16 },
     uVibrance: { value: 0.22 },
   },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
+  vertexShader: QUAD_VERTEX,
   fragmentShader: /* glsl */ `
     varying vec2 vUv;
     uniform sampler2D tDiffuse;
@@ -288,214 +245,183 @@ const GradeShader = {
     uniform float uVibrance;
 
     void main() {
-      // FPV lens: mild barrel distortion, zoom compensated so the
-      // corners never sample outside the frame.
-      vec2 uv = vUv - 0.5;
-      float r2 = dot(uv, uv);
-      vec2 duv = 0.5 + uv * (1.0 + uDistort * r2) / (1.0 + uDistort * 0.5);
-      vec3 c = texture2D(tDiffuse, duv).rgb;
+      /* Barrel distortion, scaled so the corners still sample inside. */
+      vec2 c = vUv - 0.5;
+      float rr = dot(c, c);
+      vec3 rgb = texture2D(tDiffuse, 0.5 + c * (1.0 + uDistort * rr) / (1.0 + uDistort * 0.5)).rgb;
 
-      // Highlight shoulder: everything above the knee rolls off smoothly
-      // instead of clipping, so the sky and bloom keep their hue.
-      vec3 h = max(c - 0.8, vec3(0.0));
-      c = min(c, vec3(0.8)) + h / (1.0 + h);
+      /* A shoulder over 0.8, so skies and bloom roll off and keep hue. */
+      vec3 over = max(rgb - 0.8, vec3(0.0));
+      rgb = min(rgb, vec3(0.8)) + over / (1.0 + over);
 
-      // Cool lift in the blacks, warm gain in the lights: the same warm
-      // light cool shadow logic as the ramp, applied to the whole frame.
-      // Kept shallow: lifting further milks the ink lines and flattens
-      // the value structure the cel look depends on.
-      vec3 lift = vec3(0.006, 0.009, 0.021);
-      c = c * (1.0 - lift) + lift;
-      c *= vec3(1.045, 1.010, 0.965);
+      /* Cool blacks, warm lights, kept shallow so the ink stays black. */
+      vec3 floorTint = vec3(0.006, 0.009, 0.021);
+      rgb = rgb * (1.0 - floorTint) + floorTint;
+      rgb *= vec3(1.045, 1.010, 0.965);
 
-      // Vibrance: push saturation hardest where there is least of it, so
-      // flat mid tones enrich without neon-ing what is already saturated.
-      float mx = max(c.r, max(c.g, c.b));
-      float mn = min(c.r, min(c.g, c.b));
-      float sat = mx > 0.001 ? (mx - mn) / mx : 0.0;
-      float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
-      c = mix(vec3(luma), c, 1.0 + uVibrance * (1.0 - sat));
+      /* Vibrance: most saturation added where there is least. */
+      float top = max(rgb.r, max(rgb.g, rgb.b));
+      float bottom = min(rgb.r, min(rgb.g, rgb.b));
+      float saturation = top > 0.001 ? (top - bottom) / top : 0.0;
+      float grey = dot(rgb, vec3(0.2126, 0.7152, 0.0722));
+      rgb = mix(vec3(grey), rgb, 1.0 + uVibrance * (1.0 - saturation));
 
-      // Vignette, wide and shallow: frames the view without reading as a
-      // dirty lens.
-      c *= 1.0 - uVignette * smoothstep(0.18, 0.52, r2);
+      /* A wide shallow vignette. */
+      rgb *= 1.0 - uVignette * smoothstep(0.18, 0.52, rr);
 
-      /* The sRGB transfer, done here instead of by a fourth full
-       * resolution pass. This is the same curve three.js applies in
-       * sRGBTransferOETF; the renderer runs with NoToneMapping, so the
-       * tone mapping half of an OutputPass would have been a no operation
-       * anyway. */
-      c = clamp(c, vec3(0.0), vec3(1.0));
-      vec3 lo = c * 12.92;
-      vec3 hi = 1.055 * pow(c, vec3(0.41666667)) - 0.055;
-      gl_FragColor = vec4(mix(lo, hi, step(vec3(0.0031308), c)), 1.0);
+      /* sRGB out, three's own curve; the renderer does no tone mapping. */
+      rgb = clamp(rgb, vec3(0.0), vec3(1.0));
+      vec3 linearPart = rgb * 12.92;
+      vec3 curvePart = 1.055 * pow(rgb, vec3(0.41666667)) - 0.055;
+      gl_FragColor = vec4(mix(linearPart, curvePart, step(vec3(0.0031308), rgb)), 1.0);
     }
   `,
 };
 
 /*
- * A contrast adaptive sharpen, after AMD's CAS: five taps, and the weight
- * falls where the neighbourhood is already near black or white, so edges
- * firm up without haloes and flat sky stays flat. It runs last, on display
- * values, and only while dynamic resolution has the frame below native
- * (`enabled` is false at scale 1, and the composer then hands the screen
- * to the pass before it, so a native frame is untouched). Fixed strength,
- * so a scale step does not visibly change the look mid flight.
+ * Contrast adaptive sharpening, after AMD's CAS: five taps, weighted least
+ * where the neighbourhood is already near black or white, so edges firm
+ * up without haloes and flat sky stays flat. Fixed strength, so a step in
+ * resolution does not change the look mid flight.
  */
 const SharpenShader = {
   uniforms: {
     tDiffuse: { value: null },
     uTexel: { value: new THREE.Vector2(1, 1) },
   },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
+  vertexShader: QUAD_VERTEX,
+  fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
     uniform vec2 uTexel;
     varying vec2 vUv;
     void main() {
-      vec3 c = texture2D(tDiffuse, vUv).rgb;
-      vec3 n = texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb;
-      vec3 s = texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb;
-      vec3 e = texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb;
-      vec3 w = texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb;
-      vec3 mn = min(c, min(min(n, s), min(e, w)));
-      vec3 mx = max(c, max(max(n, s), max(e, w)));
-      vec3 amp = sqrt(clamp(min(mn, 1.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
-      vec3 wt = amp * (-1.0 / 6.5);
-      gl_FragColor = vec4((c + (n + s + e + w) * wt) / (1.0 + 4.0 * wt), 1.0);
+      vec3 mid = texture2D(tDiffuse, vUv).rgb;
+      vec3 up = texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb;
+      vec3 down = texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb;
+      vec3 right = texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb;
+      vec3 left = texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb;
+      vec3 lo = min(mid, min(min(up, down), min(right, left)));
+      vec3 hi = max(mid, max(max(up, down), max(right, left)));
+      vec3 headroom = sqrt(clamp(min(lo, 1.0 - hi) / max(hi, vec3(1e-4)), 0.0, 1.0));
+      vec3 w = headroom * (-1.0 / 6.5);
+      gl_FragColor = vec4((mid + (up + down + right + left) * w) / (1.0 + 4.0 * w), 1.0);
     }
   `,
 };
 
-/* The sharpen pass for a composer, disabled; see SharpenShader. */
+/* The sharpen pass, disabled until dynamic resolution drops below native
+ * (the composer then hands the screen to the pass before it). */
 export function makeSharpenPass() {
   const pass = new ShaderPass(SharpenShader);
   pass.enabled = false;
   return pass;
 }
 
-/* Keeps the sharpen pass's texel in step with the buffer it reads. */
+/* The sharpen pass's texel, for a buffer of width by height at `ratio`. */
 export function sizeSharpenPass(pass, width, height, ratio) {
-  pass.material.uniforms.uTexel.value.set(
-    1 / Math.max(1, Math.floor(width * ratio)),
-    1 / Math.max(1, Math.floor(height * ratio)),
-  );
+  const pixels = (n) => Math.max(1, Math.floor(n * ratio));
+  pass.material.uniforms.uTexel.value.set(1 / pixels(width), 1 / pixels(height));
 }
 
-export function buildComposer(renderer, scene, camera, quality) {
-  const size = new THREE.Vector2();
-  renderer.getSize(size);
-  const dpr = renderer.getPixelRatio();
-  const w = Math.max(1, Math.floor(size.x * dpr));
-  const h = Math.max(1, Math.floor(size.y * dpr));
-  /* High (or an omitted quality) keeps both. Low drops the outline prepass
-   * and bloom; Medium drops bloom and keeps the ink, which is also the
-   * field's antialiasing. See src/render/quality.js. */
-  const fieldQ = quality && quality.field ? quality.field : null;
-  const wantOutline = !fieldQ || fieldQ.outline !== false;
-  const wantBloom = !fieldQ || fieldQ.bloom !== false;
+/*
+ * Layers. 0 is drawn and inked. 1 is drawn but never inked (sky, water,
+ * flowers, the gate ring, halo and glow). The prepass also writes depth,
+ * with the no ink sentinel, for layer 2 and for PREPASS_DEPTH_LAYER, onto
+ * which promoteOccluders lifts the layer 1 objects that hide what is
+ * behind them, so the ink and the coverage agree with the picture: a
+ * submerged trunk is no longer inked through the water, and the gate
+ * ring's own edge gets coverage. The sky and the additive glow write no
+ * depth and stay out: in, the sky's tessellation and the glow's flat
+ * square measured worse on the very edges this exists for.
+ */
+const PREPASS_DEPTH_LAYER = 3;
+const LAYER_0 = 1 << 0;
+const LAYER_1 = 1 << 1;
 
-  /*
-   * Normals and depth come from one prepass into a target the composer
-   * never writes to. Attaching a depth texture to a composer target
-   * instead means the outline pass samples the depth of the buffer it is
-   * writing into, and the driver reports a feedback loop between the
-   * framebuffer and an active texture.
-   *
-   * RGBA8, no depth texture: rg is the view normal's xy, ba is a linear
-   * view depth packed to 16 bits. One fetch answers both questions, which
-   * is what takes the edge pass from 11 texture fetches per output pixel
-   * to 6 and leaves room in P4 for the two the antialiasing needs.
-   */
-  let normalTarget = null;
-  let geoUniforms = null;
-  let normalMaterial = null;
-  let grassMaskMaterial = null;
-  const GEO_CLEAR = new THREE.Color(0, 0, 1);
-  if (wantOutline) {
-    normalTarget = new THREE.WebGLRenderTarget(w, h, {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-    });
-    /* Cleared to a normal of zero and a depth of one: the sky writes nothing
-     * into this target and the edge pass has to read the far plane there,
-     * not the near one. rgba (0, 0, 1, 0) unpacks to exactly depth 1. */
-    geoUniforms = {
-      uNear: { value: camera.near },
-      uFar: { value: camera.far },
-    };
-    normalMaterial = new THREE.ShaderMaterial({
-      uniforms: geoUniforms,
-      vertexShader: GEO_VERT,
-      fragmentShader: geoFragment(false),
-    });
-    /* Grass is stamped with a normal of zero, which is not a value any
-     * encoded normal can take, so the outline pass can recognise a grass
-     * pixel and refuse to ink it while still using the depth the grass
-     * wrote. Without the depth, the ink pass drew the silhouettes of gate
-     * legs and tree trunks that the grass was standing in front of, as
-     * rectangles floating in the meadow with nothing inside them. */
-    grassMaskMaterial = new THREE.ShaderMaterial({
-      uniforms: geoUniforms,
-      vertexShader: GEO_VERT,
-      fragmentShader: geoFragment(true),
-    });
-  }
-
-  /*
-   * No multisampling on the composer target. Measured, 4x on an RGBA16F
-   * target at 1920 by 1080 is 116.1 MB, the composer keeps two of them for
-   * its ping pong, and the whole render target budget for the minimum spec
-   * machine is 120 MB. The second one is spent entirely on multisampling a
-   * fullscreen quad, which multisampling cannot improve. Antialiasing is
-   * done instead in the outline pass, out of texture fetches it was
-   * already making. RGBA16F stays: the grade's highlight shoulder and the
-   * bloom high pass both work on linear values, and 8 bit linear crushes
-   * the shadow end of the sky gradient.
-   */
-  const composerTarget = new THREE.WebGLRenderTarget(w, h, {
-    type: THREE.HalfFloatType,
+/*
+ * Lifts the layer 1 meshes that are occluders onto PREPASS_DEPTH_LAYER,
+ * keeping layer 1 so the colour pass still draws them. An occluder is what
+ * its materials say: every one writes depth and blends normally. A mesh on
+ * layer 0 as well is already inked and left alone. Once per composer: the
+ * world is complete before the composer is built, and anything added later
+ * would miss the prepass.
+ */
+function promoteOccluders(scene) {
+  scene.traverse((o) => {
+    if (!o.isMesh || !(o.layers.mask & LAYER_1) || (o.layers.mask & LAYER_0)) {
+      return;
+    }
+    const occludes = [o.material].flat().every((m) => m && m.depthWrite !== false && (m.blending === undefined || m.blending === THREE.NormalBlending));
+    if (occludes) {
+      o.layers.enable(PREPASS_DEPTH_LAYER);
+    }
   });
-  const composer = new EffectComposer(renderer, composerTarget);
-  composer.addPass(new RenderPass(scene, camera));
+}
 
+/* Every target the bloom pass keeps. */
+function bloomLadder(bloom) {
+  return [bloom.renderTargetBright, ...(bloom.renderTargetsHorizontal || []), ...(bloom.renderTargetsVertical || [])].filter(Boolean);
+}
+
+/* Bloom's targets only ever receive full screen quads, so their default
+ * depth buffers (7.6 MB measured) are dropped. */
+function bloomWithoutDepth(bloom) {
+  for (const target of bloomLadder(bloom)) {
+    target.depthBuffer = false;
+  }
+}
+
+/*
+ * The chain for one world. quality is a preset (src/render/quality.js):
+ * its field.outline and field.bloom, either left out meaning on, decide
+ * the ink and the bloom; with no preset both are on. Returns { render,
+ * setSize, sharpen, dispose, outline, bloom, grade, composer, normalTarget };
+ * budget.js reads the targets to count them.
+ */
+export function buildComposer(renderer, scene, camera, quality) {
+  const css = renderer.getSize(new THREE.Vector2());
+  const ratio = renderer.getPixelRatio();
+  const w = Math.max(1, Math.floor(css.x * ratio));
+  const h = Math.max(1, Math.floor(css.y * ratio));
+  const field = quality && quality.field ? quality.field : null;
+  const inked = !field || field.outline !== false;
+  const blooms = !field || field.bloom !== false;
+
+  /*
+   * The prepass's own target (writing it from the composer's would read
+   * and write one framebuffer). It clears to rg zero and depth one,
+   * (0, 0, 1, 0), which unpacks to exactly the far plane where nothing
+   * drew. Both prepass materials share the near and far uniforms.
+   */
+  const prepass = inked ? {
+    target: new THREE.WebGLRenderTarget(w, h, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter }),
+    planes: { uNear: { value: camera.near }, uFar: { value: camera.far } },
+  } : null;
+  if (prepass) {
+    const material = (noInk) => new THREE.ShaderMaterial({ uniforms: prepass.planes, vertexShader: PREPASS_VERTEX, fragmentShader: prepassFragment(noInk) });
+    prepass.inked = material(false);
+    prepass.depthOnly = material(true);
+  }
+  const CLEAR_TO_FAR = new THREE.Color(0, 0, 1);
+
+  /* Half float, so the grade's shoulder and bloom's threshold see linear
+   * values without crushing the sky's dark end; no multisampling (see the
+   * header). */
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType }));
+  composer.addPass(new RenderPass(scene, camera));
   let outline = null;
-  if (wantOutline) {
-    outline = new ShaderPass(OutlineShader);
-    outline.uniforms.tGeo.value = normalTarget.texture;
+  if (inked) {
+    outline = new ShaderPass(InkShader);
+    outline.uniforms.tGeo.value = prepass.target.texture;
     outline.uniforms.uResolution.value.set(w, h);
     composer.addPass(outline);
   }
-
-  /*
-   * Bloom threshold. At 0.92 on linear luminance nothing in the world
-   * passed the high pass except the sun disc and a few white pips: both
-   * gate ring colours sit at about 0.70, so the one thing bloom exists for
-   * was the one thing it could not see. 0.78 catches the rings and the
-   * warm horizon and leaves the mid greens alone. The renderer runs with
-   * no tone mapping, so raising the ring colour past one instead would
-   * clamp it to white and take away the hue that identifies the target.
-   */
+  /* Threshold 0.78 on linear luminance: the gate rings sit near 0.70 and
+   * pass with the warm horizon, mid greens do not. */
   let bloom = null;
-  if (wantBloom) {
+  if (blooms) {
     bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.55, 0.78);
-    /* Every one of bloom's eleven targets is written by a fullscreen quad
-     * and none of them is depth tested, but three.js gives a render target a
-     * depth renderbuffer by default. Measured, that was 7.6 MB of the frame's
-     * render target budget spent on depth buffers nothing reads. Eleven, not
-     * thirteen, which is what this comment said until a reviewer counted
-     * them: three at 960x540 and a pair each at 480x270, 240x135, 120x68 and
-     * 60x34. The 7.6 MB was right because it was measured; the count beside
-     * it was not, because it was not. */
-    for (const rt of bloomTargets(bloom)) {
-      rt.depthBuffer = false;
-    }
+    bloomWithoutDepth(bloom);
     composer.addPass(bloom);
   }
   const grade = new ShaderPass(GradeShader);
@@ -505,371 +431,142 @@ export function buildComposer(renderer, scene, camera, quality) {
   sizeSharpenPass(sharpen, w, h, 1);
 
   /*
-   * The composer keeps two full size targets and swaps them, but only one
-   * of them ever holds the scene: RenderPass draws into the read buffer,
-   * which three.js initialises to renderTarget2, and the other only ever
-   * receives fullscreen quads. A quad needs no depth buffer, so that is
-   * 8.3 MB at 1080p for nothing.
-   *
-   * Which target is which depends on the number of passes that swap. An
-   * even number returns the pair to where it started every frame and the
-   * scene stays in one of them forever; an odd number alternates, and
-   * then both targets need depth. So the parity is counted rather than
-   * assumed, and the saving is only taken when it is safe. Getting this
-   * wrong renders the world with no depth test every other frame, which
-   * is not a subtle failure, but it is not one to leave to a comment.
+   * The scene is drawn into the composer's read buffer; the write buffer
+   * only receives quads and needs no depth (8.3 MB at 1080p). That holds
+   * only while the swapping passes are even in number; an odd count swaps
+   * the pair every frame and both need depth.
    */
-  const swaps = composer.passes.filter((p) => p.needsSwap).length;
-  if (swaps % 2 === 0) {
+  if (composer.passes.filter((p) => p.needsSwap).length % 2 === 0) {
     composer.writeBuffer.depthBuffer = false;
+  }
+  if (inked) {
+    promoteOccluders(scene);
   }
 
   /*
-   * Layer 1 is the no ink layer: sky dome, water, flowers, and the gate
-   * ring, halo and glow. One bit was answering two different questions,
-   * and that is the defect. "Do not draw an ink line on this" and "the ink
-   * and coverage passes must not know this object exists" are not the same
-   * decision, and layer 1 was taking the second whenever it wanted the
-   * first.
-   *
-   * What that cost, measured with stair: on the inner edge of a gate ring
-   * upright, 90 rows at 0.147 px of slope per row, from a camera pitched 30
-   * degrees up and yawed 20 degrees off the gate so that the upright leans
-   * and a staircase has somewhere to show. A ring pixel read the depth of
-   * whatever stood behind the ring, so the second difference across the
-   * ring's own silhouette was zero and the one prop a racer stares at all
-   * lap got no coverage at all. Two runs before, two after:
-   *
-   *   before   0.383 and 0.363 RMS, worst 1.57 and 1.57 px
-   *   after    0.192 and 0.217 RMS, worst 0.52 and 0.77 px
-   *
-   * The crossings say it more plainly than the RMS does. Before, they held
-   * at 679.51 for six rows and then jumped a whole pixel, six more, jump,
-   * which is what a staircase is. After, they walk: 679.65, 679.52,
-   * 679.51, 679.39, 678.85, 678.68, 678.54. The run to run spread is real
-   * and it is the wind: the grass and the tree seen through the aperture
-   * move between runs, which moves the depth on the far side of the edge,
-   * so one capture of this number is not evidence and two are the minimum.
-   * The mountain skyline in the same frames sat at 0.215 RMS and 0.46 px in
-   * every run, so the ring, not the mountains, was the most aliased
-   * silhouette in the frame, and it was aliased because of this mask.
-   *
-   * The lake pays too, and that one is visible rather than statistical.
-   * Trees standing in the water were inked and resolved from their own
-   * depth while the water was drawn over them, so a submerged trunk
-   * arrived as a dark line lying on the surface. Measured down a column
-   * through one, 0.346, 0.459, 0.302, 0.214, 0.353, 0.454 became 0.346,
-   * 0.459, 0.454, 0.454, 0.454, 0.454: the ink under the water is gone,
-   * because the water now occludes it, which is what the colour buffer was
-   * saying all along.
-   *
-   * The fix is the mechanism the grass already uses. Write depth with a
-   * sentinel normal of zero, which the ink pass recognises and refuses to
-   * ink, on itself or within one texel of itself, while the coverage term
-   * still sees the depth step. So layer 1 objects that qualify are
-   * promoted onto PREPASS_DEPTH_LAYER and drawn in the SAME pass as the
-   * grass: no new pass, no new render target, no change to P3 or P4.
-   *
-   * Which ones qualify is the object's own declaration, not a list here.
-   * If a material writes depth in the colour pass and blends normally it
-   * is an occluder, and an occluder the prepass cannot see makes the ink
-   * and the coverage disagree with the frame. If it does not write depth
-   * it is not an occluder, and stamping a depth for it is a lie the second
-   * difference will believe. That rule takes the water, the flowers, the
-   * gate ring and its halo, and it leaves out the sky dome and the gate's
-   * additive glow. Both exclusions are refusals of part of the review
-   * finding that asked for them, and both were measured rather than
-   * assumed:
-   *
-   * - THE SKY STAYS OUT, and the finding that the skyline receives no
-   *   coverage is wrong on the coverage half. The skyline gets coverage
-   *   precisely BECAUSE the sky is absent: the target clears to depth 1.0,
-   *   so a ridge at depth 0.3 sits against a 0.7 depth step and the
-   *   coverage term saturates. Measured above: 0.215 px second difference
-   *   RMS over 118 consecutive rows of a ridge with a 0.657 px per row
-   *   slope, which is better than the 0.288 to 0.304 this project has
-   *   measured for 4x multisampling. Putting the dome in instead replaces
-   *   that 0.7 step with 0.577 minus the ridge depth, and worse, hands the
-   *   dome's own 40 by 24 tessellation to a second difference that has no
-   *   business reading it. Measured, with the dome rendered into the
-   *   prepass through a back sided copy of the normal material so it is
-   *   not culled: the same 118 rows went from 0.215 to 0.567 RMS and from
-   *   0.46 to 1.45 px worst, and the crossing picked up a period two
-   *   zigzag it did not have (1175.56, 1175.64, 1174.58, 1174.67 against a
-   *   monotone 1176.23, 1175.80, 1175.26, 1174.81). It is a 2.6x
-   *   regression on the exact quantity the finding wanted improved, so it
-   *   is refused. The ink half of the finding is right and is NOT fixed
-   *   here: a sky pixel's cleared rg is (0,0), which is
-   *   the same sentinel the grass writes, so grassNear suppresses ink for
-   *   one texel around every skyline in the frame. Removing that costs the
-   *   grass its exemption and belongs to whoever changes the sentinel
-   *   encoding, not to a layer mask.
-   * - THE GATE GLOW STAYS OUT. It is a 2.6 x aperture plane, doubled
-   *   sided, additive, depthWrite false, coplanar with the gate frame, and
-   *   its fragment shader is a Gaussian band that is zero at the plane's
-   *   own border. There is no silhouette in the colour buffer for coverage
-   *   to resolve, and stamping one would lay a flat 3.96 m square of depth
-   *   over the gate, the ring included, at the gate's own depth. Measured
-   *   on all 14 glows, forced in through a double sided sentinel so the
-   *   plane could not be culled: the ring's inner edge came back to 0.311
-   *   RMS and 0.84 px worst, above both of the runs this round's fix
-   *   measures at, so it undoes most of the fix it was meant to extend. It
-   *   also costs the gate frame a coverage step of its own against the far
-   *   ridge, where 0.261, 0.206, 0.052, 0.024 became 0.261, 0.261, 0.201,
-   *   0.024. Refused.
-   *
-   * The cost of what IS in. Measured back to back on the gate camera at
-   * 1600 by 900, because scene.js is being edited beside this file and the
-   * first attempt at this pair read 149 against 174 with scene.js changing
-   * between the two captures, which is not a delta of anything. Back to
-   * back on one scene.js: 30 meshes promoted, being 14 rings, 14 halos, the
-   * lake and the flower field, and nothing else. P1 draw calls 166 to 174,
-   * P2 triangles
-   * 1,919,169 to 1,924,729, P3 full resolution passes 3 and 3, P4 taps per
-   * pixel 10 and 10, P5 render target bytes 90.2 MB either way, and no
-   * target is created, resized or bound that was not bound before. P3 and
-   * P4 do not move because they count fullscreen quads and this is
-   * geometry, but the frame does rasterise 5,560 more triangles into the
-   * prepass target, and that is a real cost stated here rather than hidden
-   * behind a budget whose definition happens not to see it.
-   *
-   * Clouds are NOT on layer 1 any more. They used to be, and because the
-   * prepass skipped the whole layer they wrote no depth, so the ink pass
-   * drew the silhouettes of mountains standing behind them straight across
-   * the cloud.
+   * The prepass: inked layer 0 first, then the no ink depth (layers 2 and
+   * PREPASS_DEPTH_LAYER) into the same target. Sky, fog and the shadow map
+   * update are off for it (its materials sample no shadow), and every bit
+   * of state it touches is put back, the camera's layer mask as the raw
+   * value: rebuilding it once left the colour pass looking at nothing but
+   * the sky. The saved colour is kept, not allocated, since this runs every
+   * frame.
    */
-  const PREPASS_DEPTH_LAYER = 3;
-  if (wantOutline) {
-    promoteToPrepass(scene, PREPASS_DEPTH_LAYER);
-  }
-  /* Reused rather than allocated: P8 forbids a new object anywhere in the
-   * per frame path, and renderNormals runs every frame. */
-  const prevClear = new THREE.Color();
-
-  function renderNormals() {
-    if (!wantOutline) {
+  const keptClear = new THREE.Color();
+  function drawPrepass() {
+    if (!prepass) {
       return;
     }
-    const prevBg = scene.background;
-    const prevOverride = scene.overrideMaterial;
-    const prevFog = scene.fog;
-    const prevAutoClear = renderer.autoClear;
-    renderer.getClearColor(prevClear);
-    const prevClearAlpha = renderer.getClearAlpha();
+    const kept = {
+      background: scene.background,
+      fog: scene.fog,
+      override: scene.overrideMaterial,
+      autoClear: renderer.autoClear,
+      clearAlpha: renderer.getClearAlpha(),
+      shadows: renderer.shadowMap.autoUpdate,
+      mask: camera.layers.mask,
+    };
+    renderer.getClearColor(keptClear);
     scene.background = null;
     scene.fog = null;
-    /* The prepass overrides every material with one that samples no shadow
-     * map, so rebuilding the shadow map for it is pure waste: measured, 74
-     * of 310 draw calls and 113260 of 1465708 triangles per frame, because
-     * the map was being rendered twice. Output is bit identical. */
-    const prevShadowAuto = renderer.shadowMap.autoUpdate;
     renderer.shadowMap.autoUpdate = false;
-    renderer.setRenderTarget(normalTarget);
-    renderer.setClearColor(GEO_CLEAR, 0);
+    renderer.setRenderTarget(prepass.target);
+    renderer.setClearColor(CLEAR_TO_FAR, 0);
+    prepass.planes.uNear.value = camera.near;
+    prepass.planes.uFar.value = camera.far;
 
-    /* The layer mask is saved and restored as a raw value rather than
-     * rebuilt with enable and disable calls. Rebuilding it is how the whole
-     * world vanished from the colour pass once already: the prepass left the
-     * camera looking at nothing but the inside of the sky dome, and the
-     * frame came out as flat cream below the horizon. */
-    const prevMask = camera.layers.mask;
-    geoUniforms.uNear.value = camera.near;
-    geoUniforms.uFar.value = camera.far;
-
-    /* Pass one: everything that inks, as packed normals and depth. Layer 0. */
-    scene.overrideMaterial = normalMaterial;
-    camera.layers.mask = 1 << 0;
+    scene.overrideMaterial = prepass.inked;
+    camera.layers.mask = LAYER_0;
     renderer.clear();
     renderer.render(scene, camera);
 
-    /* Pass two: depth without ink, sentinel normal, into the same target.
-     * PREPASS_DEPTH_LAYER is what promoteToPrepass picked out of layer 1.
-     * Layer 2 used to hold the grass field; blades are not drawn. One render
-     * call, so the frame still makes exactly three scene draws and P3 and
-     * P4 do not move. */
-    scene.overrideMaterial = grassMaskMaterial;
+    scene.overrideMaterial = prepass.depthOnly;
     camera.layers.mask = (1 << 2) | (1 << PREPASS_DEPTH_LAYER);
     renderer.autoClear = false;
     renderer.render(scene, camera);
 
-    renderer.autoClear = prevAutoClear;
+    renderer.autoClear = kept.autoClear;
     renderer.setRenderTarget(null);
-    renderer.setClearColor(prevClear, prevClearAlpha);
-    camera.layers.mask = prevMask;
-    renderer.shadowMap.autoUpdate = prevShadowAuto;
-    scene.overrideMaterial = prevOverride;
-    scene.background = prevBg;
-    scene.fog = prevFog;
+    renderer.setClearColor(keptClear, kept.clearAlpha);
+    camera.layers.mask = kept.mask;
+    renderer.shadowMap.autoUpdate = kept.shadows;
+    scene.overrideMaterial = kept.override;
+    scene.background = kept.background;
+    scene.fog = kept.fog;
   }
 
+  /*
+   * Resizes the whole chain to width by height CSS pixels at the
+   * renderer's current pixel ratio. The composer's ratio is set first: it
+   * multiplies by the ratio it was built with otherwise, and the Render
+   * scale slider once shrank the canvas while four passes stayed full size.
+   */
   function setSize(width, height) {
-    const p = renderer.getPixelRatio();
-    const bw = Math.max(1, Math.floor(width * p));
-    const bh = Math.max(1, Math.floor(height * p));
-    /*
-     * THE PIXEL RATIO HAS TO BE SET BEFORE THE SIZE, OR THE SLIDER ONLY
-     * MOVES HALF THE CHAIN.
-     *
-     * EffectComposer multiplies width and height by the pixel ratio it
-     * captured at construction, not by the renderer's current one. So after
-     * the Render scale slider lowers the ratio, composer.setSize alone left
-     * both HalfFloat composer targets, the colour pass, the eight tap
-     * outline pass and the grade pass at the size they booted at: measured,
-     * a slider at 55 percent shrank the canvas to 880 by 495 and left four
-     * passes at 1600 by 900, and P5 fell only from 90.2 to 78.1 MB. The
-     * outline was then reading an 880 by 495 geometry buffer while drawing
-     * into 1600 by 900, which is what made the ink go blocky rather than
-     * simply softer.
-     *
-     * One line, and it is the difference between a setting that works and a
-     * setting that only appears to.
-     */
-    composer.setPixelRatio(p);
+    const now = renderer.getPixelRatio();
+    composer.setPixelRatio(now);
     composer.setSize(width, height);
-    sizeSharpenPass(sharpen, width, height, p);
-    if (normalTarget) {
-      normalTarget.setSize(bw, bh);
+    sizeSharpenPass(sharpen, width, height, now);
+    const bw = Math.max(1, Math.floor(width * now));
+    const bh = Math.max(1, Math.floor(height * now));
+    if (prepass) {
+      prepass.target.setSize(bw, bh);
     }
     if (outline) {
       outline.uniforms.uResolution.value.set(bw, bh);
     }
     if (bloom) {
-      for (const rt of bloomTargets(bloom)) {
-        rt.depthBuffer = false;
-      }
+      bloomWithoutDepth(bloom);
     }
   }
 
-  /* composer and normalTarget are exposed for the cost ledger in
-   * budget.js, which has to read the real targets to answer P5. Nothing in
-   * the shell touches them. */
+  /*
+   * Frees what the chain owns: the targets, and the pass materials too,
+   * since three frees a compiled program only with its material. Bloom
+   * frees its own ladder. ShaderPass.dispose is not used: it would also
+   * free the full screen quad's geometry, which every pass module shares.
+   */
+  function dispose() {
+    composer.renderTarget1.dispose();
+    composer.renderTarget2.dispose();
+    prepass?.target.dispose();
+    bloom?.dispose();
+    outline?.material.dispose();
+    grade.material.dispose();
+    sharpen.material.dispose();
+    composer.copyPass.material.dispose();
+    prepass?.inked.dispose();
+    prepass?.depthOnly.dispose();
+  }
+
   return {
     render() {
-      renderNormals();
+      drawPrepass();
       composer.render();
     },
     setSize,
     sharpen,
-    /*
-     * Everything this composer owns, freed in one place. The render targets
-     * are what the budget counts, but the PASS MATERIALS are what the
-     * renderer's program cache keys on: three.js releases a cached
-     * WebGLProgram only when the material owning it is disposed, so leaving
-     * these out leaked a handful of compiled shader programs on every map
-     * swap, invisible to every budget because budgets count targets and
-     * triangles. The bloom pass frees its own ladder of targets and
-     * materials. ShaderPass.dispose is deliberately not used for outline
-     * and grade: it also disposes FullScreenQuad's module level SHARED
-     * triangle geometry, which the next composer re-uploads; bloom already
-     * does that once and once is enough.
-     */
-    dispose() {
-      const rts = [composer.renderTarget1, composer.renderTarget2];
-      if (normalTarget) {
-        rts.push(normalTarget);
-      }
-      for (const rt of rts) {
-        rt.dispose();
-      }
-      if (bloom) {
-        bloom.dispose();
-      }
-      if (outline) {
-        outline.material.dispose();
-      }
-      grade.material.dispose();
-      sharpen.material.dispose();
-      composer.copyPass.material.dispose();
-      if (normalMaterial) {
-        normalMaterial.dispose();
-      }
-      if (grassMaskMaterial) {
-        grassMaskMaterial.dispose();
-      }
-    },
+    dispose,
     outline,
     bloom,
     grade,
     composer,
-    normalTarget,
+    normalTarget: prepass ? prepass.target : null,
   };
 }
 
 /*
- * Put the layer 1 objects that are real occluders onto a layer of their
- * own, so the depth half of the prepass can have them while the ink half
- * still cannot.
- *
- * Done once, here, and not per frame: P8 forbids an allocation in the frame
- * path and a traverse is not free either. It is safe to do once because
- * buildScene finishes the whole world, craft included, before buildComposer
- * is called, and nothing is added to the scene afterwards. Anything added
- * later would silently miss the prepass, so if that changes, this has to be
- * called again.
- *
- * The test is on the material's own promises. depthWrite false says "I am
- * not an occluder", which is exactly the sky dome and the additive gate
- * glow, and a non normal blend says the same thing a second time. Reading
- * the declaration rather than naming the objects means this keeps agreeing
- * with scene.js when scene.js changes, which a list of names would not.
- *
- * The bit is added, not set: these objects have to stay on layer 1 so the
- * colour pass still draws them.
- */
-function promoteToPrepass(scene, layer) {
-  const ONLY_LAYER_1 = 1 << 1;
-  scene.traverse((obj) => {
-    if (!obj.isMesh || (obj.layers.mask & ONLY_LAYER_1) === 0) {
-      return;
-    }
-    /* Layer 0 as well as layer 1 would mean the object is already in the
-     * inking pass, and promoting it would stamp a sentinel over its own
-     * normals. Nothing does that today; it would be a silent disaster if
-     * something did. */
-    if ((obj.layers.mask & 1) !== 0) {
-      return;
-    }
-    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const occludes = mats.every((m) => m
-      && m.depthWrite !== false
-      && (m.blending === undefined || m.blending === THREE.NormalBlending));
-    if (occludes) {
-      obj.layers.enable(layer);
-    }
-  });
-}
-
-function bloomTargets(bloom) {
-  const out = [];
-  if (bloom.renderTargetBright) {
-    out.push(bloom.renderTargetBright);
-  }
-  for (const list of [bloom.renderTargetsHorizontal, bloom.renderTargetsVertical]) {
-    for (const rt of list || []) {
-      out.push(rt);
-    }
-  }
-  return out;
-}
-
-/*
- * Give a built world its composer, and a dispose that frees both. Every map
- * but the town wraps its scene with this, and the dispose in particular is
- * not a detail to keep several copies of.
+ * Gives a built world its chain, sized to the shell's canvas, and a
+ * dispose that frees the chain and then the world. Returns the map.
  */
 export function attachComposer(shell, map, q) {
   const post = buildComposer(shell.renderer, map.scene, shell.camera, q);
-  const d = shell.resize();
-  post.setSize(d.w, d.h);
-  const sceneDispose = map.dispose;
+  const { w, h } = shell.resize();
+  post.setSize(w, h);
+  const freeWorld = map.dispose;
   map.post = post;
   map.dispose = () => {
-    /* The composer knows what it owns: targets, the bloom ladder, and the
-     * pass materials whose compiled programs the renderer caches. Freeing
-     * only the targets here is how a handful of shader programs used to
-     * leak on every swap. */
     post.dispose();
-    sceneDispose();
+    freeWorld();
   };
   return map;
 }

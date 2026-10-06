@@ -1,62 +1,33 @@
 /*
- * trackdoc.js: read a track document and hand back a course the field can
- * build.
+ * trackdoc.js: a track builder document read as a course the game can fly.
  *
- * This is the seam between the track builder and the game, and it is the
- * only one. The builder writes a document; schema.md describes it; this file
- * reads it. Nothing else in the game knows the document exists.
+ * The builder owns the document format: normalisation, aperture maths, the
+ * racing line, figure rules and marker squares all live in its pure modules,
+ * and this file calls them rather than keeping a second reading of the format
+ * that could drift. What is left here is the frame change (document Z up,
+ * corner origin, to scene Y up, centred) and the shape the lap checker and the
+ * scene read. Pure and synchronous: no rendering, no I/O, no state kept.
  *
- * THE DIRECTION OF THE DEPENDENCY IS DELIBERATE AND IT IS ONE WAY. This
- * module imports the builder's model.js, elements.js, geometry.js and
- * path.js, which are pure data and pure functions: no DOM, no canvas, no
- * Three.js, no imports of their own outside that set. The ground-mark
- * builder in guide.js is the same kind of thing, and lives on this side
- * of the seam so the renderer never has to read a document. The builder
- * still imports nothing from the game and must not. The alternative, a second
- * implementation of normalize() and of the aperture maths living here, is
- * exactly the drift schema.md exists to prevent: two readers of one format
- * disagreeing about what a tilted gate means is a bug nobody would find
- * until a course flew wrong.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WHAT THIS FILE DOES NOT DO: it does not touch Three.js and it does not
- * place anything. It converts frames, applies the game's obstacle scale, and
- * returns plain data. src/render/scene.js does the building.
- *
- * THE TWO FRAMES.
- *
- *   Document: right handed, Z up, origin at the field's near left corner,
- *   so every point has x in [0, width] and y in [0, depth].
- *   Scene: Three.js, Y up, origin at the middle of the world.
- *
- * The conversion is the same one the builder's own 3D preview makes, and it
- * happens here exactly once:
- *
- *   sceneX =  docX - width / 2
- *   sceneZ = -(docY - depth / 2)
- *   sceneY =  terrain(sceneX, sceneZ) + docZ
- *
- * so a document's field is centred on the world's origin and its base
- * heights are measured from the ground under them. The Y is not applied
- * here, because the terrain is not known until the height field has been
- * built from the course this file returns. The scene adds it.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ELEMENTS, KIND, GATE_FLAG_POLE_R, flagLeanSign, flagSideOf, flagSideSigns, gateFlagHeight, isUnbuilt, trackClassOf, virtualApertureDims } from '../trackbuilder/elements.js';
+import {
+  ELEMENTS, KIND, GATE_FLAG_POLE_R, flagLeanSign, flagSideOf, flagSideSigns,
+  gateFlagHeight, isUnbuilt, trackClassOf, virtualApertureDims,
+} from '../trackbuilder/elements.js';
 import {
   normalize, elementById, aperturesOf, startPadsOf, logosOf, logoForDecal, dressOrder,
 } from '../trackbuilder/model.js';
@@ -67,34 +38,17 @@ import { startBlockLaneOffset, startBlockDims } from '../art/startblock.js';
 import { guideFromKnots } from './guide.js';
 import { str } from '../strings/index.js';
 
-/*
- * How far behind the FIRST GATE the craft is parked when a track has no
- * start pads. The pads themselves are where the quad sits; they are not a
- * timing plane, so a course that has them parks on a stand, not behind it.
- *
- * This is the distance, not a third of it. It was 2.5 and multiplied by 3 at
- * its only use, which reads as though 2.5 m were the parking distance when
- * the quad has always been parked at 7.5.
- */
-/*
- * How far behind the first gate a quad is parked when the track has no start
- * pads, in metres.
- *
- * 7.5 is a five inch's: far enough back to be lined up and rolling by the
- * gate. A wing is thrown rather than
- * parked, at 10 m/s, and needs a few seconds to be flying before it is
- * asked to hit a five metre hole: 40 is two seconds at cruise.
- */
-const SPAWN_BACK = 7.5;
-const SPAWN_BACK_BY_CLASS = { full: SPAWN_BACK, wing: 40 };
+// How far behind the first gate a course with no start pads parks the craft.
+// A wing needs room to get up to speed before its first gate.
+const SETBACK_M = { full: 7.5, wing: 40 };
+
+// Below this a marker's pass clearance or a dive gate's sill counts as unset.
+const UNSET_M = 0.05;
 
 /*
- * The direction of travel through a gate is MINUS its plane normal, which is
- * the game's existing convention and not a choice made here: src/game/race.js
- * builds its local frame that way and the field's own stations, whose yaw is
- * the curve tangent, are flown against it. Every heading below is computed to
- * satisfy it, so a document's gate and a figure eight's gate are flown by the
- * same arithmetic.
+ * Travel through a gate runs along minus its heading vector, so yaw h means
+ * travel along (-sin h, -cos h). Returns the yaw for a horizontal travel
+ * vector, or null when the vector has no usable direction.
  */
 export function headingForTravel(tx, tz) {
   const n = Math.hypot(tx, tz);
@@ -104,539 +58,366 @@ export function headingForTravel(tx, tz) {
   return Math.atan2(-tx / n, -tz / n);
 }
 
-/* Document yaw to scene yaw. A GATE's document yaw is a plane normal, so
- * the scene heading is a quarter turn on from it. Everything else (a wall,
- * a flag, the start pads) is a heading about up, and adding that quarter
- * turn is what stood every barrier 90 degrees off the builder's preview. */
-function sceneYawFor(el, kind) {
-  if (kind === KIND.APERTURE) {
-    return el.yaw + Math.PI / 2;
-  }
-  if (kind === KIND.START) {
-    const forward = { x: Math.cos(el.yaw), z: -Math.sin(el.yaw) };
-    return headingForTravel(forward.x, forward.z) ?? 0;
-  }
-  return el.yaw;
+/*
+ * The scene frame change. z is written as the negated difference, not
+ * depth/2 - y, because the two differ in the sign of zero on the midline and
+ * the recorded courses carry that sign.
+ */
+function scenePoint(field, p) {
+  return { x: p.x - field.width / 2, z: -(p.y - field.depth / 2) };
 }
 
-/* Document point to scene point, horizontally. Height is the scene's job. */
-function toScene(field, p) {
-  return {
-    x: p.x - field.width / 2,
-    z: -(p.y - field.depth / 2),
-  };
-}
-
-/* A document elevation in scene metres. The vertical half of toScene. */
-function elev(z) {
+function height(z) {
   return z || 0;
 }
 
+// A start pad's document yaw is the way the quad sets off, not a plane normal.
+function padYaw(yaw) {
+  const fx = Math.cos(yaw);
+  const fz = -Math.sin(yaw);
+  return headingForTravel(fx, fz) ?? 0;
+}
+
 /*
- * Every length in an obstacle, through the game's declared departure from
- * the published dimensions.
- *
- * THE OBSTACLE SCALE IS APPLIED HERE, and that is a decision worth stating.
- * A document holds MultiGP's own figures; the race field builds every
- * obstacle 15 percent larger, which src/game/track.js declares and explains
- * as a playability choice made with the rulebook still on the page. If a
- * custom course did not get the same treatment, the identical 5 ft gate
- * would be a different size on the two maps and a pilot's eye would have to
- * relearn the world every time they changed track. Positions are NOT scaled:
- * the layout is the author's and moving their gates is not a scale, it is a
- * redesign.
+ * Imported Velocidrone tracks carry the mesh origin as an elevation: a dive
+ * gate floated to its sill height with no sill, a flag lifted half its own
+ * height. Folded into the normalised copy before anything reads a position.
  */
-function builtDims(dims, scale) {
+function foldImportedHeights(doc) {
+  for (const el of doc.elements) {
+    const { dims, position } = el;
+    if (el.type === 'diveGate' && (dims.sillH || 0) < UNSET_M) {
+      if ((position.z || 0) > 0.3) {
+        dims.sillH = Math.max(0, position.z - (dims.clearH || 0) / 2);
+      }
+      if ((dims.sillH || 0) < UNSET_M) {
+        dims.sillH = ELEMENTS.diveGate.dims.sillH;
+      }
+      position.z = 0;
+    } else if ((el.type === 'flag' || el.type === 'cone')
+        && position.z > 0 && position.z < (dims.height || 2.5)) {
+      position.z = 0;
+    }
+  }
+}
+
+function makeStructure(el, def, ctx) {
+  const at = scenePoint(ctx.field, el.position);
+  const isGate = def.kind === KIND.APERTURE;
+  let yaw = el.yaw;
+  if (isGate) {
+    yaw = el.yaw + Math.PI / 2;
+  } else if (def.kind === KIND.START) {
+    yaw = padYaw(el.yaw);
+  }
+  const s = {
+    id: el.id,
+    type: el.type,
+    kind: def.kind,
+    name: el.name || def.label,
+    x: at.x,
+    z: at.z,
+    baseY: height(el.position.z),
+    yaw,
+    pitch: isGate ? el.pitch : 0,
+    dims: isGate ? builtDims(el.dims, ctx.scale) : { ...el.dims },
+  };
+  if (isGate && isUnbuilt(el)) {
+    s.unbuilt = true;
+  }
+  if (def.flagSide) {
+    s.flagSigns = flagSideSigns(flagSideOf(el));
+    s.flagLeans = s.flagSigns.map(flagLeanSign);
+    s.flagH = gateFlagHeight(el.dims) * ctx.scale;
+    s.flagPoleR = GATE_FLAG_POLE_R * ctx.scale;
+  }
+  s.dress = ctx.dress.has(el.id) ? ctx.dress.get(el.id) : null;
+  return s;
+}
+
+// Only the lengths are scaled up to the class; positions never are.
+function builtDims(d, scale) {
   return {
-    clearW: dims.clearW * scale,
-    clearH: dims.clearH * scale,
-    sillH: dims.sillH * scale,
-    levelPitch: dims.levelPitch * scale,
-    stack: Math.max(1, Math.round(dims.levels)),
+    clearW: d.clearW * scale,
+    clearH: d.clearH * scale,
+    sillH: d.sillH * scale,
+    levelPitch: d.levelPitch * scale,
+    stack: Math.max(1, Math.round(d.levels)),
   };
 }
 
-const FLOATING_DIVE_Z = 0.3;
-const EMPTY_SILL = 0.05;
-
 /*
- * Imported JSON that still carries a Velocidrone mesh origin: a dive hoop
- * whose elevation is on position.z with an empty sill, or a flag whose
- * origin is halfway up the pole. Convert writes these planted; this is the
- * same fold so an old published course still flies. A dive with no
- * elevation at all is the MultiGP 15 ft hoop. Mutates the normalised copy,
- * never the caller's document.
+ * A flag, cone, pole or pylon scores as a virtual square on the side the
+ * sequence named. The square's inner edge sits on the pole, so its centre is
+ * pushed outward by the class pad the builder computed.
  */
-function plantImportedHeights(doc) {
-  for (const el of doc.elements) {
-    if (el.type === 'diveGate' && (el.dims.sillH || 0) < EMPTY_SILL) {
-      if ((el.position.z || 0) > FLOATING_DIVE_Z) {
-        el.dims.sillH = Math.max(0, el.position.z - (el.dims.clearH || 0) / 2);
-      }
-      if ((el.dims.sillH || 0) < EMPTY_SILL) {
-        el.dims.sillH = ELEMENTS.diveGate.dims.sillH;
-      }
-      el.position.z = 0;
-    }
-    if ((el.type === 'flag' || el.type === 'cone')
-        && el.position.z > 0
-        && el.position.z < (el.dims.height || 2.5)) {
-      el.position.z = 0;
-    }
+function markerStation(knot, el, s, flyOrder, ctx) {
+  const clearance = knot.seq.clearance ?? 0;
+  if (el.type === 'waypoint' || clearance < UNSET_M) {
+    return null;
   }
+  const dims = virtualApertureDims(el, knot.seq, ctx.cls);
+  const heading = headingForTravel(knot.tangent.x, -knot.tangent.y);
+  const at = scenePoint(ctx.field, knot.pos);
+  let ox = at.x - s.x;
+  let oz = at.z - s.z;
+  const on = Math.hypot(ox, oz);
+  if (on > 1e-6) {
+    ox /= on;
+    oz /= on;
+  } else {
+    ox = 0;
+    oz = 0;
+  }
+  return {
+    elementId: el.id,
+    structure: s,
+    apertureIndex: 0,
+    flyOrder,
+    x: at.x + ox * dims.outward,
+    z: at.z + oz * dims.outward,
+    poleX: s.x,
+    poleZ: s.z,
+    baseY: height((knot.markerPos ?? knot.pos).z),
+    centreY: dims.centerH,
+    clearW: dims.clearW,
+    clearH: dims.clearH,
+    yaw: heading ?? s.yaw,
+    pitch: 0,
+    name: s.name,
+    type: el.type,
+    entry: 1,
+    cue: '',
+    virtual: true,
+  };
 }
 
 /*
- * Read a document and return a course.
- *
- *   structures  one per element on the field, whatever it is, with its scene
- *               position and orientation and its BUILT dimensions
- *   stations    one per APERTURE in the flying order, which is not the same
- *               list: a ladder flown twice is one structure and two stations
- *   spawn       where the quad is parked, from the start pads
- *   line        the racing line as scene points, which the terrain uses to
- *               flatten its corridor
- *   guide       the taut-string ground marks: dashes, sparse height-coded
- *               arrows (one stay low, two go up), isolated flag wraps
- *   warnings    anything the game itself could not honour
- *
- * Never throws. A document it cannot use yields a course with no stations,
- * which the shell already treats as a map with nothing to score.
+ * The pitch is the climb or dive of the direction of travel, which folds the
+ * plane's own pitch and the entry face into one angle.
  */
-export function courseFromDocument(raw) {
-  const { doc, repairs } = normalize(raw);
-  upgradeStackedFigures(doc);
-  plantImportedHeights(doc);
-  const field = doc.field;
-  /*
-   * The track class travels with the course into the game, because almost
-   * everything downstream of here is a length: the gate meshes, the pass
-   * volumes, the spawn setback, the guide paint and the camera framing. A
-   * course object that did not carry it would make every one of those guess.
-   */
-  const cls = trackClassOf(doc);
-  /* How much larger than the author's figures this track is built: 15
-   * percent on the field, one to one on a wing course. See gateScaleFor. */
-  const gateScale = gateScaleFor(cls);
-  const warnings = [...repairs];
+function gateStation(knot, el, s, flyOrder, ctx) {
+  const levels = aperturesOf(el);
+  const index = Math.min(Math.max(0, knot.seq.apertureIndex ?? 0), levels.length - 1);
+  const ap = levels[index];
+  const t = knot.tangent;
+  const at = scenePoint(ctx.field, el.position);
+  return {
+    elementId: el.id,
+    structure: s,
+    apertureIndex: index,
+    flyOrder,
+    x: at.x,
+    z: at.z,
+    baseY: height(el.position.z),
+    centreY: ap.centerH * ctx.scale,
+    clearW: ap.clearW * ctx.scale,
+    clearH: ap.clearH * ctx.scale,
+    yaw: headingForTravel(t.x, -t.y) ?? s.yaw,
+    pitch: Math.asin(Math.max(-1, Math.min(1, t.z))),
+    name: s.name,
+    type: el.type,
+    entry: knot.seq.entry,
+    cue: '',
+    virtual: false,
+  };
+}
 
-  /* One structure per element. Markers stand on the field; flags and cones
-   * also score, through a virtual square on the pass side. */
-  const structures = [];
-  const byElement = new Map();
-  /* Which of the course's marks each dressed structure wears. Read off the
-   * document by the one rule both renderers share, so the world and the
-   * builder's preview cannot disagree about whose logo is on gate 7. */
-  const dress = dressOrder(doc);
-  for (const el of doc.elements) {
-    const def = ELEMENTS[el.type];
-    const kind = def.kind;
-    if (kind === KIND.ANNOTATION) {
-      /* A label is an authoring note. It is drawn on the plan and in the
-       * builder's preview and it has no business standing on a race field. */
-      continue;
-    }
-    if (kind === KIND.DECAL) {
-      /* Paint, not furniture. It is collected below into course.decals,
-       * where the renderer stamps it into the pitch's own surface, so it
-       * never becomes a structure, never gets a collider and never reaches
-       * the warning pass that tests the racing line against solid things. */
-      continue;
-    }
-    const p = toScene(field, el.position);
-    const s = {
-      id: el.id,
-      type: el.type,
-      kind,
-      name: el.name || def.label,
-      x: p.x,
-      z: p.z,
-      baseY: elev(el.position.z),
-      yaw: sceneYawFor(el, kind),
-      /* Tilt of the aperture plane, radians, straight from the document.
-       * Zero for everything that is not an aperture. */
-      pitch: kind === KIND.APERTURE ? el.pitch : 0,
-      dims: kind === KIND.APERTURE ? builtDims(el.dims, gateScale) : { ...el.dims },
-    };
-    /* The openings that are a gap in the lattice and not a gate: no pipe
-     * is built for them anywhere. See isUnbuilt in elements.js. */
-    if (kind === KIND.APERTURE && isUnbuilt(el)) {
-      s.unbuilt = true;
-    }
-    if (def.flagSide) {
-      s.flagSigns = flagSideSigns(flagSideOf(el));
-      /*
-       * Which way each pennant's cloth and whip lean, alongside where its
-       * mast stands. It is carried rather than re-derived in the renderer
-       * because a mast on the CENTRE of the header has a sign of zero,
-       * which says where it is and cannot say which way it hangs, and a
-       * sail that hangs one way with a collider leaning the other is an
-       * invisible wall. The rule lives in elements.js with the sides.
-       */
-      s.flagLeans = s.flagSigns.map(flagLeanSign);
-      /* The author's mast, through the same obstacle scale every other
-       * length on the structure goes through, so the flag grows with the
-       * gate it stands on rather than shrinking against it. */
-      s.flagH = gateFlagHeight(el.dims) * gateScale;
-      s.flagPoleR = GATE_FLAG_POLE_R * gateScale;
-    }
-    /* Null for anything that carries no printed vinyl. */
-    s.dress = dress.has(el.id) ? dress.get(el.id) : null;
-    structures.push(s);
-    byElement.set(el.id, s);
-  }
+const STATION_BY_ROLE = new Map([['marker', markerStation], ['aperture', gateStation]]);
 
-  /*
-   * The stations, in flying order, read off the racing line the builder
-   * derives rather than off doc.sequence directly. The line is where the
-   * entry sign has already been turned into a direction of travel and a
-   * marker's clearance has already been turned into a knot, so reading it
-   * means the course the game flies is the course the builder drew.
-   */
-  const path = buildPath(doc);
+// Stations come off the builder's racing line, so the course flown is the one it drew.
+function stationsAlong(knots, doc, byId, ctx) {
   const stations = [];
-  for (const knot of path.knots) {
-    if (!knot.seq) {
-      continue;
+  for (const knot of knots) {
+    const make = knot.seq && STATION_BY_ROLE.get(knot.role);
+    const el = make && elementById(doc, knot.seq.elementId);
+    const s = el && byId.get(el.id);
+    const st = s && make(knot, el, s, stations.length, ctx);
+    if (st) {
+      stations.push(st);
     }
-    const el = elementById(doc, knot.seq.elementId);
-    const structure = byElement.get(knot.seq.elementId);
-    if (!el || !structure) {
-      continue;
-    }
-
-    if (knot.role === 'marker') {
-      /*
-       * A FLAG OR A CONE SCORES AS A VIRTUAL GATE on the pass side the
-       * sequence named. The square sits on the racing-line knot, inner
-       * edge on the pole, and the race field draws it as the same green
-       * pane a real opening wears. Waypoints keep a clearance of zero
-       * and are skipped: they pin the line, they are not a hole.
-       */
-      if (el.type === 'waypoint') {
-        continue;
-      }
-      const clearance = knot.seq.clearance ?? 0;
-      if (clearance < 0.05) {
-        continue;
-      }
-      const dims = virtualApertureDims(el, knot.seq, cls);
-      const t = knot.tangent;
-      const travel = { x: t.x, y: t.z, z: -t.y };
-      const heading = headingForTravel(travel.x, travel.z);
-      const pos = toScene(field, knot.pos);
-      /*
-       * THE SQUARE'S CENTRE IS NOT THE KNOT ANY MORE.
-       *
-       * It was, while the square was exactly twice the clearance wide: the
-       * inner edge landed on the pole and the centre landed on the racing
-       * line by arithmetic. Now that the width carries MARKER_GATE_PAD on
-       * top, the two have to be told apart, and the contract elements.js
-       * states is that the INNER EDGE stays on the pole. So the centre is
-       * pushed `outward` further along the pass direction, which is the
-       * direction from the pole to the knot. The racing line does not move:
-       * it still runs through the knot, now nearer the inner edge of a
-       * wider hole, which is the whole point of widening it.
-       */
-      let ox = pos.x - structure.x;
-      let oz = pos.z - structure.z;
-      const on = Math.hypot(ox, oz);
-      if (on > 1e-6) {
-        ox /= on;
-        oz /= on;
-      } else {
-        ox = 0;
-        oz = 0;
-      }
-      stations.push({
-        elementId: el.id,
-        structure,
-        apertureIndex: 0,
-        flyOrder: stations.length,
-        x: pos.x + ox * dims.outward,
-        z: pos.z + oz * dims.outward,
-        /* The pole itself, scene coordinates, so the renderer can put the
-         * pass side glow against the flag rather than guessing which edge
-         * of the corridor the structure is on. */
-        poleX: structure.x,
-        poleZ: structure.z,
-        /* The pole's foot, not the knot: the knot now carries the height
-         * the lap passes the pole at, and the square stands on the floor. */
-        baseY: elev(knot.markerPos ? knot.markerPos.z : knot.pos.z),
-        centreY: dims.centerH,
-        clearW: dims.clearW,
-        clearH: dims.clearH,
-        yaw: heading == null ? structure.yaw : heading,
-        pitch: 0,
-        name: structure.name,
-        type: el.type,
-        entry: 1,
-        cue: '',
-        virtual: true,
-      });
-      continue;
-    }
-
-    if (knot.role !== 'aperture') {
-      continue;
-    }
-    const apertures = aperturesOf(el);
-    const index = Math.min(Math.max(0, knot.seq.apertureIndex ?? 0), apertures.length - 1);
-    const ap = apertures[index];
-
-    /* The travel direction, document frame to scene frame. */
-    const t = knot.tangent;
-    const travel = { x: t.x, y: t.z, z: -t.y };
-    const heading = headingForTravel(travel.x, travel.z);
-
-    /*
-     * A flat dive gate has no horizontal travel at all, so there is no
-     * heading to read off it. Fall back to the structure's own yaw, which is
-     * still a real direction: it is the azimuth the opening's width runs
-     * across, and with the pitch below it makes a complete frame.
-     */
-    const yaw = heading == null ? structure.yaw : heading;
-
-    /*
-     * Pitch, as the angle the direction of travel dips below the horizontal.
-     * The document's own pitch is a property of the PLANE and the entry sign
-     * says which way through it; what the gate has to be built and scored
-     * against is the direction the quad actually goes, so the two are folded
-     * together here and the station carries one angle.
-     */
-    const tilt = Math.asin(Math.max(-1, Math.min(1, travel.y)));
-
-    const pos = toScene(field, { x: el.position.x, y: el.position.y });
-    stations.push({
-      elementId: el.id,
-      structure,
-      apertureIndex: index,
-      flyOrder: stations.length,
-      x: pos.x,
-      z: pos.z,
-      baseY: elev(el.position.z),
-      /* Height of THIS opening's centre above the structure's base, built. */
-      centreY: ap.centerH * gateScale,
-      clearW: ap.clearW * gateScale,
-      clearH: ap.clearH * gateScale,
-      yaw,
-      pitch: tilt,
-      name: structure.name,
-      type: el.type,
-      entry: knot.seq.entry,
-      cue: '',
-      virtual: false,
-    });
   }
+  return stations;
+}
 
-  /* Where the quad is parked. On a launch stand when the track has pads,
-   * otherwise behind the first gate the same way the field stands off its
-   * own timing line. */
+function spawnFor(doc, stations, ctx) {
   const pads = startPadsOf(doc);
-  let spawn = null;
   if (pads) {
-    const p = toScene(field, pads.position);
-    /*
-     * THE PADS' YAW IS A HEADING, NOT A PLANE.
-     *
-     * A gate's document yaw points its plane NORMAL, so its scene yaw is
-     * that angle plus a quarter turn; the start pads' document yaw points
-     * the way the quad sets off. Reusing the gate formula here sent the quad
-     * out backwards, with the first gate behind its right shoulder, which is
-     * what the frame check in the harness caught. Running the pads' heading
-     * through headingForTravel is not just the fix, it is the reason that
-     * function exists: it is the one place the game's travel convention is
-     * written down.
-     */
-    const forward = { x: Math.cos(pads.yaw), z: -Math.sin(pads.yaw) };
-    const yaw = headingForTravel(forward.x, forward.z) ?? 0;
-    /* Onto one stand in the row, using the same across-the-line offset the
-     * mesh uses, so the craft sits on a block rather than in the grass
-     * between two. Pitch matches the ramp so the front arms rest on the
-     * foam. */
+    const yaw = padYaw(pads.yaw);
     const off = startBlockLaneOffset(pads.dims);
-    spawn = {
-      x: p.x + Math.cos(yaw) * off,
-      z: p.z - Math.sin(yaw) * off,
+    const at = scenePoint(ctx.field, pads.position);
+    return {
+      x: at.x + Math.cos(yaw) * off,
+      z: at.z - Math.sin(yaw) * off,
       yaw,
       pitch: startBlockDims(pads.dims.padSize).tilt,
     };
-  } else if (stations.length) {
-    const first = stations[0];
-    const back = SPAWN_BACK_BY_CLASS[cls] ?? SPAWN_BACK;
-    spawn = {
-      x: first.x + Math.sin(first.yaw) * back,
-      z: first.z + Math.cos(first.yaw) * back,
-      yaw: first.yaw,
-    };
-    warnings.push(str('trackdoc.no_start_pads_in_the_track'));
-  } else {
-    spawn = { x: 0, z: 0, yaw: 0 };
   }
-
-  /* The racing line in scene metres. The terrain flattens a corridor along
-   * it. */
-  const line = path.samples.map((s) => {
-    const p = toScene(field, s.pos);
-    return { x: p.x, y: elev(s.pos.z), z: p.z };
-  });
-
-  /*
-   * Ground marks. Built from the knots, not from the Hermite samples: the
-   * paint has to hug flags on the pass side the way a racer does, and the
-   * cubic through gate-normal tangents does not. Scene XZ, so the renderer
-   * never has to know a document existed.
-   */
-  const guide = guideFromKnots(sceneKnots(path.knots, field));
-
   if (!stations.length) {
-    warnings.push(str('trackdoc.this_track_has_nothing_to_fly'));
+    return { x: 0, z: 0, yaw: 0 };
   }
-
-  const out = {
-    id: 'custom',
-    name: doc.name,
-    documentId: doc.id,
-    /*
-     * The course's marks, in the order they are dealt out round the gates,
-     * as bare data URLs. normalize() has already refused anything that is
-     * not an embedded image, so what reaches the renderer is a list of data
-     * URLs and the renderer never has to decide whether a string is safe to
-     * hand a texture loader.
-     */
-    logos: logosOf(doc).map((l) => l.image),
-    /* The marks painted on the grass, in scene metres. See groundDecals. */
-    decals: groundDecals(doc, field),
-    field: { width: field.width, depth: field.depth },
-    /* src/trackbuilder/elements.js TRACK_CLASSES. Everything the renderer,
-     * the race timer and the guide paint do with a length has to read this. */
-    trackClass: cls,
-    structures,
-    stations,
-    spawn,
-    line,
-    guide,
-    figures: stampFigures(doc, field, stations),
-    warnings,
-    /* Kept so a caller can report on the track without re-reading it. */
-    lapLength: path.length,
-    closed: path.closed,
+  const first = stations[0];
+  const back = SETBACK_M[ctx.cls] ?? SETBACK_M.full;
+  ctx.warnings.push(str('trackdoc.no_start_pads_in_the_track'));
+  return {
+    x: first.x + Math.sin(first.yaw) * back,
+    z: first.z + Math.cos(first.yaw) * back,
+    yaw: first.yaw,
   };
-  out.samples = corridorSamples(out);
-  return out;
 }
 
-/*
- * The marks painted on the grass, converted to the scene's frame.
- *
- * WHICH MARK, BY INDEX. The document names it by id so that removing the
- * second of three sponsors cannot silently repaint somebody's decal; the
- * renderer wants a position in the list it was handed, because that is what
- * indexes its decoded images. The translation happens here, once, and a
- * decal naming a mark the course no longer carries is DROPPED rather than
- * defaulted: painting the wrong sponsor's logo on a field is worse than
- * painting none.
- *
- * `w` runs along the decal's own heading and `d` across it, which is the
- * same reading a barrier's dimensions get, so an author who has rotated one
- * has rotated the other the same way.
- */
-function groundDecals(doc, field) {
-  const logos = logosOf(doc);
+function guideKnot(k, field) {
+  const at = scenePoint(field, k.pos);
+  const g = { role: k.role, x: at.x, z: at.z, y: height(k.pos.z), radius: 0 };
+  if (k.role === 'marker' && k.markerPos) {
+    const pole = scenePoint(field, k.markerPos);
+    g.poleX = pole.x;
+    g.poleZ = pole.z;
+    g.radius = k.seq && k.seq.clearance != null ? k.seq.clearance : 1.5;
+  }
+  return g;
+}
+
+// A decal naming a logo the course no longer has is dropped, never repainted
+// with another sponsor's logo.
+function decalsOf(doc, logos, field) {
   const out = [];
   for (const el of doc.elements) {
     if (ELEMENTS[el.type]?.kind !== KIND.DECAL) {
       continue;
     }
     const mark = logoForDecal(doc, el);
-    const index = mark ? logos.indexOf(mark) : -1;
-    if (index < 0) {
+    const logo = mark ? logos.indexOf(mark) : -1;
+    if (logo < 0) {
       continue;
     }
-    const w = Math.max(0.1, el.dims.width);
-    const d = Math.max(0.1, el.dims.depth);
-    const p = toScene(field, el.position);
+    const at = scenePoint(field, el.position);
     out.push({
-      x: p.x, z: p.z, yaw: el.yaw, w, d, logo: index,
+      x: at.x,
+      z: at.z,
+      yaw: el.yaw,
+      w: Math.max(0.1, el.dims.width),
+      d: Math.max(0.1, el.dims.depth),
+      logo,
     });
   }
   return out;
 }
 
+// Consecutive stations on the same element, never wrapping round the lap.
+function runsOf(stations) {
+  const runs = [];
+  for (const st of stations) {
+    const run = runs[runs.length - 1];
+    if (run && run[0].elementId === st.elementId) {
+      run.push(st);
+    } else {
+      runs.push([st]);
+    }
+  }
+  return runs;
+}
+
 /*
- * Name each stacked pass, and build the polyline the world draws as the
- * figure's hint: the openings in order, with a wrap between each pair so
- * the ribbon goes around the stack rather than through it.
- *
- * Mutates stations (writes `cue`). Returns the figures list.
+ * Writes each station's cue and returns the stacked figures. wrapBetween is
+ * called without the track class, so a wing figure wraps at the default
+ * class's reach while the path solver used the real one; that is the recorded
+ * behaviour and changing it is its own commit.
  */
-function stampFigures(doc, field, stations) {
+function figuresOf(doc, stations, field) {
   const figures = [];
-  let i = 0;
-  while (i < stations.length) {
-    let j = i;
-    while (j + 1 < stations.length && stations[j + 1].elementId === stations[i].elementId) {
-      j += 1;
+  for (const run of runsOf(stations)) {
+    const el = elementById(doc, run[0].elementId);
+    if (!el) {
+      continue;
     }
-    const run = stations.slice(i, j + 1);
-    const el = elementById(doc, stations[i].elementId);
-    if (el) {
-      const seqs = run.map((st) => ({ apertureIndex: st.apertureIndex, entry: st.entry }));
-      for (const st of run) {
-        st.cue = figureCueOf(el, { apertureIndex: st.apertureIndex }, seqs);
-      }
-      if (run.length >= 2) {
-        const points = [];
-        for (let k = 0; k < run.length; k += 1) {
-          const st = run[k];
-          points.push({ x: st.x, y: st.baseY + st.centreY, z: st.z });
-          if (k < run.length - 1) {
-            const nxt = run[k + 1];
-            const wrap = wrapBetween(el, seqs[k], seqs[k + 1]);
-            const p = toScene(field, wrap.pos);
-            points.push({
-              x: p.x,
-              y: (st.baseY + st.centreY + nxt.baseY + nxt.centreY) * 0.5,
-              z: p.z,
-            });
-          }
-        }
-        figures.push({
-          flyOrders: run.map((st) => st.flyOrder),
-          points,
-        });
-      }
+    const seqs = run.map((st) => ({ apertureIndex: st.apertureIndex, entry: st.entry }));
+    for (const st of run) {
+      st.cue = figureCueOf(el, { apertureIndex: st.apertureIndex }, seqs);
     }
-    i = j + 1;
+    if (run.length < 2) {
+      continue;
+    }
+    const points = [];
+    run.forEach((st, k) => {
+      points.push({ x: st.x, y: st.baseY + st.centreY, z: st.z });
+      const nxt = run[k + 1];
+      if (!nxt) {
+        return;
+      }
+      const wrap = scenePoint(field, wrapBetween(el, seqs[k], seqs[k + 1]).pos);
+      const y = (st.baseY + st.centreY + nxt.baseY + nxt.centreY) * 0.5;
+      points.push({ x: wrap.x, y, z: wrap.z });
+    });
+    figures.push({ flyOrders: run.map((st) => st.flyOrder), points });
   }
   return figures;
 }
 
-/*
- * Knots the ground-mark builder wants, in the scene frame. A marker's fly
- * point is already offset; the pole and the clearance go with it so the
- * string line can wrap the peg instead of the Hermite bulge.
- */
-function sceneKnots(knots, field) {
-  return knots.map((k) => {
-    const p = toScene(field, k.pos);
-    const out = { role: k.role, x: p.x, z: p.z, y: elev(k.pos.z), radius: 0 };
-    if (k.role === 'marker' && k.markerPos) {
-      const pole = toScene(field, k.markerPos);
-      out.poleX = pole.x;
-      out.poleZ = pole.z;
-      out.radius = k.seq && k.seq.clearance != null ? k.seq.clearance : 1.5;
+export function courseFromDocument(raw) {
+  const { doc, repairs } = normalize(raw);
+  upgradeStackedFigures(doc);
+  foldImportedHeights(doc);
+  const cls = trackClassOf(doc);
+  const ctx = {
+    cls,
+    scale: gateScaleFor(cls),
+    field: doc.field,
+    dress: dressOrder(doc),
+    warnings: [...repairs],
+  };
+
+  const structures = [];
+  const byId = new Map();
+  for (const el of doc.elements) {
+    const def = ELEMENTS[el.type];
+    if (def.kind === KIND.ANNOTATION || def.kind === KIND.DECAL) {
+      continue;
     }
-    return out;
+    const s = makeStructure(el, def, ctx);
+    structures.push(s);
+    byId.set(el.id, s);
+  }
+
+  const path = buildPath(doc);
+  const stations = stationsAlong(path.knots, doc, byId, ctx);
+  const spawn = spawnFor(doc, stations, ctx);
+  const line = path.samples.map((s) => {
+    const at = scenePoint(ctx.field, s.pos);
+    return { x: at.x, y: height(s.pos.z), z: at.z };
   });
+  const guide = guideFromKnots(path.knots.map((k) => guideKnot(k, ctx.field)));
+  if (!stations.length) {
+    ctx.warnings.push(str('trackdoc.this_track_has_nothing_to_fly'));
+  }
+
+  const logos = logosOf(doc);
+  const course = {
+    id: 'custom',
+    name: doc.name,
+    documentId: doc.id,
+    logos: logos.map((l) => l.image),
+    decals: decalsOf(doc, logos, ctx.field),
+    field: { width: ctx.field.width, depth: ctx.field.depth },
+    trackClass: cls,
+    structures,
+    stations,
+    spawn,
+    line,
+    guide,
+    figures: figuresOf(doc, stations, ctx.field),
+    warnings: ctx.warnings,
+    lapLength: path.length,
+    closed: path.closed,
+  };
+  course.samples = corridorSamples(course);
+  return course;
 }
 
 /*
- * Points for the height field's flat corridor, in the shape it wants:
- * { x, z } along the course. The racing line is the right curve to flatten
- * against, because it is where the quad goes, but a line sampled every few
- * centimetres would make the height field's nearest point search 4000 deep
- * for every terrain vertex, so it is thinned to a stated spacing.
+ * Points the height field keeps flat: the racing line thinned to one point
+ * per spacingM (measured from the last point kept), every structure, and the
+ * spawn. Never empty, so the terrain always has somewhere to flatten.
  */
 export function corridorSamples(course, spacingM = 4) {
   const out = [];
@@ -647,8 +428,6 @@ export function corridorSamples(course, spacingM = 4) {
       last = p;
     }
   }
-  /* Every structure gets one too, so a gate placed off the line still stands
-   * on flat ground rather than half way up a hillside. */
   for (const s of course.structures) {
     out.push({ x: s.x, z: s.z });
   }
