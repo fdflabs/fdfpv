@@ -95,6 +95,11 @@ export function createBreakage(opts = {}) {
   pieceMesh.frustumCulled = false;
   pieceMesh.castShadow = true;
   pieceMesh.receiveShadow = true;
+  /* A depth material of its own, as three's shared one is made: shared,
+   * it was switched between this instanced mesh and every plain caster
+   * (the dam's concrete) at each turn in the shadow pass, a program
+   * lookup each time, about 800 a second in a war (docs/PERF.md P8). */
+  pieceMesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
   pieceMesh.count = 0;
   const edgeMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 5, 1).translate(0, 0.5, 0), mat, EDGES);
   edgeMesh.name = 'war-breakage-edges';

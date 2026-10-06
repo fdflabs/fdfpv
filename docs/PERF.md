@@ -6,7 +6,11 @@ takes the numbers:
 
     SIM_GPU=1 npm run perf -- OUT_DIR [--scenarios=itaipu-war,swiss-low,wing-cruise]
         [--seconds=30] [--repeat=2] [--preset=high] [--pace=free|raf] [--cap=90]
-        [--mode=quality|balanced|performance] [--objects]
+        [--mode=quality|balanced|performance] [--objects] [--alloc] [--gctrace] [--buffers]
+
+`--alloc`, `--gctrace` and `--buffers` say who allocates, which collector
+paused and who asks for each buffer upload (P8 below); each costs time of
+its own, so their frame times are not a baseline.
 
 `--scenarios=itaipu-stream` adds Itaipu flown flat out across its town
 (P6 below); it is not in the default list.
@@ -832,3 +836,198 @@ merges, by its own design: grass.js's hunks here are not shader text.
 - Garbage: 24 to 34 ms collections remain, 35 MB a second (P2's).
 - wing-cruise uploads 1.4 GB of buffer data in 30 s (bufferSubData,
   35 ms in all): throughput, not a hitch; whose it is was not traced.
+
+## P8, garbage, collection pauses, the atlas and the buffer uploads
+
+2026-10-06, on main at 27610fa2. High, 1600 by 900, `--mode=quality`, GPU 0
+shared with the desktop and another agent's headless page (nvidia-smi pmon:
+37 to 78 % of GPU 0's SM during the runs, per run in the PRs), host load
+average 4 to 10 (other agents' builds and a Python job at 300 % CPU). Every
+before and after below was run interleaved, A (main with this profiler),
+B (#477, #478 and #479 together), A, B.
+
+### The brief, checked
+
+- **"wing-cruise uploads 1.4 GB of buffer data in 30 s" was perf-play
+  counting offsets.** It summed `bufferSubData`'s second argument, the
+  destination offset, as the bytes. Counted from the data handed over,
+  wing-cruise uploads 84 to 250 MB in 30 s, itaipu-war 59 to 102, swiss-low
+  508 to 587. Most of swiss-low's is the meadow's instance buffer
+  (vegetation/grass.js:788, about 320 MB in 20 s under `--buffers`),
+  uploaded whole each time its drawn ring changes, which it does as the
+  camera turns: data that changed, 75 ms of CPU in 30 s. Left as it is.
+- **The pauses over 16.7 ms are full mark-compacts, not the garbage
+  rate's scavenges.** `--gctrace` names them: one `V8.GCHandleGCRequest`
+  (the mark-compact's finishing pause) per 30 s on Itaipu, 17.6 to 23.8 ms
+  on main free running and 9.6 to 33.2 with the cap at 90, and about one
+  per 6 s on the Swiss valley, 10 to 16 ms. Scavenges stay at 1 to 11 ms
+  free running, up to 17 with the cap at 90. A mark-compact's pause is set by the
+  live heap, about 660 MB on Itaipu after a forced collection, not by how
+  much garbage was made: less garbage makes it rarer, not shorter. The one
+  pause per run is also the noisiest number here: on main, 17.6 and 23.8
+  ms in two free runs, 9.6 and 16.7 in two capped ones.
+- **P2's "GC is 0.7 % of the main thread"** is right as an average: 5 to
+  18 ms of pauses per second, 1 to 2 %. The pauses are what count, and a
+  frame that meets one is late.
+- **The thermal draw's fog.** renderThermal takes the scene's fog away for
+  its call, which sends every fogged material back through three's
+  getProgram twice a frame. swiss2 and Itaipu draw with no fog (`fog:
+  false`), so there is nothing to gain on the maps measured; not changed.
+- **The atlas's 170 to 248 ms at load was a wait.** See below.
+
+### How it was measured
+
+perf-play gained (scripts/perf-play.js): every collection's pause, from
+the sampled profile's "(garbage collector)" runs, and the garbage per frame
+beside the rate; `--alloc`, the sampling heap profiler with the collected
+objects kept, by function and by the src/ caller under it; `--gctrace`,
+V8's GC events on the main thread by collector; `--buffers`, each buffer
+upload's bytes charged to the src/ line that set needsUpdate.
+
+The trace undercounts the young generation's collections (12 to 19
+MinorGC events in Swiss runs whose heap fell 55 to 85 times), so it names a
+long pause; the profile counts them.
+
+Program switches were counted with a copy of three whose setProgram says
+why it went back to getProgram, served in place of the CDN's through
+tests/lib/page.js's override (a scratch tool, not committed).
+
+### Where the garbage came from
+
+Main, `--alloc`, 20 s, sampled allocation in KB a frame (a frame is the
+fair unit: the rate in MB/s rises with the frame rate):
+
+| | itaipu-war | swiss-low | wing-cruise |
+| --- | --- | --- | --- |
+| all | 279 | 979 | 692 |
+| three, drawing the scene, the sensor view and the mirror | 199 | 286 | 101 |
+| the meadow's tile builds (coverAt, meadowField, s2Cuts, buildTile) | | 219 | 328 |
+| the meadow's drawn ring (tileBox, update) | | 140 | |
+| world-audio nearestOn | | 44 | 38 |
+| swiss2 terrain height (a double returned per call) | | 36 | 30 |
+| no src/ caller (the browser, perf-play's own timer queries and fences) | 12 | 37 | 29 |
+
+What three makes per draw (its uniform setters, its render list's sort,
+getProgram's parameters for a material that changes program) is out of
+reach without patching three; what is left of the shell's is spread over
+dozens of helpers returning or storing doubles.
+
+### What was built
+
+**The meadow without garbage per clump or per frame** (#478). The
+drawn ring is chosen in two typed arrays instead of a key string and new
+arrays every frame, and a tile's box filled from one constant list (tileBox
+built five arrays and a Vector3 per tile per frame). coverAt fills one
+object and meadowFieldInto a field the caller keeps, instead of an object
+per clump with arrays in it. Every number is worked out as before: a node
+comparison of main's meadowField with both new forms at 400 000 points
+found no difference, and perf-grass-check flies the base's zones.js
+beside its grass.js.
+
+**One program per material** (#477). three keeps one current
+program per material, and a material drawn on an instanced and a plain
+mesh went back through getProgram at every switch: about 940 a second on
+swiss-low (the vehicles' body on their wheels), 90 on wing-cruise (the
+lift's on its cabins), 820 in the shadow pass on itaipu-war (three's
+shared depth material between the breakage's pieces and the dam). Each
+instanced user has a material of its own made the same way; none of those
+switches is left, and getProgram's parameters (9.2 ms a second of
+swiss-low's main thread) drop out of the profile's top functions.
+
+| `--alloc`, KB a frame, A against B | itaipu-war | swiss-low | wing-cruise |
+| --- | --- | --- | --- |
+| all | 279, 260 | 979, 725 | 692, 576 |
+
+Free running, 30 s, two runs each:
+
+| | garbage KB a frame | GC pauses | over 5 ms | over 16.7 ms | longest | frames over 16.7 ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| itaipu-war A | 342, 313 | 66, 83 | 12, 3 | 1, 1 | 17.8, 20.0 | 5, 3 |
+| itaipu-war B | 324, 297 | 70, 78 | 11, 11 | 1, 1 | 18.7, 33.7 | 11, 2 |
+| swiss-low A | 855, 736 | 95, 106 | 46, 37 | 1, 0 | 16.9, 15.0 | 127, 11 |
+| swiss-low B | 650, 664 | 74, 78 | 47, 45 | 1, 0 | 16.8, 16.6 | 42, 7 |
+| wing-cruise A | 569, 637 | 89, 114 | 32, 23 | 2, 0 | 38.7, 15.6 | 193, 32 |
+| wing-cruise B | 506, 499 | 98, 102 | 34, 46 | 0, 1 | 15.7, 17.0 | 20, 24 |
+
+Capped at 90 (the owner's target), 30 s, `--gctrace`, two runs each:
+
+| | garbage KB a frame | GC pauses | over 5 ms | over 16.7 ms | mark-compact pause (trace) | frames over 16.7 ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| itaipu-war A | 464, 410 | 51, 55 | 31, 33 | 3, 2 | 9.6, 16.7 | 12, 6 |
+| itaipu-war B | 419, 402 | 49, 53 | 33, 31 | 2, 2 | 14.7, 33.2 | 16, 9 |
+| swiss-low A | 762, 834 | 102, 98 | 10, 9 | 0, 0 | none in the window, none | 8, 74 |
+| swiss-low B | 685, 644 | 75, 71 | 33, 30 | 0, 0 | 10.1, 11.9 | 12, 90 |
+| wing-cruise A | 580, 596 | 86, 86 | 36, 32 | 0, 0 | 10.3, none | 10, 1 |
+| wing-cruise B | 591, 620 | 88, 92 | 29, 23 | 0, 1 | 11.0, 11.1 | 6, 40 |
+
+With the cap there is slack between frames, and V8 collects in it: the
+profile counts a collection run in that slack as a pause, but it holds no
+frame. Itaipu's pauses over 5 ms went from 3 to 12 free running to 31 to
+33 capped while its late frames stayed at 6 to 16; read the pause columns
+here as collections, the last column as what the pilot sees. The second
+swiss-low pair and the second wing-cruise B ran with GPU 0 at 57 to 75 %
+(another agent's page), which is most of their late frames.
+
+The garbage per frame fell by a fifth to a quarter on the Swiss valley
+(sampled 979 to 725 KB on swiss-low, 692 to 576 on wing-cruise) and by a
+few per cent on Itaipu, whose own garbage moves with the war (201 to 356
+KB a frame across runs of one tree). The collections are fewer on
+swiss-low (95 to 106 against 74 to 78 in 30 s). The brief's targets, a
+large factor off the garbage and no pause over 16.7 ms, are not met: what
+is left of the garbage is mostly three's own, and the pauses over 16.7 ms
+are the mark-compacts, set by the live heap.
+
+**Itaipu's foliage atlas under the loading screen** (#479). The trees'
+2048 by 2048 canvas and its mip levels were uploaded in the frame the near
+trees first came into view: 18.4 ms for the top level and 4.1 for the
+next, about 25 in one frame, parked by itaipu-views.js's ground-forest-edge
+after the flight starts. P6 tried it at load and measured 170 to 248 ms;
+that was the wait, not the upload: it was called just after
+renderer.compile, and its 16 MB queued behind every program the compile
+had handed the GPU process (251 ms, measured the same way). Called before
+the compile it costs its own 22 to 26 ms. prewarm.js now uploads hidden
+canvases as well as photographs (uploadHiddenTextures), and Itaipu calls
+it before the compile and again after. Uploads over 2 ms, from load into
+flight: in flight 30.8 ms before, none after; before the flight 92 ms
+before, 139 after.
+
+### Tried and not kept
+
+- **BatchedMesh's sort in place.** three r160's BatchedMesh sorts its
+  draw list with Array.prototype.sort on every draw of it, and V8's sort
+  copies the list each call: sortOpaque was Itaipu's largest allocator,
+  about 15 MB/s. A stable merge sort over a kept scratch array gave the
+  same order item for item (a selftest against three's, which an unstable
+  merge fails) and took that garbage away, but itaipu-war's mark-compact
+  pause went from 17.6 and 23.8 ms (main) and 19.1 and 19.1 (the other
+  changes alone) to 40.3 and 52.9 with it, in interleaved runs. Why is not
+  known; not kept.
+- **Uploading the atlas as ImageBitmaps.** The same texels (every level
+  compared as floats, none differ), 10 to 13 ms to upload instead of 23 to
+  27, but createImageBitmap takes 13 ms of its own; under the loading
+  screen the canvas is cheap enough.
+
+### What is left
+
+- The mark-compact pause: 10 to 16 ms on the Swiss valley, 10 to 53 on
+  Itaipu, about once per 6 s and per 30 s. It is the live heap (660 MB on
+  Itaipu; of the 107 MB a sampled census could place, the town's roofs,
+  the dam's triangles and the power lines lead, as JS objects) that would
+  have to shrink.
+- three's own garbage while drawing (about 200 to 290 KB a frame), most
+  of it in the scene's three draws a frame with the inset up.
+- Transparent double sided materials (the falls, the cascade, the
+  glass): three draws them in two passes, changing the material's side and
+  bumping its version for each, so getProgram runs twice per draw, about
+  1 000 times a second on swiss-low. Making them two meshes would change
+  the order other transparent things are drawn in; not touched.
+- world-audio's ambience walks every lake outline every frame: 35 to 50
+  ms a second of the main thread on Itaipu, and nearestOn 40 KB of garbage
+  a frame on the Swiss valley.
+- A 2048 by 2048 ImageBitmap uploaded at the first frame of a flight on
+  Itaipu, 8 to 15 ms.
+- perf-grass-check fails on main (1cd8dc2d and 27610fa2, with host load 5
+  to 7): 25 differences in its slowed run (the middle layer, steps 760 to
+  763, after the jump), the same 25 on every branch here, and once 66 with
+  one at full speed. The lead's runs of #472 passed; it looks timing
+  sensitive.

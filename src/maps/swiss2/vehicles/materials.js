@@ -42,6 +42,15 @@ const need = (src, chunk) => {
 };
 
 export function vehicleMaterials() {
+  /* The wheels get a body material of their own. three keeps one program
+   * per material at a time, and one material on the instanced wheels and
+   * the plain bodies sent it back through getProgram at every switch
+   * between them, about 900 times a second on the Swiss valley with the
+   * inset up (docs/PERF.md P8). Two alike draw with the same program. */
+  return { body: bodyMaterial(), wheels: bodyMaterial(), glass: glassMaterial() };
+}
+
+function bodyMaterial() {
   const body = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     vertexColors: true,
@@ -69,7 +78,10 @@ export function vehicleMaterials() {
         #endif`);
   };
   body.customProgramCacheKey = () => 's2-vehicle';
+  return body;
+}
 
+function glassMaterial() {
   const glass = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color().setRGB(0.012, 0.016, 0.016, THREE.LinearSRGBColorSpace),
     roughness: 0.03,
@@ -93,5 +105,5 @@ export function vehicleMaterials() {
   glass.customProgramCacheKey = () => 's2-vehicle-glass';
   /* Glass is opaque in the long wave band (src/render/thermal.js). */
   thermalKind(glass, 'glass');
-  return { body, glass };
+  return glass;
 }

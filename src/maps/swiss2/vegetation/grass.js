@@ -58,7 +58,7 @@ import { thermalKind } from '../../../render/thermal.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
 import { MEADOW_GLSL, CRAFT_GLSL, craftUniforms } from '../ground.js';
 import {
-  meadowField, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
+  meadowFieldInto, airfield, s2Noise, beachTop, ROAD_DX, ROAD_END,
 } from './zones.js';
 
 const REGION_KEYS = ['clump0', 'clump1', 'clump2', 'clump3', 'clump4', 'clump5', 'flower0', 'flower1', 'flower2', 'flower3', 'weed0', 'weed1', 'weed2', 'weed3',
@@ -71,6 +71,9 @@ const FLAT0 = REGION_KEYS.indexOf('flat0');
 const UNMOWN = 32;
 /* Floats per clump: x, y, z, yaw, height, width, region, tint. */
 const STRIDE = 8;
+/* Where a tile's ground is read for its box: the corners and the middle,
+ * as u, v pairs over the tile. */
+const BOX_SAMPLES = [0, 0, 1, 0, 0, 1, 1, 1, 0.5, 0.5];
 
 /* Three cards crossed at sixty degrees, a metre wide and a metre high,
  * standing on the origin; the instance scales them. */
@@ -123,10 +126,33 @@ function fenceDist(x, z, lines) {
   return best;
 }
 
+/* coverAt's answer and the field it reads, one of each, filled in place:
+ * a tile build asks for every clump, and an object made per call was
+ * the meadow's largest garbage (docs/PERF.md P8). A build reads the
+ * answer before it asks again, and never yields between the two. */
+const COVER = {
+  p: 0, h: 0, bloom: 0, tone: 0, seeds: 0, pasture: false, forest: 0, weeds: 0, unmown: false, flat: 0, bare: 0,
+};
+const FIELD = { own: [0, 0] };
+function cover(p, h, bloom, tone, seeds, pasture, forest, flat, bare) {
+  COVER.p = p;
+  COVER.h = h;
+  COVER.bloom = bloom;
+  COVER.tone = tone;
+  COVER.seeds = seeds;
+  COVER.pasture = pasture;
+  COVER.forest = forest;
+  COVER.weeds = 0;
+  COVER.unmown = false;
+  COVER.flat = flat;
+  COVER.bare = bare;
+  return COVER;
+}
+
 /*
  * What the ground at (x, z) grows: the chance a clump stands, its height
- * in metres, and the share of flower clumps. Zero chance where nothing
- * grows.
+ * in metres, and the share of flower clumps. Null where nothing grows.
+ * The answer is COVER, good until the next call.
  */
 function coverAt(x, z, heightAt, layout) {
   /* The strip is grass too, a mown one: clover and daisies in turf cut
@@ -141,17 +167,17 @@ function coverAt(x, z, heightAt, layout) {
     /* Thicker and thinner in patches a few metres across, so the cut
      * turf is not an even pile of clumps. */
     const thick = noise2(x / 3.3 + 7.7, z / 3.3 + 1.9);
-    return {
-      p: 0.9 * (0.55 + 0.45 * thick) * (1 - 0.65 * air.track) * (1 - 0.35 * air.worn),
-      h: 0.27 * (0.8 + 0.4 * noise2(x / 5.1 + 3.1, z / 5.1 + 6.2)),
-      bloom: 0.22,
-      tone: 1,
-      seeds: 0,
-      pasture: true,
-      forest: 0,
-      flat: 0.3 + 0.1 * air.track + 0.1 * air.worn,
-      bare: 0.04 + 0.3 * Math.max(air.track, air.worn),
-    };
+    return cover(
+      0.9 * (0.55 + 0.45 * thick) * (1 - 0.65 * air.track) * (1 - 0.35 * air.worn),
+      0.27 * (0.8 + 0.4 * noise2(x / 5.1 + 3.1, z / 5.1 + 6.2)),
+      0.22,
+      1,
+      0,
+      true,
+      0,
+      0.3 + 0.1 * air.track + 0.1 * air.worn,
+      0.04 + 0.3 * Math.max(air.track, air.worn),
+    );
   }
   if (layout.coverOff(x, z)) {
     return null;
@@ -165,9 +191,7 @@ function coverAt(x, z, heightAt, layout) {
     if (y < LAKE_Y + 0.35 || below > 0.9) {
       return null;
     }
-    return {
-      p: 0.55 * (1 - below / 0.9), h: 0.2, bloom: 0.05, tone: 1, seeds: 0, pasture: false, forest: 0, flat: 0, bare: 0,
-    };
+    return cover(0.55 * (1 - below / 0.9), 0.2, 0.05, 1, 0, false, 0, 0, 0);
   }
   const bank = layout.streamDist(x, z);
   if (bank < 3.2) {
@@ -208,7 +232,7 @@ function coverAt(x, z, heightAt, layout) {
    * paths, and flowers stand in drifts of one colour, which is how a
    * meadow flowers: a sheet of buttercup yellow here, ox eye white or
    * clover pink there, sown by the last year's seed where it fell. */
-  const field = y < 60 ? meadowField(x, z) : null;
+  const field = y < 60 ? meadowFieldInto(x, z, FIELD) : null;
   const kind = field ? field.kind : 'regrown';
   let seeds = 0;
   if (kind === 'uncut') {
@@ -235,19 +259,17 @@ function coverAt(x, z, heightAt, layout) {
   const hue = noise2(x / 71 + 1.1, z / 71 + 7.3);
   const tone = hue < 0.4 ? 0 : hue < 0.52 ? 1 : hue < 0.64 ? 2 : 3;
   const flowering = kind === 'uncut' ? 1 : kind === 'pasture' ? 0.55 : kind === 'regrown' ? 0.5 : kind === 'cut' ? 0.15 : 0.2;
-  const cover = {
+  const c = cover(
     p,
     h,
-    bloom: (0.2 + 0.8 * drift) * flowering,
+    (0.2 + 0.8 * drift) * flowering,
     tone,
     seeds,
-    pasture: kind === 'pasture',
+    kind === 'pasture',
     forest,
-    weeds: 0,
-    unmown: false,
-    flat: kind === 'pasture' ? 0.05 : 0.025 * mown,
-    bare: kind === 'pasture' ? 0.12 : 0.04,
-  };
+    kind === 'pasture' ? 0.05 : 0.025 * mown,
+    kind === 'pasture' ? 0.12 : 0.04,
+  );
   /* What the mower leaves: the road's verge past the strip mown at the
    * tarmac's edge, and a metre either side of the line between two
    * fields (under the fence, where there is one). Both stand knee to
@@ -259,28 +281,28 @@ function coverAt(x, z, heightAt, layout) {
   const margin = field && field.plateau < 0.2 && !layout.lakeWet(x, z) ? 1 - smoothstep(0.6, 1.2, edge) : 0;
   const wild = Math.max(verge, margin) * (1 - forest);
   if (wild > 0.5) {
-    cover.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
-    cover.seeds = 0.05;
-    cover.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
-    cover.bloom = Math.max(cover.bloom, 0.35);
-    cover.unmown = true;
+    c.h = Math.max(h, 0.55 + 0.25 * noise2(x / 9 + 1.7, z / 9 + 4.1));
+    c.seeds = 0.05;
+    c.weeds = 0.28 * smoothstep(0.4, 0.75, noise2(x / 13 + 5.5, z / 13 + 2.2) + 0.25);
+    c.bloom = Math.max(c.bloom, 0.35);
+    c.unmown = true;
   } else if (z > -2720 && z < ROAD_END + 4 && roadOff < VERGE[0] + 0.8) {
-    cover.h = 0.22;
-    cover.seeds = 0;
+    c.h = 0.22;
+    c.seeds = 0;
   }
   /* Beside the runway the grass is left long, knee high and flowering,
    * and where the aircraft stand and taxi it is trodden short. */
   if (air && air.rough > 0.3) {
-    cover.h = Math.max(cover.h, 0.3 + 0.25 * air.rough * noise2(x / 6 + 2.3, z / 6 + 8.1));
-    cover.bloom = Math.max(cover.bloom, 0.45 * air.rough);
-    cover.seeds = Math.max(cover.seeds, 0.05 * air.rough);
-    cover.pasture = false;
+    c.h = Math.max(c.h, 0.3 + 0.25 * air.rough * noise2(x / 6 + 2.3, z / 6 + 8.1));
+    c.bloom = Math.max(c.bloom, 0.45 * air.rough);
+    c.seeds = Math.max(c.seeds, 0.05 * air.rough);
+    c.pasture = false;
   }
   if (air && air.worn > 0.3) {
-    cover.p *= 1 - 0.4 * air.worn;
-    cover.h = Math.min(cover.h, 0.16);
+    c.p *= 1 - 0.4 * air.worn;
+    c.h = Math.min(c.h, 0.16);
   }
-  return cover;
+  return c;
 }
 
 
@@ -543,8 +565,17 @@ export function buildGrass({
    * of a few kilometres. */
   const tiles = new Map();
   const tileId = (ti, tj) => (ti + 32768) * 65536 + (tj + 32768);
-  let lastKey = '';
-  let drawn = [];
+  /* The tile the ring was last chosen from (NaN: none), the ring
+   * chosen then, and this frame's, as ti, tj pairs with their lengths.
+   * Kept arrays, not a key string: the ring is looked at every frame,
+   * and building its key was garbage every frame (docs/PERF.md P8). */
+  const span = Math.ceil(radius / tile) + 1;
+  let lastCi = NaN;
+  let lastCj = NaN;
+  const drawn = new Int32Array(2 * (2 * span + 1) ** 2);
+  const wanted = new Int32Array(drawn.length);
+  let drawnN = 0;
+  let wantedN = 0;
   /* The draw holds what it should: false after a tile it draws was
    * worked out in the background, or a tile it should draw could not be. */
   let current = false;
@@ -566,12 +597,14 @@ export function buildGrass({
   const tileBox = (ti, tj) => {
     let lo = Infinity;
     let hi = -Infinity;
-    for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.5]]) {
-      const y = heightAt((ti + u) * tile, (tj + v) * tile);
+    for (let k = 0; k < BOX_SAMPLES.length; k += 2) {
+      const y = heightAt((ti + BOX_SAMPLES[k]) * tile, (tj + BOX_SAMPLES[k + 1]) * tile);
       lo = Math.min(lo, y);
       hi = Math.max(hi, y);
     }
-    return box.set(pos.set(ti * tile, lo - 2, tj * tile), new THREE.Vector3((ti + 1) * tile, hi + 3, (tj + 1) * tile));
+    box.min.set(ti * tile, lo - 2, tj * tile);
+    box.max.set((ti + 1) * tile, hi + 3, (tj + 1) * tile);
+    return box;
   };
   /*
    * WHICH TILES CAN SHOW. A clump is folded to its root in the shader
@@ -689,11 +722,10 @@ export function buildGrass({
      * a clump seen from above is a star of cards, not a tuft. */
     if (above > ceiling) {
       geo.instanceCount = 0;
-      lastKey = '';
+      lastCi = NaN;
       return;
     }
-    const span = Math.ceil(radius / tile) + 1;
-    const wanted = [];
+    wantedN = 0;
     if (cull) {
       camera.updateMatrixWorld();
       viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -711,16 +743,24 @@ export function buildGrass({
         if (cull && !frustum.intersectsBox(tileBox(ti, tj))) {
           continue;
         }
-        wanted.push(ti, tj);
+        wanted[wantedN] = ti;
+        wanted[wantedN + 1] = tj;
+        wantedN += 2;
       }
     }
-    const key = `${ci},${cj}${cull ? `:${wanted.join(',')}` : ''}`;
+    let same = ci === lastCi && cj === lastCj;
+    if (same && cull) {
+      same = wantedN === drawnN;
+      for (let k = 0; same && k < wantedN; k += 1) {
+        same = wanted[k] === drawn[k];
+      }
+    }
     for (let k = 0; current && k < waiting.length; k += 2) {
       if (!tiles.has(tileId(waiting[k], waiting[k + 1])) && canShow(waiting[k], waiting[k + 1], px, pz)) {
         current = false;
       }
     }
-    if (key === lastKey && current) {
+    if (same && current) {
       return;
     }
     /* The ring drawn is the one worked out when the camera crossed into
@@ -729,9 +769,13 @@ export function buildGrass({
      * one round where the camera has got to since, which would draw
      * tiles at the ring's leading edge a crossing early, at a moment
      * that depends on how fast the background ran. */
-    if (key !== lastKey) {
-      lastKey = key;
-      drawn = wanted;
+    if (!same) {
+      lastCi = ci;
+      lastCj = cj;
+      for (let k = 0; k < wantedN; k += 1) {
+        drawn[k] = wanted[k];
+      }
+      drawnN = wantedN;
     }
     let n = 0;
     let built = 0;
@@ -739,7 +783,7 @@ export function buildGrass({
     let retry = false;
     wantedIds.clear();
     waiting.length = 0;
-    for (let k = 0; k < drawn.length; k += 2) {
+    for (let k = 0; k < drawnN; k += 2) {
       const ti = drawn[k];
       const tj = drawn[k + 1];
       const id = tileId(ti, tj);
