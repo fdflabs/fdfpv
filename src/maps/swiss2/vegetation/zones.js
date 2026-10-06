@@ -85,7 +85,7 @@ function s2Fbm(x, y) {
 function s2Cut(k, w, seed) {
   return s2Hash(k, seed) < 0.3 ? 1e7 : (k + 0.8 * (s2Hash(k, seed + 1.3) - 0.5)) * w;
 }
-function s2Cuts(x, w, seed) {
+function s2Cuts(x, w, seed, out) {
   const k0 = Math.floor(x / w);
   let lo = -1e7;
   let hi = 1e7;
@@ -104,8 +104,14 @@ function s2Cuts(x, w, seed) {
       hi = c;
     }
   }
-  return [lo, hi, klo];
+  out[0] = lo;
+  out[1] = hi;
+  out[2] = klo;
+  return out;
 }
+/* s2Cuts' answers for meadowFieldInto, which holds two at once. */
+const CUTS_V = new Float64Array(3);
+const CUTS_U = new Float64Array(3);
 /*
  * The field at (x, z): its id (own), the distance to its nearest
  * boundary (edge), the point in its strip's frame (u, v), and what the
@@ -113,30 +119,43 @@ function s2Cuts(x, w, seed) {
  * 'dry'), with `plateau`, how far into the kept short village greens.
  */
 export function meadowField(x, z) {
+  return meadowFieldInto(x, z, { own: [0, 0] });
+}
+
+/*
+ * meadowField into `out`, for the meadow's tile builds, which ask it for
+ * every clump: no object made per call (docs/PERF.md P8). `out.own` is
+ * a two element array of the caller's.
+ */
+export function meadowFieldInto(x, z, out) {
   let qx = x - streamX(z);
   let qy = z;
   qy += 60 * (s2Noise(x / 700 + 4, z / 700 + 4) - 0.5) + 14 * (s2Noise(x / 140 + 9, z / 140 + 9) - 0.5);
   qx += 40 * (s2Noise(x / 520 + 7, z / 520 + 7) - 0.5);
-  const sv = s2Cuts(qy, 42, 5.7);
+  const sv = s2Cuts(qy, 42, 5.7, CUTS_V);
   const strip = sv[2];
   const slant = 0.9 * (s2Hash(strip, 2.9) - 0.5);
   const u = qx + slant * (qy - 0.5 * (sv[0] + sv[1]));
   const wu = 90 + 140 * s2Hash(strip, 6.1);
   const off = wu * s2Hash(strip, 3.3);
-  const su = s2Cuts(u + off, wu, strip * 1.7 + 0.4);
+  const su = s2Cuts(u + off, wu, strip * 1.7 + 0.4, CUTS_U);
   const eAcross = Math.min(qy - sv[0], sv[1] - qy);
   const eAlong = Math.min(u + off - su[0], su[1] - u - off) / Math.sqrt(1 + slant * slant);
-  const own = [su[2], strip];
+  const own = out.own;
+  own[0] = su[2];
+  own[1] = strip;
   const k = s2Hash(own[0] + 4.4, own[1] + 4.4);
-  const kind = k < 0.28 ? 'uncut' : k < 0.5 ? 'regrown' : k < 0.7 ? 'cut' : k < 0.93 ? 'pasture' : 'dry';
-  const plateau = (1 - smoothstep(140, 340, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
-  return {
-    own, edge: Math.min(eAcross, eAlong), across: eAcross < eAlong, u, v: qy, kind, plateau,
-    /* Whether the mown rows are lines of one u (else of one v). */
-    rowsOnU: s2Hash(own[0] + 2.2, own[1] + 2.2) >= 0.5,
-    /* The ground by the stream is left uncut. */
-    damp: 1 - smoothstep(18, 75, Math.abs(x - streamX(z)) + 25 * (s2Noise(x / 45, z / 45) - 0.5)),
-  };
+  out.edge = Math.min(eAcross, eAlong);
+  out.across = eAcross < eAlong;
+  out.u = u;
+  out.v = qy;
+  out.kind = k < 0.28 ? 'uncut' : k < 0.5 ? 'regrown' : k < 0.7 ? 'cut' : k < 0.93 ? 'pasture' : 'dry';
+  out.plateau = (1 - smoothstep(140, 340, Math.abs(z))) * (1 - smoothstep(150, 320, Math.abs(x + 60)));
+  /* Whether the mown rows are lines of one u (else of one v). */
+  out.rowsOnU = s2Hash(own[0] + 2.2, own[1] + 2.2) >= 0.5;
+  /* The ground by the stream is left uncut. */
+  out.damp = 1 - smoothstep(18, 75, Math.abs(x - streamX(z)) + 25 * (s2Noise(x / 45, z / 45) - 0.5));
+  return out;
 }
 
 /*
