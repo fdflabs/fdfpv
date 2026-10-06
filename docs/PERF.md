@@ -802,7 +802,18 @@ ring the crossing chose, as main does. The check now flies this tree a
 second time with the background slowed to 0.3 ms a frame, where that
 refill happens every run (the old refill fails it with the same 54
 differences; the fix passes); three runs on main with #466, #468 and
-#472 merged: ok, ok, ok. `perf-ground-check.js --base=main` refuses until this
+#472 merged: ok, ok, ok.
+
+Once #466 was in main the check's default reference (main's grass.js)
+was the background itself, so the slowed flight was judged against the
+full speed one, and the middle layer, which draws what the background
+has ready, failed on every run (25 differences, 2026-10-06, load 2 to 6;
+deterministic, not load). The references are now this tree's grass.js
+with the background's budget set, so a change to what grows where is on
+both sides: unbounded for the near layer (every tile in reach worked
+out at once, which does not lean on the rule for which tiles can show),
+nought for the middle layer (four a frame, nothing ahead). Against main
+before the background (`--base=0bba764a`) it passes too. `perf-ground-check.js --base=main` refuses until this
 merges, by its own design: grass.js's hunks here are not shader text.
 
 ### What is next

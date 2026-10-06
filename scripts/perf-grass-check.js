@@ -8,36 +8,58 @@
  * clump of it further from the camera than the layer's radius, where the
  * shader folds a clump to its root) to that background. A tile that can
  * show is still worked out in the frame that needs it. So in every frame
- * the clumps that can put a pixel on the screen must be the ones the
- * old code drew, record for record.
+ * the clumps that can put a pixel on the screen must be the ones drawn
+ * with no background at all, every tile worked out in the frame that
+ * needs it, which is what the meadow did before the background existed.
+ *
+ * THE REFERENCES are this tree's grass.js with the background's budget
+ * set (mesh.userData.grassBudget), so a change to what grows where is on
+ * both sides and the check judges only the streaming:
+ *
+ *   near layer: an unbounded budget, every tile in reach worked out in
+ *       the frame it comes into reach, as the code before the background
+ *       did (19 809 838 clump steps, the same as that code). It does not
+ *       lean on the rule that says which tiles can show, so a wrong rule
+ *       fails here;
+ *   middle layer: a budget of nought, no background at all, four tiles
+ *       that can show a frame. A little behind the code before the
+ *       background (20 074 248 clump steps against 20 077 091), which
+ *       spent its four on tiles that could not show yet as well.
+ *
+ * It was main's grass.js until the background merged into main (#466);
+ * from then on that compared the background against itself at two
+ * speeds, and the middle layer, which draws what the background has
+ * ready, failed on every run (2026-10-06). --base=REV serves REV's
+ * grass.js for both references instead, its budget set too if it has
+ * one; --base=0bba764a (main before the background) passes.
  *
  * That is checked on the instance buffers, not on pictures: the light,
  * the clouds and the wind follow the session's clock, which two page
  * loads cannot share, and the buffers are what the picture is drawn
- * from with an unchanged shader. Two page loads fly one replayed path,
- * the first with --base's grass.js served in place of this tree's
- * (tests/lib/page.js override), the second with this tree's. The path is
+ * from with an unchanged shader. Four page loads fly one replayed path:
+ * the two references, this tree, and this tree with its background slowed to
+ * SLOW_MS a frame. The path is
  * stepped synchronously inside the page, a frame per step at 90 fps, so
  * the shell's own frames cannot move the camera between steps, while
  * the background's time budget still runs on the wall clock: low over
  * the valley at 30 m/s and then 60 m/s, a full turn on the spot, a climb
  * over the near layer's ceiling and a dive back under it, and a jump of
- * 400 m. This tree is flown twice, the second time with the background
- * slowed to SLOW_MS a frame. Per step, per layer, the records nearer the
+ * 400 m. Per step, per layer, the records nearer the
  * camera than the layer's radius are hashed by the 32 m square they
  * stand in.
  *
  *   near layer (swiss2-grass)   equal in every step;
- *   middle layer (swiss2-meadow)  the old code worked out four tiles a
- *       frame and left the rest out of the draw until their turn, the
- *       new one the same four plus whatever the background had ready, so
- *       in every step every square the old code drew must be drawn the
- *       same, and after the closing hold of 200 steps the two are equal.
+ *   middle layer (swiss2-meadow)  with no background it works out four
+ *       tiles that can show a frame and leaves the rest out of the draw
+ *       until their turn; with one, the same four of those still missing
+ *       plus whatever the background had ready, so in every step every
+ *       square the reference drew must be drawn the same, and after the
+ *       closing hold of 200 steps the two are equal.
  *
  * It fails if a layer's buffer is ever full (which clumps a full buffer
  * cuts depends on their order, which this does not compare).
  *
- *     SIM_GPU=1 node scripts/perf-grass-check.js [--base=origin/main]
+ *     SIM_GPU=1 node scripts/perf-grass-check.js [--base=REV]
  *
  * This file is part of WebFPVSimulator.
  *
@@ -67,11 +89,16 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 if (process.env.SIM_GPU !== '1') {
   throw new Error('perf-grass-check: run with SIM_GPU=1; the meadow is drawn at High, which wants the GPU');
 }
-const base = (process.argv.find((a) => a.startsWith('--base=')) || '--base=origin/main').slice(7);
+const baseArg = process.argv.find((a) => a.startsWith('--base='));
+const base = baseArg ? baseArg.slice(7) : null;
 const GRASS = 'src/maps/swiss2/vegetation/grass.js';
-const shown = spawnSync('git', ['-C', root, 'show', `${base}:${GRASS}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
-if (shown.status !== 0) {
-  throw new Error(`perf-grass-check: git show ${base}:${GRASS} failed: ${shown.stderr}`);
+let baseSource = null;
+if (base) {
+  const shown = spawnSync('git', ['-C', root, 'show', `${base}:${GRASS}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (shown.status !== 0) {
+    throw new Error(`perf-grass-check: git show ${base}:${GRASS} failed: ${shown.stderr}`);
+  }
+  baseSource = shown.stdout;
 }
 
 /* The layers by mesh name, and the squares their records are hashed by. */
@@ -117,7 +144,10 @@ function path() {
   return out;
 }
 
-const FLY = (poses, budgetMs) => /* js */ `(() => {
+/* budgetMs null leaves the background as it is; a number sets it, and
+ * `needBudget` says a grass.js without the hook is an error (--base's
+ * from before the background has none, and needs none). */
+const FLY = (poses, budgetMs, needBudget) => /* js */ `(() => {
   const P = globalThis.__SWISS2_PERF;
   const r = P.renderer;
   const cam = P.camera;
@@ -125,8 +155,11 @@ const FLY = (poses, budgetMs) => /* js */ `(() => {
     const mesh = P.scene.getObjectByName(name);
     if (!mesh) { throw new Error('no mesh ' + name); }
     if (${budgetMs === null ? 'false' : 'true'}) {
-      if (!mesh.userData.grassBudget) { throw new Error(name + ': no grassBudget to slow the background with'); }
-      mesh.userData.grassBudget.ms = ${budgetMs};
+      if (mesh.userData.grassBudget) {
+        mesh.userData.grassBudget.ms = ${budgetMs};
+      } else if (${needBudget ? 'true' : 'false'}) {
+        throw new Error(name + ': no grassBudget to set the background with');
+      }
     }
     const u = r.properties.get(mesh.material).uniforms;
     if (!u || !u.uRadius) { throw new Error(name + ': its program is not built, so its radius is not known'); }
@@ -182,7 +215,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused: the quality check below fails the run. */ }
   globalThis.__SWISS2_PERF = {};`];
 
-async function fly(label, override, budgetMs = null) {
+async function fly(label, override, budgetMs = null, needBudget = true) {
   const page = await openPage({
     root, width: 1600, height: 900, url: '/index.html?map=swiss2', seed, override,
   });
@@ -200,7 +233,7 @@ async function fly(label, override, budgetMs = null) {
     await page.evaluate(`(window.__setCam(${x0}, window.__heightAt(${x0}, ${z0}) + ${h0}, ${z0}, ${x0 + Math.sin(yaw0) * 100}, window.__heightAt(${x0}, ${z0}) + 4, ${z0 + Math.cos(yaw0) * 100}, 44), "")`);
     await page.sleep(2500);
     const t0 = Date.now();
-    const out = JSON.parse(await page.evaluate(FLY(poses, budgetMs)));
+    const out = JSON.parse(await page.evaluate(FLY(poses, budgetMs, needBudget)));
     console.log(`${label}: ${out.steps.length} steps in ${((Date.now() - t0) / 1000).toFixed(1)} s, radius ${JSON.stringify(out.radius)}${out.stats[LAYERS[0]] ? `, stats ${JSON.stringify(out.stats)}` : ''}`);
     const errors = page.errors.filter((e) => !String(e).startsWith('network:'));
     if (errors.length) {
@@ -214,7 +247,16 @@ async function fly(label, override, budgetMs = null) {
   }
 }
 
-const was = await fly(`base ${base}`, { [`/${GRASS}`]: shown.stdout });
+/* The reference each layer is judged against, by layer name. */
+const ref = {};
+if (base) {
+  const was = await fly(`reference: ${base}'s grass.js`, { [`/${GRASS}`]: baseSource }, 0, false);
+  ref[LAYERS[0]] = was;
+  ref[LAYERS[1]] = was;
+} else {
+  ref[LAYERS[0]] = await fly('reference for the near layer: this tree, every tile worked out at once', {}, Infinity);
+  ref[LAYERS[1]] = await fly('reference for the middle layer: this tree, no background', {}, 0);
+}
 const runs = [
   ['this tree', await fly('this tree', {})],
   [`this tree, background at ${SLOW_MS} ms a frame`, await fly(`this tree, background at ${SLOW_MS} ms a frame`, {}, SLOW_MS)],
@@ -231,9 +273,9 @@ const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 const visible = (out, name) => out.steps.reduce((m, s) => m + Object.values(s[name].squares).reduce((n, q) => n + q[0], 0), 0);
 for (const [label, now] of runs) {
   let ahead = 0;
-  for (let k = 0; k < was.steps.length; k += 1) {
+  for (let k = 0; k < now.steps.length; k += 1) {
     for (const name of LAYERS) {
-      const a = was.steps[k][name];
+      const a = ref[name].steps[k][name];
       const b = now.steps[k][name];
       if (a.full || b.full) {
         fail(`${label}: step ${k} ${name}: the buffer is full (${a.n} before, ${b.n} now), so which clumps it holds depends on their order`);
@@ -246,7 +288,7 @@ for (const [label, now] of runs) {
         if (same(sa, sb)) {
           continue;
         }
-        if (name === 'swiss2-meadow' && !sa && k < was.steps.length - 1) {
+        if (name === 'swiss2-meadow' && !sa && k < now.steps.length - 1) {
           extra = true;
           continue;
         }
@@ -255,11 +297,11 @@ for (const [label, now] of runs) {
       ahead += extra ? 1 : 0;
     }
   }
-  console.log(`${label}: clumps that could show, summed over the steps: near ${visible(was, LAYERS[0])} before, ${visible(now, LAYERS[0])} now; `
-    + `middle ${visible(was, LAYERS[1])} before, ${visible(now, LAYERS[1])} now (${ahead} steps where the middle layer drew squares the old code had not reached yet)`);
+  console.log(`${label}: clumps that could show, summed over the steps: near ${visible(ref[LAYERS[0]], LAYERS[0])} before, ${visible(now, LAYERS[0])} now; `
+    + `middle ${visible(ref[LAYERS[1]], LAYERS[1])} before, ${visible(now, LAYERS[1])} now (${ahead} steps where the middle layer drew squares the reference had not reached yet)`);
 }
 if (failed) {
   console.error(`perf-grass-check: ${failed} difference(s)`);
   process.exit(1);
 }
-console.log('ok: every clump that can show is the one the old code drew, in every step');
+console.log('ok: every clump that can show is the one the reference drew, in every step');
