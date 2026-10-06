@@ -102,11 +102,12 @@ const FIRST_OUT_S = 20;
 const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
 /* The pair's loss thresholds (MISSIONS.md 1.7: 20 s and 45 s by default,
- * tuned per mission). Hard is 60 s here, a lead decision of 2026-10-05:
+ * tuned per mission). Hard is 75 s here, a lead decision (reversible):
  * under WORLD's canopy an orbiting fixed wing about 150 m off the pair
- * sees it through gaps up to 56 s apart, and a pilot flying correctly
+ * sees it through gaps up to 57.6 to 58.1 s apart (canopy round #467),
+ * so 60 s left two seconds; a pilot flying correctly
  * must never be moved to the alternate or soft failed for it. */
-const PAIR_TRACK = { soft: 20, hard: 60 };
+const PAIR_TRACK = { soft: 20, hard: 75 };
 
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
