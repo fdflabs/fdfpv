@@ -5,8 +5,8 @@
  * crash make add nothing; part seconds are carried, not rounded away; a
  * frame rate does not change the total; the record grows one slot; and
  * the words the screens show, in both languages. Also the board's craft
- * fold (src/share/stats.js wireCraft): every aircraft this build flies
- * reaches the board as a word the board accepts.
+ * (src/share/stats.js): every aircraft this build flies reaches the board
+ * under its own airframe id.
  *
  * The merge between computers is tested where the account server is,
  * tracks-api/accounts-selftest.js.
@@ -33,7 +33,7 @@ import {
   FLIGHT_ACTIVITIES, addFlight, createFlightClock, deviceId, flightTotals, splitDuration, stepsAreFlight,
 } from '../src/share/flighttime.js';
 import { MODES } from '../src/share/modes.js';
-import { STATS_CRAFT, wireCraft } from '../src/share/stats.js';
+import { createFlightStats } from '../src/share/stats.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
 import { flightTimeText } from '../src/ui/carousel.js';
 import { plural, setLocale, str, useLocale } from '../src/strings/index.js';
@@ -175,10 +175,29 @@ console.log('the words');
 
 console.log('the board\'s craft');
 {
-  const folded = AIRFRAME_IDS.map(wireCraft);
-  check('every aircraft reaches the board as a word it accepts', folded.every((w) => STATS_CRAFT.includes(w)), folded.join());
-  check('the two the board names pass through as themselves', ['5inch', 'whoop65'].filter((id) => AIRFRAME_IDS.includes(id)).every((id) => wireCraft(id) === id));
-  check('an unknown or missing id still sends an accepted word', STATS_CRAFT.includes(wireCraft('nonesuch')) && STATS_CRAFT.includes(wireCraft(undefined)));
+  /* Node's navigator has no sendBeacon, so sendEvent falls through to fetch. */
+  const realFetch = globalThis.fetch;
+  const sent = [];
+  globalThis.fetch = (_url, init) => {
+    sent.push(JSON.parse(init.body));
+    return Promise.resolve({ ok: true });
+  };
+  try {
+    for (const id of AIRFRAME_IDS) {
+      const stats = createFlightStats({
+        describe: () => ({ craft: id, map: 'custom', input: 'keyboard' }),
+        url: 'http://board.invalid/api/stats/events',
+      });
+      stats.tick(1000, { started: true, flying: true, laps: 0 });
+      stats.leaving();
+    }
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  const sessions = sent.filter((e) => e.kind === 'session').map((e) => e.craft);
+  const flushes = sent.filter((e) => e.kind === 'flush').map((e) => e.craft);
+  check('every aircraft reaches the board under its own airframe id, in the session', sessions.join() === AIRFRAME_IDS.join(), sessions.join());
+  check('every aircraft reaches the board under its own airframe id, in the flush', flushes.join() === AIRFRAME_IDS.join(), flushes.join());
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

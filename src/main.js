@@ -1779,8 +1779,8 @@ export async function boot({
    * arrive through the Gamepad API and are the same answer to "did they use
    * sticks", and the board has no business knowing which radio.
    *
-   * The craft is the real airframe id; stats.js folds it onto the board's
-   * own list at the wire (wireCraft), because the board refuses others.
+   * The craft is the real airframe id. The board counts the ids it knows
+   * and folds any other to `other` itself, so nothing is folded here.
    */
   const flightStats = createFlightStats({
     describe: () => ({
