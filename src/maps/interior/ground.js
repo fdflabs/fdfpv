@@ -54,7 +54,7 @@
 import * as THREE from 'three';
 import { HALF, L_CELL, L_N } from '../../share/interior/frame.js';
 import { LAND } from '../../share/interior/world.js';
-import { LAND_EDITS } from '../../share/interior/places.js';
+import { LAND_EDITS, opened } from '../../share/interior/places.js';
 import { thermalKind } from '../../render/thermal.js';
 
 /*
@@ -417,7 +417,35 @@ export function paintedLand(world) {
       out[j * L_N + i] = world.landAt(-HALF + (i + 0.5) * L_CELL, z);
     }
   }
-  return out;
+  return clearedLand(out);
+}
+
+/*
+ * FOREST LAND AN OPENING CLEARS is grass. The land cover has Pista Cero's
+ * field as forest, and places.js opens it (no crown stands there), so
+ * the ground under it was the litter of a forest floor with no roof over
+ * it: a dark smear at a man's height. A forest cell whose middle and the
+ * points CLEAR_M either side of it all lie inside an opening (an opening
+ * a few metres wide, a gap or a road, has none) is drawn as pasture.
+ * What the room reads (world.landAt) is not changed.
+ */
+const CLEAR_M = 10;
+function clearedLand(cells) {
+  const inside = (x, z) => opened(x, z, 0);
+  for (let j = 0; j < L_N; j += 1) {
+    const z = -HALF + (j + 0.5) * L_CELL;
+    for (let i = 0; i < L_N; i += 1) {
+      const k = j * L_N + i;
+      if (cells[k] !== LAND.forest) {
+        continue;
+      }
+      const x = -HALF + (i + 0.5) * L_CELL;
+      if (inside(x, z) && inside(x + CLEAR_M, z) && inside(x - CLEAR_M, z) && inside(x, z + CLEAR_M) && inside(x, z - CLEAR_M)) {
+        cells[k] = LAND.pasture;
+      }
+    }
+  }
+  return cells;
 }
 
 /*
