@@ -1,233 +1,78 @@
 /*
- * collide.js: what the craft can hit, and whether it just hit it.
+ * collide.js: where the craft meets the world, and what that meeting means.
  *
- * Until this file existed the only solid thing in the world was the ground,
- * and it was solid in the crudest way: one point test against the terrain
- * height, no craft radius, no sweep. A gate was a scoring plane you could
- * fly straight through the middle of the frame, a tree was a picture, and a
- * cliff was scenery. The owner's words were "the gates need to be solid".
+ * Three things live here. The airframe's dimensions, as live bindings the
+ * renderer and the shell read. The rules that turn a contact into an
+ * outcome: landing, perching, the turtle, gate scoring, the clip watch.
+ * And Colliders, every solid of a map as capsules and boxes in a coarse
+ * grid, swept by the craft's prop discs (or a fixed wing's parts) once
+ * per sim step.
  *
- * ONE PRIMITIVE. Every solid thing in this world is a capsule: a segment
- * from a to b, plus a radius. A tree trunk is a vertical capsule, a gate
- * cross member is a horizontal one, a canopy blob is a capsule whose
- * segment has zero length, which is a sphere. Choosing one primitive means
- * one test, and one test that is correct is worth more than four that are
- * nearly correct.
+ * Its numbers reach the plant through sim_set_pose and sim_contact, so a
+ * recorded flight replays only while every one of them is the same double
+ * in every engine: square roots and the four arithmetic operations only,
+ * in a fixed order, colliders frozen to single precision once, and every
+ * tie decided by a fixed visiting order.
  *
- * THE TEST IS EXACT, NOT SAMPLED. A sphere of radius CRAFT_WORLD_R swept along
- * the segment the craft travelled this frame intersects a capsule exactly
- * when the distance between the two segments is at most the sum of the two
- * radii. So the query is a segment to segment closest distance, which is
- * closed form. The first design for this sampled the travel at 0.1 m steps,
- * which needed a cap on the sample count, and the cap would have been a
- * tunnelling bug on any machine slower than the cap assumed. This container
- * renders at about two frames a second, so the craft can move fifteen
- * metres between frames, and a sampled sweep would have been wrong here
- * before it was ever wrong on real hardware.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * THE QUERY ALLOCATES NOTHING. Budget P8 says zero new objects in the
- * render loop and it is already failing; this is called every frame and
- * must not make it worse. Colliders live in flat Float32Arrays, the
- * broadphase grid holds Int32Arrays, and the duplicate rejection is a stamp
- * array rather than a Set. There is no array literal, no object literal and
- * no closure anywhere in hit().
- *
- * Everything here is in Three.js world space, y up, downstream of the
- * physics. The query itself does not write the plant. It reports a unit
- * outward normal and a closing parameter; the shell may call sim_contact
- * with those so a clip bounces, slides or rolls instead of tunnelling.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The only import, and it is a number rather than a renderer: the world is
- * built at WORLD_SCALE times the aircraft's own scale, and every query below
- * is against the world, so the craft has to be converted into the world's
- * metres exactly once. frame.js owns that conversion and has no dependencies
- * of its own. */
 import { simLenToWorld } from '../render/frame.js';
-/* A fixed wing's parts as its hull: see setCraftParts. */
 import { bodyAxes, hullContact, partCentre, sweepPartBox, sweepPartCapsule } from './airframehull.js';
 
-/*
- * The craft's size, in metres, and the ONE place any of it is written down.
- *
- * A quad is named for its motor to motor diagonal, so a motor sits half of
- * that from the centre, and a 5 inch prop adds half of five inches of blade
- * beyond it. The disc a tumbling quad sweeps is the sum. Check 15
- * publishes that radius. The query itself is the four prop discs, not a
- * sphere, because a wall the craft meets square-on sees 0.141 m, not
- * 0.1735 m.
- *
- * THE OLD NUMBER WAS WRONG BY 8.6 PERCENT AND A SCALE CHECK IS WHAT CAUGHT IT.
- * CRAFT_R was typed as 0.1885, derived in its own comment from a 250 mm class
- * quad with a motor 0.125 m out. This airframe is not 250 mm: plant.c puts
- * the motors at arm_x = arm_y = 0.110 / sqrt(2), which is 0.110 m from the
- * centre and a 220 mm machine, and src/render/craft.js draws them there. So
- * the collision sphere was 0.1885 m around a craft that sweeps 0.1735 m, and
- * every gate in the course was scored against a quad 8.6 percent bigger than
- * the one on screen. It is derived here now, from the same two numbers the
- * model and the renderer use, so the three cannot disagree again.
- * tests/lib/checks.js check 15 asserts it against the drawn geometry.
- */
-/*
- * THESE ARE `let`, AND THAT IS LOAD BEARING RATHER THAN SLOPPY.
- *
- * There are two airframes now and their dimensions differ by a factor of
- * three, so a craft radius fixed at module load would score a 65 mm whoop
- * against a 220 mm sweep. An ES module's exported binding is LIVE: an
- * importer that wrote `import { CRAFT_R } from './collide.js'` sees the
- * value this file currently holds, not the value it held when the import
- * was evaluated. So `setCraftAirframe` below re-seats every one of these and
- * main.js, craft.js, race.js and the checks all follow without any of them
- * learning that there is more than one aircraft.
- *
- * The five inch's numbers are the initial values, so a page that never calls
- * setCraftAirframe measures exactly what it always measured.
- */
-export let CRAFT_ARM = 0.110;      /* motor centre to airframe centre */
-export let CRAFT_PROP_R = 0.0635;  /* half of five inches */
-/*
- * THE HULL, WHICH IS NOT ALWAYS THE PROP.
- *
- * Everything below sweeps the outermost thing the aircraft presents about
- * each motor. On a naked five inch that is the blade, so hull and prop are
- * one number and nothing here changed. On a DUCTED machine it is the duct,
- * which stands proud of the blade it encloses, and using the prop instead
- * swept a hull smaller than the aircraft on screen: on the 65 mm whoop, a
- * 0.0155 blade where the drawn duct is 0.0181, so the machine was 5.2 mm
- * narrower to the world than it looked, in every horizontal direction. A
- * pilot threading a 0.711 m gate or passing a 26.7 mm pole saw the ducts
- * overlap and felt nothing.
- *
- * CRAFT_PROP_R stays the BLADE: it is an aerodynamic number, not a size.
- */
+/* ------------------------------------------------------------- the airframe */
+
+/* The five inch until setCraftAirframe seats another. Live bindings:
+ * importers read whatever is seated now. */
+export let CRAFT_ARM = 0.110;
+export let CRAFT_PROP_R = 0.0635;
 export let CRAFT_HULL_R = 0.0635;
 export let CRAFT_R = CRAFT_ARM + CRAFT_HULL_R;
-/* Per-axis motor offset: the X sits on the diagonals, so a motor is
- * CRAFT_ARM / sqrt(2) along body x and along body z. The axis-aligned
- * half-width of the hull is this plus CRAFT_HULL_R, 0.1413 m on the five
- * inch where the hull is the blade, which is what a wall actually meets
- * when the quad is square to it. */
-
-/*
- * The same airframe, in the world's metres rather than its own.
- *
- * Everything in this file is a query against the world: a collider box came
- * from a town whose doorways are 2 m, a gate capsule came from a 1.524 m
- * MultiGP opening, and the travel segment is a world space segment. So the
- * craft that sweeps through them has to be measured in the same metres, and
- * the world is WORLD_SCALE times the aircraft's own scale
- * (src/render/frame.js). Getting this wrong in either direction is the exact
- * class of bug the 0.1885 comment above records: a gate scored against a quad
- * that is not the one on screen.
- *
- * CRAFT_R and CRAFT_V_HALF above stay the airframe's TRUE dimensions, because
- * src/render/craft.js draws a real 5 inch machine from them and plant.c flies
- * one. Only the query is scaled.
- */
 export let CRAFT_WORLD_R = simLenToWorld(CRAFT_R);
-/*
- * The five inch's swept radius, frozen HERE, on the line after it is first
- * computed and before setCraftAirframe can ever run.
- *
- * One thing downstream needs it: the dirt band, which is a length about the
- * aircraft expressed as a multiple of this radius so that the five inch keeps
- * the exact band it was tuned with. Reading CRAFT_WORLD_R at that point
- * instead would work today and silently stop working the moment somebody
- * seats an airframe earlier, so it is taken while the answer is not in doubt.
- * If the defaults above ever stop being the five inch, this moves with them
- * and the band it anchors moves too, which is the whole reason it is spelled
- * out next to them rather than two thousand lines away.
- */
-const FIVE_INCH_WORLD_R = CRAFT_WORLD_R;
+
+/* The clearances below were tuned on the five inch, as fractions of its
+ * radius, so they scale with whatever airframe is seated. */
+const FIVE_INCH_R = CRAFT_WORLD_R;
+const DIRT_SPAN = 0.22 / FIVE_INCH_R;
+const TURTLE_CLEAR_SPAN = 0.15 / FIVE_INCH_R;
+const TURTLE_LIFT_SPAN = 0.18 / FIVE_INCH_R;
+
+/* Math.SQRT1_2, not 1 / Math.sqrt(2): the two differ in the last bit. */
 export let CRAFT_WORLD_ARM_AXIS = simLenToWorld(CRAFT_ARM * Math.SQRT1_2);
 export let CRAFT_WORLD_HULL = simLenToWorld(CRAFT_HULL_R);
-
-/*
- * The craft's vertical semi-extent in level flight, about its own origin.
- *
- * A quad is an X, not a ball and not a filled disc. 0.347 m is the
- * diagonal from centre to a spinning blade tip; a wall the craft meets
- * square-on sees 0.141 m, the motor's axis offset plus the blade. Sweeping
- * CRAFT_R in every horizontal direction treated the empty air between the
- * arms as carbon, so a doorway and a shopfront both felt 3 cm fatter than
- * the airframe on screen, and the whole machine read as a ball.
- * Vertically the hull is NOT symmetric about the CG and this used to pretend
- * it was. It was one number, `vHalf`, chosen to cover whichever extent was
- * larger and then mirrored, which costs nothing on a craft that is about as
- * deep below as it is tall above and a great deal on one that is not. The
- * whoop is 18 mm of canopy over 10 mm of duct, so mirroring the canopy hung
- * 8 mm of collider under a machine that has nothing there, which is 30
- * percent of a RaceGOW pipe's diameter and is what the pilot reported as a
- * large hit box below the whoop.
- *
- * So the hull is a span, [-CRAFT_V_DOWN, +CRAFT_V_UP] about the CG, and it is
- * carried as the equivalent OFFSET CENTRE and HALF HEIGHT because that is
- * what an ellipsoid sweep takes. The extents themselves are plant.c's
- * hull_hz_down and hull_hz_up by way of configs/airframes.js, so the collider
- * and the plant that rests the craft on the ground now describe the same
- * machine instead of each carrying its own opinion of where its bottom is.
- *
- * The half height still grows toward CRAFT_R as the craft banks, because a
- * banked X does present a blade tip to the ground. The offset does not need
- * to: it is a BODY frame offset along the craft's own up axis, so it leans
- * with the craft and goes to nothing in the vertical at knife edge on its
- * own, which is right, a quad on its side is symmetric about its centre.
- */
 export let CRAFT_V_DOWN = 0.045;
 export let CRAFT_V_UP = 0.038;
 export let CRAFT_V_HALF = (CRAFT_V_DOWN + CRAFT_V_UP) * 0.5;
-/* Body frame, along the craft's own up axis: where the hull's geometric
- * centre sits relative to the CG. Negative on the five inch, which hangs
- * below its centre; positive on the whoop, which stands above it. */
 export let CRAFT_V_OFF = (CRAFT_V_UP - CRAFT_V_DOWN) * 0.5;
 export let CRAFT_WORLD_V_HALF = simLenToWorld(CRAFT_V_HALF);
 export let CRAFT_WORLD_V_OFF = simLenToWorld(CRAFT_V_OFF);
 
-/*
- * Seat an airframe's dimensions. Called by the shell when the aircraft
- * changes, between runs only, because every collision query in flight reads
- * these and changing them mid lap would move the hull under a craft that is
- * already resolving a contact.
- *
- * configs/airframes.js owns the numbers; this function owns the derivation,
- * so the sweep radius stays "arm plus blade" for every aircraft rather than
- * being typed twice.
- */
+/* Assignments land in this order and the two throws leave the earlier
+ * ones in place; callers have seen that, so it stays. */
 export function setCraftAirframe(dims) {
   if (!dims) {
-    return;
+    return undefined;
   }
   CRAFT_ARM = dims.arm;
   CRAFT_PROP_R = dims.propR;
-  /* An airframe that does not name a hull is one whose prop is its hull.
-   * That is the five inch, and it is the safe reading for anything added
-   * later without thinking about it. */
   CRAFT_HULL_R = dims.hullR ?? dims.propR;
   if (CRAFT_HULL_R < CRAFT_PROP_R) {
-    /* A hull inside the blade sweeps less than the aircraft, which is the
-     * defect this field was added to end. Loud rather than silent. */
     throw new Error(`collide: hullR ${CRAFT_HULL_R} is inside propR ${CRAFT_PROP_R}`);
   }
   CRAFT_R = CRAFT_ARM + CRAFT_HULL_R;
-  /* An airframe that names only the old symmetric `vHalf` is read as being
-   * that deep both ways, which is exactly what it used to mean. Nothing in
-   * the repository does any more; this is here so a config written against
-   * the old field cannot silently seat a hull of zero. */
   CRAFT_V_DOWN = dims.vHalfDown ?? dims.vHalf;
   CRAFT_V_UP = dims.vHalfUp ?? dims.vHalf;
   if (!(CRAFT_V_DOWN > 0) || !(CRAFT_V_UP > 0)) {
@@ -240,40 +85,23 @@ export function setCraftAirframe(dims) {
   CRAFT_WORLD_HULL = simLenToWorld(CRAFT_HULL_R);
   CRAFT_WORLD_V_HALF = simLenToWorld(CRAFT_V_HALF);
   CRAFT_WORLD_V_OFF = simLenToWorld(CRAFT_V_OFF);
+  return undefined;
 }
 
-/*
- * A FIXED WING IS MET BY ITS PARTS, not by a disc.
- *
- * The prop discs above are a quad's hull, and for a plane (arm 0, a hull
- * radius of its half span) they are a disc as wide as the wingspan about
- * the CG. A pole meets that disc about half a metre ahead of the wing,
- * at a point in the air in front of the aircraft, and the plant was
- * handed that point (docs/CRASH-STAGE1.md section 3, the wing clip). So a
- * fixed wing's hull is its parts' boxes from the crash core's own table
- * (src/game/airframehull.js), and hit() sweeps those, reporting where on
- * them the contact is (hitArm). The shell seats it with the airframe and
- * keeps its live parts to the plant's readback. null, which every quad
- * is, keeps the discs exactly as they were.
- */
-let CRAFT_PARTS = null;
+/* A fixed wing's part hull; while one is seated, hit sweeps its parts
+ * instead of the prop discs. Quads leave it null. */
+let seatedParts = null;
+
 export function setCraftParts(hull) {
-  CRAFT_PARTS = hull;
-}
-export function craftParts() {
-  return CRAFT_PARTS;
+  seatedParts = hull;
 }
 
-/* The vertical semi-axis at a given tilt of the prop plane from level, in
- * WORLD metres, because that is the space every caller sweeps it through.
- * sinTilt is sqrt(1 - upY^2), symmetric in upY so an inverted craft is as
- * thin as an upright one.
- *
- * This is the half height of the hull SPAN, so it is only half the story:
- * the span is centred at craftVerticalOffset() along the craft's own up
- * axis, not on the CG. A caller that sweeps this without that offset is
- * sweeping a craft that is symmetric about its centre, which neither of
- * these aircraft is. */
+export function craftParts() {
+  return seatedParts;
+}
+
+/* The vertical semi-axis at a tilt: the disc's half thickness level,
+ * its full radius on edge. */
 export function craftVerticalHalf(sinTilt) {
   let s = sinTilt;
   if (s < 0) {
@@ -285,3228 +113,226 @@ export function craftVerticalHalf(sinTilt) {
   return CRAFT_WORLD_V_HALF + (CRAFT_WORLD_R - CRAFT_WORLD_V_HALF) * s;
 }
 
-/*
- * Where that span's centre sits, in WORLD metres, measured along the craft's
- * own up axis. Pair it with craftVerticalHalf: together they are the hull.
- *
- * It is a BODY frame quantity and the collision query applies it along the
- * body up axis, so it needs no tilt argument. Level it is a vertical shift;
- * banked it leans with the craft and its vertical part falls away by the
- * cosine on its own; inverted it changes sign, which is correct, because an
- * inverted five inch hangs its 45 mm of hull upward and shows its 38 mm of
- * prop plane to the ground.
- */
 export function craftVerticalOffset() {
   return CRAFT_WORLD_V_OFF;
 }
 
-/*
- * Names, in the order kind indices are assigned. Reported by stats().
- *
- * `wall` and `boom` are the city's, and they are boxes rather than capsules.
- * A city is authored as axis aligned rectangles because a walker only ever
- * meets their sides, and turning 2731 of them into capsules would either
- * inscribe them, letting a quad through the corners of every building, or
- * circumscribe them, putting an invisible cylinder around every wall. So the
- * box is a second primitive, and it earns its place: see addBox.
- */
-/* `train` is the only MOVING solid in either world and it is a hard kind on
- * purpose: the city's three car set crosses the town at 23.5 m/s, and there
- * is no speed at which meeting it is a graze. */
-/* `banner` and `pylon` are the in-sim builder's plane sized gates
- * (src/builder/course.js): a wide gate's PVC frame, which is a gate's pipe
- * a size up built one to one, and an inflatable air race pylon. Appended,
- * so every index before them is what it was. `hoop` is a plane sky hoop's
- * inflated rim, appended after them for the same reason. */
-/* `wire` is an overhead line's conductor or earth wire, a chord of its
- * sagging span (src/maps/itaipu/town/power.js); appended last for the same
- * reason. With the damage mode on the plant meets the ones near the craft
- * itself (sim_wire_add) and the sweep lets them through. */
-/* Exported so src/game/obstacles.js can name a kind rather than keeping a
- * second copy of this list. `fkind` is an index into it. */
-export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon', 'hoop', 'wire'];
-
-/*
- * The broadphase cell, in metres. The world is about 1700 m across and the
- * biggest collider is a cliff tier at 16 m of radius, so a cell much smaller
- * than that buys nothing: a fat collider lands in many cells either way. At
- * 8 m a query along a fast frame's travel touches a handful of cells, and
- * the whole grid for a few thousand colliders stays inside a megabyte.
- */
-const CELL = 8;
-/* Grid keys are packed integers rather than strings, because a string key is
- * an allocation per cell per frame. The world half extent in cells has to
- * fit in the packing: 2048 cells at 8 m is 16 384 m each way, which holds
- * Itaipu's hero square and the Friendship Bridge 9.5 km down the river
- * (docs/ITAIPU-PLAN.md sections 3 and 7). It was 512 cells, 4096 m, and a
- * collider past that was registered under a key that aliased another
- * cell, so the craft's sweep never found it; registering throws now
- * (CellIndex). The packed key is under 2^24, an exact small integer. The
- * grids are Maps of the cells that hold something, so the reach costs
- * nothing until a collider stands there. */
-const GRID_HALF = 2048;
-const GRID_SPAN = GRID_HALF * 2;
-
-/* The cell a coordinate is in, and its packed key, as build() registers a
- * collider. */
-function gridCell(v) {
-  return Math.floor(v / CELL);
-}
-
-function gridKey(cx, cz) {
-  return (cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF);
-}
-
-/*
- * Fold a cell index into the range the packing above can address.
- *
- * No collider is registered outside +/-GRID_HALF (CellIndex throws), so a
- * query there can only miss. Clamping rather than skipping keeps the walk
- * one shape, and it bounds the walk by the GRID instead of by how far from
- * the origin the craft happens to be: a query 1e12 m out asks about one
- * edge cell and gets the same answer, where the unclamped walk asked about
- * 1e11 of them.
- */
-function clampCell(c) {
-  if (c < -GRID_HALF) {
-    return -GRID_HALF;
-  }
-  if (c > GRID_HALF - 1) {
-    return GRID_HALF - 1;
-  }
-  return c;
-}
-
-function clamp01(v) {
-  if (v < 0) {
-    return 0;
-  }
-  if (v > 1) {
-    return 1;
-  }
-  return v;
-}
-
-/*
- * Signed depth of a point against an AABB. Positive is the distance to
- * the nearest face while the point is inside; zero is on a face; negative
- * is the Euclidean distance to the box while outside. No allocation.
- */
-function boxPointInterior(x0, y0, z0, x1, y1, z1, x, y, z) {
-  const dx = x < x0 ? x0 - x : x > x1 ? x - x1 : 0;
-  const dy = y < y0 ? y0 - y : y > y1 ? y - y1 : 0;
-  const dz = z < z0 ? z0 - z : z > z1 ? z - z1 : 0;
-  if (dx === 0 && dy === 0 && dz === 0) {
-    const ix = x - x0 < x1 - x ? x - x0 : x1 - x;
-    const iy = y - y0 < y1 - y ? y - y0 : y1 - y;
-    const iz = z - z0 < z1 - z ? z - z0 : z1 - z;
-    let m = ix < iy ? ix : iy;
-    if (iz < m) {
-      m = iz;
-    }
-    return m;
-  }
-  return -Math.sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-function boxOppositeSides(x0, y0, z0, x1, y1, z1, ax, ay, az, bx, by, bz) {
-  return (ax < x0 && bx > x1) || (ax > x1 && bx < x0)
-    || (ay < y0 && by > y1) || (ay > y1 && by < y0)
-    || (az < z0 && bz > z1) || (az > z1 && bz < z0);
-}
-
-/*
- * Closed segment vs AABB, slab method. Opposite-face ends of a long
- * drop through a 14 cm deck have their midpoint above the slab, so a
- * midpoint-inside test misses the punch the bounce then ejects the
- * wrong way on. This is the actual intersection.
- */
-function segmentHitsAabb(x0, y0, z0, x1, y1, z1, ax, ay, az, bx, by, bz) {
-  let tmin = 0;
-  let tmax = 1;
-  const dx = bx - ax;
-  const dy = by - ay;
-  const dz = bz - az;
-  if (dx > -1e-18 && dx < 1e-18) {
-    if (ax < x0 || ax > x1) {
-      return false;
-    }
-  } else {
-    let u0 = (x0 - ax) / dx;
-    let u1 = (x1 - ax) / dx;
-    if (u0 > u1) {
-      const tmp = u0;
-      u0 = u1;
-      u1 = tmp;
-    }
-    if (u0 > tmin) {
-      tmin = u0;
-    }
-    if (u1 < tmax) {
-      tmax = u1;
-    }
-    if (tmin > tmax) {
-      return false;
-    }
-  }
-  if (dy > -1e-18 && dy < 1e-18) {
-    if (ay < y0 || ay > y1) {
-      return false;
-    }
-  } else {
-    let u0 = (y0 - ay) / dy;
-    let u1 = (y1 - ay) / dy;
-    if (u0 > u1) {
-      const tmp = u0;
-      u0 = u1;
-      u1 = tmp;
-    }
-    if (u0 > tmin) {
-      tmin = u0;
-    }
-    if (u1 < tmax) {
-      tmax = u1;
-    }
-    if (tmin > tmax) {
-      return false;
-    }
-  }
-  if (dz > -1e-18 && dz < 1e-18) {
-    if (az < z0 || az > z1) {
-      return false;
-    }
-  } else {
-    let u0 = (z0 - az) / dz;
-    let u1 = (z1 - az) / dz;
-    if (u0 > u1) {
-      const tmp = u0;
-      u0 = u1;
-      u1 = tmp;
-    }
-    if (u0 > tmin) {
-      tmin = u0;
-    }
-    if (u1 < tmax) {
-      tmax = u1;
-    }
-    if (tmin > tmax) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function clampRadius(v) {
-  if (v < CRAFT_WORLD_HULL) {
-    return CRAFT_WORLD_HULL;
-  }
-  if (v > CRAFT_WORLD_R) {
-    return CRAFT_WORLD_R;
-  }
-  return v;
-}
-
-/*
- * HOW DEEP THE HULL IS INTO A FACE IT HAS NOT PUT ITS CENTRE THROUGH.
- *
- * (ox, oy, oz) is the componentwise vector from the box to the contact
- * point, which is zero on an axis the point lies within and the overhang
- * on an axis it does not. (rx, ry, rz) are the query ellipsoid's semi-axes.
- * The ellipsoid touches when sum((o_a / r_a)^2) <= 1, so along the overhang
- * direction its own radius is
- *
- *     r_along = 1 / sqrt(sum((o_hat_a / r_a)^2))
- *
- * and the overlap is r_along minus the distance, which is the same shape as
- * the capsule branch's `reach - dist` and is exact rather than a bound.
- *
- * IT EXISTS BECAUSE A WALL REPORTED NO PENETRATION AT ALL. hit() only wrote
- * hitPen for a box when the CONTACT POINT was inside it, which for an
- * ordinary wall contact it never is: the craft's centre stays outside the
- * masonry while its prop discs overlap. So contactSeparation() fell through
- * to a flat 8 mm for every face in the world, and a hull that arrived with
- * real overlap, which is what a rotation into a surface produces, was moved
- * 8 mm and asked again, and again, once per pass. Reporting the overlap
- * resolves it in one step, which is what the field was always for.
- *
- * Allocation free, and returns 0 when the ellipsoid does not reach.
- */
-function ellipsoidPen(ox, oy, oz, rx, ry, rz) {
-  const d2 = ox * ox + oy * oy + oz * oz;
-  if (!(d2 > 1e-18)) {
-    return 0;
-  }
-  const dist = Math.sqrt(d2);
-  const ux = ox / dist;
-  const uy = oy / dist;
-  const uz = oz / dist;
-  const ax = rx > 1e-9 ? ux / rx : 0;
-  const ay = ry > 1e-9 ? uy / ry : 0;
-  const az = rz > 1e-9 ? uz / rz : 0;
-  const q = ax * ax + ay * ay + az * az;
-  if (!(q > 1e-18)) {
-    return 0;
-  }
-  const along = 1 / Math.sqrt(q);
-  return along > dist ? along - dist : 0;
-}
-
-/*
- * Support of the four prop discs along a world direction n. Motors sit at
- * (±ARM, 0, ±ARM) in the body XZ plane. A thin disc of radius PROP in that
- * plane supports PROP * |n × up| along n. Check 15 still publishes
- * CRAFT_WORLD_R (the swept diagonal); this is only the query shape.
- */
-function discSupport(nx, ny, nz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz) {
-  const nl2 = nx * nx + ny * ny + nz * nz;
-  if (nl2 < 1e-18) {
-    return CRAFT_WORLD_R;
-  }
-  const inv = 1 / Math.sqrt(nl2);
-  const x = nx * inv;
-  const y = ny * inv;
-  const z = nz * inv;
-  const motor = CRAFT_WORLD_ARM_AXIS * (
-    Math.abs(x * exx + y * exy + z * exz) + Math.abs(x * ezx + y * ezy + z * ezz)
-  );
-  const ndu = x * ux + y * uy + z * uz;
-  let s2 = 1 - ndu * ndu;
-  if (s2 < 0) {
-    s2 = 0;
-  }
-  return motor + CRAFT_WORLD_HULL * Math.sqrt(s2);
-}
-
-/*
- * THE CONTACT PATCH, and why a wall tap used to spin the quad up.
- *
- * The plant resolves an obstacle contact with one impulse at one point.
- * Which point decides how much of that impulse becomes rotation: the
- * angular term is about two thirds of the effective mass at a full arm,
- * so the arm is not a detail, it is most of the answer. sim_contact
- * picked the hull OBB's support in the -n direction, and that support is
- * always an extreme corner, every half extent at once. A belly slapped
- * flat on a wall therefore solved as a corner strike, came out still
- * moving into the face, and picked up tens of radians a second of spin
- * out of a contact that should have produced none. Measured before this
- * existed: a 6 m/s flat arrival left at -4.4 m/s, still inbound, with
- * 41 rad/s of spin it did not arrive with.
- *
- * A real airframe meets a flat face on a patch, not a point. The shape
- * this file sweeps is already the four prop discs, so the patch is the
- * discs that are actually against the surface, and its centroid is the
- * honest place to put the impulse:
- *
- *   belly flat on a wall   four discs tied      centroid under the CG,
- *                                               no moment, it pushes off
- *   square into a wall     two discs tied       centroid on the centreline,
- *                                               no moment, it stops square
- *   one arm catches        one disc deepest     full moment, it spins
- *
- * which is what those three contacts do in the world.
- *
- * This is a patch CENTROID, not a support function, and the two differ on
- * purpose. Along the body axis the term is scaled by d . u rather than
- * its sign, so a craft that meets a wall edge on (d perpendicular to u)
- * contributes nothing there instead of half the body depth: taking the
- * sign would put the impulse a body half-height off the centreline and
- * invent exactly the moment this function exists to remove.
- *
- * Returns the offset from the craft centre to that centroid, in world
- * metres, written into out. Allocation free: called from the contact
- * pass, which runs on the sim clock.
- */
-/* How close to the deepest disc another disc must be to count as sharing
- * the patch. A 220 mm airframe on a flat face ties all four inside a few
- * millimetres; a bank of more than about six degrees breaks the tie and
- * the contact becomes the offset hit it really is. */
-export const CONTACT_PATCH_BAND = 0.015;
-
-export function contactPatch(nx, ny, nz, qx, qy, qz, qw, out) {
-  const r = out || { x: 0, y: 0, z: 0 };
-  /* Into the solid. The patch is on the side of the hull facing that. */
-  const dx = -nx;
-  const dy = -ny;
-  const dz = -nz;
-
-  /* Body axes in world, from the attitude quaternion. Written out rather
-   * than routed through Three.js because this file has no renderer in it
-   * and must not grow one. */
-  const xx = qx * qx;
-  const yy = qy * qy;
-  const zz = qz * qz;
-  const xy = qx * qy;
-  const xz = qx * qz;
-  const yz = qy * qz;
-  const wx = qw * qx;
-  const wy = qw * qy;
-  const wz = qw * qz;
-  const exx = 1 - 2 * (yy + zz);
-  const exy = 2 * (xy + wz);
-  const exz = 2 * (xz - wy);
-  const ux = 2 * (xy - wz);
-  const uy = 1 - 2 * (xx + zz);
-  const uz = 2 * (yz + wx);
-  const ezx = 2 * (xz + wy);
-  const ezy = 2 * (yz - wx);
-  const ezz = 1 - 2 * (xx + yy);
-
-  /* The four motors, on the diagonals of the body xz plane. */
-  const A = CRAFT_WORLD_ARM_AXIS;
-  let bestDepth = -Infinity;
-  for (let i = 0; i < 4; i += 1) {
-    const sx = (i & 1) ? A : -A;
-    const sz = (i & 2) ? A : -A;
-    const mx = exx * sx + ezx * sz;
-    const my = exy * sx + ezy * sz;
-    const mz = exz * sx + ezz * sz;
-    const depth = mx * dx + my * dy + mz * dz;
-    if (depth > bestDepth) {
-      bestDepth = depth;
-    }
-  }
-  let sumX = 0;
-  let sumY = 0;
-  let sumZ = 0;
-  let n = 0;
-  for (let i = 0; i < 4; i += 1) {
-    const sx = (i & 1) ? A : -A;
-    const sz = (i & 2) ? A : -A;
-    const mx = exx * sx + ezx * sz;
-    const my = exy * sx + ezy * sz;
-    const mz = exz * sx + ezz * sz;
-    const depth = mx * dx + my * dy + mz * dz;
-    if (depth >= bestDepth - CONTACT_PATCH_BAND) {
-      sumX += mx;
-      sumY += my;
-      sumZ += mz;
-      n += 1;
-    }
-  }
-  if (n > 0) {
-    sumX /= n;
-    sumY /= n;
-    sumZ /= n;
-  }
-
-  /* Out to the hull, in the plane of the discs: the blade tip on a naked
-   * airframe, the duct rim on a whoop. A disc meeting the face edge on
-   * reaches a full hull radius; one lying flat against it reaches nothing,
-   * because the contact is already the disc itself. */
-  const du = dx * ux + dy * uy + dz * uz;
-  const px = dx - du * ux;
-  const py = dy - du * uy;
-  const pz = dz - du * uz;
-  const p2 = px * px + py * py + pz * pz;
-  if (p2 > 1e-12) {
-    const inv = CRAFT_WORLD_HULL / Math.sqrt(p2);
-    sumX += px * inv;
-    sumY += py * inv;
-    sumZ += pz * inv;
-  }
-
-  /* And along the body axis, toward whichever face is against the wall. */
-  sumX += CRAFT_WORLD_V_HALF * du * ux;
-  sumY += CRAFT_WORLD_V_HALF * du * uy;
-  sumZ += CRAFT_WORLD_V_HALF * du * uz;
-
-  r.x = sumX;
-  r.y = sumY;
-  r.z = sumZ;
-  return r;
-}
-
-/* Whether contact a comes before b: earlier along the travel, or at the
- * same parameter deeper in. */
-function partBetter(a, b) {
-  return b.t < 0 || a.t < b.t || (a.t === b.t && a.depth > b.depth);
-}
-
-function copyContact(from, to) {
-  to.t = from.t;
-  to.nx = from.nx;
-  to.ny = from.ny;
-  to.nz = from.nz;
-  to.depth = from.depth;
-  to.px = from.px;
-  to.py = from.py;
-  to.pz = from.pz;
-  to.part = from.part;
-}
-
-/* The frozen arrays of a set of colliders, one entry per collider in each,
- * and their types. `pass` is the crash world's flag (build()). */
-const FROZEN = [
-  ['fax', Float32Array], ['fay', Float32Array], ['faz', Float32Array],
-  ['fbx', Float32Array], ['fby', Float32Array], ['fbz', Float32Array],
-  ['fr', Float32Array], ['fkind', Int32Array], ['fbox', Uint8Array], ['pass', Uint8Array],
-  ['fux', Float32Array], ['fuz', Float32Array],
-  ['fu0', Float32Array], ['fu1', Float32Array], ['fw0', Float32Array], ['fw1', Float32Array],
-];
-
-/* A ColliderList's construction arrays, frozen into FROZEN's typed arrays. */
-function freeze(list) {
-  const n = list.ax.length;
-  /* One copy per array, not one loop over all ten: a shared copy loop sees
-   * three array types, and build() measured 10 percent slower with it on
-   * swiss2's 235 000 colliders. */
-  return {
-    n,
-    fax: Float32Array.from(list.ax),
-    fay: Float32Array.from(list.ay),
-    faz: Float32Array.from(list.az),
-    fbx: Float32Array.from(list.bx),
-    fby: Float32Array.from(list.by),
-    fbz: Float32Array.from(list.bz),
-    fr: Float32Array.from(list.r),
-    fkind: Int32Array.from(list.kind),
-    fbox: Uint8Array.from(list.box),
-    pass: new Uint8Array(n),
-    fux: Float32Array.from(list.ux),
-    fuz: Float32Array.from(list.uz),
-    fu0: Float32Array.from(list.u0),
-    fu1: Float32Array.from(list.u1),
-    fw0: Float32Array.from(list.w0),
-    fw1: Float32Array.from(list.w1),
-  };
-}
-
-/*
- * THE BROADPHASE OF ONE SET OF COLLIDERS, built a slice at a time.
- *
- * A grid from packed cell key to an Int32Array of the set's own indices,
- * 0 to n, in the order the colliders were added. Two passes, so each cell's
- * array is exactly the right length: a per cell push array would be
- * thousands of small allocations and would leave the grid full of holes.
- *
- * step(budget) registers colliders until it has written `budget` cell
- * entries (a collider is never split, so one over a large footprint can
- * run a step past it) and says whether the grid is done. build() runs it
- * to the end at once; a streamed refill (StreamFill) runs it a slice per
- * call, so a refill of tens of thousands of walls never holds a frame.
- *
- * A collider outside the grid THROWS rather than aliasing. The packing
- * cannot address it, and it used to be registered under another cell's
- * key, where the craft's sweep never looked for it: a solid wall that was
- * air. A coordinate that is not a number throws for the same reason, since
- * its cells are no cells at all and it would be registered nowhere.
- */
-class CellIndex {
-  constructor(set, sweeps = null) {
-    this.set = set;
-    /* index -> [x0, z0, x1, z1]: a collider registered over this instead
-     * of its own footprint (ColliderList.sweep), for one that moves. */
-    this.sweeps = sweeps;
-    /* The next collider to count, then the next to file. */
-    this.i = 0;
-    this.filing = false;
-    this.counts = new Map();
-    this.at = new Map();
-    this.grid = new Map();
-  }
-
-  step(budget) {
-    let left = budget;
-    if (!this.filing) {
-      left -= this.count(left);
-    }
-    if (this.filing && left > 0) {
-      this.file(left);
-    }
-    return this.filing && this.i === this.set.n;
-  }
-
-  /* The first pass: how many colliders each cell will hold. */
-  count(budget) {
-    const s = this.set;
-    const counts = this.counts;
-    let written = 0;
-    let i = this.i;
-    for (; i < s.n && written < budget; i += 1) {
-      const rr = s.fr[i];
-      const sw = this.sweeps && this.sweeps.get(i);
-      const x0 = gridCell(sw ? sw[0] : Math.min(s.fax[i], s.fbx[i]) - rr);
-      const x1 = gridCell(sw ? sw[2] : Math.max(s.fax[i], s.fbx[i]) + rr);
-      const z0 = gridCell(sw ? sw[1] : Math.min(s.faz[i], s.fbz[i]) - rr);
-      const z1 = gridCell(sw ? sw[3] : Math.max(s.faz[i], s.fbz[i]) + rr);
-      if (!(x0 >= -GRID_HALF && x1 < GRID_HALF && z0 >= -GRID_HALF && z1 < GRID_HALF)) {
-        throw new Error(`collide: a ${KINDS[s.fkind[i]]} from (${s.fax[i]}, ${s.faz[i]}) to (${s.fbx[i]}, ${s.fbz[i]}) is outside the grid, which reaches ${GRID_HALF * CELL} m from the origin`);
-      }
-      for (let cx = x0; cx <= x1; cx += 1) {
-        for (let cz = z0; cz <= z1; cz += 1) {
-          const k = gridKey(cx, cz);
-          counts.set(k, (counts.get(k) ?? 0) + 1);
-        }
-      }
-      written += (x1 - x0 + 1) * (z1 - z0 + 1);
-    }
-    this.i = i;
-    if (i === s.n) {
-      this.filing = true;
-      this.i = 0;
-    }
-    return written;
-  }
-
-  /* The second: each collider's index into every cell it covers. */
-  file(budget) {
-    const s = this.set;
-    const { counts, at, grid } = this;
-    let written = 0;
-    let i = this.i;
-    for (; i < s.n && written < budget; i += 1) {
-      const rr = s.fr[i];
-      const sw = this.sweeps && this.sweeps.get(i);
-      const x0 = gridCell(sw ? sw[0] : Math.min(s.fax[i], s.fbx[i]) - rr);
-      const x1 = gridCell(sw ? sw[2] : Math.max(s.fax[i], s.fbx[i]) + rr);
-      const z0 = gridCell(sw ? sw[1] : Math.min(s.faz[i], s.fbz[i]) - rr);
-      const z1 = gridCell(sw ? sw[3] : Math.max(s.faz[i], s.fbz[i]) + rr);
-      for (let cx = x0; cx <= x1; cx += 1) {
-        for (let cz = z0; cz <= z1; cz += 1) {
-          const k = gridKey(cx, cz);
-          const j = at.get(k) ?? 0;
-          let cell = grid.get(k);
-          if (cell === undefined) {
-            cell = new Int32Array(counts.get(k));
-            grid.set(k, cell);
-          }
-          cell[j] = i;
-          at.set(k, j + 1);
-        }
-      }
-      written += (x1 - x0 + 1) * (z1 - z0 + 1);
-    }
-    this.i = i;
-  }
-}
-
-/*
- * How a set of colliders is written down before it is frozen: plain arrays,
- * one push per collider, because this runs while a scene is built or a
- * streamed set is refilled, never in a query. Colliders is one (the static
- * set, frozen by build()) and so is StreamFill (a streamed set, frozen a
- * slice at a time), so the two are added to by the same four calls.
- */
-class ColliderList {
-  constructor() {
-    this.ax = [];
-    this.ay = [];
-    this.az = [];
-    this.bx = [];
-    this.by = [];
-    this.bz = [];
-    this.r = [];
-    this.kind = [];
-    /* 0 for a capsule, 1 for a box, TURNED for a turned box. A box stores
-     * its minimum corner in a and its maximum corner in b, with r = 0; a
-     * turned box stores its world bounding box there, and its own frame in
-     * the six below (addTurnedBox), which are 0 for everything else. */
-    this.box = [];
-    this.ux = [];
-    this.uz = [];
-    this.u0 = [];
-    this.u1 = [];
-    this.w0 = [];
-    this.w1 = [];
-    this.maxR = 0;
-  }
-
-  /* The turned box's frame of a collider that has none. */
-  noFrame() {
-    this.ux.push(0);
-    this.uz.push(0);
-    this.u0.push(0);
-    this.u1.push(0);
-    this.w0.push(0);
-    this.w1.push(0);
-  }
-
-  /*
-   * Add one capsule. kindName must be one of KINDS. A sphere is the same
-   * call with a === b.
-   */
-  add(kindName, ax, ay, az, bx, by, bz, r) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    this.ax.push(ax);
-    this.ay.push(ay);
-    this.az.push(az);
-    this.bx.push(bx);
-    this.by.push(by);
-    this.bz.push(bz);
-    this.r.push(r);
-    this.kind.push(k);
-    this.box.push(0);
-    this.noFrame();
-    if (r > this.maxR) {
-      this.maxR = r;
-    }
-    return this;
-  }
-
-  /*
-   * The capsule just added (index i) moves after build (Colliders
-   * moveCapsule): it is registered in the grid over [x0, z0, x1, z1],
-   * everywhere it can go, its radius included, rather than where it
-   * stands now. Static set only.
-   */
-  sweep(i, x0, z0, x1, z1) {
-    if (this.box[i] !== 0) {
-      throw new Error(`collide: only a capsule sweeps, not collider ${i}`);
-    }
-    if (!(x0 <= Math.min(this.ax[i], this.bx[i]) - this.r[i] && x1 >= Math.max(this.ax[i], this.bx[i]) + this.r[i]
-      && z0 <= Math.min(this.az[i], this.bz[i]) - this.r[i] && z1 >= Math.max(this.az[i], this.bz[i]) + this.r[i])) {
-      throw new Error(`collide: collider ${i}'s sweep does not hold where it stands`);
-    }
-    this.sweeps ??= new Map();
-    this.sweeps.set(i, [x0, z0, x1, z1]);
-    return this;
-  }
-
-  /* A vertical capsule from y0 to y1 at (x, z): a trunk, a post, a leg. */
-  addPost(kindName, x, z, y0, y1, r) {
-    return this.add(kindName, x, y0, z, x, y1, z, r);
-  }
-
-  /* A sphere: a canopy blob, a rock. */
-  addSphere(kindName, x, y, z, r) {
-    return this.add(kindName, x, y, z, x, y, z, r);
-  }
-
-  /*
-   * One axis aligned box, given as two opposite corners. Returns its index,
-   * because the level crossing needs to raise and lower two of them.
-   *
-   * A BOX CONTRIBUTES NOTHING TO maxR, and that is load bearing rather than
-   * incidental. hit() pads every broadphase query by CRAFT_WORLD_R + maxR so that a
-   * fat capsule whose centre is outside the scanned cells is still found. A
-   * box is registered in the grid over its OWN footprint, every cell of it,
-   * so a query padded by CRAFT_WORLD_R alone already finds any box within reach.
-   * Giving a box a radius equal to its half diagonal would be the natural
-   * looking thing to do and would push maxR from the race field's 16 m cliff
-   * tier to whatever the city's longest wall is, which would make every
-   * frame's query scan a neighbourhood tens of metres across for nothing. So
-   * a box carries r = 0 and the padding stays honest.
-   */
-  addBox(kindName, x0, y0, z0, x1, y1, z1) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    const i = this.ax.length;
-    this.ax.push(Math.min(x0, x1));
-    this.ay.push(Math.min(y0, y1));
-    this.az.push(Math.min(z0, z1));
-    this.bx.push(Math.max(x0, x1));
-    this.by.push(Math.max(y0, y1));
-    this.bz.push(Math.max(z0, z1));
-    this.r.push(0);
-    this.kind.push(k);
-    this.box.push(1);
-    this.noFrame();
-    return i;
-  }
-
-  /*
-   * One box turned about the vertical: its own x axis is the horizontal
-   * (ux, uz), which need not be a unit vector, its z axis w = (-uz, ux)
-   * turned a quarter from it, and it spans u0 to u1 along u, w0 to w1
-   * along w (both measured from the world's origin, so a point's
-   * coordinates in its frame are x ux + z uz and z ux - x uz) and y0 to y1
-   * up. Returns its index.
-   *
-   * WHY IT EXISTS: a wall turned off the world's axes was columns of axis
-   * aligned boxes, each no wider than keeps its corner within a stair of
-   * the face, and the Itaipu dam's turned blocks were 12 210 of the 15 000
-   * static solids its plan allows (docs/ITAIPU-PLAN.md section 6). Every
-   * query meets one by turning itself into the box's frame and asking the
-   * axis aligned box's own question there, then turning the answer back:
-   * the same solver, so the same answer, and at u = (1, 0) the turn is
-   * x 1 + z 0 = x, exactly, so a turned box square to the world is met
-   * bit for bit as the box addBox makes (scripts/turned-box-check.js).
-   *
-   * Like a box it contributes nothing to maxR: it is registered over its
-   * world bounding box, every cell of it.
-   */
-  addTurnedBox(kindName, ux, uz, u0, u1, y0, y1, w0, w1) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    const l = Math.sqrt(ux * ux + uz * uz);
-    if (!(l > 0) || !(u0 <= u1) || !(y0 <= y1) || !(w0 <= w1)) {
-      throw new Error(`collide: a turned box needs a direction and ordered extents, got (${ux}, ${uz}) ${u0}..${u1} ${y0}..${y1} ${w0}..${w1}`);
-    }
-    /* Stored as it is read: in single precision, like every extent. */
-    const cx = Math.fround(ux / l);
-    const cz = Math.fround(uz / l);
-    const i = this.ax.length;
-    let x0 = Infinity;
-    let x1 = -Infinity;
-    let z0 = Infinity;
-    let z1 = -Infinity;
-    for (const u of [u0, u1]) {
-      for (const w of [w0, w1]) {
-        const x = u * cx - w * cz;
-        const z = u * cz + w * cx;
-        x0 = Math.min(x0, x);
-        x1 = Math.max(x1, x);
-        z0 = Math.min(z0, z);
-        z1 = Math.max(z1, z);
-      }
-    }
-    /* Out by a hair, so the single precision corners still hold it. */
-    const pad = 1e-6 * (Math.abs(x0) + Math.abs(x1) + Math.abs(z0) + Math.abs(z1)) + 1e-6;
-    this.ax.push(x0 - pad);
-    this.ay.push(y0);
-    this.az.push(z0 - pad);
-    this.bx.push(x1 + pad);
-    this.by.push(y1);
-    this.bz.push(z1 + pad);
-    this.r.push(0);
-    this.kind.push(k);
-    this.box.push(TURNED);
-    this.ux.push(cx);
-    this.uz.push(cz);
-    this.u0.push(u0);
-    this.u1.push(u1);
-    this.w0.push(w0);
-    this.w1.push(w1);
-    return i;
-  }
-}
-
-/* Colliders.fbox's value for a turned box (ColliderList.addTurnedBox). */
-export const TURNED = 2;
-
-/* Where Colliders.retire puts a collider: exact in single precision, and
- * further under any map than anything is ever asked about. */
-export const SUNK_Y = -100000;
-
-/*
- * THE NEXT STREAMED SET, being made: see Colliders.streamFill. Added to
- * like a Colliders before build(), then step() freezes it and registers it
- * in its own grid a slice per call, and the call that finishes swaps it in
- * for the streamed set the queries answer from. Until then the old set is
- * the one in force, whole, so a query never sees half of a refill.
- */
-/* Cell entries a StreamFill step writes, measured by scripts/grid-check.js
- * against the plan's 2 ms a frame (docs/ITAIPU-PLAN.md section 13). */
-export const STREAM_SLICE = 20000;
-
-class StreamFill extends ColliderList {
-  constructor(owner) {
-    super();
-    this.owner = owner;
-    this.set = null;
-    this.cells = null;
-  }
-
-  /* No more adds once a step has begun: what is registered is frozen. */
-  add(...args) {
-    if (this.set) {
-      throw new Error('collide: add to a streamed set after its first step');
-    }
-    return super.add(...args);
-  }
-
-  addBox(...args) {
-    if (this.set) {
-      throw new Error('collide: add to a streamed set after its first step');
-    }
-    return super.addBox(...args);
-  }
-
-  addTurnedBox(...args) {
-    if (this.set) {
-      throw new Error('collide: add to a streamed set after its first step');
-    }
-    return super.addTurnedBox(...args);
-  }
-
-  /* One slice of the refill; true on the call that swapped it in. A fill
-   * that a newer streamFill() replaced throws: its owner has moved on. */
-  step(budget = STREAM_SLICE) {
-    if (this.owner.fill !== this) {
-      throw new Error('collide: step on a streamed set that was replaced or already swapped in');
-    }
-    if (!this.set) {
-      this.set = freeze(this);
-      this.cells = new CellIndex(this.set);
-    }
-    if (!this.cells.step(budget)) {
-      return false;
-    }
-    this.owner.swapStream(this);
-    return true;
-  }
-}
-
-export class Colliders extends ColliderList {
-  constructor() {
-    super();
-    /* A bit per KINDS index of kinds the craft's sweep (hit, hitParts) and
-     * the crash world's solids (crashworld.js nearestSolids) pass through:
-     * the soft pieces a plane meets as jelly instead (src/game/jelly.js).
-     * Set by the shell for the aircraft seated, 0 for a quad. */
-    this.softKinds = 0;
-    this.built = false;
-    /*
-     * THREE SETS IN ONE INDEX SPACE, each with its own grid:
-     *
-     *   [0, staticCount)             what build() froze: `grid`
-     *   [staticCount, baseCount)     the streamed set (streamFill): `streamGrid`
-     *   [baseCount, count)           the in-sim builder's gates (setBuilt): `builtGrid`
-     *
-     * A grid holds a set's own indices, from 0, so a set that moves (the
-     * built gates, when the streamed set before them changes size) keeps
-     * its grid and only its offset changes. The frozen arrays (fax ... pass)
-     * are views of `store` exactly `count` long, because the crash world and
-     * the harness scan them to their length (crashworld.js nearestSolids,
-     * main.js __colliderBoxes). `store` has room past count so a refill
-     * writes in place rather than copying the static set again.
-     *
-     * baseCount keeps the meaning it has always had outside this file, the
-     * first index setBuilt added (jelly.js jellyNear, gapAt's frozenOnly),
-     * so the streamed set counts as the map's own, which it is.
-     */
-    this.grid = null;
-    this.streamGrid = null;
-    this.builtGrid = null;
-    this.store = null;
-    this.staticCount = 0;
-    this.streamCount = 0;
-    this.builtCount = 0;
-    this.baseMaxR = 0;
-    this.streamMaxR = 0;
-    this.builtMaxR = 0;
-    this.builtSet = null;
-    /* The refill in progress, and how many have been swapped in: anything
-     * holding a collider index across frames (the shell's crash world) must
-     * start again when this changes, since a streamed index now names
-     * another collider. */
-    this.fill = null;
-    this.streamGen = 0;
-    /* Counts every change to a static collider after build (retire,
-     * restore, moveCapsule): what holds a copy of the static set (the
-     * crash world's declared solids) takes it again when this moves. */
-    this.staticGen = 0;
-    /* Static capsules that move: index -> where they may go (sweep). */
-    this.sweeps = null;
-    this.stamp = null;
-    /* The broadphase's candidates for the query in hand, scratch. */
-    this.cand = null;
-    this.queryId = 0;
-    /* Query statistics, so a claim about the broadphase can be measured
-     * rather than asserted. Written per query, never allocated. */
-    this.lastCandidates = 0;
-    this.queries = 0;
-    this.candidateTotal = 0;
-    /* The last hit, so the caller can say what it hit without a return
-     * object. hit() returns a kind index or -1 and writes these. hitT is
-     * the contact parameter along the travel, 0 at p and 1 at q. */
-    this.hitIndex = -1;
-    this.hitKind = -1;
-    this.hitT = -1;
-    /* How far the query ellipsoid overlaps the solid, in world metres, with
-     * the craft's CENTRE still outside it. hitPen is the other question,
-     * which is how far the centre itself is through a face. A surface bounce
-     * has an overlap and no penetration; a tunnelled hull has both. */
-    this.hitOverlap = 0;
-    /*
-     * How square the contact was: the absolute cosine between the direction of
-     * travel and the contact normal, 0 for a pure graze along a surface and 1
-     * for a head on hit. The shell multiplies it by the craft's speed to get a
-     * closing speed, because brushing a PVC upright at 3 m/s is not the same
-     * event as arriving at it at 30, and until now they were.
-     */
-    this.hitNormalDot = 0;
-    /* Unit outward normal at the contact, Three.js world space, pointing
-     * from the solid toward the craft (against inbound travel). Zero when
-     * the last query missed. The shell converts this once, in frame.js. */
-    this.hitNx = 0;
-    this.hitNy = 0;
-    this.hitNz = 0;
-    this.hitMoving = -1;
-    /* Where on the craft the contact is, world metres from its centre at
-     * hitT, when the hull is a fixed wing's parts (hitArm true); a quad's
-     * contact point is contactPatch's to derive. hitPart is the part's
-     * table index, -1 for none. */
-    this.hitArm = false;
-    this.hitArmX = 0;
-    this.hitArmY = 0;
-    this.hitArmZ = 0;
-    this.hitPart = -1;
-    /* Scratch for the parts' sweep, allocated once. */
-    this.partAxes = new Float64Array(9);
-    this.partAxesTurned = new Float64Array(9);
-    this.partHit = hullContact();
-    this.partBest = hullContact();
-    this.partLo = new Float64Array(3);
-    this.partHi = new Float64Array(3);
-    this.partC = new Float64Array(3);
-    /* Scratch for axisToPoint, written per call, never allocated. */
-    this.nx = 0;
-    this.ny = 0;
-    this.nz = 0;
-    /* Scratch for axisAt: the nearest solid's own direction and the point on
-     * its centre line nearest the query. Same rule, same reason. */
-    this.axisFound = false;
-    this.axisGap = Infinity;
-    this.axisDx = 0;
-    this.axisDy = 0;
-    this.axisDz = 0;
-    this.axisCx = 0;
-    this.axisCy = 0;
-    this.axisCz = 0;
-    /*
-     * MOVING boxes, outside the broadphase entirely.
-     *
-     * The grid is indexed on x and z, which is exactly why setBoxExtentY can
-     * raise a level crossing boom and nothing can slide a box sideways: a
-     * footprint that moves invalidates the grid. The city's train moves 59 m
-     * of solid at 23.5 m/s and had no collision at all, so it needs a path
-     * that never touches the grid. There are three of them, one per car, and
-     * a handful of extra box tests per query costs less than one bucket of a
-     * cell, so they are simply tested after the scan and folded into the same
-     * earliest contact comparison. Same primitive, same solver, same answer.
-     */
-    this.movingHx = [];
-    this.movingHy = [];
-    this.movingHz = [];
-    this.movingKind = [];
-    this.movingCx = [];
-    this.movingCy = [];
-    this.movingCz = [];
-    this.movingPx = [];
-    this.movingPy = [];
-    this.movingPz = [];
-    this.movingCount = 0;
-  }
-
-  /*
-   * Add a moving box by its half extents. Returns its index, for
-   * setMovingCentre. Unlike a static box this may be added after build(),
-   * because it is not in the grid and nothing about it is frozen.
-   */
-  addMoving(kindName, hx, hy, hz) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    const i = this.movingCount;
-    this.movingHx.push(hx);
-    this.movingHy.push(hy);
-    this.movingHz.push(hz);
-    this.movingKind.push(k);
-    this.movingCx.push(0);
-    this.movingCy.push(0);
-    this.movingCz.push(0);
-    this.movingPx.push(0);
-    this.movingPy.push(0);
-    this.movingPz.push(0);
-    this.movingCount = i + 1;
-    return i;
-  }
-
-  /*
-   * Where a moving box is NOW. The previous centre is kept because the query
-   * is solved in the box's own frame: a train crossing the town at 23.5 m/s
-   * covers 0.39 m per frame at 60 Hz and twelve metres per frame on this
-   * container, so a test against the box at rest would let the train pass
-   * clean through a hovering quad between two frames. Differencing the two
-   * centres against the two ends of the craft's travel makes the sweep exact
-   * for the relative motion, which is the only motion that can touch.
-   */
-  setMovingCentre(i, x, y, z) {
-    this.movingPx[i] = this.movingCx[i];
-    this.movingPy[i] = this.movingCy[i];
-    this.movingPz[i] = this.movingCz[i];
-    this.movingCx[i] = x;
-    this.movingCy[i] = y;
-    this.movingCz[i] = z;
-    return this;
-  }
-
-  /* Seat a moving box with no motion, so its first query cannot see a jump
-   * from the origin as a frame of travel. */
-  seatMoving(i, x, y, z) {
-    this.movingCx[i] = x;
-    this.movingCy[i] = y;
-    this.movingCz[i] = z;
-    this.movingPx[i] = x;
-    this.movingPy[i] = y;
-    this.movingPz[i] = z;
-    return this;
-  }
-
-  /*
-   * Move one box's vertical extent after build(). The broadphase grid is
-   * indexed on x and z only, so changing a y extent cannot invalidate it,
-   * which is exactly why the level crossing's booms can be a static collider
-   * that raises and lowers rather than a second dynamic collision path.
-   * Anything that changed a footprint would have to rebuild, and nothing
-   * does.
-   *
-   * Both ends move through this one method BECAUSE the box distance solver
-   * assumes lo <= hi on every axis and an inverted box is a silent wrong
-   * answer: every query against it just misses, which for a crossing boom
-   * means a barrier a quad flies through. The invariant used to be
-   * maintained by convention across two files, with animation.js writing
-   * fay directly; now the only path is guarded and a violation throws.
-   */
-  setBoxExtentY(index, y0, y1) {
-    if (!this.built) {
-      throw new Error('collide: setBoxExtentY before build');
-    }
-    if (!this.fbox[index]) {
-      throw new Error(`collide: collider ${index} is not a box`);
-    }
-    if (!(y0 <= y1)) {
-      throw new Error(`collide: inverted box extent ${y0} > ${y1} on collider ${index}`);
-    }
-    this.fay[index] = y0;
-    this.fby[index] = y1;
-    return this;
-  }
-
-  /* Move only the top. Guarded by the same invariant. */
-  setBoxTop(index, top) {
-    if (!this.built) {
-      throw new Error('collide: setBoxTop before build');
-    }
-    if (!this.fbox[index]) {
-      throw new Error(`collide: collider ${index} is not a box`);
-    }
-    if (!(this.fay[index] <= top)) {
-      throw new Error(`collide: setBoxTop ${top} below bottom ${this.fay[index]} on collider ${index}`);
-    }
-    this.fby[index] = top;
-    return this;
-  }
-
-  /*
-   * Take static collider `index` out of the world after build(), for a
-   * part of a structure that broke (src/share/war/damage.js), and put it
-   * back with restore(). Retired, both ends of its vertical extent sit at
-   * SUNK_Y, so every query (the sweep, gapAt, axisAt, the crossings, the
-   * crash world's nearestSolids) meets it as a solid a hundred kilometres
-   * under the map, which is to say never. The grid is indexed on x and z
-   * only (setBoxExtentY), so nothing is rebuilt and the static count does
-   * not change: a capsule, a box and a turned box all keep their place.
-   * Only the static set: a streamed one is refilled from its source, which
-   * is where a broken streamed piece has to be left out.
-   */
-  retire(index) {
-    if (!this.built) {
-      throw new Error('collide: retire before build');
-    }
-    if (!(index >= 0 && index < this.staticCount)) {
-      throw new Error(`collide: retire ${index} is not a static collider`);
-    }
-    this.sunk ??= new Map();
-    if (this.sunk.has(index)) {
-      return this;
-    }
-    this.sunk.set(index, [this.fay[index], this.fby[index]]);
-    this.fay[index] = SUNK_Y;
-    this.fby[index] = SUNK_Y;
-    this.staticGen += 1;
-    return this;
-  }
-
-  restore(index) {
-    const was = this.sunk ? this.sunk.get(index) : null;
-    if (!was) {
-      return this;
-    }
-    this.fay[index] = was[0];
-    this.fby[index] = was[1];
-    this.sunk.delete(index);
-    this.staticGen += 1;
-    return this;
-  }
-
-  /*
-   * Move static capsule `index` to run from a to b after build(), within
-   * the sweep it was registered over (ColliderList.sweep): the grid holds
-   * it in every cell it can reach, so moving it rebuilds nothing. Throws
-   * when it would leave that, where the craft's sweep would no longer
-   * find it. A retired capsule moves where it would stand, still sunk.
-   */
-  moveCapsule(index, a, b) {
-    const sw = this.sweeps && this.sweeps.get(index);
-    if (!this.built || !sw) {
-      throw new Error(`collide: collider ${index} was not registered to move`);
-    }
-    const r = this.fr[index];
-    if (!(Math.min(a[0], b[0]) - r >= sw[0] - 1e-3 && Math.max(a[0], b[0]) + r <= sw[2] + 1e-3
-      && Math.min(a[2], b[2]) - r >= sw[1] - 1e-3 && Math.max(a[2], b[2]) + r <= sw[3] + 1e-3)) {
-      throw new Error(`collide: collider ${index} moved out of its sweep`);
-    }
-    this.fax[index] = a[0];
-    this.faz[index] = a[2];
-    this.fbx[index] = b[0];
-    this.fbz[index] = b[2];
-    if (this.sunk && this.sunk.has(index)) {
-      this.sunk.set(index, [a[1], b[1]]);
-    } else {
-      this.fay[index] = a[1];
-      this.fby[index] = b[1];
-    }
-    this.staticGen += 1;
-    return this;
-  }
-
-  /* How many static colliders are retired now. */
-  retired() {
-    return this.sunk ? this.sunk.size : 0;
-  }
-
-  /*
-   * Freeze into flat arrays and build the grid. Called once, after every
-   * add. Everything the per frame path touches is allocated here.
-   */
-  build() {
-    const set = freeze(this);
-    const cells = new CellIndex(set, this.sweeps ?? null);
-    cells.step(Infinity);
-    /* Breakpoint scratch for the exact segment to box distance. Six axis
-     * crossings plus the two segment ends, allocated once because hit() runs
-     * every frame and P8 forbids an allocation there. */
-    this.tBreaks = new Float64Array(8);
-    this.grid = cells.grid;
-    /* The static set is the store as frozen, with no room past it: a map
-     * that never streams and never builds keeps exactly these arrays. */
-    this.store = set;
-    this.stamp = new Int32Array(set.n);
-    this.cand = new Int32Array(set.n);
-    /* Solids the craft's sweep passes through (`pass`), one flag each, all
-     * clear unless the crash physics has taken a solid over: a tree's crown
-     * the plant models as foliage the craft flies INTO (sim_tree_add) must
-     * not also be a ball the sweep bounces it off. src/main.js sets and
-     * clears them; with none set, hit() is what it always was. */
-    this.staticCount = set.n;
-    this.baseMaxR = this.maxR;
-    this.built = true;
-    this.layout();
-    /* The construction arrays are dead now and they are the larger copy. */
-    this.ax = null;
-    this.ay = null;
-    this.az = null;
-    this.bx = null;
-    this.by = null;
-    this.bz = null;
-    this.r = null;
-    this.box = null;
-    this.ux = null;
-    this.uz = null;
-    this.u0 = null;
-    this.u1 = null;
-    this.w0 = null;
-    this.w1 = null;
-    return this;
-  }
-
-  /*
-   * The counts, the offsets and the views after any set changed, and maxR,
-   * which pads every query by the fattest capsule of the three sets.
-   */
-  layout() {
-    this.baseCount = this.staticCount + this.streamCount;
-    this.count = this.baseCount + this.builtCount;
-    this.maxR = Math.max(this.baseMaxR, this.streamMaxR, this.builtMaxR);
-    for (const [name] of FROZEN) {
-      this[name] = this.store[name].subarray(0, this.count);
-    }
-  }
-
-  /*
-   * Write `set` (a frozen set, freeze()'s) at index `at` in the store,
-   * growing the store first when it has no room for `end` colliders. Its
-   * pass flags start clear, since nothing has taken a collider over that
-   * was not there a moment ago.
-   */
-  place(set, at, end) {
-    if (end > this.store.fax.length) {
-      /* Twice the dynamic part's room, so a refill of about the same size
-       * writes in place: growing copies the static set, and on swiss2's
-       * 235 000 colliders that is the one slice a refill can spend more
-       * than a couple of milliseconds on. */
-      const room = end + (end - this.staticCount);
-      const store = {};
-      for (const [name, Type] of FROZEN) {
-        store[name] = new Type(room);
-        store[name].set(this.store[name].subarray(0, this.count));
-      }
-      this.store = store;
-      this.stamp = new Int32Array(room);
-      this.cand = new Int32Array(room);
-    }
-    for (const [name] of FROZEN) {
-      this.store[name].set(set[name], at);
-    }
-  }
-
-  /*
-   * THE BUILT GATES, the one set of static capsules that can change after
-   * build(): the in-sim builder (src/builder/buildmode.js) places, moves and
-   * deletes gates in a valley whose other few thousand colliders took most
-   * of a minute to make. `caps` is the whole set, [{ kind, ax, ay, az, bx,
-   * by, bz, r }] in the world, and replaces the last one; [] leaves exactly
-   * what build() froze.
-   *
-   * They are ordinary colliders after the frozen ones and the streamed set,
-   * indices baseCount and up, in a grid of their own that every query walks
-   * after the static one, so the query paths (hit, gapAt, axisAt,
-   * crossedStatic, the crash world's solids) meet a built gate exactly as
-   * they meet a field gate. The static grid is never touched. Called on an
-   * edit, never per frame.
-   */
-  setBuilt(caps) {
-    if (!this.built) {
-      throw new Error('collide: setBuilt before build');
-    }
-    const list = new ColliderList();
-    for (const c of caps) {
-      list.add(c.kind, c.ax, c.ay, c.az, c.bx, c.by, c.bz, c.r);
-    }
-    const set = freeze(list);
-    const cells = new CellIndex(set);
-    cells.step(Infinity);
-    this.place(set, this.baseCount, this.baseCount + set.n);
-    this.builtSet = set;
-    this.builtGrid = set.n ? cells.grid : null;
-    this.builtCount = set.n;
-    this.builtMaxR = list.maxR;
-    this.layout();
-    return this;
-  }
-
-  /*
-   * THE STREAMED SET: colliders a map keeps only near the pilot, because
-   * there are too many to keep everywhere (Itaipu's building walls and near
-   * trees, docs/ITAIPU-PLAN.md sections 7 and 9). The static set stays
-   * built; this set is replaced whole, by a refill:
-   *
-   *   const fill = colliders.streamFill();
-   *   fill.addBox(...); fill.addPost(...);   // as Colliders' own adds
-   *   while (!fill.step()) {}                // or one step() per frame
-   *
-   * Every query the static set answers answers the streamed one too (hit,
-   * hitParts, gapAt, axisAt, crossedStatic, interiorAt, and the crash
-   * world's nearestSolids, which scans the arrays), and until the step
-   * that finishes, the one before is the set in force, whole. A step is at
-   * most STREAM_SLICE cell entries of work, so a map steps one per frame (on
-   * the sim clock, so what the craft can hit is a function of the flight)
-   * and a refill never holds a frame; the first fill, at load, can run to
-   * the end at once and pays for growing the store there. A newer
-   * streamFill() replaces a fill still in progress, which is then dead.
-   *
-   * A swap moves every index at or after staticCount, so it bumps
-   * streamGen and clears the crash world's pass flags on the streamed and
-   * built sets: an index held from before names another collider now.
-   */
-  streamFill() {
-    if (!this.built) {
-      throw new Error('collide: streamFill before build');
-    }
-    this.fill = new StreamFill(this);
-    return this.fill;
-  }
-
-  /* The last step of a StreamFill: its set in, the built gates after it. */
-  swapStream(fill) {
-    const set = fill.set;
-    const at = this.staticCount;
-    this.place(set, at, at + set.n + this.builtCount);
-    if (this.builtSet) {
-      this.place(this.builtSet, at + set.n, at + set.n + this.builtCount);
-    }
-    this.streamGrid = set.n ? fill.cells.grid : null;
-    this.streamCount = set.n;
-    this.streamMaxR = fill.maxR;
-    this.streamGen += 1;
-    this.fill = null;
-    this.layout();
-  }
-
-  /*
-   * THE BROADPHASE: every collider registered in a cell from (cx0, cz0) to
-   * (cx1, cz1), each once, into `cand`, and how many. The static set first,
-   * then the streamed, then the built, each in its own grid's cell order,
-   * which for a map with neither is the order the queries walked before
-   * there were three. Stamps the query's id, so the caller's own per
-   * candidate work never sees a collider twice.
-   */
-  gather(cx0, cx1, cz0, cz1) {
-    this.queryId += 1;
-    let n = this.gatherSet(this.grid, 0, cx0, cx1, cz0, cz1, 0);
-    if (this.streamGrid !== null) {
-      n = this.gatherSet(this.streamGrid, this.staticCount, cx0, cx1, cz0, cz1, n);
-    }
-    if (this.builtGrid !== null) {
-      n = this.gatherSet(this.builtGrid, this.baseCount, cx0, cx1, cz0, cz1, n);
-    }
-    return n;
-  }
-
-  gatherSet(grid, offset, cx0, cx1, cz0, cz1, n) {
-    const id = this.queryId;
-    const stamp = this.stamp;
-    const cand = this.cand;
-    for (let cx = cx0; cx <= cx1; cx += 1) {
-      for (let cz = cz0; cz <= cz1; cz += 1) {
-        const bucket = grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
-        if (bucket === undefined) {
-          continue;
-        }
-        for (let bi = 0; bi < bucket.length; bi += 1) {
-          const i = offset + bucket[bi];
-          if (stamp[i] !== id) {
-            stamp[i] = id;
-            cand[n] = i;
-            n += 1;
-          }
-        }
-      }
-    }
-    return n;
-  }
-
-  /*
-   * How far (px, py, pz) is outside box i, axis aligned or turned, 0
-   * inside: the one distance gapAt, axisAt and the shell's contact log
-   * measure a box by.
-   */
-  boxGap(i, px, py, pz) {
-    let x = px;
-    let z = pz;
-    let x0 = this.fax[i];
-    let x1 = this.fbx[i];
-    let z0 = this.faz[i];
-    let z1 = this.fbz[i];
-    if (this.fbox[i] === TURNED) {
-      const ux = this.fux[i];
-      const uz = this.fuz[i];
-      x = px * ux + pz * uz;
-      z = pz * ux - px * uz;
-      x0 = this.fu0[i];
-      x1 = this.fu1[i];
-      z0 = this.fw0[i];
-      z1 = this.fw1[i];
-    }
-    const ox = Math.max(x0 - x, 0, x - x1);
-    const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
-    const oz = Math.max(z0 - z, 0, z - z1);
-    return Math.sqrt(ox * ox + oy * oy + oz * oz);
-  }
-
-  /*
-   * Earliest parameter t in [0, 1] at which the ELLIPSOID with horizontal
-   * semi-axis rx and vertical semi-axis ry, centred on the travel segment
-   * p + t*d, touches box i, or -1 if it never does. rx = ry is the swept
-   * sphere as a special case.
-   *
-   * NOT SAMPLED, for the same reason the capsule test is not, and EXACT for
-   * the ellipsoid: per axis the distance outside the slab is
-   *
-   *     g(t) = max( lo - p(t), 0, p(t) - hi )
-   *
-   * piecewise linear with at most two breakpoints, and the ellipsoid touches
-   * the box exactly when sum over axes of (g_axis / r_axis)^2 <= 1, which is
-   * the same piecewise quadratic walk with each axis's contribution divided
-   * by its semi-axis. Collect the breakpoints, sort them, and walk the
-   * pieces IN ASCENDING t: the first piece whose start is already inside
-   * gives its start, and the first piece whose quadratic dips inside gives
-   * the earlier of its two roots. Seven pieces at the very worst, closed
-   * form on each, and because the walk is in travel order the answer is the
-   * first contact along the travel, not the closest approach.
-   *
-   * The alternative that suggests itself, testing the segment against the box
-   * grown by the craft radius, is WRONG at a corner: the Minkowski sum of a
-   * box and a sphere has rounded edges, so the grown box overstates the
-   * reach by up to (sqrt(3) - 1) * CRAFT_WORLD_R, which is 0.102 m on a 0.1388 m
-   * craft. That is a crash reported for a corner the pilot can see they
-   * missed. It is used here only as a rejection test, where overstating is
-   * safe.
-   */
-  boxEarliestT(i, px, py, pz, dx, dy, dz, rx, ry, rz) {
-    return this.boxSlabWalk(
-      this.fax[i], this.fay[i], this.faz[i],
-      this.fbx[i], this.fby[i], this.fbz[i],
-      px, py, pz, dx, dy, dz, rx, ry, rz,
-    );
-  }
-
-  /* The same walk against extents passed in, so a MOVING box can use it
-   * without living in the static arrays the broadphase grid indexes. */
-  boxSlabWalk(lo0, lo1, lo2, hi0, hi1, hi2, px, py, pz, dx, dy, dz, rx, ry, rz) {
-    const t = this.tBreaks;
-    let n = 0;
-    t[n] = 0; n += 1;
-    t[n] = 1; n += 1;
-    for (let axis = 0; axis < 3; axis += 1) {
-      const d = axis === 0 ? dx : axis === 1 ? dy : dz;
-      if (d === 0) {
-        continue;
-      }
-      const p = axis === 0 ? px : axis === 1 ? py : pz;
-      const lo = axis === 0 ? lo0 : axis === 1 ? lo1 : lo2;
-      const hi = axis === 0 ? hi0 : axis === 1 ? hi1 : hi2;
-      const ta = (lo - p) / d;
-      if (ta > 0 && ta < 1) {
-        t[n] = ta; n += 1;
-      }
-      const tb = (hi - p) / d;
-      if (tb > 0 && tb < 1) {
-        t[n] = tb; n += 1;
-      }
-    }
-    /* Insertion sort over at most eight values, in place, no allocation. */
-    for (let a = 1; a < n; a += 1) {
-      const v = t[a];
-      let b = a - 1;
-      while (b >= 0 && t[b] > v) {
-        t[b + 1] = t[b];
-        b -= 1;
-      }
-      t[b + 1] = v;
-    }
-
-    for (let piece = 0; piece + 1 < n; piece += 1) {
-      const t0 = t[piece];
-      const t1 = t[piece + 1];
-      if (t1 <= t0) {
-        continue;
-      }
-      /* Which side of each slab this piece is on is constant across it, so
-       * one probe at the midpoint settles all three branches. */
-      const tm = (t0 + t1) * 0.5;
-      let qa = 0;
-      let qb = 0;
-      let qc = 0;
-      for (let axis = 0; axis < 3; axis += 1) {
-        const p = axis === 0 ? px : axis === 1 ? py : pz;
-        const d = axis === 0 ? dx : axis === 1 ? dy : dz;
-        const lo = axis === 0 ? lo0 : axis === 1 ? lo1 : lo2;
-        const hi = axis === 0 ? hi0 : axis === 1 ? hi1 : hi2;
-        const r = axis === 0 ? rx : axis === 1 ? ry : rz;
-        const m = p + d * tm;
-        let A = 0;
-        let B = 0;
-        if (m < lo) {
-          A = (lo - p) / r;
-          B = -d / r;
-        } else if (m > hi) {
-          A = (p - hi) / r;
-          B = d / r;
-        } else {
-          continue;
-        }
-        qa += B * B;
-        qb += 2 * A * B;
-        qc += A * A;
-      }
-      /* f(t) = qa*t^2 + qb*t + qc on [t0, t1], contact at f <= 1. Already
-       * inside at the piece start means contact at or before t0; the walk is
-       * ascending, so t0 is the earliest this query can resolve and it is
-       * exact at t0 = 0, the start-inside case. */
-      const f0 = qa * t0 * t0 + qb * t0 + qc;
-      if (f0 <= 1) {
-        return t0;
-      }
-      if (qa > 0) {
-        const disc = qb * qb - 4 * qa * (qc - 1);
-        if (disc >= 0) {
-          const root = (-qb - Math.sqrt(disc)) / (2 * qa);
-          if (root >= t0 && root <= t1) {
-            return root;
-          }
-        }
-      } else if (qb < 0) {
-        /* Defensive, and the algebra says it cannot be reached: getting here
-       * needs qa === 0 with qb < 0, and qa is a sum of squares that is zero
-       * only for a zero length segment, which the caller has already dealt
-       * with. Kept rather than deleted so a future change to the quadratic
-       * above does not silently lose the linear case, but do not go hunting
-       * for the input that runs it. */
-        const root = (1 - qc) / qb;
-        if (root >= t0 && root <= t1) {
-          return root;
-        }
-      }
-    }
-    return -1;
-  }
-
-  /*
-   * Earliest parameter t in [0, 1] at which the travel segment p + t*d comes
-   * within reach of capsule i, or -1. Closed form: a capsule is exactly the
-   * union of two full cap spheres and a finite cylinder, and the first
-   * contact with a union is the earliest of the first contacts with its
-   * parts. Each part is a quadratic in t; the finite cylinder additionally
-   * intersects its radial-contact interval with the interval where the
-   * contact point's axial projection lies on the segment, both closed form.
-   * A contact that is already true at t = 0 returns 0.
-   */
-  capsuleEarliestT(i, px, py, pz, dx, dy, dz, a, reachSq) {
-    const ex = this.fbx[i] - this.fax[i];
-    const ey = this.fby[i] - this.fay[i];
-    const ez = this.fbz[i] - this.faz[i];
-    const mx = px - this.fax[i];
-    const my = py - this.fay[i];
-    const mz = pz - this.faz[i];
-    const ee = ex * ex + ey * ey + ez * ez;
-
-    /* Start-inside: distance from p to the axis segment at t = 0. */
-    {
-      let u = 0;
-      if (ee > 1e-12) {
-        u = (ex * mx + ey * my + ez * mz) / ee;
-        u = clamp01(u);
-      }
-      const gx = mx - ex * u;
-      const gy = my - ey * u;
-      const gz = mz - ez * u;
-      if (gx * gx + gy * gy + gz * gz <= reachSq) {
-        return 0;
-      }
-    }
-    if (a <= 1e-12) {
-      return -1;
-    }
-
-    let best = -1;
-
-    /* Cap spheres at both ends: |m' + t d|^2 = reachSq, m' measured from the
-     * cap centre. end 0 is fa, end 1 is fb. */
-    for (let end = 0; end < 2; end += 1) {
-      const cx = end === 0 ? mx : px - this.fbx[i];
-      const cy = end === 0 ? my : py - this.fby[i];
-      const cz = end === 0 ? mz : pz - this.fbz[i];
-      const qb = 2 * (dx * cx + dy * cy + dz * cz);
-      const qc = cx * cx + cy * cy + cz * cz - reachSq;
-      const disc = qb * qb - 4 * a * qc;
-      if (disc >= 0) {
-        const sq = Math.sqrt(disc);
-        let tEnter = (-qb - sq) / (2 * a);
-        const tExit = (-qb + sq) / (2 * a);
-        if (tEnter < 0) {
-          tEnter = 0;
-        }
-        if (tEnter <= 1 && tEnter <= tExit && (best < 0 || tEnter < best)) {
-          best = tEnter;
-        }
-      }
-    }
-
-    /* Finite cylinder, only for a real segment. Radial contact:
-     * |(m + t d) x e|^2 = reachSq * ee, quadratic in t. Axial validity:
-     * u(t) = e . (m + t d) in [0, ee], linear in t. */
-    if (ee > 1e-12) {
-      const c0x = my * ez - mz * ey;
-      const c0y = mz * ex - mx * ez;
-      const c0z = mx * ey - my * ex;
-      const c1x = dy * ez - dz * ey;
-      const c1y = dz * ex - dx * ez;
-      const c1z = dx * ey - dy * ex;
-      const qa = c1x * c1x + c1y * c1y + c1z * c1z;
-      const qb = 2 * (c0x * c1x + c0y * c1y + c0z * c1z);
-      const qc = c0x * c0x + c0y * c0y + c0z * c0z - reachSq * ee;
-      const em = ex * mx + ey * my + ez * mz;
-      const ed = ex * dx + ey * dy + ez * dz;
-      let r0 = -Infinity;
-      let r1 = Infinity;
-      let radialOk = true;
-      if (qa > 1e-12) {
-        const disc = qb * qb - 4 * qa * qc;
-        if (disc < 0) {
-          radialOk = false;
-        } else {
-          const sq = Math.sqrt(disc);
-          r0 = (-qb - sq) / (2 * qa);
-          r1 = (-qb + sq) / (2 * qa);
-        }
-      } else if (qc > 0) {
-        /* Travel parallel to the axis and outside the radius: the side of
-         * the cylinder is never touched, only the caps can be. */
-        radialOk = false;
-      }
-      if (radialOk) {
-        let u0 = -Infinity;
-        let u1 = Infinity;
-        let axialOk = true;
-        if (ed > 1e-12 || ed < -1e-12) {
-          const ta = (0 - em) / ed;
-          const tb = (ee - em) / ed;
-          u0 = ta < tb ? ta : tb;
-          u1 = ta < tb ? tb : ta;
-        } else if (em < 0 || em > ee) {
-          axialOk = false;
-        }
-        if (axialOk) {
-          let tEnter = r0 > u0 ? r0 : u0;
-          const tExit = (r1 < u1 ? r1 : u1) < 1 ? (r1 < u1 ? r1 : u1) : 1;
-          if (tEnter < 0) {
-            tEnter = 0;
-          }
-          if (tEnter <= tExit && tEnter <= 1 && (best < 0 || tEnter < best)) {
-            best = tEnter;
-          }
-        }
-      }
-    }
-    return best;
-  }
-
-  /*
-   * The travel parameter s in [0, 1] at which the segment p + s*d comes
-   * closest to capsule i's axis segment. The classical closest pair of two
-   * segments, closed form. Used to pick the direction for the ellipsoid
-   * support refinement.
-   */
-  closestApproachS(i, px, py, pz, d1x, d1y, d1z, a) {
-    const d2x = this.fbx[i] - this.fax[i];
-    const d2y = this.fby[i] - this.fay[i];
-    const d2z = this.fbz[i] - this.faz[i];
-    const rx = px - this.fax[i];
-    const ry = py - this.fay[i];
-    const rz = pz - this.faz[i];
-    const e = d2x * d2x + d2y * d2y + d2z * d2z;
-    const fdot = d2x * rx + d2y * ry + d2z * rz;
-    const c = d1x * rx + d1y * ry + d1z * rz;
-    let s = 0;
-    if (a <= 1e-12) {
-      return 0;
-    }
-    if (e <= 1e-12) {
-      return clamp01(-c / a);
-    }
-    const b = d1x * d2x + d1y * d2y + d1z * d2z;
-    const denom = a * e - b * b;
-    s = denom !== 0 ? clamp01((b * fdot - c * e) / denom) : 0;
-    let t = (b * s + fdot) / e;
-    if (t < 0) {
-      s = clamp01(-c / a);
-    } else if (t > 1) {
-      s = clamp01((b - c) / a);
-    }
-    return s;
-  }
-
-  /*
-   * THE GAP TO THE NEAREST SOLID at a point, in metres, or Infinity if
-   * nothing is within `maxR`.
-   *
-   * `hit()` cannot answer this and it was tried: it is a SWEPT test that
-   * reports the first thing the travel touches, so a stationary query
-   * returns a hit with `hitPen` of zero and the caller reads the query
-   * radius back as the distance. Measured against the training field's
-   * wall, a point 0.1 m off its face came back as 2.0 m and a point 0.3 m
-   * off it came back as nothing at all. A proximity test needs a distance,
-   * and a distance is a different question from an intersection.
-   *
-   * Wall Ride and Reverse Wall Ride are the reason it exists: neither
-   * touches the wall, so no contact fires, and their rotation signature, a
-   * quarter roll out and a quarter roll back, is also what banking round a
-   * corner looks like. The wall is the whole trick.
-   *
-   * Exact for both primitives and allocation free. A capsule's gap is the
-   * length of the perpendicular from its axis less its radius; a box's is
-   * the length of the componentwise outside vector, which is zero inside
-   * it. The broadphase walk is the same grid `hit()` uses.
-   *
-   * `frozenOnly` leaves out what setBuilt added, and `skipKinds` is a bit
-   * per KINDS index of kinds to leave out: the in-sim builder asks whether
-   * a gate or its line is inside the map's own rock and buildings, and the
-   * built gates and the forest are not that (src/builder/buildmode.js).
-   */
-  gapAt(px, py, pz, maxR, frozenOnly = false, skipKinds = 0) {
-    if (!this.built) {
-      return Infinity;
-    }
-    const pad = maxR + this.maxR;
-    const cx0 = clampCell(Math.floor((px - pad) / CELL));
-    const cx1 = clampCell(Math.floor((px + pad) / CELL));
-    const cz0 = clampCell(Math.floor((pz - pad) / CELL));
-    const cz1 = clampCell(Math.floor((pz + pad) / CELL));
-    let best = Infinity;
-    const n = this.gather(cx0, cx1, cz0, cz1);
-    const cand = this.cand;
-    for (let ci = 0; ci < n; ci += 1) {
-      const i = cand[ci];
-      if ((frozenOnly && i >= this.baseCount) || (skipKinds & (1 << this.fkind[i]))) {
-        continue;
-      }
-      let gap;
-      if (this.fbox[i]) {
-        gap = this.boxGap(i, px, py, pz);
-      } else {
-        this.axisToPoint(i, px, py, pz);
-        const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-        gap = d - this.fr[i];
-      }
-      if (gap < best) {
-        best = gap < 0 ? 0 : gap;
-      }
-    }
-    return best <= maxR ? best : Infinity;
-  }
-
-  /*
-   * THE NEAREST SOLID'S OWN DIRECTION, and where its middle is.
-   *
-   * gapAt answers "is there something there", which is enough to say a trick
-   * had an object in it. It is not enough to say WHAT the craft did around
-   * that object, and the reason is measured rather than argued: flown with
-   * the sticks, a Matty Flip's path does not stay in one plane. The craft
-   * yaws through the dive, so the raw turning of its path is not the half
-   * turn a judge sees, while the SAME flight measured as winding about the
-   * rail's own axis is a clean half lap. Projecting onto the object's
-   * direction is what throws the heading wander away, because heading wander
-   * is turning about world up and a rail is horizontal.
-   *
-   * So this reports, for the nearest solid within maxR: how far away it is,
-   * which way it runs, and the point on its own centre line nearest the
-   * query. A capsule runs along its segment, which is what a capsule IS. A
-   * box runs along its longest dimension, which for a rail, a coping, a
-   * parapet or a roof edge is the edge a pilot loops around, and for a post
-   * is the post.
-   *
-   * Written into fields rather than returned as an object, the way
-   * axisToPoint is, because this file allocates nothing that a query path
-   * can reach. Returns whether anything was found.
-   */
-  axisAt(px, py, pz, maxR) {
-    this.axisFound = false;
-    this.axisGap = Infinity;
-    if (!this.built) {
-      return false;
-    }
-    const pad = maxR + this.maxR;
-    const cx0 = clampCell(Math.floor((px - pad) / CELL));
-    const cx1 = clampCell(Math.floor((px + pad) / CELL));
-    const cz0 = clampCell(Math.floor((pz - pad) / CELL));
-    const cz1 = clampCell(Math.floor((pz + pad) / CELL));
-    let best = Infinity;
-    let bestI = -1;
-    const n = this.gather(cx0, cx1, cz0, cz1);
-    const cand = this.cand;
-    for (let ci = 0; ci < n; ci += 1) {
-      const i = cand[ci];
-      let gap;
-      if (this.fbox[i]) {
-        gap = this.boxGap(i, px, py, pz);
-      } else {
-        this.axisToPoint(i, px, py, pz);
-        const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-        gap = d - this.fr[i];
-      }
-      if (gap < best) {
-        best = gap < 0 ? 0 : gap;
-        bestI = i;
-      }
-    }
-    if (bestI < 0 || best > maxR) {
-      return false;
-    }
-    this.axisFound = true;
-    this.axisGap = best;
-    if (this.fbox[bestI] === TURNED) {
-      /* The same rule in the box's own frame: its longest side, through
-       * its middle, the query clamped along it; then back to the world. */
-      const ux = this.fux[bestI];
-      const uz = this.fuz[bestI];
-      const u0 = this.fu0[bestI];
-      const u1 = this.fu1[bestI];
-      const w0 = this.fw0[bestI];
-      const w1 = this.fw1[bestI];
-      const y0 = this.fay[bestI];
-      const y1 = this.fby[bestI];
-      const qu = px * ux + pz * uz;
-      const qw = pz * ux - px * uz;
-      let cu = (u0 + u1) * 0.5;
-      let cw = (w0 + w1) * 0.5;
-      let cy = (y0 + y1) * 0.5;
-      const lu = u1 - u0;
-      const ly = y1 - y0;
-      const lw = w1 - w0;
-      if (lu >= ly && lu >= lw) {
-        this.axisDx = ux;
-        this.axisDy = 0;
-        this.axisDz = uz;
-        cu = qu < u0 ? u0 : (qu > u1 ? u1 : qu);
-      } else if (ly >= lu && ly >= lw) {
-        this.axisDx = 0;
-        this.axisDy = 1;
-        this.axisDz = 0;
-        cy = py < y0 ? y0 : (py > y1 ? y1 : py);
-      } else {
-        this.axisDx = -uz;
-        this.axisDy = 0;
-        this.axisDz = ux;
-        cw = qw < w0 ? w0 : (qw > w1 ? w1 : qw);
-      }
-      /* Back by the turn's exact inverse, as hitParts' contact point. */
-      const n2 = ux * ux + uz * uz;
-      this.axisCx = (cu * ux - cw * uz) / n2;
-      this.axisCy = cy;
-      this.axisCz = (cu * uz + cw * ux) / n2;
-      return true;
-    }
-    if (this.fbox[bestI]) {
-      /* The longest dimension is the direction; the centre line runs through
-       * the box along it, and the nearest point on that line is the query's
-       * own coordinate clamped to the box's extent. */
-      const w = this.fbx[bestI] - this.fax[bestI];
-      const h = this.fby[bestI] - this.fay[bestI];
-      const d = this.fbz[bestI] - this.faz[bestI];
-      const mx = (this.fax[bestI] + this.fbx[bestI]) * 0.5;
-      const my = (this.fay[bestI] + this.fby[bestI]) * 0.5;
-      const mz = (this.faz[bestI] + this.fbz[bestI]) * 0.5;
-      if (w >= h && w >= d) {
-        this.axisDx = 1;
-        this.axisDy = 0;
-        this.axisDz = 0;
-        this.axisCx = px < this.fax[bestI] ? this.fax[bestI]
-          : (px > this.fbx[bestI] ? this.fbx[bestI] : px);
-        this.axisCy = my;
-        this.axisCz = mz;
-      } else if (h >= w && h >= d) {
-        this.axisDx = 0;
-        this.axisDy = 1;
-        this.axisDz = 0;
-        this.axisCx = mx;
-        this.axisCy = py < this.fay[bestI] ? this.fay[bestI]
-          : (py > this.fby[bestI] ? this.fby[bestI] : py);
-        this.axisCz = mz;
-      } else {
-        this.axisDx = 0;
-        this.axisDy = 0;
-        this.axisDz = 1;
-        this.axisCx = mx;
-        this.axisCy = my;
-        this.axisCz = pz < this.faz[bestI] ? this.faz[bestI]
-          : (pz > this.fbz[bestI] ? this.fbz[bestI] : pz);
-      }
-      return true;
-    }
-    const ex = this.fbx[bestI] - this.fax[bestI];
-    const ey = this.fby[bestI] - this.fay[bestI];
-    const ez = this.fbz[bestI] - this.faz[bestI];
-    const el = Math.sqrt(ex * ex + ey * ey + ez * ez);
-    if (!(el > 1e-9)) {
-      /* A sphere has no direction. Say so rather than inventing one. */
-      this.axisFound = false;
-      return false;
-    }
-    this.axisDx = ex / el;
-    this.axisDy = ey / el;
-    this.axisDz = ez / el;
-    let u = ((px - this.fax[bestI]) * ex + (py - this.fay[bestI]) * ey
-      + (pz - this.faz[bestI]) * ez) / (el * el);
-    u = clamp01(u);
-    this.axisCx = this.fax[bestI] + ex * u;
-    this.axisCy = this.fay[bestI] + ey * u;
-    this.axisCz = this.faz[bestI] + ez * u;
-    return true;
-  }
-
-  /*
-   * Compute the vector from capsule i's axis to the point (cx, cy, cz),
-   * into this.nx/ny/nz. This is the contact normal direction when the point
-   * is a contact. Allocation free; scalar fields, not an object.
-   */
-  axisToPoint(i, cx, cy, cz) {
-    const ex = this.fbx[i] - this.fax[i];
-    const ey = this.fby[i] - this.fay[i];
-    const ez = this.fbz[i] - this.faz[i];
-    const ee = ex * ex + ey * ey + ez * ez;
-    const mx = cx - this.fax[i];
-    const my = cy - this.fay[i];
-    const mz = cz - this.faz[i];
-    let u = 0;
-    if (ee > 1e-12) {
-      u = clamp01((ex * mx + ey * my + ez * mz) / ee);
-    }
-    this.nx = mx - ex * u;
-    this.ny = my - ey * u;
-    this.nz = mz - ez * u;
-  }
-
-  /*
-   * Write hitNx/hitNy/hitNz as a unit vector pointing out of the obstacle,
-   * and hitNormalDot as the absolute cosine against travel (d1x,d1y,d1z).
-   * A degenerate normal falls back to -travel so a bounce still has a
-   * direction. Allocation free.
-   */
-  finishHitNormal(nx, ny, nz, d1x, d1y, d1z) {
-    let nl = Math.sqrt(nx * nx + ny * ny + nz * nz);
-    const tl = Math.sqrt(d1x * d1x + d1y * d1y + d1z * d1z);
-    if (nl <= 1e-9) {
-      if (tl <= 1e-9) {
-        this.hitNx = 0;
-        this.hitNy = 1;
-        this.hitNz = 0;
-        this.hitNormalDot = 1;
-        return;
-      }
-      nx = -d1x;
-      ny = -d1y;
-      nz = -d1z;
-      nl = tl;
-    }
-    const inv = 1 / nl;
-    nx *= inv;
-    ny *= inv;
-    nz *= inv;
-    if (tl > 1e-9) {
-      const along = d1x * nx + d1y * ny + d1z * nz;
-      this.hitNormalDot = along < 0 ? -along / tl : along / tl;
-      /* A buried centre already has an outward nearest-face. Flipping that
-       * to oppose travel pushes the hull deeper and is the pose glitch.
-       *
-       * hitOverlap counts here for the same reason hitPen does. It is a
-       * depth the caller will push the hull along this normal by, and a
-       * depth applied along a flipped normal drives the craft INTO the face
-       * rather than off it. The guard only knew about the centre-inside
-       * depth because that was the only one this file reported. */
-      if (along > 0 && this.hitPen <= 0 && this.hitOverlap <= 0) {
-        nx = -nx;
-        ny = -ny;
-        nz = -nz;
-      }
-    } else {
-      this.hitNormalDot = 1;
-    }
-    this.hitNx = nx;
-    this.hitNy = ny;
-    this.hitNz = nz;
-  }
-
-  /*
-   * Did the craft, travelling from p to q, touch anything? The craft is the
-   * four prop discs at the motors: horizontally an X that yaws with the
-   * airframe, vertically vh through the body. aqX..aqW is that attitude in
-   * world space (Three.js Y-up). Omit it and the query is an identity-yaw
-   * pancake, 0.141 m to a wall the quad meets square-on. CRAFT_WORLD_R stays
-   * the published swept diagonal; check 15 reads that, not this shape.
-   *
-   * Exact for boxes (the slab walk is weighted per axis). For capsules the
-   * first pass sweeps the conservative CRAFT_WORLD_R sphere, then the reach is
-   * re-solved once with the four-disc support along the contact
-   * direction, which is exact when the contact direction at the refined
-   * parameter matches the first pass and a few millimetres conservative
-   * when it rotates between the two, measured in the fuzz harness.
-   *
-   * Every candidate in the padded cell range is tested and the one with the
-   * smallest contact parameter wins. It used to return the first collider
-   * found in GRID SCAN ORDER, which meant that when two solid things sat in
-   * one frame's travel, the reported one was whichever cell the broadphase
-   * happened to reach first: a gate upright clipped at t = 0.85 could
-   * swallow a tree hit at t = 0.15, and since graze against crash is
-   * decided from the reported collider's kind and normal, the craft flew on
-   * through the tree.
-   */
-  hit(px, py, pz, qx, qy, qz, vh = CRAFT_WORLD_R, aqX = 0, aqY = 0, aqZ = 0, aqW = 1,
-    vOff = 0) {
-    this.hitIndex = -1;
-    this.hitKind = -1;
-    this.hitNormalDot = 0;
-    this.hitT = -1;
-    this.hitNx = 0;
-    this.hitNy = 0;
-    this.hitNz = 0;
-    this.hitPen = 0;
-    this.hitOverlap = 0;
-    this.hitMoving = -1;
-    this.hitArm = false;
-    this.hitPart = -1;
-    if (!this.built) {
-      return -1;
-    }
-    /*
-     * A query that is not a number cannot touch anything, and asking costs
-     * the tab. Math.floor(Infinity / CELL) is Infinity, and `cx += 1` never
-     * advances past it, so the cell walk below would spin forever with the
-     * main thread in it: the page stops responding and the browser offers
-     * to kill it. That is not a hypothetical. A quad handed an unbounded
-     * impulse reaches 1e266 in six 1 ms steps and NaN in seven, so the
-     * frame that catches it is holding either the infinity or the number
-     * just short of it. Both are answered here.
-     */
-    if (
-      !Number.isFinite(px) || !Number.isFinite(py) || !Number.isFinite(pz)
-      || !Number.isFinite(qx) || !Number.isFinite(qy) || !Number.isFinite(qz)
-    ) {
-      return -1;
-    }
-    if (CRAFT_PARTS) {
-      return this.hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW);
-    }
-
-    /* Body axes from the world quaternion. Identity is a level quad
-     * pointing world -Z, motors on the diagonals of XZ.
-     *
-     * These are derived BEFORE the broadphase bounds because the hull's
-     * centre is not the craft's centre and the offset between them is along
-     * the body up axis, so the segment this query actually sweeps is not
-     * known until the axes are. The block moved up, nothing in it changed. */
-    const qxx = aqX * aqX;
-    const qyy = aqY * aqY;
-    const qzz = aqZ * aqZ;
-    const qxy = aqX * aqY;
-    const qxz = aqX * aqZ;
-    const qyz = aqY * aqZ;
-    const qwx = aqW * aqX;
-    const qwy = aqW * aqY;
-    const qwz = aqW * aqZ;
-    const exx = 1 - 2 * (qyy + qzz);
-    const exy = 2 * (qxy + qwz);
-    const exz = 2 * (qxz - qwy);
-    const ux = 2 * (qxy - qwz);
-    const uy = 1 - 2 * (qxx + qzz);
-    const uz = 2 * (qyz + qwx);
-    const ezx = 2 * (qxz + qwy);
-    const ezy = 2 * (qyz - qwx);
-    const ezz = 1 - 2 * (qxx + qyy);
-    const crx = clampRadius(discSupport(1, 0, 0, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz));
-    const crz = clampRadius(discSupport(0, 0, 1, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz));
-
-    /*
-     * THE HULL'S CENTRE, WHICH IS NOT THE CRAFT'S CENTRE.
-     *
-     * vOff is how far along the craft's own up axis the swept ellipsoid sits
-     * relative to the CG the caller hands us, so the whole segment shifts by
-     * vOff times the body up axis and every test below runs on the hull
-     * rather than on the origin the state block happens to use.
-     *
-     * The caller is not troubled by this and does not have to unwind it. A
-     * constant translation of both endpoints leaves the travel direction and
-     * its length alone, so hitT is the SAME parameter on the caller's own
-     * segment that it always was, and interpolating the craft's centre at
-     * that t still lands on the pose at first contact. The normal, the
-     * penetration and the overlap are world quantities and do not care which
-     * point on the rigid body we called the origin.
-     *
-     * interiorOfHit and crossedHit are NOT offset and that is deliberate, not
-     * an omission. Both answer questions about the CRAFT'S CENTRE: is the
-     * centre inside a solid, did the centre go in one face and out the far
-     * one. That is the clip watch's own rule, the one CLIP_CENTER_EPS is
-     * named for, and shifting them to the hull's centroid would quietly
-     * change what "buried" and "punched through" mean.
-     */
-    if (vOff !== 0) {
-      px += ux * vOff;
-      py += uy * vOff;
-      pz += uz * vOff;
-      qx += ux * vOff;
-      qy += uy * vOff;
-      qz += uz * vOff;
-    }
-
-    const pad = CRAFT_WORLD_R + this.maxR;
-    const cx0 = clampCell(Math.floor((Math.min(px, qx) - pad) / CELL));
-    const cx1 = clampCell(Math.floor((Math.max(px, qx) + pad) / CELL));
-    const cz0 = clampCell(Math.floor((Math.min(pz, qz) - pad) / CELL));
-    const cz1 = clampCell(Math.floor((Math.max(pz, qz) + pad) / CELL));
-    let candidates = 0;
-
-    /* The travel segment, as d1 = q - p. */
-    const d1x = qx - px;
-    const d1y = qy - py;
-    const d1z = qz - pz;
-    const a = d1x * d1x + d1y * d1y + d1z * d1z;
-
-    let bestT = Infinity;
-    let bestI = -1;
-
-    const n = this.gather(cx0, cx1, cz0, cz1);
-    const cand = this.cand;
-    for (let ci = 0; ci < n; ci += 1) {
-      const i = cand[ci];
-      if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
-        continue;
-      }
-      candidates += 1;
-
-      if (this.fbox[i]) {
-        /* Cheap rejection first: the segment against the box grown by
-         * CRAFT_WORLD_R. The grown box contains the true Minkowski sum of
-         * the box and the ellipsoid (vh <= CRAFT_WORLD_R), so a miss here is a
-         * real miss and the exact test never runs for the thousands of
-         * walls a city query sweeps past. */
-        const gx0 = this.fax[i] - CRAFT_WORLD_R;
-        const gy0 = this.fay[i] - CRAFT_WORLD_R;
-        const gz0 = this.faz[i] - CRAFT_WORLD_R;
-        const gx1 = this.fbx[i] + CRAFT_WORLD_R;
-        const gy1 = this.fby[i] + CRAFT_WORLD_R;
-        const gz1 = this.fbz[i] + CRAFT_WORLD_R;
-        if (
-          (px < gx0 && qx < gx0) || (px > gx1 && qx > gx1) ||
-          (py < gy0 && qy < gy0) || (py > gy1 && qy > gy1) ||
-          (pz < gz0 && qz < gz0) || (pz > gz1 && qz > gz1)
-        ) {
-          continue;
-        }
-        let t;
-        if (this.fbox[i] === TURNED) {
-          /* In the box's frame, where the X's reach along the box's own
-           * axes is what crx and crz are along the world's. 0 - tz, not
-           * -tz: at tz = 0 that is +0, the world's own z. */
-          const tx = this.fux[i];
-          const tz = this.fuz[i];
-          t = this.boxSlabWalk(
-            this.fu0[i], this.fay[i], this.fw0[i], this.fu1[i], this.fby[i], this.fw1[i],
-            px * tx + pz * tz, py, pz * tx - px * tz, d1x * tx + d1z * tz, d1y, d1z * tx - d1x * tz,
-            clampRadius(discSupport(tx, 0, tz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)), vh,
-            clampRadius(discSupport(0 - tz, 0, tx, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)),
-          );
-        } else {
-          t = this.boxEarliestT(i, px, py, pz, d1x, d1y, d1z, crx, vh, crz);
-        }
-        if (t >= 0 && t < bestT) {
-          bestT = t;
-          bestI = i;
-        }
-      } else {
-        const reach = this.fr[i] + CRAFT_WORLD_R;
-        let t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach * reach);
-        if (t >= 0) {
-          /*
-           * Support refinement: the conservative sphere touched; ask
-           * whether the X does. Closest approach, not first sphere
-           * contact: passing level under a tube, the sphere first
-           * touches while the approach is still mostly horizontal.
-           * Four-disc support along that direction, and vh when the
-           * contact is more vertical than the X is thick.
-           */
-          const sCA = this.closestApproachS(i, px, py, pz, d1x, d1y, d1z, a);
-          this.axisToPoint(i, px + d1x * sCA, py + d1y * sCA, pz + d1z * sCA);
-          const nx = this.nx;
-          const ny = this.ny;
-          const nz = this.nz;
-          const nl2 = nx * nx + ny * ny + nz * nz;
-          if (nl2 > 1e-18) {
-            let cr = discSupport(nx, ny, nz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz);
-            const nyAbs = Math.abs(ny) / Math.sqrt(nl2);
-            if (vh * nyAbs > cr) {
-              cr = vh * nyAbs;
-            }
-            if (cr > CRAFT_WORLD_R) {
-              cr = CRAFT_WORLD_R;
-            }
-            const reach2 = this.fr[i] + cr;
-            if (reach2 < reach - 1e-9) {
-              t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach2 * reach2);
-            }
-          }
-        }
-        if (t >= 0 && t < bestT) {
-          bestT = t;
-          bestI = i;
-        }
-      }
-    }
-
-    /*
-     * The moving boxes, in each one's OWN frame. Subtracting the box's
-     * previous centre from the start of the travel and its current centre
-     * from the end turns "a box moving past a moving craft" into "a static
-     * box at the origin and a craft travelling the relative path", which the
-     * same slab walk answers exactly. bestMoving is kept separate from bestI
-     * so the static branch below can stay exactly as it was.
-     */
-    let bestMoving = -1;
-    for (let i = 0; i < this.movingCount; i += 1) {
-      const hx = this.movingHx[i];
-      const hy = this.movingHy[i];
-      const hz = this.movingHz[i];
-      const rpx = px - this.movingPx[i];
-      const rpy = py - this.movingPy[i];
-      const rpz = pz - this.movingPz[i];
-      const rqx = qx - this.movingCx[i];
-      const rqy = qy - this.movingCy[i];
-      const rqz = qz - this.movingCz[i];
-      const t = this.boxSlabWalk(
-        -hx, -hy, -hz, hx, hy, hz,
-        rpx, rpy, rpz,
-        rqx - rpx, rqy - rpy, rqz - rpz,
-        crx, vh, crz,
-      );
-      if (t >= 0 && t < bestT) {
-        bestT = t;
-        bestMoving = i;
-        bestI = -1;
-      }
-    }
-
-    this.lastCandidates = candidates;
-    this.queries += 1;
-    this.candidateTotal += candidates;
-    if (bestMoving >= 0) {
-      /* Contact normal in the box's frame, which is the same direction in
-       * world space because a moving box is axis aligned and never rotates. */
-      const hx = this.movingHx[bestMoving];
-      const hy = this.movingHy[bestMoving];
-      const hz = this.movingHz[bestMoving];
-      const rpx = px - this.movingPx[bestMoving];
-      const rpy = py - this.movingPy[bestMoving];
-      const rpz = pz - this.movingPz[bestMoving];
-      const rdx = (qx - this.movingCx[bestMoving]) - rpx;
-      const rdy = (qy - this.movingCy[bestMoving]) - rpy;
-      const rdz = (qz - this.movingCz[bestMoving]) - rpz;
-      const cxp = rpx + rdx * bestT;
-      const cyp = rpy + rdy * bestT;
-      const czp = rpz + rdz * bestT;
-      let nx = cxp < -hx ? cxp + hx : cxp > hx ? cxp - hx : 0;
-      let ny = cyp < -hy ? cyp + hy : cyp > hy ? cyp - hy : 0;
-      let nz = czp < -hz ? czp + hz : czp > hz ? czp - hz : 0;
-      this.hitIndex = -1;
-      this.hitKind = this.movingKind[bestMoving];
-      this.hitT = bestT;
-      this.hitMoving = bestMoving;
-      /*
-       * A MOVING BOX REPORTED NO DEPTH OF ANY KIND, and the consequence was
-       * written down and left: a craft inside a train car took a full
-       * impulse on each of the pass's four retries, because the shell's
-       * buried branch can only fire on a number this branch never wrote.
-       * The overlap is the same ellipsoid question as a static face, and a
-       * centre through the car's side is the same nearest-face exit.
-       */
-      if (nx === 0 && ny === 0 && nz === 0) {
-        const dx0 = cxp + hx;
-        const dx1 = hx - cxp;
-        const dy0 = cyp + hy;
-        const dy1 = hy - cyp;
-        const dz0 = czp + hz;
-        const dz1 = hz - czp;
-        /*
-         * AND THE WAY OUT, which the first version of this block computed a
-         * depth for and then did not point anywhere. A depth with no normal
-         * is worse than neither: finishHitNormal falls back to the reverse
-         * of the travel when it is handed a zero vector, so the shell would
-         * have pushed the craft a metre and a half back along the car rather
-         * than out through its side. The nearest face is both the distance
-         * and the direction, exactly as the static branch has it.
-         */
-        let best = dx0;
-        let rAxis = crx;
-        nx = -1;
-        ny = 0;
-        nz = 0;
-        if (dx1 < best) { best = dx1; rAxis = crx; nx = 1; ny = 0; nz = 0; }
-        if (dy0 < best) { best = dy0; rAxis = vh; nx = 0; ny = -1; nz = 0; }
-        if (dy1 < best) { best = dy1; rAxis = vh; nx = 0; ny = 1; nz = 0; }
-        if (dz0 < best) { best = dz0; rAxis = crz; nx = 0; ny = 0; nz = -1; }
-        if (dz1 < best) { best = dz1; rAxis = crz; nx = 0; ny = 0; nz = 1; }
-        this.hitPen = best + rAxis;
-        if (this.hitPen > 8) {
-          this.hitPen = 8;
-        }
-      } else {
-        this.hitOverlap = ellipsoidPen(nx, ny, nz, crx, vh, crz);
-        if (this.hitOverlap > 8) {
-          this.hitOverlap = 8;
-        }
-      }
-      this.finishHitNormal(nx, ny, nz, rdx, rdy, rdz);
-      return this.hitKind;
-    }
-    if (bestI < 0) {
-      return -1;
-    }
-
-    this.hitIndex = bestI;
-    this.hitKind = this.fkind[bestI];
-    this.hitT = bestT;
-    this.hitMoving = -1;
-    /* Contact normal at the earliest contact point. For a box it is the per
-     * axis overhang; for a capsule it is the vector from the axis's closest
-     * point to the contact point. A degenerate zero length contact counts as
-     * head on, so it can never soften a real crash.
-     *
-     * INSIDE A BOX the overhang is zero on every axis, and the old path
-     * fell back to -travel plus 8 mm of gap. That does not exit a tree
-     * hull the craft has already tunneled into, so the next frame is
-     * still inside, the fallback normal flips, and the pose glitches.
-     * Nearest-face plus the ellipsoid semi-axis is the actual way out,
-     * reported as hitPen so the host can depenetrate in one step. */
-    const cxp = px + d1x * bestT;
-    const cyp = py + d1y * bestT;
-    const czp = pz + d1z * bestT;
-    let nx;
-    let ny;
-    let nz;
-    this.hitPen = 0;
-    this.hitOverlap = 0;
-    if (this.fbox[bestI]) {
-      /* A turned box answers in its own frame (addTurnedBox), with the X's
-       * reach along its own axes, and its normal is turned back below. */
-      const turned = this.fbox[bestI] === TURNED;
-      const tx = turned ? this.fux[bestI] : 1;
-      const tz = turned ? this.fuz[bestI] : 0;
-      const lx = turned ? cxp * tx + czp * tz : cxp;
-      const lz = turned ? czp * tx - cxp * tz : czp;
-      const x0 = turned ? this.fu0[bestI] : this.fax[bestI];
-      const x1 = turned ? this.fu1[bestI] : this.fbx[bestI];
-      const z0 = turned ? this.fw0[bestI] : this.faz[bestI];
-      const z1 = turned ? this.fw1[bestI] : this.fbz[bestI];
-      const rX = turned ? clampRadius(discSupport(tx, 0, tz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)) : crx;
-      const rZ = turned ? clampRadius(discSupport(0 - tz, 0, tx, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)) : crz;
-      nx = lx < x0 ? lx - x0 : lx > x1 ? lx - x1 : 0;
-      ny = cyp < this.fay[bestI] ? cyp - this.fay[bestI] : cyp > this.fby[bestI] ? cyp - this.fby[bestI] : 0;
-      nz = lz < z0 ? lz - z0 : lz > z1 ? lz - z1 : 0;
-      if (nx === 0 && ny === 0 && nz === 0) {
-        const dx0 = lx - x0;
-        const dx1 = x1 - lx;
-        const dy0 = cyp - this.fay[bestI];
-        const dy1 = this.fby[bestI] - cyp;
-        const dz0 = lz - z0;
-        const dz1 = z1 - lz;
-        let best = dx0;
-        nx = -1;
-        ny = 0;
-        nz = 0;
-        let rAxis = rX;
-        if (dx1 < best) {
-          best = dx1;
-          nx = 1;
-          ny = 0;
-          nz = 0;
-          rAxis = rX;
-        }
-        if (dy0 < best) {
-          best = dy0;
-          nx = 0;
-          ny = -1;
-          nz = 0;
-          rAxis = vh;
-        }
-        if (dy1 < best) {
-          best = dy1;
-          nx = 0;
-          ny = 1;
-          nz = 0;
-          rAxis = vh;
-        }
-        if (dz0 < best) {
-          best = dz0;
-          nx = 0;
-          ny = 0;
-          nz = -1;
-          rAxis = rZ;
-        }
-        if (dz1 < best) {
-          best = dz1;
-          nx = 0;
-          ny = 0;
-          nz = 1;
-          rAxis = rZ;
-        }
-        this.hitPen = best + rAxis;
-        if (this.hitPen > 8) {
-          this.hitPen = 8;
-        }
-      } else {
-        /* The centre is outside the face and the hull still overlaps it.
-         * That is the ordinary wall contact, and it used to report nothing.
-         * Reported as hitOverlap rather than as hitPen, because the two
-         * answer different questions and one caller tells them apart: the
-         * shell's buried branch means "the CENTRE is through the face, there
-         * is no approach left to solve, just get out", and a hull overlap
-         * with the centre outside is a contact that still has an impulse
-         * owing. See ellipsoidPen. */
-        this.hitOverlap = ellipsoidPen(nx, ny, nz, rX, vh, rZ);
-        if (this.hitOverlap > 8) {
-          this.hitOverlap = 8;
-        }
-      }
-      if (turned) {
-        const wx = nx * tx - nz * tz;
-        nz = nx * tz + nz * tx;
-        nx = wx;
-      }
-    } else {
-      this.axisToPoint(bestI, cxp, cyp, czp);
-      nx = this.nx;
-      ny = this.ny;
-      nz = this.nz;
-      const dist = Math.sqrt(nx * nx + ny * ny + nz * nz);
-      let cr = discSupport(nx, ny, nz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz);
-      const nyAbs = dist > 1e-18 ? Math.abs(ny) / dist : 1;
-      if (vh * nyAbs > cr) {
-        cr = vh * nyAbs;
-      }
-      if (cr > CRAFT_WORLD_R) {
-        cr = CRAFT_WORLD_R;
-      }
-      const reach = this.fr[bestI] + cr;
-      if (dist < reach) {
-        this.hitPen = reach - dist;
-        if (this.hitPen > 8) {
-          this.hitPen = 8;
-        }
-        /* A capsule's hitPen has always BEEN the hull overlap: it is the
-         * reach less the distance to the axis, not a depth of the centre.
-         * Reported under both names so a caller that wants the overlap can
-         * ask for it by name whatever primitive it hit. */
-        this.hitOverlap = this.hitPen;
-      }
-    }
-    this.finishHitNormal(nx, ny, nz, d1x, d1y, d1z);
-    return this.hitKind;
-  }
-
-  /*
-   * hit() for a fixed wing: the same query, the craft its live parts'
-   * boxes at the attitude aq, translated from p to q. The broadphase is
-   * hit()'s, padded by the parts' reach; a candidate the reach's sphere
-   * does not touch is passed over before any part is tried. Among the
-   * parts that touch, the earliest wins, and at the same parameter the
-   * deepest. The contact is reported as hit() reports it, plus where on
-   * the craft it is (hitArm) and which part (hitPart).
-   *
-   * The depths mean what they mean for the discs: against a capsule the
-   * overlap is hitPen and hitOverlap both, against a box it is hitOverlap,
-   * and hitPen only when the craft's centre is itself inside the box.
-   */
-  hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW) {
-    const hull = CRAFT_PARTS;
-    const ax = bodyAxes(aqX, aqY, aqZ, aqW, this.partAxes);
-    const reach = hull.reach;
-    const pad = (reach > CRAFT_WORLD_R ? reach : CRAFT_WORLD_R) + this.maxR;
-    const cx0 = clampCell(Math.floor((Math.min(px, qx) - pad) / CELL));
-    const cx1 = clampCell(Math.floor((Math.max(px, qx) + pad) / CELL));
-    const cz0 = clampCell(Math.floor((Math.min(pz, qz) - pad) / CELL));
-    const cz1 = clampCell(Math.floor((Math.max(pz, qz) + pad) / CELL));
-    const d1x = qx - px;
-    const d1y = qy - py;
-    const d1z = qz - pz;
-    const a = d1x * d1x + d1y * d1y + d1z * d1z;
-    const lo = this.partLo;
-    const hi = this.partHi;
-    const got = this.partHit;
-    const best = this.partBest;
-    best.t = -1;
-    best.depth = 0;
-    let bestI = -1;
-    let bestMoving = -1;
-    let candidates = 0;
-
-    const n = this.gather(cx0, cx1, cz0, cz1);
-    const cand = this.cand;
-    for (let ci = 0; ci < n; ci += 1) {
-      const i = cand[ci];
-      if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
-        continue;
-      }
-      candidates += 1;
-      if (this.fbox[i]) {
-        if (
-          (px < this.fax[i] - reach && qx < this.fax[i] - reach)
-          || (px > this.fbx[i] + reach && qx > this.fbx[i] + reach)
-          || (py < this.fay[i] - reach && qy < this.fay[i] - reach)
-          || (py > this.fby[i] + reach && qy > this.fby[i] + reach)
-          || (pz < this.faz[i] - reach && qz < this.faz[i] - reach)
-          || (pz > this.fbz[i] + reach && qz > this.fbz[i] + reach)
-        ) {
-          continue;
-        }
-        if (this.fbox[i] === TURNED) {
-          /* The craft and its travel turned into the box's frame, and a
-           * part that wins turned back, its point and its normal. */
-          const tx = this.fux[i];
-          const tz = this.fuz[i];
-          const lax = this.partAxesTurned;
-          for (let k = 0; k < 9; k += 3) {
-            lax[k] = ax[k] * tx + ax[k + 2] * tz;
-            lax[k + 1] = ax[k + 1];
-            lax[k + 2] = ax[k + 2] * tx - ax[k] * tz;
-          }
-          lo[0] = this.fu0[i];
-          lo[1] = this.fay[i];
-          lo[2] = this.fw0[i];
-          hi[0] = this.fu1[i];
-          hi[1] = this.fby[i];
-          hi[2] = this.fw1[i];
-          const lpx = px * tx + pz * tz;
-          const lpz = pz * tx - px * tz;
-          const ldx = d1x * tx + d1z * tz;
-          const ldz = d1z * tx - d1x * tz;
-          if (this.partsAgainstBox(hull, lax, lpx, py, lpz, ldx, d1y, ldz, lo, hi, got, best)) {
-            bestI = i;
-            /* The point back by the turn's exact inverse: a single
-             * precision axis is not quite a unit one, and its transpose
-             * would carry that 3e-8 over the thousands of metres the point
-             * stands from the origin. Square to the world n2 is 1. */
-            const n2 = tx * tx + tz * tz;
-            const bx = (best.px * tx - best.pz * tz) / n2;
-            best.pz = (best.px * tz + best.pz * tx) / n2;
-            best.px = bx;
-            const nx = best.nx * tx - best.nz * tz;
-            best.nz = best.nx * tz + best.nz * tx;
-            best.nx = nx;
-          }
-          continue;
-        }
-        lo[0] = this.fax[i];
-        lo[1] = this.fay[i];
-        lo[2] = this.faz[i];
-        hi[0] = this.fbx[i];
-        hi[1] = this.fby[i];
-        hi[2] = this.fbz[i];
-        if (this.partsAgainstBox(hull, ax, px, py, pz, d1x, d1y, d1z, lo, hi, got, best)) {
-          bestI = i;
-        }
-      } else {
-        const r = this.fr[i];
-        const reachR = reach + r;
-        if (this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reachR * reachR) < 0) {
-          continue;
-        }
-        let won = false;
-        const c = this.partC;
-        for (let k = 0; k < hull.n; k += 1) {
-          if (!hull.live[k]) {
-            continue;
-          }
-          /* The part's own sphere first: most parts are nowhere near. */
-          partCentre(hull, k, ax, px, py, pz, c);
-          const rr = hull.rho[k] + r;
-          if (this.capsuleEarliestT(i, c[0], c[1], c[2], d1x, d1y, d1z, a, rr * rr) < 0) {
-            continue;
-          }
-          const t = sweepPartCapsule(
-            hull, k, ax, px, py, pz, d1x, d1y, d1z,
-            this.fax[i], this.fay[i], this.faz[i], this.fbx[i], this.fby[i], this.fbz[i], r, got,
-          );
-          if (t >= 0 && partBetter(got, best)) {
-            copyContact(got, best);
-            won = true;
-          }
-        }
-        if (won) {
-          bestI = i;
-        }
-      }
-    }
-
-    /* The moving boxes, each in its own frame as hit() has them: the
-     * craft's travel less the box's. The contact point comes back in that
-     * frame and is moved to the world's at the same parameter. */
-    for (let m = 0; m < this.movingCount; m += 1) {
-      const rpx = px - this.movingPx[m];
-      const rpy = py - this.movingPy[m];
-      const rpz = pz - this.movingPz[m];
-      const rdx = (qx - this.movingCx[m]) - rpx;
-      const rdy = (qy - this.movingCy[m]) - rpy;
-      const rdz = (qz - this.movingCz[m]) - rpz;
-      const gx = this.movingHx[m] + reach;
-      const gy = this.movingHy[m] + reach;
-      const gz = this.movingHz[m] + reach;
-      if (
-        (rpx < -gx && rpx + rdx < -gx) || (rpx > gx && rpx + rdx > gx)
-        || (rpy < -gy && rpy + rdy < -gy) || (rpy > gy && rpy + rdy > gy)
-        || (rpz < -gz && rpz + rdz < -gz) || (rpz > gz && rpz + rdz > gz)
-      ) {
-        continue;
-      }
-      lo[0] = -this.movingHx[m];
-      lo[1] = -this.movingHy[m];
-      lo[2] = -this.movingHz[m];
-      hi[0] = this.movingHx[m];
-      hi[1] = this.movingHy[m];
-      hi[2] = this.movingHz[m];
-      if (this.partsAgainstBox(hull, ax, rpx, rpy, rpz, rdx, rdy, rdz, lo, hi, got, best)) {
-        bestMoving = m;
-        bestI = -1;
-        best.px += (px + d1x * best.t) - (rpx + rdx * best.t);
-        best.py += (py + d1y * best.t) - (rpy + rdy * best.t);
-        best.pz += (pz + d1z * best.t) - (rpz + rdz * best.t);
-      }
-    }
-
-    this.lastCandidates = candidates;
-    this.queries += 1;
-    this.candidateTotal += candidates;
-    if (bestI < 0 && bestMoving < 0) {
-      return -1;
-    }
-    const t = best.t;
-    const ccx = px + d1x * t;
-    const ccy = py + d1y * t;
-    const ccz = pz + d1z * t;
-    this.hitIndex = bestI;
-    this.hitMoving = bestMoving;
-    this.hitKind = bestMoving >= 0 ? this.movingKind[bestMoving] : this.fkind[bestI];
-    this.hitT = t;
-    this.hitArm = true;
-    this.hitArmX = best.px - ccx;
-    this.hitArmY = best.py - ccy;
-    this.hitArmZ = best.pz - ccz;
-    this.hitPart = best.part;
-    const depth = best.depth > 8 ? 8 : best.depth;
-    this.hitOverlap = depth;
-    if (bestMoving >= 0) {
-      const m = bestMoving;
-      const rx = ccx - (this.movingPx[m] + (this.movingCx[m] - this.movingPx[m]) * t);
-      const ry = ccy - (this.movingPy[m] + (this.movingCy[m] - this.movingPy[m]) * t);
-      const rz = ccz - (this.movingPz[m] + (this.movingCz[m] - this.movingPz[m]) * t);
-      this.hitPen = Math.abs(rx) < this.movingHx[m] && Math.abs(ry) < this.movingHy[m]
-        && Math.abs(rz) < this.movingHz[m] ? depth : 0;
-    } else if (!this.fbox[bestI]) {
-      this.hitPen = depth;
-    } else {
-      this.hitPen = this.interiorAt(bestI, ccx, ccy, ccz) > 0 ? depth : 0;
-    }
-    this.finishHitNormal(best.nx, best.ny, best.nz, d1x, d1y, d1z);
-    return this.hitKind;
-  }
-
-  /* Every live part against one box; true when one of them beat `best`. */
-  partsAgainstBox(hull, ax, px, py, pz, dx, dy, dz, lo, hi, got, best) {
-    let won = false;
-    const c = this.partC;
-    for (let k = 0; k < hull.n; k += 1) {
-      if (!hull.live[k]) {
-        continue;
-      }
-      /* The part's own sphere against the box grown by it first. */
-      partCentre(hull, k, ax, px, py, pz, c);
-      const g = hull.rho[k];
-      if (
-        (c[0] < lo[0] - g && c[0] + dx < lo[0] - g) || (c[0] > hi[0] + g && c[0] + dx > hi[0] + g)
-        || (c[1] < lo[1] - g && c[1] + dy < lo[1] - g) || (c[1] > hi[1] + g && c[1] + dy > hi[1] + g)
-        || (c[2] < lo[2] - g && c[2] + dz < lo[2] - g) || (c[2] > hi[2] + g && c[2] + dz > hi[2] + g)
-      ) {
-        continue;
-      }
-      const t = sweepPartBox(hull, k, ax, px, py, pz, dx, dy, dz, lo, hi, got);
-      if (t >= 0 && partBetter(got, best)) {
-        copyContact(got, best);
-        won = true;
-      }
-    }
-    return won;
-  }
-
-  /*
-   * Signed depth of (x, y, z) into collider i. Positive means the POINT,
-   * not the hull, is inside the solid. A surface bounce has the craft
-   * centre outside (negative or zero) even while the props overlap.
-   */
-  interiorAt(i, x, y, z) {
-    if (!this.built || i < 0 || i >= this.count) {
-      return 0;
-    }
-    if (this.fbox[i] === TURNED) {
-      const tx = this.fux[i];
-      const tz = this.fuz[i];
-      return boxPointInterior(
-        this.fu0[i], this.fay[i], this.fw0[i],
-        this.fu1[i], this.fby[i], this.fw1[i],
-        x * tx + z * tz, y, z * tx - x * tz,
-      );
-    }
-    if (this.fbox[i]) {
-      return boxPointInterior(
-        this.fax[i], this.fay[i], this.faz[i],
-        this.fbx[i], this.fby[i], this.fbz[i],
-        x, y, z,
-      );
-    }
-    this.axisToPoint(i, x, y, z);
-    const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-    return this.fr[i] - d;
-  }
-
-  /* Same number for whatever hit() last reported, static or moving. */
-  interiorOfHit(x, y, z) {
-    if (this.hitMoving >= 0) {
-      const i = this.hitMoving;
-      return boxPointInterior(
-        this.movingCx[i] - this.movingHx[i],
-        this.movingCy[i] - this.movingHy[i],
-        this.movingCz[i] - this.movingHz[i],
-        this.movingCx[i] + this.movingHx[i],
-        this.movingCy[i] + this.movingHy[i],
-        this.movingCz[i] + this.movingHz[i],
-        x, y, z,
-      );
-    }
-    if (this.hitIndex < 0) {
-      return 0;
-    }
-    return this.interiorAt(this.hitIndex, x, y, z);
-  }
-
-  /*
-   * Did the segment from a to b go in one face and out the opposite?
-   * A bounce from outside has both ends on the SAME side. Flying over
-   * a wall, along it, or past a pole does not count: opposite-face
-   * ends still have to actually hit the solid, because a long chord's
-   * midpoint often misses a thin slab. Used after bounce: if the craft
-   * is still on the far side, the eject went the wrong way.
-   */
-  crossedStatic(i, ax, ay, az, bx, by, bz) {
-    if (!this.built || i < 0 || i >= this.count) {
-      return false;
-    }
-    if (this.fbox[i] === TURNED) {
-      const tx = this.fux[i];
-      const tz = this.fuz[i];
-      const pax = ax * tx + az * tz;
-      const paz = az * tx - ax * tz;
-      const pbx = bx * tx + bz * tz;
-      const pbz = bz * tx - bx * tz;
-      const x0 = this.fu0[i];
-      const x1 = this.fu1[i];
-      const z0 = this.fw0[i];
-      const z1 = this.fw1[i];
-      return boxOppositeSides(x0, this.fay[i], z0, x1, this.fby[i], z1, pax, ay, paz, pbx, by, pbz)
-        && segmentHitsAabb(x0, this.fay[i], z0, x1, this.fby[i], z1, pax, ay, paz, pbx, by, pbz);
-    }
-    if (this.fbox[i]) {
-      if (!boxOppositeSides(
-        this.fax[i], this.fay[i], this.faz[i],
-        this.fbx[i], this.fby[i], this.fbz[i],
-        ax, ay, az, bx, by, bz,
-      )) {
-        return false;
-      }
-      return segmentHitsAabb(
-        this.fax[i], this.fay[i], this.faz[i],
-        this.fbx[i], this.fby[i], this.fbz[i],
-        ax, ay, az, bx, by, bz,
-      );
-    }
-    if (this.interiorAt(i, ax, ay, az) >= 0 || this.interiorAt(i, bx, by, bz) >= 0) {
-      return false;
-    }
-    const dx = bx - ax;
-    const dy = by - ay;
-    const dz = bz - az;
-    const a = dx * dx + dy * dy + dz * dz;
-    if (a <= 1e-18) {
-      return false;
-    }
-    const s = this.closestApproachS(i, ax, ay, az, dx, dy, dz, a);
-    this.axisToPoint(i, ax + dx * s, ay + dy * s, az + dz * s);
-    const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-    return this.fr[i] - d > CLIP_CENTER_EPS;
-  }
-
-  crossedMoving(i, ax, ay, az, bx, by, bz) {
-    if (i < 0 || i >= this.movingCount) {
-      return false;
-    }
-    const x0 = this.movingCx[i] - this.movingHx[i];
-    const y0 = this.movingCy[i] - this.movingHy[i];
-    const z0 = this.movingCz[i] - this.movingHz[i];
-    const x1 = this.movingCx[i] + this.movingHx[i];
-    const y1 = this.movingCy[i] + this.movingHy[i];
-    const z1 = this.movingCz[i] + this.movingHz[i];
-    if (!boxOppositeSides(x0, y0, z0, x1, y1, z1, ax, ay, az, bx, by, bz)) {
-      return false;
-    }
-    return segmentHitsAabb(x0, y0, z0, x1, y1, z1, ax, ay, az, bx, by, bz);
-  }
-
-  crossedHit(ax, ay, az, bx, by, bz) {
-    if (this.hitMoving >= 0) {
-      return this.crossedMoving(this.hitMoving, ax, ay, az, bx, by, bz);
-    }
-    return this.crossedStatic(this.hitIndex, ax, ay, az, bx, by, bz);
-  }
-
-  kindName(k) {
-    return KINDS[k] ?? 'none';
-  }
-
-  /* Harness reporting. Not called per frame, so an object here is fine. */
-  stats() {
-    const byKind = {};
-    for (const name of KINDS) {
-      byKind[name] = 0;
-    }
-    if (this.fkind) {
-      for (let i = 0; i < this.fkind.length; i += 1) {
-        byKind[KINDS[this.fkind[i]]] += 1;
-      }
-    }
-    let boxes = 0;
-    let turned = 0;
-    if (this.fbox) {
-      for (let i = 0; i < this.fbox.length; i += 1) {
-        boxes += this.fbox[i] ? 1 : 0;
-        turned += this.fbox[i] === TURNED ? 1 : 0;
-      }
-    }
-    return {
-      count: this.count ?? 0,
-      byKind,
-      boxes,
-      turned,
-      capsules: (this.count ?? 0) - boxes,
-      static: this.staticCount,
-      streamed: this.streamCount,
-      builtGates: this.builtCount,
-      streamGen: this.streamGen,
-      cellSize: CELL,
-      gridHalfExtent: GRID_HALF * CELL,
-      cells: this.grid ? this.grid.size : 0,
-      streamCells: this.streamGrid ? this.streamGrid.size : 0,
-      maxRadius: this.maxR,
-      craftRadius: CRAFT_WORLD_R,
-      moving: this.movingCount,
-      queries: this.queries,
-      meanCandidatesPerQuery: this.queries ? this.candidateTotal / this.queries : 0,
-      lastCandidates: this.lastCandidates,
-    };
-  }
-}
-
-/*
- * Ground contact, and whether the craft can perch.
- *
- * The simulator has no ground plane of its own: the verification harness
- * measures free air behaviour, so a plant with a floor in it could not be
- * checked against terminal velocity or a step response. The ground lives
- * in the shell, which raises sim_set_ground; the plant then applies a
- * rigid-body contact against the airframe hull every 1 ms step.
- *
- * There is no crash lockout. A blade into the grass, a side arrival, a
- * wall tap: all of them bounce, slide or roll, and the pilot flies out.
- * The only special case is a PERCH: upright, slow, on the ground, which
- * is when the shell freezes the integrator so a takeoff starts from rest
- * rather than from leftover bounce. Everything else stays in the 1 kHz
- * loop, which is what lets a tumble become a turtle: inverted, seated
- * and still, the shell waits for a pitch or roll poke, then plays a
- * guaranteed flip back to upright.
- */
-export const LAND_DESCENT_MAX = 4.0;    /* m/s downward, props up, perch envelope */
-export const LAND_HORIZONTAL_MAX = 10.0; /* m/s, props up, historical skip gate */
-export const LAND_TILT_MAX_DEG = 25;     /* where a blade first touches */
-export const LAND_TILT_HARD_DEG = 50;    /* on its side, a roll not a perch */
-export const LAND_TIP_SPEED_MAX = 3.0;
-
-export const GROUND_TUMBLE = 0;
-export const GROUND_LAND = 1;
-export const GROUND_SLIDE = 2;
-/* Aliases so a caller that still says CRASH or BOUNCE reads the new
- * meanings: a "crash" is a tumble you fly out of, a "bounce" is a slide. */
-export const GROUND_CRASH = GROUND_TUMBLE;
-export const GROUND_BOUNCE = GROUND_SLIDE;
-
-/* Closing speed below which a touch is not announced on the OSD. */
-export const GRAZE_SPEED_MAX = 4.0;
-export const PROP_PLANE_MAX_UP_DOT = 0.5;
-/* Historical strike speed. Hits above this used to wreck the craft; they
- * now tumble, and the number is only an OSD / audio threshold. */
-export const BOUNCE_SPEED_MAX = 18.0;
-export const BOUNCE_COOLDOWN_MS = 180;
-export const BOUNCE_SEPARATION = 0.008;
-
-/*
- * A ROTOR PRESSED INTO A SURFACE CANNOT PULL AIR THROUGH IT.
- *
- * The report: "if you hit a wall i think its programmed to kick you off
- * like a pinball but it creates a situation where you constantly just get
- * stuck between 2 spots and bounce forever, constantly have to restart."
- *
- * Both halves of that sentence are one fault, and it is not restitution.
- * The contact impulse lands at the support point of the hull in the
- * direction of the face, and for a craft with any tilt at all that point
- * sits off the centre of mass on the side it is already tilted toward, so
- * the torque tilts it FURTHER. Measured on the training wall through
- * scripts/wall-check.js, with the normal impulse taken as one unit:
- *
- *     pitch      2 deg      -0.003      nose down
- *     pitch     30 deg      -0.053      nose down
- *     pitch     60 deg      -0.104      nose down
- *     pitch     80 deg      -0.132      nose down
- *     pitch     90 deg       0.000      the fixed point
- *
- * Monotonic, one signed, and zero only where the thrust axis has come
- * round square to the face. It is a ratchet with one stop in it, and the
- * stop is the attitude the pilot cannot fly out of.
- *
- * What happens at the stop is what the report describes. A level 6 m/s
- * arrival winds to 90 degrees nose down in about six tenths of a second,
- * and the craft is then holding its own thrust axis INTO the wall at
- * whatever throttle the pilot has in. At centred sticks the discs make
- * close to three times hover thrust pressed against the face, the wall's
- * own mu of 0.42 then holds 8.2 N against a 6.9 N aircraft, and the craft
- * hangs there taking a contact every twenty milliseconds, buzzing in and
- * out of the 8 mm separation: the two spots.
- * Flown in the rig, every stick a pilot has (full pitch either way, full
- * roll, hard yaw, full throttle) leaves it inside a centimetre of the face
- * after two whole seconds. It is not hard to leave, it cannot be left.
- *
- * None of the four clip-watch detectors sees it either. The centre is not
- * inside a solid, the bounce loop resolves every pass, the terrain is
- * nowhere near, and the thrash gate wants a spin or real throttle and gets
- * a craft sitting quietly at hover. So the pilot restarts, which is the
- * complaint.
- *
- * THE MISSING PHYSICS IS THE ROTORS, and the module already has the entry
- * point for it. A propeller makes thrust by accelerating air through the
- * disc. Press that disc flat onto masonry and there is no air to take: the
- * inflow is blocked, the blades are striking, and thrust collapses. The
- * simulation had the discs pressed against the wall at 12,600 rpm making
- * full thrust, which is the only reason the craft could hold itself there.
- * sim_prop_strike takes rotor speed out for exactly this reason, and the
- * shell already calls it on the bang of an arrival; what was missing is
- * that a rotor held against a surface keeps losing, for as long as it is
- * held.
- *
- * So: while a resolved contact's outward normal opposes the craft's own
- * thrust axis, the rotors bleed. Everything else is untouched, and the
- * test is the sign of one dot product:
- *
- *   thrust into the face      n . up <= -PRESS_UP_DOT     bleeds
- *   belly or side on a wall   n . up  >  0                a wall ride, free
- *   sitting on a roof         n . up ~ +1                 a perch, free
- *   pressed up on a ceiling   n . up ~ -1                 bleeds, correctly
- *
- * PRESS_UP_DOT is a 60 degree cone, the same number PROP_PLANE_MAX_UP_DOT
- * already uses to mean "the disc plane is against this", so a craft banked
- * through a gate is nowhere near it.
- *
- * PRESS_CONFIRM_MS is a tenth of a second and a half of being held. A tap,
- * a graze and a clipped gate are all over long before it, so nothing a
- * pilot does on purpose pays for this; only being held against a face
- * does. It is counted in sim milliseconds of the HELD STATE, not in
- * contacts: a pinned craft buzzes in and out of the 8 mm separation and
- * only actually touches on about one pass in six, so counting passes with
- * a contact in them would never reach any threshold worth setting.
- * PRESS_RELEASE_MS is what ends the hold, and it is three times the
- * measured buzz gap, so leaving the face ends it and buzzing against it
- * does not.
- *
- * PRESS_BLEED is per contact pass, so it compounds against the motor's own
- * spin up. The rotors recover about a fifth of the gap to the commanded
- * speed in each 4 ms pass (t63 is 18 ms), which puts the steady state at
- * 0.2k / (1 - 0.8k) of commanded for k = 1 - PRESS_BLEED: 0.53 of the
- * speed at 0.15, and thrust goes as the square, so 0.28 of the thrust. A
- * craft pinned at full throttle presses with about nine times its weight
- * and needs to fall under about a quarter of that before mu stops holding
- * it, which is what 0.15 buys and 0.10 does not.
- *
- * CRASHFLIP IS EXEMPT, and it has to be. Turtle mode's whole method is to
- * drive two rotors against whatever the craft is lying on, and a craft
- * upside down on a rooftop reads exactly like a craft pinned on a wall:
- * the roof's normal is up, the thrust axis is down, the dot product is
- * minus one. Bleeding there would take away the one control that gets the
- * pilot out of it. The shell gates on sim_crashflip_active(), which is
- * true for both the scripted turtle and the held key.
- */
-export const PRESS_UP_DOT = 0.5;
-export const PRESS_CONFIRM_MS = 150;
-export const PRESS_RELEASE_MS = 60;
-export const PRESS_BLEED = 0.15;
-
-/*
- * Does this contact have the craft's own thrust pushing it into the face?
- *
- * n is the face's outward normal and up is the craft's thrust axis, both
- * world, both expected unit. Pure, allocation free: it is called from the
- * contact pass, which runs on the sim clock.
- */
-export function thrustIntoFace(nx, ny, nz, ux, uy, uz) {
-  return nx * ux + ny * uy + nz * uz <= -PRESS_UP_DOT;
-}
-
-/*
- * The fastest a SOLID SURFACE may be moving, in m/s, before the shell stops
- * calling it a speed.
- *
- * A moving box's surface velocity is differenced from its two centres, so it
- * is only a velocity while those centres are one frame of travel apart. A
- * collider that jumps instead, and the city's train does exactly that once a
- * lap when its wrapped coordinate folds, reports a number with the units of
- * a velocity and none of the meaning: 60 km/s, straight into the impulse
- * solver, which cheerfully launches the quad out of the world at 25 km/s and
- * into a plant divergence. The city's train is 23.5 m/s and it is the only
- * thing in either world that moves at all, so this is not a tuning knob: it
- * is the line between a train and a teleport.
- */
-export const SURFACE_SPEED_MAX = 60.0;
-
-/* Perch: freeze only when the hull is settled enough that a takeoff from
- * leftover bounce would be a lie. */
-export const PERCH_SPEED = 2.0;   /* m/s, linear */
-export const PERCH_RATE = 2.5;    /* rad/s */
-
-/* Grass / dirt. Restitution is zero: a real 5 inch on turf is a dead
- * thump, not a bounce. Mu is high enough that a belly landing dumps
- * the slide in a few tens of centimetres; the plant also damps leftover
- * tangent speed once the hull is seated. A props-down arrival is a
- * full stop, not a slide. */
-export const GROUND_MU = 1.40;
-export const GROUND_E = 0.0;
-
-/*
- * Obstacle materials. PVC, carbon, masonry, bark: enough difference that
- * a gate tap and a tree are not the same event, not a damage model.
- */
-/*
- * These fell when the contact patch landed. They were set while every hit
- * solved as a corner strike, which threw most of the impulse into spin, so
- * the numbers had been walked up to get any push-off at all and were well
- * past what the materials do: carbon and nylon on masonry is nearer 0.15
- * than 0.32. Now that a flat contact spends its impulse on separation the
- * old values read as a trampoline. The ORDER is unchanged and is what the
- * self-test pins: PVC bounces more and grips less than bark, and a train
- * is the deadest thing in either world.
- */
-export function contactMaterial(kindName) {
-  if (kindName === 'train') {
-    return { e: 0.06, mu: 0.40 };
-  }
-  if (kindName === 'gate' || kindName === 'pole' || kindName === 'banner') {
-    return { e: 0.22, mu: 0.30 };
-  }
-  /* An inflated fabric wall: dead, and the plant's soft surface's numbers
-   * (src/game/crashworld.js, the pylon), so the shell's contact and the
-   * crash physics' agree on it. */
-  if (kindName === 'pylon' || kindName === 'hoop') {
-    return { e: 0.0, mu: 1.00 };
-  }
-  if (kindName === 'tree' || kindName === 'canopy') {
-    return { e: 0.12, mu: 0.50 };
-  }
-  /* A conductor catches what flies into it rather than throwing it back:
-   * the plant's wire surface (src/native/crash.c SURF), so the two agree. */
-  if (kindName === 'wire') {
-    return { e: 0.0, mu: 0.80 };
-  }
-  if (kindName === 'wall' || kindName === 'boom' || kindName === 'cliff' || kindName === 'rock') {
-    return { e: 0.15, mu: 0.42 };
-  }
-  return { e: 0.15, mu: 0.40 };
-}
-
-/*
- * Classify an obstacle contact. Every hit is a bounce: there is no wreck.
- * 'hard' is an OSD / audio distinction, not a lockout.
- */
-export function hitOutcome(kindName, closing, _upDot = 0) {
-  if (kindName === 'train' || !(closing < BOUNCE_SPEED_MAX)) {
-    return 'hard';
-  }
-  return 'bounce';
-}
-
-/*
- * A pass through a gate is a flown opening, not a tumble on the dirt
- * and not a clip through the terrain. Inverted in the air still scores
- * (people punch gates inverted). A craft on its side or upside down ON
- * THE DECK does not: that is the crash that used to walk through the
- * timing gate and throw the results screen.
- *
- * TOUCHING THE FLOOR DOES NOT COST YOU THE GATE. The owner's words:
- * "its ok to bounce of the floor through a gate". Height alone used to
- * be the whole decision here, and it refused a pass flown anywhere
- * inside the band whatever the craft was doing, which meant a skip off
- * the floor and out through the hole, the most ordinary thing there is
- * on a whoop track, was silently not a gate. So the band no longer
- * refuses anything on its own. It says the craft is ON THE DECK, and
- * the attitude says whether being there is flight or an accident.
- *
- * That reverses what this comment used to argue, which was that an
- * upright slide is the same class of accident as an inverted one and
- * so attitude should not be read at all. It is not the same class any
- * more, by the owner's ruling, and DIRT_UPZ has gone from a dead
- * constant back to the decision.
- *
- * The cost of the ruling, written down rather than hidden: props up
- * and moving is a bounce, a skip and a skid all at once, because
- * nothing here can tell them apart, so an upright skid through a hole
- * now counts as a pass. A tumble, a craft on its side and a turtle
- * still do not, and neither does anything under the terrain.
- *
- * heightAt(x, z, y) is the surface under that sample, same contract as
- * view.height. margin is how far below that surface counts as buried.
- */
-/*
- * Upright enough, on the deck, to be bouncing rather than crashing.
- *
- * This is the body up axis' world up component, so 1 is level, 0 is on its
- * side and -1 is inverted; 0.50 is 60 degrees of tilt. A quad skipping off
- * the floor and back out through a gate is nowhere near it, and a quad on
- * its side or upside down on the floor is well past it. It is the number
- * this file already carried for exactly this judgement, unused while the
- * clearance band was deciding on its own.
- */
-export const DIRT_UPZ = 0.50;
-/*
- * THE DIRT BAND IS A LENGTH ABOUT THE AIRCRAFT, NOT A LENGTH ABOUT THE WORLD.
- *
- * 0.22 m is the five inch's band and it stays exactly the five inch's band:
- * DIRT_SPAN is that number over FIVE_INCH_WORLD_R, so on the field the
- * arithmetic reduces to the constant it replaced and no lap time moves.
- *
- * It was a flat 0.22 m for every aircraft, and on the RaceGOW class it was
- * three and a half times too big. A whoop gate's bottom bar is ON THE FLOOR
- * and its opening is 0.711 m, so a flat band called the bottom 31 percent of
- * every hole on the track dirt, and a whoop threading the low line through a
- * gate, which is the line a whoop is FOR, was refused the pass. Refused
- * silently: no flash, no gate tone, no mark on the OSD, because a refusal
- * here is indistinguishable from never having flown the gate. The pilot's
- * report was that whoop gates sometimes do not register, and this is the
- * whole of it. The start gate is a ground gate too, so on a low launch the
- * same band could decline to start the lap at all.
- *
- * What the band means is that the craft cannot be flying clean this close to
- * the surface, and that is a claim about the MACHINE, which is why it now
- * scales with one. A quad banked hard presents its swept radius below its own
- * centre, so a centre inside that radius is a hull in the ground whatever the
- * attitude, and the band is that radius with clear air over it: 1.27 of it,
- * which is what 0.22 m was for the five inch and what this says in general.
- *
- * On the 65 mm whoop it comes out at 0.064 m. Level, that is a duct 4.6 cm off
- * the floor, which is a pass; on its side at the same height the duct is
- * 1.4 cm in the floor, which is the accident the band is for, and the band has
- * to cover the worse of the two because shouldScorePass is not given the
- * attitude. 91 percent of a RaceGOW opening now scores where 69 did.
- */
-const DIRT_SPAN = 0.22 / FIVE_INCH_WORLD_R;
-export const BURIED_MARGIN = 0.10;
-
-/* The band for the airframe currently seated, in WORLD metres, because the
- * clearance every caller measures is a world height above a world surface. */
 export function dirtClearance() {
   return CRAFT_WORLD_R * DIRT_SPAN;
 }
 
-export function upsetOnDirt(upz, clearance, inContact) {
-  /* The plant hit flag is still not read: a bounce can drop it for a
-   * frame, so a craft that is plainly on the floor reads as airborne on
-   * exactly the frame it touches. Clearance is the honest contact test
-   * and it is all this uses. */
-  void inContact;
+export function turtleClearance() {
+  return CRAFT_WORLD_R * TURTLE_CLEAR_SPAN;
+}
+
+export function turtleLift() {
+  return CRAFT_WORLD_R * TURTLE_LIFT_SPAN;
+}
+
+export const snapClearance = turtleClearance;
+
+/* ---------------------------------------------------------------- constants */
+
+/* A collider's kind is its index here; other modules index it too. */
+export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner',
+  'pylon', 'hoop', 'wire'];
+export const TURNED = 2;
+export const SUNK_Y = -100000;
+export const STREAM_SLICE = 20000;
+export const CONTACT_PATCH_BAND = 0.015;
+
+export const LAND_DESCENT_MAX = 4.0;
+export const LAND_HORIZONTAL_MAX = 10.0;
+export const LAND_TILT_MAX_DEG = 25;
+export const LAND_TILT_HARD_DEG = 50;
+export const LAND_TIP_SPEED_MAX = 3.0;
+export const GROUND_TUMBLE = 0;
+export const GROUND_LAND = 1;
+export const GROUND_SLIDE = 2;
+export const GROUND_CRASH = 0;
+export const GROUND_BOUNCE = 2;
+export const GRAZE_SPEED_MAX = 4.0;
+export const PROP_PLANE_MAX_UP_DOT = 0.5;
+export const BOUNCE_SPEED_MAX = 18.0;
+export const BOUNCE_COOLDOWN_MS = 180;
+export const BOUNCE_SEPARATION = 0.008;
+export const PRESS_UP_DOT = 0.5;
+export const PRESS_CONFIRM_MS = 150;
+export const PRESS_RELEASE_MS = 60;
+export const PRESS_BLEED = 0.15;
+export const SURFACE_SPEED_MAX = 60.0;
+export const PERCH_SPEED = 2.0;
+export const PERCH_RATE = 2.5;
+export const GROUND_MU = 1.40;
+export const GROUND_E = 0.0;
+export const DIRT_UPZ = 0.50;
+export const BURIED_MARGIN = 0.10;
+
+export const TURTLE_SPEED = 1.0;
+export const TURTLE_RATE = 8.0;
+export const TURTLE_EXIT_UPZ = 0.5;
+export const TURTLE_INVERT_UPZ = -0.35;
+export const TURTLE_STICK_MIN = 0.08;
+export const TURTLE_WAIT_RATE = 1.0;
+export const TURTLE_FLIP_MS = 380;
+export const SNAP_SPEED = TURTLE_SPEED;
+export const SNAP_RATE = TURTLE_RATE;
+
+export const CLIP_CENTER_EPS = 0.010;
+export const CLIP_DEEP = 0.08;
+export const CLIP_CONFIRM_MS = 180;
+export const STUCK_UNRESOLVED_MS = 350;
+export const STUCK_TRAVEL_MAX = 0.40;
+export const BURIED_DEPTH = 0.22;
+export const BURIED_CONFIRM_MS = 180;
+export const CLIP_CRASH_HOLD_MS = 800;
+export const CLIP_SPAWN_GRACE_MS = 500;
+export const THRASH_RATE = 12.0;
+export const THRASH_THROTTLE = 0.55;
+export const THRASH_MS = 700;
+export const THRASH_TRAVEL = 0.60;
+
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/* Scratch for the attitude of the free functions below. */
+const AXES = new Float64Array(9);
+
+/* ------------------------------------------------------------- contact rules */
+
+/*
+ * Where an impulse against a face lands: the centroid of the motors within
+ * a band of the deepest along the face's inward normal, pushed out to the
+ * hull's rim in the face's direction and along the body up axis by the
+ * disc's half thickness.
+ */
+export function contactPatch(nx, ny, nz, qx, qy, qz, qw, out) {
+  const res = out || { x: 0, y: 0, z: 0 };
+  const dx = -nx;
+  const dy = -ny;
+  const dz = -nz;
+  const e = bodyAxes(qx, qy, qz, qw, AXES);
+  const A = CRAFT_WORLD_ARM_AXIS;
+  let deepest = -Infinity;
+  for (let i = 0; i < 4; i += 1) {
+    const sx = (i & 1) ? A : -A;
+    const sz = (i & 2) ? A : -A;
+    const depth = (e[0] * sx + e[6] * sz) * dx + (e[1] * sx + e[7] * sz) * dy + (e[2] * sx + e[8] * sz) * dz;
+    if (depth > deepest) {
+      deepest = depth;
+    }
+  }
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  let n = 0;
+  for (let i = 0; i < 4; i += 1) {
+    const sx = (i & 1) ? A : -A;
+    const sz = (i & 2) ? A : -A;
+    const mx = e[0] * sx + e[6] * sz;
+    const my = e[1] * sx + e[7] * sz;
+    const mz = e[2] * sx + e[8] * sz;
+    if (mx * dx + my * dy + mz * dz >= deepest - CONTACT_PATCH_BAND) {
+      x += mx;
+      y += my;
+      z += mz;
+      n += 1;
+    }
+  }
+  if (n > 0) {
+    x /= n;
+    y /= n;
+    z /= n;
+  }
+  const du = dx * e[3] + dy * e[4] + dz * e[5];
+  const px = dx - du * e[3];
+  const py = dy - du * e[4];
+  const pz = dz - du * e[5];
+  const p2 = px * px + py * py + pz * pz;
+  if (p2 > 1e-12) {
+    const inv = CRAFT_WORLD_HULL / Math.sqrt(p2);
+    x += px * inv;
+    y += py * inv;
+    z += pz * inv;
+  }
+  x += CRAFT_WORLD_V_HALF * du * e[3];
+  y += CRAFT_WORLD_V_HALF * du * e[4];
+  z += CRAFT_WORLD_V_HALF * du * e[5];
+  res.x = x;
+  res.y = y;
+  res.z = z;
+  return res;
+}
+
+export function contactMaterial(kindName) {
+  switch (kindName) {
+    case 'train':
+      return { e: 0.06, mu: 0.40 };
+    case 'gate':
+    case 'pole':
+    case 'banner':
+      return { e: 0.22, mu: 0.30 };
+    case 'pylon':
+    case 'hoop':
+      return { e: 0.0, mu: 1.00 };
+    case 'tree':
+    case 'canopy':
+      return { e: 0.12, mu: 0.50 };
+    case 'wire':
+      return { e: 0.0, mu: 0.80 };
+    case 'wall':
+    case 'boom':
+    case 'cliff':
+    case 'rock':
+      return { e: 0.15, mu: 0.42 };
+    default:
+      return { e: 0.15, mu: 0.40 };
+  }
+}
+
+export function hitOutcome(kindName, closing, _upDot = 0) {
+  return kindName === 'train' || !(closing < BOUNCE_SPEED_MAX) ? 'hard' : 'bounce';
+}
+
+export function thrustIntoFace(nx, ny, nz, ux, uy, uz) {
+  return nx * ux + ny * uy + nz * uz <= -PRESS_UP_DOT;
+}
+
+export function canPerch(tiltDeg, speed, rateMag) {
+  return !(tiltDeg > LAND_TILT_MAX_DEG) && !(speed > PERCH_SPEED) && !(rateMag > PERCH_RATE);
+}
+
+export function groundOutcome(descentRate, horizontal, tiltDeg) {
+  if (tiltDeg > LAND_TILT_HARD_DEG) {
+    return GROUND_TUMBLE;
+  }
+  const up = descentRate > 0 ? descentRate : 0;
+  const speed = Math.sqrt(up * up + horizontal * horizontal);
+  if (tiltDeg > LAND_TILT_MAX_DEG) {
+    return speed > LAND_TIP_SPEED_MAX ? GROUND_TUMBLE : GROUND_LAND;
+  }
+  if (descentRate > LAND_DESCENT_MAX || horizontal > LAND_HORIZONTAL_MAX || speed > PERCH_SPEED) {
+    return GROUND_SLIDE;
+  }
+  return GROUND_LAND;
+}
+
+/* ------------------------------------------------------------- gate passes */
+
+export function upsetOnDirt(upz, clearance, _inContact) {
   if (clearance >= dirtClearance()) {
-    /* Off the deck. Whatever the attitude, this is flight, which is why
-     * an inverted punch through a gate still scores. */
     return false;
   }
-  /* On the deck. Props up is a bounce and it flies; on its side or
-   * upside down is the accident this whole predicate exists for. */
   return upz < DIRT_UPZ;
 }
 
+/* A pass counts unless the leg ran through the ground or ended upset on
+ * it: six samples along the leg against the terrain. */
 export function shouldScorePass(prev, curr, opts) {
   const heightAt = opts.heightAt;
   let minClear = opts.clearance;
   if (typeof heightAt === 'function') {
-    const n = 5;
-    for (let i = 0; i <= n; i += 1) {
-      const t = i / n;
+    for (let i = 0; i <= 5; i += 1) {
+      const t = i / 5;
       const x = prev.x + (curr.x - prev.x) * t;
       const y = prev.y + (curr.y - prev.y) * t;
       const z = prev.z + (curr.z - prev.z) * t;
@@ -3520,103 +346,16 @@ export function shouldScorePass(prev, curr, opts) {
       }
     }
   }
-  if (upsetOnDirt(opts.upz, minClear, opts.hits > 0)) {
-    return false;
-  }
-  return true;
+  return !upsetOnDirt(opts.upz, minClear, opts.hits > 0);
 }
 
-export function canPerch(tiltDeg, speed, rateMag) {
-  if (tiltDeg > LAND_TILT_MAX_DEG) {
-    return false;
-  }
-  if (speed > PERCH_SPEED) {
-    return false;
-  }
-  if (rateMag > PERCH_RATE) {
-    return false;
-  }
-  return true;
-}
+/* ----------------------------------------------------------------- turtle */
 
-/*
- * Turtle is a shell recovery, not Betaflight crashflip. The mixer couple
- * fought the inverted bump and flickered. Any pitch or roll poke now
- * plays a fixed flip to heading-preserving upright. The plant does not
- * step during the wait or the flip.
- *
- * Enter only when truly inverted (body +z pointing down past about
- * 110 deg), seated on grass or a roof, and still. On-side is a tumble
- * you fly out of. An invert in the air is still flight. TURTLE_STICK_MIN
- * is a poke gate, not the mixer deadband: any throw past it starts the
- * flip, and the flip always finishes. turtleLift() is the extra centre
- * height at mid-flip so the arms and the lens stay above the surface.
- */
-export const TURTLE_SPEED = 1.0;
-export const TURTLE_RATE = 8.0;
-export const TURTLE_EXIT_UPZ = 0.5;
-export const TURTLE_INVERT_UPZ = -0.35;
-export const TURTLE_STICK_MIN = 0.08;
-export const TURTLE_WAIT_RATE = 1.0;
-export const TURTLE_FLIP_MS = 380;
-
-/*
- * THE HALO AND THE HOP ARE LENGTHS ABOUT THE AIRCRAFT, the same argument
- * DIRT_SPAN makes a hundred lines up, and for the same reason: both were
- * flat five inch numbers applied to a machine a third of the size.
- *
- * 0.15 m of halo is how far an inverted craft's CENTRE may be above the
- * surface and still count as resting on it rather than flying. On a five
- * inch that is 0.86 of the swept radius, generous over the 0.038 m its
- * canopy actually holds it at, and the slack is for slopes, for a roof the
- * height query cannot see and for the contact model's own 2 mm. On a 65 mm
- * whoop the same flat number is five times the whole machine: a whoop
- * inverted 14 cm up, which is a gate's height in the air, read as seated.
- *
- * 0.18 m of lift is the hop at mid flip that keeps the arms and the lens
- * out of the surface while the craft rolls over. On a five inch that is one
- * swept radius, which is exactly the reach it has to clear. On a whoop it
- * threw the machine most of a RaceGOW opening into the air to right itself.
- *
- * So both are spans over FIVE_INCH_WORLD_R, frozen at module load: on the
- * field the arithmetic reduces to the constants they replaced, to the last
- * bit, and the whoop gets 0.044 m of halo and a 0.053 m hop.
- */
-const TURTLE_CLEARANCE_SPAN = 0.15 / FIVE_INCH_WORLD_R;
-const TURTLE_LIFT_SPAN = 0.18 / FIVE_INCH_WORLD_R;
-
-/* The halo for the airframe currently seated, in WORLD metres, because the
- * clearance every caller measures is a world height above a world surface. */
-export function turtleClearance() {
-  return CRAFT_WORLD_R * TURTLE_CLEARANCE_SPAN;
-}
-/* And the hop, same frame, same rule. */
-export function turtleLift() {
-  return CRAFT_WORLD_R * TURTLE_LIFT_SPAN;
-}
-export const SNAP_SPEED = TURTLE_SPEED;
-export const SNAP_RATE = TURTLE_RATE;
-export const snapClearance = turtleClearance;
-
+/* Returns the || expression itself: a contact count comes back as given. */
 export function shouldEnterTurtle(upz, speed, rateMag, inContact, clearance, skip) {
-  if (skip) {
+  if (skip || !(upz < TURTLE_INVERT_UPZ) || speed >= TURTLE_SPEED || rateMag >= TURTLE_RATE) {
     return false;
   }
-  /* Upside down, not on its side. A 60 deg bank is still flight. */
-  if (!(upz < TURTLE_INVERT_UPZ)) {
-    return false;
-  }
-  if (speed >= TURTLE_SPEED || rateMag >= TURTLE_RATE) {
-    return false;
-  }
-  /* Contact, or seated within the clearance halo. Contact alone cannot
-   * latch a settled turtle: the plant's inverted rest sits on the
-   * contact slop with no impulse (ground_settle's seated_halo zeroes
-   * velocity without a hit), so sim_ground_contacts() reads 0 for the
-   * whole rest and a real crash never prompted. An invert in the air is
-   * still flight: the speed gate has already refused anything that has
-   * fallen more than a few centimetres, and the halo is centimetres, not
-   * metres, on either aircraft. */
   return inContact || clearance < turtleClearance();
 }
 
@@ -3629,19 +368,7 @@ export function shouldExitTurtle(upz) {
 }
 
 export function shouldParkTurtle(waiting, stickMag, rateMag, inContact) {
-  if (!waiting) {
-    return false;
-  }
-  if (!inContact) {
-    return false;
-  }
-  if (stickMag >= TURTLE_STICK_MIN) {
-    return false;
-  }
-  if (rateMag >= TURTLE_WAIT_RATE) {
-    return false;
-  }
-  return true;
+  return Boolean(waiting) && Boolean(inContact) && !(stickMag >= TURTLE_STICK_MIN) && !(rateMag >= TURTLE_WAIT_RATE);
 }
 
 export function turtleFlipEase(u) {
@@ -3661,37 +388,22 @@ export function turtleFlipLift(u) {
   return 4 * u * (1 - u) * turtleLift();
 }
 
-/*
- * Spherical interpolation without a single transcendental.
- *
- * This writes a plant pose through sim_set_pose, so it is in the physics
- * path, and CLAUDE.md is explicit that JS Math.sin, Math.cos and friends
- * may not be: they are not specified to bit precision and V8 and
- * SpiderMonkey disagree in the last places. The old body used Math.acos
- * and Math.sin, which is a determinism hole PROGRESS.md has carried as
- * known since the flip was written: a replay that spanned a turtle was
- * engine dependent. There is no sin or cos in the compiled libm to route
- * it through either, because the plant does not own one: sim_sqrt is the
- * whole of it.
- *
- * So do it with square roots. The square root of a unit quaternion is the
- * half rotation, and it is sqrt-only:
- *
- *   sqrt(q) = normalise(q.w + 1, q.x, q.y, q.z)
- *
- * Halve the relative rotation N times to get d^(1/2^N), and any dyadic
- * power d^(k/2^N) is the product of the halvings named by the set bits of
- * k. Quantising t onto that grid costs 1/1024 of the flip, which is a
- * third of a millisecond of a 380 ms animation, and buys an interpolation
- * that is bit-identical on every engine.
- *
- * It is a real slerp, not an nlerp standing in for one: constant angular
- * velocity, so the flip does not rush its own middle.
- */
-const SLERP_BITS = 10;
+function writeQuat(o, w, x, y, z) {
+  o[0] = w;
+  o[1] = x;
+  o[2] = y;
+  o[3] = z;
+  return o;
+}
 
+/*
+ * Slerp without trigonometry: t is quantised to tenths of a thousandth
+ * (k / 1024), the relative rotation is halved ten times by normalised
+ * half angle steps, and the halvings whose bit is set in k are composed.
+ * Square roots only, so it replays bit for bit.
+ */
 export function turtleSlerpQuat(aw, ax, ay, az, bw, bx, by, bz, t, out) {
-  const q = out || [0, 0, 0, 0];
+  const o = out || [0, 0, 0, 0];
   let dot = aw * bw + ax * bx + ay * by + az * bz;
   if (dot < 0) {
     bw = -bw;
@@ -3701,55 +413,27 @@ export function turtleSlerpQuat(aw, ax, ay, az, bw, bx, by, bz, t, out) {
     dot = -dot;
   }
   if (!(t > 0)) {
-    q[0] = aw;
-    q[1] = ax;
-    q[2] = ay;
-    q[3] = az;
-    return q;
+    return writeQuat(o, aw, ax, ay, az);
   }
   if (t >= 1) {
-    q[0] = bw;
-    q[1] = bx;
-    q[2] = by;
-    q[3] = bz;
-    return q;
+    return writeQuat(o, bw, bx, by, bz);
   }
-  const steps = 1 << SLERP_BITS;
-  const k = Math.round(t * steps);
+  const k = Math.round(t * 1024);
   if (k <= 0) {
-    q[0] = aw;
-    q[1] = ax;
-    q[2] = ay;
-    q[3] = az;
-    return q;
+    return writeQuat(o, aw, ax, ay, az);
   }
-  if (k >= steps) {
-    q[0] = bw;
-    q[1] = bx;
-    q[2] = by;
-    q[3] = bz;
-    return q;
+  if (k >= 1024) {
+    return writeQuat(o, bw, bx, by, bz);
   }
-
-  /* d = a^-1 * b, the rotation the flip has to travel. dot >= 0 above, so
-   * d.w >= 0 and this is the short way round. */
   let dw = aw * bw + ax * bx + ay * by + az * bz;
   let dx = aw * bx - ax * bw - ay * bz + az * by;
   let dy = aw * by - ay * bw - az * bx + ax * bz;
   let dz = aw * bz - az * bw - ax * by + ay * bx;
-
-  /* Accumulate d^(k/2^N) from the set bits of k, halving as we go. Bit i
-   * of k is worth d^(1/2^(N-i)), so walk the bits from the top down and
-   * halve once per step. */
   let rw = 1;
   let rx = 0;
   let ry = 0;
   let rz = 0;
-  for (let bit = SLERP_BITS - 1; bit >= 0; bit -= 1) {
-    /* Halve FIRST. Bit i is worth d^(2^i / 2^N), which is d^(1/2^(N-i)),
-     * so the top bit wants one halving and the bottom bit wants N. Doing
-     * the multiply before the halving is off by exactly one and lands the
-     * midpoint of a flip on its endpoint. */
+  for (let bit = 9; bit >= 0; bit -= 1) {
     const hw = dw + 1;
     const h2 = hw * hw + dx * dx + dy * dy + dz * dz;
     if (h2 > 1e-18) {
@@ -3759,8 +443,6 @@ export function turtleSlerpQuat(aw, ax, ay, az, bw, bx, by, bz, t, out) {
       dy *= inv;
       dz *= inv;
     } else {
-      /* d.w = -1: a full turn, which has no unique half. Unreachable from
-       * a real attitude, and the identity is the honest answer. */
       dw = 1;
       dx = 0;
       dy = 0;
@@ -3777,37 +459,17 @@ export function turtleSlerpQuat(aw, ax, ay, az, bw, bx, by, bz, t, out) {
       rz = nz;
     }
   }
-
-  /* out = a * d^t. */
   const ow = aw * rw - ax * rx - ay * ry - az * rz;
   const ox = aw * rx + ax * rw + ay * rz - az * ry;
   const oy = aw * ry + ay * rw + az * rx - ax * rz;
   const oz = aw * rz + az * rw + ax * ry - ay * rx;
   const n2 = ow * ow + ox * ox + oy * oy + oz * oz;
   const inv = n2 > 0 ? 1 / Math.sqrt(n2) : 1;
-  q[0] = ow * inv;
-  q[1] = ox * inv;
-  q[2] = oy * inv;
-  q[3] = oz * inv;
-  return q;
+  return writeQuat(o, ow * inv, ox * inv, oy * inv, oz * inv);
 }
 
-/*
- * Flatten roll and pitch. Keep the body-x projection on the plant
- * xy plane as heading. 180 about x leaves +x alone, so (0,1,0,0)
- * becomes identity rather than a degenerate w/z flatten.
- *
- * Sqrt only, for the reason turtleSlerpQuat is: this lands in the plant.
- * The old body went through Math.atan2 to get the heading and Math.cos
- * and Math.sin to halve it, three transcendentals to produce a
- * quaternion that the half-angle identities give exactly. cos h and
- * sin h are the normalised forward vector already, and
- *
- *   cos(h/2) = sqrt((1 + cos h) / 2),  sin(h/2) = sin h / (2 cos(h/2))
- *
- * closes it. cos(h/2) is zero only at h = 180 degrees, where the
- * quaternion is a half turn about z and is written down directly.
- */
+/* The attitude with roll and pitch taken out: a turn about y to the same
+ * heading, by the half angle identities. */
 export function uprightPlantQuat(qw, qx, qy, qz) {
   const fx = 1 - 2 * (qy * qy + qz * qz);
   const fy = 2 * (qx * qy + qw * qz);
@@ -3824,129 +486,14 @@ export function uprightPlantQuat(qw, qx, qy, qz) {
   }
   const ch = Math.sqrt(half);
   if (ch < 1e-9) {
-    /* Pointing at exactly minus x: a half turn about z. */
     return [0, 0, 0, 1];
   }
   return [ch, 0, 0, sn / (2 * ch)];
 }
 
-/*
- * Classify a ground arrival. Pure function, no allocation.
- *
- *   land    perch envelope: upright, slow. The shell may freeze.
- *   slide   props up, moving. Friction on the hull, no freeze.
- *   tumble  on its side or a blade down with speed. Roll it out.
- */
-export function groundOutcome(descentRate, horizontal, tiltDeg) {
-  if (tiltDeg > LAND_TILT_HARD_DEG) {
-    return GROUND_TUMBLE;
-  }
-  const up = descentRate > 0 ? descentRate : 0;
-  const speed = Math.sqrt(up * up + horizontal * horizontal);
-  if (tiltDeg > LAND_TILT_MAX_DEG) {
-    /* Blade down. Speed behind it is a tumble you fly out of. Crawling
-     * is still a perch classification: the shell will not freeze
-     * (canPerch refuses extra tilt) so the integrator keeps running
-     * and a turtle or a power-out can happen. */
-    if (speed > LAND_TIP_SPEED_MAX) {
-      return GROUND_TUMBLE;
-    }
-    return GROUND_LAND;
-  }
-  if (descentRate > LAND_DESCENT_MAX || horizontal > LAND_HORIZONTAL_MAX
-      || speed > PERCH_SPEED) {
-    return GROUND_SLIDE;
-  }
-  return GROUND_LAND;
-}
+/* ------------------------------------------------------------- clip watch */
 
-/*
- * Clip-through / stuck catch.
- *
- * Bounce is still the rule. This is the exception for the one state
- * bounce cannot leave: the hull's CENTRE is inside a solid, the bounce
- * loop failed to eject and the craft is jittering in place, or the
- * craft has fallen through the terrain. The shell freezes, says
- * Crashed, and puts the quad back on the line.
- *
- * It must not fire on a bounce that clears, a perch, a turtle, a slide
- * along a wall, a roof sit, a graze, leftover hull overlap with the
- * centre still outside, or a single tunneled frame that the next bounce
- * rewinds. Deep centre-inside (CLIP_DEEP) fires on the first frame:
- * that is already through a face, not slop. The tests in suiteClipCatch
- * are the contract.
- *
- * CLIP_CENTER_EPS is a hair over BOUNCE_SEPARATION: start-inside only
- * nudges that far, so a centre more than that inside is not leftover
- * slop, it is through the face.
- */
-export const CLIP_CENTER_EPS = 0.010;
-export const CLIP_DEEP = 0.08;
-export const CLIP_CONFIRM_MS = 180;
-export const STUCK_UNRESOLVED_MS = 350;
-export const STUCK_TRAVEL_MAX = 0.40;
-export const BURIED_DEPTH = 0.22;
-export const BURIED_CONFIRM_MS = 180;
-export const CLIP_CRASH_HOLD_MS = 800;
-export const CLIP_SPAWN_GRACE_MS = 500;
-
-/*
- * THE THRASH CATCH: the state none of the three above can see.
- *
- * The owner's report was "when i start glitching and flipping around when
- * stuck on an obstacle or mesh and i can't turtle out nor can i right it".
- * Walk the three detectors against that and every one of them declines:
- *
- *   inside   the centre is not in a solid, it is wedged against one
- *   stuck    needs `unresolved`, and the bounce loop IS resolving, once
- *            per contact, over and over
- *   buried   the terrain is not above it
- *
- * and turtle declines too, because shouldEnterTurtle wants the craft
- * still (under TURTLE_RATE) and genuinely inverted, and a quad winding
- * itself up against a wall is neither. So the pilot has no way out. That
- * is the hole.
- *
- * What the state actually looks like from here is simple: the craft is in
- * contact, it is either spinning hard or the pilot is holding real
- * throttle, and it has gone nowhere for most of a second. Any one of
- * those alone is ordinary flying. Together they are not: a quad that has
- * been touching something and burning throttle for 700 ms without
- * covering 60 cm is not flying, whatever the attitude says.
- *
- * The travel gate is what keeps honest flying out of it. Sixty centimetres
- * is under two frames of a slow crawl and far under any scrape, so a wall
- * ride, a bounce that clears, a gate rub and a hard flip all leave.
- */
-export const THRASH_RATE = 12.0;      /* rad/s, about 690 deg/s */
-/*
- * Hover measures 0.28 on this plant (verify check 5). At 0.55 the rotors
- * are asking for close to four times hover thrust, so a craft that has not
- * covered 60 cm in 700 ms of that is being held, not underpowered. The
- * first draft used 0.35, which is barely above hover and fires on a pilot
- * sitting on a roof deciding what to do next.
- */
-export const THRASH_THROTTLE = 0.55;
-export const THRASH_MS = 700;
-export const THRASH_TRAVEL = 0.60;
-
-export function makeClipWatch() {
-  return {
-    insideMs: 0,
-    stuckMs: 0,
-    buriedMs: 0,
-    ax: 0,
-    ay: 0,
-    az: 0,
-    haveAnchor: false,
-    thrashMs: 0,
-    tx: 0,
-    ty: 0,
-    tz: 0,
-    haveThrash: false,
-  };
-}
-
+/* The watch is the caller's object and its fields are its state. */
 export function resetClipWatch(watch) {
   watch.insideMs = 0;
   watch.stuckMs = 0;
@@ -3963,84 +510,35 @@ export function resetClipWatch(watch) {
   return watch;
 }
 
-function clipWatchExempt(sample) {
-  return Boolean(
-    sample.launchStaging
-    || sample.hold
-    || sample.poseLock
-    || sample.spawnGrace,
-  );
+export function makeClipWatch() {
+  return resetClipWatch({});
 }
 
-function clipWatchSoft(sample) {
-  return Boolean(sample.landed || sample.turtle);
-}
+const travelFrom = (s, x, y, z) => {
+  const dx = s.x - x;
+  const dy = s.y - y;
+  const dz = s.z - z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+};
 
 /*
- * Advance the watch by one frame. sample:
- *   skip fields via clipWatchExempt (launch, hold, harness lock)
- *   landed / turtle still allow an INSIDE crash: a perch frozen
- *   inside a wall is the glitch, not a landing
- *   spawnGrace     just respawned; ignore leftover pad overlap
- *   interiorDepth  centre vs the last leftover solid, metres, signed
- *   unresolved     bounce loop ended still overlapping
- *   roofContact    leftover overlap, outward normal mostly up, centre
- *                  not inside. A deck sit, not a clip.
- *   buriedDepth    metres below height(), 0 if above
- *   x, y, z        world position, for the stuck travel gate
- *   contact        a solid contact was resolved this tick
- *   rateMag        body rate magnitude, rad/s
- *   throttle       throttle channel, 0 to 1
- * Returns 'inside' | 'stuck' | 'buried' | 'thrash' | null.
+ * One frame of the watch for a craft that has got where it should not be:
+ * its centre inside a solid, stuck unresolved in one place, buried, or
+ * thrashing against a contact without getting anywhere.
  */
 export function clipWatchTick(watch, sample, dtMs) {
-  if (clipWatchExempt(sample)) {
+  if (sample.launchStaging || sample.hold || sample.poseLock || sample.spawnGrace) {
     resetClipWatch(watch);
     return null;
   }
   const dt = dtMs > 0 ? dtMs : 0;
-
-  /* Through a face, not 8 mm of bounce slop. One frame is enough. */
-  if (sample.interiorDepth >= CLIP_DEEP) {
+  const depth = sample.interiorDepth;
+  if (depth >= CLIP_DEEP) {
     return 'inside';
   }
-
-  if (sample.interiorDepth > CLIP_CENTER_EPS) {
-    watch.insideMs += dt;
-  } else {
-    watch.insideMs = 0;
-  }
-
-  const soft = clipWatchSoft(sample);
-  /*
-   * Centre INSIDE the face. Hull overlap with the centre still outside is
-   * a bounce leftover, not a stuck crash.
-   *
-   * This used to read `>= 0`, which is not that test and never was. The
-   * signed reading only exists on the landed branch: a FLYING craft is
-   * handed obsInterior, which starts at 0 and is only ever raised, so
-   * "centre outside" arrives here as exactly 0 and `>= 0` accepted it.
-   * The guard the comment describes therefore did not exist, and the rule
-   * reduced to "still overlapping for 350 ms without moving 40 cm", which
-   * is the definition of a wall ride.
-   *
-   * Measured on the town's training wall, flown at it head on through
-   * Betaflight and the plant: SIX approaches from 4.0 to 11.3 m/s, six
-   * crashes, every one of them clipCrashKind 'stuck', none of them a Wall
-   * Tap. That is the owner's "the wall tap ended in a crash rather than a
-   * tap", and it is not a recogniser fault at all: the run was already
-   * over before the recogniser was asked.
-   *
-   * CLIP_CENTER_EPS rather than a bare 0, to match the insideMs
-   * accumulator three lines up and to keep float noise on a resting
-   * contact out of it. A craft actually buried still trips this, and
-   * still trips insideMs and buriedMs besides.
-   */
-  const stuckCandidate = !soft
-    && sample.unresolved
-    && !sample.roofContact
-    && sample.interiorDepth > CLIP_CENTER_EPS;
-  if (stuckCandidate) {
+  watch.insideMs = depth > CLIP_CENTER_EPS ? watch.insideMs + dt : 0;
+  const soft = Boolean(sample.landed || sample.turtle);
+  if (!soft && sample.unresolved && !sample.roofContact && depth > CLIP_CENTER_EPS) {
     if (!watch.haveAnchor) {
       watch.ax = sample.x;
       watch.ay = sample.y;
@@ -4053,23 +551,12 @@ export function clipWatchTick(watch, sample, dtMs) {
     watch.haveAnchor = false;
     watch.stuckMs = 0;
   }
-
-  if (!soft && sample.buriedDepth >= BURIED_DEPTH) {
-    watch.buriedMs += dt;
-  } else {
-    watch.buriedMs = 0;
-  }
-
+  watch.buriedMs = !soft && sample.buriedDepth >= BURIED_DEPTH ? watch.buriedMs + dt : 0;
   if (watch.insideMs >= CLIP_CONFIRM_MS) {
     return 'inside';
   }
-
   if (watch.haveAnchor && watch.stuckMs >= STUCK_UNRESOLVED_MS) {
-    const dx = sample.x - watch.ax;
-    const dy = sample.y - watch.ay;
-    const dz = sample.z - watch.az;
-    const travel = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (travel < STUCK_TRAVEL_MAX) {
+    if (travelFrom(sample, watch.ax, watch.ay, watch.az) < STUCK_TRAVEL_MAX) {
       return 'stuck';
     }
     watch.ax = sample.x;
@@ -4077,25 +564,11 @@ export function clipWatchTick(watch, sample, dtMs) {
     watch.az = sample.z;
     watch.stuckMs = 0;
   }
-
   if (watch.buriedMs >= BURIED_CONFIRM_MS) {
     return 'buried';
   }
-
-  /* Thrash: in contact, spinning hard or under real throttle, and going
-   * nowhere. Ordered last because it is the slowest to confirm and the
-   * three above name the cause more precisely when they apply. */
-  /* `contact` is an OBSTACLE contact, never a ground one. A quad on the
-   * grass has its own ways out (fly off it, turtle, or the ground model's
-   * own settle), and counting the ground here fired on two ordinary
-   * states: a slow takeoff, which touches the plane at full throttle by
-   * definition, and a hover low enough to brush it. takingOff is refused
-   * outright for the same reason. */
-  const thrashCandidate = !soft
-    && !sample.takingOff
-    && Boolean(sample.contact)
-    && (sample.rateMag >= THRASH_RATE || sample.throttle >= THRASH_THROTTLE);
-  if (thrashCandidate) {
+  const pushing = sample.rateMag >= THRASH_RATE || sample.throttle >= THRASH_THROTTLE;
+  if (!soft && !sample.takingOff && Boolean(sample.contact) && pushing) {
     if (!watch.haveThrash) {
       watch.tx = sample.x;
       watch.ty = sample.y;
@@ -4105,14 +578,9 @@ export function clipWatchTick(watch, sample, dtMs) {
     }
     watch.thrashMs += dt;
     if (watch.thrashMs >= THRASH_MS) {
-      const dx = sample.x - watch.tx;
-      const dy = sample.y - watch.ty;
-      const dz = sample.z - watch.tz;
-      if (Math.sqrt(dx * dx + dy * dy + dz * dz) < THRASH_TRAVEL) {
+      if (travelFrom(sample, watch.tx, watch.ty, watch.tz) < THRASH_TRAVEL) {
         return 'thrash';
       }
-      /* It IS covering ground. Re-anchor and keep watching rather than
-       * latching, the same way the stuck gate does. */
       watch.tx = sample.x;
       watch.ty = sample.y;
       watch.tz = sample.z;
@@ -4122,7 +590,1788 @@ export function clipWatchTick(watch, sample, dtMs) {
     watch.haveThrash = false;
     watch.thrashMs = 0;
   }
-
   return null;
 }
 
+/* ---------------------------------------------------------------- Colliders */
+
+const CELL = 8;
+const CELLS_HALF = 2048;
+const REPORT_CAP = 8;
+
+/* Per collider columns, named as the views callers read. */
+const FLOATS = ['fax', 'fay', 'faz', 'fbx', 'fby', 'fbz', 'fr', 'fux', 'fuz', 'fu0', 'fu1', 'fw0', 'fw1'];
+const VIEWS = [...FLOATS, 'fkind', 'fbox', 'pass'];
+
+const cellKey = (cx, cz) => (cx + CELLS_HALF) * 4096 + (cz + CELLS_HALF);
+
+/* NaN passes through and then walks no cells. */
+function cellOf(v) {
+  const c = Math.floor(v / CELL);
+  return c < -CELLS_HALF ? -CELLS_HALF : c > CELLS_HALF - 1 ? CELLS_HALF - 1 : c;
+}
+
+function kindIndex(kindName) {
+  const k = KINDS.indexOf(kindName);
+  if (k < 0) {
+    throw new Error(`collide: unknown kind ${kindName}`);
+  }
+  return k;
+}
+
+const clampRadius = (v) => (v < CRAFT_WORLD_HULL ? CRAFT_WORLD_HULL : v > CRAFT_WORLD_R ? CRAFT_WORLD_R : v);
+
+/* A set being written down: doubles as given, one column per field. */
+function newDraft() {
+  const d = { kind: [], box: [], maxR: 0, sweeps: new Map() };
+  for (const f of FLOATS) {
+    d[f] = [];
+  }
+  return d;
+}
+
+function pushRow(d, kind, box, a, b, r, frame) {
+  d.kind.push(kind);
+  d.box.push(box);
+  d.fax.push(a[0]);
+  d.fay.push(a[1]);
+  d.faz.push(a[2]);
+  d.fbx.push(b[0]);
+  d.fby.push(b[1]);
+  d.fbz.push(b[2]);
+  d.fr.push(r);
+  d.fux.push(frame[0]);
+  d.fuz.push(frame[1]);
+  d.fu0.push(frame[2]);
+  d.fu1.push(frame[3]);
+  d.fw0.push(frame[4]);
+  d.fw1.push(frame[5]);
+}
+
+const NO_FRAME = [0, 0, 0, 0, 0, 0];
+
+function draftCapsule(d, kindName, ax, ay, az, bx, by, bz, r) {
+  pushRow(d, kindIndex(kindName), 0, [ax, ay, az], [bx, by, bz], r, NO_FRAME);
+  if (r > d.maxR) {
+    d.maxR = r;
+  }
+}
+
+/* A draft frozen to single precision: every coordinate a query reads. */
+function freeze(d) {
+  const set = { n: d.kind.length, maxR: d.maxR, fkind: Int32Array.from(d.kind), fbox: Uint8Array.from(d.box) };
+  for (const f of FLOATS) {
+    set[f] = Float32Array.from(d[f]);
+  }
+  return set;
+}
+
+const EMPTY = freeze(newDraft());
+
+/*
+ * Files a frozen set into its grid: a counting pass that sizes every cell
+ * and validates the reach, then a filing pass. Either can be cut into
+ * slices of a budget of cell entries, which is how a streamed refill
+ * spreads its cost over frames; the slice boundaries decide the frame on
+ * which a refill turns solid, so the accounting is exact.
+ */
+class Registrar {
+  constructor(set, sweeps) {
+    this.set = set;
+    this.sweeps = sweeps;
+    this.grid = new Map();
+    this.fill = new Map();
+    this.foot = new Int32Array(set.n * 4);
+    this.filing = false;
+    this.next = 0;
+  }
+
+  get done() {
+    return this.filing && this.next >= this.set.n;
+  }
+
+  step(budget) {
+    let left = budget;
+    if (!this.filing) {
+      let written = 0;
+      while (this.next < this.set.n && written < budget) {
+        written += this.count(this.next);
+        this.next += 1;
+      }
+      if (this.next >= this.set.n) {
+        this.startFiling();
+      }
+      left = budget - written;
+    }
+    if (this.filing && left > 0) {
+      let written = 0;
+      while (this.next < this.set.n && written < left) {
+        written += this.file(this.next);
+        this.next += 1;
+      }
+    }
+    return this.done;
+  }
+
+  /* Validates collider j's footprint, keeps it, counts its cells. */
+  count(j) {
+    const s = this.set;
+    const rect = this.sweeps ? this.sweeps.get(j) : undefined;
+    const r = s.fr[j];
+    const cx0 = Math.floor((rect ? rect[0] : Math.min(s.fax[j], s.fbx[j]) - r) / CELL);
+    const cz0 = Math.floor((rect ? rect[1] : Math.min(s.faz[j], s.fbz[j]) - r) / CELL);
+    const cx1 = Math.floor((rect ? rect[2] : Math.max(s.fax[j], s.fbx[j]) + r) / CELL);
+    const cz1 = Math.floor((rect ? rect[3] : Math.max(s.faz[j], s.fbz[j]) + r) / CELL);
+    if (!(cx0 >= -CELLS_HALF && cx1 < CELLS_HALF && cz0 >= -CELLS_HALF && cz1 < CELLS_HALF)) {
+      throw new Error(`collide: a ${KINDS[s.fkind[j]]} from (${s.fax[j]}, ${s.faz[j]}) to (${s.fbx[j]}, ${s.fbz[j]}) is outside `
+        + 'the grid, which reaches 16384 m from the origin');
+    }
+    this.foot.set([cx0, cx1, cz0, cz1], j * 4);
+    for (let cx = cx0; cx <= cx1; cx += 1) {
+      for (let cz = cz0; cz <= cz1; cz += 1) {
+        const key = cellKey(cx, cz);
+        this.fill.set(key, (this.fill.get(key) || 0) + 1);
+      }
+    }
+    return (cx1 - cx0 + 1) * (cz1 - cz0 + 1);
+  }
+
+  startFiling() {
+    for (const [key, n] of this.fill) {
+      this.grid.set(key, new Int32Array(n));
+      this.fill.set(key, 0);
+    }
+    this.filing = true;
+    this.next = 0;
+  }
+
+  file(j) {
+    const f = this.foot;
+    const [cx0, cx1, cz0, cz1] = [f[j * 4], f[j * 4 + 1], f[j * 4 + 2], f[j * 4 + 3]];
+    for (let cx = cx0; cx <= cx1; cx += 1) {
+      for (let cz = cz0; cz <= cz1; cz += 1) {
+        const key = cellKey(cx, cz);
+        const at = this.fill.get(key);
+        this.grid.get(key)[at] = j;
+        this.fill.set(key, at + 1);
+      }
+    }
+    return (cx1 - cx0 + 1) * (cz1 - cz0 + 1);
+  }
+}
+
+function registerWhole(set, sweeps) {
+  const reg = new Registrar(set, sweeps);
+  reg.step(Infinity);
+  return reg.grid;
+}
+
+/* The add methods shared by a Colliders before build and a refill before
+ * its first step. */
+class Writer {
+  constructor(closedMessage) {
+    this.draft = newDraft();
+    this.closedMessage = closedMessage;
+  }
+
+  /* Callers take ax.length as the index the next add gets. */
+  get ax() {
+    return this.draft ? this.draft.fax : null;
+  }
+
+  open() {
+    if (!this.draft) {
+      throw new Error(this.closedMessage);
+    }
+    return this.draft;
+  }
+
+  add(kindName, ax, ay, az, bx, by, bz, r) {
+    draftCapsule(this.open(), kindName, ax, ay, az, bx, by, bz, r);
+    return this;
+  }
+
+  addPost(kindName, x, z, y0, y1, r) {
+    return this.add(kindName, x, y0, z, x, y1, z, r);
+  }
+
+  addSphere(kindName, x, y, z, r) {
+    return this.add(kindName, x, y, z, x, y, z, r);
+  }
+
+  addBox(kindName, x0, y0, z0, x1, y1, z1) {
+    const d = this.open();
+    const k = kindIndex(kindName);
+    const i = d.kind.length;
+    pushRow(d, k, 1, [Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1)],
+      [Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1)], 0, NO_FRAME);
+    return i;
+  }
+
+  /*
+   * A box turned about the vertical. Its axis is rounded to single
+   * precision first so the padded world bounds are taken from the frame
+   * the queries will use.
+   */
+  addTurnedBox(kindName, ux, uz, u0, u1, y0, y1, w0, w1) {
+    const d = this.open();
+    const k = kindIndex(kindName);
+    const l = Math.sqrt(ux * ux + uz * uz);
+    if (!(l > 0) || !(u0 <= u1) || !(y0 <= y1) || !(w0 <= w1)) {
+      throw new Error(`collide: a turned box needs a direction and ordered extents, got (${ux}, ${uz}) ${u0}..${u1} ${y0}..${y1} `
+        + `${w0}..${w1}`);
+    }
+    const cx = Math.fround(ux / l);
+    const cz = Math.fround(uz / l);
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let z0 = Infinity;
+    let z1 = -Infinity;
+    for (const [u, w] of [[u0, w0], [u0, w1], [u1, w0], [u1, w1]]) {
+      const x = u * cx - w * cz;
+      const z = u * cz + w * cx;
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      z0 = Math.min(z0, z);
+      z1 = Math.max(z1, z);
+    }
+    /* The frame rounds differently from the bounds; a hair of slack keeps
+     * every point of the box inside them. */
+    const pad = 1e-6 * (Math.abs(x0) + Math.abs(x1) + Math.abs(z0) + Math.abs(z1)) + 1e-6;
+    const i = d.kind.length;
+    pushRow(d, k, TURNED, [x0 - pad, y0, z0 - pad], [x1 + pad, y1, z1 + pad], 0, [cx, cz, u0, u1, w0, w1]);
+    return i;
+  }
+
+  sweep(i, x0, z0, x1, z1) {
+    const d = this.open();
+    if (d.box[i] !== 0) {
+      throw new Error(`collide: only a capsule sweeps, not collider ${i}`);
+    }
+    const r = d.fr[i];
+    const holds = x0 <= Math.min(d.fax[i], d.fbx[i]) - r && x1 >= Math.max(d.fax[i], d.fbx[i]) + r
+      && z0 <= Math.min(d.faz[i], d.fbz[i]) - r && z1 >= Math.max(d.faz[i], d.fbz[i]) + r;
+    if (!holds) {
+      throw new Error(`collide: collider ${i}'s sweep does not hold where it stands`);
+    }
+    d.sweeps.set(i, [x0, z0, x1, z1]);
+    return this;
+  }
+}
+
+/*
+ * A streamed set written down while the old one stays in force, filed a
+ * slice per step, and swapped in whole on the step that finishes it. A
+ * refill's grid ignores sweeps.
+ */
+class StreamFill extends Writer {
+  constructor(owner) {
+    super('collide: add to a streamed set after its first step');
+    this.owner = owner;
+    this.set = null;
+    this.reg = null;
+  }
+
+  step(budget = STREAM_SLICE) {
+    if (this.owner.refill !== this) {
+      throw new Error('collide: step on a streamed set that was replaced or already swapped in');
+    }
+    if (!this.reg) {
+      this.set = freeze(this.draft);
+      this.draft = null;
+      this.reg = new Registrar(this.set, null);
+    }
+    if (!this.reg.step(budget)) {
+      return false;
+    }
+    this.owner.swapIn(this.set, this.reg.grid);
+    return true;
+  }
+}
+
+/* The slab walk's inputs and breakpoints, all doubles. */
+function slabScratch() {
+  return {
+    lo: new Float64Array(3), hi: new Float64Array(3), p: new Float64Array(3), d: new Float64Array(3),
+    r: new Float64Array(3), bp: new Float64Array(8),
+  };
+}
+
+const set3 = (v, x, y, z) => {
+  v[0] = x;
+  v[1] = y;
+  v[2] = z;
+};
+
+/*
+ * Between two breakpoints the set of axes the ellipsoid's centre is
+ * outside of is fixed, so the scaled squared distance to the box is one
+ * quadratic in t there: its first root at or under 1 is first touch.
+ */
+function slabSpan(w, t0, t1) {
+  if (t1 <= t0) {
+    return -1;
+  }
+  const tm = (t0 + t1) * 0.5;
+  let qa = 0;
+  let qb = 0;
+  let qc = 0;
+  for (let k = 0; k < 3; k += 1) {
+    const mid = w.p[k] + w.d[k] * tm;
+    let A;
+    let B;
+    if (mid < w.lo[k]) {
+      A = (w.lo[k] - w.p[k]) / w.r[k];
+      B = -w.d[k] / w.r[k];
+    } else if (mid > w.hi[k]) {
+      A = (w.p[k] - w.hi[k]) / w.r[k];
+      B = w.d[k] / w.r[k];
+    } else {
+      continue;
+    }
+    qa += B * B;
+    qb += 2 * A * B;
+    qc += A * A;
+  }
+  if (qa * t0 * t0 + qb * t0 + qc <= 1) {
+    return t0;
+  }
+  let root = -1;
+  if (qa > 0) {
+    const disc = qb * qb - 4 * qa * (qc - 1);
+    if (disc < 0) {
+      return -1;
+    }
+    root = (-qb - Math.sqrt(disc)) / (2 * qa);
+  } else if (qb < 0) {
+    root = (1 - qc) / qb;
+  } else {
+    return -1;
+  }
+  return root >= t0 && root <= t1 ? root : -1;
+}
+
+/* Earliest t in [0, 1] at which the ellipsoid (semi-axes r) centred at
+ * p + t d touches the box [lo, hi], or -1. */
+function slabWalk(w) {
+  const bp = w.bp;
+  bp[0] = 0;
+  bp[1] = 1;
+  let n = 2;
+  for (let k = 0; k < 3; k += 1) {
+    if (w.d[k] === 0) {
+      continue;
+    }
+    const ta = (w.lo[k] - w.p[k]) / w.d[k];
+    if (ta > 0 && ta < 1) {
+      bp[n] = ta;
+      n += 1;
+    }
+    const tb = (w.hi[k] - w.p[k]) / w.d[k];
+    if (tb > 0 && tb < 1) {
+      bp[n] = tb;
+      n += 1;
+    }
+  }
+  for (let j = 1; j < n; j += 1) {
+    const v = bp[j];
+    let k = j - 1;
+    while (k >= 0 && bp[k] > v) {
+      bp[k + 1] = bp[k];
+      k -= 1;
+    }
+    bp[k + 1] = v;
+  }
+  for (let j = 1; j < n; j += 1) {
+    const t = slabSpan(w, bp[j - 1], bp[j]);
+    if (t >= 0) {
+      return t;
+    }
+  }
+  return -1;
+}
+
+/* Signed depth of p into [lo, hi]: the least way out inside, minus the
+ * distance outside. */
+function boxDepth(lo, hi, p) {
+  const out = (k) => (p[k] < lo[k] ? lo[k] - p[k] : p[k] > hi[k] ? p[k] - hi[k] : 0);
+  const ox = out(0);
+  const oy = out(1);
+  const oz = out(2);
+  if (ox !== 0 || oy !== 0 || oz !== 0) {
+    return -Math.sqrt(ox * ox + oy * oy + oz * oz);
+  }
+  const way = (k) => (p[k] - lo[k] < hi[k] - p[k] ? p[k] - lo[k] : hi[k] - p[k]);
+  const ix = way(0);
+  const iy = way(1);
+  const iz = way(2);
+  const m = ix < iy ? ix : iy;
+  return iz < m ? iz : m;
+}
+
+/* Did a to b enter one face of [lo, hi] and leave by the opposite one? */
+function crossesBox(lo, hi, a, b) {
+  let opposite = false;
+  for (let k = 0; k < 3; k += 1) {
+    if ((a[k] < lo[k] && b[k] > hi[k]) || (a[k] > hi[k] && b[k] < lo[k])) {
+      opposite = true;
+    }
+  }
+  if (!opposite) {
+    return false;
+  }
+  let tmin = 0;
+  let tmax = 1;
+  for (let k = 0; k < 3; k += 1) {
+    const d = b[k] - a[k];
+    if (d > -1e-18 && d < 1e-18) {
+      if (a[k] < lo[k] || a[k] > hi[k]) {
+        return false;
+      }
+      continue;
+    }
+    let u0 = (lo[k] - a[k]) / d;
+    let u1 = (hi[k] - a[k]) / d;
+    if (u0 > u1) {
+      [u0, u1] = [u1, u0];
+    }
+    if (u0 > tmin) {
+      tmin = u0;
+    }
+    if (u1 < tmax) {
+      tmax = u1;
+    }
+    if (tmin > tmax) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/* The ellipsoid's overlap along the overhang o: how far its surface
+ * reaches past the box face in that direction. */
+function ellipsoidOverlap(ox, oy, oz, rx, ry, rz) {
+  const d2 = ox * ox + oy * oy + oz * oz;
+  if (!(d2 > 1e-18)) {
+    return 0;
+  }
+  const dist = Math.sqrt(d2);
+  const sx = rx > 1e-9 ? ox / dist / rx : 0;
+  const sy = ry > 1e-9 ? oy / dist / ry : 0;
+  const sz = rz > 1e-9 ? oz / dist / rz : 0;
+  const q = sx * sx + sy * sy + sz * sz;
+  if (!(q > 1e-18)) {
+    return 0;
+  }
+  const along = 1 / Math.sqrt(q);
+  return along > dist ? along - dist : 0;
+}
+
+const better = (x, b) => b.t < 0 || x.t < b.t || (x.t === b.t && x.depth > b.depth);
+
+function copyContact(src, dst) {
+  dst.t = src.t;
+  dst.nx = src.nx;
+  dst.ny = src.ny;
+  dst.nz = src.nz;
+  dst.depth = src.depth;
+  dst.px = src.px;
+  dst.py = src.py;
+  dst.pz = src.pz;
+  dst.part = src.part;
+}
+
+/*
+ * Every solid of a map in one index space: the static set frozen by
+ * build(), then a streamed set replaced whole by a refill, then the
+ * builder's gates replaced whole on each edit. Moving boxes stand apart.
+ */
+export class Colliders extends Writer {
+  constructor() {
+    super('collide: add after build');
+    this.built = false;
+    this.count = undefined;
+    this.baseCount = undefined;
+    this.staticCount = 0;
+    this.streamCount = 0;
+    this.streamGen = 0;
+    this.staticGen = 0;
+    this.softKinds = 0;
+    this.grid = null;
+    this.movingCount = 0;
+    this.movingCx = [];
+    this.movingCy = [];
+    this.movingCz = [];
+    this.movingPx = [];
+    this.movingPy = [];
+    this.movingPz = [];
+    this.movers = [];
+    this.nx = 0;
+    this.ny = 0;
+    this.nz = 0;
+    this.hitIndex = -1;
+    this.hitKind = -1;
+    this.hitT = -1;
+    this.hitOverlap = 0;
+    this.hitNormalDot = 0;
+    this.hitNx = 0;
+    this.hitNy = 0;
+    this.hitNz = 0;
+    this.hitMoving = -1;
+    this.hitArm = false;
+    this.hitArmX = 0;
+    this.hitArmY = 0;
+    this.hitArmZ = 0;
+    this.hitPart = -1;
+    this.axisFound = false;
+    this.axisGap = Infinity;
+    this.axisDx = 0;
+    this.axisDy = 0;
+    this.axisDz = 0;
+    this.axisCx = 0;
+    this.axisCy = 0;
+    this.axisCz = 0;
+
+    this.store = null;
+    this.stream = { set: EMPTY, grid: null };
+    this.gates = { set: EMPTY, grid: null };
+    this.refill = null;
+    this.sweeps = null;
+    this.sunk = new Map();
+    this.walk = [];
+    this.pad = 0;
+    this.seen = new Float64Array(0);
+    this.cands = new Int32Array(0);
+    this.mark = 0;
+    this.tally = { queries: 0, total: 0, last: 0 };
+    this.att = new Float64Array(9);
+    this.slab = slabScratch();
+    this.lax = new Float64Array(9);
+    this.c3 = new Float64Array(3);
+    this.lo3 = new Float64Array(3);
+    this.hi3 = new Float64Array(3);
+    this.pa = new Float64Array(3);
+    this.pb = new Float64Array(3);
+    this.got = hullContact();
+    this.best = hullContact();
+    this.nrm = new Float64Array(3);
+  }
+
+  build() {
+    const set = freeze(this.draft);
+    const grid = registerWhole(set, this.draft.sweeps);
+    this.sweeps = this.draft.sweeps;
+    this.staticMaxR = set.maxR;
+    this.grid = grid;
+    this.store = { pass: new Uint8Array(set.n) };
+    for (const v of VIEWS) {
+      if (v !== 'pass') {
+        this.store[v] = set[v];
+      }
+    }
+    this.staticCount = set.n;
+    this.draft = null;
+    this.built = true;
+    this.relayout();
+    return this;
+  }
+
+  /* The query pad: no collider reaches farther than this from its axis. */
+  padRadius() {
+    return this.built ? this.pad : this.draft.maxR;
+  }
+
+  relayout() {
+    const s = this.staticCount;
+    this.streamCount = this.stream.set.n;
+    this.baseCount = s + this.streamCount;
+    this.count = this.baseCount + this.gates.set.n;
+    for (const v of VIEWS) {
+      this[v] = this.store[v].subarray(0, this.count);
+    }
+    this.pad = Math.max(this.staticMaxR, this.stream.set.maxR, this.gates.set.maxR);
+    this.walk = [{ grid: this.grid, offset: 0 }];
+    if (this.stream.set.n > 0) {
+      this.walk.push({ grid: this.stream.grid, offset: s });
+    }
+    if (this.gates.set.n > 0) {
+      this.walk.push({ grid: this.gates.grid, offset: this.baseCount });
+    }
+    if (this.seen.length < this.count) {
+      this.seen = new Float64Array(this.store.pass.length);
+      this.cands = new Int32Array(this.store.pass.length);
+      this.mark = 0;
+    }
+  }
+
+  /* Room for `end` colliders, with as much again as the sets past the
+   * static one take, so refills of a similar size write in place. */
+  makeRoom(end) {
+    const old = this.store;
+    if (end <= old.pass.length) {
+      return;
+    }
+    const cap = end + (end - this.staticCount);
+    const store = {};
+    for (const v of VIEWS) {
+      store[v] = new old[v].constructor(cap);
+      store[v].set(old[v]);
+    }
+    this.store = store;
+  }
+
+  place(set, at) {
+    for (const v of VIEWS) {
+      if (v !== 'pass') {
+        this.store[v].set(set[v], at);
+      }
+    }
+    this.store.pass.fill(0, at, at + set.n);
+  }
+
+  setBuilt(caps) {
+    if (!this.built) {
+      throw new Error('collide: setBuilt before build');
+    }
+    const d = newDraft();
+    for (const c of caps) {
+      draftCapsule(d, c.kind, c.ax, c.ay, c.az, c.bx, c.by, c.bz, c.r);
+    }
+    const set = freeze(d);
+    const grid = registerWhole(set, null);
+    this.gates = { set, grid };
+    this.makeRoom(this.baseCount + set.n);
+    this.place(set, this.baseCount);
+    this.relayout();
+    return this;
+  }
+
+  streamFill() {
+    if (!this.built) {
+      throw new Error('collide: streamFill before build');
+    }
+    this.refill = new StreamFill(this);
+    return this.refill;
+  }
+
+  swapIn(set, grid) {
+    this.refill = null;
+    this.stream = { set, grid: set.n > 0 ? grid : null };
+    const at = this.staticCount;
+    this.makeRoom(at + set.n + this.gates.set.n);
+    this.place(set, at);
+    this.place(this.gates.set, at + set.n);
+    this.streamGen += 1;
+    this.relayout();
+  }
+
+  /* ----------------------------------------------------------- moving boxes */
+
+  addMoving(kindName, hx, hy, hz) {
+    const kind = kindIndex(kindName);
+    const i = this.movingCount;
+    this.movers.push({ kind, hx, hy, hz });
+    for (const c of [this.movingCx, this.movingCy, this.movingCz, this.movingPx, this.movingPy, this.movingPz]) {
+      c.push(0);
+    }
+    this.movingCount += 1;
+    return i;
+  }
+
+  setMovingCentre(i, x, y, z) {
+    this.movingPx[i] = this.movingCx[i];
+    this.movingPy[i] = this.movingCy[i];
+    this.movingPz[i] = this.movingCz[i];
+    this.movingCx[i] = x;
+    this.movingCy[i] = y;
+    this.movingCz[i] = z;
+    return this;
+  }
+
+  seatMoving(i, x, y, z) {
+    this.movingCx[i] = x;
+    this.movingCy[i] = y;
+    this.movingCz[i] = z;
+    this.movingPx[i] = x;
+    this.movingPy[i] = y;
+    this.movingPz[i] = z;
+    return this;
+  }
+
+  /* ----------------------------------------------- edits to static colliders */
+
+  editableBox(index, what) {
+    if (!this.built) {
+      throw new Error(`collide: ${what} before build`);
+    }
+    if (!this.fbox[index]) {
+      throw new Error(`collide: collider ${index} is not a box`);
+    }
+  }
+
+  setBoxExtentY(index, y0, y1) {
+    this.editableBox(index, 'setBoxExtentY');
+    if (!(y0 <= y1)) {
+      throw new Error(`collide: inverted box extent ${y0} > ${y1} on collider ${index}`);
+    }
+    this.fay[index] = y0;
+    this.fby[index] = y1;
+    return this;
+  }
+
+  setBoxTop(index, top) {
+    this.editableBox(index, 'setBoxTop');
+    if (!(this.fay[index] <= top)) {
+      throw new Error(`collide: setBoxTop ${top} below bottom ${this.fay[index]} on collider ${index}`);
+    }
+    this.fby[index] = top;
+    return this;
+  }
+
+  /* A retired collider is sunk far under the map rather than removed, so
+   * no index, grid cell or count moves. */
+  retire(index) {
+    if (!this.built) {
+      throw new Error('collide: retire before build');
+    }
+    if (!(index >= 0 && index < this.staticCount)) {
+      throw new Error(`collide: retire ${index} is not a static collider`);
+    }
+    if (this.sunk.has(index)) {
+      return this;
+    }
+    this.sunk.set(index, [this.fay[index], this.fby[index]]);
+    this.fay[index] = SUNK_Y;
+    this.fby[index] = SUNK_Y;
+    this.staticGen += 1;
+    return this;
+  }
+
+  restore(index) {
+    const ys = this.sunk.get(index);
+    if (!ys) {
+      return this;
+    }
+    this.fay[index] = ys[0];
+    this.fby[index] = ys[1];
+    this.sunk.delete(index);
+    this.staticGen += 1;
+    return this;
+  }
+
+  retired() {
+    return this.sunk.size;
+  }
+
+  moveCapsule(index, a, b) {
+    const rect = this.built ? this.sweeps.get(index) : undefined;
+    if (!rect) {
+      throw new Error(`collide: collider ${index} was not registered to move`);
+    }
+    const r = this.fr[index];
+    const inside = Math.min(a[0], b[0]) - r >= rect[0] - 1e-3 && Math.max(a[0], b[0]) + r <= rect[2] + 1e-3
+      && Math.min(a[2], b[2]) - r >= rect[1] - 1e-3 && Math.max(a[2], b[2]) + r <= rect[3] + 1e-3;
+    if (!inside) {
+      throw new Error(`collide: collider ${index} moved out of its sweep`);
+    }
+    this.fax[index] = a[0];
+    this.faz[index] = a[2];
+    this.fbx[index] = b[0];
+    this.fbz[index] = b[2];
+    const ys = this.sunk.get(index);
+    if (ys) {
+      ys[0] = a[1];
+      ys[1] = b[1];
+    } else {
+      this.fay[index] = a[1];
+      this.fby[index] = b[1];
+    }
+    this.staticGen += 1;
+    return this;
+  }
+
+  /* ------------------------------------------------------------- broadphase */
+
+  /* Candidates in the world rectangle, each once, in visiting order:
+   * static cells x then z, then streamed, then built. Into this.cands. */
+  gather(x0, x1, z0, z1) {
+    const cx0 = cellOf(x0);
+    const cx1 = cellOf(x1);
+    const cz0 = cellOf(z0);
+    const cz1 = cellOf(z1);
+    this.mark += 1;
+    let n = 0;
+    for (let w = 0; w < this.walk.length; w += 1) {
+      const { grid, offset } = this.walk[w];
+      for (let cx = cx0; cx <= cx1; cx += 1) {
+        for (let cz = cz0; cz <= cz1; cz += 1) {
+          n = this.gatherCell(grid.get(cellKey(cx, cz)), offset, n);
+        }
+      }
+    }
+    return n;
+  }
+
+  gatherCell(list, offset, n) {
+    if (!list) {
+      return n;
+    }
+    for (let k = 0; k < list.length; k += 1) {
+      const i = offset + list[k];
+      if (this.seen[i] !== this.mark) {
+        this.seen[i] = this.mark;
+        this.cands[n] = i;
+        n += 1;
+      }
+    }
+    return n;
+  }
+
+  /* ------------------------------------------------------- primitive pieces */
+
+  /* The vector from capsule i's nearest axis point to (cx, cy, cz), into
+   * nx, ny, nz. */
+  axisToPoint(i, cx, cy, cz) {
+    const ex = this.fbx[i] - this.fax[i];
+    const ey = this.fby[i] - this.fay[i];
+    const ez = this.fbz[i] - this.faz[i];
+    const mx = cx - this.fax[i];
+    const my = cy - this.fay[i];
+    const mz = cz - this.faz[i];
+    const ee = ex * ex + ey * ey + ez * ez;
+    const u = ee > 1e-12 ? clamp01((ex * mx + ey * my + ez * mz) / ee) : 0;
+    this.nx = mx - ex * u;
+    this.ny = my - ey * u;
+    this.nz = mz - ez * u;
+  }
+
+  boxGap(i, px, py, pz) {
+    const turned = this.fbox[i] === TURNED;
+    const x = turned ? px * this.fux[i] + pz * this.fuz[i] : px;
+    const z = turned ? pz * this.fux[i] - px * this.fuz[i] : pz;
+    const ox = turned ? Math.max(this.fu0[i] - x, 0, x - this.fu1[i]) : Math.max(this.fax[i] - x, 0, x - this.fbx[i]);
+    const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
+    const oz = turned ? Math.max(this.fw0[i] - z, 0, z - this.fw1[i]) : Math.max(this.faz[i] - z, 0, z - this.fbz[i]);
+    return Math.sqrt(ox * ox + oy * oy + oz * oz);
+  }
+
+  /* Box i into lo3/hi3 and point p into pa, in the box's own frame. */
+  boxFrame(i, px, py, pz) {
+    if (this.fbox[i] === TURNED) {
+      const tx = this.fux[i];
+      const tz = this.fuz[i];
+      set3(this.lo3, this.fu0[i], this.fay[i], this.fw0[i]);
+      set3(this.hi3, this.fu1[i], this.fby[i], this.fw1[i]);
+      set3(this.pa, px * tx + pz * tz, py, pz * tx - px * tz);
+      return;
+    }
+    set3(this.lo3, this.fax[i], this.fay[i], this.faz[i]);
+    set3(this.hi3, this.fbx[i], this.fby[i], this.fbz[i]);
+    set3(this.pa, px, py, pz);
+  }
+
+  /* Disc radius along a world direction, from the attitude in att. */
+  support(nx, ny, nz) {
+    const nl2 = nx * nx + ny * ny + nz * nz;
+    if (nl2 < 1e-18) {
+      return CRAFT_WORLD_R;
+    }
+    const inv = 1 / Math.sqrt(nl2);
+    const x = nx * inv;
+    const y = ny * inv;
+    const z = nz * inv;
+    const e = this.att;
+    const motor = CRAFT_WORLD_ARM_AXIS * (Math.abs(x * e[0] + y * e[1] + z * e[2]) + Math.abs(x * e[6] + y * e[7] + z * e[8]));
+    const ndu = x * e[3] + y * e[4] + z * e[5];
+    let s2 = 1 - ndu * ndu;
+    if (s2 < 0) {
+      s2 = 0;
+    }
+    return motor + CRAFT_WORLD_HULL * Math.sqrt(s2);
+  }
+
+  /* Earliest t in [0, 1] at which p + t d comes within reach of capsule
+   * i's axis (reachSq = reach squared, a = d . d), or -1. */
+  capsuleT(i, px, py, pz, dx, dy, dz, a, reachSq) {
+    const ex = this.fbx[i] - this.fax[i];
+    const ey = this.fby[i] - this.fay[i];
+    const ez = this.fbz[i] - this.faz[i];
+    const mx = px - this.fax[i];
+    const my = py - this.fay[i];
+    const mz = pz - this.faz[i];
+    const ee = ex * ex + ey * ey + ez * ez;
+    const u = ee > 1e-12 ? clamp01((ex * mx + ey * my + ez * mz) / ee) : 0;
+    const gx = mx - ex * u;
+    const gy = my - ey * u;
+    const gz = mz - ez * u;
+    if (gx * gx + gy * gy + gz * gz <= reachSq) {
+      return 0;
+    }
+    if (a <= 1e-12) {
+      return -1;
+    }
+    let best = sphereEnter(-1, dx, dy, dz, a, reachSq, mx, my, mz);
+    best = sphereEnter(best, dx, dy, dz, a, reachSq, px - this.fbx[i], py - this.fby[i], pz - this.fbz[i]);
+    if (!(ee > 1e-12)) {
+      return best;
+    }
+    const t = cylinderEnter(ex, ey, ez, ee, mx, my, mz, dx, dy, dz, reachSq);
+    return t >= 0 && (best < 0 || t < best) ? t : best;
+  }
+
+  /* Travel parameter in [0, 1] where p + s d comes nearest capsule i's
+   * axis segment. */
+  closestS(i, px, py, pz, dx, dy, dz, a) {
+    const ex = this.fbx[i] - this.fax[i];
+    const ey = this.fby[i] - this.fay[i];
+    const ez = this.fbz[i] - this.faz[i];
+    const rx = px - this.fax[i];
+    const ry = py - this.fay[i];
+    const rz = pz - this.faz[i];
+    const e = ex * ex + ey * ey + ez * ez;
+    const f = ex * rx + ey * ry + ez * rz;
+    const c = dx * rx + dy * ry + dz * rz;
+    if (a <= 1e-12) {
+      return 0;
+    }
+    if (e <= 1e-12) {
+      return clamp01(-c / a);
+    }
+    const b = dx * ex + dy * ey + dz * ez;
+    const denom = a * e - b * b;
+    const s = denom !== 0 ? clamp01((b * f - c * e) / denom) : 0;
+    const t = (b * s + f) / e;
+    if (t < 0) {
+      return clamp01(-c / a);
+    }
+    if (t > 1) {
+      return clamp01((b - c) / a);
+    }
+    return s;
+  }
+
+  /* The travel p to q misses box i grown by g on every side. */
+  passesBy(i, g, px, py, pz, qx, qy, qz) {
+    const x0 = this.fax[i] - g;
+    const x1 = this.fbx[i] + g;
+    const y0 = this.fay[i] - g;
+    const y1 = this.fby[i] + g;
+    const z0 = this.faz[i] - g;
+    const z1 = this.fbz[i] + g;
+    return (px < x0 && qx < x0) || (px > x1 && qx > x1) || (py < y0 && qy < y0) || (py > y1 && qy > y1)
+      || (pz < z0 && qz < z0) || (pz > z1 && qz > z1);
+  }
+
+  skipped(i) {
+    return this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i])) !== 0;
+  }
+
+  countQuery(n) {
+    this.tally.last = n;
+    this.tally.queries += 1;
+    this.tally.total += n;
+  }
+
+  /*
+   * The report's normal: n made unit (or the reverse travel when n has no
+   * length), turned to face the travel when the craft only grazed.
+   */
+  finishNormal(nx, ny, nz, dx, dy, dz) {
+    let nl = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    const tl = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (nl <= 1e-9) {
+      if (tl <= 1e-9) {
+        this.hitNx = 0;
+        this.hitNy = 1;
+        this.hitNz = 0;
+        this.hitNormalDot = 1;
+        return;
+      }
+      nx = -dx;
+      ny = -dy;
+      nz = -dz;
+      nl = tl;
+    }
+    const inv = 1 / nl;
+    nx *= inv;
+    ny *= inv;
+    nz *= inv;
+    if (tl > 1e-9) {
+      const along = dx * nx + dy * ny + dz * nz;
+      this.hitNormalDot = along < 0 ? -along / tl : along / tl;
+      if (along > 0 && this.hitPen <= 0 && this.hitOverlap <= 0) {
+        nx = -nx;
+        ny = -ny;
+        nz = -nz;
+      }
+    } else {
+      this.hitNormalDot = 1;
+    }
+    this.hitNx = nx;
+    this.hitNy = ny;
+    this.hitNz = nz;
+  }
+
+  /*
+   * Pen or overlap of an ellipsoid (semi-axes rx, ry, rz) centred at l
+   * against [lo3, hi3], and the raw normal out of the box into nrm.
+   */
+  boxReport(lx, ly, lz, rx, ry, rz) {
+    const lo = this.lo3;
+    const hi = this.hi3;
+    const n = this.nrm;
+    const l = [lx, ly, lz];
+    for (let k = 0; k < 3; k += 1) {
+      n[k] = l[k] < lo[k] ? l[k] - lo[k] : l[k] > hi[k] ? l[k] - hi[k] : 0;
+    }
+    if (n[0] !== 0 || n[1] !== 0 || n[2] !== 0) {
+      const o = ellipsoidOverlap(n[0], n[1], n[2], rx, ry, rz);
+      this.hitOverlap = o > REPORT_CAP ? REPORT_CAP : o;
+      return;
+    }
+    const semi = [rx, ry, rz];
+    let best = lx - lo[0];
+    let face = 0;
+    for (let f = 1; f < 6; f += 1) {
+      const k = f >> 1;
+      const dist = f & 1 ? hi[k] - l[k] : l[k] - lo[k];
+      if (dist < best) {
+        best = dist;
+        face = f;
+      }
+    }
+    set3(n, 0, 0, 0);
+    n[face >> 1] = face & 1 ? 1 : -1;
+    const pen = best + semi[face >> 1];
+    this.hitPen = pen > REPORT_CAP ? REPORT_CAP : pen;
+  }
+
+  /* -------------------------------------------------------------- the sweep */
+
+  /*
+   * Did the craft, travelling p to q this step, touch anything? The craft
+   * is four prop discs in an X at the attitude aq, vh their vertical
+   * semi-axis, vOff the hull centre's offset along body up. Returns the
+   * kind of the earliest contact or -1, and fills the hit report.
+   */
+  hit(px, py, pz, qx, qy, qz, vh = CRAFT_WORLD_R, aqX = 0, aqY = 0, aqZ = 0, aqW = 1, vOff = 0) {
+    this.hitIndex = -1;
+    this.hitKind = -1;
+    this.hitNormalDot = 0;
+    this.hitT = -1;
+    this.hitNx = 0;
+    this.hitNy = 0;
+    this.hitNz = 0;
+    this.hitPen = 0;
+    this.hitOverlap = 0;
+    this.hitMoving = -1;
+    this.hitArm = false;
+    this.hitPart = -1;
+    if (!this.built) {
+      return -1;
+    }
+    if (!(Number.isFinite(px) && Number.isFinite(py) && Number.isFinite(pz) && Number.isFinite(qx) && Number.isFinite(qy)
+      && Number.isFinite(qz))) {
+      return -1;
+    }
+    if (seatedParts) {
+      return this.partsHit(seatedParts, px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW);
+    }
+    const e = bodyAxes(aqX, aqY, aqZ, aqW, this.att);
+    const crx = clampRadius(this.support(1, 0, 0));
+    const crz = clampRadius(this.support(0, 0, 1));
+    if (vOff !== 0) {
+      px += e[3] * vOff;
+      py += e[4] * vOff;
+      pz += e[5] * vOff;
+      qx += e[3] * vOff;
+      qy += e[4] * vOff;
+      qz += e[5] * vOff;
+    }
+    const trip = { px, py, pz, qx, qy, qz, dx: qx - px, dy: qy - py, dz: qz - pz, a: 0, vh, crx, crz };
+    trip.a = trip.dx * trip.dx + trip.dy * trip.dy + trip.dz * trip.dz;
+    const pad = CRAFT_WORLD_R + this.pad;
+    const n = this.gather(Math.min(px, qx) - pad, Math.max(px, qx) + pad, Math.min(pz, qz) - pad, Math.max(pz, qz) + pad);
+    let bestT = Infinity;
+    let best = -1;
+    let bestMoving = -1;
+    let counted = 0;
+    for (let k = 0; k < n; k += 1) {
+      const i = this.cands[k];
+      if (this.skipped(i)) {
+        continue;
+      }
+      counted += 1;
+      const t = this.fbox[i] ? this.discsIntoBox(i, trip) : this.discsIntoCapsule(i, trip);
+      if (t >= 0 && t < bestT) {
+        bestT = t;
+        best = i;
+      }
+    }
+    for (let m = 0; m < this.movingCount; m += 1) {
+      const t = this.discsIntoMoving(m, trip);
+      if (t >= 0 && t < bestT) {
+        bestT = t;
+        bestMoving = m;
+        best = -1;
+      }
+    }
+    this.countQuery(counted);
+    if (bestMoving >= 0) {
+      return this.reportMoving(bestMoving, bestT, trip);
+    }
+    if (best < 0) {
+      return -1;
+    }
+    return this.reportStatic(best, bestT, trip);
+  }
+
+  discsIntoBox(i, trip) {
+    if (this.passesBy(i, CRAFT_WORLD_R, trip.px, trip.py, trip.pz, trip.qx, trip.qy, trip.qz)) {
+      return -1;
+    }
+    const w = this.slab;
+    if (this.fbox[i] !== TURNED) {
+      set3(w.lo, this.fax[i], this.fay[i], this.faz[i]);
+      set3(w.hi, this.fbx[i], this.fby[i], this.fbz[i]);
+      set3(w.p, trip.px, trip.py, trip.pz);
+      set3(w.d, trip.dx, trip.dy, trip.dz);
+      set3(w.r, trip.crx, trip.vh, trip.crz);
+      return slabWalk(w);
+    }
+    const tx = this.fux[i];
+    const tz = this.fuz[i];
+    set3(w.lo, this.fu0[i], this.fay[i], this.fw0[i]);
+    set3(w.hi, this.fu1[i], this.fby[i], this.fw1[i]);
+    set3(w.p, trip.px * tx + trip.pz * tz, trip.py, trip.pz * tx - trip.px * tz);
+    set3(w.d, trip.dx * tx + trip.dz * tz, trip.dy, trip.dz * tx - trip.dx * tz);
+    set3(w.r, clampRadius(this.support(tx, 0, tz)), trip.vh, clampRadius(this.support(0 - tz, 0, tx)));
+    return slabWalk(w);
+  }
+
+  /* Against the full radius first; then, if the discs' support toward
+   * the capsule at the nearest approach is shorter, again with that. */
+  discsIntoCapsule(i, trip) {
+    const fr = this.fr[i];
+    const reach = fr + CRAFT_WORLD_R;
+    const { px, py, pz, dx, dy, dz, a } = trip;
+    const t = this.capsuleT(i, px, py, pz, dx, dy, dz, a, reach * reach);
+    if (t < 0) {
+      return t;
+    }
+    const s = this.closestS(i, px, py, pz, dx, dy, dz, a);
+    this.axisToPoint(i, px + dx * s, py + dy * s, pz + dz * s);
+    const nl2 = this.nx * this.nx + this.ny * this.ny + this.nz * this.nz;
+    if (!(nl2 > 1e-18)) {
+      return t;
+    }
+    let cr = this.support(this.nx, this.ny, this.nz);
+    const nyAbs = Math.abs(this.ny) / Math.sqrt(nl2);
+    if (trip.vh * nyAbs > cr) {
+      cr = trip.vh * nyAbs;
+    }
+    if (cr > CRAFT_WORLD_R) {
+      cr = CRAFT_WORLD_R;
+    }
+    const reach2 = fr + cr;
+    return reach2 < reach - 1e-9 ? this.capsuleT(i, px, py, pz, dx, dy, dz, a, reach2 * reach2) : t;
+  }
+
+  /* A moving box swept in its own frame, from where it was to where it is. */
+  discsIntoMoving(m, trip) {
+    const { hx, hy, hz } = this.movers[m];
+    const w = this.slab;
+    const rpx = trip.px - this.movingPx[m];
+    const rpy = trip.py - this.movingPy[m];
+    const rpz = trip.pz - this.movingPz[m];
+    set3(w.lo, -hx, -hy, -hz);
+    set3(w.hi, hx, hy, hz);
+    set3(w.p, rpx, rpy, rpz);
+    set3(w.d, (trip.qx - this.movingCx[m]) - rpx, (trip.qy - this.movingCy[m]) - rpy, (trip.qz - this.movingCz[m]) - rpz);
+    set3(w.r, trip.crx, trip.vh, trip.crz);
+    return slabWalk(w);
+  }
+
+  reportMoving(m, t, trip) {
+    const { kind, hx, hy, hz } = this.movers[m];
+    const rpx = trip.px - this.movingPx[m];
+    const rpy = trip.py - this.movingPy[m];
+    const rpz = trip.pz - this.movingPz[m];
+    const rdx = (trip.qx - this.movingCx[m]) - rpx;
+    const rdy = (trip.qy - this.movingCy[m]) - rpy;
+    const rdz = (trip.qz - this.movingCz[m]) - rpz;
+    this.hitIndex = -1;
+    this.hitKind = kind;
+    this.hitT = t;
+    this.hitMoving = m;
+    set3(this.lo3, -hx, -hy, -hz);
+    set3(this.hi3, hx, hy, hz);
+    this.boxReport(rpx + rdx * t, rpy + rdy * t, rpz + rdz * t, trip.crx, trip.vh, trip.crz);
+    this.finishNormal(this.nrm[0], this.nrm[1], this.nrm[2], rdx, rdy, rdz);
+    return kind;
+  }
+
+  reportStatic(i, t, trip) {
+    this.hitIndex = i;
+    this.hitKind = this.fkind[i];
+    this.hitT = t;
+    this.hitMoving = -1;
+    const cx = trip.px + trip.dx * t;
+    const cy = trip.py + trip.dy * t;
+    const cz = trip.pz + trip.dz * t;
+    if (this.fbox[i]) {
+      this.reportBox(i, cx, cy, cz, trip);
+      this.finishNormal(this.nrm[0], this.nrm[1], this.nrm[2], trip.dx, trip.dy, trip.dz);
+      return this.hitKind;
+    }
+    this.axisToPoint(i, cx, cy, cz);
+    const { nx, ny, nz } = this;
+    const dist = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    let cr = this.support(nx, ny, nz);
+    const nyAbs = dist > 1e-18 ? Math.abs(ny) / dist : 1;
+    if (trip.vh * nyAbs > cr) {
+      cr = trip.vh * nyAbs;
+    }
+    if (cr > CRAFT_WORLD_R) {
+      cr = CRAFT_WORLD_R;
+    }
+    const reach = this.fr[i] + cr;
+    if (dist < reach) {
+      const pen = reach - dist;
+      this.hitPen = pen > REPORT_CAP ? REPORT_CAP : pen;
+      this.hitOverlap = this.hitPen;
+    }
+    this.finishNormal(nx, ny, nz, trip.dx, trip.dy, trip.dz);
+    return this.hitKind;
+  }
+
+  reportBox(i, cx, cy, cz, trip) {
+    this.boxFrame(i, cx, cy, cz);
+    if (this.fbox[i] !== TURNED) {
+      this.boxReport(cx, cy, cz, trip.crx, trip.vh, trip.crz);
+      return;
+    }
+    const tx = this.fux[i];
+    const tz = this.fuz[i];
+    this.boxReport(this.pa[0], this.pa[1], this.pa[2], clampRadius(this.support(tx, 0, tz)), trip.vh,
+      clampRadius(this.support(0 - tz, 0, tx)));
+    const n = this.nrm;
+    const wx = n[0] * tx - n[2] * tz;
+    n[2] = n[0] * tz + n[2] * tx;
+    n[0] = wx;
+  }
+
+  /* ---------------------------------------------------- the fixed wing sweep */
+
+  /* The same question for a fixed wing: each live part's box swept
+   * against each solid, the earliest (then deepest) contact winning. */
+  partsHit(hull, px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW) {
+    const ax9 = bodyAxes(aqX, aqY, aqZ, aqW, this.att);
+    const reach = hull.reach;
+    const pad = (reach > CRAFT_WORLD_R ? reach : CRAFT_WORLD_R) + this.pad;
+    const dx = qx - px;
+    const dy = qy - py;
+    const dz = qz - pz;
+    const a = dx * dx + dy * dy + dz * dz;
+    const best = this.best;
+    best.t = -1;
+    best.depth = 0;
+    let bestStatic = -1;
+    let bestMoving = -1;
+    let counted = 0;
+    const n = this.gather(Math.min(px, qx) - pad, Math.max(px, qx) + pad, Math.min(pz, qz) - pad, Math.max(pz, qz) + pad);
+    for (let k = 0; k < n; k += 1) {
+      const i = this.cands[k];
+      if (this.skipped(i)) {
+        continue;
+      }
+      counted += 1;
+      let won;
+      if (!this.fbox[i]) {
+        won = this.partsIntoCapsule(hull, i, ax9, px, py, pz, dx, dy, dz, a);
+      } else if (this.passesBy(i, reach, px, py, pz, qx, qy, qz)) {
+        won = false;
+      } else if (this.fbox[i] === TURNED) {
+        won = this.partsIntoTurned(hull, i, ax9, px, py, pz, dx, dy, dz);
+      } else {
+        set3(this.lo3, this.fax[i], this.fay[i], this.faz[i]);
+        set3(this.hi3, this.fbx[i], this.fby[i], this.fbz[i]);
+        won = this.partsIntoBox(hull, ax9, px, py, pz, dx, dy, dz);
+      }
+      if (won) {
+        bestStatic = i;
+      }
+    }
+    for (let m = 0; m < this.movingCount; m += 1) {
+      if (this.partsIntoMoving(hull, m, ax9, px, py, pz, qx, qy, qz, reach)) {
+        bestMoving = m;
+        bestStatic = -1;
+      }
+    }
+    this.countQuery(counted);
+    if (bestStatic < 0 && bestMoving < 0) {
+      return -1;
+    }
+    const t = best.t;
+    const cx = px + dx * t;
+    const cy = py + dy * t;
+    const cz = pz + dz * t;
+    this.hitIndex = bestStatic;
+    this.hitMoving = bestMoving;
+    this.hitKind = bestMoving >= 0 ? this.movers[bestMoving].kind : this.fkind[bestStatic];
+    this.hitT = t;
+    this.hitArm = true;
+    this.hitArmX = best.px - cx;
+    this.hitArmY = best.py - cy;
+    this.hitArmZ = best.pz - cz;
+    this.hitPart = best.part;
+    const depth = best.depth > REPORT_CAP ? REPORT_CAP : best.depth;
+    this.hitOverlap = depth;
+    this.hitPen = this.partsPen(bestStatic, bestMoving, cx, cy, cz, t) ? depth : 0;
+    this.finishNormal(best.nx, best.ny, best.nz, dx, dy, dz);
+    return this.hitKind;
+  }
+
+  /* Whether the craft's centre at the contact is in the solid itself. */
+  partsPen(i, m, cx, cy, cz, t) {
+    if (m >= 0) {
+      const { hx, hy, hz } = this.movers[m];
+      const ox = cx - (this.movingPx[m] + (this.movingCx[m] - this.movingPx[m]) * t);
+      const oy = cy - (this.movingPy[m] + (this.movingCy[m] - this.movingPy[m]) * t);
+      const oz = cz - (this.movingPz[m] + (this.movingCz[m] - this.movingPz[m]) * t);
+      return Math.abs(ox) < hx && Math.abs(oy) < hy && Math.abs(oz) < hz;
+    }
+    return !this.fbox[i] || this.interiorAt(i, cx, cy, cz) > 0;
+  }
+
+  /* Every live part against [lo3, hi3], in that box's frame (axes, p, d
+   * already turned into it). True if any part improved the best. */
+  partsIntoBox(hull, axes, px, py, pz, dx, dy, dz) {
+    const lo = this.lo3;
+    const hi = this.hi3;
+    const d = [dx, dy, dz];
+    let won = false;
+    for (let k = 0; k < hull.n; k += 1) {
+      if (!hull.live[k]) {
+        continue;
+      }
+      const c = partCentre(hull, k, axes, px, py, pz, this.c3);
+      const g = hull.rho[k];
+      let misses = false;
+      for (let j = 0; j < 3; j += 1) {
+        const lg = lo[j] - g;
+        const hg = hi[j] + g;
+        if ((c[j] < lg && c[j] + d[j] < lg) || (c[j] > hg && c[j] + d[j] > hg)) {
+          misses = true;
+        }
+      }
+      if (misses) {
+        continue;
+      }
+      const t = sweepPartBox(hull, k, axes, px, py, pz, dx, dy, dz, lo, hi, this.got);
+      if (t >= 0 && better(this.got, this.best)) {
+        copyContact(this.got, this.best);
+        won = true;
+      }
+    }
+    return won;
+  }
+
+  partsIntoTurned(hull, i, ax9, px, py, pz, dx, dy, dz) {
+    const tx = this.fux[i];
+    const tz = this.fuz[i];
+    const lax = this.lax;
+    for (let k = 0; k < 9; k += 3) {
+      lax[k] = ax9[k] * tx + ax9[k + 2] * tz;
+      lax[k + 1] = ax9[k + 1];
+      lax[k + 2] = ax9[k + 2] * tx - ax9[k] * tz;
+    }
+    set3(this.lo3, this.fu0[i], this.fay[i], this.fw0[i]);
+    set3(this.hi3, this.fu1[i], this.fby[i], this.fw1[i]);
+    if (!this.partsIntoBox(hull, lax, px * tx + pz * tz, py, pz * tx - px * tz, dx * tx + dz * tz, dy, dz * tx - dx * tz)) {
+      return false;
+    }
+    const b = this.best;
+    const n2 = tx * tx + tz * tz;
+    const bx = (b.px * tx - b.pz * tz) / n2;
+    b.pz = (b.px * tz + b.pz * tx) / n2;
+    b.px = bx;
+    const nx = b.nx * tx - b.nz * tz;
+    b.nz = b.nx * tz + b.nz * tx;
+    b.nx = nx;
+    return true;
+  }
+
+  partsIntoCapsule(hull, i, ax9, px, py, pz, dx, dy, dz, a) {
+    const r = this.fr[i];
+    const reachR = hull.reach + r;
+    if (this.capsuleT(i, px, py, pz, dx, dy, dz, a, reachR * reachR) < 0) {
+      return false;
+    }
+    let won = false;
+    for (let k = 0; k < hull.n; k += 1) {
+      if (!hull.live[k]) {
+        continue;
+      }
+      const c = partCentre(hull, k, ax9, px, py, pz, this.c3);
+      const rr = hull.rho[k] + r;
+      if (this.capsuleT(i, c[0], c[1], c[2], dx, dy, dz, a, rr * rr) < 0) {
+        continue;
+      }
+      const t = sweepPartCapsule(hull, k, ax9, px, py, pz, dx, dy, dz, this.fax[i], this.fay[i], this.faz[i], this.fbx[i],
+        this.fby[i], this.fbz[i], r, this.got);
+      if (t >= 0 && better(this.got, this.best)) {
+        copyContact(this.got, this.best);
+        won = true;
+      }
+    }
+    return won;
+  }
+
+  partsIntoMoving(hull, m, ax9, px, py, pz, qx, qy, qz, reach) {
+    const { hx, hy, hz } = this.movers[m];
+    const rp = [px - this.movingPx[m], py - this.movingPy[m], pz - this.movingPz[m]];
+    const rd = [(qx - this.movingCx[m]) - rp[0], (qy - this.movingCy[m]) - rp[1], (qz - this.movingCz[m]) - rp[2]];
+    const h = [hx, hy, hz];
+    for (let j = 0; j < 3; j += 1) {
+      const g = h[j] + reach;
+      if ((rp[j] < -g && rp[j] + rd[j] < -g) || (rp[j] > g && rp[j] + rd[j] > g)) {
+        return false;
+      }
+    }
+    set3(this.lo3, -hx, -hy, -hz);
+    set3(this.hi3, hx, hy, hz);
+    if (!this.partsIntoBox(hull, ax9, rp[0], rp[1], rp[2], rd[0], rd[1], rd[2])) {
+      return false;
+    }
+    const b = this.best;
+    b.px += (px + (qx - px) * b.t) - (rp[0] + rd[0] * b.t);
+    b.py += (py + (qy - py) * b.t) - (rp[1] + rd[1] * b.t);
+    b.pz += (pz + (qz - pz) * b.t) - (rp[2] + rd[2] * b.t);
+    return true;
+  }
+
+  /* ------------------------------------------------------ nearest solid */
+
+  /* The nearest collider to p within maxR plus the pad; its gap into
+   * nearGap. Inside several capsules the last one visited is kept. */
+  nearest(px, py, pz, maxR, frozenOnly, skipKinds) {
+    const pad = maxR + this.pad;
+    const n = this.gather(px - pad, px + pad, pz - pad, pz + pad);
+    let best = Infinity;
+    let pick = -1;
+    for (let k = 0; k < n; k += 1) {
+      const i = this.cands[k];
+      if ((frozenOnly && i >= this.baseCount) || (skipKinds & (1 << this.fkind[i]))) {
+        continue;
+      }
+      let gap;
+      if (this.fbox[i]) {
+        gap = this.boxGap(i, px, py, pz);
+      } else {
+        this.axisToPoint(i, px, py, pz);
+        gap = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz) - this.fr[i];
+      }
+      if (gap < best) {
+        best = gap < 0 ? 0 : gap;
+        pick = i;
+      }
+    }
+    this.nearGap = best;
+    return pick;
+  }
+
+  gapAt(px, py, pz, maxR, frozenOnly = false, skipKinds = 0) {
+    if (!this.built) {
+      return Infinity;
+    }
+    this.nearest(px, py, pz, maxR, frozenOnly, skipKinds);
+    return this.nearGap <= maxR ? this.nearGap : Infinity;
+  }
+
+  /* The nearest solid's own direction and the point of its centre line
+   * nearest p: a box's longest side, a capsule's axis. */
+  axisAt(px, py, pz, maxR) {
+    this.axisFound = false;
+    this.axisGap = Infinity;
+    if (!this.built) {
+      return false;
+    }
+    const i = this.nearest(px, py, pz, maxR, false, 0);
+    if (i < 0 || this.nearGap > maxR) {
+      return false;
+    }
+    this.axisFound = true;
+    this.axisGap = this.nearGap;
+    if (this.fbox[i] === TURNED) {
+      this.turnedAxis(i, px, py, pz);
+    } else if (this.fbox[i]) {
+      this.boxAxis(i, px, py, pz);
+    } else {
+      this.capsuleAxis(i, px, py, pz);
+    }
+    return this.axisFound;
+  }
+
+  setAxis(dx, dy, dz, cx, cy, cz) {
+    this.axisDx = dx;
+    this.axisDy = dy;
+    this.axisDz = dz;
+    this.axisCx = cx;
+    this.axisCy = cy;
+    this.axisCz = cz;
+  }
+
+  turnedAxis(i, px, py, pz) {
+    const ux = this.fux[i];
+    const uz = this.fuz[i];
+    const u0 = this.fu0[i];
+    const u1 = this.fu1[i];
+    const w0 = this.fw0[i];
+    const w1 = this.fw1[i];
+    const y0 = this.fay[i];
+    const y1 = this.fby[i];
+    const qu = px * ux + pz * uz;
+    const qw = pz * ux - px * uz;
+    let cu = (u0 + u1) * 0.5;
+    let cw = (w0 + w1) * 0.5;
+    let cy = (y0 + y1) * 0.5;
+    const lu = u1 - u0;
+    const ly = y1 - y0;
+    const lw = w1 - w0;
+    let dx;
+    let dy;
+    let dz;
+    if (lu >= ly && lu >= lw) {
+      [dx, dy, dz] = [ux, 0, uz];
+      cu = qu < u0 ? u0 : (qu > u1 ? u1 : qu);
+    } else if (ly >= lu && ly >= lw) {
+      [dx, dy, dz] = [0, 1, 0];
+      cy = py < y0 ? y0 : (py > y1 ? y1 : py);
+    } else {
+      [dx, dy, dz] = [-uz, 0, ux];
+      cw = qw < w0 ? w0 : (qw > w1 ? w1 : qw);
+    }
+    const n2 = ux * ux + uz * uz;
+    this.setAxis(dx, dy, dz, (cu * ux - cw * uz) / n2, cy, (cu * uz + cw * ux) / n2);
+  }
+
+  boxAxis(i, px, py, pz) {
+    const lo = [this.fax[i], this.fay[i], this.faz[i]];
+    const hi = [this.fbx[i], this.fby[i], this.fbz[i]];
+    const p = [px, py, pz];
+    const len = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
+    let k = 2;
+    if (len[0] >= len[1] && len[0] >= len[2]) {
+      k = 0;
+    } else if (len[1] >= len[0] && len[1] >= len[2]) {
+      k = 1;
+    }
+    const c = [(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5];
+    c[k] = p[k] < lo[k] ? lo[k] : (p[k] > hi[k] ? hi[k] : p[k]);
+    this.setAxis(k === 0 ? 1 : 0, k === 1 ? 1 : 0, k === 2 ? 1 : 0, c[0], c[1], c[2]);
+  }
+
+  /* A sphere has no axis: found stays false, the gap just written stays. */
+  capsuleAxis(i, px, py, pz) {
+    const ex = this.fbx[i] - this.fax[i];
+    const ey = this.fby[i] - this.fay[i];
+    const ez = this.fbz[i] - this.faz[i];
+    const el = Math.sqrt(ex * ex + ey * ey + ez * ez);
+    if (!(el > 1e-9)) {
+      this.axisFound = false;
+      return;
+    }
+    const u = clamp01(((px - this.fax[i]) * ex + (py - this.fay[i]) * ey + (pz - this.faz[i]) * ez) / (el * el));
+    this.setAxis(ex / el, ey / el, ez / el, this.fax[i] + ex * u, this.fay[i] + ey * u, this.faz[i] + ez * u);
+  }
+
+  /* ------------------------------------------------------ inside, through */
+
+  /* Signed depth of a point into collider i, positive inside. */
+  interiorAt(i, x, y, z) {
+    if (!this.built || i < 0 || i >= this.count) {
+      return 0;
+    }
+    if (this.fbox[i]) {
+      this.boxFrame(i, x, y, z);
+      return boxDepth(this.lo3, this.hi3, this.pa);
+    }
+    this.axisToPoint(i, x, y, z);
+    return this.fr[i] - Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
+  }
+
+  /* Moving box m's current extent into lo3/hi3. */
+  movingFrame(m) {
+    const { hx, hy, hz } = this.movers[m];
+    set3(this.lo3, this.movingCx[m] - hx, this.movingCy[m] - hy, this.movingCz[m] - hz);
+    set3(this.hi3, this.movingCx[m] + hx, this.movingCy[m] + hy, this.movingCz[m] + hz);
+  }
+
+  interiorOfHit(x, y, z) {
+    if (this.hitMoving >= 0) {
+      this.movingFrame(this.hitMoving);
+      set3(this.pa, x, y, z);
+      return boxDepth(this.lo3, this.hi3, this.pa);
+    }
+    if (this.hitIndex < 0) {
+      return 0;
+    }
+    return this.interiorAt(this.hitIndex, x, y, z);
+  }
+
+  /* Did a to b go in one side of collider i and out the other? A capsule
+   * counts when both ends are outside and the segment passed its axis. */
+  crossedStatic(i, ax, ay, az, bx, by, bz) {
+    if (!this.built || i < 0 || i >= this.count) {
+      return false;
+    }
+    if (this.fbox[i]) {
+      this.boxFrame(i, bx, by, bz);
+      this.pb.set(this.pa);
+      this.boxFrame(i, ax, ay, az);
+      return crossesBox(this.lo3, this.hi3, this.pa, this.pb);
+    }
+    if (this.interiorAt(i, ax, ay, az) >= 0 || this.interiorAt(i, bx, by, bz) >= 0) {
+      return false;
+    }
+    const dx = bx - ax;
+    const dy = by - ay;
+    const dz = bz - az;
+    const aa = dx * dx + dy * dy + dz * dz;
+    if (aa <= 1e-18) {
+      return false;
+    }
+    const s = this.closestS(i, ax, ay, az, dx, dy, dz, aa);
+    this.axisToPoint(i, ax + dx * s, ay + dy * s, az + dz * s);
+    return this.fr[i] - Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz) > CLIP_CENTER_EPS;
+  }
+
+  crossedMoving(i, ax, ay, az, bx, by, bz) {
+    if (i < 0 || i >= this.movingCount) {
+      return false;
+    }
+    this.movingFrame(i);
+    set3(this.pa, ax, ay, az);
+    set3(this.pb, bx, by, bz);
+    return crossesBox(this.lo3, this.hi3, this.pa, this.pb);
+  }
+
+  crossedHit(ax, ay, az, bx, by, bz) {
+    if (this.hitMoving >= 0) {
+      return this.crossedMoving(this.hitMoving, ax, ay, az, bx, by, bz);
+    }
+    return this.crossedStatic(this.hitIndex, ax, ay, az, bx, by, bz);
+  }
+
+  /* ---------------------------------------------------------------- reading */
+
+  kindName(k) {
+    return KINDS[k] ?? 'none';
+  }
+
+  stats() {
+    const count = this.count ?? 0;
+    const byKind = {};
+    for (const k of KINDS) {
+      byKind[k] = 0;
+    }
+    let boxes = 0;
+    let turned = 0;
+    for (let i = 0; i < count; i += 1) {
+      byKind[KINDS[this.fkind[i]]] += 1;
+      if (this.fbox[i]) {
+        boxes += 1;
+      }
+      if (this.fbox[i] === TURNED) {
+        turned += 1;
+      }
+    }
+    const { queries, total, last } = this.tally;
+    return {
+      count,
+      byKind,
+      boxes,
+      turned,
+      capsules: count - boxes,
+      static: this.staticCount,
+      streamed: this.streamCount,
+      builtGates: this.gates.set.n,
+      streamGen: this.streamGen,
+      cellSize: CELL,
+      gridHalfExtent: CELL * CELLS_HALF,
+      cells: this.grid ? this.grid.size : 0,
+      streamCells: this.stream.grid ? this.stream.grid.size : 0,
+      maxRadius: this.padRadius(),
+      craftRadius: CRAFT_WORLD_R,
+      moving: this.movingCount,
+      queries,
+      meanCandidatesPerQuery: queries ? total / queries : 0,
+      lastCandidates: last,
+    };
+  }
+}
+
+/* Cap entry for capsule caps: the first t at which p + t d is within
+ * reach of the cap's centre, c = p - centre, folded into best. */
+function sphereEnter(best, dx, dy, dz, a, reachSq, cx, cy, cz) {
+  const qb = 2 * (dx * cx + dy * cy + dz * cz);
+  const qc = cx * cx + cy * cy + cz * cz - reachSq;
+  const disc = qb * qb - 4 * a * qc;
+  if (!(disc >= 0)) {
+    return best;
+  }
+  const sq = Math.sqrt(disc);
+  let tEnter = (-qb - sq) / (2 * a);
+  const tExit = (-qb + sq) / (2 * a);
+  if (tEnter < 0) {
+    tEnter = 0;
+  }
+  return tEnter <= 1 && tEnter <= tExit && (best < 0 || tEnter < best) ? tEnter : best;
+}
+
+/* Entry into the infinite cylinder about the axis e, clipped to the
+ * segment's slab: the radial and axial intervals intersected. */
+function cylinderEnter(ex, ey, ez, ee, mx, my, mz, dx, dy, dz, reachSq) {
+  const c0x = my * ez - mz * ey;
+  const c0y = mz * ex - mx * ez;
+  const c0z = mx * ey - my * ex;
+  const c1x = dy * ez - dz * ey;
+  const c1y = dz * ex - dx * ez;
+  const c1z = dx * ey - dy * ex;
+  const qa = c1x * c1x + c1y * c1y + c1z * c1z;
+  const qb = 2 * (c0x * c1x + c0y * c1y + c0z * c1z);
+  const qc = c0x * c0x + c0y * c0y + c0z * c0z - reachSq * ee;
+  const em = ex * mx + ey * my + ez * mz;
+  const ed = ex * dx + ey * dy + ez * dz;
+  let r0 = -Infinity;
+  let r1 = Infinity;
+  if (qa > 1e-12) {
+    const disc = qb * qb - 4 * qa * qc;
+    if (disc < 0) {
+      return -1;
+    }
+    const sq = Math.sqrt(disc);
+    r0 = (-qb - sq) / (2 * qa);
+    r1 = (-qb + sq) / (2 * qa);
+  } else if (qc > 0) {
+    return -1;
+  }
+  let u0 = -Infinity;
+  let u1 = Infinity;
+  if (ed > 1e-12 || ed < -1e-12) {
+    const ta = (0 - em) / ed;
+    const tb = (ee - em) / ed;
+    u0 = ta < tb ? ta : tb;
+    u1 = ta < tb ? tb : ta;
+  } else if (em < 0 || em > ee) {
+    return -1;
+  }
+  let tEnter = r0 > u0 ? r0 : u0;
+  const mn = r1 < u1 ? r1 : u1;
+  const tExit = mn < 1 ? mn : 1;
+  if (tEnter < 0) {
+    tEnter = 0;
+  }
+  return tEnter <= tExit && tEnter <= 1 ? tEnter : -1;
+}
