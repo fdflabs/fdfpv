@@ -339,16 +339,22 @@ export function createCampaignScreen({
     pending = code ? { mission: m.id, code } : null;
   }
 
-  /* The start row's press, in the room Play made: that mission, this
-   * pilot's loadout. False when the row is not the campaign's, and the
-   * Defend Itaipu start goes ahead as ever. */
-  function startSelected() {
+  /* The mission Play chose for the room the pilot is in, or null. */
+  function selectedMission() {
     const r = room();
     bind(r);
-    if (!pending || r.code !== pending.code) {
+    return pending && r.code === pending.code ? pending.mission : null;
+  }
+
+  /* The start row's press, in the room Play made: that mission, this
+   * pilot's loadout, started `how` (startMessage). False when the row is
+   * not the campaign's, and the Defend Itaipu start goes ahead as ever. */
+  function startSelected(how) {
+    const id = selectedMission();
+    if (!id) {
       return false;
     }
-    send(startMessage(pending.mission, loadoutNow()));
+    send(startMessage(id, loadoutNow(), how));
     return true;
   }
 
@@ -424,6 +430,7 @@ export function createCampaignScreen({
     open,
     close,
     startSelected,
+    selectedMission,
     selectedNumber,
     /* The missions this pilot may start, in order: released, open (the
      * one before won, or the pilot is the owner) and inside the full

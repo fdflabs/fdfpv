@@ -3053,6 +3053,8 @@ export default {
   "lobby.unready_note": "Take it back. It waits for you again.",
   "lobby.start_now": "Start now",
   "lobby.start_now_note": "Start it now for everybody here, ready or not.",
+  "lobby.restart_fresh": "Restart from the beginning",
+  "lobby.restart_fresh_note": "The mission again from stage 1, its intro first, all three stars to win. Otherwise it goes back to stage {n}, where it was lost: two stars at most.",
   "lobby.mission": "Mission",
   "lobby.mission_note": "The mission this room starts next. Left and Right change it.",
   "lobby.minutes": "Round",
