@@ -14,6 +14,27 @@ A browser FPV racing simulator whose only current goal is flight feel indistingu
 
 **Licence is GPLv3.** Compiling Betaflight's control loop in makes this a derivative work. Every file gets a GPLv3 header. Do not add a dependency with an incompatible licence.
 
+**The GPLv3 header names this project, never the upstream.** A new file, or a file rewritten so that none of WebFPVSimulator's code is left in it, carries this header, in the file's own comment syntax:
+
+```
+This file is part of the Paraguayan Drone Combat Simulator.
+
+The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY, without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+```
+
+A file that still holds WebFPVSimulator code keeps its existing header, and any "Copyright (C) 2026 Mathew Harvey" line, untouched until that code is rewritten: GPLv3 sections 4 and 5 require those notices to travel with the code. Never copy upstream code into a new file; write it fresh. `~/Desktop/fdfpv-loop/upstream/upstream-share.sh` measures what is left.
+
 **Coordinate convention.** Physics is right-handed, Z-up, body frame, matching Betaflight and the flight dynamics literature. Three.js is Y-up. Convert exactly once, at the render boundary, in `src/render/frame.js`. Nowhere else. Sign errors in yaw two months from now all trace back to breaking this.
 
 **Units are SI throughout.** Metres, kilograms, seconds, radians, newtons, volts, amps. Degrees appear only in user-facing display strings and in Betaflight config values, converted at the boundary.
