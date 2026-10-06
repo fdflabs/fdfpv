@@ -9,7 +9,7 @@ voice:check`, in CI, fails if a file here is missing from this page, if
 a file on this page is missing here, or if a file's sha256 is not the
 one in `manifest.json`.
 
-This file is part of WebFPVSimulator, licensed GPLv3 or later.
+This file is part of the Paraguayan Drone Combat Simulator, licensed GPLv3 or later.
 
 ## Music
 
@@ -36,11 +36,11 @@ writes the same bytes.
 
 | File | What it is | Author | Licence | Source | Changes |
 | --- | --- | --- | --- | --- | --- |
-| `music/interior.webm`, `music/interior.mp3` | THE INTERIOR: a drone in fifths, wind like noise, a far low drum, far bells | WebFPVSimulator | GPLv3 or later | `tools/voice/beds.py` | none |
-| `music/column.webm`, `music/column.mp3` | THE COLUMN: a held reed organ note alone, then nylon string and low harp plucks through tape wow and saturation | WebFPVSimulator | GPLv3 or later | `tools/voice/beds.py` | none |
-| `music/static.webm`, `music/static.mp3` | an old receiver's hum, hiss and crackle, under the opening's archive | WebFPVSimulator | GPLv3 or later | `tools/voice/beds.py` | none |
-| `music/wind.webm`, `music/wind.mp3` | wind at altitude and a distant pusher prop, under the camera ball | WebFPVSimulator | GPLv3 or later | `tools/voice/beds.py` | none |
-| `music/room.webm`, `music/room.mp3` | the operations room's tone: a generator outside, a fan | WebFPVSimulator | GPLv3 or later | `tools/voice/beds.py` | none |
+| `music/interior.webm`, `music/interior.mp3` | THE INTERIOR: a drone in fifths, wind like noise, a far low drum, far bells | the Paraguayan Drone Combat Simulator | GPLv3 or later | `tools/voice/beds.py` | none |
+| `music/column.webm`, `music/column.mp3` | THE COLUMN: a held reed organ note alone, then nylon string and low harp plucks through tape wow and saturation | the Paraguayan Drone Combat Simulator | GPLv3 or later | `tools/voice/beds.py` | none |
+| `music/static.webm`, `music/static.mp3` | an old receiver's hum, hiss and crackle, under the opening's archive | the Paraguayan Drone Combat Simulator | GPLv3 or later | `tools/voice/beds.py` | none |
+| `music/wind.webm`, `music/wind.mp3` | wind at altitude and a distant pusher prop, under the camera ball | the Paraguayan Drone Combat Simulator | GPLv3 or later | `tools/voice/beds.py` | none |
+| `music/room.webm`, `music/room.mp3` | the operations room's tone: a generator outside, a fan | the Paraguayan Drone Combat Simulator | GPLv3 or later | `tools/voice/beds.py` | none |
 
 ## Voice
 
