@@ -55,16 +55,22 @@ import { str } from '../strings/index.js';
  */
 
 import {
-  stickChannels, stickCaption, stickSideOf, DEFAULT_STICK_MODE, normaliseStickMode,
+  DEFAULT_STICK_MODE, normaliseStickMode,
 } from './stickmode.js';
 import {
-  builtInKind, builtInMap, normaliseMap, reversals, centredReading, readSticks,
+  builtInKind, builtInMap, normaliseMap, centredReading, readSticks,
 } from './padmap.js';
 import {
-  migrateStickStorage, loadStickMap, saveStickMap, loadPadChoice, savePadChoice,
+  migrateStickStorage, loadStickMap, saveStickMap,
 } from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
+import {
+  PadRoster, connectedPads, shortPadName,
+} from './padpick.js';
+import { CalibrationWizard } from './calibrate.js';
+
+export { CAL_STEPS, SELECT_STEP, calSteps } from './calibrate.js';
 
 export {
   MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES, MOUSE_CENTRE_KEY,
@@ -75,126 +81,14 @@ export { throttleKeys } from './keyboard.js';
 export { standardPadMap } from './padmap.js';
 
 
-export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
-
-/*
- * A RADIO WHOSE SWITCHES ARRIVE AS AXES HAS NOTHING TO PRESS.
- *
- * padMenuButtons reads buttons 0 to 3, which is right for a gamepad and for
- * most radios in joystick mode. Some report every switch as an AXIS and
- * expose no buttons at all: `gamepad.buttons` is empty. navRaw still moves
- * the cursor for them, deliberately, because calibration is a menu item and
- * would otherwise be unreachable by the only device that needs it. But
- * nothing selects. The cursor walks the list and Enter never happens: a
- * product that can be browsed and not used.
- *
- * Two answers, and the wizard is the good one.
- *
- *   The MENU SWITCH, assigned in the wizard like any other channel, on its
- *   own axis. Once assigned it edge-latches exactly like a button.
- *
- *   Until then, a HOLD. Any axis held away from rest for SELECT_HOLD_MS
- *   counts as one select, once, until it comes back. A brief excursion
- *   still moves the cursor, which is what makes both gestures fit on one
- *   stick: a flick moves, a hold presses. It is only ever armed for a pad
- *   reporting zero buttons, so no radio that already works changes at all.
- *
- * Back needs no equivalent. Every screen in this shell carries a Back row,
- * so a working select reaches it.
- */
-export const SELECT_STEP = 'select';
+/* How long any axis must be held off rest to count as one select, on a
+ * radio that reports no buttons and has no menu switch assigned. */
 const SELECT_HOLD_MS = 700;
-
-/* The wizard's steps for a given radio. The menu switch is only asked for
- * when the radio cannot answer any other way, because asking every pilot to
- * assign one is friction for a problem they do not have. */
-export function calSteps(hasButtons, axisCount = 0) {
-  if (hasButtons) {
-    return CAL_STEPS;
-  }
-  /*
-   * AND ONLY WHEN THE RADIO HAS AN AXIS TO SPARE, because otherwise the
-   * question has no answer and the wizard becomes a room with no door.
-   *
-   * The four gimbal channels claim four axes, and usedAxes deliberately
-   * keeps the menu switch off every one of them, so on a four axis radio
-   * pickUnusedAxis returns -1 on every frame of this step, for ever. Save
-   * is only ever enabled on confirm, which is the step after, so the pilot
-   * cannot finish and cannot keep what they just did: Escape and start
-   * again is the whole of what is left. Reported from the board as "when
-   * i'm at step 7 of calibration i can't continue, i don't have any button
-   * on my radio, so it's just not finishing the calibration and i can't
-   * play", which is exactly this and is a fair description of it.
-   *
-   * That radio is not left without a way to press Enter. The HOLD gesture
-   * is armed for any pad reporting zero buttons whether or not a switch was
-   * ever assigned, which is what makes skipping this safe, here and on the
-   * Skip that the step itself now offers.
-   */
-  if (axisCount <= IDENT_CHANNELS.length) {
-    return CAL_STEPS;
-  }
-  const out = CAL_STEPS.slice();
-  out.splice(out.indexOf('confirm'), 0, SELECT_STEP);
-  return out;
-}
 
 /* How far a stick has to leave centre to count as a menu keypress. Shared
  * with main.js padNav, which used to spell it out four more times. */
 export const NAV_DEFLECT = 0.55;
 const IDENT_CHANNELS = ['throttle', 'roll', 'pitch', 'yaw'];
-
-const CAL = {
-  REST_MS: 900,
-  REST_NOISE: 0.08,
-  SWEEP_TRAVEL: 0.55,
-  NEAR_REST: 0.2,
-  SWEEP_REST_MS: 450,
-  IDENT_DELTA: 0.45,
-  IDENT_GAP: 0.18,
-  IDENT_HOLD_MS: 400,
-  RELEASE_MS: 280,
-  /*
-   * HOW FAR THE THROTTLE'S REST HAS TO BE FROM THE BOTTOM OF ITS TRAVEL
-   * before the rest is believed to be a spring rather than a parked stick.
-   * See noteThrottleSpring.
-   *
-   * A radio told to put its throttle all the way down at the centre step
-   * measures 0 here, and a sloppily centred one measures a few hundredths.
-   * A gamepad measures a whole unit, because its rest IS the middle and its
-   * low end is the bottom of the same stick. 0.35 sits in the empty band
-   * between those two populations with room on both sides.
-   */
-  THROTTLE_SPRING: 0.35,
-  /* Above this, a throttle the pilot is not touching is flying the quad, and
-   * the check step says so and offers to move zero. See zeroThrottleHere. */
-  THROTTLE_IDLE: 0.12,
-  /* The least travel a throttle may be left with after zero is moved. A
-   * press with the stick most of the way up would otherwise leave a
-   * throttle that is idle everywhere but the last few percent, and the
-   * only way back is to recalibrate. See zeroThrottleHere. */
-  THROTTLE_MIN_RANGE: 0.3,
-  /*
-   * How far a channel has to be deflected on the check step, and how far
-   * clear of every other channel, before the screen will name it as the
-   * one the pilot is moving and offer to reverse it. See movingChannel.
-   *
-   * These are CHANNEL units, nought to one after the mapping, not the raw
-   * axis units the identify step works in. They are deliberately the same
-   * numbers as IDENT_DELTA and IDENT_GAP: the question is the same one,
-   * which stick is being moved and is it unambiguous, and a pilot who has
-   * just been through six steps of holding one stick at a time should not
-   * have to learn a second feel for it.
-   */
-  REV_DELTA: 0.45,
-  REV_GAP: 0.18,
-};
-
-const PAD_PICK = {
-  WIGGLE: 0.34,
-  WIGGLE_MS: 160,
-  IGNORE_MS: 450,
-};
 
 /* When the AETR guess is describing somebody else's radio. See
  * noteGuessOrder for what each of these is watching for. */
@@ -203,7 +97,7 @@ const GUESS = {
    * is a whole stick: trim, noise and a knocked gimbal are nowhere near it. */
   YAW_ALIVE: 0.30,
   /* An axis the guess does not name has swept this far. The same number the
-   * wizard calls a full stick, CAL.SWEEP_TRAVEL. */
+   * wizard calls a full stick, the 0.55 of calibrate.js. */
   STRAY_SWEPT: 0.55,
   /* And has been seen at this many distinct levels, which is what tells a
    * gimbal from a switch. A two position switch offers two, a three
@@ -213,432 +107,6 @@ const GUESS = {
    * a float axis cannot manufacture them. */
   LEVEL_STEP: 1 / 16,
 };
-
-function snapshotAxes(gp) {
-  const n = Math.min(gp.axes.length, 8);
-  const out = new Array(n);
-  for (let i = 0; i < n; i += 1) {
-    out[i] = gp.axes[i];
-  }
-  return out;
-}
-
-function listGamepads() {
-  const out = [];
-  const list = typeof navigator !== 'undefined' && navigator.getGamepads
-    ? navigator.getGamepads()
-    : [];
-  for (let i = 0; i < list.length; i += 1) {
-    const gp = list[i];
-    if (gp && gp.connected && gp.axes && gp.axes.length >= 4) {
-      out.push(gp);
-    }
-  }
-  return out;
-}
-
-function padKey(gp) {
-  return `${gp.index}\0${gp.id || ''}`;
-}
-
-function shortPadName(id) {
-  let name = String(id || str('input.joystick_3')).replace(/\s+/g, ' ').trim();
-  name = name.replace(/\s*\(Vendor:.*$/i, '').trim();
-  if (name.length < 4) {
-    name = String(id || str('input.joystick_3')).trim() || str('input.joystick_3');
-  }
-  if (name.length > 44) {
-    return `${name.slice(0, 42)}...`;
-  }
-  return name;
-}
-
-function maxAbsDelta(axes, rest) {
-  return maxAbsDeltaExcept(axes, rest, -1);
-}
-
-function maxAbsDeltaExcept(axes, rest, except) {
-  let worst = 0;
-  const n = Math.min(axes.length, rest.length);
-  for (let i = 0; i < n; i += 1) {
-    if (i === except) {
-      continue;
-    }
-    const d = Math.abs(axes[i] - rest[i]);
-    if (d > worst) {
-      worst = d;
-    }
-  }
-  return worst;
-}
-
-/*
- * IS EVERYTHING BUT `except` WHERE THE WIZARD LAST ACCEPTED IT?
- *
- * The release phase of every channel waits for the OTHER axes to be at
- * rest, so that the next step starts clean and a diagonal is not read as
- * two moves. Rest meant the centre step's reading, for every axis, and that
- * was wrong for exactly one of them: a throttle that has already been
- * identified.
- *
- * The throttle's own release accepts two places, its low end or its rest,
- * because "Now put the throttle all the way back down" is what the prompt
- * says and on a radio the bottom is where it stays. A pilot with a self
- * centring throttle (the LiteRadio of bug-851a43b7) who let go at the
- * centre step, so rest is the middle, and then obeyed that prompt and HELD
- * the throttle down, passed the throttle step and could not pass the next
- * one. Roll never released, because the throttle sat a whole unit from rest
- * and counted as another stick being held, and the hint said "One direction
- * at a time" to a pilot moving one stick. The only way on was to let go of
- * the throttle, which nothing told them. Found by the first draft of
- * scripts/input-selftest.js, which was that pilot and never got past roll.
- *
- * So an identified throttle is parked at either of the two places the
- * wizard has talked about: the bottom of its travel as the sweep found it,
- * or its rest. The bottom is read from the sweep rather than from `low`,
- * because noteThrottleSpring moves `low` to rest on a gamepad, and a
- * gamepad's stick can still be pushed to its physical bottom. Every other
- * axis, identified or not, still has to be at the centre step's rest: a
- * spring centred gimbal has one resting place and being anywhere else is a
- * hold, which is the discipline that keeps a diagonal from assigning two
- * channels.
- */
-function othersParked(c, axes, except) {
-  const thr = c.draft.throttle;
-  const thrAxis = thr && Number.isInteger(thr.axis) && thr.axis !== except ? thr.axis : -1;
-  const n = Math.min(axes.length, c.rest.length);
-  for (let i = 0; i < n; i += 1) {
-    if (i === except || i === thrAxis) {
-      continue;
-    }
-    if (Math.abs(axes[i] - c.rest[i]) > CAL.NEAR_REST) {
-      return false;
-    }
-  }
-  if (thrAxis < 0) {
-    return true;
-  }
-  const rest = c.rest[thrAxis];
-  const bottom = thr.high >= rest ? c.min[thrAxis] : c.max[thrAxis];
-  const v = axes[thrAxis];
-  return Math.abs(v - bottom) <= CAL.NEAR_REST || Math.abs(v - rest) <= CAL.NEAR_REST;
-}
-
-function expandRange(min, max, axes) {
-  const n = Math.min(axes.length, min.length);
-  for (let i = 0; i < n; i += 1) {
-    if (axes[i] < min[i]) {
-      min[i] = axes[i];
-    }
-    if (axes[i] > max[i]) {
-      max[i] = axes[i];
-    }
-  }
-}
-
-function travelCount(min, max, threshold) {
-  let n = 0;
-  for (let i = 0; i < min.length; i += 1) {
-    if (max[i] - min[i] >= threshold) {
-      n += 1;
-    }
-  }
-  return n;
-}
-
-function usedAxes(draft) {
-  const used = new Set();
-  /* The menu switch is included: it is asked for last, so this is what
-   * stops it being assigned to a gimbal a pilot happens to nudge. */
-  for (const ch of IDENT_CHANNELS.concat([SELECT_STEP])) {
-    const spec = draft[ch];
-    if (spec && Number.isInteger(spec.axis)) {
-      used.add(spec.axis);
-    }
-  }
-  return used;
-}
-
-function pickUnusedAxis(axes, rest, used) {
-  let best = -1;
-  let bestAbs = 0;
-  let secondAbs = 0;
-  const n = Math.min(axes.length, rest.length);
-  for (let i = 0; i < n; i += 1) {
-    if (used.has(i)) {
-      continue;
-    }
-    const a = Math.abs(axes[i] - rest[i]);
-    if (a > bestAbs) {
-      secondAbs = bestAbs;
-      bestAbs = a;
-      best = i;
-    } else if (a > secondAbs) {
-      secondAbs = a;
-    }
-  }
-  return { best, bestAbs, secondAbs };
-}
-
-/*
- * WHICH CHANNEL IS THE PILOT MOVING RIGHT NOW?
- *
- * The check step has no cursor. It is driven by sticks, by design, because
- * the radio it is checking may be the only thing the pilot can press with,
- * so there is no row to put a Reverse control on and no way to point at a
- * channel with a key. There is a better pointer anyway, and the pilot is
- * already holding it: the stick that is moving IS the selection.
- *
- * So the screen names the channel with a clear lead over the others, and
- * one key reverses that one. The pilot pushes right, sees the drawn stick
- * go left, presses the key while still holding it, and watches it come
- * good. Nothing to read, nothing to choose from a list.
- *
- * A clear lead matters: on a diagonal, or with a thumb resting on the
- * throttle, two channels are live and reversing either would be a guess.
- * Then nothing is named and no key does anything, which is the same
- * discipline the identify steps use for the same reason.
- */
-function movingChannel(channels) {
-  let best = null;
-  let bestMag = 0;
-  let secondMag = 0;
-  for (const ch of IDENT_CHANNELS) {
-    const mag = Math.abs(channels[ch] || 0);
-    if (mag > bestMag) {
-      secondMag = bestMag;
-      bestMag = mag;
-      best = ch;
-    } else if (mag > secondMag) {
-      secondMag = mag;
-    }
-  }
-  if (!best || bestMag < CAL.REV_DELTA || bestMag - secondMag < CAL.REV_GAP) {
-    return null;
-  }
-  return best;
-}
-
-function channelSpec(axis, rest, sample, min, max) {
-  const towardHigh = sample >= rest;
-  return {
-    axis,
-    center: rest,
-    pos: towardHigh ? max[axis] : min[axis],
-    neg: towardHigh ? min[axis] : max[axis],
-  };
-}
-
-function throttleSpec(axis, rest, sample, min, max) {
-  const towardHigh = sample >= rest;
-  return {
-    axis,
-    low: towardHigh ? min[axis] : max[axis],
-    high: towardHigh ? max[axis] : min[axis],
-  };
-}
-
-/*
- * A THROTTLE THAT SPRINGS BACK HAS NO BOTTOM END, AND THE QUAD TOOK OFF ON
- * ITS OWN BECAUSE THIS CODE ASSUMED IT DID.
- *
- * throttleSpec above maps the far end of the sweep to zero throttle, which
- * is exactly right for a radio: a transmitter's throttle gimbal has no
- * centring spring, so it stays wherever it was put and its bottom stop IS
- * zero. A GAMEPAD's left stick is sprung in both axes. Its bottom stop is
- * one end of a stick that returns to the middle, so the middle, where the
- * stick sits when nobody is touching it, was being read as HALF THROTTLE.
- *
- *   bug-93400859, Fredrik Wormke:
- *   "I found no way to calibrate where 0 throttle is at the resting
- *    position for a gamepad joystick... Drone will take off with no input."
- *
- * Reproduced exactly: a gamepad taken through the wizard the way it asks
- * saves {axis: 2, low: -1, high: 1} and reads 0.500 with nothing touching
- * it. There was no way to calibrate around it, because the wizard never
- * asked the question.
- *
- * It does not have to ask. The release step already watches where the axis
- * goes when the pilot lets go, and it already accepts either answer:
- * `parked` is true at the low end OR back at rest. Which of the two
- * happened is the entire discriminator and it was being thrown away.
- *
- *   a radio      told to put the throttle down, then told to put it back
- *                down, settles AT ITS LOW END. rest and low are the same
- *                place, so there is nothing to correct.
- *   a gamepad    let go, settles AT REST, and rest is a whole unit away
- *                from the low end. Zero throttle belongs at rest.
- *
- * Only `low` moves. `high` is still the end the pilot pushed toward, so
- * full stick is still full throttle, and readGamepad clamps below zero, so
- * pushing the sprung stick past centre the other way is simply idle. The
- * cost is the half of that stick's travel below centre, which is the cost
- * of the control being a centring stick, and it is what the reporter asked
- * for in as many words.
- *
- * A RADIO WHOSE PILOT IGNORED THE CENTRE STEP and left the throttle at
- * mid-stick, then returned it to mid-stick rather than to the bottom,
- * reads as sprung here and gets zero at mid-stick. That is a fair reading
- * of what they demonstrated twice, it is what the prompts asked them not
- * to do, and the failure it produces, half the throttle range, is the
- * recoverable one. The failure in the other direction is a quad that flies
- * away from a pilot who is not touching anything.
- */
-/*
- * AND THE DETECTOR ABOVE CAN BE FOOLED BY A PILOT DOING AS THEY ARE TOLD.
- *
- * noteThrottleSpring reads ONE INSTANT, the moment the release timer
- * completes, and asks where the axis ended up. That is a fair question for a
- * gamepad, whose pilot simply lets go, and it is the wrong question for a
- * radio whose throttle self centres, because the release step tells them
- * "Now put the throttle all the way back down" and they HOLD IT THERE. The
- * axis is then sitting on its low end, the detector reads a parked throttle,
- * and the spring is missed:
- *
- *   bug-851a43b7, BetaFPV LiteRadio 3:
- *   "the throttle doesn't go down all the way to 0%. I tried calibrating and
- *    the bottom on the sticks marks the center on the calibrating display."
- *
- * Reproduced through the real wizard: the saved map is {low: -1, high: 1},
- * the check step reads 0.500 with the stick where it rests, and flight reads
- * 0.500 with nobody touching anything.
- *
- * No better instant exists. A pilot may hold the throttle anywhere for any
- * reason and the wizard cannot tell holding from resting, so this stops
- * guessing and ASKS. The check step already shows the live throttle; when it
- * reads high enough to be flying the quad, the screen offers to put zero
- * where the stick is now. The pilot knows whether their hand is on it, and
- * nothing else in this file does.
- *
- * The same pilot, still holding the throttle down on the roll step, met a
- * second wall one step later, and that one is fixed rather than asked
- * about: see othersParked.
- */
-function noteThrottleSpring(c, spec, axes) {
-  const rest = c.rest[spec.axis];
-  const settled = axes[spec.axis];
-  /* It came back to the low end: a parked throttle, nothing to do. */
-  if (Math.abs(settled - rest) > CAL.NEAR_REST) {
-    return;
-  }
-  /* Rest IS the low end: a radio that centred where it was told to. */
-  if (Math.abs(rest - spec.low) <= CAL.THROTTLE_SPRING) {
-    return;
-  }
-  spec.low = rest;
-  /* Recorded rather than inferred, so a ticket carrying a saved map says
-   * which kind of throttle the wizard decided it had. */
-  spec.sprung = true;
-}
-
-function calTitle(c) {
-  return {
-    center: 'Centre',
-    sweep: str('ui.full_range'),
-    throttle: 'Throttle',
-    roll: 'Roll',
-    pitch: 'Pitch',
-    yaw: 'Yaw',
-    select: str('ui.menu_switch'),
-    confirm: c.checkOnly ? str('ui.check_sticks') : str('input.check'),
-  }[c.step] || '';
-}
-
-/*
- * EVERY PROMPT HERE THAT NAMES A STICK WAS NAMING A MODE 2 STICK.
- *
- * "Pull the right stick fully back" is true on a Mode 2 radio and false on a
- * Mode 1 one, where pitch is the left gimbal. The wizard would still have
- * mapped the axis correctly, because it maps whatever moved, but it would
- * have been telling a Mode 1 pilot to move the wrong hand while it did. The
- * side comes out of the pilot's stick mode now. `mode` is threaded in from
- * calibrationView rather than read from a module global, because this file
- * has no idea what the shell's settings are and should not.
- */
-function calPrompt(c, mode) {
-  if (c.step === 'center') {
-    return str('input.both_sticks_in_the_centre_throttle');
-  }
-  if (c.step === 'sweep') {
-    return str('input.move_both_sticks_through_every_corner');
-  }
-  if (c.step === 'confirm') {
-    return str('input.move_the_sticks_left_is', { v1: stickCaption(mode, 'left').toLowerCase() })
-      + str('input.right_is', { v1: stickCaption(mode, 'right').toLowerCase() });
-  }
-  const side = (ch) => stickSideOf(mode, ch);
-  if (c.phase === 'release') {
-    return {
-      throttle: str('input.now_put_the_throttle_all_the'),
-      roll: str('input.let_the_stick_come_back_to', { side: side('roll') }),
-      pitch: str('input.let_the_stick_come_back_to', { side: side('pitch') }),
-      yaw: str('input.let_the_stick_come_back_to', { side: side('yaw') }),
-      select: str('input.put_it_back_where_it_was'),
-    }[c.step] || str('input.return_to_rest');
-  }
-  return {
-    throttle: str('input.push_the_throttle_all_the_way'),
-    roll: str('input.hold_the_stick_fully_to_the', { side: side('roll') }),
-    pitch: str('input.pull_the_stick_fully_back_toward', { side: side('pitch') }),
-    yaw: str('input.hold_the_stick_fully_to_the', { side: side('yaw') }),
-    /* Only ever asked of a radio reporting no buttons at all, so there is
-     * no press to describe and the pilot is choosing which switch becomes
-     * one. See SELECT_STEP. */
-    select: str('input.throw_the_switch_you_want_to'),
-  }[c.step] || '';
-}
-
-function calHint(c, travelled, need, gp, idleThrottle = 0, moving = null) {
-  if (!gp) {
-    return str('input.radio_disconnected_plug_it_back_in');
-  }
-  if (c.step === 'center') {
-    return str('input.waiting_until_the_reading_is_steady');
-  }
-  if (c.step === 'sweep') {
-    return travelled < need
-      ? str('input.keep_going_full_travel_on_of', { travelled, need })
-      : str('input.back_to_rest_to_continue');
-  }
-  if (c.step === 'confirm') {
-    /* A throttle reading this high with the sticks sitting where the pilot
-     * left them is a quad that will fly itself. Say the number, because the
-     * gimbal alone does not make it obvious, and name the way out. */
-    if (idleThrottle > CAL.THROTTLE_IDLE) {
-      return str('input.throttle_is_reading_percent_right_now', { v1: Math.round(idleThrottle * 100) })
-        + str('input.if_that_is_where_your_throttle')
-        + str('input.throttle_zero_is_here');
-    }
-    /*
-     * The channel under their thumb, named, with the one key that fixes it
-     * if it is backwards. This is the whole of the answer to "some are
-     * inverted and there's no option to change it": the option is on the
-     * screen that shows them the problem, at the moment they are looking
-     * at it. See movingChannel and reverseChannel.
-     */
-    if (moving) {
-      const rev = c.draft && c.draft.reverse && c.draft.reverse[moving];
-      return str('input.moving', { moving, v2: rev ? str('input.reversed') : '' })
-        + str('input.if_the_wrong_stick_moved_on')
-        + str('input.if_it_moved_the_wrong_way', { moving });
-    }
-    const keep = c.checkOnly
-      ? str('input.enter_or_save_mapping_keeps_the')
-      : (c.draft && c.draft.select
-        ? str('input.enter_save_mapping_or_the_switch')
-        : str('input.enter_or_save_mapping_keeps_it'));
-    return str('input.move_one_stick_at_a_time', { keep });
-  }
-  if (c.step === 'select') {
-    return str('input.this_radio_reports_no_buttons_so')
-      + str('input.no_switch_to_spare_skip_holding')
-      + str('input.a_second_counts_as_a_press');
-  }
-  if (c.phase === 'release') {
-    return str('input.one_direction_at_a_time_diagonals');
-  }
-  return str('input.hold_it_there_diagonals_are_ignored');
-}
 
 export class InputManager {
   constructor() {
@@ -664,12 +132,7 @@ export class InputManager {
      */
     this.harnessChannels = null;
     this.map = this.loadMap();
-    this.padChoice = loadPadChoice();
-    this.padPick = null;
-    this.padPickQueued = null;
-    this.padPickResult = null;
-    this.seenPadKeys = new Set();
-    this.padWasPresent = false;
+    this.roster = new PadRoster(() => this.forgetPadFacts());
     this.calibration = null;
     this.calResult = null;
     this.lastWall = performance.now();
@@ -803,11 +266,24 @@ export class InputManager {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
-    this.seedPadRoster();
+    this.roster.seed();
   }
 
   /* The keyboard's state, where main.js and the checks have always read it. */
   /* Mouse flight's state, where main.js and the checks read it. */
+  /* The picker's state, where main.js reads it. */
+  get padPick() {
+    return this.roster.pick;
+  }
+
+  get padPickResult() {
+    return this.roster.result;
+  }
+
+  get padChoice() {
+    return this.roster.choice;
+  }
+
   get mouseEnabled() {
     return this.mouseStick.enabled;
   }
@@ -1104,349 +580,70 @@ export class InputManager {
   }
 
   firstGamepad() {
-    const pads = listGamepads();
-    if (!pads.length) {
-      return null;
-    }
-    const choice = this.padChoice;
-    if (choice && choice.kind === 'none') {
-      return null;
-    }
-    if (choice && choice.kind === 'pad') {
-      const exact = this.matchPad(pads, choice);
-      if (exact) {
-        return exact;
-      }
-      return null;
-    }
-    return pads[0];
+    return this.roster.selected();
   }
 
-  matchPad(pads, choice) {
-    if (!choice || choice.kind !== 'pad') {
-      return null;
-    }
-    for (let i = 0; i < pads.length; i += 1) {
-      if (pads[i].id === choice.id && pads[i].index === choice.index) {
-        return pads[i];
-      }
-    }
-    const sameId = [];
-    for (let i = 0; i < pads.length; i += 1) {
-      if (pads[i].id === choice.id) {
-        sameId.push(pads[i]);
-      }
-    }
-    return sameId.length === 1 ? sameId[0] : null;
-  }
-
-  setPadChoice(choice) {
-    this.padChoice = choice;
-    savePadChoice(choice);
+  /* A different device is a different machine: everything learned about
+   * the last one (where its sticks rest, whether its throttle parks, how
+   * its axes have moved, how finely it reports) starts again. */
+  forgetPadFacts() {
     this.navRest = null;
     this.padArmed = false;
-    /* A different radio has to earn it again: see noteThrottleParked. It is
-     * a fact about the machine that is plugged in, and this is the line
-     * where that machine changes. */
     this.mapSeenParked = false;
-    /* And what its axes have been seen doing: see noteGuessOrder. */
     this.guessSpan = null;
     this.guessYawAlive = false;
     this.guessWrongOrder = false;
-    /* And so is the stick resolution. Same line, same reason. */
     this.forgetAxisResolution();
   }
 
-  seedPadRoster() {
-    const pads = listGamepads();
-    this.seenPadKeys = new Set(pads.map(padKey));
-    this.padWasPresent = Boolean(this.matchPad(pads, this.padChoice));
-    if (pads.length >= 2) {
-      this.padPickQueued = 'boot';
-      return;
-    }
-    if (pads.length === 1 && !this.matchPad(pads, this.padChoice)) {
-      this.setPadChoice({ kind: 'pad', id: pads[0].id, index: pads[0].index });
-      this.padWasPresent = true;
-    }
-  }
-
-  /*
-   * Chrome often hides a pad until something on it moves, and Windows can
-   * reorder the Game Controllers list on a replug, so the roster is polled
-   * rather than trusted to gamepadconnected. A new key in the list is a
-   * device the picker has not seen this session.
-   */
-  notePadRoster() {
-    const pads = listGamepads();
-    const nowKeys = new Set(pads.map(padKey));
-    let added = 0;
-    nowKeys.forEach((k) => {
-      if (!this.seenPadKeys.has(k)) {
-        added += 1;
-      }
-    });
-    const prevCount = this.seenPadKeys.size;
-    this.seenPadKeys = nowKeys;
-    if (this.padPick) {
-      return;
-    }
-    if (added > 0 && pads.length >= 2) {
-      this.padPickQueued = prevCount === 0 ? 'boot' : 'hotplug';
-      return;
-    }
-    if (added > 0 && pads.length === 1 && !this.matchPad(pads, this.padChoice)) {
-      this.setPadChoice({ kind: 'pad', id: pads[0].id, index: pads[0].index });
-    }
-    if (this.padChoice && this.padChoice.kind === 'pad') {
-      const found = this.matchPad(pads, this.padChoice);
-      if (found) {
-        this.padWasPresent = true;
-      } else if (this.padWasPresent && pads.length >= 1) {
-        this.padWasPresent = false;
-        this.padPickQueued = this.padPickQueued || 'missing';
-      } else {
-        this.padWasPresent = false;
-      }
-    }
+  setPadChoice(choice) {
+    this.roster.setChoice(choice);
   }
 
   takePadPickQueue() {
-    const reason = this.padPickQueued;
-    this.padPickQueued = null;
-    return reason;
+    return this.roster.take();
   }
 
   requestPadPick(reason) {
-    if (this.padPick) {
-      return;
-    }
-    this.padPickQueued = reason || 'menu';
+    this.roster.request(reason);
   }
 
   startPadPick(reason) {
-    const pads = listGamepads();
-    if (!pads.length) {
-      return false;
-    }
-    this.padPick = {
-      reason: reason || 'menu',
-      phase: 'wiggle',
-      candidateKey: null,
-      blockedKey: null,
-      ignoreUntil: 0,
-      holdMs: 0,
-      rest: new Map(),
-      armed: false,
-    };
-    this.padPickResult = null;
-    this.snapshotPadRests(pads);
-    return true;
-  }
-
-  snapshotPadRests(pads) {
-    const p = this.padPick;
-    if (!p) {
-      return;
-    }
-    const live = pads || listGamepads();
-    const keep = new Set();
-    for (let i = 0; i < live.length; i += 1) {
-      const gp = live[i];
-      const key = padKey(gp);
-      keep.add(key);
-      if (!p.rest.has(key) || p.rest.get(key).length !== Math.min(gp.axes.length, 8)) {
-        p.rest.set(key, snapshotAxes(gp));
-      }
-    }
-    p.rest.forEach((v, key) => {
-      if (!keep.has(key)) {
-        p.rest.delete(key);
-        if (p.candidateKey === key) {
-          p.phase = 'wiggle';
-          p.candidateKey = null;
-          p.holdMs = 0;
-          p.armed = false;
-        }
-      }
-    });
+    return this.roster.start(reason);
   }
 
   cancelPadPick() {
-    this.padPick = null;
-    this.padPickResult = 'cancelled';
+    this.roster.cancel();
   }
 
   skipPadPick() {
-    this.setPadChoice({ kind: 'none' });
-    this.padWasPresent = false;
-    this.padPick = null;
-    this.padPickResult = 'skipped';
+    this.roster.skip();
   }
 
   acceptPadPick() {
-    const p = this.padPick;
-    if (!p || p.phase !== 'confirm' || !p.candidateKey) {
-      return false;
-    }
-    const pads = listGamepads();
-    const gp = pads.find((g) => padKey(g) === p.candidateKey);
-    if (!gp) {
-      return false;
-    }
-    this.setPadChoice({ kind: 'pad', id: gp.id, index: gp.index });
-    this.padWasPresent = true;
-    this.padPick = null;
-    this.padPickResult = 'accepted';
-    return true;
+    return this.roster.accept();
   }
 
   rejectPadPick() {
-    const p = this.padPick;
-    if (!p) {
-      return;
-    }
-    const blocked = p.candidateKey;
-    p.phase = 'wiggle';
-    p.candidateKey = null;
-    p.holdMs = 0;
-    p.armed = false;
-    p.blockedKey = blocked;
-    p.ignoreUntil = performance.now() + PAD_PICK.IGNORE_MS;
-    this.snapshotPadRests();
+    this.roster.refuse();
   }
 
   padPickView() {
-    const p = this.padPick;
-    if (!p) {
-      return null;
-    }
-    const pads = listGamepads();
-    this.snapshotPadRests(pads);
-    const now = performance.now();
-    const cards = [];
-    for (let i = 0; i < pads.length; i += 1) {
-      const gp = pads[i];
-      const key = padKey(gp);
-      const rest = p.rest.get(key) || snapshotAxes(gp);
-      const motion = maxAbsDelta(snapshotAxes(gp), rest);
-      const axes = [0, 0, 0, 0];
-      for (let a = 0; a < 4; a += 1) {
-        axes[a] = gp.axes[a] || 0;
-      }
-      cards.push({
-        key,
-        title: str('input.joystick', { v1: i + 1 }),
-        name: shortPadName(gp.id),
-        motion,
-        live: motion >= PAD_PICK.WIGGLE,
-        chosen: p.candidateKey === key,
-        axes,
-      });
-    }
-    const chosen = cards.find((c) => c.chosen) || null;
-    let prompt = str('ui.move_the_joystick_you_want_to');
-    let hint = str('input.each_box_is_one_plugged_in');
-    if (!cards.length) {
-      prompt = str('input.no_joystick_found');
-      hint = str('input.plug_one_in_set_it_to');
-    } else if (p.phase === 'confirm' && chosen) {
-      prompt = str('input.use', { title: chosen.title });
-      hint = str('input.yes_keeps_it_no_waits_for');
-    }
-    const skipLabel = p.reason === 'menu' ? str('ui.cancel') : str('ui.use_keyboard_instead');
-    return {
-      phase: p.phase,
-      reason: p.reason,
-      prompt,
-      hint,
-      canAccept: p.phase === 'confirm' && Boolean(chosen),
-      skipLabel,
-      cooling: now < p.ignoreUntil,
-      pads: cards,
-    };
+    return this.roster.view();
   }
 
   runPadPick(dtMs) {
-    const p = this.padPick;
-    if (!p) {
-      return;
-    }
-    const pads = listGamepads();
-    this.snapshotPadRests(pads);
-    const now = performance.now();
-    if (p.phase === 'confirm') {
-      const gp = pads.find((g) => padKey(g) === p.candidateKey);
-      if (!gp) {
-        this.rejectPadPick();
-        return;
-      }
-      const at = (i) => Boolean(gp.buttons && gp.buttons[i] && gp.buttons[i].pressed);
-      const b = [at(0), at(1), at(2), at(3)];
-      const any = b.some(Boolean);
-      if (!p.armed) {
-        if (!any) {
-          p.armed = true;
-        }
-        return;
-      }
-      if (b[1]) {
-        this.rejectPadPick();
-        return;
-      }
-      if (b[0] || b[2] || b[3]) {
-        this.acceptPadPick();
-      }
-      return;
-    }
-    if (now < p.ignoreUntil) {
-      p.holdMs = 0;
-      return;
-    }
-    let best = null;
-    let bestMotion = 0;
-    for (let i = 0; i < pads.length; i += 1) {
-      const gp = pads[i];
-      const key = padKey(gp);
-      const rest = p.rest.get(key);
-      if (!rest) {
-        continue;
-      }
-      const motion = maxAbsDelta(snapshotAxes(gp), rest);
-      if (p.blockedKey && key === p.blockedKey) {
-        if (motion < PAD_PICK.WIGGLE) {
-          p.blockedKey = null;
-        } else {
-          continue;
-        }
-      }
-      if (motion > bestMotion) {
-        bestMotion = motion;
-        best = key;
-      }
-    }
-    if (!best || bestMotion < PAD_PICK.WIGGLE) {
-      p.holdMs = 0;
-      return;
-    }
-    p.holdMs += dtMs;
-    if (p.holdMs < PAD_PICK.WIGGLE_MS) {
-      return;
-    }
-    p.phase = 'confirm';
-    p.candidateKey = best;
-    p.holdMs = 0;
-    p.armed = false;
+    this.roster.run(dtMs);
   }
 
   padSummary() {
-    const pads = listGamepads();
+    const pads = connectedPads();
     const selected = this.firstGamepad();
     let using = 'Keyboard';
     if (selected) {
       const n = pads.findIndex((g) => g.index === selected.index && g.id === selected.id) + 1;
       using = n > 0 ? str('input.joystick_2', { n, shortPadName: shortPadName(selected.id) }) : shortPadName(selected.id);
-    } else if (this.padChoice && this.padChoice.kind === 'none') {
+    } else if (this.roster.choice && this.roster.choice.kind === 'none') {
       using = 'Keyboard';
     }
     return {
@@ -1507,7 +704,7 @@ export class InputManager {
   /*
    * The bootstrap for a radio with no buttons and no menu switch yet: any
    * axis held away from rest counts as ONE select, once, until it comes
-   * back. See SELECT_STEP above for why this exists and why it is armed
+   * back. See calibrate.js and SELECT_HOLD_MS for why this exists and why it is armed
    * only in that case.
    *
    * navRest is the resting snapshot navRaw already keeps, so this and the
@@ -1680,118 +877,30 @@ export class InputManager {
   }
 
   /*
-   * Calibration wizard. Standard radio / gamepad procedure, not a five
-   * sentence overlay:
-   *
-   *   1. Centre: both gimbals still, throttle at the bottom, until the
-   *      reading is steady. That snapshot is rest.
-   *   2. Full range: move every stick through its travel, then return to
-   *      rest. That records min and max per axis, both ends, so a lopsided
-   *      gimbal still reaches +1 and -1.
-   *   3. Identify: one named deflection per channel. The wizard will not
-   *      take the next channel until every axis is back at rest, which is
-   *      the thing the old overlay skipped: throttle is not spring centred,
-   *      so holding it up and immediately asking for roll assigned all four
-   *      channels to the throttle axis.
-   *   4. Check: live Mode 2 gimbals from the draft map. Nothing is written
-   *      to localStorage until this is accepted.
-   *
-   * The in-memory flight map is left alone until accept, so cancelling
-   * mid-wizard cannot leave a half mapping in the sticks.
+   * The calibration wizard (calibrate.js). The flying map is not touched
+   * until acceptCalibration, so cancelling part way leaves it as it was.
    */
   startCalibration() {
     this.calResult = null;
-    const gp = this.firstGamepad();
-    /* The step list is decided once, at the start, from what this radio
-     * reports. Recomputing it per frame would let a wizard grow a step
-     * halfway through if a button happened to be read late. */
-    const steps = calSteps(
-      Boolean(gp && gp.buttons && gp.buttons.length),
-      gp ? snapshotAxes(gp).length : 0,
-    );
-    this.calibration = {
-      step: 'center',
-      phase: 'hold',
-      holdMs: 0,
-      rest: null,
-      restGuess: null,
-      min: null,
-      max: null,
-      waiting: false,
-      steps,
-      draft: {
-        roll: null,
-        pitch: null,
-        yaw: null,
-        throttle: null,
-        select: null,
-        /* Nothing is backwards until a pilot says so. The wizard learns
-         * direction from the direction they push. See reversals. */
-        reverse: reversals(null),
-      },
-    };
+    this.calibration = CalibrationWizard.fresh(this.firstGamepad());
   }
 
-  /*
-   * THE CHECK STEP ON ITS OWN, AGAINST THE MAPPING ALREADY SAVED.
-   *
-   * The wizard's last step is the only place in this shell that shows a
-   * pilot what their mapping actually does: live gimbals, every axis, and
-   * now the reverse control. It was reachable only by completing the six
-   * steps in front of it, so a pilot who noticed a backwards channel a week
-   * later had to do the whole calibration again to reach the one screen
-   * that could tell them anything, and had the same chance of the same
-   * wrong push on the way.
-   *
-   * This opens that screen by itself with the saved map as the draft. Save
-   * writes it back, Escape leaves it alone, and neither touches an axis
-   * assignment. `rest` is taken here rather than measured, because there is
-   * no Centre step to measure it with and the strip only uses it to decide
-   * which cells to light.
-   */
+  /* The check step alone, over the saved map. */
   startCalibrationCheck() {
     this.calResult = null;
     const gp = this.firstGamepad();
     if (!gp) {
       return false;
     }
-    const axes = snapshotAxes(gp);
-    this.calibration = {
-      step: 'confirm',
-      phase: 'hold',
-      holdMs: 0,
-      rest: axes.slice(),
-      restGuess: null,
-      min: axes.slice(),
-      max: axes.slice(),
-      waiting: false,
-      steps: ['confirm'],
-      /* So the screen can say which of the two things it is. */
-      checkOnly: true,
-      draft: normaliseMap(this.map),
-    };
+    this.calibration = CalibrationWizard.checkOf(gp, this.map);
     return true;
   }
 
-  /*
-   * Flip one channel, in the draft, on the check step. Nothing reaches the
-   * saved map until Save, so a pilot can try it, watch the gimbal, and back
-   * out with Escape if they were wrong about which way round it was.
-   */
   reverseChannel(channel) {
-    const c = this.calibration;
-    if (!c || c.step !== 'confirm' || !IDENT_CHANNELS.includes(channel)) {
-      return false;
-    }
-    if (!c.draft.reverse) {
-      c.draft.reverse = reversals(null);
-    }
-    c.draft.reverse[channel] = !c.draft.reverse[channel];
-    return true;
+    return Boolean(this.calibration) && this.calibration.reverse(channel);
   }
 
-  /* Reverse whichever channel the pilot is moving, and say which it was so
-   * the shell can name it. See movingChannel. */
+  /* Reverses whichever channel the pilot is moving, and names it. */
   reverseMovingChannel() {
     const view = this.calibrationView();
     if (!view || !view.moving) {
@@ -1805,394 +914,41 @@ export class InputManager {
     this.calResult = 'cancelled';
   }
 
-  /*
-   * PASS ON THE MENU SWITCH AND GO ON TO THE CHECK.
-   *
-   * calSteps no longer asks a four axis radio for one at all, which is the
-   * case that could not be answered. This is the other one: a radio with
-   * axes to spare whose pilot has no switch they are willing to give up, or
-   * whose switches are all latched somewhere this wizard cannot see. They
-   * were in the same room with the same single exit, and Escape threw away
-   * a calibration they had just spent a minute on.
-   *
-   * Nothing is lost by passing. `select` rides along in the draft and
-   * normaliseMap keeps it null, which is what every radio with buttons already
-   * stores, and the hold gesture stays armed because it is armed on the
-   * button count rather than on this. The pilot gets the same shell they
-   * would have had, one press slower.
-   */
   skipCalibrationSelect() {
-    const c = this.calibration;
-    if (!c || c.step !== SELECT_STEP) {
-      return false;
-    }
-    c.draft.select = null;
-    const steps = c.steps || CAL_STEPS;
-    c.step = steps[steps.indexOf(c.step) + 1] || 'confirm';
-    c.phase = 'hold';
-    c.holdMs = 0;
-    return true;
+    return Boolean(this.calibration) && this.calibration.skipMenuSwitch();
+  }
+
+  zeroThrottleHere() {
+    return Boolean(this.calibration) && this.calibration.zeroThrottleAt(this.firstGamepad());
   }
 
   /*
-   * THE PILOT SAYS WHERE ZERO IS, for the throttle this wizard could not
-   * read on its own. Only `low` moves, exactly as in noteThrottleSpring:
-   * `high` is still the end they pushed toward, so full stick is still full
-   * throttle, and readGamepad's clamp makes everything beyond zero idle
-   * rather than negative.
-   *
-   * Nothing is written to the saved map here. This edits the DRAFT, on the
-   * check step, with the live gimbals in front of the pilot, so they press
-   * it and watch the throttle fall to zero before anything is kept.
+   * The draft becomes the flying map. A new map is a new transducer and
+   * answers the AETR guess's questions by existing, so what was learned
+   * against the old one goes. calResult says whether it also reached
+   * storage ('saved') or only this tab ('saved-unstored').
    */
-  zeroThrottleHere() {
-    const c = this.calibration;
-    if (!c || c.step !== 'confirm') {
-      return false;
-    }
-    const spec = c.draft.throttle;
-    const gp = this.firstGamepad();
-    if (!spec || !gp || !Number.isInteger(spec.axis)) {
-      return false;
-    }
-    const v = snapshotAxes(gp)[spec.axis];
-    /* Not with the stick most of the way up. The offer is shown whenever
-     * the throttle reads above idle, which includes a pilot deliberately
-     * holding full throttle to check it, and exact equality with `high`
-     * was the only guard: a press one step below it would have left a
-     * throttle with a hair of travel and a divisor near zero. */
-    if (!Number.isFinite(v) || Math.abs(spec.high - v) < CAL.THROTTLE_MIN_RANGE) {
-      return false;
-    }
-    spec.low = v;
-    spec.sprung = true;
-    return true;
-  }
-
   acceptCalibration() {
     const c = this.calibration;
-    if (!c || c.step !== 'confirm') {
+    if (!c || !c.complete()) {
       return false;
     }
-    if (!c.draft.roll || !c.draft.pitch || !c.draft.yaw || !c.draft.throttle) {
-      return false;
-    }
-    /* select rides along in the draft and normaliseMap keeps it. A radio with
-     * buttons never assigned one and carries null, which is the same as
-     * before this existed. */
     this.map = normaliseMap({ ...c.draft, stored: true });
-    /* New axes to watch, so the old axes' step is not this map's. */
     this.forgetAxisResolution();
-    /* A calibrated map answers the guess's questions by existing, and the
-     * evidence gathered against the guess is about a map that is gone. */
     this.guessSpan = null;
     this.guessYawAlive = false;
     this.guessWrongOrder = false;
-    /* Two outcomes, and the shell says which. See saveMap. */
     this.calResult = this.saveMap() ? 'saved' : 'saved-unstored';
     this.calibration = null;
     return true;
   }
 
   calibrationView() {
-    const c = this.calibration;
-    if (!c) {
-      return null;
-    }
-    const steps = c.steps || CAL_STEPS;
-    const stepIndex = Math.max(0, steps.indexOf(c.step));
-    const travelled = c.min && c.max ? travelCount(c.min, c.max, CAL.SWEEP_TRAVEL) : 0;
-    const need = c.min ? Math.min(4, c.min.length) : 4;
-    const gp = this.firstGamepad();
-    let channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
-    let axes = [];
-    if (gp) {
-      const live = snapshotAxes(gp);
-      /*
-       * EVERY AXIS THIS RADIO HAS, ALWAYS, AND IT IS THE HONEST PART OF
-       * THIS SCREEN.
-       *
-       * The two gimbals above it can only ever show four channels, and
-       * until the wizard has finished it does not know which four axes
-       * those are. So a pilot whose yaw is on axis 5 moved their yaw stick
-       * on the full range step and watched a gimbal that cannot see axis 5
-       * sit still: "Step 2 do not show yaw in the set up. Using RADIOMASTER
-       * POCKET". Nothing was broken. The screen was looking somewhere else
-       * and had no way to say so.
-       *
-       * This strip has no opinion about what anything is. It is the raw
-       * axis vector with the resting value marked, so "the browser can see
-       * my stick" and "the browser has put my stick in the right box" stop
-       * being the same question. It is also the first thing worth asking
-       * for in a ticket, and now it is on the screen the ticket is about.
-       */
-      const rest = c.rest || live;
-      const claimed = usedAxes(c.draft);
-      for (let i = 0; i < live.length; i += 1) {
-        axes.push({
-          i,
-          v: live[i],
-          rest: rest[i] ?? 0,
-          /* The range seen so far, as its two ends. It was a width once,
-           * drawn centred on rest, which is right for a spring centred
-           * gimbal and wrong for anything else: a slider resting at 0.5 and
-           * pushed to 1 drew its bar from 0.25 to 0.75. */
-          lo: c.min && i < c.min.length ? c.min[i] : live[i],
-          hi: c.max && i < c.max.length ? c.max[i] : live[i],
-          /* Already spoken for by a channel this wizard has identified, so
-           * the strip can show the map filling in as it is made. */
-          mapped: claimed.has(i),
-        });
-      }
-      if (c.step === 'center' || c.step === 'sweep') {
-        channels = this.readGamepad(gp, builtInMap(gp, this.stickMode));
-      } else {
-        channels = this.readGamepad(gp, c.draft);
-        /*
-         * AND THE GIMBAL USED TO SIT DEAD ON THE STEP THAT ASKS FOR
-         * MOVEMENT.
-         *
-         * c.draft holds only the channels already identified, so on the
-         * roll step roll, pitch and yaw all read zero however hard the
-         * stick is pushed. The pilot is told "hold the right stick fully to
-         * the right" beside a stick that does not move, and concludes the
-         * wizard has stopped hearing them: "max axes and throttle work but
-         * stuck on roll, no input during that time". They were moving it.
-         *
-         * So the channel BEING ASKED FOR is driven by the axis that is
-         * actually moving, chosen by the same pickUnusedAxis call that is
-         * about to assign it. It is a preview of the assignment, which is
-         * the thing the pilot needs to see.
-         *
-         * The magnitude is real and the SIGN IS THE PROMPT'S. The prompt
-         * names a direction ("fully to the right", "back, toward you") and
-         * the polarity of the underlying axis is exactly what has not been
-         * worked out yet, so feeding the raw sign through would move the
-         * dot the wrong way on half the radios in the world and teach the
-         * pilot that the wizard is mirrored. What is claimed here is "this
-         * much of the deflection I asked for", and that much is measured.
-         *
-         * "This much" is a fraction of the REACH THE SWEEP SHOWED, not of a
-         * raw axis unit. A throttle parked at -1 travels two units to its
-         * stop, and a radio with its endpoints wound in never reaches 1.0
-         * at all, so in raw units the throttle dot hit the top at half
-         * stick and the wound in radio never got there. The sweep already
-         * measured how far each axis goes from rest, and throttleSpec and
-         * channelSpec record exactly that range as full, so the preview is
-         * held to the same ruler the assignment is about to use. The live
-         * reading rides in the maximum because it can be one poll newer
-         * than the sweep's record, and a ratio over one is a lie.
-         */
-        if (c.phase === 'hold' && c.rest && IDENT_CHANNELS.includes(c.step) && !c.draft[c.step]) {
-          const pick = pickUnusedAxis(live, c.rest, usedAxes(c.draft));
-          if (pick.best >= 0) {
-            const b = pick.best;
-            const delta = Math.abs(live[b] - c.rest[b]);
-            const reach = Math.max(
-              Math.abs(c.max[b] - c.rest[b]),
-              Math.abs(c.rest[b] - c.min[b]),
-              delta,
-            ) || 1;
-            channels = { ...channels, [c.step]: Math.min(1, delta / reach) };
-          }
-        }
-      }
-    }
-    /* Only ever asked on the check step: everywhere else the gimbals are
-     * showing the wizard's own preview and "which one is moving" is a
-     * question the step itself is already answering. */
-    const moving = c.step === 'confirm' ? movingChannel(channels) : null;
-    return {
-      step: c.step,
-      phase: c.phase,
-      stepIndex,
-      stepCount: steps.length,
-      /* The list itself, so the wizard's own ladder is drawn from what this
-       * radio was actually asked, not from the constant. */
-      steps: steps.slice(),
-      waiting: Boolean(c.waiting) || !gp,
-      travelled,
-      need,
-      canSave: c.step === 'confirm',
-      /* Only the menu switch is ever skippable, and only because the hold
-       * gesture covers the radio that is asked for one. See
-       * skipCalibrationSelect. */
-      canSkip: c.step === SELECT_STEP,
-      /* Only on the check step, and only when the throttle is reading high
-       * enough to fly the quad on its own. See zeroThrottleHere. */
-      canZeroThrottle: c.step === 'confirm' && channels.throttle > CAL.THROTTLE_IDLE,
-      throttlePercent: Math.round(channels.throttle * 100),
-      channels,
-      axes,
-      /* The channel the pilot is moving, on the check step only, and the
-       * offer that goes with it. See movingChannel. */
-      moving,
-      canReverse: Boolean(moving),
-      /* Which channels this draft has turned round, so the screen can
-       * show the state rather than only the control. */
-      reverse: reversals(c.draft && c.draft.reverse),
-      /* Whether this is the wizard's last step or the check opened on its
-       * own, which is the difference between Save and Cancel meaning keep
-       * and discard a NEW mapping or an edit to the saved one. */
-      checkOnly: Boolean(c.checkOnly),
-      title: calTitle(c),
-      prompt: calPrompt(c, this.stickMode),
-      hint: calHint(c, travelled, need, gp, c.step === 'confirm' ? channels.throttle : 0, moving),
-    };
+    return this.calibration ? this.calibration.view(this.firstGamepad(), this.stickMode) : null;
   }
 
   runCalibration(gp, dtMs) {
-    const c = this.calibration;
-    if (!gp) {
-      c.waiting = true;
-      return;
-    }
-    c.waiting = false;
-    const axes = snapshotAxes(gp);
-    if (c.rest) {
-      expandRange(c.min, c.max, axes);
-    }
-    if (c.step === 'center') {
-      this.calCenter(c, axes, dtMs);
-      return;
-    }
-    if (c.step === 'sweep') {
-      this.calSweep(c, axes, dtMs);
-      return;
-    }
-    /* The menu switch identifies exactly like a flight channel: pick the
-     * axis that moved, hold, record, wait for it to come back. It gets the
-     * same machinery rather than its own, and usedAxes keeps it off an axis
-     * a gimbal already owns. */
-    if (IDENT_CHANNELS.includes(c.step) || c.step === SELECT_STEP) {
-      this.calIdentify(c, axes, dtMs);
-    }
-  }
-
-  calCenter(c, axes, dtMs) {
-    if (!c.restGuess || c.restGuess.length !== axes.length) {
-      c.restGuess = axes.slice();
-      c.holdMs = 0;
-      return;
-    }
-    if (maxAbsDelta(axes, c.restGuess) > CAL.REST_NOISE) {
-      c.restGuess = axes.slice();
-      c.holdMs = 0;
-      return;
-    }
-    c.holdMs += dtMs;
-    if (c.holdMs < CAL.REST_MS) {
-      return;
-    }
-    c.rest = c.restGuess.slice();
-    c.min = c.rest.slice();
-    c.max = c.rest.slice();
-    c.step = 'sweep';
-    c.holdMs = 0;
-  }
-
-  calSweep(c, axes, dtMs) {
-    const need = Math.min(4, c.min.length);
-    const travelled = travelCount(c.min, c.max, CAL.SWEEP_TRAVEL);
-    const away = [];
-    for (let i = 0; i < axes.length; i += 1) {
-      if (Math.abs(axes[i] - c.rest[i]) >= CAL.NEAR_REST) {
-        away.push(i);
-      }
-    }
-    /*
-     * "THEN PUT THEM BACK" HAS NO ANSWER ON A STICK WITH NO SPRING.
-     *
-     * Back meant within NEAR_REST of the centre step's reading on every
-     * axis. A gimbal springs there by itself. A radio's throttle stays
-     * where the thumb leaves it, so a pilot whose throttle was not at the
-     * bottom for the centre step, and the centre step cannot know, had to
-     * find one unmarked place on an unsprung stick again by feel. The
-     * screen said "back to rest" and counted four of four for ever.
-     *
-     * So one axis may come to rest somewhere new, and only one, because
-     * a radio has one stick axis without a spring. It has to hold as still
-     * for as long as the centre step demanded, since this is the centre
-     * step being answered again for that axis, and where it stopped becomes
-     * its rest: the identify steps measure from rest, and measuring from a
-     * place the stick no longer is would read the parked throttle as a
-     * deflection before the pilot had moved.
-     */
-    const parkedAxis = away.length === 1 ? away[0] : -1;
-    const parkMoved = parkedAxis >= 0 && (!c.sweepPark || c.sweepPark.axis !== parkedAxis
-      || Math.abs(axes[parkedAxis] - c.sweepPark.value) > CAL.REST_NOISE);
-    if (parkMoved) {
-      c.sweepPark = { axis: parkedAxis, value: axes[parkedAxis] };
-    }
-    if (travelled < need || away.length > 1 || parkMoved) {
-      c.holdMs = 0;
-      return;
-    }
-    c.holdMs += dtMs;
-    if (c.holdMs < (parkedAxis >= 0 ? CAL.REST_MS : CAL.SWEEP_REST_MS)) {
-      return;
-    }
-    if (parkedAxis >= 0) {
-      c.rest[parkedAxis] = c.sweepPark.value;
-    }
-    c.step = 'throttle';
-    c.phase = 'hold';
-    c.holdMs = 0;
-  }
-
-  calIdentify(c, axes, dtMs) {
-    const channel = c.step;
-    if (c.phase === 'hold') {
-      const pick = pickUnusedAxis(axes, c.rest, usedAxes(c.draft));
-      const unique = pick.bestAbs - pick.secondAbs >= CAL.IDENT_GAP;
-      if (pick.best < 0 || pick.bestAbs < CAL.IDENT_DELTA || !unique) {
-        c.holdMs = 0;
-        return;
-      }
-      c.holdMs += dtMs;
-      if (c.holdMs < CAL.IDENT_HOLD_MS) {
-        return;
-      }
-      const sample = axes[pick.best];
-      const rest = c.rest[pick.best];
-      if (channel === 'throttle') {
-        c.draft.throttle = throttleSpec(pick.best, rest, sample, c.min, c.max);
-      } else {
-        c.draft[channel] = channelSpec(pick.best, rest, sample, c.min, c.max);
-      }
-      c.phase = 'release';
-      c.holdMs = 0;
-      return;
-    }
-    const spec = c.draft[channel];
-    let parked = othersParked(c, axes, spec ? spec.axis : -1);
-    if (parked && spec) {
-      const v = axes[spec.axis];
-      if (channel === 'throttle') {
-        parked = Math.abs(v - spec.low) <= CAL.NEAR_REST
-          || Math.abs(v - c.rest[spec.axis]) <= CAL.NEAR_REST;
-      } else {
-        parked = Math.abs(v - c.rest[spec.axis]) <= CAL.NEAR_REST;
-      }
-    }
-    if (!parked) {
-      c.holdMs = 0;
-      return;
-    }
-    c.holdMs += dtMs;
-    if (c.holdMs < CAL.RELEASE_MS) {
-      return;
-    }
-    /* Where the throttle CAME BACK TO is the whole of what tells a radio's
-     * throttle from a gamepad's, and this is the moment it is known. */
-    if (channel === 'throttle' && spec) {
-      noteThrottleSpring(c, spec, axes);
-    }
-    const steps = c.steps || CAL_STEPS;
-    const next = steps[steps.indexOf(c.step) + 1] || 'confirm';
-    c.step = next;
-    c.phase = 'hold';
-    c.holdMs = 0;
+    this.calibration.poll(gp, dtMs);
   }
 
   readGamepad(gp, map = this.map) {
@@ -2352,7 +1108,7 @@ export class InputManager {
     this.lastWall = t;
 
     const gp = this.firstGamepad();
-    this.notePadRoster();
+    this.roster.track();
     this.followDefaultMap(gp);
     /* The Gamepad object's own timestamp is the only honest statement of when
      * the browser last refreshed it. Counting its changes is how we find out
