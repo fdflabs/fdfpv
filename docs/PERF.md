@@ -884,8 +884,8 @@ objects kept, by function and by the src/ caller under it; `--gctrace`,
 V8's GC events on the main thread by collector; `--buffers`, each buffer
 upload's bytes charged to the src/ line that set needsUpdate.
 
-The trace undercounts the young generation's collections (14 to 19
-MinorGC events in runs whose heap fell 70 to 100 times), so it names a
+The trace undercounts the young generation's collections (12 to 19
+MinorGC events in Swiss runs whose heap fell 55 to 85 times), so it names a
 long pause; the profile counts them.
 
 Program switches were counted with a copy of three whose setProgram says
