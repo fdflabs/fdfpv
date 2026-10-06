@@ -1850,12 +1850,17 @@ export const CRASH_SCENARIOS = [
      * own axes, as fb_spawn makes it (crash.c). On main a Slow Stick that
      * lost its wing in a roll came out with 1.93 times the energy it went
      * in with, and a Bramor its left wing turning at (20, 15, 0) rad/s with
-     * 1.33 (crash.c, live_rebuild and spin_cap).
+     * 1.33 (crash.c, live_rebuild and spin_cap). The flown fleet is in it
+     * too, the spins off the axes, and twelve more orders shuffled by a
+     * fixed seed: a break the craft's whole spin could not pay for still
+     * gained energy, the Bramor 28 percent losing both wings at (25, 25, 0)
+     * rad/s, the Zagi 13, the Striker 9 (crash.c, part_ways).
      */
     name: 'a part that breaks off adds no energy',
     async run(mk) {
-      const IDS = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
-      const SPINS = [[30, 0, 0], [0, 30, 0], [0, 0, 30], [20, -15, 25]];
+      const IDS = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23, 24, 25, 26, 27, 28];
+      const SPINS = [[30, 0, 0], [0, 30, 0], [0, 0, 30], [20, -15, 25], [30, 10, 0], [30, 0, 10], [25, 25, 0], [10, 30, 5]];
+      const SHUFFLES = 12;
       /* Rounding in a sum of a few dozen terms. */
       const ROUND = 1e-9;
       /* The thinnest a free body is let be about any axis (crash.c, fb_spawn). */
@@ -1922,7 +1927,18 @@ export const CRASH_SCENARIOS = [
             spun(r, w);
             judge(r, j, w, 'alone');
           }
-          for (const order of [all, [...all].reverse()]) {
+          const orders = [all, [...all].reverse()];
+          let seed = 7;
+          for (let k = 0; k < SHUFFLES; k += 1) {
+            const o = [...all];
+            for (let i = o.length - 1; i > 0; i -= 1) {
+              seed = (seed * 1103515245 + 12345) % 2147483648;
+              const q = Math.floor((seed / 2147483648) * (i + 1));
+              [o[i], o[q]] = [o[q], o[i]];
+            }
+            orders.push(o);
+          }
+          for (const order of orders) {
             spun(r, w);
             for (const j of order) judge(r, j, w, 'one after another');
           }

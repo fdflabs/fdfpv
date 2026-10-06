@@ -1070,6 +1070,49 @@ static void parts_inertia(const Table *t, int attached_only, const double c0[3],
   }
 }
 
+/* What a break leaves unpaid once the craft's spin is spent (live_rebuild):
+ * paid out of the speed the pieces part with. The craft's and the free
+ * bodies made this step move about their common centre of mass, and that
+ * motion is scaled down together, so their momentum is kept and the joint
+ * takes the energy, as a real one does in failing. A part table whose
+ * pieces hold more inertia than the airframe's measured inertia gives them
+ * (the Bramor's 1.26 to 1.46 times, the Striker's 1.2 to 1.6) can spend
+ * the craft's whole spin on one panel and still owe: a Bramor that lost
+ * both wings turning at (25, 25, 0) rad/s came out with 1.28 times the
+ * energy it went in with. `due` is in the accounts' units, twice the
+ * energy, and m the craft's mass. */
+static void part_ways(SimState *s, double m, double due) {
+  double M = m;
+  double P[3] = { m * s->vel[0], m * s->vel[1], m * s->vel[2] };
+  for (int b = 0; b < SIM_PARTS_MAX; b += 1) {
+    const FreeBody *f = &FB[b];
+    if (f->state != 0 && f->born == s->step_index) {
+      M += f->m;
+      for (int a = 0; a < 3; a += 1) P[a] += f->m * f->vel[a];
+    }
+  }
+  const double V[3] = { P[0] / M, P[1] / M, P[2] / M };
+  double rel = 0.0;
+  for (int a = 0; a < 3; a += 1) rel += m * (s->vel[a] - V[a]) * (s->vel[a] - V[a]);
+  for (int b = 0; b < SIM_PARTS_MAX; b += 1) {
+    const FreeBody *f = &FB[b];
+    if (f->state != 0 && f->born == s->step_index) {
+      for (int a = 0; a < 3; a += 1) rel += f->m * (f->vel[a] - V[a]) * (f->vel[a] - V[a]);
+    }
+  }
+  if (!(rel > 0.0)) {
+    return;
+  }
+  const double k = due < rel ? sim_sqrt(1.0 - due / rel) : 0.0;
+  for (int a = 0; a < 3; a += 1) s->vel[a] = V[a] + k * (s->vel[a] - V[a]);
+  for (int b = 0; b < SIM_PARTS_MAX; b += 1) {
+    FreeBody *f = &FB[b];
+    if (f->state != 0 && f->born == s->step_index) {
+      for (int a = 0; a < 3; a += 1) f->vel[a] = V[a] + k * (f->vel[a] - V[a]);
+    }
+  }
+}
+
 static void live_rebuild(SimState *s) {
   const Table *t = tab();
   const PlantParams *P0 = &PLANT_TABLE[plant_airframe()];
@@ -1204,6 +1247,9 @@ static void live_rebuild(SimState *s) {
     const double left = e_flown - (over - pay);
     const double scale = left > 0.0 ? sim_sqrt(left / e_flown) : 0.0;
     for (int a = 0; a < 3; a += 1) s->omega[a] *= scale;
+    if (left < 0.0) {
+      part_ways(s, m, -left);
+    }
   }
   for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
     g_live.pos_x[k] = P0->pos_x[k] - sh[0];
