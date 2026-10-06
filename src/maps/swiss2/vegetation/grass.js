@@ -544,6 +544,7 @@ export function buildGrass({
   const tiles = new Map();
   const tileId = (ti, tj) => (ti + 32768) * 65536 + (tj + 32768);
   let lastKey = '';
+  let drawn = [];
   /* The draw holds what it should: false after a tile it draws was
    * worked out in the background, or a tile it should draw could not be. */
   let current = false;
@@ -599,6 +600,7 @@ export function buildGrass({
    * another tile; `job` is the one tile in progress.
    */
   const reach = radius + tile * 0.75 + ahead;
+  const budget = { ms: buildMs };
   let candidates = [];
   let next = 0;
   let candCi = NaN;
@@ -623,7 +625,7 @@ export function buildGrass({
   };
   const background = () => {
     const t0 = performance.now();
-    while (performance.now() - t0 < buildMs) {
+    while (performance.now() - t0 < budget.ms) {
       if (!job) {
         while (next < candidates.length && tiles.has(tileId(candidates[next][1], candidates[next][2]))) {
           next += 1;
@@ -721,16 +723,25 @@ export function buildGrass({
     if (key === lastKey && current) {
       return;
     }
-    lastKey = key;
+    /* The ring drawn is the one worked out when the camera crossed into
+     * its tile (or, culled, turned onto new ones), as it always was:
+     * a refill for a tile the background finished uses that ring, not
+     * one round where the camera has got to since, which would draw
+     * tiles at the ring's leading edge a crossing early, at a moment
+     * that depends on how fast the background ran. */
+    if (key !== lastKey) {
+      lastKey = key;
+      drawn = wanted;
+    }
     let n = 0;
     let built = 0;
     let pending = 0;
     let retry = false;
     wantedIds.clear();
     waiting.length = 0;
-    for (let k = 0; k < wanted.length; k += 2) {
-      const ti = wanted[k];
-      const tj = wanted[k + 1];
+    for (let k = 0; k < drawn.length; k += 2) {
+      const ti = drawn[k];
+      const tj = drawn[k + 1];
       const id = tileId(ti, tj);
       wantedIds.add(id);
       let t = tiles.get(id);
@@ -782,6 +793,10 @@ export function buildGrass({
   /* For scripts/perf-play.js and the checks, which find the layer by
    * its mesh's name. */
   mesh.userData.grassStats = stats;
+  /* scripts/perf-grass-check.js slows the background with this, so the
+   * drawn ring's tiles finish mid tile and the refills that follow are
+   * exercised every run rather than when the timing happens to fall so. */
+  mesh.userData.grassBudget = budget;
   return {
     mesh,
     update,

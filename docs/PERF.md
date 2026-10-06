@@ -790,7 +790,19 @@ layer equal in every step (19 809 838 clump-steps both), the middle
 layer equal at the end and a superset on the way (16 steps drew squares
 main had not reached yet: less pop in, not more); no buffer ever full.
 The check fails on a mutation that halves the radius (1199
-differences). `perf-ground-check.js --base=main` refuses until this
+differences).
+
+The lead's run of the check on main with #468 and #472 merged failed
+(54 differences, near layer, steps 774 to 780, after the jump): a
+refill for a tile the background had just finished drew the ring
+round where the camera had got to, not the ring chosen when it crossed
+into its tile, so tiles at the leading edge showed a crossing early, at
+a moment set by how fast the background ran. Fixed: a refill draws the
+ring the crossing chose, as main does. The check now flies this tree a
+second time with the background slowed to 0.3 ms a frame, where that
+refill happens every run (the old refill fails it with the same 54
+differences; the fix passes); three runs on main with #466, #468 and
+#472 merged: ok, ok, ok. `perf-ground-check.js --base=main` refuses until this
 merges, by its own design: grass.js's hunks here are not shader text.
 
 ### What is next

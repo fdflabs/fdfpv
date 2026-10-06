@@ -22,8 +22,10 @@
  * the background's time budget still runs on the wall clock: low over
  * the valley at 30 m/s and then 60 m/s, a full turn on the spot, a climb
  * over the near layer's ceiling and a dive back under it, and a jump of
- * 400 m. Per step, per layer, the records nearer the camera than the
- * layer's radius are hashed by the 32 m square they stand in.
+ * 400 m. This tree is flown twice, the second time with the background
+ * slowed to SLOW_MS a frame. Per step, per layer, the records nearer the
+ * camera than the layer's radius are hashed by the 32 m square they
+ * stand in.
  *
  *   near layer (swiss2-grass)   equal in every step;
  *   middle layer (swiss2-meadow)  the old code worked out four tiles a
@@ -76,6 +78,13 @@ if (shown.status !== 0) {
 const LAYERS = ['swiss2-grass', 'swiss2-meadow'];
 const SQUARE = 32;
 const HOLD = 200;
+/* The third flight's background budget, ms a frame. Slower than the
+ * steps, so tiles in the drawn ring are still being worked out when the
+ * camera moves on and finish mid tile: the refills that follow must
+ * draw the ring the crossing chose. At the default 1 ms that case came
+ * up only when the timing fell so (the lead's run of 2026-10-05 caught
+ * a refill drawing the ring a crossing early; this tree's had not). */
+const SLOW_MS = 0.3;
 
 /*
  * The path, as poses [x, z, height over the ground, yaw toward +z
@@ -108,13 +117,17 @@ function path() {
   return out;
 }
 
-const FLY = (poses) => /* js */ `(() => {
+const FLY = (poses, budgetMs) => /* js */ `(() => {
   const P = globalThis.__SWISS2_PERF;
   const r = P.renderer;
   const cam = P.camera;
   const layers = ${JSON.stringify(LAYERS)}.map((name) => {
     const mesh = P.scene.getObjectByName(name);
     if (!mesh) { throw new Error('no mesh ' + name); }
+    if (${budgetMs === null ? 'false' : 'true'}) {
+      if (!mesh.userData.grassBudget) { throw new Error(name + ': no grassBudget to slow the background with'); }
+      mesh.userData.grassBudget.ms = ${budgetMs};
+    }
     const u = r.properties.get(mesh.material).uniforms;
     if (!u || !u.uRadius) { throw new Error(name + ': its program is not built, so its radius is not known'); }
     return { name, mesh, radius: u.uRadius.value };
@@ -169,7 +182,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused: the quality check below fails the run. */ }
   globalThis.__SWISS2_PERF = {};`];
 
-async function fly(label, override) {
+async function fly(label, override, budgetMs = null) {
   const page = await openPage({
     root, width: 1600, height: 900, url: '/index.html?map=swiss2', seed, override,
   });
@@ -187,7 +200,7 @@ async function fly(label, override) {
     await page.evaluate(`(window.__setCam(${x0}, window.__heightAt(${x0}, ${z0}) + ${h0}, ${z0}, ${x0 + Math.sin(yaw0) * 100}, window.__heightAt(${x0}, ${z0}) + 4, ${z0 + Math.cos(yaw0) * 100}, 44), "")`);
     await page.sleep(2500);
     const t0 = Date.now();
-    const out = JSON.parse(await page.evaluate(FLY(poses)));
+    const out = JSON.parse(await page.evaluate(FLY(poses, budgetMs)));
     console.log(`${label}: ${out.steps.length} steps in ${((Date.now() - t0) / 1000).toFixed(1)} s, radius ${JSON.stringify(out.radius)}${out.stats[LAYERS[0]] ? `, stats ${JSON.stringify(out.stats)}` : ''}`);
     const errors = page.errors.filter((e) => !String(e).startsWith('network:'));
     if (errors.length) {
@@ -202,7 +215,10 @@ async function fly(label, override) {
 }
 
 const was = await fly(`base ${base}`, { [`/${GRASS}`]: shown.stdout });
-const now = await fly('this tree', {});
+const runs = [
+  ['this tree', await fly('this tree', {})],
+  [`this tree, background at ${SLOW_MS} ms a frame`, await fly(`this tree, background at ${SLOW_MS} ms a frame`, {}, SLOW_MS)],
+];
 
 let failed = 0;
 const fail = (msg) => {
@@ -212,35 +228,36 @@ const fail = (msg) => {
   }
 };
 const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
-let ahead = 0;
-for (let k = 0; k < was.steps.length; k += 1) {
-  for (const name of LAYERS) {
-    const a = was.steps[k][name];
-    const b = now.steps[k][name];
-    if (a.full || b.full) {
-      fail(`step ${k} ${name}: the buffer is full (${a.n} before, ${b.n} now), so which clumps it holds depends on their order`);
-    }
-    const keys = new Set([...Object.keys(a.squares), ...Object.keys(b.squares)]);
-    let extra = false;
-    for (const key of keys) {
-      const sa = a.squares[key];
-      const sb = b.squares[key];
-      if (same(sa, sb)) {
-        continue;
-      }
-      const meadowAhead = name === 'swiss2-meadow' && !sa && k < was.steps.length - 1;
-      if (meadowAhead) {
-        extra = true;
-        continue;
-      }
-      fail(`step ${k} ${name} square ${key}: before ${JSON.stringify(sa || null)}, now ${JSON.stringify(sb || null)}`);
-    }
-    ahead += extra ? 1 : 0;
-  }
-}
 const visible = (out, name) => out.steps.reduce((m, s) => m + Object.values(s[name].squares).reduce((n, q) => n + q[0], 0), 0);
-console.log(`clumps that could show, summed over the steps: near ${visible(was, LAYERS[0])} before, ${visible(now, LAYERS[0])} now; `
-  + `middle ${visible(was, LAYERS[1])} before, ${visible(now, LAYERS[1])} now (${ahead} steps where the middle layer drew squares the old code had not reached yet)`);
+for (const [label, now] of runs) {
+  let ahead = 0;
+  for (let k = 0; k < was.steps.length; k += 1) {
+    for (const name of LAYERS) {
+      const a = was.steps[k][name];
+      const b = now.steps[k][name];
+      if (a.full || b.full) {
+        fail(`${label}: step ${k} ${name}: the buffer is full (${a.n} before, ${b.n} now), so which clumps it holds depends on their order`);
+      }
+      const keys = new Set([...Object.keys(a.squares), ...Object.keys(b.squares)]);
+      let extra = false;
+      for (const key of keys) {
+        const sa = a.squares[key];
+        const sb = b.squares[key];
+        if (same(sa, sb)) {
+          continue;
+        }
+        if (name === 'swiss2-meadow' && !sa && k < was.steps.length - 1) {
+          extra = true;
+          continue;
+        }
+        fail(`${label}: step ${k} ${name} square ${key}: before ${JSON.stringify(sa || null)}, now ${JSON.stringify(sb || null)}`);
+      }
+      ahead += extra ? 1 : 0;
+    }
+  }
+  console.log(`${label}: clumps that could show, summed over the steps: near ${visible(was, LAYERS[0])} before, ${visible(now, LAYERS[0])} now; `
+    + `middle ${visible(was, LAYERS[1])} before, ${visible(now, LAYERS[1])} now (${ahead} steps where the middle layer drew squares the old code had not reached yet)`);
+}
 if (failed) {
   console.error(`perf-grass-check: ${failed} difference(s)`);
   process.exit(1);
