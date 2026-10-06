@@ -92,7 +92,6 @@ src/share/windows.js
 src/trackbuilder/faces.js
 src/trackbuilder/figures.js
 src/trackbuilder/index.html
-src/trackbuilder/path.js
 src/trackbuilder/storage.js
 src/ui/accountui.js
 src/ui/campaign.js
