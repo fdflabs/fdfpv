@@ -41,14 +41,49 @@ export const RATES_DUMP = 'use-dump';
  * rewritten on every control change. What is stored is tuneBody(dump), so
  * a saved dump never carries rates past the Rates screen.
  */
-export const FC_DUMP_KEY = 'webfpv.fc.v1';
+export const FC_DUMP_KEY = 'fdfpv.fc.v1';
 
 /*
  * localStorage key for the airframe that dump was saved on, so a dump from
  * one aircraft is not offered on another. Missing means the dump predates
  * a second aircraft.
  */
-export const FC_DUMP_AIRFRAME_KEY = 'webfpv.fc.airframe.v1';
+export const FC_DUMP_AIRFRAME_KEY = 'fdfpv.fc.airframe.v1';
+
+/*
+ * Both keys were named webfpv.* before the project took its own name.
+ * moveRenamedDumpKeys carries a pilot's saved dump across: it copies an old
+ * key's value to the new key unless the new one already holds something
+ * (then the old value is the stale one), and deletes the old key only
+ * after that, so a refused write leaves it to try again next load. Running
+ * it again changes nothing. src/share/move.js carries fdfpv.* keys between
+ * origins as it did webfpv.* ones.
+ */
+const RENAMED_KEYS = [
+  ['webfpv.fc.v1', FC_DUMP_KEY],
+  ['webfpv.fc.airframe.v1', FC_DUMP_AIRFRAME_KEY],
+];
+
+export function moveRenamedDumpKeys(storage) {
+  for (const [old, now] of RENAMED_KEYS) {
+    const value = storage.getItem(old);
+    if (value === null) continue;
+    if (storage.getItem(now) === null) storage.setItem(now, value);
+    storage.removeItem(old);
+  }
+}
+
+// On load, because the shell reads FC_DUMP_KEY straight from storage. A
+// browser that refuses storage (a private window, blocked site data) has
+// nothing saved to move, and the shell's own reads already treat it as
+// empty, so there is nothing to do with that error but let the page boot.
+if (typeof localStorage !== 'undefined') {
+  try {
+    moveRenamedDumpKeys(localStorage);
+  } catch {
+    /* storage unavailable: nothing to move */
+  }
+}
 
 /*
  * Keys that belong to the pilot rather than the tune. composeConfig strips

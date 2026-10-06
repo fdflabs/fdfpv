@@ -184,4 +184,41 @@ for (const opts of [{ noMalloc: true }, { missing: 'sim_bf_get' }]) {
   t.note(`moduleGet ${JSON.stringify(opts)} buffers`, freed());
 }
 
-t.finish('src/fc/dump.js', '79a2461d638ef69d4282312bf11a00632260c07fbf3701522bdd2c52b8a275bf');
+// The storage rename: a pilot's saved dump under the old webfpv.* keys
+// must reach the new keys once, a newer value under the new key must win,
+// a second run must change nothing, and a refused write must keep the old
+// key for the next load.
+function memoryStorage(seed, refuse = false) {
+  const map = new Map(Object.entries(seed));
+  return {
+    map,
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem(k, v) {
+      if (refuse) throw new Error('QuotaExceededError');
+      map.set(k, String(v));
+    },
+    removeItem: (k) => { map.delete(k); },
+  };
+}
+const MIGRATIONS = [
+  {},
+  { 'webfpv.fc.v1': 'set p_roll = 50\n', 'webfpv.fc.airframe.v1': '7inch', other: 'x' },
+  { 'webfpv.fc.v1': 'old dump\n', [D.FC_DUMP_KEY]: 'new dump\n' },
+  { 'webfpv.fc.airframe.v1': '10inch' },
+  { 'webfpv.fc.v1': '' },
+];
+MIGRATIONS.forEach((seed, i) => {
+  const storage = memoryStorage(seed);
+  D.moveRenamedDumpKeys(storage);
+  t.note(`migrate ${i} once`, Object.fromEntries(storage.map));
+  const once = JSON.stringify([...storage.map]);
+  D.moveRenamedDumpKeys(storage);
+  t.rec(`migrate ${i} twice is a no-op`, () => JSON.stringify([...storage.map]) === once);
+});
+{
+  const storage = memoryStorage(MIGRATIONS[1], true);
+  t.rec('migrate refused write', () => D.moveRenamedDumpKeys(storage));
+  t.note('migrate refused write keeps', Object.fromEntries(storage.map));
+}
+
+t.finish('src/fc/dump.js', '65e0ff873fd4e10c7a3704adbe11b0308233c674c233ed0bd14d902b2aa6fa85');
