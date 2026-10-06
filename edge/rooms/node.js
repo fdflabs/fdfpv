@@ -65,14 +65,13 @@ import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { deserialize, serialize } from 'node:v8';
 import { WebSocketServer } from 'ws';
-import front from './front.js';
+import front, { sessionAccount } from './front.js';
 import { RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
 import {
   answer, listener, readRevision, refuseUpgrade, upgradeListener,
 } from '../node-http.js';
-import { normaliseName } from '../../src/share/pilot.js';
 import {
   ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN,
 } from '../../src/share/roomwire.js';
@@ -151,16 +150,13 @@ export const DEAD_MS = 15000;
  *   no session, a made up one, an ended one,
  *   or an account with no callsign yet        CLOSE_SIGNIN
  *   the accounts server down, failing, or
- *   slower than ACCOUNT_WAIT_MS               CLOSE_ACCOUNTS: try again
+ *   slower than front.js ACCOUNT_WAIT_MS      CLOSE_ACCOUNTS: try again
  *   a callsign                                seated, shown by it
  *
  * Without ACCOUNTS_ORIGIN (do.js on Cloudflare, the selftests and every
  * browser check's own rooms server) nothing is checked and every hello is
  * a guest's, as before: that server has no accounts to ask.
  */
-const SESSION_RE = /^[0-9a-f]{64}$/;
-const ACCOUNT_WAIT_MS = 2000;
-
 const SIGNIN = { close: CLOSE_SIGNIN, reason: 'signin' };
 const UNREACHABLE = { close: CLOSE_ACCOUNTS, reason: 'accounts' };
 
@@ -187,25 +183,9 @@ export async function helloAccount(text, env, address) {
   if (!(Number.isInteger(msg.account) && msg.account >= ACCOUNT_JOIN)) {
     return { close: CLOSE.update, reason: 'update' };
   }
-  if (typeof msg.session !== 'string' || !SESSION_RE.test(msg.session)) {
-    return SIGNIN;
-  }
   try {
-    const res = await fetch(`${env.ACCOUNTS_ORIGIN}/api/account`, {
-      headers: { authorization: `Bearer ${msg.session}`, 'cf-connecting-ip': address || 'rooms' },
-      signal: AbortSignal.timeout(ACCOUNT_WAIT_MS),
-    });
-    if (res.status === 401) {
-      return SIGNIN;
-    }
-    if (!res.ok) {
-      console.error(`accounts answered ${res.status}; a join is refused until it answers`);
-      return UNREACHABLE;
-    }
-    const body = await res.json();
-    const callsign = normaliseName(body && body.callsign);
-    const account = body && Number.isInteger(body.id) && body.id > 0 ? body.id : null;
-    return callsign ? { callsign, account } : SIGNIN;
+    const who = await sessionAccount(msg.session, env, address);
+    return who && who.callsign ? who : SIGNIN;
   } catch (e) {
     console.error('accounts unreachable; a join is refused until it answers:', e && e.message ? e.message : e);
     return UNREACHABLE;

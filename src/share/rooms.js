@@ -245,6 +245,39 @@ export function ownName() {
 }
 
 /*
+ * Whether the rooms server says this signed in pilot is one of its
+ * DEV_ACCOUNTS, the owner (edge/rooms/front.js GET /v2/dev): the server
+ * decides it from the session alone, and this page only asks. Resolves
+ * false for a guest, a page with no rooms server, and any failure. An
+ * answer is kept for its session and rooms server, in memory only, never
+ * in storage: a value a page could write for itself would be one it could
+ * forge. A failure is not kept, so the next ask tries again.
+ */
+let devAsked = { key: null, answer: null };
+export function devAccount() {
+  const origin = roomsOrigin();
+  const account = readAccount();
+  if (!origin || !account) {
+    return Promise.resolve(false);
+  }
+  const key = `${origin} ${account.session}`;
+  if (devAsked.key !== key) {
+    const forget = () => {
+      if (devAsked.key === key) {
+        devAsked = { key: null, answer: null };
+      }
+      return false;
+    };
+    const answer = fetch(`${origin}/v2/dev`, { headers: { authorization: `Bearer ${account.session}` }, cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => (body && typeof body.dev === 'boolean' ? body.dev : forget()))
+      .catch(forget);
+    devAsked = { key, answer };
+  }
+  return devAsked.answer;
+}
+
+/*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat, dropped), dropped when the socket went without a leave
  * and the pilot may be back, onWorld(map) when the host moved the room to

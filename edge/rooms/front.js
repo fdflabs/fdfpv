@@ -17,6 +17,10 @@
  *                            404 on a platform that keeps none (Cloudflare)
  *   GET  /v2/admin/rooms     who is on: every room with anybody in it and
  *                            its seats (core.js who()), the same way
+ *   GET  /v2/dev             { dev }: whether the pilot whose session is
+ *                            the authorization: Bearer is one of the
+ *                            server's DEV_ACCOUNTS (devAccount below),
+ *                            false for everyone where nothing is checked
  *   GET  /v2/version         { commit, dirty }: the deployed commit the
  *                            process started on (edge/node-http.js
  *                            readRevision), commit null on Cloudflare
@@ -80,7 +84,9 @@ import { released } from '../../src/game/campaign.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { sha256Base64 } from '../../src/share/identity.js';
 import { retiredMap } from '../../src/maps/retired.js';
+import { normaliseName } from '../../src/share/pilot.js';
 import { lobbyStub } from './lobby.js';
+import { devAccountsOf } from './core.js';
 
 /*
  * One address is often a household or a school behind one NAT, so every
@@ -115,7 +121,7 @@ export function originAllowed(origin) {
 
 function cors(origin) {
   return origin && originAllowed(origin)
-    ? { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, GET, OPTIONS', 'access-control-allow-headers': 'content-type', vary: 'origin' }
+    ? { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, GET, OPTIONS', 'access-control-allow-headers': 'content-type, authorization', vary: 'origin' }
     : {};
 }
 
@@ -140,6 +146,9 @@ function limiter(perMin) {
 const createAllowed = limiter(CREATES_PER_MIN);
 const joinAllowed = limiter(PUBLIC_JOINS_PER_MIN);
 const listAllowed = limiter(LISTS_PER_MIN);
+/* A page asks when the campaign's page first opens, and again only once
+ * a sign in changes its session: a household's worth, with room over. */
+const devAllowed = limiter(2 * PUBLIC_CAP);
 
 const MAP_RE = /^[a-z0-9_]{1,32}$/;
 
@@ -195,6 +204,80 @@ async function whoIsOn(request, env) {
     return Response.json({ error: 'admin' }, { status: 401 });
   }
   return Response.json(env.WHO(), { headers: { 'cache-control': 'no-store' } });
+}
+
+/*
+ * The account a session token is, as the accounts server (tracks-api/
+ * accounts.js, GET /api/account at env.ACCOUNTS_ORIGIN) answers for it:
+ * { callsign, account }, callsign normalised or null for an account with
+ * none yet, account its positive integer id or null (an accounts server
+ * from before ids). null for no session, one of the wrong shape, or one
+ * the accounts server does not know (401). Throws when the accounts
+ * server is down, failing, or slower than ACCOUNT_WAIT_MS, which a caller
+ * must not read as either answer. address is the pilot's, sent as the
+ * accounts server's client address, as Caddy would send it. The token is
+ * used for that one request and not kept. A hello's seat (node.js
+ * helloAccount) and the dev flag (devAccount) both come from here, so an
+ * account is believed one way only.
+ */
+const SESSION_RE = /^[0-9a-f]{64}$/;
+const ACCOUNT_WAIT_MS = 2000;
+
+export async function sessionAccount(session, env, address) {
+  if (typeof session !== 'string' || !SESSION_RE.test(session)) {
+    return null;
+  }
+  const res = await fetch(`${env.ACCOUNTS_ORIGIN}/api/account`, {
+    headers: { authorization: `Bearer ${session}`, 'cf-connecting-ip': address || 'rooms' },
+    signal: AbortSignal.timeout(ACCOUNT_WAIT_MS),
+  });
+  if (res.status === 401) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(`accounts answered ${res.status}`);
+  }
+  const body = await res.json();
+  return {
+    callsign: normaliseName(body && body.callsign) || null,
+    account: body && Number.isInteger(body.id) && body.id > 0 ? body.id : null,
+  };
+}
+
+/*
+ * GET /v2/dev: whether this pilot is one of DEV_ACCOUNTS, the owner, for
+ * whom the campaign lifts its win first lock (the owner, 2026-10-06:
+ * "always make it so that you need to win it first to continue, EXCEPT
+ * for the admin account"). The campaign's page opens before any room, so
+ * the page asks here rather than reading a welcome. The answer is the
+ * accounts server's id for the session in the authorization header, read
+ * against this server's own list; nothing else in the request is read,
+ * so no page names itself the owner. Without an accounts server or a
+ * list, false for everyone and nothing asked. 503 while the accounts
+ * server cannot answer, which the page reads as false.
+ */
+async function devAccount(request, env, origin) {
+  const headers = { ...cors(origin), 'cache-control': 'no-store' };
+  if (request.method !== 'GET') {
+    return new Response('not found', { status: 404, headers });
+  }
+  const list = devAccountsOf(env.DEV_ACCOUNTS);
+  if (!env.ACCOUNTS_ORIGIN || !list.size) {
+    return Response.json({ dev: false }, { headers });
+  }
+  const address = request.headers.get('cf-connecting-ip') || '';
+  if (!devAllowed(address, Date.now())) {
+    return Response.json({ error: 'rate' }, { status: 429, headers });
+  }
+  const session = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  let who;
+  try {
+    who = await sessionAccount(session, env, address);
+  } catch (e) {
+    console.error('accounts unreachable; the dev flag is unknown until it answers:', e && e.message ? e.message : e);
+    return Response.json({ error: 'accounts' }, { status: 503, headers });
+  }
+  return Response.json({ dev: Boolean(who && who.account !== null && list.has(who.account)) }, { headers });
 }
 
 /* Make the room `code` (host.js init); false when the code was taken. */
@@ -342,6 +425,9 @@ export default {
     }
     if (url.pathname === '/v2/admin/rooms') {
       return whoIsOn(request, env);
+    }
+    if (url.pathname === '/v2/dev') {
+      return devAccount(request, env, origin);
     }
     if (url.pathname === '/v2/create' && request.method === 'POST') {
       return create(request, env, origin);

@@ -99,7 +99,7 @@ import { nameRules, readAccount, readPilotName, writePilotName } from './share/p
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
 import {
-  createRoomLink, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
+  createRoomLink, devAccount, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
 import { createVoice } from './share/voice.js';
@@ -159,7 +159,7 @@ import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
 import { briefingOf } from './ui/briefing.js';
 import {
-  ACT1, createCampaignStore, markSeen, seenFilm,
+  ACT1, createCampaignStore, markSeen, released, seenFilm,
 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
@@ -4483,13 +4483,18 @@ export async function boot({
    * the title. Its room is public, named for its host, so a friend finds
    * it in Rooms (the owner, 2026-10-01: "a new room isnt created and made
    * public so my friend cant easily join"); a name the room rules would
-   * not take is left to the picked one. Resolves the code of the room it
-   * made, or null. */
+   * not take is left to the picked one. A mission still in development
+   * gets a private room instead: the server makes a public room only for
+   * a released mission, and a private one for a mission in development
+   * that it then starts only for a DEV_ACCOUNTS host (edge/rooms/front.js
+   * create), the owner's way to fly it before release. Resolves the code
+   * of the room it made, or null. */
   ui.onWarCard = async (card, mission = null) => {
     const name = normaliseRoomName(str('war.room_name', { name: roomName(ownName()) })) || null;
+    const open = released(mission ?? WAR_MISSION);
     for (;;) {
       try {
-        return await warEnter({ mission, public: true, name }, card);
+        return await warEnter({ mission, public: open, name }, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
@@ -6843,6 +6848,9 @@ export async function boot({
      * checks against their own rooms server (DEV_MISSIONS); the VM's room
      * refuses them whatever this page offers (edge/rooms/war.js). */
     devMissions: new URLSearchParams(window.location.search).get('missions') === 'dev',
+    /* The owner skips the win first lock: the rooms server's word for
+     * this session, not the page's. */
+    devAccount,
     /* From a war lobby (its Campaign row), Play sets that room's mission,
      * the host's to set, and the pilot is back in the lobby to say ready;
      * from anywhere else, the war's way in. */

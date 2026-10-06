@@ -48,8 +48,11 @@ export function freePort() {
 
 /* `named` is the url given on the command line, or empty for our own.
  * devMissions: our own starts the campaign's missions in development too
- * (edge/rooms/node.js DEV_MISSIONS); a named one is as it was started. */
-export async function roomsServer(named, label, { devMissions = false } = {}) {
+ * (edge/rooms/node.js DEV_MISSIONS); a named one is as it was started.
+ * accountsOrigin and devAccounts: our own checks every hello's session
+ * against that accounts server (tests/lib/account.js startAccounts) and
+ * reads DEV_ACCOUNTS as those ids, as the VM's does. */
+export async function roomsServer(named, label, { devMissions = false, accountsOrigin = '', devAccounts = '' } = {}) {
   if (named) {
     return { url: named, stop: async () => {} };
   }
@@ -58,6 +61,7 @@ export async function roomsServer(named, label, { devMissions = false } = {}) {
   const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
     env: {
       ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port), HOST: '127.0.0.1', DEV_MISSIONS: devMissions ? 'on' : '',
+      ACCOUNTS_ORIGIN: accountsOrigin, DEV_ACCOUNTS: devAccounts,
     },
     stdio: ['ignore', 'ignore', 'inherit'],
   });

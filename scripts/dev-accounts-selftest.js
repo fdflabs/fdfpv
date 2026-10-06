@@ -23,6 +23,14 @@
  *              server's answer (a stubbed fetch), null without one (the
  *              accounts server's GET /api/account carrying it is
  *              tracks-api/accounts-selftest.js's row)
+ *   forged     a hello naming the owner's id itself is seated as the
+ *              account its session is, and its room is no dev host
+ *   dev flag   GET /v2/dev (edge/rooms/front.js), which lifts the
+ *              campaign's win first lock: true only for a session the
+ *              accounts server says is on the list; false for another
+ *              pilot, an id named in the request, an unknown or missing
+ *              session, and a server with no accounts origin or no list;
+ *              503 while the accounts server is down
  *   create     a private war room may name a mission in development once
  *              the server has a list; a public one, or one only planned,
  *              still may not
@@ -167,6 +175,91 @@ console.log('accounts');
   check('an id that is not a positive integer is no account', odd.account === null);
   const none = await helloAccount(hello, {}, '');
   check('a server with no accounts origin: a guest, no account', none.account === null && none.callsign === null);
+}
+
+console.log('forged');
+{
+  /* A hello naming the owner every way it could: its own id, the owner's
+   * number where the protocol level goes, a callsign. The accounts server
+   * says the session is OTHER's, and that is the seat. */
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ id: OTHER, callsign: 'Pilot' }), { status: 200 });
+  const env = { ACCOUNTS_ORIGIN: 'http://accounts.test' };
+  const forged = await helloAccount(JSON.stringify({
+    type: 'hello', account: OWNER, id: OWNER, accountId: OWNER, callsign: 'Owner', session: 'b'.repeat(64),
+  }), env, '10.0.0.2');
+  globalThis.fetch = realFetch;
+  check('a hello naming the owner\'s id is seated as the account its session is', forged.account === OTHER && forged.callsign === 'Pilot', JSON.stringify(forged));
+  const a = room('itaipu', `${OWNER}`, [forged.account]);
+  check('and its room is no dev host', !a.r.devHost());
+}
+
+console.log('dev flag: GET /v2/dev');
+{
+  /* The campaign's page asks this before any room (src/share/rooms.js
+   * devAccount), and lifts the win first lock only on true. */
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  const answer = (res) => {
+    globalThis.fetch = async (url, init) => {
+      asked.push({ url: String(url), authorization: init?.headers?.authorization ?? null });
+      return typeof res === 'function' ? res() : res.clone();
+    };
+  };
+  const env = (over = {}) => ({ ACCOUNTS_ORIGIN: 'http://accounts.test', DEV_ACCOUNTS: `${OWNER}`, ...over });
+  let n = 0;
+  const ask = async (e, { session = 'c'.repeat(64), path = '/v2/dev', headers = {} } = {}) => {
+    n += 1;
+    const res = await front.fetch(new Request(`https://rooms.test${path}`, {
+      headers: { 'cf-connecting-ip': `10.7.0.${n}`, ...(session ? { authorization: `Bearer ${session}` } : {}), ...headers },
+    }), e);
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const ok = (id) => new Response(JSON.stringify({ id, callsign: 'Pilot' }), { status: 200 });
+
+  answer(ok(OWNER));
+  asked.length = 0;
+  const owner = await ask(env());
+  check('the owner\'s session: dev true', owner.status === 200 && owner.body.dev === true, JSON.stringify(owner));
+  check('asked of the accounts server with that session, and nothing else', asked.length === 1
+    && asked[0].url === 'http://accounts.test/api/account' && asked[0].authorization === `Bearer ${'c'.repeat(64)}`, JSON.stringify(asked));
+
+  answer(ok(OTHER));
+  const other = await ask(env());
+  check('another signed in pilot: dev false', other.status === 200 && other.body.dev === false, JSON.stringify(other));
+  const named = await ask(env(), { path: `/v2/dev?account=${OWNER}&id=${OWNER}`, headers: { 'x-account': `${OWNER}` } });
+  check('naming the owner\'s id in the query or a header changes nothing', named.status === 200 && named.body.dev === false, JSON.stringify(named));
+
+  answer(new Response('{}', { status: 401 }));
+  const ended = await ask(env());
+  check('a session the accounts server does not know: dev false', ended.status === 200 && ended.body.dev === false, JSON.stringify(ended));
+
+  answer(ok(OWNER));
+  asked.length = 0;
+  const bare = await ask(env(), { session: null });
+  const made = await ask(env(), { session: 'not-a-session' });
+  check('no session, or one of the wrong shape: dev false, nothing asked', bare.body?.dev === false && made.body?.dev === false && asked.length === 0,
+    JSON.stringify({ bare, made, asked }));
+  const noOrigin = await ask(env({ ACCOUNTS_ORIGIN: '' }));
+  const noList = await ask(env({ DEV_ACCOUNTS: '' }));
+  check('no accounts server, or no list: dev false for the owner too, nothing asked', noOrigin.body?.dev === false && noList.body?.dev === false && asked.length === 0,
+    JSON.stringify({ noOrigin, noList, asked }));
+
+  answer(() => {
+    throw new Error('down');
+  });
+  const errors = console.error;
+  console.error = () => {};
+  const down = await ask(env());
+  console.error = errors;
+  check('the accounts server down: 503, never a guess', down.status === 503 && down.body?.dev === undefined, JSON.stringify(down));
+  globalThis.fetch = realFetch;
+
+  const pre = await front.fetch(new Request('https://rooms.test/v2/dev', {
+    method: 'OPTIONS', headers: { origin: 'https://paraguayandronecombatsimulator.com', 'access-control-request-headers': 'authorization' },
+  }), env());
+  check('the game\'s page may send its session there (CORS allows authorization)',
+    /authorization/.test(pre.headers.get('access-control-allow-headers') || ''), pre.headers.get('access-control-allow-headers'));
 }
 
 console.log('create');

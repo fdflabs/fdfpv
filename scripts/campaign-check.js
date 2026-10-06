@@ -31,6 +31,15 @@
  * Campaign row: the lobby says mission 2 and Start now starts it, its
  * intro played.
  *
+ * Then the owner's unlock, on a fresh profile signed in through this
+ * check's own accounts server, against a rooms server of its own that
+ * checks sessions there and has the owner's account as DEV_ACCOUNTS, as
+ * the VM's does (a server named on the command line is not used for
+ * these rows): with mission 1 never won, a pilot not on the list sees
+ * mission 2 Win mission 1 first with ?missions=dev; the owner without
+ * ?missions=dev still sees it Under development; with it, Play, whose
+ * press makes a private war room for mission 2 that starts it.
+ *
  * No page error. Pictures in outdir, not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -54,6 +63,9 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { roomsServer } from '../tests/lib/roomsserver.js';
+import { seedSignedIn, startAccounts } from '../tests/lib/account.js';
+import { ACCOUNT_KEY } from '../src/share/pilot.js';
+import { KEY_STORAGE } from '../src/share/identity.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { filmFor } from '../src/share/war/films/index.js';
 
@@ -183,6 +195,9 @@ const SEED = `(() => {
   }
 })();`;
 
+const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
+const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+
 const server = await roomsServer(process.argv[2], 'campaign', { devMissions: true });
 const pageUrl = `/index.html?rooms=${encodeURIComponent(server.url)}`;
 console.log(`Defend the Paraná, rooms at ${server.url}`);
@@ -285,7 +300,6 @@ try {
 
   /* PLAY MISSION 1: its consent first, asked once, then the briefing of
    * a room made for it. */
-  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
   await click(page, '.campaign-box .name-dialog-row button');
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
   await page.until(CONSENT, 10000).catch(() => {});
@@ -301,7 +315,6 @@ try {
   await page.until(CONSENT, 10000).catch(() => {});
   await page.sleep(700);
   await page.tap('Enter');
-  const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
   await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
   await page.sleep(600);
   const ROOM = `(() => {
@@ -464,6 +477,119 @@ try {
 } finally {
   await page.close();
   await server.stop();
+}
+
+/*
+ * THE OWNER, AND NOBODY ELSE, SKIPS THE WIN FIRST LOCK (the owner,
+ * 2026-10-06: "always make it so that you need to win it first to
+ * continue, EXCEPT for the admin account"). A fresh profile, signed in,
+ * against a rooms server of this check's own that checks sessions with
+ * this check's accounts server and has the owner's account as its
+ * DEV_ACCOUNTS, as the VM's does. Mission 1 is never won here. A pilot
+ * not on the list, with ?missions=dev, still has mission 2 locked; the
+ * owner has it to play; and the owner without ?missions=dev still sees
+ * it Under development, the release gate as it was.
+ */
+const accounts = await startAccounts();
+const tag = `${process.pid}-${Date.now()}`;
+const pilot = await accounts.signUp(`campaign-pilot-${tag}`, 'Pilot');
+const owner = await accounts.signUp(`campaign-owner-${tag}`, 'Owner');
+const ownerId = (await accounts.api('GET', '/api/account', undefined, owner.session)).id;
+const signed = await roomsServer('', 'campaign-signed', { accountsOrigin: accounts.origin, devAccounts: String(ownerId) });
+const devOf = async (who) => (await (await fetch(`${signed.url}/v2/dev`, { headers: { authorization: `Bearer ${who.session}` } })).json()).dev;
+check('the rooms server says the owner is on its list and the pilot is not', (await devOf(owner)) === true && (await devOf(pilot)) === false);
+/* Every answer the page gets from GET /v2/dev, so a row reads the page
+ * after the server has answered it, not before. */
+const DEV_TAP = `(() => {
+  window.__devAnswers = [];
+  const f = window.fetch;
+  window.fetch = function (input, init) {
+    const got = f.call(this, input, init);
+    if (/\\/v2\\/dev$/.test(String(input && input.url ? input.url : input))) {
+      got.then((r) => r.clone().json()).then((b) => window.__devAnswers.push(b), () => window.__devAnswers.push(null));
+    }
+    return got;
+  };
+})();`;
+const signedUrl = `/index.html?rooms=${encodeURIComponent(signed.url)}`;
+const page2 = await openPage({
+  root, url: `${signedUrl}&missions=dev`, width: 1280, height: 720, seed: [DEV_TAP, seedSignedIn(accounts.origin, pilot)],
+});
+const openCampaign = async () => {
+  await page2.until('window.__shellReady === true', 300000);
+  await page2.evaluate('(() => { window.__campaign.open(); return true; })()');
+  await page2.until(`${SCREEN} !== null && window.__devAnswers.length > 0`, 15000).catch(() => {});
+  await page2.sleep(300);
+  return page2.evaluate(`({ screen: ${SCREEN}, answers: window.__devAnswers })`);
+};
+const reload = async (url) => {
+  await page2.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await page2.cdp.send('Page.navigate', { url: `${page2.origin}${url}` }, page2.sessionId);
+  await page2.until('window.__beforeReload !== true', 60000);
+};
+try {
+  const asPilot = await openCampaign();
+  const pm = asPilot.screen && asPilot.screen.missions;
+  check('a pilot not on the list, ?missions=dev, mission 1 not won: mission 2 says Win mission 1 first and is not playable',
+    pm && pm[0].best === 'Not flown yet' && pm[1].play === 'Win mission 1 first' && !pm[1].playable
+    && JSON.stringify(asPilot.answers) === '[{"dev":false}]', JSON.stringify(asPilot));
+  check('and the lobby\'s and Make a room\'s missions are mission 1 alone',
+    (await page2.evaluate('JSON.stringify(window.__campaign.playable())')) === '["itaipu-1"]');
+  await shot(page2, 'locked-pilot');
+
+  /* The same profile signed in as the owner instead. */
+  await page2.evaluate(`(() => {
+    localStorage.setItem(${JSON.stringify(ACCOUNT_KEY)}, ${JSON.stringify(JSON.stringify({
+    session: owner.session, callsign: owner.callsign, publicKey: owner.publicKey, keyIsAccounts: true,
+  }))});
+    localStorage.setItem(${JSON.stringify(KEY_STORAGE)}, ${JSON.stringify(owner.identity)});
+    return true;
+  })()`);
+  await reload(signedUrl);
+  const plain = await openCampaign();
+  const nm = plain.screen && plain.screen.missions;
+  check('the owner without ?missions=dev: mission 2 Under development, not playable (the release gate is unchanged)',
+    nm && nm[1].play === 'Under development' && !nm[1].playable && nm[0].playable, JSON.stringify(nm && nm.map((m) => m.play)));
+
+  await reload(`${signedUrl}&missions=dev`);
+  const asOwner = await openCampaign();
+  const om = asOwner.screen && asOwner.screen.missions;
+  check('the owner, ?missions=dev, mission 1 never won: mission 2 is Play and playable',
+    om && om[0].best === 'Not flown yet' && om[0].stars === 0 && om[1].play === 'Play' && om[1].playable
+    && JSON.stringify(asOwner.answers) === '[{"dev":true}]', JSON.stringify(asOwner));
+  check('and 3 and 4 too, 5 to 7 still Coming soon', om && om.slice(2, 4).every((m) => m.play === 'Play' && m.playable)
+    && om.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(om && om.map((m) => m.play)));
+  await shot(page2, 'unlocked-owner');
+
+  /* AND PLAY WORKS, against a server shaped as the VM's (no DEV_MISSIONS):
+   * the room made for mission 2 is private, the one kind the server makes
+   * for a mission in development, and it starts it for the owner, its
+   * host, whose seat the accounts server vouched for. */
+  await click(page2, '[data-mission="itaipu-2"] .campaign-play');
+  await page2.until(CONSENT, 10000).catch(() => {});
+  await page2.sleep(700);
+  await page2.tap('Enter');
+  await page2.until(`${IN_LOBBY} && /Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
+  await page2.sleep(600);
+  const made = await page2.evaluate(`(() => {
+    const r = window.__rooms();
+    return { phase: r.phase, public: r.public, host: r.host === r.seat, mode: r.mode, pending: window.__campaign.pending(),
+      line: (document.querySelector('.war-lobby-mission') || {}).textContent || '' };
+  })()`);
+  check('the owner\'s Play on mission 2: a private war room made for it, its host, mission 2 remembered',
+    made.phase === 'open' && made.public === false && made.host && made.mode === 'war' && /Mission 2: /.test(made.line)
+    && made.pending && made.pending.mission === 'itaipu-2', JSON.stringify(made));
+  await page2.evaluate("(() => { window.__ui.act('friends-war-start'); return true; })()");
+  await page2.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
+  const took = await page2.evaluate("(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, error: v.error ?? null }; })()");
+  check('and Start now starts mission 2 there', took.mission === 'itaipu-2' && ['briefing', 'countdown', 'live'].includes(took.state), JSON.stringify(took));
+
+  const errs = page2.errors.filter((e) => !e.startsWith('network:'));
+  check('no page error, signed in', errs.length === 0, errs.slice(0, 3).join(' | '));
+} finally {
+  await page2.close();
+  await signed.stop();
+  await accounts.stop();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
