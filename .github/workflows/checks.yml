@@ -67,6 +67,7 @@ jobs:
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
       - run: npm run hulls:check
+      - run: npm run airframes:selftest
       - run: npm run midair:plant
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
       # by hand (npm run midair:harness) and its numbers go in the pull
