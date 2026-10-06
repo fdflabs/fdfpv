@@ -29,6 +29,7 @@ jobs:
       - run: npm run lint:catalog
       - run: npm run lint:nouns
       - run: npm run lint:copy
+      - run: npm run lint:header
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
@@ -123,6 +124,7 @@ jobs:
       - run: npm run tigermoth:stab
       - run: npm run combat:gates
       - run: npm run input:selftest
+      - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
       - run: npm run race:golden
       - run: npm run contact:selftest
@@ -133,6 +135,7 @@ jobs:
       - run: npm run edit:selftest
       - run: npm run export:selftest
       - run: npm run link:selftest
+      - run: npm run link:trace
       - run: npm run music:selftest
       # The audio lab's meter against EBU Tech 3341's cases, and the scripted
       # flights against the plant that flew them (tools/audio). The renders
