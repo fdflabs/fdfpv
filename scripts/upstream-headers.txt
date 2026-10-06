@@ -33,7 +33,6 @@ scripts/flight-report.js
 scripts/floats-shell.js
 scripts/frame-check.js
 scripts/gatecards.js
-scripts/ghost-selftest.js
 scripts/icons.js
 scripts/input-check.js
 scripts/input-selftest.js
