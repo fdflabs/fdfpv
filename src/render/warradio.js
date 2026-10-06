@@ -250,6 +250,9 @@ export class WarRadio {
     this.track = '';
     this.musicLevel = 0;
     this.onSpeak = null;
+    /* Told each line id as its file is asked to play (a pause is not a
+     * line): the ops room's subtitles follow the voice by it. */
+    this.onLine = null;
     /* The voice chat duck, dB (0 or down to DUCK_DB), and when it last ran. */
     this.duckDb = 0;
     this.duckAt = null;
@@ -423,6 +426,9 @@ export class WarRadio {
     }
     if (this.onSpeak) {
       this.onSpeak();
+    }
+    if (this.onLine) {
+      this.onLine(ids[i]);
     }
   }
 
