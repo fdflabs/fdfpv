@@ -7,7 +7,7 @@
 # wide, the view's id and numbers written under it. What a round is judged
 # on, and what the owner sees.
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import json, os, sys
 from PIL import Image, ImageDraw
