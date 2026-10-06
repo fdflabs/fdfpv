@@ -21,7 +21,6 @@ scripts/build-wasm.sh
 scripts/collider-audit.js
 scripts/contact-selftest.js
 scripts/craft-check.js
-scripts/crash-rules-selftest.js
 scripts/device-check.js
 scripts/drone-wireframe.js
 scripts/fc-catalog-gen.js
