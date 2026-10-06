@@ -25,6 +25,7 @@
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "rates:selftest": "node scripts/rates-selftest.js",
+    "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "lint:shell": "node scripts/shell-check.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
