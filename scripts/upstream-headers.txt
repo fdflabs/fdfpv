@@ -20,7 +20,6 @@ scripts/build-selftest.js
 scripts/build-wasm.sh
 scripts/collider-audit.js
 scripts/craft-check.js
-scripts/crash-rules-selftest.js
 scripts/device-check.js
 scripts/drone-wireframe.js
 scripts/fc-catalog-lint.js
