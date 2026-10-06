@@ -36,7 +36,16 @@
  *   terrain  The ground's meshes, the carved cliffs and the headwall
  *            against height(), as an offset along the ground's normal:
  *            a drawn face in front of the collision ground is flown
- *            through, one behind it is an invisible wall.
+ *            through, one behind it is an invisible wall. Where that
+ *            offset is over 0.3 m it is also measured as the distance
+ *            to the nearest crossing of the collision ground, marched
+ *            both ways along the ground's normal, the drawn face's own
+ *            normal, the level line down the ground's slope and the
+ *            vertical (out to MARCH_CAP), and the nearer of the two is
+ *            taken: on a face near vertical the ground's gradient over
+ *            a metre says nothing about which way the face looks, and
+ *            the offset it gave a point on a sheer face was its height
+ *            under the top.
  *   water    The drawn lake, stream and pool surfaces against the
  *            plant's water (window.__waterSample), both ways.
  *
@@ -552,18 +561,45 @@ function pageTerrain() {
   const res = {};
   const worst = [];
   const pA = new T.Vector3(), pB = new T.Vector3(), pC = new T.Vector3();
+  const e1 = new T.Vector3(), e2 = new T.Vector3(), nrm = new T.Vector3();
   const H = (x, z) => window.__surface(x, z, -1e9);
+  /* The nearest distance at which the point's side of the collision
+   * ground changes, along each line both ways (a mesh's winding is not
+   * always outward): fine where the counts' edges are, coarser beyond.
+   * Null past the cap. */
+  const MARCH_CAP = 20;
+  const STEPS = [];
+  for (let s = 0.1; s < 1 - 1e-9; s += 0.1) STEPS.push(+s.toFixed(2));
+  for (let s = 1; s < 3 - 1e-9; s += 0.25) STEPS.push(s);
+  for (let s = 3; s <= MARCH_CAP; s += 1) STEPS.push(s);
+  const march = (x, y, z, under, lines) => {
+    for (const s of STEPS) {
+      for (const l of lines) {
+        for (const k of [1, -1]) {
+          const px = x + l[0] * s * k, py = y + l[1] * s * k, pz = z + l[2] * s * k;
+          if ((py < H(px, pz)) !== under) return s;
+        }
+      }
+    }
+    return null;
+  };
+  const unit = (v) => {
+    const m = Math.hypot(v[0], v[1], v[2]);
+    return m > 1e-9 ? [v[0] / m, v[1] / m, v[2] / m] : null;
+  };
   for (const o of A.ground) {
     const name = o.name || 'ground tile';
     const g = o.geometry, pos = g.attributes.position, idx = g.index;
     const nt = (idx ? idx.count : pos.count) / 3;
-    const r = (res[name] ??= { n: 0, proud03: 0, proud1: 0, sunk03: 0, sunk1: 0, sunk3: 0, seam: 0, maxProud: 0, maxSunk: 0 });
+    const r = (res[name] ??= { n: 0, proud03: 0, proud1: 0, sunk03: 0, sunk1: 0, sunk3: 0, seam: 0, capped: 0, maxProud: 0, maxSunk: 0 });
     const step = Math.max(1, Math.floor(nt / 400000));
     for (let t = 0; t < nt; t += step) {
       const i0 = idx ? idx.getX(t * 3) : t * 3, i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1, i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
       pA.fromBufferAttribute(pos, i0).applyMatrix4(o.matrixWorld);
       pB.fromBufferAttribute(pos, i1).applyMatrix4(o.matrixWorld);
       pC.fromBufferAttribute(pos, i2).applyMatrix4(o.matrixWorld);
+      nrm.crossVectors(e1.subVectors(pB, pA), e2.subVectors(pC, pA));
+      const drawnN = unit([nrm.x, nrm.y, nrm.z]);
       for (const [a, b, c] of [[1, 0, 0], [0.5, 0.5, 0], [1 / 3, 1 / 3, 1 / 3]]) {
         const x = pA.x * a + pB.x * b + pC.x * c, y = pA.y * a + pB.y * b + pC.y * c, z = pA.z * a + pB.z * b + pC.z * c;
         /* The map's rim, where the ground meets the far range. */
@@ -572,7 +608,15 @@ function pageTerrain() {
         /* A lake's or a stream's bed is under the water a craft meets. */
         if (y < h - 0.3 && window.__waterSample(x, z).body >= 0) continue;
         const gx = H(x + 0.5, z) - H(x - 0.5, z), gz = H(x, z + 0.5) - H(x, z - 0.5);
-        const d = (y - h) / Math.sqrt(1 + gx * gx + gz * gz);
+        let d = (y - h) / Math.sqrt(1 + gx * gx + gz * gz);
+        if (Math.abs(d) > 0.3) {
+          const lines = [unit([-gx, 1, -gz]), drawnN, unit([gx, 0, gz]), [0, 1, 0]].filter(Boolean);
+          const s = march(x, y, z, y < h, lines);
+          if (s == null) r.capped += 1;
+          /* A crossing along any line is at least as far as the ground
+           * is, so it only ever brings the gradient's estimate down. */
+          if (s != null && s < Math.abs(d)) d = Math.sign(d) * s;
+        }
         /* The carved rock's 120 m tiles hang a skirt at their edges, below
          * the ground: not a face anyone flies at. */
         if (d < -1 && name === 'swiss2-cliffs' && (Math.abs(((x % 120) + 120) % 120 - 60) > 58.5 || Math.abs(((z % 120) + 120) % 120 - 60) > 58.5)) {
@@ -1082,7 +1126,7 @@ function printMap(r) {
   const t = r.report.terrain;
   if (t) {
     for (const [k, v] of Object.entries(t.res)) {
-      console.log(`terrain ${k}: ${v.n} samples, in front > 0.3 m ${v.proud03} (> 1 m ${v.proud1}, max ${v.maxProud}), behind > 0.3 m ${v.sunk03} (> 1 m ${v.sunk1}, > 3 m ${v.sunk3}, max ${v.maxSunk}), tile skirts left out ${v.seam}`);
+      console.log(`terrain ${k}: ${v.n} samples, in front > 0.3 m ${v.proud03} (> 1 m ${v.proud1}, max ${v.maxProud}), behind > 0.3 m ${v.sunk03} (> 1 m ${v.sunk1}, > 3 m ${v.sunk3}, max ${v.maxSunk}), tile skirts left out ${v.seam}, past the 20 m march ${v.capped}`);
       for (const w of (t.ex[k] || []).slice(0, 3)) console.log(`      at ${w[1]}, ${w[2]}, ${w[3]}: ${w[4]} m`);
     }
   }

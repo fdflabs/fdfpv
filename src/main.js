@@ -2839,6 +2839,18 @@ export async function boot({
     return floatsOnWater() && !(sp && sp.air);
   }
 
+  /* The ground a spawn seats the craft on. A map that draws its ground in
+   * levels (Itaipu's terrain engine) first selects round the new spot
+   * (map.settleGround), so the height read is the level drawn there from
+   * the next frame on, not the coarse node the last place's selection drew.
+   * fromY is a spawn's hint, so a deck spawn is not the grass under it. */
+  function spawnHeight(x, z, fromY) {
+    if (view.settleGround) {
+      view.settleGround(x, z);
+    }
+    return fromY != null ? view.height(x, z, fromY) : groundAt(x, z);
+  }
+
   function adoptSpawn() {
     seatRestHeight(airframeById(runAirframe), startsAfloat());
     const sp = runSpawn();
@@ -2847,11 +2859,8 @@ export async function boot({
     startYaw = sp.yaw;
     startPitch = sp.pitch || 0;
     /* Terrain here is not at y = 0. Spawning without its height puts the
-     * craft underground, looking up at the lit underside of the terrain.
-     * spawn.y is a fromY hint so a deck spawn is not the grass under it. */
-    startY = sp.y != null
-      ? view.height(startX, startZ, sp.y)
-      : groundAt(startX, startZ);
+     * craft underground, looking up at the lit underside of the terrain. */
+    startY = spawnHeight(startX, startZ, sp.y);
     qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
     qSpawnInv.copy(qSpawn).invert();
   }
@@ -11294,9 +11303,7 @@ export async function boot({
       startZ = at.z;
       startYaw = at.yaw;
       startPitch = 0;
-      startY = at.y != null
-        ? view.height(startX, startZ, at.y)
-        : groundAt(startX, startZ);
+      startY = spawnHeight(startX, startZ, at.y);
       qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
       qSpawnInv.copy(qSpawn).invert();
     }

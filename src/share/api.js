@@ -7,23 +7,15 @@
  * (deploy/vm/Caddyfile). src/share/rooms.js, cloud.js and board.js read it
  * from here; their ?rooms=, ?tracks= and ?board= overrides still outrank it.
  *
- * The game moved to its own domain on 3 October 2026. API_ORIGIN is the
- * VM by name. FALLBACK_API_ORIGIN is the same VM by address, which is what
- * the page used before, and it stays only while the name's DNS spreads and
- * Caddy fetches the name's certificate: until then a lookup or a handshake
- * for the name fails, and probeApi() moves this page to the address. Once
- * the name answers everywhere, delete the fallback and the probe. The
- * Cloudflare Workers the VM replaced, fdfpv-rooms and fdfpv-tracks on
- * fdfretes.workers.dev, are still deployed, and naming them here is the
- * way back to them.
- *
- * Requests made before the probe answers go to the name. While the name
- * does not resolve, such a request fails as a server that is down does,
- * and each caller already lives with that: rooms retry, uploads retry,
- * the board has deadlines.
- *
- * The probe's answer lives in this module only, never in localStorage: a
- * stored address would pin a pilot to it after the name works.
+ * The game moved to its own domain on 3 October 2026, and the VM answers
+ * by name (api.paraguayandronecombatsimulator.com). The page no longer
+ * falls back to the VM's bare address: the name's DNS and certificate
+ * settled, and a page that cannot reach the name now fails as a server
+ * that is down does, which each caller already lives with (rooms retry,
+ * uploads retry, the board has deadlines). Caddy still serves the bare
+ * address for pages built before the move. The Cloudflare Workers the VM
+ * replaced, fdfpv-rooms and fdfpv-tracks on fdfretes.workers.dev, are
+ * still deployed, and naming them here is the way back to them.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -42,7 +34,6 @@
  */
 
 export const API_ORIGIN = 'https://api.paraguayandronecombatsimulator.com';
-export const FALLBACK_API_ORIGIN = 'https://129.151.39.48';
 
 /* The game's own domain, apex first. The apex is canonical; GitHub Pages
  * sends www to it. */
@@ -56,49 +47,3 @@ export const SITE_HOSTS = [
   'www.paraguayandronecombatsimulator.com',
   'fdflabs.github.io',
 ];
-
-const PROBE_PATH = '/api/health';
-const PROBE_TIMEOUT_MS = 4000;
-
-let chosen = API_ORIGIN;
-let probing = null;
-
-export function apiOrigin() {
-  return chosen;
-}
-
-async function answers(origin, fetchImpl, timeoutMs) {
-  try {
-    const res = await fetchImpl(`${origin}${PROBE_PATH}`, { signal: AbortSignal.timeout(timeoutMs) });
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
-}
-
-/*
- * Asks the name, and only when it does not answer, the address. Resolves
- * to the origin chosen, once per page; later calls get the same promise.
- * When neither answers the name is kept, so a page that came up offline
- * reaches the name when the network returns.
- */
-export function probeApi({ fetchImpl = globalThis.fetch, timeoutMs = PROBE_TIMEOUT_MS } = {}) {
-  if (!probing) {
-    probing = (async () => {
-      if (await answers(API_ORIGIN, fetchImpl, timeoutMs)) {
-        return chosen;
-      }
-      if (await answers(FALLBACK_API_ORIGIN, fetchImpl, timeoutMs)) {
-        chosen = FALLBACK_API_ORIGIN;
-      }
-      return chosen;
-    })();
-  }
-  return probing;
-}
-
-/* For the selftest: forget the probe, as a fresh page would. */
-export function resetApiProbe() {
-  chosen = API_ORIGIN;
-  probing = null;
-}

@@ -51,7 +51,7 @@ import {
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
 import { RoomClock } from './roomclock.js';
-import { SITE_HOSTS, apiOrigin } from './api.js';
+import { API_ORIGIN, SITE_HOSTS } from './api.js';
 
 /* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md),
  * at the origin src/share/api.js names. */
@@ -129,7 +129,7 @@ export function roomsOrigin() {
     return kept;
   }
   try {
-    return SITE_HOSTS.includes(window.location.hostname) ? apiOrigin() : null;
+    return SITE_HOSTS.includes(window.location.hostname) ? API_ORIGIN : null;
   } catch (e) {
     return null;
   }
