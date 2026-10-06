@@ -87,11 +87,9 @@ src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
 src/render/audio.js
-src/render/celmat.js
 src/render/post.js
 src/render/pylons.js
 src/render/scene.js
-src/render/session-textures.js
 src/replay/crashcam.js
 src/share/board.js
 src/share/bugs.js
