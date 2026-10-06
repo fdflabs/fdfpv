@@ -13,7 +13,7 @@
 # WebP only: the game needs WebGL 2, and every browser with WebGL 2 decodes
 # WebP, so a JPEG fallback would be bytes nobody fetches.
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import os
 import sys
