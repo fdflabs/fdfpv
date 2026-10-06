@@ -841,6 +841,11 @@ function perDocument(raw) {
     return out;
   }
   const doc = norm.doc;
+  /* A document with no usable id is given a fresh random one, and every
+   * output below would carry it. Its shape is checked; the digits are not. */
+  if (doc.id !== raw?.id) {
+    doc.id = TRACK_ID.test(doc.id) ? 'trk-00000000' : `BAD-ID:${doc.id}`;
+  }
   const plain = attempt(() => model.toPlain(doc));
   const text = attempt(() => model.serialize(doc));
   out.model.toPlain = plain;
@@ -969,8 +974,12 @@ function perDocument(raw) {
     };
   });
 
+  const course = attempt(() => courseFromDocument(clone(raw)));
+  if (typeof raw?.id !== 'string' && typeof course?.documentId === 'string') {
+    course.documentId = TRACK_ID.test(course.documentId) ? 'trk-00000000' : `BAD-ID:${course.documentId}`;
+  }
   out.consumers = {
-    course: attempt(() => courseFromDocument(clone(raw))),
+    course,
     planes: attempt(() => planesFor(clone(raw))),
   };
   return out;
