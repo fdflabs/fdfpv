@@ -285,6 +285,7 @@
     "floats:shell": "node scripts/floats-shell.js",
     "water:render": "node scripts/water-render.js",
     "input:selftest": "node scripts/input-selftest.js",
+    "touchsticks:selftest": "node scripts/touchsticks-selftest.js",
     "stickmode:selftest": "node scripts/stickmode-selftest.js",
     "mouse:shell": "node scripts/mouse-shell.js",
     "music:selftest": "node scripts/music-selftest.js",
