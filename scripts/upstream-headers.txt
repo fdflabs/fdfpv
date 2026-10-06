@@ -31,7 +31,6 @@ scripts/frame-check.js
 scripts/gatecards.js
 scripts/icons.js
 scripts/itaipu-check.js
-scripts/lib/flightrig.js
 scripts/memory-check.js
 scripts/mouse-shell.js
 scripts/music.js
@@ -39,8 +38,6 @@ scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
 scripts/og.js
-scripts/orbit-check.js
-scripts/path-check.js
 scripts/pixels.js
 scripts/posters.js
 scripts/preset-lint.js
@@ -53,7 +50,6 @@ scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
 scripts/trick-sweep.js
-scripts/wall-check.js
 src/boot.js
 src/game/airframehull.js
 src/game/proven.js
