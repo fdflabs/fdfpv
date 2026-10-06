@@ -117,7 +117,6 @@ src/render/pylons.js
 src/render/quality.js
 src/render/scene.js
 src/render/session-textures.js
-src/render/shell.js
 src/render/showcase.js
 src/render/tracks.js
 src/replay/crashcam.js
