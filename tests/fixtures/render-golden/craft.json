@@ -1,0 +1,721 @@
+{
+ "built": [
+  {
+   "id": "7inch",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "combat",
+    "discs",
+    "group",
+    "livery",
+    "propSpin",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.2,
+    "bodyWidth": 0.1,
+    "bodyHeight": 0.045,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "10inch",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "combat",
+    "discs",
+    "group",
+    "livery",
+    "propSpin",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.24,
+    "bodyWidth": 0.13,
+    "bodyHeight": 0.05,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "interceptor",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "combat",
+    "discs",
+    "group",
+    "livery",
+    "propSpin",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.16,
+    "bodyWidth": 0.06,
+    "bodyHeight": 0.045,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "sky1800",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.225,
+    "bodyWidth": 1.8,
+    "bodyHeight": 0.339,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "cub1400",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.9,
+    "bodyWidth": 1.4,
+    "bodyHeight": 0.323,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "radian2000",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setProp",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.14,
+    "bodyWidth": 2,
+    "bodyHeight": 0.32,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "bramor2300",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "launcher",
+    "launcherRest",
+    "leds",
+    "livery",
+    "propSpin",
+    "setChute",
+    "setProp",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.96,
+    "bodyWidth": 2.3,
+    "bodyHeight": 0.315,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "slowstick1180",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.952,
+    "bodyWidth": 1.176,
+    "bodyHeight": 0.355,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "timber1500",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setFlaps",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.04,
+    "bodyWidth": 1.555,
+    "bodyHeight": 0.422,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "timber1500f",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setFlaps",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.04,
+    "bodyWidth": 1.555,
+    "bodyHeight": 0.47,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "cub1400f",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.9,
+    "bodyWidth": 1.4,
+    "bodyHeight": 0.405,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "bombshell1118",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.818,
+    "bodyWidth": 1.1176,
+    "bodyHeight": 0.3233,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "kadet1981",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.5834,
+    "bodyWidth": 1.9812,
+    "bodyHeight": 0.5536,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "uglystik1567",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.3061,
+    "bodyWidth": 1.5682,
+    "bodyHeight": 0.3767,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "tigermoth1803",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.4706,
+    "bodyWidth": 1.8034,
+    "bodyHeight": 0.5692,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "p51d1450",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setFlaps",
+    "setGear",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.2628,
+    "bodyWidth": 1.45,
+    "bodyHeight": 0.4794,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "f16878",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setGear",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.306,
+    "bodyWidth": 0.878,
+    "bodyHeight": 0.405,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "zagi1219",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.4707,
+    "bodyWidth": 1.2192,
+    "bodyHeight": 0.1387,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "nrj1490",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 0.959,
+    "bodyWidth": 1.49,
+    "bodyHeight": 0.222,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
+   "id": "striker2500",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "combat",
+    "discs",
+    "group",
+    "launcher",
+    "launcherRest",
+    "leds",
+    "livery",
+    "propSpin",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 2.67,
+    "bodyWidth": 2.502,
+    "bodyHeight": 0.652,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  }
+ ],
+ "dispatch": [
+  [
+   "7inch",
+   0
+  ],
+  [
+   "10inch",
+   1
+  ],
+  [
+   "interceptor",
+   2
+  ],
+  [
+   "sky1800",
+   3
+  ],
+  [
+   "cub1400",
+   4
+  ],
+  [
+   "radian2000",
+   5
+  ],
+  [
+   "bramor2300",
+   6
+  ],
+  [
+   "slowstick1180",
+   7
+  ],
+  [
+   "timber1500",
+   8
+  ],
+  [
+   "timber1500f",
+   9
+  ],
+  [
+   "cub1400f",
+   10
+  ],
+  [
+   "bombshell1118",
+   11
+  ],
+  [
+   "kadet1981",
+   12
+  ],
+  [
+   "uglystik1567",
+   13
+  ],
+  [
+   "tigermoth1803",
+   14
+  ],
+  [
+   "p51d1450",
+   15
+  ],
+  [
+   "f16878",
+   16
+  ],
+  [
+   "zagi1219",
+   17
+  ],
+  [
+   "nrj1490",
+   18
+  ],
+  [
+   "striker2500",
+   19
+  ],
+  [
+   "5inch",
+   2
+  ],
+  [
+   "whoop65",
+   2
+  ],
+  [
+   "nope",
+   2
+  ],
+  [
+   "undefined",
+   2
+  ],
+  [
+   "",
+   2
+  ]
+ ],
+ "exports": [
+  "buildCraft",
+  "craftBuilderFor",
+  "craftDims"
+ ]
+}

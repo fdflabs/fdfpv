@@ -25,28 +25,36 @@ jobs:
       # edge/rooms/node.js, and speaks to it.
       - run: npm ci
       - run: npm run lint:fc
+      - run: npm run rates:selftest
       - run: npm run lint:presets
       - run: npm run lint:catalog
+      - run: npm run fc-catalog:selftest
       - run: npm run lint:nouns
       - run: npm run lint:copy
       - run: npm run lint:header
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
+      - run: npm run dump:selftest
       # The firmware's name only in its Credits attribution: string tables,
       # script literals and the served pages (scripts/brand-lint.js).
       - run: npm run lint:bf
       - run: npm run strings:selftest
+      - run: npm run pids:selftest
       - run: npm run version:check
       - run: npm run lap:selftest
+      - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
       - run: npm run live:selftest
+      - run: npm run ratescurve:selftest
       - run: npm run rooms:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
+      - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
+      - run: npm run keynotes:selftest
       - run: npm run rooms:accounts
       # The checks' stand in for Google signs nobody in on the deployed
       # game: no production config names it, and the tracks server run as
@@ -59,6 +67,7 @@ jobs:
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
       - run: npm run hulls:check
+      - run: npm run airframes:selftest
       - run: npm run midair:plant
       # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
       # by hand (npm run midair:harness) and its numbers go in the pull
@@ -69,6 +78,7 @@ jobs:
       - run: npm run tag:harness -- --seeds=4 --runs=6
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
+      - run: npm run registry:selftest
       - run: npm run war:stages
       # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
       # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
@@ -124,8 +134,20 @@ jobs:
       - run: npm run tigermoth:stab
       - run: npm run combat:gates
       - run: npm run input:selftest
+      - run: npm run touchsticks:selftest
+      - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
+      - run: npm run score:golden
+      - run: npm run tricks:golden
+      - run: npm run tricks:gen -- --check
+      - run: npm run trick:golden
+      - run: npm run obstacles:golden
+      - run: npm run track:golden
+      - run: npm run guide:golden
+      - run: npm run trackdoc:golden
+      - run: npm run race:golden
+      - run: npm run ghost:golden
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
@@ -164,6 +186,7 @@ jobs:
       - run: npm run crash:tree-nan
       - run: npm run river:check
       - run: npm run builder:selftest
+      - run: npm run trackbuilder:golden
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
@@ -198,3 +221,7 @@ jobs:
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
+      # src/render and src/art outputs on a fixed stage against goldens
+      # recorded from each module before its track U rewrite
+      # (tests/browser/render-golden/).
+      - run: npm run render:golden

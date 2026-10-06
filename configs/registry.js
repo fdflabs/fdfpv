@@ -1,32 +1,25 @@
 /*
- * registry.js: the tunes the shell offers, and the only place any of them
+ * registry.js: every tune the Tune row can offer, and the one place each
  * is named.
  *
- * A tune is a Betaflight CLI diff in this directory and nothing else. The
- * module parses it with the same code path a dropped file takes, so an
- * entry here has no privileges a pilot's own dump does not have. Adding a
- * tune is a file plus a row.
+ * A tune is a Betaflight CLI diff beside this file, named by its id, and
+ * a row here. The module parses it exactly as it parses a dump a pilot
+ * drops in, so a shipped tune can do nothing a pilot's own cannot. A tune
+ * belongs to an aircraft's plant and is offered only on aircraft that fly
+ * that plant.
  *
- * NO TUNE HERE SETS RATES. Rates are the pilot's, chosen in Settings and
- * appended to whichever tune is loaded; see rates.js. A tune that carried a
- * rateprofile would be overridden by that append rather than winning
- * silently, but the right fix is not to carry one.
+ * No tune sets rates: rates belong to the pilot and are appended after
+ * whichever tune is loaded (configs/rates.js), and fc-trace F7 and F8 hold
+ * every file here to that.
  *
- * `id` is the file's basename. It is also the localStorage key's value, so
- * changing one orphans a stored choice; src/ui/ui.js falls back to the
- * first row rather than throwing, because a stale setting must never stop
- * the page booting.
+ * The quads ship Betaflight's stock tune for their build and nothing more
+ * opinionated: the claim is a quad that feels like a real one, and a
+ * freshly flashed board is the honest place to start. A pilot's own feel
+ * lives in their saved dump (CUSTOM_TUNE) and their PID adjustment
+ * (configs/pids.js).
  *
- * ONE SHIPPED TUNE, AND IT IS STOCK. Karate race 6S and Precision used to
- * sit below the default and they are gone, files and rows both. A shipped
- * tune is an opinion about how a quad should feel, and this simulator's
- * whole claim is that it feels like the real thing, so the honest starting
- * point is the one a freshly flashed board actually gives you and every
- * other feel is the pilot's own. The Flight controller screen and the PIDs
- * screen are where they make it: both write real Betaflight keys, a Save
- * becomes CUSTOM_TUNE below, and that dump sits on the Tune row beside this
- * one. So the set did not shrink from three answers to one, it shrank from
- * three answers to one plus yours.
+ * Ids are stored in settings, so they never change; an id this build does
+ * not know resolves to the first row rather than stopping the page.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -438,33 +431,26 @@ export const TUNES = [
 ];
 
 /*
- * The tunes an airframe may load: the tunes written for the plant it
- * selects. A 10 inch tune on a 7 inch is not a thing a pilot should be able
- * to reach by accident.
- *
- * An aircraft on floats is its own plant, since the floats change its mass
- * and its air, but its stabiliser is the wheeled aircraft's to the gain, so
- * it names that aircraft in `tunesOf` and flies its tunes.
+ * The tunes an aircraft may load: those written for an aircraft on the same
+ * plant, so a 10 inch tune never appears on a 7 inch. A float version is its
+ * own plant (the floats change its mass and drag) but flies its land
+ * plane's stabiliser, so it names that plane in `tunesOf` and is offered
+ * its tunes.
  */
+const byId = new Map(AIRFRAMES.map((a) => [a.id, a]));
+
 export function tunesFor(airframeId) {
-  const seated = AIRFRAMES.find((a) => a.id === airframeId);
-  if (!seated) {
-    return [];
-  }
-  const want = seated.tunesOf ? AIRFRAMES.find((a) => a.id === seated.tunesOf) : seated;
-  return TUNES.filter((t) => {
-    const owner = t.airframe && AIRFRAMES.find((a) => a.id === t.airframe);
-    return Boolean(owner) && owner.simId === want.simId;
-  });
+  const seated = byId.get(airframeId);
+  if (!seated) return [];
+  const plant = (seated.tunesOf ? byId.get(seated.tunesOf) : seated).simId;
+  return TUNES.filter((tune) => byId.get(tune.airframe)?.simId === plant);
 }
 
 /*
- * The one tune that is NOT a file here: the dump the pilot saved from the
- * Flight controller screen, held in localStorage under FC_DUMP_KEY in
- * src/fc/dump.js. It exists on the Tune row only while that save exists,
- * and it is named here so the row, the PIDs screen and the feel report
- * all call it the same thing. tunePath never serves it; src/main.js loads
- * it from storage instead of fetching.
+ * The pilot's saved Flight controller dump, offered on the Tune row while
+ * one is saved (localStorage, FC_DUMP_KEY in src/fc/dump.js). It has no
+ * file, so tunePath never serves it: src/main.js reads it from storage.
+ * Named here so the Tune row, the PIDs screen and bug reports agree.
  */
 export const CUSTOM_TUNE = {
   id: 'custom',
@@ -477,16 +463,15 @@ export const CUSTOM_TUNE = {
   note: 'The dump you saved on the Flight controller screen, every field of it.',
 };
 
+// The row for an id, the saved dump for 'custom', or the first row for an
+// id this build does not know.
 export function tuneById(id) {
-  if (id === CUSTOM_TUNE.id) {
-    return CUSTOM_TUNE;
-  }
-  return TUNES.find((t) => t.id === id) ?? TUNES[0];
+  if (id === CUSTOM_TUNE.id) return CUSTOM_TUNE;
+  return TUNES.find((tune) => tune.id === id) ?? TUNES[0];
 }
 
+// The diff's address, resolved beside this module so the shell works
+// wherever it is served from, at the root or under a path.
 export function tunePath(id) {
-  /* Beside this file, not at /configs, so that the shell works wherever it
-   * is mounted. fdfpv.example serves it under /sim/ and Render serves it at the
-   * root, and neither has to be told which. */
   return new URL(`./${tuneById(id).id}.diff`, import.meta.url).href;
 }

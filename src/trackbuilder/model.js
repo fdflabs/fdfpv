@@ -1,487 +1,260 @@
 /*
- * model.js: the track document. Creation, repair, and the JSON round trip.
+ * model.js: the track document, made, read, repaired and written.
  *
- * THE DOCUMENT IS THE DELIVERABLE. The simulator will read it one day and
- * this tool will not be in the room when it does, so the rules here are:
- * every field has one meaning, no field is derived from another field at
- * read time, and the file is readable by a person with no tooling. The
- * fields are documented one by one in schema.md next to a worked example.
+ * The format is described in schema.md beside this file. In short: a field
+ * track (version 3, and the 1 and 2 it reads) lays elements out on a field
+ * of its own; a world track (version 4) stands them at absolute poses in one
+ * of the simulator's maps and carries the map's id. `sequence` is the course,
+ * one entry per opening flown.
  *
- * Two invariants the rest of the tool relies on:
+ * WRITTEN BYTES ARE A CONTRACT. The tracks server stores what serialize()
+ * writes, the board fingerprints a layout from what toPlain() returns, and
+ * both compare exactly, so key order, rounding and every default below are
+ * the format, not presentation. tests/fixtures/trackbuilder pins them.
  *
- *   normalize() ALWAYS returns a valid document. It never throws on bad
- *   input; it repairs what it can, drops what it cannot, and returns a list
- *   of what it did. Importing a file somebody hand edited must not be able
- *   to leave the tool in a state it cannot draw.
+ * READING NEVER THROWS. A document is untrusted input from storage, a file
+ * or the network. normalize() takes anything, keeps what is usable, fills
+ * what is missing, drops what cannot be repaired and says what it dropped.
  *
- *   serialize() is STABLE. Keys are written in a fixed order and every
- *   number is rounded once, so export, import, export is byte identical and
- *   a saved track diffs cleanly.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This module imports elements.js for defaults and geometry.js for the
- * aperture frame. It imports nothing else, and in particular nothing from
- * the simulator.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
-  ELEMENTS, KIND, TUNING, TRACK_CLASSES, TRACK_CLASS_DEFAULT, apertureLevels,
-  defaultDims, defaultPitch, defaultZ, elementHeight, normalizeFlagSide,
-  noAircraftFlies, trackClassOf, tuningFor,
+  ELEMENTS, KIND, TRACK_CLASS_DEFAULT, apertureLevels, defaultDims, defaultPitch, defaultZ, elementHeight,
+  normalizeFlagSide, trackClassOf, tuningFor,
 } from './elements.js';
 import { apertureFrame, wrapAngle } from './geometry.js';
 import { str } from '../strings/index.js';
 
-/*
- * The schema version. Bump it when a change to the document cannot be read
- * by a consumer written against the previous number, and add a migration in
- * migrate() at the same time. Adding an OPTIONAL field with a documented
- * default is not a bump; removing or re-meaning a field is.
- *
- * 2, because `branding.logo` is no longer written. A course can carry five
- * logos now, and the only two honest ways to say so were to write the first
- * one twice, once in the old field and once in the new list, or to stop
- * writing the old field. Writing a 256 kB data URL twice doubles the file
- * for the single logo case that is most of them, so the old field went, and
- * removing a field is exactly what the rule above says to bump for.
- *
- * A version 1 document still reads: normalize() below promotes its
- * `branding.logo` into the list as the first logo. It is a one way upgrade,
- * which is what a schema version is for.
- */
-/*
- * 3 since the micro class landed. A version 2 document has no `trackClass`
- * and normalize defaults it to 'full', which is what every one of them is,
- * so nothing that exists changes meaning. A version 2 READER meeting a
- * version 3 micro document reads it best effort, drops the field it does not
- * know, and draws a RaceGOW course as a full sized one, which is a picture
- * that is wrong rather than a crash: that is the documented behaviour of
- * this schema and the reason the version went up rather than the field being
- * smuggled in at 2.
- */
+/* What a field track is written as. Version 2 stopped writing the single
+ * branding.logo; 3 added trackClass. normalize() reads 1 and 2 as well. */
 export const SCHEMA_VERSION = 3;
 
-/*
- * 4, AND ONLY FOR A MAP TRACK: a course built inside one of the simulator's
- * own worlds rather than on the field (src/builder/). It carries `map`, the
- * world it stands in, and every element's `position` is ABSOLUTE in that
- * world with a full `orientation`, where a field track's position is
- * measured from the field's corner and its gates only yaw and pitch. That
- * re-means a field every reader already reads, which is what the rule above
- * says to bump for.
- *
- * A FIELD TRACK IS STILL WRITTEN AS 3, byte for byte what it was. A board
- * from before map tracks (validate.js) accepts 1, 2 and 3 and nothing else,
- * so writing 4 on every track would have refused every field track put on
- * such a board from this build. A map track goes to the board from the
- * in-sim builder's P, and the board reads 4 as a map track only.
- */
+/* What a world track is written as, and only a world track: a board from
+ * before world tracks accepts 1 to 3, so a field track stays a 3. */
 export const MAP_SCHEMA_VERSION = 4;
 
-/* A map id, as src/maps/registry.js spells them. Checked on read because a
- * document is untrusted input and this string picks a world to load. */
+/* A map id as src/maps/registry.js spells them. It picks a world to load, so
+ * it is checked as untrusted input. The version is not looked at here. */
 const MAP_ID = /^[a-z0-9]{1,24}$/;
 
 export function isMapTrack(doc) {
-  return Boolean(doc && typeof doc.map === 'string' && MAP_ID.test(doc.map));
+  return typeof doc?.map === 'string' && MAP_ID.test(doc.map);
 }
 
-/*
- * ONE MARK, as a data URL, and the cap on it. The list they live in, and the
- * budget they share, are below.
- *
- * WHY THE IMAGE ITSELF IS IN THE DOCUMENT. A track is one file that a person
- * can send to another person, and a branding that lived in a second file
- * beside it would arrive stripped every time. So a logo travels inside the
- * track, which means it has to be small enough that a track is still a file
- * rather than a payload.
- *
- * 256 kB of data URL is about 190 kB of image, which is a generous PNG at
- * the 1200 by 400 box the builder fits an upload inside, and local storage's
- * usual quota is 5 MB for the whole origin. The builder resizes and
- * re-encodes before it ever gets here, so this cap is the backstop against a
- * hand edited file rather than the thing a user meets: what a user meets is
- * BRANDING_MAX_CHARS below, the budget all five share.
- *
- * Anything that is not a data URL of an image is dropped on read, and that
- * is a security property as much as a validation one: a document is
- * untrusted input, this string ends up in a texture loader, and an http URL
- * in there would make opening somebody's track a network request to their
- * server.
- */
+/* One logo: a base64 data URL of a raster image, no larger than this. The
+ * image travels inside the track, and it ends up in a texture loader, so a
+ * URL that would fetch something is refused outright. */
 export const LOGO_MAX_CHARS = 256 * 1024;
-const LOGO_PREFIX = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+const LOGO_URL = /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
 
 export function isUsableLogo(value) {
-  return typeof value === 'string'
-    && value.length <= LOGO_MAX_CHARS
-    && LOGO_PREFIX.test(value);
+  return typeof value === 'string' && value.length <= LOGO_MAX_CHARS && LOGO_URL.test(value);
 }
 
-/*
- * FIVE MARKS, AND WHY FIVE.
- *
- * A course is sold to sponsors, and a sponsor wants their logo on gates a
- * pilot passes rather than on a board in a corner. So the logos are spread
- * round robin over the structures in flying order: with fifteen gates and
- * five logos each one is on three of them, and each one is on gates spread
- * down the lap rather than on the first three. Five is the number past which
- * a pilot stops being able to tell one sponsor's gate from another's at
- * commit range, and it is also about as many as the size budget below can
- * carry.
- *
- * THE TOTAL IS THE REAL CAP, not the per logo one. LOGO_MAX_CHARS still
- * bounds any single logo, so a course written before this existed, with one
- * logo of 256 kB, still reads. What actually has to hold is the whole
- * document: it lives in local storage next to every other track an author
- * has, it is posted to the board in one request, and it is a file people
- * send each other. 384 kB of data URL across all five is about 96 kB of PNG
- * each, which is a generous flat logo, and it leaves the published document
- * under the board's own cap with room for the course itself.
- */
+/* At most five logos, sharing one budget, which is what keeps a published
+ * course inside the board's own size limit. */
 export const LOGO_SLOTS = 5;
 export const BRANDING_MAX_CHARS = 384 * 1024;
 
-
-/* The logos, always an array, so no caller has to write the `?? []`. */
 export function logosOf(doc) {
   return doc?.branding?.logos ?? [];
 }
 
-/*
- * The logo a decal wears: the one it names, or the course's first logo when
- * it names nothing. Returns null when the course has no logos at all, or
- * when the one it named has since been removed, and both of those are
- * states the builder draws rather than repairs. Repairing would mean
- * silently moving somebody's sponsor onto a different sponsor's decal.
- */
+/* The logo a ground logo is painted with: the one it names, the course's
+ * first when it names none, and null when that logo is gone. A missing logo
+ * is drawn as missing rather than swapped for another sponsor's. */
 export function logoForDecal(doc, el) {
   const logos = logosOf(doc);
-  if (!logos.length) {
-    return null;
+  if (!el?.logoId) {
+    return logos[0] ?? null;
   }
-  const id = typeof el?.logoId === 'string' ? el.logoId : '';
-  if (!id) {
-    return logos[0];
-  }
-  return logos.find((l) => l.id === id) ?? null;
+  return logos.find((logo) => logo.id === el.logoId) ?? null;
 }
 
-/* Every number in the file is written to this many decimal places. Six is a
- * micrometre on a 60 m field, which is far past any dimension that matters
- * and short enough that a float never prints seventeen digits of noise. */
-const PLACES = 6;
+/* ------------------------------------------------------------------ */
+/* Small readers for untrusted values.                                 */
+/* ------------------------------------------------------------------ */
 
-function num(x, fallback = 0) {
-  const n = Number(x);
-  if (!Number.isFinite(n)) {
-    return fallback;
-  }
-  return Number(n.toFixed(PLACES));
+const isRecord = (v) => v !== null && typeof v === 'object';
+
+/* Six decimals: a micrometre, and short enough that export, import, export
+ * gives the same bytes. Decimal rounding, as the printed number reads. A
+ * value that is not a finite number is written as 0, so no NaN or string
+ * ever reaches a stored document. */
+function round6(x) {
+  return typeof x === 'number' && Number.isFinite(x) ? Number(x.toFixed(6)) : 0;
 }
 
-function int(x, fallback, lo, hi) {
-  const n = Math.round(Number(x));
-  if (!Number.isFinite(n)) {
-    return fallback;
-  }
-  if (lo != null && n < lo) {
-    return lo;
-  }
-  if (hi != null && n > hi) {
-    return hi;
-  }
-  return n;
+/* What Number() makes of a value when that is finite, else undefined. So a
+ * numeric string reads as its number, and null, false, '' and [] read as 0,
+ * which is what documents in the wild have always been read as. */
+function finite(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }
 
-function asText(x, fallback = '') {
-  return typeof x === 'string' ? x : fallback;
+function numberOr(v, fallback) {
+  const n = finite(v);
+  return n === undefined ? fallback : n;
 }
 
-/*
- * A unit quaternion { w, x, y, z }, read off anything. A missing or zero one
- * is the rest pose, so a hand edited file with no orientation stands its
- * gates up rather than failing to load.
- */
-function quat(q) {
-  const w = Number(q?.w);
-  const x = Number(q?.x);
-  const y = Number(q?.y);
-  const z = Number(q?.z);
-  const n = Math.hypot(w, x, y, z);
-  if (!Number.isFinite(n) || n < 1e-9) {
-    return { w: 1, x: 0, y: 0, z: 0 };
-  }
-  return { w: num(w / n), x: num(x / n), y: num(y / n), z: num(z / n) };
+/* Seconds resolution, the way the format writes times. */
+function utcNow() {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-function bool(x, fallback = false) {
-  return typeof x === 'boolean' ? x : fallback;
-}
-
+/* Copies, not references: a document must never share an object with a
+ * caller that might edit it. */
 export function deepClone(o) {
   return JSON.parse(JSON.stringify(o));
 }
 
-/*
- * Ids. Derived from what is already in the document rather than from a
- * counter held somewhere, so an id is never reused after an undo and the
- * document carries no hidden state.
- */
-function nextId(existing, prefix) {
-  let max = 0;
-  for (const id of existing) {
-    const m = String(id).match(new RegExp(`^${prefix}-(\\d+)$`));
-    if (m) {
-      max = Math.max(max, Number(m[1]));
+/* ------------------------------------------------------------------ */
+/* Ids                                                                 */
+/* ------------------------------------------------------------------ */
+
+/* One more than the largest number among ids spelled `<prefix><digits>`,
+ * so an id freed by a delete or an undo is never handed out again. */
+function nextNumber(ids, prefix) {
+  let top = 0;
+  for (const id of ids) {
+    if (typeof id !== 'string' || !id.startsWith(prefix)) {
+      continue;
+    }
+    const digits = id.slice(prefix.length);
+    if (/^\d+$/.test(digits)) {
+      top = Math.max(top, Number(digits));
     }
   }
-  return `${prefix}-${max + 1}`;
+  return top + 1;
 }
 
 export function newElementId(doc) {
-  return nextId(doc.elements.map((e) => e.id), 'el');
+  return `el-${nextNumber(doc.elements.map((el) => el.id), 'el-')}`;
 }
 
 export function newSequenceId(doc) {
-  return nextId(doc.sequence.map((s) => s.id), 'sq');
+  return `sq-${nextNumber(doc.sequence.map((s) => s.id), 'sq-')}`;
 }
 
-
-/* A track id, for local storage. Not derived from the contents, because two
- * tracks are allowed to be identical and still be two tracks. */
+/* Random, not derived from the contents: two identical tracks are still two
+ * tracks. */
 export function newTrackId() {
-  const n = Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
-  return `trk-${n}`;
-}
-
-function nowUtc() {
-  return new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  const hex = Math.floor(Math.random() * 0x100000000).toString(16).padStart(8, '0');
+  return `trk-${hex}`;
 }
 
 /* ------------------------------------------------------------------ */
-/* Creation                                                            */
+/* Making things                                                       */
 /* ------------------------------------------------------------------ */
 
-/*
- * WHO MADE THE TRACK, AND WHERE IT CAME FROM.
- *
- * Optional, and absent on everything a pilot builds themselves: their own
- * tracks are theirs and the board already knows whose seat published them.
- * It exists for tracks that came from SOMEWHERE ELSE, where the person who
- * brought a layout over is not the person who designed it. The RaceGOW5
- * set is exactly that case: eight tracks by seven different designers,
- * published as one series, and crediting the series to whoever imported
- * them would misstate seven people's work.
- *
- * Every field is a plain string and every one is optional. Nothing here is
- * trusted or rendered as markup: `designer` and the rest are drawn as text.
- */
-function creditOf(src) {
-  const c = src && typeof src === 'object' ? src : null;
-  if (!c) {
-    return null;
-  }
-  const s = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 120) : '');
-  const out = {
-    designer: s(c.designer),
-    series: s(c.series),
-    sponsor: s(c.sponsor),
-    source: s(c.source),
-    broughtOverBy: s(c.broughtOverBy),
-    note: s(c.note),
-  };
-  /* An object with nothing in it is worse than no object: it would put an
-   * empty byline on a card. */
-  return Object.values(out).some(Boolean) ? out : null;
-}
+const CREDIT_FIELDS = ['designer', 'series', 'sponsor', 'source', 'broughtOverBy', 'note'];
+const CREDIT_MAX = 120;
 
 export function createTrack(name, cls = TRACK_CLASS_DEFAULT) {
-  /* Defaulted here rather than in the signature so a caller that only wants
-   * to name the class can pass undefined for the name, which every one of
-   * app.js's six call sites does. */
-  name = name ?? str('ui.untitled_track');
-  const stamp = nowUtc();
-  const T = tuningFor(cls);
+  const trackClass = trackClassOf({ trackClass: cls });
+  const tuning = tuningFor(trackClass);
+  const now = utcNow();
   return {
     schemaVersion: SCHEMA_VERSION,
     id: newTrackId(),
     name,
-    createdUtc: stamp,
-    modifiedUtc: stamp,
-    /* WHAT KIND OF TRACK THIS IS, a property of the track rather than of
-     * the pilot: src/trackbuilder/elements.js TRACK_CLASSES. */
-    trackClass: TRACK_CLASSES.includes(cls) ? cls : TRACK_CLASS_DEFAULT,
-    field: {
-      width: T.fieldWidth,
-      depth: T.fieldDepth,
-      gridSize: T.gridSize,
-    },
+    createdUtc: now,
+    modifiedUtc: now,
+    trackClass,
+    field: { width: tuning.fieldWidth, depth: tuning.fieldDepth, gridSize: tuning.gridSize },
     settings: {
-      tangentScale: T.tangentScale,
-      minCurveRadius: T.minCurveRadius,
-      samplesPerSegment: T.samplesPerSegment,
+      tangentScale: tuning.tangentScale,
+      minCurveRadius: tuning.minCurveRadius,
+      samplesPerSegment: tuning.samplesPerSegment,
     },
-    /*
-     * What the course is dressed in: up to five sponsors' logos, in the
-     * order they are handed out round the gates. Empty by default, so a
-     * track costs nothing until somebody uploads something.
-     */
     branding: { logos: [] },
-    /* A track a pilot builds is their own and carries no byline. */
     credit: null,
     elements: [],
     sequence: [],
   };
 }
 
-/*
- * A new track standing in one of the simulator's own worlds. The field stays
- * in the document because the schema requires one and a best effort reader
- * needs something to draw on; nothing reads it for a map track.
- */
+/* A track standing in one of the simulator's worlds. It keeps a field,
+ * because the format has one and a reader that does not know worlds needs
+ * something to draw on. */
 export function createMapTrack(name, mapId) {
-  if (!MAP_ID.test(String(mapId))) {
-    throw new Error(`not a map id: ${mapId}`);
-  }
   const doc = createTrack(name);
   doc.schemaVersion = MAP_SCHEMA_VERSION;
   doc.map = mapId;
   return doc;
 }
 
-/*
- * A new element of `type` at `position`. The dimensions are copied out of
- * elements.js rather than referenced, because the document has to stay
- * readable on its own and because editing a default must not silently
- * resize a track somebody already flew.
- */
+/* A new element. It carries its own copy of the default dims, so editing a
+ * default never resizes a track already built. The caller adds it. */
 export function createElement(doc, type, position, yaw = 0) {
   const def = ELEMENTS[type];
   if (!def) {
     throw new Error(`unknown element type: ${type}`);
   }
-  /* The dimensions, the tilt and the starting height all come from the
-   * TRACK'S class, so a gate dropped on a RaceGOW room is 711 mm across and
-   * one dropped on a field is 1524. Copied out of elements.js rather than
-   * referenced, because the document has to stay readable on its own and
-   * because editing a default must not silently resize a track somebody
-   * already flew. */
-  const cls = trackClassOf(doc);
   const el = {
     id: newElementId(doc),
     type,
     name: '',
     position: {
-      x: num(position.x),
-      y: num(position.y),
-      z: num(position.z ?? defaultZ(type, cls)),
+      x: round6(numberOr(position.x, 0)),
+      y: round6(numberOr(position.y, 0)),
+      z: round6(numberOr(position.z ?? defaultZ(type), 0)),
     },
-    yaw: num(yaw),
-    pitch: num(defaultPitch(type, cls)),
+    yaw: round6(yaw),
+    pitch: round6(defaultPitch(type)),
     yawOverridden: false,
-    dims: defaultDims(type, cls),
+    dims: defaultDims(type, trackClassOf(doc)),
   };
-  if (def.kind === KIND.ANNOTATION) {
-    el.text = 'Label';
-  }
-  if (def.flagSide) {
-    el.flagSide = def.flagSide;
-  }
-  if (def.kind === KIND.DECAL) {
-    /*
-     * NAMED AT BIRTH where there is anything to name, so a decal dropped on
-     * a course that already has sponsors is finished the moment it lands AND
-     * stays pointed at that sponsor when the list is reordered around it.
-     * Empty only ever means the course had no logos yet, and then it follows
-     * whichever logo becomes the first one.
-     */
-    el.logoId = logosOf(doc)[0]?.id ?? '';
-  }
+  /* A new ground logo wears the course's first logo until told otherwise. */
+  Object.assign(el, extrasFor(def, { logoId: logosOf(doc)[0]?.id }));
   return el;
 }
 
-/*
- * A new sequence entry pointing at an element, and at one aperture of it.
- *
- * THE PAIR IS THE POINT. A ladder is one element with three openings and can
- * legitimately appear at sequence positions 5 and 9 on different levels with
- * different faces, so what the sequence holds is (elementId, apertureIndex)
- * and never just an element.
- */
+/* A new sequence entry: one opening of one element, which is why it names
+ * the pair. A ladder flown twice is two entries on one element. The caller
+ * adds it. */
 export function createSequenceEntry(doc, elementId, apertureIndex = 0) {
   const el = elementById(doc, elementId);
   if (!el) {
     throw new Error(`no such element: ${elementId}`);
   }
-  /*
-   * AN OBSTACLE CANNOT BE A STEP, and this refuses one rather than making an
-   * entry the next reload will delete. normalize keeps only sequenceable
-   * elements, so a step on a barrier or a horizontal pole survived until the
-   * document was written and read back and then silently vanished, taking
-   * the author's flying order with it. Refusing here means the caller finds
-   * out at the moment it asks.
-   */
   if (!isSequenceable(el)) {
-    throw new Error(`${el.type} is not something a lap can pass through or round`);
+    throw new Error(`a ${el.type} is never part of the course`);
   }
-  const def = ELEMENTS[el.type];
-  const entry = {
-    id: newSequenceId(doc),
-    elementId,
-    /* Clamped at BOTH ends. int(x, 0, 0) pins the floor at zero and leaves
-     * the ceiling open, so an index past the last hole of a stack was stored
-     * as given and every reader after it had to clamp again. */
-    apertureIndex: def.kind === KIND.APERTURE
-      ? int(apertureIndex, 0, 0, Math.max(0, aperturesOf(el).length - 1))
-      : null,
-    /* 0 means the face has not been decided. The auto-defaulting pass in
-     * faces.js normally sets it the moment the element is placed, and the
-     * results panel warns about any that survive. */
-    entry: def.kind === KIND.APERTURE ? 0 : null,
-    passSide: def.kind === KIND.MARKER ? 'left' : null,
-    /*
-     * FROM THE PLACED ELEMENT, not from the type's default, and the micro
-     * class is what made this matter.
-     *
-     * A pole on a RaceGOW track carries a clearance of 14 inches, which is
-     * the distance the diagrams dimension between a pole and a gate. Read
-     * off the TYPE it was 1.5 m, the five inch flag's, which on a five metre
-     * room is a scoring square wider than the course. It was also already
-     * wrong in the small way: an author who widened a flag's clearance and
-     * then added a second pass through it got the factory number back.
-     *
-     * The type stays as the fallback for an element whose dims have somehow
-     * lost the field.
-     */
-    clearance: def.kind === KIND.MARKER
-      ? num(el?.dims?.clearance ?? def.dims.clearance)
-      : null,
-    overridden: false,
+  const base = { id: newSequenceId(doc), elementId };
+  if (kindOf(el) === KIND.MARKER) {
+    return {
+      ...base, apertureIndex: null, entry: null, passSide: 'left', clearance: el.dims?.clearance ?? defaultDims(el.type).clearance,
+      overridden: false,
+    };
+  }
+  const top = aperturesOf(el).length - 1;
+  return {
+    ...base, apertureIndex: Math.max(0, Math.min(Math.round(apertureIndex), top)), entry: 0, passSide: null, clearance: null, overridden: false,
   };
-  return entry;
 }
 
 /* ------------------------------------------------------------------ */
-/* Accessors                                                           */
+/* Reading a document                                                  */
 /* ------------------------------------------------------------------ */
 
 export function elementById(doc, id) {
-  return doc.elements.find((e) => e.id === id);
+  return doc.elements.find((el) => el.id === id);
 }
 
 export function defOf(el) {
@@ -492,88 +265,61 @@ export function kindOf(el) {
   return ELEMENTS[el.type]?.kind;
 }
 
+/* Only openings and markers are flown; obstacles, pads, text and paint are
+ * never part of the course. */
 export function isSequenceable(el) {
-  const k = kindOf(el);
-  return k === KIND.APERTURE || k === KIND.MARKER;
+  const kind = kindOf(el);
+  return kind === KIND.APERTURE || kind === KIND.MARKER;
 }
 
 /*
- * WHICH SPONSOR'S MARK EACH STRUCTURE WEARS, as a map from element id to a
- * position in the round robin.
- *
- * ONE RULE, ONE PLACE. The world deals the logos out, the builder's 3D
- * preview deals them out, and the two have to agree or an author dresses a
- * course that flies wearing something else. So the rule lives here, on the
- * document, rather than being written once in each renderer.
- *
- * THE ORDER IS THE FLYING ORDER, and it counts STRUCTURES rather than
- * passes. A ladder flown three times is one frame with one header board, so
- * it takes one slot; a flag or a cone is scored through a square in the air
- * beside it and carries no vinyl at all, so it takes none. An element that
- * is not in the flying order does not stand on the race field, so it is not
- * in here either.
- *
- * The result modulo the number of logos is the logo: fifteen structures and
- * five logos put each logo on three of them, spread down the lap.
+ * Which logo each structure wears, as element id to its place in the deal.
+ * Structures are counted in flying order, once each however often they are
+ * flown, and only openings count: a flag or a cone carries no vinyl. The
+ * world and the builder's preview both read this, so they dress a course
+ * the same way.
  */
 export function dressOrder(doc) {
-  const slots = new Map();
-  for (const seq of doc.sequence ?? []) {
-    const el = elementById(doc, seq.elementId);
-    if (!el || kindOf(el) !== KIND.APERTURE || slots.has(seq.elementId)) {
-      continue;
+  const order = new Map();
+  for (const s of doc.sequence) {
+    const el = elementById(doc, s.elementId);
+    if (el && kindOf(el) === KIND.APERTURE && !order.has(el.id)) {
+      order.set(el.id, order.size);
     }
-    slots.set(seq.elementId, slots.size);
   }
-  return slots;
+  return order;
 }
 
 export function startPadsOf(doc) {
-  return doc.elements.find((e) => kindOf(e) === KIND.START);
+  return doc.elements.find((el) => el.type === 'startPads');
 }
 
-/* The openings of one element, bottom to top. Empty for anything that is not
- * an aperture element. */
 export function aperturesOf(el) {
-  if (kindOf(el) !== KIND.APERTURE) {
-    return [];
-  }
-  return apertureLevels(el.dims);
+  return kindOf(el) === KIND.APERTURE ? apertureLevels(el.dims) : [];
 }
 
-/*
- * Where a sequence entry puts a knot, before the marker offset is applied.
- * For an aperture that is the opening's centre. For a marker it is the
- * marker itself, and path.js pushes it sideways by the clearance.
- */
+/* The middle of one opening in the document frame: the base raised by the
+ * opening's centre height. A tilt turns the opening about this point, so it
+ * does not move it. Anything without that opening answers its base. */
+export function apertureCenter(el, index) {
+  const levels = aperturesOf(el);
+  const level = levels[Math.min(Math.max(index, 0), levels.length - 1)];
+  const p = el.position;
+  return level ? { x: p.x, y: p.y, z: p.z + level.centerH } : { x: p.x, y: p.y, z: p.z };
+}
+
+/* Where a sequence entry's knot sits before path.js moves a marker's knot
+ * off to its pass side. Null for an entry whose element is gone. */
 export function entryAnchor(doc, seq) {
   const el = elementById(doc, seq.elementId);
   if (!el) {
     return null;
   }
-  if (kindOf(el) === KIND.APERTURE) {
-    const aps = aperturesOf(el);
-    const ap = aps[Math.min(Math.max(0, seq.apertureIndex ?? 0), aps.length - 1)];
-    if (!ap) {
-      return null;
-    }
-    return { x: el.position.x, y: el.position.y, z: el.position.z + ap.centerH };
-  }
-  return { x: el.position.x, y: el.position.y, z: el.position.z };
+  return apertureCenter(el, seq.apertureIndex ?? 0);
 }
 
-/* The world centre of one opening, by index. Used by both views. */
-export function apertureCenter(el, index) {
-  const aps = aperturesOf(el);
-  const ap = aps[Math.min(Math.max(0, index), aps.length - 1)];
-  if (!ap) {
-    return { ...el.position };
-  }
-  return { x: el.position.x, y: el.position.y, z: el.position.z + ap.centerH };
-}
-
-/* The unsigned normal of an element's aperture plane. Every opening on one
- * structure shares it, because they share the structure. */
+/* The facing of a structure's openings before an entry's sign. All the
+ * openings of one structure share it. */
 export function elementNormal(el) {
   return apertureFrame(el.yaw, el.pitch).normal;
 }
@@ -582,8 +328,6 @@ export function topOf(el) {
   return el.position.z + elementHeight(defOf(el), el.dims);
 }
 
-/* How many sequence entries point at an element. Multi referenced elements
- * are the ones the auto face rule has to leave alone. */
 export function sequenceRefCount(doc, elementId) {
   return doc.sequence.filter((s) => s.elementId === elementId).length;
 }
@@ -592,416 +336,403 @@ export function sequenceRefCount(doc, elementId) {
 /* Repair                                                              */
 /* ------------------------------------------------------------------ */
 
-/*
- * Bring any object at all up to the current schema, reporting what changed.
- * Returns { doc, repairs }. Never throws.
- */
-export function normalize(raw) {
-  const repairs = [];
-  const src = (raw && typeof raw === 'object') ? raw : {};
-  const base = createTrack(asText(src.name, str('ui.untitled_track')));
-
-  const version = int(src.schemaVersion, 0, 0);
-  if (version > MAP_SCHEMA_VERSION) {
-    repairs.push(str('model.document_says_schemaversion_this_build_understands', { version, SCHEMA_VERSION: MAP_SCHEMA_VERSION }));
+/* The keys only some types carry, in the order they are written. */
+function extrasFor(def, raw) {
+  const out = {};
+  if (def.flagSide) {
+    out.flagSide = normalizeFlagSide(raw.flagSide, def.flagSide);
   }
-  /* A map track is read as one only when it says so twice, by its version and
-   * by naming a world, because the version is what tells a reader that the
-   * positions are absolute. A 4 with no usable map is read as a field track,
-   * which is the best effort reading of every other unknown. */
-  const map = version >= MAP_SCHEMA_VERSION && isMapTrack(src) ? src.map : null;
-  /* The one migration there is, from 1 to 2, is the branding read below:
-   * a version 1 document's single `branding.logo` becomes the first entry
-   * of `branding.logos`. It is written inline rather than in a migrate()
-   * of its own because normalize already reads every field with a default,
-   * and that is most of what a migration is. */
+  if (def.id === 'label') {
+    out.text = typeof raw.text === 'string' ? raw.text : def.label;
+  }
+  if (def.kind === KIND.DECAL) {
+    out.logoId = typeof raw.logoId === 'string' ? raw.logoId : '';
+  }
+  return out;
+}
 
-  const doc = {
-    schemaVersion: SCHEMA_VERSION,
-    id: asText(src.id, base.id),
-    name: asText(src.name, str('ui.untitled_track')),
-    createdUtc: asText(src.createdUtc, base.createdUtc),
-    modifiedUtc: asText(src.modifiedUtc, base.modifiedUtc),
-    /* Defaulted to 'full' rather than repaired, because a document without
-     * one is a document written before the class existed and every one of
-     * those IS full sized. A repair note here would cry wolf on every track
-     * in the repository. A class no aircraft flies is KEPT, so the document
-     * stays one every reader refuses (elements.js noAircraftFlies) rather
-     * than becoming a field track by being read and written once. */
-    trackClass: noAircraftFlies(src) || TRACK_CLASSES.includes(src.trackClass) ? src.trackClass : TRACK_CLASS_DEFAULT,
-    field: {
-      width: Math.max(5, num(src.field?.width, base.field.width)),
-      depth: Math.max(5, num(src.field?.depth, base.field.depth)),
-      /* 0.005 rather than 0.1: a grid finer than a tenth of a metre is a
-       * thing older documents carry, and normalize keeps what they wrote. */
-      gridSize: Math.max(0.005, num(src.field?.gridSize, base.field.gridSize)),
-    },
-    settings: {
-      tangentScale: Math.max(0.01, num(src.settings?.tangentScale, base.settings.tangentScale)),
-      minCurveRadius: Math.max(0.1, num(src.settings?.minCurveRadius, base.settings.minCurveRadius)),
-      samplesPerSegment: int(src.settings?.samplesPerSegment, base.settings.samplesPerSegment, 4, 512),
-    },
-    branding: { logos: [] },
-    /* Null for anything a pilot built. See creditOf. */
-    credit: creditOf(src.credit),
-    elements: [],
-    sequence: [],
+/* Dims as the type defines them: every key the defaults have, each a
+ * non-negative number, levels a whole count from one to MAX_LEVELS. */
+/* The tallest stack a document may describe. */
+const MAX_LEVELS = 24;
+
+function repairDims(raw, defaults) {
+  const src = isRecord(raw) ? raw : {};
+  const out = {};
+  for (const [key, fallback] of Object.entries(defaults)) {
+    const n = finite(src[key]);
+    if (n === undefined) {
+      out[key] = fallback;
+    } else if (key === 'levels') {
+      out[key] = Math.min(MAX_LEVELS, Math.max(1, Math.round(n)));
+    } else {
+      out[key] = round6(Math.max(0, n));
+    }
+  }
+  return out;
+}
+
+/* A unit quaternion, or the rest pose for anything that is not one. */
+function repairOrientation(raw) {
+  const rest = { w: 1, x: 0, y: 0, z: 0 };
+  if (!isRecord(raw)) {
+    return rest;
+  }
+  const parts = ['w', 'x', 'y', 'z'].map((k) => finite(raw[k]));
+  if (parts.includes(undefined)) {
+    return rest;
+  }
+  const [w, x, y, z] = parts;
+  const n = Math.sqrt(w * w + x * x + y * y + z * z);
+  if (n <= 1e-9) {
+    return rest;
+  }
+  return { w: round6(w / n), x: round6(x / n), y: round6(y / n), z: round6(z / n) };
+}
+
+function repairPosition(raw) {
+  const src = isRecord(raw) ? raw : {};
+  return { x: round6(numberOr(src.x, 0)), y: round6(numberOr(src.y, 0)), z: round6(numberOr(src.z, 0)) };
+}
+
+const HALF_TURN_UP = Math.PI / 2;
+
+function repairElement(raw, id, onMap) {
+  const def = ELEMENTS[raw.type];
+  const el = {
+    id,
+    type: raw.type,
+    name: typeof raw.name === 'string' ? raw.name : '',
+    position: repairPosition(raw.position),
+    /* Rounded before the wrap as well as after: a stored 3.141593 must wrap
+     * as the 3.141593 it was written as. */
+    yaw: round6(wrapAngle(round6(numberOr(raw.yaw, 0)))),
+    pitch: round6(Math.min(HALF_TURN_UP, Math.max(-HALF_TURN_UP, numberOr(raw.pitch, defaultPitch(raw.type))))),
+    yawOverridden: raw.yawOverridden === true,
+    /* Missing sizes are filled at full size whatever the class: a document
+     * stores the sizes it was built with, and older ones had no class. */
+    dims: repairDims(raw.dims, defaultDims(raw.type)),
   };
-  if (map) {
-    doc.schemaVersion = MAP_SCHEMA_VERSION;
-    doc.map = map;
+  Object.assign(el, extrasFor(def, raw));
+  if (raw.unbuilt === true && def.kind === KIND.APERTURE) {
+    el.unbuilt = true;
   }
-
-  /*
-   * The logos. A version 2 document carries `branding.logos`; a version 1
-   * one carries a single `branding.logo`, and it is promoted to the first
-   * entry of the list. Promotion is silent: it is an upgrade, not damage,
-   * and a repair note for it would cry wolf on every track written before
-   * this feature.
-   *
-   * Anything that is not an embedded image is dropped, and that is a
-   * security property as much as a validation one: a document is untrusted
-   * input, these strings end up in a texture loader, and an http URL in one
-   * would make opening somebody's track a request to their server.
-   */
-  {
-    const rawList = Array.isArray(src.branding?.logos)
-      ? src.branding.logos
-      : (src.branding?.logo != null && src.branding.logo !== ''
-        ? [{ image: src.branding.logo, name: src.branding?.logoName }]
-        : []);
-    let spent = 0;
-    let dropped = 0;
-    let overflowed = 0;
-    for (const raw of rawList) {
-      /* A bare string is accepted as well as an object, because a hand
-       * written list of data URLs is the obvious thing somebody would try
-       * and refusing it teaches nothing. */
-      const image = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' ? raw.image : null);
-      const name = typeof raw === 'object' && raw ? asText(raw.name, '') : '';
-      if (!isUsableLogo(image)) {
-        dropped += 1;
-        continue;
-      }
-      if (doc.branding.logos.length >= LOGO_SLOTS) {
-        overflowed += 1;
-        continue;
-      }
-      if (spent + image.length > BRANDING_MAX_CHARS) {
-        overflowed += 1;
-        continue;
-      }
-      spent += image.length;
-      /* Ids are repaired against what is already in the list, so a file with
-       * two logos claiming the same id cannot make a decal ambiguous. */
-      const wanted = typeof raw === 'object' && raw ? asText(raw.id, '') : '';
-      const taken = doc.branding.logos.map((l) => l.id);
-      const id = wanted && !taken.includes(wanted) ? wanted : nextId(taken, 'logo');
-      doc.branding.logos.push({ id, image, name });
-    }
-    if (dropped) {
-      repairs.push(str('model.dropped_logo_that_not_an_embedded', { dropped, v2: dropped === 1 ? '' : 's', v3: dropped === 1 ? 'was' : 'were', v4: Math.round(LOGO_MAX_CHARS / 1024) }));
-    }
-    if (overflowed) {
-      repairs.push(str('model.dropped_logo_past_the_a_track', { overflowed, v2: overflowed === 1 ? '' : 's', LOGO_SLOTS, v4: Math.round(BRANDING_MAX_CHARS / 1024) }));
-    }
+  if (onMap) {
+    el.orientation = repairOrientation(raw.orientation);
   }
+  return el;
+}
 
-  const seenIds = new Set();
-  /*
-   * Every id the file carries, including the ones this loop has not reached
-   * yet. Repairing an id against seenIds alone let a renamed element take an
-   * id that belonged to an element further down the list: that element then
-   * looked like the duplicate and was renamed in its turn, and every
-   * sequence entry naming the id now pointed at the wrong gate. Renaming
-   * has to dodge the whole file, not just the part already read.
-   */
-  const rawIds = (Array.isArray(src.elements) ? src.elements : []).map((e) => asText(e?.id));
-  let startSeen = false;
-  for (const rawEl of Array.isArray(src.elements) ? src.elements : []) {
-    const type = asText(rawEl?.type);
-    const def = ELEMENTS[type];
+/* The definition of a type a document names. Own keys only: a type spelled
+ * like an Object prototype member ("toString") is an unknown type. */
+function definitionOf(type) {
+  return typeof type === 'string' && Object.hasOwn(ELEMENTS, type) ? ELEMENTS[type] : undefined;
+}
+
+function repairElements(rawList, onMap, repairs) {
+  const list = (Array.isArray(rawList) ? rawList : []).map((el) => (isRecord(el) ? el : {}));
+  let spare = nextNumber(list.map((el) => el.id), 'el-');
+  const taken = new Set();
+  const out = [];
+  let pads = false;
+  for (const raw of list) {
+    const def = definitionOf(raw.type);
     if (!def) {
-      repairs.push(str('model.dropped_an_element_of_unknown_type', { type }));
+      repairs.push(str('model.dropped_an_element_of_unknown_type', { type: typeof raw.type === 'string' ? raw.type : '' }));
       continue;
     }
-    /* A plane sized element stands only in a world (elements.js, the span
-     * rule): nothing on the field builds one. */
-    if (def.wing && !map) {
+    if (def.wing && !onMap) {
       repairs.push(str('model.dropped_a_plane_sized_element_from', { label: def.label }));
       continue;
     }
     if (def.kind === KIND.START) {
-      if (startSeen) {
+      if (pads) {
         repairs.push(str('model.dropped_a_second_set_of_start'));
         continue;
       }
-      startSeen = true;
+      pads = true;
     }
-    let id = asText(rawEl.id);
-    if (!id || seenIds.has(id)) {
-      id = nextId([...seenIds, ...rawIds], 'el');
+    let id = raw.id;
+    if (typeof id !== 'string' || id === '' || taken.has(id)) {
+      id = `el-${spare}`;
+      spare += 1;
       repairs.push(str('model.an_element_had_a_missing_or', { id }));
     }
-    seenIds.add(id);
-
-    const dims = {};
-    for (const key of Object.keys(def.dims)) {
-      const wanted = num(rawEl.dims?.[key], def.dims[key]);
-      /* Levels is a count and everything else is a length. Both have to be
-       * positive or the structure has no geometry at all. */
-      dims[key] = key === 'levels' ? int(wanted, def.dims[key], 1, 24) : Math.max(0, wanted);
-    }
-
-    const el = {
-      id,
-      type,
-      name: asText(rawEl.name, ''),
-      position: {
-        x: num(rawEl.position?.x),
-        y: num(rawEl.position?.y),
-        z: num(rawEl.position?.z),
-      },
-      yaw: num(wrapAngle(num(rawEl.yaw))),
-      /* CLAMPED, not wrapped, which is what schema.md documents and what
-       * setPitch does. Wrapping turned a nonsense 100 degree dive into a
-       * legal looking 80 degree one pointing the other way instead of
-       * pinning it at vertical. */
-      pitch: num(Math.max(-Math.PI / 2, Math.min(Math.PI / 2, num(rawEl.pitch, def.pitch ?? 0)))),
-      yawOverridden: bool(rawEl.yawOverridden),
-      dims,
-    };
-    if (def.kind === KIND.ANNOTATION) {
-      el.text = asText(rawEl.text, 'Label');
-    }
-    if (def.kind === KIND.DECAL) {
-      /* Kept even when no logo carries this id, because the logos are read
-       * above and a decal naming one that was dropped for size should say
-       * so in the builder rather than silently repaint itself with the
-       * first sponsor's logo. logoForDecal returns null for it. */
-      el.logoId = asText(rawEl.logoId, '');
-    }
-    if (def.flagSide) {
-      el.flagSide = normalizeFlagSide(rawEl.flagSide, def.flagSide);
-    }
-    /* An opening with no frame of its own: see isUnbuilt in elements.js.
-     * Carried only on apertures, because nothing else has a frame to
-     * leave off, and only when true, so an ordinary gate's JSON is the
-     * same shape it was before this existed. */
-    if (def.kind === KIND.APERTURE && rawEl.unbuilt === true) {
-      el.unbuilt = true;
-    }
-    /* On a map track the orientation IS the element's pose; yaw and pitch
-     * are kept only so the document keeps one shape. See src/builder/course.js
-     * for what the rest pose is. */
-    if (map) {
-      el.orientation = quat(rawEl.orientation);
-    }
-    doc.elements.push(el);
+    taken.add(id);
+    out.push(repairElement(raw, id, onMap));
   }
+  return out;
+}
 
-  const seenSeq = new Set();
-  for (const rawSeq of Array.isArray(src.sequence) ? src.sequence : []) {
-    const elementId = asText(rawSeq?.elementId);
-    const el = doc.elements.find((e) => e.id === elementId);
+function repairEntry(raw, el, id, repairs) {
+  const overridden = raw.overridden === true;
+  if (kindOf(el) === KIND.MARKER) {
+    const clearance = finite(raw.clearance);
+    return {
+      id,
+      elementId: el.id,
+      apertureIndex: null,
+      entry: null,
+      passSide: raw.passSide === 'right' ? 'right' : 'left',
+      clearance: clearance === undefined ? el.dims.clearance : round6(Math.max(0, clearance)),
+      overridden,
+    };
+  }
+  const count = aperturesOf(el).length;
+  /* Compared rather than Math.max'ed: a -0 index stays -0, as it always
+   * has, and the document bytes do not move. */
+  let index = Math.round(numberOr(raw.apertureIndex, 0));
+  if (index < 0) {
+    index = 0;
+  }
+  if (index > count - 1) {
+    repairs.push(str('model.sequence_entry_asked_for_level_of', {
+      id, v2: index + 1, count, label: ELEMENTS[el.type].label, v5: count,
+    }));
+    index = count - 1;
+  }
+  const sign = Math.round(Math.min(1, Math.max(-1, numberOr(raw.entry, 0))));
+  return {
+    id, elementId: el.id, apertureIndex: index, entry: sign === 0 ? 0 : sign, passSide: null, clearance: null, overridden,
+  };
+}
+
+function repairSequence(rawList, elements, repairs) {
+  const list = Array.isArray(rawList) ? rawList : [];
+  const byId = new Map(elements.map((el) => [el.id, el]));
+  const out = [];
+  const taken = new Set();
+  for (const item of list) {
+    const raw = isRecord(item) ? item : {};
+    const el = byId.get(raw.elementId);
     if (!el) {
-      repairs.push(str('model.dropped_a_sequence_entry_pointing_at', { elementId }));
+      repairs.push(str('model.dropped_a_sequence_entry_pointing_at', { elementId: typeof raw.elementId === 'string' ? raw.elementId : '' }));
       continue;
     }
-    const def = ELEMENTS[el.type];
-    if (def.kind !== KIND.APERTURE && def.kind !== KIND.MARKER) {
-      repairs.push(str('model.dropped_a_sequence_entry_for_a', { label: def.label }));
+    if (!isSequenceable(el)) {
+      repairs.push(str('model.dropped_a_sequence_entry_for_a', { label: ELEMENTS[el.type].label }));
       continue;
     }
-    let id = asText(rawSeq.id);
-    if (!id || seenSeq.has(id)) {
-      id = nextId([...seenSeq], 'sq');
+    let id = raw.id;
+    if (typeof id !== 'string' || id === '' || taken.has(id)) {
+      id = `sq-${nextNumber(taken, 'sq-')}`;
       repairs.push(str('model.a_sequence_entry_had_a_missing', { id }));
     }
-    seenSeq.add(id);
-
-    let apertureIndex = null;
-    if (def.kind === KIND.APERTURE) {
-      const count = apertureLevels(el.dims).length;
-      const wanted = int(rawSeq.apertureIndex, 0, 0);
-      apertureIndex = Math.min(wanted, count - 1);
-      if (apertureIndex !== wanted) {
-        repairs.push(str('model.sequence_entry_asked_for_level_of', { id, v2: wanted + 1, count, label: def.label, v5: apertureIndex + 1 }));
-      }
-    }
-
-    let entry = null;
-    if (def.kind === KIND.APERTURE) {
-      const e = int(rawSeq.entry, 0);
-      entry = e > 0 ? 1 : (e < 0 ? -1 : 0);
-    }
-
-    let passSide = null;
-    let clearance = null;
-    if (def.kind === KIND.MARKER) {
-      passSide = rawSeq.passSide === 'right' ? 'right' : 'left';
-      /* Same rule as createSequenceEntry: the element's own, then the
-       * type's. A document that stores a clearance keeps it either way; this
-       * is only the fallback for one that does not. */
-      const owner = doc.elements.find((e) => e.id === elementId);
-      clearance = Math.max(0, num(rawSeq.clearance, owner?.dims?.clearance ?? def.dims.clearance));
-    }
-
-    doc.sequence.push({
-      id,
-      elementId,
-      apertureIndex,
-      entry,
-      passSide,
-      clearance,
-      overridden: bool(rawSeq.overridden),
-    });
+    taken.add(id);
+    out.push(repairEntry(raw, el, id, repairs));
   }
+  return out;
+}
 
+/* Logos from either spelling: version 1's single branding.logo, promoted
+ * silently because it is an upgrade, or the list. */
+function repairBranding(raw, repairs) {
+  const src = isRecord(raw) ? raw : {};
+  let entries = [];
+  if (Array.isArray(src.logos)) {
+    entries = src.logos.map((e) => (isRecord(e) ? e : { image: e }));
+  } else if (src.logo != null && src.logo !== '') {
+    entries = [{ image: src.logo, name: src.logoName }];
+  }
+  const usable = entries.filter((e) => isUsableLogo(e.image));
+  const refused = entries.length - usable.length;
+  if (refused) {
+    repairs.push(str('model.dropped_logo_that_not_an_embedded', {
+      dropped: refused, v2: refused === 1 ? '' : 's', v3: refused === 1 ? 'was' : 'were', v4: LOGO_MAX_CHARS / 1024,
+    }));
+  }
+  const logos = [];
+  const taken = new Set();
+  let budget = BRANDING_MAX_CHARS;
+  for (const e of usable) {
+    if (logos.length === LOGO_SLOTS || e.image.length > budget) {
+      break;
+    }
+    budget -= e.image.length;
+    let id = e.id;
+    if (typeof id !== 'string' || id === '' || taken.has(id)) {
+      id = `logo-${nextNumber(taken, 'logo-')}`;
+    }
+    taken.add(id);
+    logos.push({ id, image: e.image, name: typeof e.name === 'string' ? e.name : '' });
+  }
+  const overflowed = usable.length - logos.length;
+  if (overflowed) {
+    repairs.push(str('model.dropped_logo_past_the_a_track', {
+      overflowed, v2: overflowed === 1 ? '' : 's', LOGO_SLOTS, v4: BRANDING_MAX_CHARS / 1024,
+    }));
+  }
+  return { logos };
+}
+
+function repairCredit(raw) {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const credit = {};
+  for (const key of CREDIT_FIELDS) {
+    credit[key] = typeof raw[key] === 'string' ? raw[key].trim().slice(0, CREDIT_MAX) : '';
+  }
+  return CREDIT_FIELDS.some((key) => credit[key]) ? credit : null;
+}
+
+function repairField(raw) {
+  const src = isRecord(raw) ? raw : {};
+  return {
+    width: round6(Math.max(5, numberOr(src.width, 60))),
+    depth: round6(Math.max(5, numberOr(src.depth, 40))),
+    gridSize: round6(Math.max(0.005, numberOr(src.gridSize, 1))),
+  };
+}
+
+function repairSettings(raw) {
+  const src = isRecord(raw) ? raw : {};
+  return {
+    tangentScale: round6(Math.max(0.01, numberOr(src.tangentScale, 1.1))),
+    minCurveRadius: round6(Math.max(0.1, numberOr(src.minCurveRadius, 2.5))),
+    samplesPerSegment: Math.min(512, Math.max(4, Math.round(numberOr(src.samplesPerSegment, 48)))),
+  };
+}
+
+/* Any value at all, up to the current format. Returns { doc, repairs }. */
+export function normalize(raw) {
+  const src = isRecord(raw) ? raw : {};
+  const repairs = [];
+  const said = finite(src.schemaVersion);
+  const version = said === undefined ? undefined : Math.round(said);
+  if (version > MAP_SCHEMA_VERSION) {
+    repairs.push(str('model.document_says_schemaversion_this_build_understands', {
+      version, SCHEMA_VERSION: MAP_SCHEMA_VERSION,
+    }));
+  }
+  const onMap = version >= MAP_SCHEMA_VERSION && isMapTrack(src);
+  const trackClass = ['full', 'wing', 'micro'].includes(src.trackClass) ? src.trackClass : TRACK_CLASS_DEFAULT;
+  const now = utcNow();
+  const doc = {
+    schemaVersion: onMap ? MAP_SCHEMA_VERSION : SCHEMA_VERSION,
+    id: typeof src.id === 'string' ? src.id : newTrackId(),
+    name: typeof src.name === 'string' ? src.name : str('ui.untitled_track'),
+    createdUtc: typeof src.createdUtc === 'string' ? src.createdUtc : now,
+    modifiedUtc: typeof src.modifiedUtc === 'string' ? src.modifiedUtc : now,
+    trackClass,
+    field: repairField(src.field),
+    settings: repairSettings(src.settings),
+    branding: repairBranding(src.branding, repairs),
+    credit: repairCredit(src.credit),
+  };
+  doc.elements = repairElements(src.elements, onMap, repairs);
+  doc.sequence = repairSequence(src.sequence, doc.elements, repairs);
+  if (onMap) {
+    doc.map = src.map;
+  }
   return { doc, repairs };
 }
 
 /* ------------------------------------------------------------------ */
-/* Serialisation                                                       */
+/* Writing                                                             */
 /* ------------------------------------------------------------------ */
 
-/*
- * Write the document with a fixed key order and one rounding pass, so that
- * export, import, export produces the same bytes. JSON.stringify follows
- * insertion order for string keys, which is what makes this work.
- */
+function plainNumbers(record) {
+  const out = {};
+  for (const [k, v] of Object.entries(record)) {
+    out[k] = typeof v === 'number' ? round6(v) : v;
+  }
+  return out;
+}
+
+function plainElement(el, onMap) {
+  const out = {
+    id: el.id,
+    type: el.type,
+    name: el.name,
+    position: plainNumbers(el.position),
+    yaw: round6(el.yaw),
+    pitch: round6(el.pitch),
+    yawOverridden: el.yawOverridden,
+    dims: plainNumbers(el.dims),
+  };
+  for (const key of ['flagSide', 'text', 'logoId']) {
+    if (el[key] !== undefined) {
+      out[key] = el[key];
+    }
+  }
+  if (el.unbuilt === true) {
+    out.unbuilt = true;
+  }
+  if (onMap) {
+    /* Written through the same repair as it is read, so what is written is
+     * a unit quaternion to the printed precision. */
+    out.orientation = repairOrientation(el.orientation);
+  }
+  return out;
+}
+
+function plainEntry(s) {
+  return {
+    id: s.id,
+    elementId: s.elementId,
+    apertureIndex: s.apertureIndex,
+    entry: s.entry,
+    passSide: s.passSide,
+    clearance: typeof s.clearance === 'number' ? round6(s.clearance) : s.clearance,
+    overridden: s.overridden,
+  };
+}
+
+/* The document as it is stored and shared: fixed key order, every number
+ * rounded once. JSON keeps string keys in insertion order, which is what
+ * makes the same track give the same bytes. */
 export function toPlain(doc) {
-  const onMap = isMapTrack(doc);
-  const plain = {
+  const onMap = doc.schemaVersion >= MAP_SCHEMA_VERSION && isMapTrack(doc);
+  const out = {
     schemaVersion: onMap ? MAP_SCHEMA_VERSION : SCHEMA_VERSION,
     id: doc.id,
     name: doc.name,
     createdUtc: doc.createdUtc,
     modifiedUtc: doc.modifiedUtc,
-    /* WRITTEN, not derived. It was missing from the first version of this
-     * and the failure was invisible in every unit test and obvious the
-     * moment a micro track was flown: the document round tripped, the
-     * builder kept drawing a room because it held the live object, and the
-     * GAME read the saved file, found no class, defaulted to full, and put a
-     * RaceGOW course on a sixty metre paddock. A field that is not written
-     * is a field that does not exist. A class no aircraft flies is written
-     * back as it was read; see normalize. */
-    trackClass: noAircraftFlies(doc) ? doc.trackClass : trackClassOf(doc),
-    /* Only on a map track, so a field track's bytes are what they were. */
-    ...(onMap ? { map: doc.map } : {}),
-    field: {
-      width: num(doc.field.width),
-      depth: num(doc.field.depth),
-      gridSize: num(doc.field.gridSize),
-    },
-    settings: {
-      tangentScale: num(doc.settings.tangentScale),
-      minCurveRadius: num(doc.settings.minCurveRadius),
-      samplesPerSegment: int(doc.settings.samplesPerSegment, TUNING.samplesPerSegment, 4, 512),
-    },
-    branding: {
-      /*
-       * The logos, in the order they are dealt out round the gates. Filtered
-       * once more on the way out, so a document that was hand edited between
-       * a normalize and a save cannot write a link to somebody's server into
-       * a file another person will open.
-       */
-      logos: logosOf(doc)
-        .filter((l) => l && isUsableLogo(l.image))
-        .slice(0, LOGO_SLOTS)
-        .map((l, i) => ({ id: asText(l.id, `logo-${i + 1}`), image: l.image, name: asText(l.name, '') })),
-    },
-    /*
-     * WRITTEN, for the same reason trackClass is. This function is a
-     * whitelist, and credit was added to normalize and to createTrack and
-     * not here, so every save, every export and every publish to the board
-     * dropped the designer's name on the floor: a pilot who opened a
-     * RaceGOW5 track and saved it had a copy credited to nobody, and one
-     * who published it put it on the public board that way. Found by
-     * driving the builder, saving a preset, and reading the library back.
-     * Filtered through creditOf on the way out as on the way in, so a hand
-     * edit between a normalize and a save cannot write anything else.
-     */
-    credit: creditOf(doc.credit),
-    elements: doc.elements.map((el) => {
-      const def = ELEMENTS[el.type];
-      const out = {
-        id: el.id,
-        type: el.type,
-        name: el.name ?? '',
-        position: { x: num(el.position.x), y: num(el.position.y), z: num(el.position.z) },
-        yaw: num(el.yaw),
-        pitch: num(el.pitch),
-        yawOverridden: Boolean(el.yawOverridden),
-        dims: {},
-      };
-      /* Dimension keys in the order elements.js declares them, so two
-       * elements of the same type always print the same shape. */
-      for (const key of Object.keys(def.dims)) {
-        out.dims[key] = key === 'levels' ? int(el.dims[key], def.dims[key], 1, 24) : num(el.dims[key], def.dims[key]);
-      }
-      if (def.kind === KIND.ANNOTATION) {
-        out.text = el.text ?? '';
-      }
-      if (def.kind === KIND.DECAL) {
-        out.logoId = asText(el.logoId, '');
-      }
-      if (def.flagSide) {
-        out.flagSide = normalizeFlagSide(el.flagSide, def.flagSide);
-      }
-      if (el.unbuilt === true && def.kind === KIND.APERTURE) {
-        out.unbuilt = true;
-      }
-      if (onMap) {
-        out.orientation = quat(el.orientation);
-      }
-      return out;
-    }),
-    sequence: doc.sequence.map((s) => ({
-      id: s.id,
-      elementId: s.elementId,
-      apertureIndex: s.apertureIndex == null ? null : int(s.apertureIndex, 0, 0),
-      entry: s.entry == null ? null : int(s.entry, 0),
-      passSide: s.passSide ?? null,
-      clearance: s.clearance == null ? null : num(s.clearance),
-      overridden: Boolean(s.overridden),
-    })),
+    trackClass: doc.trackClass,
   };
-  return plain;
+  if (onMap) {
+    out.map = doc.map;
+  }
+  out.field = plainNumbers(doc.field);
+  out.settings = plainNumbers(doc.settings);
+  out.branding = { logos: logosOf(doc).map((l) => ({ id: l.id, image: l.image, name: l.name })) };
+  out.credit = doc.credit ?? null;
+  out.elements = doc.elements.map((el) => plainElement(el, onMap));
+  out.sequence = doc.sequence.map(plainEntry);
+  return out;
 }
 
 export function serialize(doc) {
   return `${JSON.stringify(toPlain(doc), null, 2)}\n`;
 }
 
-/*
- * Read a document back. Returns { doc, repairs, error }. A parse failure is
- * an error and yields a fresh empty track rather than throwing, because the
- * caller is a file input and the user wants to be told, not crashed at.
- */
+/* Text back into a document: { doc, repairs, error }. Text that is not JSON
+ * gives a fresh empty track and an error to show, because the caller is a
+ * file picker and the pilot wants to be told, not crashed at. */
 export function deserialize(text) {
-  let parsed = null;
+  let raw;
   try {
-    parsed = JSON.parse(text);
+    raw = JSON.parse(text);
   } catch (e) {
-    return { doc: createTrack(), repairs: [], error: str('model.not_valid_json', { message: e.message }) };
+    return { doc: createTrack(str('ui.untitled_track')), repairs: [], error: str('model.not_valid_json', { message: e.message }) };
   }
-  const { doc, repairs } = normalize(parsed);
+  const { doc, repairs } = normalize(raw);
   return { doc, repairs, error: null };
 }
 
-
-/* A copy of a track under a new id and name, for Duplicate. */
+/* A copy under a new id and name, credit and all, made now. */
 export function duplicateTrack(doc, name) {
   const copy = deepClone(doc);
   copy.id = newTrackId();
-  copy.name = name ?? `${doc.name} copy`;
-  copy.createdUtc = nowUtc();
-  copy.modifiedUtc = copy.createdUtc;
+  copy.name = name;
+  const now = utcNow();
+  copy.createdUtc = now;
+  copy.modifiedUtc = now;
   return copy;
 }
 
 export function touch(doc) {
-  doc.modifiedUtc = nowUtc();
-  return doc;
+  doc.modifiedUtc = utcNow();
 }

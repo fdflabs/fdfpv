@@ -1,64 +1,34 @@
 /*
- * path-check.js: what the craft's own path says it did.
+ * path-check.js: the recogniser's measure of how far the flight path turned,
+ * taken on the real aircraft.
  *
- * WHAT THIS IS CHECKING. src/game/trickdetect.js has always measured an
- * obstacle trick as the WINDING of the craft's position about a line derived
- * from the colliders. `PathTrack`, new, measures the turning of the flight
- * PATH instead, from the craft's own trajectory and its own frame, with no
- * derived geometry in it at all. This is the evidence for that measurement.
+ *     node scripts/path-check.js      (npm run check:path)
  *
- * It is not yet what names a trick. The pattern table still reads the
- * winding; these numbers are computed beside it and read by nothing but this
- * file. That is deliberate and the order matters: the whole history of this
- * recogniser is of measurements that looked right in a constructed flight
- * and were wrong in the air, so the measurement is proven on the real
- * aircraft before anything is allowed to depend on it.
+ * TrickDetector.closeTrack() measures each stretch of path beside the
+ * pattern table: how many turns it made, about which axis, on pitch or on
+ * roll, and whether an object sat inside the circle. Nothing in the game
+ * reads it yet, so this script is its only evidence. It flies the real
+ * plant (scripts/lib/flightrig.js) round a rail and a post and through open
+ * air, and holds the measure to what the flight was: a loop round the rail
+ * is one horizontal turn on pitch, the same circle nose along the rail is
+ * on roll, an orbit of the post is two vertical turns, a figure in open air
+ * encloses nothing, the spawn yaw changes nothing, and turns are counted
+ * about the object's own axis.
  *
- * WHAT THE NUMBERS ARE FOR, and the four properties below are the argument
- * for the rewrite:
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- *   A Powerloop and a Maverick Loop are the same circle flown with the nose
- *   in different places, and the difference is the whole of what de-banking
- *   was invented to recover from the body integrals, with a sign convention
- *   that had to be measured per lap and was backwards in the real shell for
- *   four days. Measured against the PATH's own axis it is one comparison and
- *   there is no convention in it.
- *
- *   A flip and a flick flown in the air enclose NOTHING. The path does turn
- *   through them, because a quad flipping is a quad falling and a falling
- *   craft's path curves, but the curve has nothing in the middle of it and
- *   its radius is a metre where a loop's is five. The old winding cannot
- *   say either thing: a craft flying dead past a rail subtends up to half a
- *   turn about it, which is exactly where a real half loop lands, and the
- *   file's own comment above HALF_LAP_MIN spends a page on the two
- *   populations meeting at the same number from opposite sides.
- *
- *   The thing flown around does not have to be a pole or a bar. It is found
- *   by asking the colliders one distance question at the middle of the turn,
- *   so a wall, a roof edge or a building corner answers as well as a rail.
- *
- *   And none of it can carry a frame error, because the angular velocity is
- *   taken from the observed rotation of the craft's own frame rather than
- *   from a gyro channel whose sign has to be agreed with the renderer's.
- *
- * Deterministic: the real plant, the real colliders, the real recogniser, no
- * browser and no wall clock. Usage:
- *   node scripts/path-check.js
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -71,332 +41,190 @@ import { deriveObstacles } from '../src/game/obstacles.js';
 import { TrickDetector } from '../src/game/trickdetect.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const WASM = join(root, 'dist', 'sim.wasm');
+const wasmPath = join(root, 'dist/sim.wasm');
+
+console.log('\npath-check: how far the path turned, measured on the real aircraft\n');
+if (!existsSync(wasmPath)) {
+  console.log('  SKIP  no dist/sim.wasm; build the plant first, a skip is not a pass');
+  process.exit(0);
+}
+const wasmBytes = readFileSync(wasmPath);
+const diffText = readFileSync(join(root, 'configs/betaflight-default.diff'), 'utf8');
 
 let passed = 0;
 let failed = 0;
-function check(name, ok, note) {
-  if (ok) {
-    passed += 1;
-    console.log(`  pass  ${name}`);
-  } else {
-    failed += 1;
-    console.log(`  FAIL  ${name}`);
-  }
-  if (note) {
-    console.log(`        ${note}`);
-  }
+function report(ok, label, note) {
+  if (ok) passed += 1;
+  else failed += 1;
+  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${label}`);
+  if (note) console.log(`        ${note}`);
 }
 
-console.log('\npath-check: the turning of the path, measured on the real aircraft\n');
-
-if (!existsSync(WASM)) {
-  console.log('  SKIP  dist/sim.wasm is not built, so nothing was flown');
-  process.exit(0);
-}
-
-const wasmBytes = readFileSync(WASM);
-const diffText = readFileSync(join(root, 'configs', 'betaflight-default.diff'), 'utf8');
-
-/* Every turn the measurement closes, collected as it happens. */
-let turnsSeen = [];
+/* Listen in on every measurement the detector closes. The wrapper goes on
+ * the prototype of the class the rig builds, so it sees every detector;
+ * it passes everything through untouched. */
+let measured = [];
 const closeTrack = TrickDetector.prototype.closeTrack;
-TrickDetector.prototype.closeTrack = function collect() {
-  const r = closeTrack.call(this);
-  if (r) {
-    turnsSeen.push(r);
-  }
-  return r;
+TrickDetector.prototype.closeTrack = function listen() {
+  const row = closeTrack.call(this);
+  if (row) measured.push(row);
+  return row;
 };
-const takeTurns = (min = 0.3) => {
-  const rows = turnsSeen.filter((t) => t.turns >= min);
-  turnsSeen = [];
+/* Hand over the rows of at least `min` turns, and forget all of them. */
+function take(min) {
+  const rows = measured.filter((r) => r.turns >= min);
+  measured = [];
   return rows;
-};
-const describe = (t) => `turns ${t.turns.toFixed(2)} ${t.axis} loop ${t.loop.toFixed(2)} `
-  + `on ${t.loopOn} fwd ${t.forward.toFixed(2)} object ${t.object} R ${t.radius.toFixed(1)}`;
+}
 
-/* A rail to loop around, and a post to orbit, well apart. */
-const BAR = V(0, 6.3, 0);
-const POST = V(40, 0, 0);
+const RAIL = V(0, 6.3, 0);
 const world = buildWorld([
-  {
-    kind: 'capsule', material: 'obstacle', ax: -5, ay: BAR.y, az: 0, bx: 5, by: BAR.y, bz: 0, r: 0.12,
-  },
-  {
-    kind: 'box', material: 'wall', x0: POST.x - 0.16, y0: 0, z0: -0.16, x1: POST.x + 0.16, y1: 12, z1: 0.16,
-  },
+  { kind: 'capsule', material: 'obstacle', ax: -5, ay: 6.3, az: 0, bx: 5, by: 6.3, bz: 0, r: 0.12 },
+  { kind: 'box', material: 'wall', x0: 40 - 0.16, y0: 0, z0: -0.16, x1: 40 + 0.16, y1: 12, z1: 0.16 },
 ], deriveObstacles, 0);
 
 async function rig(spawnZ = -20, yaw = Math.PI) {
   const r = await makeRig({
-    wasmBytes,
-    diffText,
-    colliders: world.colliders,
-    field: world.field,
-    spawn: V(0, 0, spawnZ),
-    spawnYaw: yaw,
-    groundY: 0,
+    wasmBytes, diffText, colliders: world.colliders, field: world.field,
+    spawn: V(0, 0, spawnZ), spawnYaw: yaw, groundY: 0,
   });
   r.hold(200, 0, 0, 0, 0.5);
   return r;
 }
 
-/* A vertical loop about the rail. noseAlong picks which family it is. */
-async function loop({ noseAlong = false, secs = 2.9, yaw = Math.PI } = {}) {
-  const r = await rig(-20, yaw);
-  const lap = circlePath(BAR, V(0, -1, 0), V(0, 0, -1), 3.4, secs, 0, -1);
-  const d0 = lap(0);
-  const vEnt = len(d0.v);
-  const start = sub(d0.p, mul(norm(d0.v), 12));
-  const head = noseAlong ? Math.atan2(1, 0) : Math.atan2(0, -1);
-  r.settle(start, head, 2.0);
-  r.fly(rampPath(start, d0.p, (12 * 1.9) / Math.max(2, vEnt), vEnt), { heading: head });
-  r.fly(lap, { heading: head });
+/* Come in on a 12 m ramp that arrives on the path at its own speed, fly
+ * it, let it settle, and hand over what was measured. */
+function flyCircle(r, lap, heading, lapOpts, min) {
+  const entry = lap(0);
+  const vEntry = len(entry.v);
+  const from = sub(entry.p, mul(norm(entry.v), 12));
+  r.settle(from, typeof heading === 'function' ? heading(0, { p: from }) : heading, 2.0);
+  r.fly(rampPath(from, entry.p, (12 * 1.9) / Math.max(2, vEntry), vEntry), { heading });
+  r.fly(lap, { heading, ...lapOpts });
   r.hold(700, 0, 0, 0, 0.45);
   r.done(700);
-  return takeTurns(0.6);
+  return take(min);
 }
 
-/*
- * 1. THE POWERLOOP AND THE MAVERICK LOOP, which are the same circle.
- *
- * The nose is tangent to the path in one and along the rail in the other, so
- * the turn's own axis lies across the nose in one and along it in the other.
- * That is the whole difference, and it is one comparison against the PATH's
- * axis rather than a repair applied to a body integral.
- */
-{
-  const pl = await loop({ noseAlong: false });
-  check(
-    'a Powerloop turns the path once about a horizontal axis, on PITCH',
-    pl.length === 1 && pl[0].axis === 'horizontal' && pl[0].loopOn === 'pitch'
-      && Math.abs(pl[0].turns - 1) < 0.3 && Math.abs(pl[0].loop - 1) < 0.3,
-    pl.length ? describe(pl[0]) : 'no turn was measured',
-  );
-  const mv = await loop({ noseAlong: true, secs: 2.3 });
-  check(
-    'the same circle flown nose along the rail is the same turn, on ROLL',
-    mv.length === 1 && mv[0].axis === 'horizontal' && mv[0].loopOn === 'roll'
-      && Math.abs(mv[0].turns - 1) < 0.3 && Math.abs(mv[0].loop - 1) < 0.3,
-    mv.length ? describe(mv[0]) : 'no turn was measured',
-  );
-  check(
-    'and both found the rail inside the circle they flew',
-    pl.length === 1 && mv.length === 1 && pl[0].object === 'inside' && mv[0].object === 'inside',
-    `powerloop ${pl[0] && pl[0].object}, maverick ${mv[0] && mv[0].object}`,
-  );
+/* A vertical circle of 3.4 m about the rail, entered at the bottom. */
+async function railLoop({ noseAlong = false, secs = 2.9, yaw = Math.PI } = {}) {
+  const lap = circlePath(RAIL, V(0, -1, 0), V(0, 0, -1), 3.4, secs, 0, -1);
+  return flyCircle(await rig(-20, yaw), lap, noseAlong ? Math.atan2(1, 0) : Math.atan2(0, -1), {}, 0.6);
 }
 
-/*
- * 2. AN ORBIT TURNS ABOUT A VERTICAL AXIS, and its entry and exit arcs do
- * not find anything inside them.
- *
- * The second half is the one that matters. A turn the craft makes on its way
- * into or out of a figure is a real turn and it will be measured; what stops
- * it being scored as one is that there is nothing in the middle of it.
- */
-{
-  const r = await rig(-20);
-  const centre = V(POST.x, 6, 0);
+async function orbitAbout(centre) {
   const lap = circlePath(centre, V(1, 0, 0), V(0, 0, 1), 6, 5.0, 0, 2);
-  const d0 = lap(0);
-  const vEnt = len(d0.v);
-  const start = sub(d0.p, mul(norm(d0.v), 12));
   const look = (t, s) => Math.atan2(centre.x - s.p.x, centre.z - s.p.z);
-  r.settle(start, look(0, { p: start }), 2.0);
-  r.fly(rampPath(start, d0.p, (12 * 1.9) / Math.max(2, vEnt), vEnt), { heading: look });
-  r.fly(lap, { heading: look, ky: 3.0, yawMax: 0.85 });
-  r.hold(700, 0, 0, 0, 0.45);
-  r.done(700);
-  const rows = takeTurns(0.3);
-  const orbit = rows.find((t) => t.turns > 1.5);
-  check(
-    'an orbit turns the path twice about a VERTICAL axis, with the post on the nose',
-    Boolean(orbit) && orbit.axis === 'vertical' && orbit.trackFrac > 0.7
-      && orbit.object === 'inside',
-    orbit ? `${describe(orbit)} track ${orbit.trackFrac.toFixed(2)}` : 'no orbit was measured',
-  );
-  const arcs = rows.filter((t) => t.turns <= 1.5);
-  check(
-    'and any arc it flew in or out on has nothing inside it',
-    arcs.every((t) => t.object === 'none'),
-    arcs.length
-      ? arcs.map((t) => `${t.turns.toFixed(2)} turns, object ${t.object}`).join('; ')
-      : 'the entry and exit arcs merged into the approach, so none was measured',
-  );
+  return flyCircle(await rig(-20), lap, look, { ky: 3.0, yawMax: 0.85 }, 0.3);
 }
 
-/*
- * 2b. AND A TURN FLOWN IN OPEN AIR FINDS NOTHING, which is the half of the
- * object test that can be controlled rather than hoped for. The same wide
- * circle, flown where there is nothing to fly around.
- */
-{
-  const r = await rig(-20);
-  const centre = V(POST.x, 6, 60);
-  const lap = circlePath(centre, V(1, 0, 0), V(0, 0, 1), 6, 5.0, 0, 2);
-  const d0 = lap(0);
-  const vEnt = len(d0.v);
-  const start = sub(d0.p, mul(norm(d0.v), 12));
-  const look = (t, s) => Math.atan2(centre.x - s.p.x, centre.z - s.p.z);
-  r.settle(start, look(0, { p: start }), 2.0);
-  r.fly(rampPath(start, d0.p, (12 * 1.9) / Math.max(2, vEnt), vEnt), { heading: look });
-  r.fly(lap, { heading: look, ky: 3.0, yawMax: 0.85 });
-  r.hold(700, 0, 0, 0, 0.45);
-  r.done(700);
-  const rows = takeTurns(0.3);
-  check(
-    'the same two laps flown round nothing find nothing inside them',
-    rows.length > 0 && rows.every((t) => t.object === 'none'),
-    rows.length
-      ? rows.map((t) => `${t.turns.toFixed(2)} turns, object ${t.object}`).join('; ')
-      : 'no turn was measured at all',
-  );
-}
-
-/*
- * 3. THE PROPERTY THE WINDING COULD NEVER HAVE.
- *
- * A flip and a juicy flick flown in level flight rotate the craft through a
- * whole turn and a half turn, and turn the PATH through nothing at all. The
- * winding of a straight line about a point off it runs up to half a turn,
- * which is exactly where a real half loop lands, and that overlap is what
- * HALF_LAP_MIN has been trying to legislate around since it was written.
- */
-{
+/* Climb out over open ground and run up to 13 m/s heading +z. */
+async function openAirRunUp() {
   const r = await rig(-60);
-  r.settle(V(0, 14, -50), Math.atan2(0, 1), 2.0);
-  r.fly(rampPath(V(0, 14, -50), V(0, 14, -36), 2.2, 13), { heading: Math.atan2(0, 1) });
+  const north = Math.atan2(0, 1);
+  r.settle(V(0, 14, -50), north, 2.0);
+  r.fly(rampPath(V(0, 14, -50), V(0, 14, -36), 2.2, 13), { heading: north });
+  return r;
+}
+
+async function openAirFlip() {
+  const r = await openAirRunUp();
   r.stickUntil([0, 0.85, 0, 0.42], 1400, (c, i, a) => -a.q >= TURN * 0.84);
   r.fly(linePath(r.craft().p, V(0, 14, -10), 2.4), { heading: Math.atan2(0, 1) });
   r.done(700);
-  const rows = takeTurns(0.3);
-  check(
-    'a 360 flip in the air encloses NOTHING, so it can be no lap',
-    rows.every((t) => t.object === 'none'),
-    rows.length ? rows.map(describe).join('; ') : 'no path turn over a third of a turn',
-  );
+  return take(0.3);
+}
+
+/* Rows can carry null where nothing was measured; print that as it is. */
+const d2 = (v) => (typeof v === 'number' ? v.toFixed(2) : String(v));
+const describe = (row) => `${d2(row.turns)} turns ${row.axis}, loop ${d2(row.loop)} on ${row.loopOn}, `
+  + `forward ${d2(row.forward)}, object ${row.object}, radius ${row.radius.toFixed(1)}`;
+const brief = (rows) => (rows.length ? rows.map((r) => `${d2(r.turns)} turns, object ${r.object}`).join('; ') : 'no turn measured');
+const isOneLoopOn = (rows, on) => rows.length === 1 && rows[0].axis === 'horizontal' && rows[0].loopOn === on
+  && Math.abs(rows[0].turns - 1) < 0.3 && Math.abs(rows[0].loop - 1) < 0.3;
+const enclosesNothing = (rows) => rows.every((r) => r.object === 'none');
+
+const powerloop = await railLoop();
+report(isOneLoopOn(powerloop, 'pitch'), 'a loop round the rail is one turn about a horizontal axis, on pitch',
+  powerloop.length ? powerloop.map(describe).join('; ') : 'no turn measured');
+const maverick = await railLoop({ noseAlong: true, secs: 2.3 });
+report(isOneLoopOn(maverick, 'roll'), 'the same circle flown nose along the rail is the same turn, on roll',
+  maverick.length ? maverick.map(describe).join('; ') : 'no turn measured');
+report(
+  powerloop.length === 1 && maverick.length === 1
+    && powerloop[0].object === 'inside' && maverick[0].object === 'inside',
+  'and both find the rail inside the circle',
+  `loop round it: ${powerloop[0]?.object}, nose along it: ${maverick[0]?.object}`,
+);
+
+{
+  const rows = await orbitAbout(V(40, 6, 0));
+  const orbit = rows.find((r) => r.turns > 1.5);
+  report(Boolean(orbit) && orbit.axis === 'vertical' && orbit.trackFrac > 0.7 && orbit.object === 'inside',
+    'two laps of the post are two turns about a vertical axis, the post inside',
+    orbit ? `${describe(orbit)}, tracked ${d2(orbit.trackFrac)}` : 'no turn over 1.5 measured');
+  const arcs = rows.filter((r) => r.turns <= 1.5);
+  report(enclosesNothing(arcs), 'and the arcs flown in and out enclose nothing', brief(arcs));
 }
 {
-  const r = await rig(-60);
-  r.settle(V(0, 14, -50), Math.atan2(0, 1), 2.0);
-  r.fly(rampPath(V(0, 14, -50), V(0, 14, -36), 2.2, 13), { heading: Math.atan2(0, 1) });
+  const rows = await orbitAbout(V(40, 6, 60));
+  report(rows.length > 0 && enclosesNothing(rows), 'the same two laps round empty air find nothing inside', brief(rows));
+}
+{
+  const rows = await openAirFlip();
+  report(enclosesNothing(rows), 'a flip in open air encloses nothing, so it is no lap',
+    rows.length ? rows.map(describe).join('; ') : 'no turn measured');
+}
+{
+  /* A Juicy Flick: half a pitch back, then half a roll. */
+  const r = await openAirRunUp();
   r.stickUntil([0, -0.8, 0, 0.5], 900, (c, i, a) => a.q >= TURN * 0.46);
   r.stickUntil([0.85, 0, 0, 0.5], 900, (c, i, a) => Math.abs(a.p) >= TURN * 0.46);
   r.fly(linePath(r.craft().p, V(0, 10, -10), 2.4), { heading: Math.atan2(0, 1) });
   r.done(700);
-  const rows = takeTurns(0.3);
-  check(
-    'and neither does a Juicy Flick, which is a half pitch and a half roll',
-    rows.every((t) => t.object === 'none'),
-    rows.length ? rows.map(describe).join('; ') : 'no path turn over a third of a turn',
-  );
+  const rows = take(0.3);
+  report(enclosesNothing(rows), 'nor does half a pitch and half a roll in open air',
+    rows.length ? rows.map(describe).join('; ') : 'no turn measured');
 }
-
-/*
- * 4. AND IT CANNOT CARRY A FRAME ERROR.
- *
- * The angular velocity is taken from the observed rotation of the craft's
- * own frame rather than from a gyro channel, so there is no convention to
- * agree with the renderer and none to get wrong. The way to show that is to
- * fly the same figure on maps that face three different ways: the contact
- * pass had exactly this fault and was green at one spawn yaw and reversed at
- * another.
- */
 {
-  const rows = [];
-  for (const yaw of [0, Math.PI / 2, Math.PI]) {
-    /* eslint-disable-next-line no-await-in-loop */
-    const pl = await loop({ noseAlong: false, yaw });
-    rows.push(pl[0] || null);
+  const firsts = [];
+  for (const [yaw, name] of [[0, '0'], [Math.PI / 2, '90'], [Math.PI, '180']]) {
+    firsts.push([name, (await railLoop({ yaw }))[0] ?? null]);
   }
-  const ok = rows.every((t) => t && t.axis === 'horizontal' && t.loopOn === 'pitch');
-  const spread = ok
-    ? Math.max(...rows.map((t) => t.turns)) - Math.min(...rows.map((t) => t.turns))
-    : Infinity;
-  check(
-    'the same Powerloop measures the same at three spawn yaws',
-    ok && spread < 0.25,
-    rows.map((t, i) => `yaw ${[0, 90, 180][i]}: ${t ? `${t.turns.toFixed(2)} ${t.loopOn}` : 'nothing'}`).join(' | ')
-    + ` (spread ${Number.isFinite(spread) ? spread.toFixed(2) : 'n/a'})`,
-  );
+  const ok = firsts.every(([, r]) => r !== null && r.axis === 'horizontal' && r.loopOn === 'pitch');
+  const turns = firsts.map(([, r]) => r?.turns);
+  const spread = ok ? Math.max(...turns) - Math.min(...turns) : Infinity;
+  report(ok && spread < 0.25, 'the loop round the rail measures alike from three spawn yaws',
+    `${firsts.map(([name, r]) => `yaw ${name}: ${r ? `${d2(r.turns)} on ${r.loopOn}` : 'nothing'}`).join(' | ')}`
+    + ` (spread ${ok ? d2(spread) : 'n/a'})`);
 }
-
-/*
- * 5. AND THE TURNING PROJECTED ONTO THE OBJECT'S OWN AXIS.
- *
- * The raw turning of the path is the right quantity in open air and the
- * wrong one around a rail, because a figure flown with the sticks does not
- * stay in one plane: the craft yaws through it, and heading wander is
- * turning about world up. A rail is horizontal, so projecting onto the rail
- * keeps the figure and throws the wander away. That is what the winding did
- * and why it worked for the half figures when raw path turning does not.
- *
- * What is different, and what makes it worth having, is where the axis comes
- * from. The winding could only ever use an axis that src/game/obstacles.js
- * had already classified as a pole or a bar, which is why the training
- * park's own mast was invisible until this session and why a Split-S over a
- * wall or a roof edge could not be named at any tolerance. This axis comes
- * from the nearest SOLID, so anything with a direction answers.
- */
+const side = (below) => (below ? 'under' : 'over');
 {
-  const pl = await loop({ noseAlong: false });
-  check(
-    'a Powerloop turns once about the RAIL\'s own axis, and ends the side it began',
-    pl.length === 1 && pl[0].objectAxis === 'horizontal'
-      && Math.abs(Math.abs(pl[0].turnsAbout) - 1) < 0.3
-      && pl[0].startBelow === pl[0].endBelow,
-    pl.length
-      ? `about ${pl[0].turnsAbout === null ? 'nothing' : pl[0].turnsAbout.toFixed(2)} turns, `
-        + `axis ${pl[0].objectAxis}, `
-        + `${pl[0].startBelow ? 'under' : 'over'} to ${pl[0].endBelow ? 'under' : 'over'}`
-      : 'no turn was measured',
+  const rows = await railLoop();
+  const r = rows[0];
+  report(
+    rows.length === 1 && r.objectAxis === 'horizontal' && Math.abs(Math.abs(r.turnsAbout) - 1) < 0.3
+      && r.startBelow === r.endBelow,
+    'the loop is one turn about the rail\'s own axis, ending on the side it began',
+    r ? `${rows.length} turn(s); first: ${d2(r.turnsAbout)} turns about a ${r.objectAxis ?? 'missing'} axis, `
+      + `${side(r.startBelow)} to ${side(r.endBelow)}` : 'no turn measured',
   );
 }
 {
-  /* Half a figure entered from OVER the rail: it must come out UNDER it,
-   * which is the fact that separates the Matty family from the Immelmann
-   * family and is a statement about geometry rather than about the pilot. */
-  const r = await rig(-20);
-  const lap = circlePath(BAR, V(0, -1, 0), V(0, 0, -1), 3.4, 2.9, Math.PI, -0.5);
-  const d0 = lap(0);
-  const vEnt = len(d0.v);
-  const start = sub(d0.p, mul(norm(d0.v), 12));
-  const head = Math.atan2(0, -1);
-  r.settle(start, head, 2.0);
-  r.fly(rampPath(start, d0.p, (12 * 1.9) / Math.max(2, vEnt), vEnt), { heading: head });
-  r.fly(lap, { heading: head });
-  r.hold(700, 0, 0, 0, 0.45);
-  r.done(700);
-  const rows = takeTurns(0.3);
-  const over = rows.find((t) => t.object !== 'none' && !t.startBelow && t.endBelow);
-  check(
-    'half a figure from OVER the rail comes out UNDER it, about the rail\'s axis',
-    Boolean(over) && Math.abs(Math.abs(over.turnsAbout) - 0.5) < 0.25,
-    over
-      ? `about ${over.turnsAbout.toFixed(2)} turns, over to under, object ${over.object}`
-      : `no turn went over the rail and back under it: ${rows.map((t) => `${t.turns.toFixed(2)} ${t.startBelow ? 'U' : 'O'}->${t.endBelow ? 'U' : 'O'} ${t.object}`).join('; ') || 'nothing measured'}`,
-  );
+  const lap = circlePath(RAIL, V(0, -1, 0), V(0, 0, -1), 3.4, 2.9, Math.PI, -0.5);
+  const rows = flyCircle(await rig(-20), lap, Math.atan2(0, -1), {}, 0.3);
+  const over = rows.find((r) => r.object !== 'none' && !r.startBelow && r.endBelow);
+  report(Boolean(over) && Math.abs(Math.abs(over.turnsAbout) - 0.5) < 0.25,
+    'half a figure begun over the rail comes out under it, half a turn about the rail',
+    over ? `${d2(over.turnsAbout)} turns about it, ${side(over.startBelow)} to ${side(over.endBelow)}, object ${over.object}`
+      : `none begun over and ended under: ${rows.map((r) => `${d2(r.turns)} ${side(r.startBelow)} to ${side(r.endBelow)} ${r.object}`).join('; ')}`);
 }
 {
-  /* And in open air there is no axis to project onto, so nothing is
-   * claimed. A figure with no object is not a lap around anything. */
-  const r = await rig(-60);
-  r.settle(V(0, 14, -50), Math.atan2(0, 1), 2.0);
-  r.fly(rampPath(V(0, 14, -50), V(0, 14, -36), 2.2, 13), { heading: Math.atan2(0, 1) });
-  r.stickUntil([0, 0.85, 0, 0.42], 1400, (c, i, a) => -a.q >= TURN * 0.84);
-  r.fly(linePath(r.craft().p, V(0, 14, -10), 2.4), { heading: Math.atan2(0, 1) });
-  r.done(700);
-  const rows = takeTurns(0.3);
-  check(
-    'and a figure flown in open air has no object axis to be about',
-    rows.every((t) => t.object === 'none' && t.turnsAbout === null),
-    rows.length
-      ? rows.map((t) => `object ${t.object}, about ${t.turnsAbout === null ? 'nothing' : t.turnsAbout.toFixed(2)}`).join('; ')
-      : 'no turn measured',
-  );
+  const rows = await openAirFlip();
+  report(rows.every((r) => r.object === 'none' && r.turnsAbout === null),
+    'and a figure in open air has no object axis to turn about',
+    rows.length ? rows.map((r) => `object ${r.object}, about ${r.turnsAbout ?? 'nothing'}`).join('; ') : 'no turn measured');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
-process.exit(failed === 0 ? 0 : 1);
+process.exit(failed ? 1 : 0);

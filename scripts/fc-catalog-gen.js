@@ -1,113 +1,99 @@
 /*
- * fc-catalog-gen.js: write src/fc/catalog-data.js from the 4.5.1 valueTable
- * and the keys bf_settings.c actually writes.
+ * fc-catalog-gen.js: build src/fc/catalog-data.js, the FC screen's table of
+ * every Betaflight 4.5.1 CLI key, from vendor/betaflight and bf_settings.c.
  *
- * Do not edit catalog-data.js by hand. Change bf_settings.c or the status
- * rules in src/fc/catalog.js, then run this. lint:catalog fails if the
- * committed data lags the firmware table.
+ * catalog-data.js holds firmware facts and nothing we decide, so it is
+ * never edited by hand: change bf_settings.c, or the status rules in
+ * src/fc/catalog.js, and run npm run gen:catalog. lint:catalog renders the
+ * file again and fails when the committed copy differs.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { loadFirmwareTables } from './fc-valuetable.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-
-const { table, live } = await loadFirmwareTables(root);
-const liveSet = new Set(live);
-
-const rows = table.map((row) => ({
-  key: row.key,
-  type: row.type,
-  lookup: row.lookup,
-  pg: row.pg,
-  min: row.min,
-  max: row.max,
-  array: row.array,
-  live: liveSet.has(row.key),
-}));
+export const CATALOG_DATA = 'src/fc/catalog-data.js';
 
 /*
- * Keys bf_settings.c applies that Betaflight's own valueTable does not
- * carry. There is exactly one family of them, the rpm_filter_weights, which
- * patches/0001 adds, and they really do belong to RPM_FILTER_CONFIG.
- *
- * The loop below stamps that pg on EVERY key that falls through here, so a
- * key added to bf_settings.c with a typo, or one whose valueTable entry
- * moves, would be filed silently under a parameter group it has nothing to
- * do with and the catalog would look complete. Fail instead: a new family
- * here is a decision, not a default.
+ * bf_settings.c may write keys the valueTable lacks. The only ones allowed
+ * are the expanded rpm_filter_weights_1..3, which patches/0001 adds and
+ * which live in RPM_FILTER_CONFIG. Any other stray key stops the build,
+ * because giving it a parameter group is a decision, and a typo in
+ * bf_settings.c would otherwise look like a complete catalog.
  */
-const extra = live.filter((k) => !table.some((r) => r.key === k));
-const unexpected = extra.filter((k) => !/^rpm_filter_weights_[123]$/.test(k));
-if (unexpected.length) {
-  throw new Error(
-    `fc-catalog-gen: ${unexpected.length} key(s) in bf_settings.c are not in the `
-    + `valueTable and are not rpm_filter_weights: ${unexpected.join(', ')}. `
-    + 'Give each one its real parameter group here rather than letting it '
-    + 'inherit RPM_FILTER_CONFIG.',
-  );
-}
-for (const key of extra) {
-  rows.push({
-    key,
-    type: 'UINT8',
-    lookup: null,
-    pg: 'RPM_FILTER_CONFIG',
-    min: null,
-    max: null,
-    array: false,
-    live: true,
-  });
-}
+const EXTRA_KEY = /^rpm_filter_weights_[123]$/;
+const extraRow = (key) => ({
+  key, type: 'UINT8', lookup: null, pg: 'RPM_FILTER_CONFIG', min: null, max: null, array: false,
+});
 
-const header = `/*
- * catalog-data.js: generated from vendor/betaflight 4.5.1 valueTable and
- * src/native/bf/bf_settings.c. Do not edit. Run:
- *   node scripts/fc-catalog-gen.js
+const HEADER = `/*
+ * catalog-data.js: generated from vendor/betaflight 4.5.1 (the CLI
+ * valueTable, its lookup tables and the integer macros its bounds name)
+ * and src/native/bf/bf_settings.c by scripts/fc-catalog-gen.js. Do not
+ * edit; run npm run gen:catalog. VALUE_TABLE has one key per line, in
+ * valueTable order, then the keys only bf_settings.c writes.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
-
 `;
 
-const body =
-  header +
-  `export const VALUE_TABLE = ${JSON.stringify(rows, null, 2)};\n`;
+// Returns the file text and the counts the CLI prints.
+export async function renderCatalogData(root) {
+  const { table, live, lookups, defines } = await loadFirmwareTables(root);
+  const writes = new Set(live);
+  const known = new Set(table.map((r) => r.key));
+  const extras = live.filter((k) => !known.has(k));
+  const stray = extras.filter((k) => !EXTRA_KEY.test(k));
+  if (stray.length) {
+    throw new Error(
+      `fc-catalog-gen: bf_settings.c writes ${stray.join(', ')}, which the valueTable does not `
+      + 'have and which is not an rpm_filter_weights key. Decide its parameter group here.',
+    );
+  }
+  const rows = [...table, ...extras.map(extraRow)].map((r) => ({ ...r, live: writes.has(r.key) }));
+  const lines = (entries) => entries.map((e) => `  ${e},\n`).join('');
+  const text = `${HEADER}\nexport const VALUE_TABLE = [\n${lines(rows.map((r) => JSON.stringify(r)))}];\n`
+    + `\nexport const FIRMWARE_LOOKUPS = {\n${lines(Object.entries(lookups).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`))}};\n`
+    + `\nexport const FIRMWARE_BOUNDS = {\n${lines(Object.entries(defines).map(([k, v]) => `${JSON.stringify(k)}: ${v}`))}};\n`;
+  return { text, keys: rows.length, table: table.length, extras: extras.length, live: writes.size };
+}
 
-const out = join(root, 'src/fc/catalog-data.js');
-await writeFile(out, body, 'utf8');
-const liveN = rows.filter((r) => r.live).length;
-console.log(
-  `fc-catalog-gen: wrote ${rows.length} keys (${table.length} valueTable, ${extra.length} bf_settings extras), ${liveN} live, to src/fc/catalog-data.js`,
-);
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const root = dirname(dirname(fileURLToPath(import.meta.url)));
+  const out = await renderCatalogData(root);
+  await writeFile(join(root, CATALOG_DATA), out.text, 'utf8');
+  console.log(
+    `fc-catalog-gen: ${out.keys} keys (${out.table} valueTable, ${out.extras} bf_settings only), `
+    + `${out.live} live, written to ${CATALOG_DATA}`,
+  );
+}
