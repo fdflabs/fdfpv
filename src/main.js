@@ -1158,6 +1158,11 @@ export async function boot({
       } else if (e.type === 'error' && e.error === 'locked') {
         opsHud.tell(str('ops.roles.refused_locked'), { warn: true });
       } else if (e.type === 'cue') {
+        /* The ops room's voices (lines.json's Interior speakers): the
+         * room sends each seat only the lines it hears. */
+        if (e.radio != null) {
+          warSay([e.radio], 'story', opsHud);
+        }
         /* A classification's card is told with its change, below. */
         if (e.card && e.card !== 'card.classification_updated') {
           opsHud.cardEvent([opsSay(e.card)]);
@@ -4509,12 +4514,13 @@ export async function boot({
   /* Crest Control's lines, in the UI's language, while the sound is on. */
   /* Each item a line id, or a list said as one (warradio.js PRIORITY);
    * prio 'story' for a stage's own radio cue. Under a replay the radio
-   * says the clip's lines, not the live war's. */
-  function warSay(items, prio = 'call') {
+   * says the clip's lines, not the live war's. `hud` shows the
+   * subtitles: the war's, or an ops match's quiet HUD. */
+  function warSay(items, prio = 'call', hud = warHud) {
     if (!items.length || mode === 'replay') {
       return;
     }
-    warSubtitles(items, prio);
+    warSubtitles(items, prio, hud);
     if (!audio.enabled) {
       return;
     }
@@ -4531,8 +4537,8 @@ export async function boot({
    * are lines.json's, in the page's language, fetched once. */
   const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
   let warLineWords = null;
-  function warSubtitles(items, prio) {
-    const ids = items.flat().filter((id) => prio === 'story' || WAR_SUBTITLED.has(id));
+  function warSubtitles(items, prio, hud) {
+    const ids = items.flat().filter((id) => typeof id === 'string' && (prio === 'story' || WAR_SUBTITLED.has(id)));
     if (!ids.length) {
       return;
     }
@@ -4545,7 +4551,7 @@ export async function boot({
         const l = words.get(id);
         const text = l && (l[lang] ?? l.en);
         if (text) {
-          warHud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000));
+          hud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000));
         }
       }
     }).catch((e) => {

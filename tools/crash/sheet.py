@@ -11,7 +11,7 @@
 # loop's sheets. What the lead scores a round on, 1 absurd to 9
 # indistinguishable (docs/CRASH-PLAN.md).
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import json, os, sys, textwrap
 from PIL import Image, ImageDraw

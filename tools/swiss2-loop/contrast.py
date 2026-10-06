@@ -21,7 +21,7 @@
 # Luminance is Rec. 709 on the display values. Every image is cropped
 # and scaled as colour.py and sheet.py do.
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import json, os, sys
 import numpy as np

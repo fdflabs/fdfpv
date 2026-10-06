@@ -93,20 +93,20 @@
  * Multi pilot rooms are not flown: a second pilot is a second Chrome, and
  * this measures one browser at a time on purpose (docs/PERF.md).
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -686,7 +686,7 @@ function seated(airframe, map) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   return Object.assign(s, {
     map, freestyleMap: map, graphics: opts.preset, graphicsAuto: false, flightMode: 'angle',
-    fpsCap: 0, airframeAsked: true, warConsent: true, ...(opts.mode ? { perfMode: opts.mode } : {}),
+    fpsCap: 0, airframeAsked: true, warConsent: true, interiorConsent: true, ...(opts.mode ? { perfMode: opts.mode } : {}),
   });
 }
 
@@ -746,6 +746,41 @@ const SCENARIOS = {
       return true;
     })`,
     summary: "(() => { const w = window.__war(); return { state: w.view.state, mission: w.view.mission || null, fx: w.fx, booms: w.log.filter((e) => e.type === 'boom').length }; })()",
+  },
+  /* The Interior, Mission 1, The Old War, from its card in a private
+   * room on a rooms server this run starts (missions in development
+   * allowed, as interior:fly's): the Bramor thrown at cruise 650 m over
+   * Pista Cero, which puts the room in stage 2 (the survey), and flown
+   * level at 600 m with the quiet HUD and the ops room up. */
+  'interior-ops': {
+    map: 'interior',
+    airframe: 'bramor2300',
+    async setup() {
+      const dir = await mkdtemp(join(tmpdir(), 'perf-rooms-'));
+      const port = await freePort();
+      const server = await startRooms({ db: join(dir, 'rooms.db'), port, devMissions: true });
+      return {
+        url: `/index.html?rooms=${encodeURIComponent(`http://127.0.0.1:${port}`)}&missions=dev`,
+        async stop() { await server.stop(); await rm(dir, { recursive: true, force: true }); },
+      };
+    },
+    async start(page) {
+      await page.evaluate('(window.__opsCampaign.open(), true)');
+      await page.until("!!document.querySelector('.ops-campaign-box [data-mission=\"interior-1\"] .campaign-play:not(:disabled)')", 30000);
+      await page.evaluate("(document.querySelector('[data-mission=\"interior-1\"] .campaign-play').click(), true)");
+      await page.until("window.__ops.view().mission === 'interior-1' && window.__ops.view().state === 'live'", 300000);
+      await page.until("window.__map().id === 'interior' && window.__map().ready && window.__craftState().mode === 'flight'", 600000);
+      const thrown = await page.evaluate(`(() => {
+        const s = window.__craftState();
+        return window.__crashThrow({ fresh: true, x: s.worldX, y: s.worldY - s.groundClearance + 650, z: s.worldZ, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: -18 }).ok;
+      })()`);
+      if (!thrown) {
+        throw new Error('perf-play: interior-ops: __crashThrow refused the throw');
+      }
+      await page.until("window.__ops.view().stage && window.__ops.view().stage.id === 'M1_CP_AIRBORNE'", 30000);
+      await climb(page, PILOT(600, WING));
+    },
+    summary: "(() => { const v = window.__ops.view(); return { state: v.state, stage: v.stage && v.stage.id, hud: window.__opsHud().on }; })()",
   },
   /* Itaipu at speed: thrown at 30 m/s over the river below the dam and
    * flown flat out, 50 m up, north east across Hernandarias, the town's

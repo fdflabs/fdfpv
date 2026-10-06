@@ -9,20 +9,20 @@
  * assets/audio/war/lines.json with a file in both languages and both
  * formats, or the shell asks for audio that is not there.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -206,6 +206,24 @@ console.log('story over calls');
   s2.say('hit-yard', STALE_MS + 600, 'story');
   s2.next(STALE_MS + 600 + STORY_STALE_MS + 1);
   check('and past that it goes too', s2.status().speaking === null);
+}
+
+console.log('a pause in an item');
+{
+  /* The Interior's exchanges carry a pause in seconds between two lines
+   * (CONTRACT-P0.md section 6): no file asked for it, the next line
+   * after it once it is over, the pause not counted as said. */
+  const heard = [];
+  const r = new WarRadio();
+  r.voice = { el: { play: () => null, pause: () => null, set src(url) { heard.push(url.split('/').slice(-1)[0].replace(/\..*$/, '')); } } };
+  r.bed = null;
+  r.say(['int1-s4-there', 0.05, 'int1-s4-goodeye'], 0, 'story');
+  r.next(10);
+  check('the pause asks for no file and is nobody speaking', heard.join(' ') === 'int1-s4-there' && r.status().speaking === null && r.status().said.join() === 'int1-s4-there,int1-s4-goodeye',
+    JSON.stringify({ heard, status: r.status() }));
+  await new Promise((done) => { setTimeout(done, 120); });
+  check('and the line after it plays once the pause is over', heard.join(' ') === 'int1-s4-there int1-s4-goodeye' && r.status().speaking === 'int1-s4-goodeye', heard.join(' '));
+  r.stop();
 }
 
 console.log('under voice chat');
