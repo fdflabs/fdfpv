@@ -44,6 +44,7 @@ import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
+import { decodeHiddenPhotos } from '../render/prewarm.js';
 import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
 import { HERO_HALF } from './itaipu/terrain/frame.js';
@@ -430,6 +431,10 @@ async function buildItaipu(shell, progress, q, time) {
 
   scene.add(shell.quad);
   renderer.compile(scene, camera);
+  /* The trees' bark photographs: their meshes are hidden until the pilot
+   * is in range, so the first frame drawn does not decode them
+   * (render/prewarm.js). */
+  decodeHiddenPhotos(renderer, scene);
   progress(1);
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
