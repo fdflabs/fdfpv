@@ -84,7 +84,6 @@ src/game/track.js
 src/game/trickdetect.js
 src/game/tricks.js
 src/game/verify.js
-src/input/input.js
 src/input/touchsticks.js
 src/main.js
 src/maps/build-cost.js

@@ -52,9 +52,15 @@ const AXES_WATCHED = 8;
 /* Connected devices with at least four axes; anything less cannot fly. */
 export function connectedPads() {
   const reported = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
-  /* Chrome's list has null holes where a pad was unplugged. */
-  const flyable = (gp) => Boolean(gp && gp.connected && gp.axes && gp.axes.length >= 4);
-  return Array.from(reported).filter(flyable);
+  /* Chrome's list has null holes where a pad was unplugged. A plain loop:
+   * this runs several times on every 2 ms poll. */
+  const flyable = [];
+  for (const gp of reported) {
+    if (gp && gp.connected && gp.axes && gp.axes.length >= 4) {
+      flyable.push(gp);
+    }
+  }
+  return flyable;
 }
 
 export const padKey = (gp) => `${gp.index}\0${gp.id || ''}`;
@@ -156,7 +162,10 @@ export class PadRoster {
   track() {
     const pads = connectedPads();
     const keys = new Set(pads.map(padKey));
-    const arrived = [...keys].filter((k) => !this.seen.has(k)).length;
+    let arrived = 0;
+    for (const k of keys) {
+      arrived += this.seen.has(k) ? 0 : 1;
+    }
     const hadAny = this.seen.size > 0;
     this.seen = keys;
     if (this.pick) {
