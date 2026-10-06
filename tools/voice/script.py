@@ -45,7 +45,7 @@ ID = re.compile(r'^[a-z][a-z0-9-]*$')
 G2P = ('en-us', 'en-gb', 'es-419')
 # The radio's colour for each speaker (radio.py), named here so a check
 # with no numpy can hold lines.json to it.
-PRESETS = ('crest', 'mirador', 'taller', 'despacho', 'carancho', 'consola', 'analista', 'campo', 'banco', 'archivo')
+PRESETS = ('crest', 'mirador', 'taller', 'despacho', 'carancho', 'consola', 'analista', 'campo', 'banco', 'archivo', 'guia')
 # The plan's rule is that no real figure is spoken until the plan sources
 # it. No line has a sourced figure yet, so no line may speak a digit or a
 # spelled number that reads as a quantity; the one year in the intro is
