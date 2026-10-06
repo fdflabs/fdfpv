@@ -105,7 +105,6 @@ src/native/sim_internal.h
 src/render/attract.js
 src/render/audio.js
 src/render/celmat.js
-src/render/craft.js
 src/render/craftpose.js
 src/render/frame.js
 src/render/ghostcraft.js
