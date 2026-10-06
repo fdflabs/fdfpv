@@ -107,6 +107,17 @@ const AGC_TAU = 0.6;
  * how hot it is. A manual span (setThermalSpan) replaces both with a
  * fixed linear window.
  *
+ * The core reads no hotter than CORE_MAX_C, the top of a Boson or Tau
+ * class core's low gain range: a fire (a camp fire near 600 C, an
+ * explosion's 800) is clipped there, and neither the histogram's range
+ * nor the linear window reaches past it, so whatever is at the ceiling
+ * is full white wherever the gain is in its settling. Without the bound
+ * a fire a fifth of the frame wide raised the 4 sigma headroom over its
+ * own heat, and its hottest pixels came out a tenth under white or not,
+ * by where the gain had got to (scripts/sensor-check.js, fire). Nothing
+ * else in a scene is near it (the night's lamps, the hottest, are under
+ * 400 C), so a scene without a fire is drawn as before.
+ *
  * The core: NETD about 50 mK (the temporal noise's standard deviation), a
  * fixed pattern that stays put on the core's own pixels (columns and
  * single pixels, what is left after the camera's flat field correction),
@@ -121,6 +132,7 @@ const PLATEAU = 2.5;
 const FLOOR = 0.2;
 const EQ_SHARE = 0.8;
 const MIN_SPAN_K = 6;
+const CORE_MAX_C = 500;
 export const THERMAL_PALETTES = ['whitehot', 'ironbow', 'rainbow'];
 const look = { palette: 0, span: null };
 
@@ -187,7 +199,7 @@ const AGC_FRAG = /* glsl */ `
         vec2 uv = (vec2(float(i), float(j)) + 0.5) / 8.0;
         vec3 c = textureLod(tSrc, uv, uLod).rgb;
         #ifdef AGC_THERMAL
-          float v = c.r * ${T_SCALE.toFixed(1)};
+          float v = min(c.r * ${T_SCALE.toFixed(1)}, ${CORE_MAX_C.toFixed(1)});
         #else
           float v = log2(max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-5));
         #endif
@@ -209,14 +221,17 @@ const AGC_FRAG = /* glsl */ `
  * sigma, most and least. Its most and least are of an 8x8 grid of
  * blocks a mipmap has averaged, so a small hot thing never reaches its
  * most: the top of the range is at least 4 sigma over the mean, which
- * leaves grey levels over the scene's warmest bulk for what is hotter. */
+ * leaves grey levels over the scene's warmest bulk for what is hotter,
+ * and at most the core's ceiling, which nothing reads over. Both are of
+ * the clipped reading: a block averaged before the clip that holds the
+ * rim of a fire reads hotter than the core's pixels would average to. */
 const HIST_RANGE = /* glsl */ `
   vec2 histRange(vec4 a) {
     float lo = max(a.a, a.r - 3.0 * a.g);
     float hi = max(a.b, a.r + 4.0 * a.g);
     float mid = 0.5 * (lo + hi);
     float half_ = max(0.5 * (hi - lo), ${(MIN_SPAN_K / 2).toFixed(1)});
-    return vec2(mid - half_, mid + half_);
+    return vec2(mid - half_, min(mid + half_, ${CORE_MAX_C.toFixed(1)}));
   }
 `;
 
@@ -238,7 +253,7 @@ const HIST_FRAG = /* glsl */ `
     for (int j = 0; j < ${HIST_GRID[1]}; j++) {
       for (int i = 0; i < ${HIST_GRID[0]}; i++) {
         vec2 uv = (vec2(float(i), float(j)) + 0.5) / vec2(${HIST_GRID[0].toFixed(1)}, ${HIST_GRID[1].toFixed(1)});
-        float v = textureLod(tSrc, uv, uLod).r * ${T_SCALE.toFixed(1)};
+        float v = min(textureLod(tSrc, uv, uLod).r * ${T_SCALE.toFixed(1)}, ${CORE_MAX_C.toFixed(1)});
         n += step(lo, v) * step(v, hi - 1e-6);
       }
     }
@@ -422,16 +437,16 @@ const VIEW_FRAG = /* glsl */ `
        * its noise (NETD, 0.12 of a triangular hash is 50 mK of standard
        * deviation) and its fixed pattern, then the gain: the equalised
        * curve over the robust range, a share of the linear window, mean
-       * minus 2 sigma to mean plus 3, at least 6 C wide; or the manual
-       * span. */
+       * minus 2 sigma to mean plus 3, at least 6 C wide and no higher
+       * than the core's ceiling; or the manual span. */
       vec4 agc = texture2D(tAgcT, vec2(0.5));
       float T = coreAt(suv);
       vec2 cell = floor(suv / uThermalTexel);
       float col = hash(vec2(cell.x, 7.0)) - 0.5;
       float fpn = hash(cell + 311.0) - 0.5;
-      T += n * 0.12 + col * 0.1 + fpn * 0.08;
-      float lo = agc.r - 2.0 * agc.g;
-      float span = max(5.0 * agc.g, ${MIN_SPAN_K.toFixed(1)});
+      T = min(T + n * 0.12 + col * 0.1 + fpn * 0.08, ${CORE_MAX_C.toFixed(1)});
+      float lo = min(agc.r - 2.0 * agc.g, ${(CORE_MAX_C - MIN_SPAN_K).toFixed(1)});
+      float span = min(max(5.0 * agc.g, ${MIN_SPAN_K.toFixed(1)}), ${CORE_MAX_C.toFixed(1)} - lo);
       float v = clamp((T - lo) / span, 0.0, 1.0);
       vec2 hr = histRange(agc);
       float u = clamp((T - hr.x) / (hr.y - hr.x), 0.0, 1.0);
@@ -442,10 +457,11 @@ const VIEW_FRAG = /* glsl */ `
         /* Fusion: the visible picture, its colour drained a little, with
          * what is hot over it and the hot edges drawn. Hot is well over
          * the scene and well over the air both, so sunlit concrete in a
-         * frame of water is not painted as a fire. */
+         * frame of water is not painted as a fire. A pixel at the core's
+         * ceiling is hot however wide a fire has made the spread. */
         vec3 base = eoAt(suv);
         base = mix(vec3(lum(base)), base, 0.55);
-        float hotAt = max(agc.r + 3.0 * agc.g, uAirC + 25.0);
+        float hotAt = min(max(agc.r + 3.0 * agc.g, uAirC + 25.0), ${(CORE_MAX_C - 20).toFixed(1)});
         float hot = smoothstep(hotAt, hotAt + 20.0, T);
         vec2 t = uThermalTexel;
         float gx = textureLod(tThermal, suv + vec2(t.x, 0.0), 0.0).r - textureLod(tThermal, suv - vec2(t.x, 0.0), 0.0).r;
