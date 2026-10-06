@@ -59,11 +59,13 @@ const paintOf = (id) => PAINTS[Math.floor(hash01(seedOf(id), 5, 62) * PAINTS.len
 
 /*
  * Build it before the colliders are built (camp.js and ambient.js add
- * solids); returns { group, setContacts, setCamp, demo, update(seconds),
- * stats(), dispose(), routes, camp }.
+ * solids) and before the first compile (the camp's light patches the
+ * ground's material, `groundMaterial`, and the people's); returns
+ * { group, setContacts, setCamp, setSun(irradiance), demo,
+ * update(seconds), stats(), dispose(), routes, camp }.
  */
 export function buildLife({
-  THREE, scene, world, colliders, roofs,
+  THREE, scene, world, colliders, roofs, groundMaterial,
 }) {
   const routes = makeRoutes(world);
   const figures = makeFigures(THREE);
@@ -75,6 +77,17 @@ export function buildLife({
   const group = new THREE.Group();
   group.name = 'interior-life';
   group.add(figures.group, vehicles.group, camp.group, ambient.group);
+  /* The clearing's fill and lamps light its floor, its people and their
+   * motorcycles as they light the camp's props (camp.js). */
+  const lit = new Set([groundMaterial]);
+  for (const g of [figures.group, vehicles.group]) {
+    g.traverse((o) => {
+      if (o.isMesh) {
+        lit.add(o.material);
+      }
+    });
+  }
+  lit.forEach((m) => camp.light.patch(m));
   scene.add(group);
   let contacts = [];
   let parked = CAMP_PROPS.motorcycles.length;
@@ -151,6 +164,9 @@ export function buildLife({
       ambient.update(s);
       camp.update(s);
       draw();
+    },
+    setSun(irradiance) {
+      camp.light.setSun(irradiance);
     },
     stats: () => ({
       people: figures.stats().drawn, vehicles: vehicles.stats().drawn, camp: camp.stats(), ambient: ambient.stats(),
