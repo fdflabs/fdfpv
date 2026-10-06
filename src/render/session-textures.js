@@ -1,28 +1,30 @@
 /*
- * session-textures.js: the textures a map must not free.
+ * session-textures.js: textures that outlive every map, which a map's
+ * dispose (disposeSceneGraph in shell.js) must leave alone.
  *
- * The cel gradient ramp is a module level singleton in celmat.js, shared by
- * every cel material in the project INCLUDING the four on the session lived
- * airframe. A map's dispose walks its scene graph and frees every texture it
- * finds, which would free this one out from under the craft. It is its own
- * file because both maps need it and neither should import the other's.
+ * Only the cel ramp, today: one texture in celmat.js that every cel
+ * material points at, including the session's own airframe, which is
+ * still flying when the map it sat in is freed. A file of its own so each
+ * map can import it without importing another map.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { celRampTexture } from './celmat.js';
 
-export const SESSION_TEXTURES = new Set([celRampTexture()]);
+const sessionLived = [celRampTexture()];
+
+export const SESSION_TEXTURES = new Set(sessionLived);

@@ -46,6 +46,7 @@ jobs:
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
       - run: npm run live:selftest
+      - run: npm run ratescurve:selftest
       - run: npm run rooms:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
@@ -130,6 +131,7 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest
+      - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
       - run: npm run score:golden
@@ -138,6 +140,8 @@ jobs:
       - run: npm run trick:golden
       - run: npm run obstacles:golden
       - run: npm run track:golden
+      - run: npm run guide:golden
+      - run: npm run trackdoc:golden
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
@@ -176,6 +180,7 @@ jobs:
       - run: npm run crash:tree-nan
       - run: npm run river:check
       - run: npm run builder:selftest
+      - run: npm run trackbuilder:golden
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses

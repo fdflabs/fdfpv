@@ -1,33 +1,29 @@
 /*
- * craft.js: the quad's model, and nothing else.
+ * craft.js: which model draws which aircraft, and the flown model's
+ * published dimensions.
  *
- * It lives on its own because it is SESSION LIVED and the maps are not. The
- * shell builds one craft at boot and re-parents it into whichever map's scene
- * is active, so swapping the race field for the freestyle city does not
- * rebuild the airframe, does not recompile its four cel materials, and cannot
- * leave the shell holding a craft that belongs to a disposed scene.
+ * The flown craft is session lived: the shell builds it once and moves it
+ * into whichever map's scene is up, so changing map neither rebuilds it
+ * nor recompiles its materials, and the shell never holds a craft that
+ * belongs to a freed scene. Models are drawn at true size; the plant's
+ * motor order is Betaflight's (RR FR RL FL) with the nose toward -z.
+ * src/game/collide.js owns the arm and prop measurements, and
+ * tests/lib/checks.js asserts the drawn model agrees with them.
  *
- * Betaflight motor order is RR FR RL FL with the front at -z, and the numbers
- * here are a real 5 inch machine: a 0.155 m body front to back, motors at
- * 0.0778 m on each axis which is a 0.220 m motor to motor diagonal, and
- * 0.0635 m prop discs which is half of five inches. src/game/collide.js
- * derives CRAFT_R from the same measurements and tests/lib/checks.js asserts
- * the two agree, because this project has shipped a scale error before.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R } from '../game/collide.js';
@@ -53,17 +49,51 @@ import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
+/* A builder on floats: the same airframe with the float set for gear. */
+const onFloats = (build) => (opts) => build({ ...opts, floats: true });
+
 /*
- * ONE BUILDER PER SILHOUETTE, NOT ONE WITH FLAGS. A quad is four arms and
- * four open discs and what you see is the X; a wing is one swept surface
- * with a prop behind it. They do not share a silhouette, so they do not
- * share a builder. See src/render/combatcraft.js and src/render/bramorcraft.js.
- * Every aircraft in configs/airframes.js has a row (asserted below), so
- * there is no fallback model.
- *
- * Exported so the ghost and the settings studio build the same machine the
- * shell flies, from the one table, rather than each keeping its own idea of
- * which id draws what.
+ * A combat quad: one builder, the frame by airframe, and the pilot's
+ * resolved payload and accessories in opts.combat
+ * (docs/COMBAT-DRONES.md section 4); none means what a pilot who never
+ * chose flies.
+ */
+function combatQuad(id) {
+  return (opts) => {
+    const af = airframeById(id);
+    return buildCombatDrone({ ...opts, frame: af.combat.frame, ...(opts.combat ?? combatChoice(af, null)) });
+  };
+}
+
+/*
+ * The Striker as flown (docs/COMBAT-DRONES.md section 7): the war's
+ * drawing on the chosen propulsion, with the whip antenna when fitted.
+ * The drawing is about the war's pose point and the plant's origin is the
+ * CG, so every part moves by the propulsion's drawing offset, turned from
+ * the body frame into the model's; the launch rail is then built about the
+ * CG, as the Bramor's catapult is.
+ */
+function flownStriker(opts) {
+  const af = airframeById('striker2500');
+  const choice = opts.combat ?? combatChoice(af, null);
+  const propulsion = propulsionOf(af, choice);
+  const built = buildStrikerCraft({ ...opts, propulsion: propulsion.id, antenna: choice.accessories.includes('whip') });
+  const [dx, dy, dz] = bodyPosToModel(...propulsion.drawing_m);
+  for (const part of built.group.children) {
+    part.position.x += dx;
+    part.position.y += dy;
+    part.position.z += dz;
+  }
+  buildStrikerLauncher(built, af.catapult, opts);
+  return built;
+}
+
+/*
+ * One builder per silhouette, never one builder with flags: a quad's open
+ * X and a wing's swept surface share nothing. Every aircraft in
+ * configs/airframes.js has a row (checked when this module loads), so
+ * there is no fallback model. The ghost and the Settings studio take their
+ * builder from here too, so they draw the machine the shell flies.
  */
 const BUILDERS = {
   sky1800: buildSkyCraft,
@@ -80,117 +110,66 @@ const BUILDERS = {
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,
   timber1500: buildTimberCraft,
-  /* On floats, the same builders with the float set in place of the gear. */
-  timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),
-  cub1400f: (opts) => buildCubCraft({ ...opts, floats: true }),
-  /* The combat quads: one builder, its frame by airframe, and the pilot's
-   * resolved choice in opts.combat (docs/COMBAT-DRONES.md section 4); a
-   * caller that passes none draws what a pilot who never chose flies. */
-  '7inch': combatBuilder('7inch'),
-  '10inch': combatBuilder('10inch'),
-  interceptor: combatBuilder('interceptor'),
-  striker2500: buildFlownStriker,
+  timber1500f: onFloats(buildTimberCraft),
+  cub1400f: onFloats(buildCubCraft),
+  '7inch': combatQuad('7inch'),
+  '10inch': combatQuad('10inch'),
+  interceptor: combatQuad('interceptor'),
+  striker2500: flownStriker,
 };
 
-function combatBuilder(id) {
-  return (opts) => {
-    const af = airframeById(id);
-    return buildCombatDrone({ ...opts, frame: af.combat.frame, ...(opts.combat ?? combatChoice(af, null)) });
-  };
+const unbuilt = AIRFRAMES.filter((af) => !BUILDERS[af.id]);
+if (unbuilt.length) {
+  throw new Error(`craft: ${unbuilt[0].id} has no builder`);
 }
 
-/*
- * The Striker a pilot flies (docs/COMBAT-DRONES.md section 7): the war's
- * drawing, src/render/strikercraft.js, on the propulsion chosen and with
- * the whip when it is fitted. That drawing is about the war's pose point;
- * the plant's origin is the CG, so every part moves by where the drawing's
- * origin sits about the CG (the propulsion's `drawing_m`, in the body
- * frame, turned into the model's by src/render/frame.js). Its launch rail
- * is built about the CG once they have moved, as the Bramor's catapult is.
- */
-function buildFlownStriker(opts) {
-  const af = airframeById('striker2500');
-  const choice = opts.combat ?? combatChoice(af, null);
-  const craft = buildStrikerCraft({ ...opts, propulsion: propulsionOf(af, choice).id, antenna: choice.accessories.includes('whip') });
-  const [ox, oy, oz] = bodyPosToModel(...propulsionOf(af, choice).drawing_m);
-  for (const part of craft.group.children) {
-    part.position.x += ox;
-    part.position.y += oy;
-    part.position.z += oz;
-  }
-  buildStrikerLauncher(craft, af.catapult, opts);
-  return craft;
-}
-
-for (const af of AIRFRAMES) {
-  if (!BUILDERS[af.id]) {
-    throw new Error(`craft: ${af.id} has no builder`);
-  }
-}
-
+/* The builder for an id, a retired id drawing as its successor. */
 export function craftBuilderFor(airframeId) {
   return BUILDERS[airframeById(currentAirframeId(airframeId)).id];
 }
 
+/* The aircraft buildCraft last built, which craftDims describes. */
+let lastBuiltId = DEFAULT_AIRFRAME;
+
 /*
- * The published dimensions of the airframe, in metres. A FUNCTION since the
- * whoop landed, because CRAFT_ARM and CRAFT_PROP_R are live bindings that
- * move with the seated aircraft (see src/game/collide.js) and a frozen
- * object literal would have captured the five inch's numbers at import time
- * and then quietly reported them for a machine a third of the size.
- *
- * Exported so a scale check can assert what the geometry actually measures
- * against what the project claims, rather than against a number typed a
- * second time.
+ * The flown model's dimensions in metres, for scale checks against the
+ * geometry. A function, since collide.js's arm and radii are live
+ * bindings that follow the seated aircraft: a frozen object would keep the
+ * numbers of whatever was seated at import. The motors sit CRAFT_ARM out
+ * on the diagonals, so each axis's offset is CRAFT_ARM over root two
+ * (plant.c's arm_x); the hull radius is the outermost reach about a motor
+ * (the duct on a ducted craft), which is what the collider sweeps.
  */
 export function craftDims() {
-  const dims = airframeById(currentCraftId).dims;
+  const { bodyLength, bodyWidth, bodyHeight } = airframeById(lastBuiltId).dims;
   return {
-    bodyLength: dims.bodyLength,
-    bodyWidth: dims.bodyWidth,
-    bodyHeight: dims.bodyHeight,
-    /* Per axis offset of a motor, so the motor sits CRAFT_ARM from the
-     * centre on the diagonal. Derived, not typed: src/game/collide.js owns
-     * the arm and the prop radius, and plant.c's arm_x is the same
-     * CRAFT_ARM / sqrt(2). */
+    bodyLength,
+    bodyWidth,
+    bodyHeight,
     motorArm: CRAFT_ARM / Math.SQRT2,
     propRadius: CRAFT_PROP_R,
-    /* The outermost radius about a motor, which is the blade on a naked
-     * airframe and the duct on a ducted one. The sweep is derived from it
-     * rather than from the blade, so a scale check reads the hull the
-     * collider actually sweeps. */
     hullRadius: CRAFT_HULL_R,
-    motorDiagonal: CRAFT_ARM * 2,
+    motorDiagonal: 2 * CRAFT_ARM,
     sweepRadius: CRAFT_ARM + CRAFT_HULL_R,
   };
 }
 
-/* Which aircraft buildCraft last built. The shell asks for a rebuild by
- * name; this is what craftDims reports against in between. */
-let currentCraftId = DEFAULT_AIRFRAME;
-
-/* `combat` is a combat quad's resolved { payload, accessories }, which every
- * other builder ignores. With none, the pilot's own seated choice
- * (configs/combat.js combatFor), because the shell's swap passes none and
- * the flown model must be the loadout the plant flies. */
+/*
+ * The flown model of an aircraft, in the pilot's paint and fitted parts,
+ * before any map's look restyles it. `combat` is a combat quad's resolved
+ * { payload, accessories }; without it, the pilot's own choice for that
+ * airframe, since the shell's swap passes none and the drawn loadout must
+ * be the one the plant flies. worldScale asks the builder to apply the
+ * world's ratio (src/render/frame.js), which is 1.
+ */
 export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
-  /*
-   * The airframe is MODELLED at its true size and DRAWN at 1/WORLD_SCALE of
-   * it, because the world it flies in is WORLD_SCALE times its own scale
-   * (src/render/frame.js). That ratio is 1 now, so the drawn craft is a real
-   * machine and the group scale is the identity; the seam stays because it
-   * is the one place the world's ratio touches the model, and check 15
-   * asserts the declared ratio reached it.
-   */
-  currentCraftId = airframeById(airframeId).id;
-  const build = craftBuilderFor(currentCraftId);
-  /* In the pilot's paint for it (src/render/livery.js), before a map's
-   * look restyles it, so the look's twins take the painted colours. */
-  return dressParts(dressLivery(build({
+  lastBuiltId = airframeById(airframeId).id;
+  const built = craftBuilderFor(lastBuiltId)({
     name: 'craft',
     fog: true,
     worldScale: true,
     measure: true,
-    combat: combat ?? combatFor(currentCraftId) ?? undefined,
-  }), currentCraftId), currentCraftId);
+    combat: combat ?? combatFor(lastBuiltId) ?? undefined,
+  });
+  return dressParts(dressLivery(built, lastBuiltId), lastBuiltId);
 }

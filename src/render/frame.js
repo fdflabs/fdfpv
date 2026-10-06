@@ -1,142 +1,110 @@
 /*
- * frame.js: the one and only conversion between the physics frame and the
- * Three.js frame. Physics is right-handed z up, x forward, y left
- * (sim_abi.h). Three.js is right-handed y up, with -z into the screen.
+ * frame.js: the single place a position or rotation crosses between the
+ * physics frame and the Three.js frame (CLAUDE.md). Converting anywhere
+ * else is how a sign error in yaw gets in.
  *
- * The basis change used everywhere below, a proper rotation:
- *   x_three = -y_sim   (screen right is the quad's right)
- *   y_three =  z_sim   (up stays up)
- *   z_three = -x_sim   (forward points into the screen)
- * Rotation quaternions transform by the same component permutation.
+ * The plant (sim_abi.h) is right handed with z up, x forward and y to the
+ * left. Three.js is right handed with y up and -z into the screen. The
+ * change of basis is a proper rotation,
  *
- * Nothing outside this file may convert coordinates. CLAUDE.md: sign
- * errors in yaw two months from now all trace back to breaking this.
+ *   x_three = -y_sim    the quad's right is the screen's right
+ *   y_three =  z_sim    up is up
+ *   z_three = -x_sim    forward is into the screen
  *
- * This file is part of WebFPVSimulator.
+ * and because it is a rotation, a quaternion's vector part permutes the
+ * same way while w stays.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
- * How much larger the world is than the aircraft, as a pure number.
+ * The world's size relative to the aircraft: world metres are sim metres
+ * divided by this. It is 1, so a metre in the physics is a metre in the
+ * world, and it must stay 1 unless that property is given up on purpose.
  *
- *   world metres = sim metres / WORLD_SCALE
+ * It was once 1.25, to answer "the gates and the town are too small next to
+ * the drone". That cannot work: the scale divides the craft's displacement
+ * and touches nothing in the world, and a gate's height on screen,
+ * viewportHeight * clearH / (2 * depth * tan(fov / 2)), does not contain it.
+ * All 1.25 did was make every course a quarter longer to fly (a 542 m lap
+ * flown as 678 m), which on a leaderboard adds a quarter to every time, and
+ * the next report was "the gates feel small and the field is large".
+ * Apparent size is the camera's, and src/render/lens.js holds it.
  *
- * IT IS 1, AND THE HISTORY OF WHY IT WAS NOT IS THE REASON THIS COMMENT IS
- * LONG.
- *
- * The owner flew it and reported "the gates and the town are too small
- * compared to the drone". The response was to set this to 1.25, on the
- * reasoning, written down here at the time, that "at 1.25 every solid thing
- * in both maps stands a quarter larger relative to the camera than it did".
- *
- * That reasoning is wrong, and the second report, "the gates feel small and
- * the field is large", is what it produces. This scale divides the craft's
- * displacement about the sim origin. It does not touch the world, so it
- * cannot change how big anything in the world LOOKS: the on screen height of
- * a gate is
- *
- *   pixels = viewportHeight * clearH / (2 * depth * tan(fov / 2))
- *
- * and WORLD_SCALE appears nowhere in it. A gate seen from 10 world metres
- * subtends exactly the same angle at 1.25 as it does at 1. What the scale
- * does change is how much sim distance buys a world metre, so at 1.25 the
- * craft crossed every course a quarter slower and a 542 m lap had to be
- * flown as 678 m. That is the whole of the "field is large" report, and on a
- * project that publishes lap times to a leaderboard it is worse than a feel
- * problem: it is a quarter added to every time.
- *
- * So the lever was the wrong one. Apparent size is the CAMERA's, and the
- * camera is where it has been fixed: see src/render/lens.js, which carries
- * the derivation. Here, 1 restores the property that makes the rest
- * of the project's dimensions mean anything, which is that a metre in the
- * physics is a metre in the world.
- *
- * The seam stays, because it is the right seam if the ratio is ever wanted
- * again: this file is already the one and only conversion between the
- * physics frame and the world frame, and a scale is exactly that kind of
- * conversion. Everything the shell measures in world metres (terrain
- * heights, collider boxes, the surface bias, gate apertures) is the world's
- * own truth and does not pass through here. Everything that is a fact about
- * the airframe (its 0.110 m arm, its 2.0 m/s landing gate) stays in sim
- * metres, because a landing leg does not care what scale the town was built
- * at. tests/thresholds.json carries the declared value so that changing it
- * has to be done in two places on purpose.
+ * The scale is kept as a seam because, if a ratio were ever wanted, this is
+ * the one conversion it belongs in. What the shell measures in world metres
+ * (terrain, colliders, the surface bias, gate apertures) never passes
+ * through it; facts about the airframe (its 0.110 m arm, its 2.0 m/s
+ * landing limit) stay in sim metres. tests/thresholds.json repeats the
+ * value so a change has to be made twice, deliberately.
  */
 export const WORLD_SCALE = 1;
 
-/* A length in sim metres as a length in world metres. Sizes and offsets that
- * belong to the AIRCRAFT go through this on their way into the scene: its
- * drawn model, its collision ellipsoid, its camera mount, its resting height
- * above the ground. */
+/* A length belonging to the aircraft (its model, collision ellipsoid,
+ * camera mount, rest height) in world metres. */
 export function simLenToWorld(metres) {
   return metres / WORLD_SCALE;
 }
 
-/*
- * Sim world position (metres, z up) to a Three.js Vector3 like object, in
- * world metres.
- *
- * The scale divides the craft's own displacement about the sim origin, which
- * is all this vector is: the shell adds the spawn's world position after the
- * conversion, precisely because that is a world length and must not be
- * scaled twice.
- */
-export function simPosToThree(x, y, z, out) {
-  out.set(-y / WORLD_SCALE, z / WORLD_SCALE, -x / WORLD_SCALE);
-  return out;
+/* A world length back in sim metres. */
+function worldLenToSim(metres) {
+  return metres * WORLD_SCALE;
 }
 
 /*
- * A point on the aircraft, in the plant's body frame (x forward, y left,
- * z up, metres about the CG), to the frame a model is built in (x right,
- * y up, z aft). The same permutation as simPosToThree without the world's
- * scale, because a builder draws at true size and scales its whole group
- * once (worldScale). For parts lists written in the plant's frame, such as
- * docs/COMBAT-DRONES.md's.
+ * The craft's sim position (z up) into a Three.js vector-like `out`, in
+ * world metres. It is the displacement about the sim origin only: the
+ * shell adds the spawn's world position afterwards, since that is already
+ * a world length and must not be scaled twice.
  */
+export function simPosToThree(x, y, z, out) {
+  out.set(simLenToWorld(-y), simLenToWorld(z), simLenToWorld(-x));
+  return out;
+}
+
+/* A point on the aircraft in the plant's body frame (x forward, y left,
+ * z up, metres about the CG) as [x, y, z] in a model's build frame (x
+ * right, y up, z aft): the same permutation, unscaled, since a builder
+ * draws at true size and scales the whole model once. For parts lists
+ * written in the plant's frame, such as docs/COMBAT-DRONES.md's. */
 export function bodyPosToModel(x, y, z) {
   return [-y, z, -x];
 }
 
-/* Sim body-to-world quaternion (w x y z) to a Three.js Quaternion. */
+/* The plant's body to world quaternion (w, x, y, z) into a Three.js
+ * Quaternion. */
 export function simQuatToThree(w, x, y, z, out) {
   out.set(-y, z, -x, w);
   return out;
 }
 
 /*
- * Inverse of simPosToThree: a Three.js world-metre point (already stripped
- * of the spawn offset and spawn yaw, those live in the shell) back into
- * sim metres, z up. Bounce writes a plant position, so the conversion has
- * to come back through this file, the same seam it left by.
- *
- *   x_sim = -z_three * WORLD_SCALE
- *   y_sim = -x_three * WORLD_SCALE
- *   z_sim =  y_three * WORLD_SCALE
+ * A Three.js world point, already free of the spawn's offset and yaw (the
+ * shell owns those), back into sim metres. A bounce writes the plant's
+ * position, so it returns through this file as it left.
  */
 export function threePosToSim(x, y, z, out) {
-  out.x = -z * WORLD_SCALE;
-  out.y = -x * WORLD_SCALE;
-  out.z = y * WORLD_SCALE;
+  out.x = worldLenToSim(-z);
+  out.y = worldLenToSim(-x);
+  out.z = worldLenToSim(y);
   return out;
 }
 
-/*
- * Inverse permutation for a direction. WORLD_SCALE is isotropic, so a unit
- * vector in the Three.js frame is a unit vector in the plant frame.
- */
+/* A direction back into the plant's frame. The scale is the same on every
+ * axis, so a direction needs none and a unit vector stays one. */
 export function threeDirToSim(x, y, z, out) {
   out.x = -z;
   out.y = -x;
@@ -145,21 +113,18 @@ export function threeDirToSim(x, y, z, out) {
 }
 
 /*
- * A MAP TRACK'S DOCUMENT FRAME, the second frame this file converts, and the
- * same kind of thing as the first: right handed, z up, SI.
- *
- * A track built inside a world (src/builder/, and schemaVersion 4 in
- * src/trackbuilder/schema.md) stores absolute positions in that world. It
- * uses the axes a field document already uses, with the field's corner moved
- * to the world's centre and heights measured from the world's zero rather
+ * A map track's document frame (src/builder/, schemaVersion 4 in
+ * src/trackbuilder/schema.md), the second frame converted here, also right
+ * handed, z up and SI. It stores absolute positions on a field document's
+ * axes, centred on the world with heights from the world's zero rather
  * than from the ground:
  *
- *   x_three =  x_doc   (across the world)
- *   y_three =  z_doc   (up)
- *   z_three = -y_doc   (the document's +y is into the screen)
+ *   x_three =  x_doc    across the world
+ *   y_three =  z_doc    up
+ *   z_three = -y_doc    the document's +y is into the screen
  *
- * A proper rotation, so an orientation transforms by the same permutation of
- * its vector part and keeps its w.
+ * Again a proper rotation: orientations permute their vector part and keep
+ * w.
  */
 export function docPosToThree(x, y, z, out) {
   out.set(x, z, -y);
@@ -173,13 +138,13 @@ export function threePosToDoc(x, y, z, out) {
   return out;
 }
 
-/* Document orientation { w, x, y, z } to a Three.js Quaternion. */
+/* A document orientation { w, x, y, z } into a Three.js Quaternion. */
 export function docQuatToThree(w, x, y, z, out) {
   out.set(x, z, -y, w);
   return out;
 }
 
-/* Three.js quaternion components back into the document's { w, x, y, z }. */
+/* Three.js quaternion components back into a document's { w, x, y, z }. */
 export function threeQuatToDoc(x, y, z, w, out) {
   out.w = w;
   out.x = x;
