@@ -1,0 +1,242 @@
+{
+ "perfect seed default blocks 16": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "perfect seed default blocks ragged": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "perfect seed 2882343476 blocks 16": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "perfect seed 2882343476 blocks ragged": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "perfect seed 1 blocks 16": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "perfect seed 1 blocks ragged": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "451456328366e85e9858616de5292158be153023ca7fc5380bbda1618f100dca"
+ },
+ "elrs500 seed default blocks 16": {
+  "packets": 1499,
+  "asked": 1500,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,0,1,\"40a7700000000000\",false]",
+  "hash": "3a3bf6afaa0b9cfc476b3ef4fcebea06ae4fc057ad5ea80fd7ccb8309f436209"
+ },
+ "elrs500 seed default blocks ragged": {
+  "packets": 1499,
+  "asked": 1500,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,0,1,\"40a7700000000000\",false]",
+  "hash": "3a3bf6afaa0b9cfc476b3ef4fcebea06ae4fc057ad5ea80fd7ccb8309f436209"
+ },
+ "elrs500 seed 2882343476 blocks 16": {
+  "packets": 1499,
+  "asked": 1500,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,0,1,\"40a7700000000000\",false]",
+  "hash": "6c903dfc909723b0db870a63389152564c5b50f22831e484c0d86456a5e6e69d"
+ },
+ "elrs500 seed 2882343476 blocks ragged": {
+  "packets": 1499,
+  "asked": 1500,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,0,1,\"40a7700000000000\",false]",
+  "hash": "6c903dfc909723b0db870a63389152564c5b50f22831e484c0d86456a5e6e69d"
+ },
+ "elrs500 seed 1 blocks 16": {
+  "packets": 1497,
+  "asked": 1498,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,2,1,\"40a7700000000000\",false]",
+  "hash": "28c385ddfdd37a47073c772d7379c72534b4c07bb2eebf0941f467d3ae80f7c9"
+ },
+ "elrs500 seed 1 blocks ragged": {
+  "packets": 1497,
+  "asked": 1498,
+  "state": "[\"elrs500\",500,3,0.4,200,2,1500,2,1,\"40a7700000000000\",false]",
+  "hash": "28c385ddfdd37a47073c772d7379c72534b4c07bb2eebf0941f467d3ae80f7c9"
+ },
+ "elrs250 seed default blocks 16": {
+  "packets": 749,
+  "asked": 750,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,0,1,\"40a7700000000000\",false]",
+  "hash": "547552cd03421cfc1f9681e0c74b4f4611569ee5c2f6fdd1231597e436a1a7c2"
+ },
+ "elrs250 seed default blocks ragged": {
+  "packets": 749,
+  "asked": 750,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,0,1,\"40a7700000000000\",false]",
+  "hash": "547552cd03421cfc1f9681e0c74b4f4611569ee5c2f6fdd1231597e436a1a7c2"
+ },
+ "elrs250 seed 2882343476 blocks 16": {
+  "packets": 749,
+  "asked": 750,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,0,1,\"40a7700000000000\",false]",
+  "hash": "0da456df9fa13e6691d70ed7b06149406d2ca199fa3550cacdb439541c79bdc9"
+ },
+ "elrs250 seed 2882343476 blocks ragged": {
+  "packets": 749,
+  "asked": 750,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,0,1,\"40a7700000000000\",false]",
+  "hash": "0da456df9fa13e6691d70ed7b06149406d2ca199fa3550cacdb439541c79bdc9"
+ },
+ "elrs250 seed 1 blocks 16": {
+  "packets": 747,
+  "asked": 748,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,2,1,\"40a7700000000000\",false]",
+  "hash": "5b56aa2312dc960b8d01c47b1861f1c03fc314eb464b6ce21f6c9e4e13bf32e6"
+ },
+ "elrs250 seed 1 blocks ragged": {
+  "packets": 747,
+  "asked": 748,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,2,1,\"40a7700000000000\",false]",
+  "hash": "5b56aa2312dc960b8d01c47b1861f1c03fc314eb464b6ce21f6c9e4e13bf32e6"
+ },
+ "elrs150 seed default blocks 16": {
+  "packets": 450,
+  "asked": 451,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,0,1,\"40a77d555555553a\",false]",
+  "hash": "10ebdea2145feea876c410ac106de7f84234003cf13b2a3cf48fdb209a32b89d"
+ },
+ "elrs150 seed default blocks ragged": {
+  "packets": 450,
+  "asked": 451,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,0,1,\"40a77d555555553a\",false]",
+  "hash": "10ebdea2145feea876c410ac106de7f84234003cf13b2a3cf48fdb209a32b89d"
+ },
+ "elrs150 seed 2882343476 blocks 16": {
+  "packets": 449,
+  "asked": 451,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,0,2,\"40a77d555555553a\",false]",
+  "hash": "0e70271bf240fd762f046bbfab18de79542f8d08e35e7c36b7023e698d1d88a9"
+ },
+ "elrs150 seed 2882343476 blocks ragged": {
+  "packets": 449,
+  "asked": 451,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,0,2,\"40a77d555555553a\",false]",
+  "hash": "0e70271bf240fd762f046bbfab18de79542f8d08e35e7c36b7023e698d1d88a9"
+ },
+ "elrs150 seed 1 blocks 16": {
+  "packets": 447,
+  "asked": 449,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,2,2,\"40a77d555555553a\",false]",
+  "hash": "57250e85bc3217911c88205db420bbe718f096bdb6e067dc54d9f37a1f01937a"
+ },
+ "elrs150 seed 1 blocks ragged": {
+  "packets": 447,
+  "asked": 449,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,451,2,2,\"40a77d555555553a\",false]",
+  "hash": "57250e85bc3217911c88205db420bbe718f096bdb6e067dc54d9f37a1f01937a"
+ },
+ "crossfire seed default blocks 16": {
+  "packets": 450,
+  "asked": 451,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,0,1,\"40a77d555555553a\",false]",
+  "hash": "fa5869f97d08b8239d803cf7529c72586f56102bdb5b211c6e80fa10888871a5"
+ },
+ "crossfire seed default blocks ragged": {
+  "packets": 450,
+  "asked": 451,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,0,1,\"40a77d555555553a\",false]",
+  "hash": "fa5869f97d08b8239d803cf7529c72586f56102bdb5b211c6e80fa10888871a5"
+ },
+ "crossfire seed 2882343476 blocks 16": {
+  "packets": 449,
+  "asked": 451,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,0,2,\"40a77d555555553a\",false]",
+  "hash": "5eb554ab4178cbe16794cdc66509355a429f2d5fca6bc620abb97caabc47eda2"
+ },
+ "crossfire seed 2882343476 blocks ragged": {
+  "packets": 449,
+  "asked": 451,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,0,2,\"40a77d555555553a\",false]",
+  "hash": "5eb554ab4178cbe16794cdc66509355a429f2d5fca6bc620abb97caabc47eda2"
+ },
+ "crossfire seed 1 blocks 16": {
+  "packets": 447,
+  "asked": 449,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,2,2,\"40a77d555555553a\",false]",
+  "hash": "7a48d751691dd1f4e17908e4065fb8b20f5829bc4a95080e40f758e0a89732dc"
+ },
+ "crossfire seed 1 blocks ragged": {
+  "packets": 447,
+  "asked": 449,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,451,2,2,\"40a77d555555553a\",false]",
+  "hash": "7a48d751691dd1f4e17908e4065fb8b20f5829bc4a95080e40f758e0a89732dc"
+ },
+ "elrs250 reset at 1234.5": {
+  "packets": 500,
+  "asked": 500,
+  "state": "[\"elrs250\",250,4,0.8,400,4,500,0,0,\"40a9450000000000\",false]",
+  "hash": "c2d065fb7a97db56378301dc4fc8270505962bf277389a46cffcf3286a8a3f0e"
+ },
+ "a signal of nothing every frame": {
+  "packets": 299,
+  "asked": 300,
+  "state": "[\"elrs150\",150,6,1.4,800,6.666666666666667,300,0,1,\"409f400000000027\",false]",
+  "hash": "d253f1967d4c63d09566e6d1d9d41e532264d881fd5531b9b90f7a3946884abc"
+ },
+ "delay opens and closes on a preset": {
+  "packets": 749,
+  "asked": 749,
+  "state": "[\"elrs250\",250,4,0.8,400,4,750,1,0,\"40a7700000000000\",false]",
+  "hash": "e44b59943a5cfdcf88e13a8afc7614aec8c6b3a8d78f41d32718a00ab0ac4481"
+ },
+ "delay opens and closes on perfect": {
+  "packets": 750,
+  "asked": 750,
+  "state": "[\"perfect\",250,0,0,0,4,750,0,0,\"40a7700000000000\",true]",
+  "hash": "4bf3b86343ea0ffe0680c7a232a014cb79f57949f83a76f810af40ef4b02bbdd"
+ },
+ "signal loss ramps on a preset": {
+  "packets": 304,
+  "asked": 304,
+  "state": "[\"crossfire\",150,7.5,1.8,1200,6.666666666666667,601,297,0,\"40af4d5555555508\",false]",
+  "hash": "4d4afd38737cc358ffb0ca61c8cd6b4ac653d21e558b3c733505ffcc9b6a2b9a"
+ },
+ "signal loss on perfect": {
+  "packets": 90,
+  "asked": 90,
+  "state": "[\"perfect\",250,0,0,0,4,1000,910,0,\"40af400000000000\",false]",
+  "hash": "f7e465469ef795349d56a55d8b352f180198797b362d749e27e0aabdabcca1a7"
+ },
+ "failsafe comes and goes": {
+  "packets": 1000,
+  "asked": 541,
+  "state": "[\"elrs250\",250,4,0.8,400,4,1000,0,0,\"40af400000000000\",false]",
+  "hash": "bd4e575177c53ccea9421df2a4108e7a712b034106c8ed5d9550ce72f0db9333"
+ },
+ "failsafe on perfect": {
+  "packets": 500,
+  "asked": 320,
+  "state": "[\"perfect\",250,0,0,0,4,500,0,0,\"409f400000000000\",false]",
+  "hash": "a39355c304ef97cfbdd83b6bcced75ab1504f1d837b7717806ad70c77eb48f13"
+ },
+ "presets swap mid flight": {
+  "packets": 1174,
+  "asked": 1174,
+  "state": "[\"perfect\",250,0,0,0,4,1174,0,0,\"40af45555555551a\",true]",
+  "hash": "0c2eef2a4002c197dc6030c727d980827197da4b1d6057f320a415a4f2265084"
+ },
+ "a bad preset id": {
+  "packets": 125,
+  "asked": 125,
+  "state": "[\"perfect\",250,0,0,0,4,125,0,0,\"407f400000000000\",true]",
+  "hash": "1ddae9ca51bba7b234e4d0826843d7a112feed06bc6fb8b8ecdc41e75c968955"
+ }
+}
