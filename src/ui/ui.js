@@ -773,6 +773,10 @@ const DEFAULTS = {
   /* Betaflight launch control. Off: ordinary takeoff. On: L on the start
    * line holds attitude at idle until you punch throttle. */
   launchControl: false,
+  /* An ops mission's guidance on the quiet HUD (src/share/ops/guide.js):
+   * the objective line, the ring on the objective and the edge chevron
+   * toward it. Off keeps the guide's voice. */
+  missionGuidance: true,
   /*
    * The plant's crash physics (docs/CRASH-PLAN.md): a hit past a part's
    * limit breaks it. ON for play, because a flight that never hits that
@@ -7137,6 +7141,7 @@ export class Ui {
           (n) => { s.fpsCap = n; },
         ),
         toggle(str('ui.frame_readout'), str('ui.frame_readout_note'), s.perfOverlay, (v) => { s.perfOverlay = v; }),
+        toggle(str('ui.mission_guidance'), str('ui.mission_guidance_note'), s.missionGuidance, (v) => { s.missionGuidance = Boolean(v); }),
         choice(
           str('ui.hud_style'),
           str('ui.hud_style_note'),
