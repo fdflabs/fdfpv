@@ -105,6 +105,9 @@ const HIT_LINES = { intake: 'hit-intake', penstock: 'hit-penstock', gate: 'hit-g
  * longer has (docs/WARFARE-PLAN.md 6.1), and no mission spawns one. */
 const QUIET_WAVES = new Set(['jammer']);
 
+/* An item's entry that is a line, not a pause (a number, seconds). */
+const isLine = (id) => typeof id === 'string';
+
 /* A voice file or a track, resolved against this module so a shell
  * mounted under a path still finds it. */
 export function warVoiceUrl(lang, id, ext) {
@@ -242,6 +245,8 @@ export class WarRadio {
     this.queue = [];
     this.current = null;
     this.said = [];
+    this.started = [];
+    this.pauseTimer = 0;
     this.track = '';
     this.musicLevel = 0;
     this.onSpeak = null;
@@ -284,6 +289,15 @@ export class WarRadio {
     this.ext = new Audio().canPlayType(str('music.audio_webm_codecs_opus')) !== '' ? 'webm' : 'mp3';
     this.voice = make();
     this.voice.el.addEventListener('ended', () => this.next());
+    /* A line heard, not only asked for: the element's audio is running. */
+    this.voice.el.addEventListener('playing', () => {
+      if (this.current && this.current.id) {
+        this.started.push(this.current.id);
+        if (this.started.length > 40) {
+          this.started.splice(0, this.started.length - 40);
+        }
+      }
+    });
     this.voice.el.addEventListener('error', () => this.failed(this.voice.el));
     this.bed = make();
     this.bed.el.addEventListener('ended', () => {
@@ -353,7 +367,7 @@ export class WarRadio {
     const list = Array.isArray(ids) ? ids : [ids];
     if (list.some((id) => END_LINES.has(id))) {
       this.queue = [];
-      this.said.push(...list);
+      this.said.push(...list.filter(isLine));
       this.play(list);
       return;
     }
@@ -362,7 +376,7 @@ export class WarRadio {
       return;
     }
     if (!this.current) {
-      this.said.push(...list);
+      this.said.push(...list.filter(isLine));
       this.play(list);
       return;
     }
@@ -382,14 +396,23 @@ export class WarRadio {
     }
   }
 
-  /* An item's lines, from its i-th. */
+  /* An item's lines, from its i-th. A number in an item is a pause, in
+   * seconds, before the line after it (docs/campaign/interior/
+   * CONTRACT-P0.md section 6: the script's "after X" exchanges): no file
+   * is asked for, the next line follows when the pause is over. */
   play(ids, i = 0) {
+    clearTimeout(this.pauseTimer);
     this.current = { key: ids.join('+'), ids, i, id: ids[i] };
     if (this.said.length > 40) {
       this.said.splice(0, this.said.length - 40);
     }
     if (!this.voice) {
       this.current = null;
+      return;
+    }
+    if (typeof ids[i] === 'number') {
+      this.current.id = null;
+      this.pauseTimer = setTimeout(() => this.next(), Math.max(0, ids[i]) * 1000);
       return;
     }
     const el = this.voice.el;
@@ -416,7 +439,7 @@ export class WarRadio {
     const k = Math.max(0, this.queue.findIndex((q) => q.prio === 'story'));
     const q = this.queue.splice(k, 1)[0];
     if (q) {
-      this.said.push(...q.ids);
+      this.said.push(...q.ids.filter(isLine));
       this.play(q.ids);
     }
   }
@@ -489,6 +512,7 @@ export class WarRadio {
 
   /* Everything stops: the war is over, or the sound was turned off. */
   stop() {
+    clearTimeout(this.pauseTimer);
     this.queue = [];
     this.current = null;
     if (this.voice) {
@@ -502,6 +526,7 @@ export class WarRadio {
       speaking: this.current ? this.current.id : null,
       queue: this.queue.flatMap((q) => q.ids),
       said: this.said.slice(),
+      started: this.started.slice(),
       track: this.track,
       lang: this.lang,
       ext: this.ext,
