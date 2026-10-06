@@ -11,8 +11,8 @@
  * The board is the real one, started here on a free port with a file
  * store in a scratch directory, so the row reads the board's real
  * GET /api/stats. The game's own statistics events go to it too, which
- * is a second check: a session from an aircraft the board does not name
- * must still be counted (src/share/stats.js wireCraft).
+ * is a second check: a session from an aircraft is counted by the board
+ * under its own airframe id, not folded onto another (src/share/stats.js).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -94,7 +94,7 @@ for (let i = 0; i < 100; i += 1) {
 for (const tab of ['seedtab-0001', 'seedtab-0002']) {
   /* eslint-disable-next-line no-await-in-loop */
   await fetch(`${B}/api/stats/events`, {
-    method: 'POST', body: JSON.stringify({ v: 1, kind: 'flush', tab, craft: '5inch', map: 'city', laps: 0, flightS: 60, crashes: 0 }),
+    method: 'POST', body: JSON.stringify({ v: 1, kind: 'flush', tab, craft: 'interceptor', map: 'city', laps: 0, flightS: 60, crashes: 0 }),
   });
 }
 const before = await fetch(`${B}/api/stats`).then((r) => r.json());
@@ -221,8 +221,10 @@ try {
   const facts = await page.evaluate("[...document.querySelectorAll('.hangar-facts .carousel-fact')].map((e) => e.textContent)");
   check('the Hangar names the time on this aircraft', facts.includes(`${flightTimeText(t.seconds)} on the ${airframeById(CRAFT).name}`), JSON.stringify(facts));
   await page.evaluate('window.__ui.hangar.cancel(); true');
-  const sessions = await fetch(`${B}/api/stats`).then((r) => r.json()).then((s) => s.allTime.sessions);
-  check('the board counted this session of an aircraft it does not name', sessions >= 1, `${sessions}`);
+  const counted = await fetch(`${B}/api/stats`).then((r) => r.json()).then((s) => s.craft);
+  const mine = counted.find((c) => c.key === CRAFT);
+  check('the board counted this session under its own airframe id', mine && mine.sessions >= 1, JSON.stringify(counted));
+  check('and folded none of it onto another aircraft', !counted.some((c) => c.key === '5inch'), JSON.stringify(counted));
 } finally {
   await page.close();
 }
