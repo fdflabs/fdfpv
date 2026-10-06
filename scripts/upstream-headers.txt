@@ -101,7 +101,6 @@ src/render/audio.js
 src/render/celmat.js
 src/render/craft.js
 src/render/frame.js
-src/render/ghostcraft.js
 src/render/lens.js
 src/render/music.js
 src/render/post.js
