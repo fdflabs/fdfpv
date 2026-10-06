@@ -4,12 +4,22 @@
  * the gates, the scope showing what gathers in the west arm. Data only
  * (src/share/war/film.js).
  *
- * Three departures from 5.2. The gates do not open on screen (their
- * hoists are the map's to draw, from the room's `gates`, TECH-NEEDS
- * T1.9), so the last shot's turn ends on the spill's spray over the
- * chute; there is no rain, which the world does not draw; and shot 5's
- * float plane is the ten inch, a war film showing only the war's
- * aircraft (the owner, 3 October; configs/airframes.js WAR_AIRFRAMES).
+ * Three departures from 5.2. The gates are not seen to open: the map
+ * turns their leaves from the room's `gates` (hoist.js), but at the
+ * hoist's half a metre a minute the shot's fifteen seconds move a leaf
+ * 12 cm, which no lens shows, and the film does not fake a faster one;
+ * the last shot's turn ends on the spill's spray over the chute, the
+ * match's working gates bracketed. There is no rain, which the world does
+ * not draw. Shot 5's float plane is the ten inch, a war film showing only
+ * the war's aircraft (the owner, 3 October; configs/airframes.js
+ * WAR_AIRFRAMES), armed on the spillway bridge's road.
+ *
+ * Version 2 (the stills of the first cut, 6 October): the pier shot's
+ * ten inch stood inside the bridge's upstream parapet, so the whole shot
+ * was a wall; the skin crane rose up the bridge's face 9 m off it; the
+ * ride up the channel ended 700 m short of the gates; and the opening
+ * long lens looked through the 500 kV line over the approach channel
+ * (span 58 of src/share/war/itaipu-wires.js), black bands over the gates.
  *
  * THE FRAME. Scene metres, y up, -z north. The fourteen gates' upstream
  * faces run GATE_W to GATE_E (src/share/war/itaipu-targets.js gate-0 and
@@ -63,7 +73,7 @@ const UPSTREAM_A = Math.atan2(UP[0], UP[1]);
 
 export default {
   id: 'spillway',
-  version: 1,
+  version: 2,
   cast: {
     ten: { airframe: '10inch', spins: true },
   },
@@ -78,7 +88,7 @@ export default {
   },
   agents: [
     {
-      id: 'rider', kind: 'strike', route: 'channel-run', n: 1, pass: { shot: 'channel', at: 0, point: [-1096.5, 243.6, -1900] }, shots: ['channel'],
+      id: 'rider', kind: 'strike', route: 'channel-run', n: 1, pass: { shot: 'channel', at: 0, point: [-1077.0, 241.7, -1500] }, shots: ['channel'],
     },
     {
       id: 'eyes', kind: 'scout', route: 'scope-orbit', n: 1, pass: { shot: 'scope', at: { at: 'end' }, point: [-2142.1, 470, -3368.5] }, shots: [],
@@ -98,7 +108,7 @@ export default {
       /* The reservoir's surface close, then the fourteen gates on the
        * right bank, on a long lens from the water. */
       camera: {
-        type: 'telephoto', lens: 135, ease: 'io', at: gate(6.5, 650, RESERVOIR_Y + 3), look: [gate(6.5, 560, RESERVOIR_Y - 2), gate(6.5, 0, 214)],
+        type: 'telephoto', lens: 35, ease: 'io', at: gate(6.5, 300, RESERVOIR_Y + 1.5), look: [gate(6.5, 240, RESERVOIR_Y - 2), gate(6.5, 0, 221)],
       },
       fade: [[0, 1], [1.2, 0]],
       out: 'match',
@@ -111,7 +121,7 @@ export default {
       /* At the waterline against a gate's skin, rising up it and over its
        * pier, the chute below. */
       camera: {
-        type: 'crane', lens: 24, base: gate(6, 9, RESERVOIR_Y), h: [1.5, 34], look: [gate(6, 0, 216), gate(6, -160, 160)],
+        type: 'crane', lens: 24, base: gate(6, 35, RESERVOIR_Y), h: [1.0, 42], look: [gate(6, 0, 221), gate(6, -170, 165)],
       },
       out: 'cut',
     },
@@ -149,6 +159,7 @@ export default {
       camera: {
         type: 'drone', lens: 18, ride: { agent: 'rider' }, back: 4, up: 1.2, lag: 250, ease: 'lin',
       },
+      hero: { agent: 'rider', minPx: 150 },
       out: 'cut',
     },
     {
@@ -158,10 +169,10 @@ export default {
       /* On a pier's nose by the gates: the ten inch, its warhead slung,
        * its props spinning up. */
       camera: {
-        type: 'handheld', lens: 50, at: gate(1.38, 2.6, 225.9), look: { cast: 'ten', up: 0.08 }, amp: 0.006, drift: 2,
+        type: 'handheld', lens: 50, at: gate(1.66, 1.2, 225.75), look: { cast: 'ten', up: 0.15 }, amp: 0.006, drift: 2,
       },
       cast: {
-        ten: { keys: [{ t: 0, p: gate(1.5, 3.5, null), yaw: UPSTREAM_A }], spin: [[0, 20], [2, 110]] },
+        ten: { keys: [{ t: 0, p: gate(1.5, 0.4, null), yaw: UPSTREAM_A - Math.PI / 2 }], spin: [[0, 20], [2, 110]] },
       },
       out: 'cut',
     },

@@ -54,6 +54,8 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { roomsServer } from '../tests/lib/roomsserver.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
+import { filmFor } from '../src/share/war/films/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'campaign');
@@ -453,8 +455,9 @@ try {
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
   check('and it starts mission 2', start2 && start2.mission === 'itaipu-2', JSON.stringify(start2));
   await page.until("window.__war().view.state === 'briefing' && window.__warIntro() !== null", 15000).catch(() => {});
-  const brief2 = await page.evaluate("(() => { const v = window.__war().view; return { id: v.id, state: v.state, intro: window.__warIntro() !== null }; })()");
+  const brief2 = await page.evaluate("(() => { const v = window.__war().view; const i = window.__warIntro(); return { id: v.id, state: v.state, intro: i !== null, film: i && i.film }; })()");
   check('mission 2\'s briefing plays the intro', brief2.state === 'briefing' && brief2.intro, JSON.stringify(brief2));
+  check('and the intro is its own film, The Spillway\'s, not First Light\'s', brief2.film === filmFor(MISSIONS['itaipu-2']).id && brief2.film === 'spillway', JSON.stringify(brief2));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
