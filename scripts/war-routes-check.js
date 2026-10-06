@@ -77,6 +77,7 @@ import { loadHeight } from '../edge/rooms/warhunt.js';
 import { KIND, planAgent, poseAt } from '../src/share/war/routes.js';
 import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import { idsMayBe } from '../src/share/war/stages.js';
 import { BAND_M, STRIKE_P, wireCrossings } from '../src/share/war/wires.js';
 import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 import { CONTACT_M, contactAt } from '../src/share/war/contact.js';
@@ -160,10 +161,10 @@ function wavesOf(mission) {
     const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
       ? [w.route.sector].flat().flatMap((sec) => mission.sectors[sec])
       : [w.route].flat();
-    const set = w.target && w.target.set;
-    const target = set ? mission.sets[set].from : w.target;
+    const anyOf = Boolean(w.target && typeof w.target === 'object' && !Array.isArray(w.target));
+    const target = anyOf ? idsMayBe(mission, w.target) : w.target;
     return kinds.map((kind) => ({
-      ...w, kind, route: routes, target, anyOf: Boolean(set),
+      ...w, kind, route: routes, target, anyOf,
     }));
   });
 }

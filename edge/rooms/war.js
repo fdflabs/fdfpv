@@ -1811,7 +1811,7 @@ export class RoomWar {
     }
     const target = a.target != null ? this.mission().targets[a.target] : null;
     const hit = Boolean(target) && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
-    this.take(a, hit, t);
+    const cost = this.take(a, hit, t);
     this.noteGone(a, t, x.plan.end === 'arrive' ? 'arrive' : 'leave', hit);
     m.lastGone = t;
     this.remove([a.id]);
@@ -1824,6 +1824,7 @@ export class RoomWar {
     if (target) {
       msg.target = a.target;
       msg.hit = hit;
+      msg.mw = cost;
     }
     const out = this.broadcast(core, msg);
     /* Its warhead goes off where it arrived, hit or miss: a scout
@@ -1867,29 +1868,31 @@ export class RoomWar {
     }
   }
 
-  /* An attacker at its target at t: the target's mw off the output, once. */
+  /* An attacker at its target at t: the target's mw off the output, once.
+   * Returns what it cost: 0 for a miss or a target already down. */
   take(a, hit, t) {
-    if (hit) {
-      this.lose(a.target, t);
-    }
+    return hit ? this.lose(a.target, t) : 0;
   }
 
   /* A target lost at t, by a hit or by what broke: its mw off the output,
-   * once. A target the mission does not name costs nothing. */
+   * once, and returned (0 when it cost nothing). A target the mission
+   * does not name costs nothing. */
   lose(id, t) {
     const m = this.match;
     const target = this.mission().targets[id];
-    if (target && !m.down.includes(id)) {
-      m.down.push(id);
-      (m.downAt ??= {})[id] = t;
-      if (m.stage) {
-        note(m.stage, { t, e: 'down', target: id });
-      }
-      /* A working gate while the spill runs costs more (stages.js worthOf). */
-      const mw = worthOf(this.mission(), m.stage, m, id);
-      m.output = Math.max(0, m.output - mw);
-      m.roundMw = (m.roundMw ?? 0) + mw;
+    if (!target || m.down.includes(id)) {
+      return 0;
     }
+    m.down.push(id);
+    (m.downAt ??= {})[id] = t;
+    if (m.stage) {
+      note(m.stage, { t, e: 'down', target: id });
+    }
+    /* A working gate while the spill runs costs more (stages.js worthOf). */
+    const mw = worthOf(this.mission(), m.stage, m, id);
+    m.output = Math.max(0, m.output - mw);
+    m.roundMw = (m.roundMw ?? 0) + mw;
+    return mw;
   }
 
   /* Every hoist move of the match (stages.js gatesOf): the stages' before
@@ -2181,9 +2184,7 @@ export class RoomWar {
       const goes = through && a.target != null && !(x && x.plan.end === 'wire');
       const target = goes ? mission.targets[a.target] : null;
       const hit = goes && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
-      if (goes) {
-        this.take(a, hit, t);
-      }
+      const cost = goes ? this.take(a, hit, t) : 0;
       this.noteGone(a, t, goes ? 'arrive' : 'leave', hit);
       const o = x && a.kind !== 'hunter' ? poseAt(x.plan, Math.min(Math.max(t, x.plan.t0), x.plan.tEnd)) : null;
       const h = a.kind === 'hunter' ? this.lastPoses.find((q) => q.id === a.id) : null;
@@ -2198,6 +2199,7 @@ export class RoomWar {
       if (goes) {
         msg.target = a.target;
         msg.hit = hit;
+        msg.mw = cost;
       }
       out.push(...this.broadcast(core, msg));
       /* Through is an arrival: its warhead goes off at its aim point. */

@@ -28,7 +28,10 @@
  *             key not over the pilots then ({ 1: 3, 4: 4 }: 3, and 4
  *             from 4 pilots). The match keeps them (m.sets, the view's
  *             `sets`) to the end and over a restart. A spawn's target, a
- *             hit or a hold's targets name one as { set: name }
+ *             hit or a hold's targets name one as { set: name }, or what
+ *             a list holds outside one as { of: [ids], not: name } (the
+ *             gates the Spillway's first stages go for, never a working
+ *             one before its spill)
  *
  * Its stages are an array; the first is entered at the go. A STAGE:
  *
@@ -41,14 +44,17 @@
  *               counts for the stars. A stage that is not a round keeps
  *               the rack as it is, for stages that run on into each other
  *   spawns      groups of attackers, below
- *   objectives  [{ id, text, kind?, done?, fail?, from?, ms? }]: text a
- *               string key the HUD shows, kind a word for it ('protect',
- *               'kill', 'hold', 'spot'); done and fail are triggers, and the
- *               first to fire settles it ('done' or 'failed'). With ms it
- *               is a hold: done ms after `from` fires (the entry without
- *               one), unless it failed first; the view shows how long it
- *               has been held. A count ({ killed }, { leaked }, { hit },
- *               { destroyed }) shows how far it has got
+ *   objectives  [{ id, text, kind?, done?, fail?, from?, ms?, show? }]:
+ *               text a string key the HUD shows, kind a word for it
+ *               ('protect', 'kill', 'hold', 'spot'); done and fail are
+ *               triggers, and the first to fire settles it ('done' or
+ *               'failed'). With ms it is a hold: done ms after `from` fires
+ *               (the entry without one), unless it failed first; the view
+ *               shows how long it has been held. A count ({ killed },
+ *               { leaked }, { hit }, { destroyed }) shows how far it has
+ *               got. With show (a trigger) it is not in the view, and is
+ *               neither done nor failed, until that fires: a twist's own
+ *               objective, which would give the twist away from the entry
  *   cues        [{ at | when, radio | music | cutaway | text }]: told to
  *               every screen when due, `at` seconds (or a window [lo, hi])
  *               after the entry, or after the trigger `when` fires:
@@ -241,15 +247,38 @@ export function drawSets(mission, seed, pilots) {
   return out;
 }
 
-/* A target spec's ids: an id, a list of them, or { set: name } (the
- * match's draw, m.sets). */
+/* A target spec's ids: an id, a list of them, { set: name } (the
+ * match's draw, m.sets), or { of: [ids], not: name }, the list's ids in
+ * its order less the set's (never none: the list must be longer than the
+ * set can be). */
 export function idsOf(spec, sets) {
+  if (spec && typeof spec === 'object' && !Array.isArray(spec) && spec.of) {
+    const not = new Set(idsOf({ set: spec.not }, sets));
+    const ids = spec.of.filter((id) => !not.has(id));
+    if (!ids.length) {
+      throw new Error(`war: every one of ${spec.of.join(',')} is in set ${spec.not}`);
+    }
+    return ids;
+  }
   if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
     const ids = sets?.[spec.set];
     if (!ids) {
       throw new Error(`war: no set ${spec.set} drawn`);
     }
     return ids;
+  }
+  return [spec].flat();
+}
+
+/* Every id a target spec may come to over every draw of the mission's
+ * sets: a set's whole `from`, an { of, not }'s whole list. For the checks
+ * that fly or blast every target a spawn might go for. */
+export function idsMayBe(mission, spec) {
+  if (spec == null) {
+    return [];
+  }
+  if (typeof spec === 'object' && !Array.isArray(spec)) {
+    return spec.of ? spec.of.slice() : mission.sets[spec.set].from.slice();
   }
   return [spec].flat();
 }
@@ -619,6 +648,13 @@ function holdFrom(o, ctx) {
 export function objectives(ctx) {
   const st = ctx.st;
   for (const o of stagesOf(ctx.mission)[st.idx].objectives ?? []) {
+    if (o.show && !st.obj[o.id]) {
+      const shown = fired(o.show, ctx);
+      if (shown == null) {
+        continue;
+      }
+      st.obj[o.id] = { state: 'active', shown };
+    }
     const had = st.obj[o.id];
     if (had && had.state !== 'active') {
       continue;
@@ -626,8 +662,8 @@ export function objectives(ctx) {
     let done = o.done ? fired(o.done, ctx) : null;
     if (o.ms != null) {
       const from = had?.from ?? holdFrom(o, ctx);
-      if (from != null && !had) {
-        st.obj[o.id] = { state: 'active', from };
+      if (from != null && had?.from == null) {
+        st.obj[o.id] = { ...had, state: 'active', from };
       }
       const t = from == null ? null : from + o.ms;
       done = t != null && t <= ctx.f ? t : null;
@@ -651,7 +687,7 @@ export function failedAny(st) {
  * the frontier). */
 export function objectivesView(ctx) {
   const st = ctx.st;
-  return (stagesOf(ctx.mission)[st.idx].objectives ?? []).map((o) => {
+  return (stagesOf(ctx.mission)[st.idx].objectives ?? []).filter((o) => !o.show || st.obj[o.id]).map((o) => {
     const state = st.obj[o.id]?.state ?? 'active';
     const out = { id: o.id, text: o.text, kind: o.kind ?? null, state };
     const d = o.done;

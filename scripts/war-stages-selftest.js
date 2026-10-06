@@ -59,7 +59,8 @@ import {
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
 import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
-import { firstDifference, playGame } from './war-legacy-games.js';
+import { SPAWN, firstDifference, playGame } from './war-legacy-games.js';
+import { runOne } from './war-balance.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
 
@@ -95,12 +96,18 @@ function lint(mission) {
   /* A target spec's ids: a working set's every target it may draw. */
   const targetsOf = (spec, where) => {
     if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
-      const set = mission.sets?.[spec.set];
+      const name = spec.of ? spec.not : spec.set;
+      const set = mission.sets?.[name];
       if (!set) {
-        out.push(`${where}: no set ${spec.set}`);
+        out.push(`${where}: no set ${name}`);
         return [];
       }
-      return set.from;
+      /* An { of, not } is never left with none: its list is longer than
+       * the most the set draws. */
+      if (spec.of && spec.of.length <= Math.max(...Object.values(set.n))) {
+        out.push(`${where}: ${spec.of.length} targets, and set ${name} may draw ${Math.max(...Object.values(set.n))}`);
+      }
+      return spec.of ?? set.from;
     }
     return spec == null ? [] : [spec].flat();
   };
@@ -174,7 +181,7 @@ function lint(mission) {
       if (o.open != null && (o.ms == null || o.targets == null)) {
         out.push(`${where} ${o.id}: opens gates but is no hold with targets`);
       }
-      for (const key of ['done', 'fail', 'from']) {
+      for (const key of ['done', 'fail', 'from', 'show']) {
         if (o[key]) {
           trig(o[key], `${where} ${o.id}`);
         }
@@ -655,10 +662,10 @@ const EVENTS = {
   ],
 };
 
-function warRoom(mission, { n = 2, seed = 0.25 } = {}) {
+function warRoom(mission, { n = 2, seed = 0.25, dev = false } = {}) {
   const r = new RoomCore({
     code: 'W4RS00', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0,
-  });
+  }, { devMissions: dev });
   r.war.missions = { ...MISSIONS, [mission.id]: mission };
   r.war.random = () => seed;
   let tokens = 0;
@@ -1075,6 +1082,203 @@ console.log('crossings: a birth drawn in a window, at a fractional room ms');
   check('the same flight born 0.73 ms later crosses the same lines, each within 2 ms later, on whole milliseconds',
     Boolean(frac) && lines.every((l) => Number.isInteger(frac[l]) && frac[l] - whole[l] >= 0 && frac[l] - whole[l] <= 2),
     `${JSON.stringify(whole)} then ${JSON.stringify(frac)}`);
+}
+
+console.log('the room: an objective shown when its trigger fires');
+{
+  /* A twist's own objective (itaipu-2's open-* stages): out of the view,
+   * and neither done nor failed, until its `show` fires. */
+  const SHOW = {
+    ...STORY,
+    id: 'show-test',
+    stages: [{
+      id: 'only',
+      title: 'war.stage.test',
+      spawns: [{
+        at: 20, kind: 'strike', n: 1, route: 'w', target: 'a', group: 'late',
+      }],
+      objectives: [
+        { id: 'all', text: 'x', kind: 'protect' },
+        {
+          id: 'late', text: 'y', kind: 'kill', show: { born: { group: 'late' } }, done: { down: { group: 'late' } }, fail: { leaked: 1, group: 'late' },
+        },
+      ],
+      exits: [{ when: { time: 200 }, to: 'won' }],
+    }],
+  };
+  const e = warRoom(SHOW, { seed: 0.3 });
+  e.fly(GO + 15000);
+  const before = e.view().stage.objectives.map((o) => o.id).join();
+  e.fly(GO + 21000);
+  const after = e.view().stage.objectives;
+  check('before its trigger the view has the other objectives only, after it the shown one too, active',
+    before === 'all' && after.map((o) => o.id).join() === 'all,late' && after[1].state === 'active', `${before} then ${JSON.stringify(after)}`);
+}
+
+console.log('the Spillway (itaipu-2), flown on the room by bot squads');
+{
+  /* MISSIONS.md M2 as the room plays it: scripts/war-balance.js's good
+   * pilots on the real room, every message to the first bot kept. */
+  const mission = MISSIONS['itaipu-2'];
+  const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
+  const OPEN_M = mission.stages.find((x) => x.id === 'open-spray').objectives[0].open;
+  const TWIST = {
+    'open-spray': ['itaipu-2-ta-turn', 'itaipu-2-ta-why'], 'open-west-arm': ['itaipu-2-tb-turn', 'itaipu-2-tb-why'], 'open-chute': ['itaipu-2-tc-turn', 'itaipu-2-tc-why'],
+  };
+  const games = [];
+  for (const pilots of [1, 4]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const views = [];
+      const cues = [];
+      const born = [];
+      runOne({
+        pilots,
+        skill: 'good',
+        seed,
+        floorBuf,
+        spawn: SPAWN,
+        mission,
+        record: (m, now) => {
+          if (m.type !== 'war') {
+            return;
+          }
+          if (m.war) {
+            views.push({ ...m.war, now });
+          } else if (m.op === 'cue') {
+            cues.push(...m.cues);
+          } else if (m.op === 'born') {
+            born.push(...m.agents);
+          }
+        },
+      });
+      games.push({
+        pilots, seed, views, cues, born,
+      });
+    }
+  }
+  const order = [];
+  const bad = [];
+  const twists = new Set();
+  for (const g of games) {
+    const label = `x${g.pilots} seed ${g.seed}`;
+    const path = [];
+    for (const v of g.views) {
+      if (v.stage && path.at(-1) !== v.stage.id) {
+        path.push(v.stage.id);
+      }
+    }
+    order.push(`${label}: ${path.join(' > ')}`);
+    const twist = path[2];
+    twists.add(twist);
+    const end = g.views.at(-1);
+    if (!(path.length === 4 && path[0] === 'high-water' && path[1] === 'channel' && TWIST[twist] && path[3] === 'hold-river')) {
+      bad.push(`${label}: stages ${path.join(',')}`);
+    }
+    if (end.state !== 'won') {
+      bad.push(`${label}: ended ${end.state} ${end.why}`);
+    }
+    const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
+    const want = ['itaipu-2-s1-eyes', 'itaipu-2-s1-high', 'itaipu-2-s2-wakes', 'itaipu-2-s2-fast', 'itaipu-2-s3-open', ...TWIST[twist] ?? [], 'itaipu-2-s4-all', 'itaipu-2-s4-order'];
+    const missing = want.filter((id) => !said.includes(id));
+    if (missing.length) {
+      bad.push(`${label}: never said ${missing.join(',')}`);
+    }
+    const others = Object.entries(TWIST).filter(([k]) => k !== twist).flatMap(([, ids]) => ids).filter((id) => said.includes(id));
+    if (others.length) {
+      bad.push(`${label}: said another twist's ${others.join(',')}`);
+    }
+    /* The hold: the working gates hoisted from its start toward OPEN_M,
+     * its half and its end (or its failure) said, and the twist's
+     * objective on the HUD only once the twist is born. */
+    const open = g.views.find((v) => v.stage && v.stage.id === twist && v.stage.objectives[0].heldFrom != null);
+    const from = open && open.stage.objectives[0].heldFrom;
+    const working = open && open.sets.working;
+    const moved = open && working.every((id) => (open.gates ?? []).some((x) => x.gate === id && x.at === from && x.open_m === OPEN_M));
+    if (!moved) {
+      bad.push(`${label}: the hold's gates ${JSON.stringify(open && open.gates)} for ${JSON.stringify(working)} from ${from}`);
+    }
+    const settled = said.includes('itaipu-2-s3-held') || said.includes('itaipu-2-s3-failed');
+    const held = said.includes('itaipu-2-s3-held');
+    if (!settled || (held && !said.includes('itaipu-2-s3-half'))) {
+      bad.push(`${label}: the hold said ${said.filter((id) => id.startsWith('itaipu-2-s3')).join(',')}`);
+    }
+    const inTwist = g.views.filter((v) => v.stage && v.stage.id === twist);
+    const twistSi = stagesOf(mission).find((x) => x.id === twist)?.spawns.find((w) => w.group === 'twist')?.si;
+    const twistBorn = g.born.find((a) => a.wave === twistSi);
+    const early = inTwist.filter((v) => twistBorn && v.now < twistBorn.t0 && v.stage.objectives.some((o) => o.id === 'twist'));
+    const shown = inTwist.some((v) => v.stage.objectives.some((o) => o.id === 'twist'));
+    if (!twistBorn || early.length || !shown) {
+      bad.push(`${label}: the twist's objective shown early ${early.length}, ever ${shown}, born ${twistBorn && twistBorn.t0}`);
+    }
+  }
+  console.log(`    ${order.join('\n    ')}`);
+  check('ten games, 1 and 4 good pilots: High Water, The Channel, one twist of Open the Gates, Hold the River, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
+    bad.filter((x) => /stages|ended/.test(x)).join(' | '));
+  check('every stage\'s story said: the scout, the Loiterers, the wakes, the Strikers, the gates opening, the twist\'s two lines and no other twist\'s, the convergence and its order',
+    bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
+  check('the hold hoists every working gate from its start toward its opening, and settles held (its half said) or failed',
+    bad.filter((x) => /hold/.test(x)).length === 0, bad.filter((x) => /hold/.test(x)).join(' | '));
+  check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
+    bad.filter((x) => /objective/.test(x)).join(' | '));
+  check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+
+  /* Nobody shooting: the headless pass's game, once per twist. The squad
+   * flies far off, so every attacker gets through. The first stages take
+   * only gates that are not working, so every working gate stands when
+   * the spill opens; there each hit costs double, the hold fails and the
+   * output falls under the floor (on main before this, the same game
+   * held the spill, nothing of the stage reaching a gate inside its two
+   * minutes, and won with nobody flying). */
+  const rooms = [0.15, 0.3, 0.41].map((seed) => {
+    const r = warRoom(mission, { n: 1, seed, dev: true });
+    r.fly(GO + 900000);
+    return r;
+  });
+  const ends = rooms.map((r) => r.view());
+  check('with nobody shooting the Spillway is lost in Open the Gates, under its floor, in each twist, and offers that stage again',
+    ends.every((x) => x.state === 'lost' && x.why === 'output' && x.checkpoint && /^open-/.test(x.checkpoint.stage)
+      && x.checkpoint.n === stagesOf(mission).findIndex((y) => y.id === x.checkpoint.stage))
+      && new Set(ends.map((x) => x.checkpoint && x.checkpoint.stage)).size === 3,
+    JSON.stringify(ends.map((x) => ({ state: x.state, why: x.why, cp: x.checkpoint }))));
+  const failedHold = rooms.every((r) => r.of(0).some((m) => m.war.stage && /^open-/.test(m.war.stage.id) && m.war.stage.objectives[0].state === 'failed'));
+  check('and its hold fails: a working gate is hit inside it', failedHold);
+  /* What a hit cost, in the room's death message, which the HUD calls. */
+  const deaths = rooms.flatMap((r) => r.of(0, 'dead').filter((m) => m.hit));
+  const working = new Set(ends.flatMap((x) => x.sets.working));
+  const firstHit = new Map();
+  const costs = { first: [], again: [], spill: [] };
+  for (const [k, r] of rooms.entries()) {
+    const seen = new Set();
+    const spillAt = r.of(0).map((m) => m.war).find((w) => w.stage && /^open-/.test(w.stage.id))?.stage.at ?? Infinity;
+    for (const m of r.of(0, 'dead').filter((x) => x.hit)) {
+      const key = `${k}:${m.target}`;
+      if (seen.has(key)) {
+        costs.again.push(m.mw);
+      } else if (ends[k].sets.working.includes(m.target) && m.at >= spillAt) {
+        costs.spill.push(m.mw);
+      } else {
+        costs.first.push(m.mw);
+      }
+      seen.add(key);
+      firstHit.set(key, m.at);
+    }
+  }
+  check('each hit\'s death says what it cost: a gate 350, a working gate in the spill 700, a gate already down 0',
+    deaths.length > 0 && working.size > 0 && costs.first.every((x) => x === 350) && costs.spill.length > 0 && costs.spill.every((x) => x === 700) && costs.again.every((x) => x === 0),
+    JSON.stringify(costs));
+  const e = rooms[2];
+  const lost = ends[2];
+  const told = e.of(0).length;
+  e.say(0, { type: 'war', op: 'start', mission: mission.id, from: 'checkpoint' });
+  const again = e.of(0).slice(told).map((m) => m.war)[0];
+  check('the restart counts down into that stage, the gates back at Free Flight\'s opening as the stage found them (no hoist moved before it)',
+    again && again.state === 'countdown' && again.restarted === lost.checkpoint.stage && (again.gates ?? []).length === 0 && (lost.gates ?? []).length > 0,
+    JSON.stringify(again && { state: again.state, restarted: again.restarted, gates: again.gates, lost: lost.gates }));
+  e.fly(e.clock + COUNTDOWN_MS + 3000);
+  const v = e.view();
+  check('it opens on the twist stage drawn before, its hold running again from the go',
+    v.stage && v.stage.id === lost.checkpoint.stage && v.stage.objectives[0].heldFrom === v.stage.at,
+    JSON.stringify(v.stage && { id: v.stage.id, at: v.stage.at, o: v.stage.objectives[0] }));
 }
 
 console.log('legacy: the four missions against their record');

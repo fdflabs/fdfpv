@@ -62,7 +62,7 @@ const GAMES = MISSION_IDS.flatMap((mission) => ['good', 'careless'].flatMap((ski
   mission, skill, pilots, seed,
 })))));
 /* The crest road's seats, as war-balance.js lays them out. */
-const SPAWN = [[574.93, -1622.45], [594.68, -1619.16], [613.8, -1612.94], [633.76, -1610.63],
+export const SPAWN = [[574.93, -1622.45], [594.68, -1619.16], [613.8, -1612.94], [633.76, -1610.63],
   [652.88, -1604.41], [672.84, -1602.1], [691.96, -1595.88], [711.92, -1593.57]];
 const ROUND_KEYS = ['round', 'roundState', 'roundAt', 'nextRoundAt', 'roundResult'];
 

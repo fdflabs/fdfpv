@@ -53,7 +53,8 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
-import { MISSIONS, waveSize, waveTarget } from '../src/share/war/missions/index.js';
+import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
+import { idsMayBe } from '../src/share/war/stages.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(root, 'src', 'share', 'war', 'itaipu-targets.js');
@@ -147,8 +148,8 @@ function corridor() {
     const routesOf = (w) => (w.route && typeof w.route === 'object' && !Array.isArray(w.route)
       ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat());
     const kindsOf = (w) => (w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat());
-    /* A working set's spawn may go for any target the set is drawn from. */
-    const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
+    /* A working set's spawn may go for any target the set is drawn from,
+     * an { of, not }'s for any of its list. */
     const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => routesOf(w).map((route) => ({ ...w, kind, route }))));
     for (const w of each) {
       if (w.kind === 'hunter') {
@@ -156,12 +157,13 @@ function corridor() {
       }
       for (let pilots = 1; pilots <= 8; pilots += 1) {
         const n = waveSize(w, pilots);
-        /* Every target of a set, whatever n is. */
-        const ks = w.target && w.target.set ? Math.max(n, sets[w.target.set].length) : n;
+        /* Every target a set or a list may give, whatever n is. */
+        const may = idsMayBe(m, w.target);
+        const ks = w.target && typeof w.target === 'object' && !Array.isArray(w.target) ? Math.max(n, may.length) : n;
         for (let k = 0; k < ks; k += 1) {
           for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
             const plan = planAgent(m, {
-              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k, sets),
+              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: may.length ? may[k % may.length] : null,
             });
             const end = Number.isFinite(plan.tEnd) ? plan.tEnd : plan.phases[plan.phases.length - 1].t1;
             for (let t = 0; t <= end; t += 250) {

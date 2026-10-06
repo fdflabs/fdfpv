@@ -46,6 +46,7 @@ import { FLAG_AIRBORNE, PROTO, encodePose } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import { idsMayBe } from '../src/share/war/stages.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import {
   DEFENDER, attackerCharge, blast, openingOf, unsupported,
@@ -102,7 +103,7 @@ function table() {
     const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => waysOf(w).map((route) => ({ ...w, kind, route }))));
     for (const w of each) {
       /* A working set's spawn may go for any target the set is drawn from. */
-      const ids = !w.target ? [] : w.target.set ? m.sets[w.target.set].from : [w.target].flat();
+      const ids = idsMayBe(m, w.target);
       for (let k = 0; k < ids.length; k += 1) {
         const target = ids[k];
         const s = STRUCTURES[target];

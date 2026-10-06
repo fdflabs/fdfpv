@@ -186,7 +186,10 @@ export function createRoomWar(send) {
     }
     events.push({
       type: 'dead', ids: m.ids || [], agents: list, at, by: m.by, why: m.why, p: m.p, target: m.target ?? null, hit: m.hit === true,
-      mw: m.target && mission() && mission().targets[m.target] ? mission().targets[m.target].mw : 0,
+      /* What the hit cost, as the room counted it (a working gate in the
+       * spill double, a target already down nothing); a room from before
+       * it said so, the target's own. */
+      mw: typeof m.mw === 'number' ? m.mw : m.target && mission() && mission().targets[m.target] ? mission().targets[m.target].mw : 0,
       mine: m.why === 'boom' && m.by === seat,
     });
     if (m.scouts === true) {
