@@ -132,6 +132,7 @@ jobs:
       - run: npm run edit:selftest
       - run: npm run export:selftest
       - run: npm run link:selftest
+      - run: npm run link:trace
       - run: npm run music:selftest
       # The audio lab's meter against EBU Tech 3341's cases, and the scripted
       # flights against the plant that flew them (tools/audio). The renders
