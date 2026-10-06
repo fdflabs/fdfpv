@@ -140,9 +140,10 @@ const page = await openPage({
   seed: ["Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false });"],
 });
 
-/* An address is not a name, so the resolver rules do not stop the API
- * probe's fallback to the VM's address. Blocked here, with the name: no
- * request from this check reaches a live server. */
+/* An address is not a name, so the resolver rules do not stop a request
+ * to the VM's address (the old origin's stored rooms override below names
+ * it). Blocked here, with the name: no request from this check reaches a
+ * live server. */
 await page.cdp.send('Network.enable', {}, page.sessionId);
 await page.cdp.send('Network.setBlockedURLs', { urls: ['*129.151.39.48*', `*api.${DOMAIN}*`] }, page.sessionId);
 
