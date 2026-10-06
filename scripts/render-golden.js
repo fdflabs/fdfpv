@@ -59,6 +59,9 @@ function firstDifference(a, b, path = '') {
   if (Object.is(a, b)) {
     return null;
   }
+  if (isImage(a) && isImage(b) && a.data !== b.data) {
+    return `${path || '(root)'}: the picture differs, ${JSON.stringify(b.diff)}`;
+  }
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
     return `${path || '(root)'}: recorded ${JSON.stringify(a)}, got ${JSON.stringify(b)}`;
   }
@@ -81,8 +84,39 @@ function firstDifference(a, b, path = '') {
   return null;
 }
 
+/*
+ * Pictures (a case's { image: 'png', w, h, data } values) are compared in
+ * the page, pixel by pixel, rather than byte by byte: two drawings of the
+ * same thing may round one edge pixel differently, which nobody can see.
+ * Where every channel of every pixel is within IMAGE_TOLERANCE levels the
+ * recorded picture stands in for the new one, so only a real difference
+ * reaches firstDifference, with its statistics attached.
+ */
+const IMAGE_TOLERANCE = 2;
+const isImage = (v) => v && typeof v === 'object' && v.image === 'png';
+
+async function settleImages(a, b, page) {
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') {
+    return b;
+  }
+  if (isImage(a) && isImage(b)) {
+    const d = await page.evaluate(`window.__golden.compareImages(${JSON.stringify(a.data)}, ${JSON.stringify(b.data)})`);
+    return d.same && d.maxDiff <= IMAGE_TOLERANCE ? a : { ...b, data: '(new picture)', diff: d };
+  }
+  const out = Array.isArray(b) ? [...b] : { ...b };
+  for (const k of Object.keys(out)) {
+    if (k in a) {
+      out[k] = await settleImages(a[k], b[k], page);
+    }
+  }
+  return out;
+}
+
 const goldenPath = (m) => join(GOLDENS, `${m}.json`);
 const recorded = Object.fromEntries(modules.map((m) => [m, existsSync(goldenPath(m)) ? JSON.parse(readFileSync(goldenPath(m), 'utf8')) : {}]));
+/* Always SwiftShader, as CI renders: a picture drawn by one machine's GPU
+ * is not a golden for another's. */
+process.env.SIM_GPU = '0';
 const page = await openPage({ root, width: 640, height: 360, url: `/tests/browser/render-golden.html?modules=${modules.join(',')}` });
 let failed = 0;
 let ran = 0;
@@ -110,7 +144,7 @@ try {
       console.log(`  FAIL  ${name}: no golden recorded`);
       continue;
     }
-    const d = firstDifference(recorded[mod][key], got);
+    const d = firstDifference(recorded[mod][key], await settleImages(recorded[mod][key], got, page));
     if (d) {
       failed += 1;
       console.log(`  FAIL  ${name}: ${d}`);

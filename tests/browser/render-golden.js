@@ -53,8 +53,40 @@ for (const name of modules) {
   }
 }
 
+/* Decodes a PNG data URL into RGBA pixels. */
+async function pixelsOfPng(url) {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  return { w: c.width, h: c.height, data: ctx.getImageData(0, 0, c.width, c.height).data };
+}
+
 window.__golden = {
   names: () => Object.keys(cases),
   run: async (name) => JSON.stringify(await cases[name]()),
+  /* How two recorded pictures differ: same size, the largest channel
+   * difference, and how many pixels differ at all. */
+  compareImages: async (a, b) => {
+    const [pa, pb] = await Promise.all([pixelsOfPng(a), pixelsOfPng(b)]);
+    if (pa.w !== pb.w || pa.h !== pb.h) {
+      return { same: false, size: [pa.w, pa.h, pb.w, pb.h] };
+    }
+    let maxDiff = 0;
+    let pixels = 0;
+    for (let i = 0; i < pa.data.length; i += 4) {
+      let worst = 0;
+      for (let c = 0; c < 4; c++) {
+        worst = Math.max(worst, Math.abs(pa.data[i + c] - pb.data[i + c]));
+      }
+      maxDiff = Math.max(maxDiff, worst);
+      pixels += worst > 0 ? 1 : 0;
+    }
+    return { same: true, maxDiff, pixels, of: pa.w * pa.h };
+  },
 };
 window.__goldenReady = true;
