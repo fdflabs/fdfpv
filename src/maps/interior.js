@@ -142,8 +142,9 @@ async function buildInterior(shell, progress, q, hours) {
     THREE, scene, world, colliders, roofs: roofRecords,
   });
   const life = buildLife({
-    THREE, scene, world, colliders, roofs: roofRecords,
+    THREE, scene, world, colliders, roofs: roofRecords, groundMaterial: look.ground,
   });
+  life.setSun(look.sunIrradiance());
   colliders.build();
   life.setCamp({ mark: 'shelter-1', tarp: 0, mast: 0 });
   /* ?people=demo: every route's people at once, for the checks' views. */
@@ -193,7 +194,11 @@ async function buildInterior(shell, progress, q, hours) {
     setContacts: (list, roomMs) => life.setContacts(list, roomMs),
     setCamp: (state) => life.setCamp(state),
     /* The room's clock moves the sun (look.js). */
-    setLocalTime: (h) => trees.setSun(look.setLocalTime(h)),
+    setLocalTime(h) {
+      const sun = look.setLocalTime(h);
+      trees.setSun(sun);
+      life.setSun(sun);
+    },
     setNextGate() {},
     targetAim: () => ({ active: false, sceneIndex: -1, correct: true, distance: 0 }),
     approachSide: () => null,

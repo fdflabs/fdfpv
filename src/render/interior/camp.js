@@ -56,6 +56,8 @@ import { hash01 } from '../../share/interior/canopy.js';
 import { recordAt, shedTop, flatTop } from '../../maps/alps/roofs.js';
 import { thermalKind, thermalHide } from '../thermal.js';
 import { markPixels, MARK_PX } from './mark.js';
+import { makeCampLight } from './camplight.js';
+import { DRESSING } from './campdressing.js';
 
 const POLE = [0.2, 0.15, 0.1];
 /* Patched, sun faded tarps (linear, under the cloth texture's weave): an
@@ -425,6 +427,304 @@ const WALKWAY = 0.7;
  * covered pile. */
 const STORES = [[17, -2], [-8, -16], [8, -14], [-16, 9], [5, 17], [-3, 10]];
 
+/* THE LIGHTS (camplight.js), linear colours and strengths (irradiance a
+ * metre off): a wood fire's orange, a kerosene lantern's yellow and the
+ * bulbs' warm white, each weak beside the 16:40 sun and plain by 18:08.
+ * The fill reaches the whole clearing and fades out FILL_OUTER from its
+ * middle, a dozen metres under the canopy's edge. */
+const FIRE_LIGHT = [1.0, 0.42, 0.12];
+const FIRE_STRENGTH = 10;
+const FLAME = [1.0, 0.5, 0.16];
+const LANTERN = [1.0, 0.68, 0.32];
+const BULB = [1.0, 0.78, 0.5];
+const FILL_INNER = 24;
+const FILL_OUTER = 42;
+const BOTTLE = [0.06, 0.16, 0.3];
+const TANK = [0.5, 0.5, 0.46];
+const RAG = [[0.32, 0.3, 0.26], [0.08, 0.12, 0.22], [0.25, 0.06, 0.04], [0.12, 0.13, 0.07], [0.38, 0.36, 0.32]];
+const LITTER = [[0.2, 0.2, 0.2], [0.26, 0.24, 0.2], [0.16, 0.05, 0.04], [0.06, 0.08, 0.12], [0.22, 0.17, 0.1]];
+
+/*
+ * THE DRESSING (campdressing.js): a work table, a cooking place with its
+ * own small fire, firewood, a water tank and bottles, more crate stacks,
+ * a generator, a wheelbarrow, a washing line, a string of bulbs, lanterns
+ * under two roofs, and litter. Solid where it stands higher than the
+ * collide check's tolerance (prop, crate, post); left out wherever a
+ * walker would meet it (clearOf). Pushes the lamps it lights and the
+ * glows that draw them onto `lamps` and `glows`.
+ */
+function dress({
+  solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
+}) {
+  const D = DRESSING;
+  const turn = (yaw) => [Math.cos(yaw), Math.sin(yaw)];
+  const along = (x, z, [dx, dz], u, w) => [x + dx * u - dz * w, z + dz * u + dx * w];
+  const lamp = (at, reach, colour, strength, flicker, size) => {
+    lamps.push({
+      at, reach, colour, strength, flicker,
+    });
+    glows.push({
+      at, size, colour, flicker,
+    });
+  };
+
+  /* The work table: planks on trestles, a toolbox, a radio, a lantern,
+   * a shovel leaning on it. */
+  {
+    const [x, z] = campAt(D.table.at);
+    const d = turn(D.table.yaw);
+    if (clearOf(stretches, x, z, 0.9 + WALKWAY)) {
+      const g = ground(x, z);
+      box(solid, x, z, d[0], d[1], 1.8, 0.75, g + 0.74, g + 0.79, WOOD, PLANKS);
+      for (const [u, w] of [[-0.75, -0.3], [0.75, -0.3], [0.75, 0.3], [-0.75, 0.3]]) {
+        const [lx, lz] = along(x, z, d, u, w);
+        box(solid, lx, lz, d[0], d[1], 0.06, 0.06, g - 0.05, g + 0.74, WOOD);
+      }
+      const top = g + 0.79;
+      const [tx, tz] = along(x, z, d, -0.5, 0.05);
+      box(solid, tx, tz, d[0], d[1], 0.5, 0.24, top, top + 0.22, [0.32, 0.05, 0.03], RIBS, GRAIN);
+      const [rx, rz] = along(x, z, d, 0.25, -0.1);
+      box(solid, rx, rz, d[0], d[1], 0.34, 0.22, top, top + 0.16, [0.04, 0.05, 0.04]);
+      const [kx, kz] = along(x, z, d, 0.1, 0.22);
+      box(solid, kx, kz, d[0], d[1], 0.45, 0.06, top, top + 0.02, STEEL);
+      const [sx, sz] = along(x, z, d, 0.4, 0.68);
+      log(solid, [sx, ground(sx, sz), sz], [sx + d[1] * 0.28, top - 0.02, sz - d[0] * 0.28], 0.02, WOOD, 5);
+      box(solid, sx, sz, d[0], d[1], 0.22, 0.03, ground(sx, sz) - 0.02, ground(sx, sz) + 0.28, STEEL);
+      solidBox(colliders, 'obstacle', x, z, d[0], d[1], 1.8, 1.3, g - 0.05, g + 1.01);
+      const [lx, lz] = along(x, z, d, 0.72, 0.1);
+      box(solid, lx, lz, 1, 0, 0.12, 0.12, top, top + 0.05, [0.05, 0.05, 0.05]);
+      lamp([lx, top + 0.18, lz], 6, LANTERN, 0.8, 0, 0.32);
+    }
+  }
+
+  /* The cooking place: a ring of stones round a small fire, a tripod of
+   * poles with a pot hung over it, a bench log. Its embers are drawn
+   * with the camp fire's (buildCamp). */
+  const cook = () => {
+    const [x, z] = campAt(D.cook.at);
+    const g = ground(x, z);
+    if (!clearOf(stretches, x, z, 0.7 + WALKWAY)) {
+      return null;
+    }
+    for (let k = 0; k < 8; k += 1) {
+      const a = (k / 8) * Math.PI * 2 + hash01(k, 0, 71) * 0.4;
+      const [sx, sz] = [x + Math.sin(a) * 0.48, z + Math.cos(a) * 0.48];
+      const s = 0.12 + hash01(k, 1, 71) * 0.06;
+      box(solid, sx, sz, Math.cos(a), -Math.sin(a), s * 1.3, s, ground(sx, sz) - 0.03, ground(sx, sz) + s * 0.8, STONE);
+    }
+    const apex = [x, g + 1.35, z];
+    for (let k = 0; k < 3; k += 1) {
+      const a = (k / 3) * Math.PI * 2 + 0.3;
+      const [lx, lz] = [x + Math.sin(a) * 0.62, z + Math.cos(a) * 0.62];
+      log(solid, [lx, ground(lx, lz) - 0.05, lz], apex, 0.025, POLE, 5);
+    }
+    colliders.addPost('pole', x, z, g - 0.05, g + 1.3, 0.4);
+    cylinder(solid, x, z, 0.16, g + 0.42, g + 0.66, CHAR, GRAIN, 9);
+    rope([x, g + 0.66, z], apex);
+    const [bx, bz] = [x + 1.25, z + 0.3];
+    if (clearOf(stretches, bx, bz, 0.75)) {
+      log(solid, [bx - 0.1, ground(bx, bz - 0.7) + 0.12, bz - 0.7], [bx + 0.1, ground(bx, bz + 0.7) + 0.12, bz + 0.7], 0.12, [0.14, 0.1, 0.07]);
+    }
+    lamp([x, g + 0.35, z], 9, FIRE_LIGHT, FIRE_STRENGTH * 0.45, 2.1, 0.5);
+    return [x, z];
+  };
+  const cookAt = cook();
+
+  /* Firewood: split logs stacked between four stakes. */
+  D.firewood.forEach((f, k) => {
+    const [x, z] = campAt(f.at);
+    const d = turn(f.yaw);
+    if (!clearOf(stretches, x, z, 0.6 + WALKWAY)) {
+      return;
+    }
+    const g = ground(x, z) - 0.03;
+    const rows = 3 + (k % 2);
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < 5 - (r % 2); c += 1) {
+        const w = (c - 2 + (r % 2) * 0.5) * 0.15;
+        const [ax, az] = along(x, z, d, -0.5, w);
+        const [ex, ez] = along(x, z, d, 0.5, w + (hash01(k, r * 7 + c, 72) - 0.5) * 0.05);
+        const y = g + 0.07 + r * 0.13;
+        log(solid, [ax, y, az], [ex, y, ez], 0.065, [0.26, 0.17, 0.09], 5);
+      }
+    }
+    for (const [u, w] of [[-0.3, -0.42], [0.3, -0.42], [-0.3, 0.42], [0.3, 0.42]]) {
+      const [sx, sz] = along(x, z, d, u, w);
+      box(solid, sx, sz, d[0], d[1], 0.05, 0.05, g, g + 0.07 + rows * 0.13 + 0.05, POLE);
+    }
+    solidBox(colliders, 'obstacle', x, z, d[0], d[1], 1.1, 0.94, g, g + 0.07 + rows * 0.13 + 0.1);
+  });
+
+  /* The water tank: a white plastic tote in a steel cage on a pallet,
+   * and blue bottles. */
+  {
+    const [x, z] = campAt(D.tank.at);
+    const d = turn(D.tank.yaw);
+    if (clearOf(stretches, x, z, 0.7 + WALKWAY)) {
+      const g = ground(x, z) - 0.03;
+      box(solid, x, z, d[0], d[1], 1.2, 1.0, g, g + 0.14, WOOD, PLANKS);
+      box(solid, x, z, d[0], d[1], 1.1, 0.92, g + 0.14, g + 1.12, TANK);
+      for (const u of [-0.56, -0.19, 0.19, 0.56]) {
+        for (const w of [-0.47, 0.47]) {
+          const [px, pz] = along(x, z, d, u, w);
+          box(solid, px, pz, d[0], d[1], 0.03, 0.03, g + 0.14, g + 1.15, STEEL);
+        }
+      }
+      solidBox(colliders, 'obstacle', x, z, d[0], d[1], 1.2, 1.0, g, g + 1.15);
+    }
+  }
+  D.bottles.forEach(([ox, oz]) => {
+    const [x, z] = campAt([ox, oz]);
+    if (!clearOf(stretches, x, z, 0.15 + WALKWAY)) {
+      return;
+    }
+    const g = ground(x, z) - 0.03;
+    cylinder(solid, x, z, 0.14, g, g + 0.38, BOTTLE, RIBS, 8);
+    cylinder(solid, x, z, 0.05, g + 0.38, g + 0.46, BOTTLE, GRAIN, 6);
+    solidBox(colliders, 'obstacle', x, z, 1, 0, 0.28, 0.28, g, g + 0.46);
+  });
+
+  /* Crate stacks: two or three crates, a box on one, sacks at the foot. */
+  D.crates.forEach((c, k) => {
+    const [x0, z0] = campAt(c.at);
+    const d = turn(c.yaw);
+    const n = 2 + Math.floor(hash01(k, 0, 73) * 2);
+    for (let i = 0; i < n; i += 1) {
+      const u = (i - (n - 1) / 2) * 0.95;
+      const [x, z] = along(x0, z0, d, u, (hash01(k, i, 74) - 0.5) * 0.12);
+      const g = ground(x, z) - 0.05;
+      const olive = hash01(k, i, 75) > 0.55;
+      if (crate(x, z, d[0], d[1], 0.9, 0.6, 0.55, g, olive ? OLIVE_BOX : WOOD) && hash01(k, i, 76) > 0.4) {
+        crate(x, z, d[0], d[1], 0.62, 0.36, 0.32, g + 0.55, OLIVE_BOX);
+      }
+    }
+    const [sx, sz] = along(x0, z0, d, 0, 0.75);
+    if (clearOf(stretches, sx, sz, 0.35 + WALKWAY)) {
+      box(solid, sx, sz, d[0], d[1], 0.7, 0.45, ground(sx, sz) - 0.05, ground(sx, sz) + 0.18, SACK);
+    }
+  });
+
+  /* The generator, a framed engine, its cable to the mast's foot. */
+  {
+    const [x, z] = campAt(D.generator.at);
+    const d = turn(D.generator.yaw);
+    if (clearOf(stretches, x, z, 0.4 + WALKWAY)) {
+      const g = ground(x, z) - 0.03;
+      box(solid, x, z, d[0], d[1], 0.62, 0.44, g + 0.06, g + 0.46, [0.32, 0.22, 0.03], RIBS, GRAIN);
+      box(solid, x, z, d[0], d[1], 0.68, 0.5, g, g + 0.06, STEEL);
+      box(solid, x - d[0] * 0.1, z - d[1] * 0.1, d[0], d[1], 0.3, 0.3, g + 0.46, g + 0.55, [0.04, 0.04, 0.04]);
+      solidBox(colliders, 'obstacle', x, z, d[0], d[1], 0.68, 0.5, g, g + 0.55);
+      const [mx, mz] = CAMP_PROPS.mast.at;
+      rope([x, g + 0.1, z], [mx, ground(mx, mz) + 0.04, mz]);
+    }
+  }
+
+  /* The wheelbarrow, its tray tipped forward onto the wheel, and sacks
+   * of rice and flour beside it. */
+  {
+    const [x, z] = campAt(D.wheelbarrow.at);
+    const d = turn(D.wheelbarrow.yaw);
+    if (clearOf(stretches, x, z, 0.7 + WALKWAY)) {
+      const g = ground(x, z);
+      box(solid, x, z, d[0], d[1], 0.75, 0.58, g + 0.3, g + 0.55, [0.12, 0.18, 0.12], RIBS, GRAIN);
+      const [wx, wz] = along(x, z, d, 0.5, 0);
+      log(solid, [wx - d[1] * 0.05, g + 0.19, wz + d[0] * 0.05], [wx + d[1] * 0.05, g + 0.19, wz - d[0] * 0.05], 0.19, [0.03, 0.03, 0.03], 9);
+      for (const w of [-0.22, 0.22]) {
+        const [ax, az] = along(x, z, d, 0.45, w);
+        const [ex, ez] = along(x, z, d, -0.7, w * 1.3);
+        log(solid, [ax, g + 0.32, az], [ex, g + 0.5, ez], 0.02, STEEL, 5);
+      }
+      solidBox(colliders, 'obstacle', x - d[0] * 0.05, z - d[1] * 0.05, d[0], d[1], 1.4, 0.65, g - 0.05, g + 0.58);
+      for (let k = 0; k < 2; k += 1) {
+        const [sx, sz] = along(x, z, d, -0.2 + k * 0.6, -0.85);
+        box(solid, sx, sz, d[0], d[1], 0.55, 0.38, ground(sx, sz) - 0.05, ground(sx, sz) + 0.24, k ? [0.5, 0.48, 0.42] : SACK);
+      }
+    }
+  }
+
+  /* The washing line: two poles, a sagging line, a few shirts and a
+   * towel pegged on it. */
+  {
+    const a = campAt(D.clothesline.from);
+    const b = campAt(D.clothesline.to);
+    if (clearOf(stretches, a[0], a[1], 0.1 + WALKWAY) && clearOf(stretches, b[0], b[1], 0.1 + WALKWAY)) {
+      const ga = ground(a[0], a[1]);
+      const gb = ground(b[0], b[1]);
+      post(a[0], a[1], ga - 0.2, ga + 1.95, 0.04);
+      post(b[0], b[1], gb - 0.2, gb + 1.95, 0.04);
+      const at = (t) => [a[0] + (b[0] - a[0]) * t, ga + 1.9 + (gb - ga) * t - 0.25 * Math.sin(Math.PI * t), a[1] + (b[1] - a[1]) * t];
+      for (let k = 0; k < 8; k += 1) {
+        rope(at(k / 8), at((k + 1) / 8));
+      }
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const [ux, uz] = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+      for (let k = 0; k < 5; k += 1) {
+        const t0 = 0.12 + k * 0.16;
+        const wide = (0.45 + 0.2 * hash01(k, 0, 77)) / len;
+        const drop = 0.5 + 0.25 * hash01(k, 1, 77);
+        sheet(cloth, (s, t) => {
+          const p = at(t0 + s * wide);
+          return [p[0] - uz * 0.03 * Math.sin(s * 5 + k) * t, p[1] - t * drop, p[2] + ux * 0.03 * Math.sin(s * 5 + k) * t];
+        }, 2, 2, RAG[k % RAG.length], [0.3, 0.3]);
+      }
+    }
+  }
+
+  /* The string of bulbs between two tall poles, sagging over the walkers,
+   * lit as two lamps along it. */
+  {
+    const B = D.bulbs;
+    const a = campAt(B.from);
+    const b = campAt(B.to);
+    if (clearOf(stretches, a[0], a[1], 0.1 + WALKWAY) && clearOf(stretches, b[0], b[1], 0.1 + WALKWAY)) {
+      const ga = ground(a[0], a[1]);
+      const gb = ground(b[0], b[1]);
+      post(a[0], a[1], ga - 0.2, ga + B.h + 0.1, 0.05);
+      post(b[0], b[1], gb - 0.2, gb + B.h + 0.1, 0.05);
+      const at = (t) => [a[0] + (b[0] - a[0]) * t, ga + B.h + (gb - ga) * t - B.sag * 4 * t * (1 - t), a[1] + (b[1] - a[1]) * t];
+      for (let k = 0; k < 12; k += 1) {
+        rope(at(k / 12), at((k + 1) / 12));
+      }
+      for (let k = 0; k < B.n; k += 1) {
+        const p = at((k + 0.5) / B.n);
+        glows.push({
+          at: [p[0], p[1] - 0.08, p[2]], size: 0.3, colour: BULB.map((v) => v * 0.45), flicker: 0,
+        });
+      }
+      for (const t of [0.28, 0.72]) {
+        const p = at(t);
+        lamps.push({
+          at: [p[0], p[1] - 0.1, p[2]], reach: 9, colour: BULB, strength: 2.2, flicker: 0,
+        });
+      }
+    }
+  }
+
+  /* Lanterns hung under two roofs, a hand under the tarp's middle. */
+  for (const id of ['shelter-1', 'shelter-3']) {
+    const f = frames[id];
+    lamp([f.cx, (f.hi + f.lo) / 2 - 0.55, f.cz], 7, LANTERN, 1.6, 0, 0.36);
+  }
+
+  /* Litter lying flat: cans, a sheet of sacking, a bottle, offcuts,
+   * thinner toward the clearing's edge, none in the fires. */
+  const [fx, fz] = CAMP_PROPS.fire.at;
+  for (let k = 0; k < D.litter; k += 1) {
+    const r = 19 * Math.sqrt(hash01(k, 0, 78)) * (0.4 + 0.6 * hash01(k, 1, 78));
+    const a = hash01(k, 2, 78) * Math.PI * 2;
+    const [x, z] = campAt([Math.sin(a) * r, Math.cos(a) * r]);
+    if (Math.hypot(x - fx, z - fz) < 1.2) {
+      continue;
+    }
+    const kind = Math.floor(hash01(k, 3, 78) * LITTER.length);
+    const t = hash01(k, 4, 78) * Math.PI;
+    const [w, d, h] = kind < 2 ? [0.12, 0.07, 0.07] : kind === 4 ? [0.6, 0.45, 0.02] : [0.3, 0.18, 0.04];
+    const g = ground(x, z) - 0.02;
+    box(solid, x, z, Math.cos(t), Math.sin(t), w, d, g, g + h, LITTER[kind]);
+  }
+  return { cook: cookAt };
+}
+
 /*
  * The camp: { group, setCamp({ mark, tarp, mast }), update(seconds),
  * stats(), dispose() }. Adds its colliders and roof records.
@@ -435,6 +735,7 @@ export function buildCamp({
   const ground = world.groundAt;
   const group = new THREE.Group();
   group.name = 'interior-camp';
+  const campAt = ([ox, oz]) => [CAMP_PROPS.middle[0] + ox, CAMP_PROPS.middle[1] + oz];
   const solid = sink();
   const cloth = sink();
   const ropes = [];
@@ -707,6 +1008,11 @@ export function buildCamp({
       }
     }
   });
+  const lamps = [];
+  const glows = [];
+  const dressed = dress({
+    solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
+  });
   /* THE FIRE: the embers (the fire kind, src/render/thermal.js, far over
    * anything else in the camp) in a ring of stones, half burnt logs, a
    * blackened pot on the stones, logs round it to sit on. */
@@ -714,8 +1020,14 @@ export function buildCamp({
   const [fx, fz] = CAMP_PROPS.fire.at;
   const fg = ground(fx, fz);
   {
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(0.7, 10).rotateX(-Math.PI / 2), fireMat);
-    disc.position.set(fx, fg + 0.05, fz);
+    /* Both fires' embers, this one and the cooking place's (dress), one
+     * mesh. */
+    const embers = [[fx, fz, 0.7]];
+    if (dressed.cook) {
+      embers.push([...dressed.cook, 0.38]);
+    }
+    const discs = embers.map(([x, z, r]) => new THREE.CircleGeometry(r, 10).rotateX(-Math.PI / 2).translate(x, ground(x, z) + 0.05, z));
+    const disc = new THREE.Mesh(mergeGeometries(discs), fireMat);
     disc.name = 'interior-camp-fire';
     group.add(disc);
     for (let k = 0; k < 11; k += 1) {
@@ -740,6 +1052,20 @@ export function buildCamp({
       }
     }
   }
+  lamps.unshift({
+    at: [fx, fg + 0.7, fz], reach: 16, colour: FIRE_LIGHT, strength: FIRE_STRENGTH, flicker: 1.3,
+  });
+  for (let k = 0; k < 5; k += 1) {
+    const a = k * 2.4;
+    glows.push({
+      at: [fx + 0.18 * Math.sin(a), fg + 0.22 + 0.09 * k, fz + 0.18 * Math.cos(a)], size: 0.62 - 0.06 * k, colour: FLAME.map((v) => v * 0.9), flicker: 1.3 + k * 0.7,
+    });
+  }
+  const campLight = makeCampLight(THREE, {
+    at: CAMP_PROPS.middle, inner: FILL_INNER, outer: FILL_OUTER, lamps, glows,
+  });
+  group.add(campLight.mesh);
+
   /* HAMMOCKS, slung between two poles: a woven strip sagging between
    * its ropes, in faded stripes. */
   CAMP_PROPS.hammocks.forEach((h, k) => {
@@ -935,6 +1261,7 @@ export function buildCamp({
     group.add(m);
   }
   function update(seconds) {
+    campLight.update(seconds);
     puffs.forEach((m, k) => {
       const t = (seconds * 0.05 + k / PUFFS + 0.03 * hash01(k, 0, 96)) % 1;
       const rise = 0.4 + t * 15;
@@ -1017,6 +1344,35 @@ export function buildCamp({
   for (const f of Object.values(frames)) {
     scuff(f.cx, f.cz, 3.4, 0.28);
   }
+  /* Where the dressing is worked at, trodden too; the cooking place's
+   * ash. */
+  for (const [at, r, a] of [[DRESSING.table.at, 2.2, 0.3], [DRESSING.cook.at, 1.6, 0.5], [DRESSING.tank.at, 1.8, 0.3], [DRESSING.generator.at, 1.2, 0.3], [DRESSING.wheelbarrow.at, 1.5, 0.2]]) {
+    scuff(...campAt(at), r, a);
+  }
+  /* The motorcycles' tracks, a pair of ruts from each parked pair out to
+   * the access path at the clearing's north west edge. */
+  const TRACK = 0.12;
+  for (const [from, bend] of [[[-20.5, 3.5], [-22, -12]], [[19.5, 4.5], [21, -19]]]) {
+    const exit = [-15, -24];
+    const at = (t) => [0, 1].map((i) => (1 - t) * (1 - t) * from[i] + 2 * (1 - t) * t * bend[i] + t * t * exit[i]);
+    for (const side of [-0.32, 0.32]) {
+      const n = 40;
+      for (let i = 0; i < n; i += 1) {
+        const [p0, p1] = [at(i / n), at((i + 1) / n)];
+        const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1;
+        const [nx, nz] = [-(p1[1] - p0[1]) / len, (p1[0] - p0[0]) / len];
+        const a = 0.18 * Math.min(1, i / 4, (n - i) / 4) * (0.5 + 0.5 * hash01(i >> 1, side > 0 ? 1 : 0, 79));
+        const q = (p, o, al) => {
+          const [x, z] = campAt([p[0] + nx * (side + o), p[1] + nz * (side + o)]);
+          return [x, z, al];
+        };
+        wearTri(q(p0, -TRACK, 0), q(p0, 0, a), q(p1, 0, a));
+        wearTri(q(p0, -TRACK, 0), q(p1, 0, a), q(p1, -TRACK, 0));
+        wearTri(q(p0, 0, a), q(p0, TRACK, 0), q(p1, TRACK, 0));
+        wearTri(q(p0, 0, a), q(p1, TRACK, 0), q(p1, 0, a));
+      }
+    }
+  }
   const wearGeo = new THREE.BufferGeometry();
   wearGeo.setAttribute('position', new THREE.Float32BufferAttribute(wear.pos, 3));
   wearGeo.setAttribute('color', new THREE.Float32BufferAttribute(wear.col, 4));
@@ -1038,6 +1394,9 @@ export function buildCamp({
   }), 'vegetation');
   for (const fm of Object.values(flaps)) {
     fm.material = clothMat;
+  }
+  for (const m of [solidMat, clothMat, markMat, ...Object.values(plainMats)]) {
+    campLight.patch(m);
   }
   const solidMesh = meshOf(THREE, solid, solidMat, 'interior-camp-solid');
   const clothMesh = meshOf(THREE, cloth, clothMat, 'interior-camp-cloth');
@@ -1076,6 +1435,9 @@ export function buildCamp({
     update,
     state: () => ({ ...state }),
     frames,
+    /* The clearing's fill and lamps (camplight.js), for the ground's and
+     * the people's materials and the sun's irradiance. */
+    light: campLight,
     stats: () => ({ solids: count }),
     dispose() {
       group.traverse((o) => {
@@ -1086,6 +1448,7 @@ export function buildCamp({
       for (const m of [markMat, fireMat, mastMat, dishMat, solidMat, clothMat, ropeMat, wearMat, ...puffs.map((p) => p.material), ...Object.values(plainMats)]) {
         m.dispose();
       }
+      campLight.dispose();
       for (const t of [tex, atlas, weave, puffTex]) {
         t.dispose();
       }
