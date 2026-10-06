@@ -124,6 +124,7 @@ jobs:
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run ghost:selftest
+      - run: npm run track:golden
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
