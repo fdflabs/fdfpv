@@ -24,10 +24,8 @@ scripts/craft-check.js
 scripts/crash-rules-selftest.js
 scripts/device-check.js
 scripts/drone-wireframe.js
-scripts/fc-catalog-gen.js
 scripts/fc-catalog-lint.js
 scripts/fc-trace.js
-scripts/fc-valuetable.js
 scripts/flightcheck.js
 scripts/flight-report.js
 scripts/floats-shell.js
@@ -66,7 +64,6 @@ scripts/wall-check.js
 src/art/banners.js
 src/art/startblock.js
 src/boot.js
-src/fc/catalog-data.js
 src/fc/catalog.js
 src/fc/dump.js
 src/fc/keynotes.js
