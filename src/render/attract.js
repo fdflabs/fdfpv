@@ -1,84 +1,80 @@
 /*
  * attract.js: the camera behind the title screen.
  *
- * WHAT WAS WRONG WITH THE OLD ONE. It orbited a point. On the race field
- * that framed the start gate and nothing else, so a player choosing between
- * two tracks was shown the same nine metre circle whichever one they picked;
- * in the city it swung a 11 m circle round the spawn, straight through the
- * shopfronts on both sides of the road, because a circle drawn on a street
- * plan does not know there are buildings on it.
+ * A map describes its title shot in view.attract. With a `path`, a closed
+ * line the map has already made safe to fly (lifted clear of everything
+ * near each sample, from the same data the world was built from), the
+ * camera flies that line. Without one it circles a point, which is also
+ * the better shot of a compact course, where flying the racing line would
+ * sprint round a few metres of knot. The airframe, when the shell passes
+ * one, rides just ahead in three quarter view with a little of the pilot's
+ * stick in its attitude. There is no second scene: when Fly is pressed the
+ * shell stops calling update and the same world becomes the flight.
  *
- * So a map now hands over a LINE to fly instead of a point to circle, and it
- * is the map's business to make sure the line is flyable: the race field
- * derives one from its own racing line and lifts it clear of the tallest
- * structure near each sample, and the city walks its own road centreline and
- * comes back over the roofs. Neither can clip anything, because in both
- * cases the line is drawn from the same data the world was built out of.
+ * Nothing here reaches the simulation. The shot runs off the wall clock
+ * the caller passes, so a tab that was in the background resumes where the
+ * clock says rather than racing to catch up.
  *
- * The orbit is also what a designed course asks for. Flying its racing line
- * is the wrong shot on a compact layout: a single triple stack's line is a
- * few metres of wrap, and the camera sprints that knot in a couple of
- * seconds. The map hands over a point, a radius and an eye height framed
- * from the course's own bounds, and this file circles it. Empty custom
- * courses keep the old nine metre spawn circle, because circling nothing is
- * a better shot of an empty pitch than a flight round nothing.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * TITLE HERO. The camera stays ON that cleared line. The session airframe
- * is posed a couple of metres ahead on the same line, slightly off to the
- * side so the X reads, and the overlay then nudges the frame so the quad
- * sits in the open sky next to the menu rather than under the type. Sticks
- * add a little extra attitude; they do not fly the line. Nothing here is a
- * second scene graph. When Fly is pressed the shell stops calling update,
- * seats the craft at spawn, and the same world is the flight world.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
 
-/* The most the shot will bank, in radians, about 13 degrees. A flythrough
- * that stays wings level reads as a camera on rails; a pilot rolls into a
- * turn and the eye reads the roll as commitment. Held well under a racing
- * bank because this is an establishing shot, not a lap: at 0.30 the figure
- * eight's crossover put the horizon far enough over that the title type sat
- * at an angle to it. */
-const MAX_BANK = 0.22;
+/* A cinematic lens, not the FPV one, which made the airframe a speck. A
+ * tall frame under the menu gets a little more. */
+const FOV_WIDE = 44;
+const FOV_TALL = 50;
+/* Frames narrower than this are laid out with the menu along the bottom. */
+const TALL_BELOW_ASPECT = 0.95;
 
-/* Radians per millisecond. A full circle is about 57 s, slow enough that
- * the title shot reads as a look rather than as a spin. Thumbnails time
- * scale this so one revolution fits in the clip. */
-const ORBIT_RAD_PER_MS = 0.00011;
-const ORBIT_PERIOD_MS = (Math.PI * 2) / ORBIT_RAD_PER_MS;
+/* The orbit: radians per millisecond, a turn in about 57 s, a look and not
+ * a spin. Thumbnails scale their clock so one turn fits a clip. */
+const ORBIT_RATE = 0.00011;
+const ORBIT_PERIOD_MS = (Math.PI * 2) / ORBIT_RATE;
+/* The circle a map without a shot of its own gets. */
+const DEFAULT_ORBIT = { x: 0, y: 0, z: 0, radius: 9, eye: 2.4, aim: 0.85 };
 
-/* Cinematic fov, not the FPV lens. 100 degrees made the airframe a speck
- * and the title read as a landscape wallpaper. */
-const ATTRACT_FOV = 44;
-const ATTRACT_FOV_NARROW = 50;
+/* The line: the most it banks into a turn (about 13 degrees: enough to
+ * read as a pilot committing, little enough that the title type does not
+ * sit crooked on the horizon), how hard the bank follows, and the
+ * airframe's place, metres ahead along the line and to the camera's right
+ * so it is seen three quarter rather than tail on. */
+const BANK_LIMIT = 0.22;
+const BANK_GAIN = 0.9;
+const BANK_FOLLOW = 2.2;
+const CRAFT_AHEAD = 1.62;
+const CRAFT_RIGHT = 0.34;
 
-/* Metres along the cleared line from the camera to the airframe. Close
- * enough that a 5 inch X fills the open side of the title, far enough that
- * the world behind it still reads. */
-const CRAFT_LEAD = 1.62;
-/* Metres to the camera's right, so the shot is a three quarter and not a
- * dead chase that hides the arms. */
-const CRAFT_SIDE = 0.34;
+/*
+ * The menu covers the left third of a wide frame and the bottom of a tall
+ * one, so the picture is shifted into the open part as a lens shift, a
+ * window offset in the projection, never by moving the eye: the eye stays
+ * on the line the map cleared (moving it by a share of the distance to the
+ * subject once dropped the title shot underground on phones). Fractions of
+ * the frame; positive Y lifts the picture, negative X moves it right.
+ */
+const SHIFT = { wideX: -0.118, wideY: 0.062, tallY: 0.172 };
 
-function applyFov(camera, overlay) {
-  const narrow = Boolean(overlay) && camera.aspect < 0.95;
-  const fov = narrow ? ATTRACT_FOV_NARROW : ATTRACT_FOV;
+/* A stick deflection smaller than this leaves the airframe's pose alone;
+ * past it, each axis tips the airframe by its own share. */
+const FLOURISH_DEADBAND = 0.14;
+const FLOURISH = { roll: 0.28, pitch: 0.18, yaw: 0.22 };
+
+function setLens(camera, overlay) {
+  const fov = overlay && camera.aspect < TALL_BELOW_ASPECT ? FOV_TALL : FOV_WIDE;
   if (Math.abs(camera.fov - fov) > 0.05) {
     camera.fov = fov;
     camera.updateProjectionMatrix();
@@ -86,109 +82,50 @@ function applyFov(camera, overlay) {
 }
 
 /*
- * Slide the subject into the hole the overlay leaves. Wide: the menu owns
- * the left third, so the picture steps right and the quad sits clear of it.
- * Narrow: the menu owns the bottom, so the picture steps up and the quad
- * sits in the open sky above it.
- *
- * THIS USED TO MOVE THE CAMERA, AND THAT IS WHAT PUT THE TITLE SHOT UNDER
- * THE GROUND ON A PHONE. It translated the eye by a FRACTION OF THE
- * DISTANCE TO THE SUBJECT, sixteen percent of it downwards on a narrow
- * frame, which is a screen space intent expressed as a world space move.
- * The two only agree when the subject is a couple of metres away. The map
- * hands over a shot framed from the course's own bounds, so on a track that
- * covers a field the orbit sits 15.6 m up and 60 m out, and sixteen percent
- * of that is a TWELVE METRE drop: the eye ended at 2.8 m over a shot
- * designed for 15.6, and on a wider orbit with a lower eye it ended below
- * the dirt, which is what a portrait phone was showing. Nothing clamped it,
- * because the clearance every map computes for this line is a property of
- * the line, and the eye had left the line.
- *
- * So the eye no longer moves. The offset is a LENS SHIFT: the projection
- * renders a window of the frustum offset from centre, the same trick a
- * shift lens plays, which is exactly the screen space quantity the overlay
- * asks for. The camera stays on the cleared line at every aspect, the shift
- * is the same fraction of the frame whether the subject is two metres away
- * or eighty, and scripts/attract-check.js, which probes this camera with no
- * overlay, is now telling the truth about where the shot actually goes.
- *
- * The fractions below reproduce what the old translation framed on a 16:9
- * desktop, where the subject sat about a look ahead away and the move was
- * small enough to be honest. They are fractions of the rendered frame:
- * positive Y lifts the picture, negative X pushes it right.
+ * The view offset. Its full frame is the camera's aspect wide and 1 high,
+ * because setViewOffset sets aspect = fullWidth / fullHeight: a unit frame
+ * would quietly make the camera square. With no shift the offset is turned
+ * off rather than zeroed, since the flight camera shares this camera and
+ * expects no view. It is set again only when the shift or the aspect moved.
  */
-const SHIFT_X_WIDE = -0.118;
-const SHIFT_Y_WIDE = 0.062;
-const SHIFT_Y_NARROW = 0.172;
-
-function frameOverlay(camera, overlay) {
-  /*
-   * THE FULL FRAME IS THE ASPECT BY ONE, AND IT HAS TO BE. three.js's
-   * setViewOffset opens with `this.aspect = fullWidth / fullHeight`, so the
-   * obvious unit frame, setViewOffset(1, 1, ...), silently reshapes the
-   * camera to a square and every later read of camera.aspect answers 1. The
-   * first draft of this did exactly that, and the tell was the narrow branch
-   * below never firing again on a phone: one frame of shift set the aspect
-   * to 1, and 1 is not less than 0.95. So the frame is the camera's own
-   * aspect wide and one high, which hands setViewOffset back the aspect it
-   * already had, and X offsets are in those same units.
-   */
+function shiftLens(camera, overlay) {
   const aspect = camera.aspect;
-  const narrow = aspect < 0.95;
-  const ox = overlay && !narrow ? SHIFT_X_WIDE * aspect : 0;
-  const oy = overlay ? (narrow ? SHIFT_Y_NARROW : SHIFT_Y_WIDE) : 0;
+  const tall = aspect < TALL_BELOW_ASPECT;
+  const x = overlay && !tall ? SHIFT.wideX * aspect : 0;
+  const y = overlay ? (tall ? SHIFT.tallY : SHIFT.wideY) : 0;
   const view = camera.view;
-  if (!ox && !oy) {
-    /* Off, not zeroed: the shell shares one camera with the flight lens,
-     * and a disabled view is what every other reader of it expects. */
-    if (view && view.enabled) {
+  const on = Boolean(view && view.enabled);
+  if (!x && !y) {
+    if (on) {
       camera.clearViewOffset();
     }
     return;
   }
-  /* Rebuilt when the window is resized as well as when the shift changes,
-   * because fullWidth carries the aspect and a stale one would scale the
-   * horizontal offset against a frame the page no longer has. */
-  if (view && view.enabled && view.fullWidth === aspect
-      && view.offsetX === ox && view.offsetY === oy) {
+  if (on && view.fullWidth === aspect && view.offsetX === x && view.offsetY === y) {
     return;
   }
-  camera.setViewOffset(aspect, 1, ox, oy, aspect, 1);
+  camera.setViewOffset(aspect, 1, x, y, aspect, 1);
 }
 
-/*
- * A curve parameter, wrapped into [0, 1).
- *
- * JAVASCRIPT'S % KEEPS THE SIGN OF THE DIVIDEND, so `-0.001 % 1` is
- * -0.001 and not 0.999. Every parameter below is a position along a CLOSED
- * loop, where those two are the same place, and the raw operator was being
- * trusted to say so. It does not, and three.js does not defend itself:
- * getPointAt hands a negative u through getUtoTmapping to getPoint, which
- * computes a negative index and reads points[-1], and the failure surfaces
- * as `Cannot read properties of undefined (reading 'distanceToSquared')`
- * once per animation frame.
- *
- * That is not hypothetical. The thumbnail recorder's first frame delta can
- * be negative (see the floor in src/share/orbit.js), so the camera clock
- * started below zero and the very first sample threw. The recorder is an
- * offscreen iframe, so the clip still came out, of a camera that never
- * moved, with nobody watching the console.
- *
- * Fixing the recorder's clock is necessary and is done. This is the other
- * half: a camera that is asked for a position on a loop should answer for
- * any input, not only for inputs that happen to be positive. One of the
- * five call sites below already hand patched its own sign by adding 1
- * before the modulo, which is the same bug noticed once and fixed in one
- * place.
- */
-function wrap01(x) {
-  if (!Number.isFinite(x)) {
-    return 0;
-  }
-  return ((x % 1) + 1) % 1;
+/* A place on a closed loop in [0, 1). The % operator keeps the sign of a
+ * negative clock, and three's curves read before the first point when
+ * handed one, so every lookup goes through here. Not a number is 0. */
+function loopParam(u) {
+  return Number.isFinite(u) ? ((u % 1) + 1) % 1 : 0;
 }
 
-function poseCraft(craft, from, toward, bank, flourish) {
+/* One stick axis as the airframe shows it, nothing inside the deadband.
+ * The shell passes all three axes whenever it passes options; an axis it
+ * left out is not a number and the pose shows it. */
+function flourish(opts, axis) {
+  const v = opts ? opts[axis] : 0;
+  return Math.abs(v) < FLOURISH_DEADBAND ? 0 : v;
+}
+
+/* Sets the airframe at `from` facing `toward`, banked, with the flourish.
+ * Every model's nose is along -z and lookAt turns +z to the target, so a
+ * half turn about Y comes last, after the bank and flourish it carries. */
+function placeCraft(craft, from, toward, bank, opts) {
   if (!craft) {
     return;
   }
@@ -196,175 +133,140 @@ function poseCraft(craft, from, toward, bank, flourish) {
   craft.position.copy(from);
   craft.up.set(0, 1, 0);
   craft.lookAt(toward);
-  let roll = flourish ? flourish.roll : 0;
-  let pitch = flourish ? flourish.pitch : 0;
-  let yaw = flourish ? flourish.yaw : 0;
-  if (Math.abs(roll) < 0.14) {
-    roll = 0;
-  }
-  if (Math.abs(pitch) < 0.14) {
-    pitch = 0;
-  }
-  if (Math.abs(yaw) < 0.14) {
-    yaw = 0;
-  }
-  craft.rotateZ(bank + roll * 0.28);
-  craft.rotateX(pitch * 0.18);
-  craft.rotateY(-yaw * 0.22);
-  /* Object3D.lookAt turns +z toward the target, and every craft is built
-   * with its nose along -z (the shell's camera forward is (0, 0, -1)), so
-   * without this half turn the title flew each one tail first. Last, so
-   * the bank and flourish above still act on the end they were written
-   * for. */
+  craft.rotateZ(bank + flourish(opts, 'roll') * FLOURISH.roll);
+  craft.rotateX(flourish(opts, 'pitch') * FLOURISH.pitch);
+  craft.rotateY(-flourish(opts, 'yaw') * FLOURISH.yaw);
   craft.rotateY(Math.PI);
 }
 
-export function makeAttractCamera(view) {
-  const spec = view && view.attract ? view.attract : null;
-  const pts = spec && Array.isArray(spec.path) ? spec.path : null;
+/* Circling a point: the eye on a circle, the airframe hovering over the
+ * centre and turning with it, or the centre itself in frame. */
+function orbitShot(spec) {
+  const at = spec ?? DEFAULT_ORBIT;
+  const hover = new THREE.Vector3();
+  const facing = new THREE.Vector3();
+  const look = new THREE.Vector3();
+  return {
+    kind: 'orbit',
+    periodMs: ORBIT_PERIOD_MS,
+    update(nowMs, camera, opts) {
+      const overlay = Boolean(opts && opts.overlay);
+      const craft = opts && opts.craft;
+      const a = nowMs * ORBIT_RATE;
+      setLens(camera, overlay);
+      camera.up.set(0, 1, 0);
+      camera.position.set(at.x + Math.sin(a) * at.radius, at.y + at.eye, at.z + Math.cos(a) * at.radius);
+      hover.set(at.x, at.y + Math.min(1.15, at.eye * 0.42), at.z);
+      facing.set(hover.x - Math.cos(a), hover.y, hover.z + Math.sin(a));
+      placeCraft(craft, hover, facing, 0, opts);
+      if (craft) {
+        look.copy(hover);
+        look.y += 0.04;
+      } else {
+        look.set(at.x, at.y + at.aim, at.z);
+      }
+      camera.lookAt(look);
+      shiftLens(camera, overlay);
+    },
+  };
+}
 
-  if (!pts || pts.length < 4) {
-    /* The orbit, kept verbatim so a map without a line behaves exactly as
-     * every map did before there were lines. The airframe, when asked for,
-     * hovers at the look-at so the same circle is a product shot of the
-     * layout rather than an empty spin. */
-    const target = new THREE.Vector3();
-    const craftPos = new THREE.Vector3();
-    const toward = new THREE.Vector3();
-    const at = spec ?? { x: 0, y: 0, z: 0, radius: 9, eye: 2.4, aim: 0.85 };
-    return {
-      kind: 'orbit',
-      periodMs: ORBIT_PERIOD_MS,
-      update(nowMs, camera, opts) {
-        const overlay = Boolean(opts && opts.overlay);
-        const craft = opts && opts.craft;
-        const ang = nowMs * ORBIT_RAD_PER_MS;
-        applyFov(camera, overlay);
-        camera.up.set(0, 1, 0);
-        camera.position.set(
-          at.x + Math.sin(ang) * at.radius,
-          at.y + at.eye,
-          at.z + Math.cos(ang) * at.radius,
-        );
-        craftPos.set(at.x, at.y + Math.min(1.15, at.eye * 0.42), at.z);
-        toward.set(
-          craftPos.x - Math.cos(ang),
-          craftPos.y,
-          craftPos.z + Math.sin(ang),
-        );
-        poseCraft(craft, craftPos, toward, 0, opts);
-        if (craft) {
-          target.copy(craftPos);
-          target.y += 0.04;
-        } else {
-          target.set(at.x, at.y + at.aim, at.z);
-        }
-        camera.lookAt(target);
-        frameOverlay(camera, overlay);
-      },
-    };
+/* Heading change from a to b, wrapped into [-pi, pi]. */
+function turn(a, b) {
+  let d = b - a;
+  while (d > Math.PI) {
+    d -= Math.PI * 2;
   }
+  while (d < -Math.PI) {
+    d += Math.PI * 2;
+  }
+  return d;
+}
 
-  /*
-   * CENTRIPETAL, not the uniform 0.4 tension the world's own curves use, and
-   * the difference matters here in a way it does not there. The map hands
-   * over a line whose height was computed to clear the structures NEAR EACH
-   * SAMPLE; a uniform Catmull-Rom through unevenly spaced samples overshoots
-   * between them, and an overshoot is exactly the camera leaving the corridor
-   * whose clearance was checked. Centripetal parameterisation is the one
-   * choice that provably cannot cusp or self intersect, which is the property
-   * this needs rather than the smoothness.
-   */
-  const curve = new THREE.CatmullRomCurve3(
-    pts.map((p) => new THREE.Vector3(p.x, p.y, p.z)),
-    true,
-    'centripetal',
-  );
+/*
+ * Flying the line. The curve is centripetal Catmull-Rom: the line's
+ * clearance was checked at its samples, and centripetal is the
+ * parameterisation that cannot overshoot or loop between unevenly spaced
+ * samples, so the camera stays inside the checked corridor.
+ *
+ * The bank follows the turn rate (the heading change across the look
+ * ahead, so a corner banks the same at any speed), smoothed so the aim
+ * stepping between segments does not flick the horizon. A clock that steps
+ * back, as a capture rewinding to the top of its loop does, restarts the
+ * smoothing rather than yanking the bank.
+ */
+function lineShot(spec, points) {
+  const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(p.x, p.y, p.z)), true, 'centripetal');
   const length = Math.max(1, curve.getLength());
   const speed = spec.speed ?? 12;
   const lookAhead = Math.min(length * 0.2, spec.lookAhead ?? 16);
   const aimDrop = spec.aimDrop ?? 2.0;
-  const lead = Math.min(lookAhead * 0.45, CRAFT_LEAD);
-
-  const pos = new THREE.Vector3();
+  const ahead = Math.min(lookAhead * 0.45, CRAFT_AHEAD);
+  const at = (u, offset, out) => curve.getPointAt(loopParam(u + offset / length), out);
+  const eye = new THREE.Vector3();
   const aim = new THREE.Vector3();
-  const back = new THREE.Vector3();
-  const craftPos = new THREE.Vector3();
+  const behind = new THREE.Vector3();
+  const craftAt = new THREE.Vector3();
   const craftAim = new THREE.Vector3();
-  const fwd = new THREE.Vector3();
+  const flat = new THREE.Vector3();
   const right = new THREE.Vector3();
-  const worldUp = new THREE.Vector3(0, 1, 0);
+  const UP = new THREE.Vector3(0, 1, 0);
   let bank = 0;
-  let lastMs = null;
-
+  let prevMs = null;
   return {
     kind: 'path',
     length,
     periodMs: (length / speed) * 1000,
     update(nowMs, camera, opts) {
-      /*
-       * The parameter comes from the WALL clock, not from an accumulator, so
-       * a tab that was backgrounded for a minute resumes where the clock
-       * says it is rather than sprinting to catch up. Nothing here reaches
-       * the simulation, so there is no determinism claim to break.
-       */
       const overlay = Boolean(opts && opts.overlay);
       const craft = opts && opts.craft;
-      const u = wrap01((nowMs * 0.001 * speed) / length);
-      curve.getPointAt(u, pos);
-      curve.getPointAt(wrap01(u + lookAhead / length), aim);
-      curve.getPointAt(wrap01(u + lead / length), craftPos);
-      curve.getPointAt(wrap01(u + (lead + lookAhead * 0.35) / length), craftAim);
-      /*
-       * Bank, from the heading change between where the camera is and where
-       * it is looking. Taken as a turn RATE by dividing by the look ahead,
-       * so the same corner banks the same amount whether the shot is flown
-       * fast or slow, and smoothed, because the aim point stepping between
-       * spline segments would otherwise flick the horizon.
-       */
-      curve.getPointAt(wrap01(u - lookAhead / length), back);
-      const h0 = Math.atan2(pos.x - back.x, pos.z - back.z);
-      const h1 = Math.atan2(aim.x - pos.x, aim.z - pos.z);
-      let d = h1 - h0;
-      while (d > Math.PI) {
-        d -= Math.PI * 2;
-      }
-      while (d < -Math.PI) {
-        d += Math.PI * 2;
-      }
-      const want = Math.max(-MAX_BANK, Math.min(MAX_BANK, d * 0.9));
-      /* Time constant on the clock the caller passes. Capture rewinds that
-       * clock to the start of a loop; treat a backwards step as a new take
-       * rather than a huge negative dt that yanks the bank. */
-      const dt = lastMs == null || nowMs < lastMs
-        ? 0
-        : Math.min(0.1, (nowMs - lastMs) * 0.001);
-      lastMs = nowMs;
-      bank += (want - bank) * Math.min(1, dt * 2.2);
+      const u = loopParam((nowMs * 0.001 * speed) / length);
+      curve.getPointAt(u, eye);
+      at(u, lookAhead, aim);
+      at(u, ahead, craftAt);
+      at(u, ahead + lookAhead * 0.35, craftAim);
+      at(u, -lookAhead, behind);
+      const rate = turn(Math.atan2(eye.x - behind.x, eye.z - behind.z), Math.atan2(aim.x - eye.x, aim.z - eye.z));
+      const target = Math.max(-BANK_LIMIT, Math.min(BANK_LIMIT, rate * BANK_GAIN));
+      const dt = prevMs == null || nowMs < prevMs ? 0 : Math.min(0.1, (nowMs - prevMs) * 0.001);
+      prevMs = nowMs;
+      bank += (target - bank) * Math.min(1, dt * BANK_FOLLOW);
 
-      fwd.copy(aim).sub(pos);
-      fwd.y = 0;
-      if (fwd.lengthSq() < 1e-8) {
-        fwd.set(0, 0, 1);
+      flat.copy(aim).sub(eye);
+      flat.y = 0;
+      if (flat.lengthSq() < 1e-8) {
+        flat.set(0, 0, 1);
       } else {
-        fwd.normalize();
+        flat.normalize();
       }
-      right.crossVectors(fwd, worldUp);
+      right.crossVectors(flat, UP);
       if (right.lengthSq() < 1e-8) {
         right.set(1, 0, 0);
       } else {
         right.normalize();
       }
-      craftPos.addScaledVector(right, CRAFT_SIDE);
+      craftAt.addScaledVector(right, CRAFT_RIGHT);
 
-      applyFov(camera, overlay);
+      setLens(camera, overlay);
       camera.up.set(0, 1, 0);
-      camera.position.copy(pos);
+      camera.position.copy(eye);
       aim.y -= aimDrop;
       camera.lookAt(aim);
       camera.rotateZ(bank);
-      poseCraft(craft, craftPos, craftAim, bank, opts);
-      frameOverlay(camera, overlay);
+      placeCraft(craft, craftAt, craftAim, bank, opts);
+      shiftLens(camera, overlay);
     },
   };
+}
+
+/*
+ * The title camera for `view`: { kind, periodMs, length?, update(nowMs,
+ * camera, opts) }, opts carrying overlay (the menu is up), craft (the
+ * airframe to pose) and the stick's roll, pitch and yaw. A line needs at
+ * least four points; anything less is an orbit.
+ */
+export function makeAttractCamera(view) {
+  const spec = view && view.attract ? view.attract : null;
+  const points = spec && Array.isArray(spec.path) ? spec.path : null;
+  return points && points.length >= 4 ? lineShot(spec, points) : orbitShot(spec);
 }
