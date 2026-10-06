@@ -3994,7 +3994,7 @@ export async function boot({
       return [head, ...warInviteRows(), {
         label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber(missionNumber(roomMission())) : missionNumber(roomMission()) }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war' || w.mode === 'war',
-      }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
+      }, ...warFreshRows(), { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
     if (host) {
       return [head, { label: str('war.stop'), value: state, note: str('war.stop_note'), action: 'friends-war-stop' }];
@@ -4063,7 +4063,12 @@ export async function boot({
         note: 'lobby.mission_note',
         value: (id) => String(missionNumber(id)),
       },
-      rows: () => [{ label: str('lobby.campaign'), note: str('lobby.campaign_note'), action: 'friends-lobby-campaign' }],
+      /* After a loss Start now and Deploy go back to the lost stage; the
+       * host's way to the mission's start instead is a row of its own. */
+      rows: (host) => [
+        { label: str('lobby.campaign'), note: str('lobby.campaign_note'), action: 'friends-lobby-campaign' },
+        ...(host ? warFreshRows() : []),
+      ],
       line: (lobby) => {
         const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
         return str('lobby.mission_line', { n: missionNumber(mission), name: str(`campaign.m.${missionKey(mission)}`) });
@@ -4313,12 +4318,34 @@ export async function boot({
     return go;
   }
 
+  /* The stage the start row's mission was just lost in (the room's
+   * checkpoint, edge/rooms/war.js), or null: none after a win, an end, or
+   * a loss of another mission than the one the row starts. */
+  function warLostStage() {
+    const v = roomWar.view();
+    const id = (campaignRef && campaignRef.selectedMission()) ?? roomMission();
+    return v && v.state === 'lost' && v.checkpoint && v.mission === id ? v.checkpoint : null;
+  }
+
+  /* The host's row back to the mission's start after its loss, beside
+   * the start row, which then goes back to the lost stage. */
+  function warFreshRows() {
+    const lost = warLostStage();
+    return lost ? [{ label: str('lobby.restart_fresh'), note: str('lobby.restart_fresh_note', { n: lost.n + 1 }), action: 'friends-war-fresh' }] : [];
+  }
+
   /* The start row's press. Consent first, whoever's room this is: a
    * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
-   * Then the mission campaign Play chose for this room, else mission 1. */
-  async function warStart() {
-    if (await warConsented() && !campaignRef.startSelected()) {
-      roomWar.start(roomMission(), { intro: true });
+   * Then the mission campaign Play chose for this room, else mission 1:
+   * after its loss from the stage it was lost in, as Deploy does (the
+   * owner, 2 Oct: "a lost mission restarts from the lost stage, max 2
+   * stars"), else, or with `fresh`, from its start, its film first. */
+  async function warStart(fresh = false) {
+    if (await warConsented()) {
+      const how = !fresh && warLostStage() ? { from: 'checkpoint' } : { intro: true };
+      if (!campaignRef.startSelected(how)) {
+        roomWar.start(roomMission(), how);
+      }
     }
     ui.refreshFriends();
   }
@@ -7040,6 +7067,10 @@ export async function boot({
     }
     if (action === 'friends-war-start') {
       await warStart();
+      return;
+    }
+    if (action === 'friends-war-fresh') {
+      await warStart(true);
       return;
     }
     if (action === 'friends-war-private') {
