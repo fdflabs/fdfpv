@@ -102,6 +102,7 @@
     "signal:check": "node scripts/signal-check.js",
     "lap:selftest": "node scripts/lap-selftest.js",
     "trackdoc:golden": "node scripts/trackdoc-golden.js",
+    "race:golden": "node scripts/race-golden.js",
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
