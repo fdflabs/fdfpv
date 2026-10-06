@@ -18,6 +18,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +31,7 @@ import {
   TABS,
   catalogCounts,
 } from '../src/fc/catalog.js';
+import { CATALOG_DATA, renderCatalogData } from './fc-catalog-gen.js';
 import { loadFirmwareTables } from './fc-valuetable.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -151,6 +153,16 @@ for (const t of TABS) {
 
 if (ABSENT_FIELDS.length === 0) {
   failures.push('ABSENT_FIELDS is empty; Configurator chrome must be catalogued');
+}
+
+/*
+ * catalog-data.js is generated. A hand edit, or a firmware or bf_settings.c
+ * change committed without regenerating, leaves the FC screen showing a
+ * table the firmware does not have.
+ */
+const committed = await readFile(join(root, CATALOG_DATA), 'utf8');
+if (committed !== (await renderCatalogData(root)).text) {
+  failures.push(`${CATALOG_DATA} differs from what npm run gen:catalog writes; regenerate it`);
 }
 
 const counts = catalogCounts();

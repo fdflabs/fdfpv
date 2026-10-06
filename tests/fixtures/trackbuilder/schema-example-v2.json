@@ -1,0 +1,343 @@
+{
+  "schemaVersion": 2,
+  "id": "trk-demo0001",
+  "name": "Ladder Loop, demo",
+  "createdUtc": "2026-01-01T00:00:00Z",
+  "modifiedUtc": "2026-01-01T00:00:00Z",
+  "field": {
+    "width": 60,
+    "depth": 40,
+    "gridSize": 1
+  },
+  "settings": {
+    "tangentScale": 1.1,
+    "minCurveRadius": 2.5,
+    "samplesPerSegment": 48
+  },
+  "branding": {
+    "logos": []
+  },
+  "elements": [
+    {
+      "id": "el-1",
+      "type": "startPads",
+      "name": "Grid",
+      "position": {
+        "x": 16.5,
+        "y": 13.5,
+        "z": 0
+      },
+      "yaw": 3.141593,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "pads": 4,
+        "spacing": 1.5,
+        "padSize": 0.6
+      }
+    },
+    {
+      "id": "el-2",
+      "type": "cone",
+      "name": "West marker",
+      "position": {
+        "x": 7.5,
+        "y": 14,
+        "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "height": 0.7112,
+        "baseRadius": 0.1778,
+        "clearance": 1.5
+      }
+    },
+    {
+      "id": "el-3",
+      "type": "gate",
+      "name": "",
+      "position": {
+        "x": 7.5,
+        "y": 26,
+        "z": 0
+      },
+      "yaw": 0.728855,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-4",
+      "type": "gate",
+      "name": "",
+      "position": {
+        "x": 21.5,
+        "y": 26.5,
+        "z": 0
+      },
+      "yaw": -0.249979,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-5",
+      "type": "ladder",
+      "name": "The ladder",
+      "position": {
+        "x": 31,
+        "y": 20,
+        "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": true,
+      "dims": {
+        "levels": 3,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-6",
+      "type": "gate",
+      "name": "",
+      "position": {
+        "x": 40.5,
+        "y": 13.5,
+        "z": 0
+      },
+      "yaw": -0.249979,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-7",
+      "type": "flag",
+      "name": "Turn flag",
+      "position": {
+        "x": 54.5,
+        "y": 14,
+        "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "height": 2.5,
+        "poleRadius": 0.025,
+        "clearance": 1.5
+      }
+    },
+    {
+      "id": "el-8",
+      "type": "tower",
+      "name": "",
+      "position": {
+        "x": 54.5,
+        "y": 26,
+        "z": 0
+      },
+      "yaw": 2.412738,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 2,
+        "sillH": 1.524,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-9",
+      "type": "diveGate",
+      "name": "",
+      "position": {
+        "x": 40.5,
+        "y": 26.5,
+        "z": 0
+      },
+      "yaw": 0.249979,
+      "pitch": 0.959931,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 1,
+        "sillH": 4.572,
+        "clearW": 2.1336,
+        "clearH": 1.8288,
+        "levelPitch": 1.862201
+      }
+    },
+    {
+      "id": "el-10",
+      "type": "gate",
+      "name": "Finish approach",
+      "position": {
+        "x": 21.5,
+        "y": 13.5,
+        "z": 0
+      },
+      "yaw": -2.720173,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "levels": 1,
+        "sillH": 0,
+        "clearW": 1.524,
+        "clearH": 1.524,
+        "levelPitch": 1.557401
+      }
+    },
+    {
+      "id": "el-11",
+      "type": "barrier",
+      "name": "Pit fence",
+      "position": {
+        "x": 31,
+        "y": 33,
+        "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "width": 8,
+        "depth": 1,
+        "height": 2
+      }
+    },
+    {
+      "id": "el-12",
+      "type": "label",
+      "name": "",
+      "position": {
+        "x": 31,
+        "y": 30,
+        "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+        "textHeight": 0.9
+      },
+      "text": "Ladder low, then high"
+    }
+  ],
+  "sequence": [
+    {
+      "id": "sq-1",
+      "elementId": "el-2",
+      "apertureIndex": null,
+      "entry": null,
+      "passSide": "left",
+      "clearance": 1.5,
+      "overridden": false
+    },
+    {
+      "id": "sq-2",
+      "elementId": "el-3",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-3",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-4",
+      "elementId": "el-5",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-5",
+      "elementId": "el-6",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-6",
+      "elementId": "el-7",
+      "apertureIndex": null,
+      "entry": null,
+      "passSide": "right",
+      "clearance": 1.5,
+      "overridden": false
+    },
+    {
+      "id": "sq-7",
+      "elementId": "el-8",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-8",
+      "elementId": "el-9",
+      "apertureIndex": 0,
+      "entry": -1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-9",
+      "elementId": "el-5",
+      "apertureIndex": 1,
+      "entry": -1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    },
+    {
+      "id": "sq-10",
+      "elementId": "el-10",
+      "apertureIndex": 0,
+      "entry": 1,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+    }
+  ]
+}

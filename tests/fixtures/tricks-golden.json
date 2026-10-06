@@ -1,0 +1,9 @@
+{
+ "commit": "b3fb1ba671680391df92137e7e21df9054bd9983",
+ "cases": {
+  "tables-en": "df75e8a78f8fe3d9329d94ab366bb14f3c5bab1da67725779d99b1dda54c0cff",
+  "tables-es": "68145e6e835d7ebf4564037b8c700bb754c7d2cd004e0e82b8c304624319d084",
+  "helpers-en": "728df40693ef0588f3a6f337d8b9c07a5aa3416ade1ad65751f2e8052b757c57",
+  "helpers-es": "fed87e68f4e863ed5cfb4a039fc954370b4529a8e5d45da719be13480a054bd5"
+ }
+}

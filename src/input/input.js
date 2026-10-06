@@ -57,106 +57,23 @@ import { str } from '../strings/index.js';
 import {
   stickChannels, stickCaption, stickSideOf, DEFAULT_STICK_MODE, normaliseStickMode,
 } from './stickmode.js';
+import {
+  builtInKind, builtInMap, normaliseMap, reversals, centredReading, readSticks,
+} from './padmap.js';
+import {
+  migrateStickStorage, loadStickMap, saveStickMap, loadPadChoice, savePadChoice,
+} from './stickstore.js';
+import { KeyboardSticks } from './keyboard.js';
+import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 
-const STORE_KEY = 'webfpv_stick_map_v1';
-const PAD_STORE_KEY = 'webfpv.pad.v1';
+export {
+  MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES, MOUSE_CENTRE_KEY,
+} from './mouse.js';
 
-const DEFAULT_MAP = {
-  /* AETR axis order, up and right positive, throttle low at -1. */
-  roll: { axis: 0, center: 0, full: 1 },
-  pitch: { axis: 1, center: 0, full: -1 },
-  yaw: { axis: 3, center: 0, full: 1 },
-  throttle: { axis: 2, low: -1, high: 1 },
-};
+export { throttleKeys } from './keyboard.js';
 
-/*
- * A GAMEPAD IS NOT A RADIO, AND THE BROWSER SAYS WHICH ONE IT IS.
- *
- * DEFAULT_MAP is AETR because that is what a transmitter in joystick mode
- * sends. An Xbox pad sends something else entirely, and the browser tells
- * us so: `gamepad.mapping === 'standard'` promises the W3C layout, axes 0
- * and 1 the left stick, 2 and 3 the right, down and right positive. Flown
- * through AETR that pad had roll and pitch on the left stick, throttle on
- * the right stick's horizontal sprung to half, and yaw on the right stick's
- * vertical: "am having a hard time finding the order of sticks".
- *
- * So a standard pad's default puts the channels where the pilot's stick
- * mode puts them, read out of the same table the thumb sticks and the
- * keyboard use. Right is right. Pitch is +1 pulled back, which on this
- * layout is the positive end. Throttle is the whole of a stick that springs
- * to its middle: nought at the bottom, half at rest, full at the top, the
- * way drone sims treat a gamepad. A radio never reports 'standard', so it
- * never gets here, and a pilot's own saved calibration wins over both.
- */
-const STANDARD_STICKS = {
-  left: { horiz: 0, vert: 1 },
-  right: { horiz: 2, vert: 3 },
-};
+export { standardPadMap } from './padmap.js';
 
-export function standardPadMap(mode) {
-  const sticks = stickChannels(mode);
-  const map = {};
-  for (const side of ['left', 'right']) {
-    const axes = STANDARD_STICKS[side];
-    map[sticks[side].horiz] = { axis: axes.horiz, center: 0, full: 1 };
-    map[sticks[side].vert] = sticks[side].vert === 'throttle'
-      ? { axis: axes.vert, low: 1, high: -1 }
-      : { axis: axes.vert, center: 0, full: 1 };
-  }
-  return map;
-}
-
-/*
- * THE SAME RADIO IS TWO DIFFERENT JOYSTICKS, AND ONLY ONE OF THEM IS AETR.
- *
- * A transmitter on its USB cable is EdgeTX's joystick: channels one to four
- * on axes 0 to 3, which is DEFAULT_MAP. The same transmitter over Bluetooth
- * is ExpressLRS's joystick, a different HID device with a different report:
- * it sends channels one and two as X and Y, three and four as Rx and Ry, and
- * five and six as Z and Rz. A browser lays axes out by HID usage, so
- * throttle lands on axis 3 and yaw on axis 4, with an aux switch on axis 2
- * between them. Flown through AETR the throttle stick was yaw and the
- * throttle was whatever the arm switch said, and the pilot who had just
- * unplugged a cable that worked was told to calibrate.
- *
- * Measured on a Radiomaster Pocket, ExpressLRS BLE Joystick, Chrome on
- * macOS, 2026-10-05: right, forward and up all positive. The device names
- * itself, so this is recognition, not a guess, and it is trusted the way a
- * standard gamepad's layout is. A pilot's own saved calibration still wins.
- */
-const ELRS_BLUETOOTH = 'elrs-bluetooth';
-const ELRS_BLUETOOTH_ID = /^ExpressLRS Joystick/;
-const ELRS_BLUETOOTH_MAP = {
-  roll: { axis: 0, center: 0, full: 1 },
-  pitch: { axis: 1, center: 0, full: -1 },
-  yaw: { axis: 4, center: 0, full: 1 },
-  throttle: { axis: 3, low: -1, high: 1 },
-};
-
-/*
- * Which built in map a pad gets, as a value that is falsy for the AETR
- * guess and truthy for a layout the device vouches for: the stick mode for
- * a standard gamepad, a name for a radio recognised by its id. mapKnown
- * reads the truthiness and followDefaultMap reads the change.
- */
-function defaultKindFor(gp, mode) {
-  if (!gp) {
-    return 0;
-  }
-  if (gp.mapping === 'standard') {
-    return mode;
-  }
-  return ELRS_BLUETOOTH_ID.test(gp.id || '') && gp.axes.length > 4 ? ELRS_BLUETOOTH : 0;
-}
-
-/* The built in map for whatever is plugged in. */
-function defaultMapFor(gp, mode) {
-  const kind = defaultKindFor(gp, mode);
-  if (kind === ELRS_BLUETOOTH) {
-    return ELRS_BLUETOOTH_MAP;
-  }
-  return kind ? standardPadMap(mode) : DEFAULT_MAP;
-}
 
 export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
 
@@ -297,59 +214,6 @@ const GUESS = {
   LEVEL_STEP: 1 / 16,
 };
 
-/*
- * WHICH CHANNELS ARE BACKWARDS, AND WHY THIS HAD TO EXIST.
- *
- * The wizard works out a channel's direction from the direction the pilot
- * pushed while it was asking, which is right and is what makes it work on a
- * radio with reversed channels in its own setup: whichever way they push
- * when told "fully to the right" becomes right. It has one failure mode,
- * and a human will always be able to hit it. Push the wrong way once, at
- * one of six steps, and that channel is backwards for good.
- *
- *   bug-b0d085f0, gazgano: "cant calibrate the sticks correctly. some are
- *   inverted and there's no option to change it"
- *
- * The second half of that sentence is the bug. The mapping was write once:
- * nothing in the shell could show a pilot what had been recorded, and
- * nothing could change one channel of it. The only repair for a single
- * wrong push was the whole wizard again, with the same chance of the same
- * mistake, which is why the report reads as helpless as it does.
- *
- * So direction is a property of the MAPPING, stored beside it, and it can
- * be flipped one channel at a time from the check step without touching
- * anything the wizard learned. Every transmitter ever built has this
- * control and it is on the first page of the menu.
- */
-function cloneReverse(rev) {
-  const out = {
-    roll: false, pitch: false, yaw: false, throttle: false,
-  };
-  if (rev) {
-    for (const ch of IDENT_CHANNELS) {
-      out[ch] = Boolean(rev[ch]);
-    }
-  }
-  return out;
-}
-
-function cloneMap(map) {
-  return {
-    roll: { ...map.roll },
-    pitch: { ...map.pitch },
-    yaw: { ...map.yaw },
-    throttle: { ...map.throttle },
-    /* Optional, and null for every radio that has buttons. It is not a
-     * flight channel: readGamepad never looks at it. */
-    select: map.select ? { ...map.select } : null,
-    /* Always all four keys, present or not in what came in, so a map
-     * stored before this existed loads with every channel the right way
-     * round rather than with undefined holes. */
-    reverse: cloneReverse(map.reverse),
-    stored: Boolean(map.stored),
-  };
-}
-
 function snapshotAxes(gp) {
   const n = Math.min(gp.axes.length, 8);
   const out = new Array(n);
@@ -387,41 +251,6 @@ function shortPadName(id) {
     return `${name.slice(0, 42)}...`;
   }
   return name;
-}
-
-function loadPadChoice() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PAD_STORE_KEY) || 'null');
-    if (raw && raw.kind === 'none') {
-      return { kind: 'none' };
-    }
-    if (raw && raw.kind === 'pad' && typeof raw.id === 'string' && Number.isInteger(raw.index)) {
-      return { kind: 'pad', id: raw.id, index: raw.index };
-    }
-  } catch (e) {
-    /* Private mode or a corrupt blob: fly the old first-pad rule. */
-  }
-  return { kind: 'auto' };
-}
-
-function savePadChoice(choice) {
-  try {
-    if (!choice || choice.kind === 'auto') {
-      localStorage.removeItem(PAD_STORE_KEY);
-      return;
-    }
-    if (choice.kind === 'none') {
-      localStorage.setItem(PAD_STORE_KEY, JSON.stringify({ kind: 'none' }));
-      return;
-    }
-    localStorage.setItem(PAD_STORE_KEY, JSON.stringify({
-      kind: 'pad',
-      id: choice.id,
-      index: choice.index,
-    }));
-  } catch (e) {
-    /* private mode */
-  }
 }
 
 function maxAbsDelta(axes, rest) {
@@ -702,24 +531,6 @@ function noteThrottleSpring(c, spec, axes) {
   spec.sprung = true;
 }
 
-/*
- * Map a raw axis onto -1..1. pos is the raw value that means +1 on the
- * channel, neg is -1. Legacy maps store `full` as (pos - center) instead.
- */
-function mapCentered(v, spec) {
-  const center = spec.center;
-  const pos = spec.pos != null ? spec.pos : center + (spec.full || 1);
-  const neg = spec.neg != null ? spec.neg : center - (pos - center);
-  if (v >= center) {
-    const top = pos > center ? pos : neg;
-    const sign = pos > center ? 1 : -1;
-    return sign * (v - center) / ((top - center) || 1);
-  }
-  const bot = pos < center ? pos : neg;
-  const sign = pos < center ? 1 : -1;
-  return sign * (center - v) / ((center - bot) || 1);
-}
-
 function calTitle(c) {
   return {
     center: 'Centre',
@@ -829,165 +640,9 @@ function calHint(c, travelled, need, gp, idleThrottle = 0, moving = null) {
   return str('input.hold_it_there_diagonals_are_ignored');
 }
 
-/*
- * THE KEYS ARE TWO STICKS, AND THE MODE SAYS WHAT EACH STICK DOES.
- *
- * WASD is the left gimbal and the arrows are the right one. That was always
- * the arrangement; what was hard-wired was the CHANNEL on each of them, so a
- * Mode 1 pilot reaching for the right stick's throttle got pitch and could
- * not fly. See stickmode.js.
- *
- * `up` is forward on both, which is why the vertical pair is read by
- * direction rather than by sign: forward on a PITCH stick is nose down, so
- * the forward key is the negative one, while forward on a THROTTLE is more
- * throttle, so the forward key is the positive one. Getting that backwards
- * is the whole of what Mode 1 would feel like if this were a straight swap.
- */
-const KEY_STICKS = {
-  left: {
-    up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD',
-  },
-  right: {
-    up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
-  },
-};
-
-/* The spring centred channels only: [channel, negative key, positive key].
- * Throttle is not here because it does not spring and is not integrated the
- * same way; see throttleKeys and readKeyboard. */
-function keyAxes(mode) {
-  const c = stickChannels(mode);
-  const out = [];
-  for (const side of ['left', 'right']) {
-    const k = KEY_STICKS[side];
-    out.push([c[side].horiz, k.left, k.right]);
-    if (c[side].vert !== 'throttle') {
-      out.push([c[side].vert, k.up, k.down]);
-    }
-  }
-  return out;
-}
-
-/* Whichever gimbal is carrying the collective this mode. */
-function throttleKeys(mode) {
-  const c = stickChannels(mode);
-  const side = c.left.vert === 'throttle' ? 'left' : 'right';
-  return { up: KEY_STICKS[side].up, down: KEY_STICKS[side].down };
-}
-
-/*
- * HOLD TIME TO STICK, which is the only analog a key can offer.
- *
- * RATE_UP of 9 reached full deflection in 110 ms, so a tap and a punch
- * were the same input. A radio stick can sit at 30 percent for a whole
- * straight. A key cannot: holding it used to run away to the stop.
- *
- * analogMag(heldMs) is the stick travel while the key is down:
- *   tap     ~90 ms  -> 0.16  a nudge, then spring back on release
- *   hold    240 ms  -> 0.34  a flyable cruise, and it STAYS there
- *   stretch 750 ms  still cruise, so a gate does not become a punch
- *   full   1250 ms  -> 1.00  committed, only a long hold
- *
- * Release springs to rest. Throttle rest is hover once airborne, else 0.
- * Hitch protection is on the hold clock (40 ms), not on a per-frame
- * stick step: the mag comes from time, so a slow frame cannot skip the
- * nudge band the way RATE_UP * 100 ms used to.
- */
-function analogMag(heldMs) {
-  const TAP_MS = 90;
-  const TAP = 0.16;
-  const CRUISE_MS = 240;
-  const CRUISE = 0.34;
-  const STRETCH_MS = 750;
-  const FULL_MS = 1250;
-  if (heldMs <= 0) {
-    return 0;
-  }
-  if (heldMs <= TAP_MS) {
-    return TAP * (heldMs / TAP_MS);
-  }
-  if (heldMs <= CRUISE_MS) {
-    const u = (heldMs - TAP_MS) / (CRUISE_MS - TAP_MS);
-    return TAP + (CRUISE - TAP) * u;
-  }
-  if (heldMs <= STRETCH_MS) {
-    return CRUISE;
-  }
-  if (heldMs >= FULL_MS) {
-    return 1;
-  }
-  const u = (heldMs - STRETCH_MS) / (FULL_MS - STRETCH_MS);
-  return CRUISE + (1 - CRUISE) * u;
-}
-
-/*
- * MOUSE FLIGHT: the wheel is the throttle and the mouse is the right stick.
- *
- * It is a direct stick, not an aim point. The mouse moves a virtual gimbal
- * (x is roll, y is pitch) and that gimbal is what Betaflight or the wing's
- * plant reads, exactly as it would read a radio. War Thunder's mouse aim,
- * where the game flies the aircraft toward a cursor, would be an autopilot
- * between the pilot and the airframe, and the whole point of this project
- * is that nothing sits there.
- *
- * The gimbal either SPRINGS back to centre or HOLDS where it was left:
- *
- *   spring  A quad in Acro. The stick is a rate and Betaflight holds
- *           whatever attitude it is left in, so moving the mouse turns the
- *           quad and stopping stops it, which is mouse look and is what a
- *           mouse is good at.
- *   hold    A quad in Angle, and every plane on every tune. There a bank
- *           or a pulled turn is a stick HELD over: Angle levels a centred
- *           stick, and a plane's own stability rolls it back out of a bank
- *           even on its Acro tune. The headless Timber on its Acro tune,
- *           flown on a springing mouse, could not be held past 15 degrees
- *           of bank however hard the mouse was pushed: every push decayed
- *           and the dihedral won. A spring there makes every turn a mouse
- *           that has to keep moving until it runs off the mat.
- *
- * 'auto' picks between the two from what is being flown, and the pilot can
- * pin either one. The middle button or Z puts the gimbal back
- * in the middle, which is the one thing a held mouse stick cannot do by
- * feel.
- *
- * The throttle HOLDS on both kinds of craft. A radio throttle stays where
- * the thumb leaves it and a wheel is the nearest thing a mouse has to that:
- * a notch is a step, and nothing springs to hover, which is what the
- * keyboard's collective has to do because a key cannot stay half pressed.
- * The step is finer on a quad (2 percent: a quad lives on a hover point,
- * a quarter to a third of the stick on the five inch, and a notch either
- * side of it has to be a slow climb or a slow sink, not a leap) than on a
- * plane (5 percent: a plane flies on a power setting).
- */
-export const MOUSE_SENS = [50, 75, 100, 150, 200, 300];
-export const MOUSE_EXPOS = [0, 25, 50, 75];
-export const MOUSE_CENTRES = ['auto', 'spring', 'hold'];
-/* Held down, Z centres the gimbal: the middle button's keyboard twin. */
-export const MOUSE_CENTRE_KEY = 'KeyZ';
-const MOUSE = {
-  /* Mouse counts for a full stick at 100 percent sensitivity. */
-  FULL_PX: 300,
-  /* The spring's time constant. At 90 ms a steady 1500 counts a second
-   * sits at about half stick, and letting go is back to centre in a
-   * quarter of a second, which reads as the mouse and not as a lag. */
-  SPRING_TAU_MS: 90,
-  /* One wheel notch, in the pixels the browser reports. Chrome reports
-   * 100 on Windows, 120 or 53 elsewhere, and a trackpad a stream of small
-   * deltas; see mouseWheel for how one rule covers all of them. */
-  NOTCH_PX: 100,
-  /* A wheel event at least this big is a physical notch or several. */
-  NOTCH_EVENT_PX: 40,
-  THR_STEP_QUAD: 0.02,
-  THR_STEP_WING: 0.05,
-};
-
-/* Expo on the mouse stick, a cubic blend: 0 is linear, 1 is all cubic. */
-function mouseShape(v, expo) {
-  return v * (1 - expo) + v * v * v * expo;
-}
-
 export class InputManager {
   constructor() {
+    migrateStickStorage();
     this.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
     this.queue = [];
     this.source = str('input.the_keyboard');
@@ -996,16 +651,7 @@ export class InputManager {
      * Sits under a radio and over the keyboard in poll()'s ladder. */
     this.touchSource = null;
     this.keys = new Set();
-    this.kb = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
-    /* Keyboard collective, used only when no radio is the stick source.
-     * kbAir: W has taken us off the pad and S has not yet parked us.
-     * kbThrFromKeys: W or S actually drove throttle this session, so a
-     * harness poke via __stick is left alone instead of sprung. */
-    this.kbAir = false;
-    this.kbThrFromKeys = false;
-    /* While launch control is holding on the pad, rest is idle, never hover,
-     * so a W tap cannot spring to 22 percent and fire the launch. */
-    this.forcePadRest = false;
+    this.keyboard = new KeyboardSticks(DEFAULT_STICK_MODE);
     /*
      * The harness stick, set through window.__stick and nothing else. When
      * non-null it IS the channels, held like a radio's gimbals until the
@@ -1017,8 +663,6 @@ export class InputManager {
      * Nothing in the shell writes this; a pilot never meets it.
      */
     this.harnessChannels = null;
-    this.kbHoldMs = { roll: 0, pitch: 0, yaw: 0, w: 0, s: 0 };
-    this.kbHoldDir = { roll: 0, pitch: 0, yaw: 0 };
     this.map = this.loadMap();
     this.padChoice = loadPadChoice();
     this.padPick = null;
@@ -1062,25 +706,9 @@ export class InputManager {
      * gimbal this shell draws. A radio's mode lives in the radio. See
      * stickmode.js. */
     this.stickMode = DEFAULT_STICK_MODE;
-    this.keyAxes = keyAxes(this.stickMode);
-    this.throttleKeys = throttleKeys(this.stickMode);
-    /*
-     * Mouse flight, off unless the pilot picked it in Settings. The shell
-     * owns the pointer lock and says through mouseLive when the mouse is
-     * flying: locked, on the flight screen, not in the builder. Movement,
-     * wheel and buttons outside that are the menus' and are ignored here.
-     * mouseKeys holds the yaw key codes the two buttons stand in for, so
-     * they ride the keyboard's own hold ramp.
-     */
-    this.mouseEnabled = false;
-    this.mouseLive = false;
-    this.mouseCfg = {
-      sens: 100, expo: 0, invert: false, centre: 'auto',
-    };
-    this.mouseCraft = { wing: false, rates: true };
-    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
-    this.mouseKeys = new Set();
-    this.mouseListeners = null;
+    /* Mouse flight, off unless picked in Settings. The shell owns the
+     * pointer lock and says through setMouseLive when the mouse is flying. */
+    this.mouseStick = new MouseStick();
 
     /*
      * STICK RATE, AND WHY IT IS NOT THE FRAME RATE ANY MORE.
@@ -1178,65 +806,63 @@ export class InputManager {
     this.seedPadRoster();
   }
 
+  /* The keyboard's state, where main.js and the checks have always read it. */
+  /* Mouse flight's state, where main.js and the checks read it. */
+  get mouseEnabled() {
+    return this.mouseStick.enabled;
+  }
+
+  get mouseLive() {
+    return this.mouseStick.live;
+  }
+
+  get mouseCfg() {
+    return this.mouseStick.cfg;
+  }
+
+  get mouse() {
+    return this.mouseStick.stick;
+  }
+
+  get kb() {
+    return this.keyboard.stick;
+  }
+
+  get keyAxes() {
+    return this.keyboard.springs;
+  }
+
+  get throttleKeys() {
+    return this.keyboard.throttlePair;
+  }
+
+  /* Launch control holding on the pad: the collective rests at zero. */
+  get forcePadRest() {
+    return this.keyboard.padRest;
+  }
+
+  set forcePadRest(on) {
+    this.keyboard.padRest = on;
+  }
+
   loadMap() {
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (raw) {
-        return cloneMap({ ...DEFAULT_MAP, ...JSON.parse(raw), stored: true });
-      }
-    } catch {
-      /* fall through to default */
-    }
-    return cloneMap({ ...DEFAULT_MAP, stored: false });
+    return loadStickMap();
   }
 
   /*
-   * Guarded, like loadMap above it and like savePadChoice and saveSettings.
-   * It was the one bare localStorage write left in the shell, and setItem
-   * throws in private mode and on a full quota. The throw came out of
-   * acceptCalibration, past main.js's `if (input.acceptCalibration())`, and
-   * stranded the pilot on the calibration screen: the map was already in
-   * memory and worked for that session, but the screen never closed and the
-   * only visible sign was a console error. Failing to PERSIST a mapping is
-   * a disappointment. Failing to leave the wizard is a broken page.
+   * A failed write still leaves the map stored = true and flying: it is
+   * calibrated, it just will not outlive this tab. The false return is what
+   * lets the shell tell the pilot so instead of claiming it was saved.
    */
   saveMap() {
     this.map.stored = true;
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(this.map));
-      return true;
-    } catch (e) {
-      /*
-       * Private mode or no quota. `stored` STAYS TRUE, deliberately. It reads
-       * like a fact about localStorage and is used as a fact about the map:
-       * padNav in main.js only lets a radio drive the menus when it is set,
-       * and the readout says "a radio that is not calibrated yet" when it is
-       * not. Clearing it here would take stick navigation away from somebody
-       * who had just finished calibrating, and call their mapping uncalibrated
-       * while it was flying the quad. The map is calibrated. It simply will
-       * not survive a reload in this browser.
-       *
-       * BUT THE PILOT HAS TO BE TOLD, and for a long time they were not.
-       * This swallowed the throw whole and the shell went on to print
-       * "Stick mapping saved." over the top of it. The next visit had none
-       * of it, so the radio was uncalibrated again with no account of what
-       * had happened to the minute they spent: "Do not save the stcks
-       * movement after setupp of Radiomaster Pocket", filed five minutes
-       * after the same pilot's ticket about the step before this one.
-       *
-       * So the failure is returned rather than hidden. What it is NOT is a
-       * refusal: the mapping is live and the quad flies on it for as long
-       * as this tab is open, which is worth saying plainly and is better
-       * than throwing the calibration away over a storage quota.
-       */
-      return false;
-    }
+    return saveStickMap(this.map);
   }
 
   /*
    * IS THE BUILT IN GUESS ACTUALLY THIS RADIO'S STICK ORDER?
    *
-   * DEFAULT_MAP is not a placeholder, it is AETR: the order every real
+   * AETR_MAP is not a placeholder, it is AETR: the order every real
    * transmitter in joystick mode reports, and the order this page's own
    * advice tells a pilot to put their radio in. A pilot with such a radio
    * plugs it in, the sticks fly the quad correctly, and they never open the
@@ -1249,7 +875,7 @@ export class InputManager {
    * There is a cheap observation that tells the two apart, and it is the
    * throttle. A THROTTLE DOES NOT SPRING BACK. On a Mode 2 transmitter the
    * left gimbal has no vertical centring spring, so a parked radio leaves
-   * that axis sitting at one end, and the axis DEFAULT_MAP calls the
+   * that axis sitting at one end, and the axis AETR_MAP calls the
    * throttle reads near -1 with nobody touching it. Every other axis on the
    * machine is spring centred and reads about zero. So if the guessed
    * throttle axis is parked off centre, the guess is describing a real
@@ -1464,12 +1090,12 @@ export class InputManager {
     if (!gp || this.map.stored) {
       return;
     }
-    const mode = defaultKindFor(gp, this.stickMode);
+    const mode = builtInKind(gp, this.stickMode);
     if (mode === this.defaultMode) {
       return;
     }
     this.defaultMode = mode;
-    this.map = cloneMap({ ...defaultMapFor(gp, this.stickMode), stored: false });
+    this.map = normaliseMap({ ...builtInMap(gp, this.stickMode), stored: false });
     this.mapSeenParked = false;
     this.guessSpan = null;
     this.guessYawAlive = false;
@@ -1865,7 +1491,7 @@ export class InputManager {
    * released, for the same reason.
    */
   /*
-   * Is the assigned menu switch thrown? mapCentered turns the raw axis into
+   * Is the assigned menu switch thrown? centredReading turns the raw axis into
    * the same -1..1 the gimbals use, so a switch assigned by flicking it up
    * reads positive when it is up, whichever way round the hardware sends it.
    * NAV_DEFLECT is the threshold the cursor already uses, so a switch and a
@@ -1875,7 +1501,7 @@ export class InputManager {
     if (!gp || !spec || !Number.isInteger(spec.axis) || spec.axis >= gp.axes.length) {
       return false;
     }
-    return mapCentered(gp.axes[spec.axis], spec) >= NAV_DEFLECT;
+    return centredReading(gp.axes[spec.axis], spec) >= NAV_DEFLECT;
   }
 
   /*
@@ -2100,8 +1726,8 @@ export class InputManager {
         throttle: null,
         select: null,
         /* Nothing is backwards until a pilot says so. The wizard learns
-         * direction from the direction they push. See cloneReverse. */
-        reverse: cloneReverse(null),
+         * direction from the direction they push. See reversals. */
+        reverse: reversals(null),
       },
     };
   }
@@ -2142,7 +1768,7 @@ export class InputManager {
       steps: ['confirm'],
       /* So the screen can say which of the two things it is. */
       checkOnly: true,
-      draft: cloneMap(this.map),
+      draft: normaliseMap(this.map),
     };
     return true;
   }
@@ -2158,7 +1784,7 @@ export class InputManager {
       return false;
     }
     if (!c.draft.reverse) {
-      c.draft.reverse = cloneReverse(null);
+      c.draft.reverse = reversals(null);
     }
     c.draft.reverse[channel] = !c.draft.reverse[channel];
     return true;
@@ -2190,7 +1816,7 @@ export class InputManager {
    * a calibration they had just spent a minute on.
    *
    * Nothing is lost by passing. `select` rides along in the draft and
-   * cloneMap keeps it null, which is what every radio with buttons already
+   * normaliseMap keeps it null, which is what every radio with buttons already
    * stores, and the hold gesture stays armed because it is armed on the
    * button count rather than on this. The pilot gets the same shell they
    * would have had, one press slower.
@@ -2251,10 +1877,10 @@ export class InputManager {
     if (!c.draft.roll || !c.draft.pitch || !c.draft.yaw || !c.draft.throttle) {
       return false;
     }
-    /* select rides along in the draft and cloneMap keeps it. A radio with
+    /* select rides along in the draft and normaliseMap keeps it. A radio with
      * buttons never assigned one and carries null, which is the same as
      * before this existed. */
-    this.map = cloneMap({ ...c.draft, stored: true });
+    this.map = normaliseMap({ ...c.draft, stored: true });
     /* New axes to watch, so the old axes' step is not this map's. */
     this.forgetAxisResolution();
     /* A calibrated map answers the guess's questions by existing, and the
@@ -2319,7 +1945,7 @@ export class InputManager {
         });
       }
       if (c.step === 'center' || c.step === 'sweep') {
-        channels = this.readGamepad(gp, defaultMapFor(gp, this.stickMode));
+        channels = this.readGamepad(gp, builtInMap(gp, this.stickMode));
       } else {
         channels = this.readGamepad(gp, c.draft);
         /*
@@ -2404,7 +2030,7 @@ export class InputManager {
       canReverse: Boolean(moving),
       /* Which channels this draft has turned round, so the screen can
        * show the state rather than only the control. */
-      reverse: cloneReverse(c.draft && c.draft.reverse),
+      reverse: reversals(c.draft && c.draft.reverse),
       /* Whether this is the wizard's last step or the check opened on its
        * own, which is the difference between Save and Cancel meaning keep
        * and discard a NEW mapping or an edit to the saved one. */
@@ -2570,152 +2196,11 @@ export class InputManager {
   }
 
   readGamepad(gp, map = this.map) {
-    const ax = (i) => (i < gp.axes.length ? gp.axes[i] : 0);
-    const dead = (v) => (Math.abs(v) < 0.012 ? 0 : v);
-    const clamp = (v) => Math.max(-1, Math.min(1, v));
-    const m = map;
-    const norm = (spec) => {
-      if (!spec || !Number.isInteger(spec.axis)) {
-        return 0;
-      }
-      return dead(clamp(mapCentered(ax(spec.axis), spec)));
-    };
-    let throttle = 0;
-    if (m.throttle && Number.isInteger(m.throttle.axis)) {
-      const t = (ax(m.throttle.axis) - m.throttle.low) / ((m.throttle.high - m.throttle.low) || 1);
-      throttle = Math.max(0, Math.min(1, t));
-    }
-    /*
-     * The pilot's own reversals, applied last, over whatever the wizard
-     * recorded. See cloneReverse. A centred channel negates; the throttle
-     * is already nought to one, so it subtracts from one, which keeps it
-     * in range without a second clamp.
-     *
-     * `v !== 0` rather than a bare negation, because -0 is a real value in
-     * JavaScript and poll() compares samples with !==. A reversed channel
-     * sitting at rest would otherwise emit a sample every poll, for ever,
-     * and call it a change.
-     */
-    const rev = m.reverse || {};
-    const flip = (v, on) => (on && v !== 0 ? -v : v);
-    return {
-      roll: flip(norm(m.roll), rev.roll),
-      pitch: flip(norm(m.pitch), rev.pitch),
-      yaw: flip(norm(m.yaw), rev.yaw),
-      throttle: rev.throttle ? 1 - throttle : throttle,
-    };
+    return readSticks(gp.axes, map);
   }
 
   readKeyboard(dtMs, springThr = false) {
-    const dt = dtMs / 1000;
-    const RATE_DOWN = 9.0;   /* return to rest per second */
-    const THR_RATE = 0.9;    /* latched throttle travel per second, radio overlay only */
-    const THR_SPRING = 2.6;
-    /*
-     * A CAP ON WHAT ONE FRAME CAN DO, and it is what makes the keyboard
-     * playable on a slow machine.
-     *
-     * The rates above are per second, and poll() clamps a frame to 100 ms, so
-     * at 10 frames per second or worse the smallest possible keypress moved the
-     * stick 0.9 of full deflection. A pilot measured what that costs: 0.9 stick
-     * is worth about 74 ms of full stick, which throws the craft more than a
-     * metre off line, and a regulation gate's whole budget is 0.572 m either
-     * side. The keyboard was a coin flip on exactly the hardware this project
-     * is built for.
-     *
-     * Hold-time analog does not integrate RATE_UP any more, so a hitch cannot
-     * skip the nudge band. The cap still applies to the spring back, and the
-     * hold clock itself advances by at most 40 ms per poll.
-     */
-    const MAX_STEP = 0.18;
-    const dtHold = Math.min(dtMs, 40);
-    const step = (rate) => Math.min(rate * dt, MAX_STEP);
-    for (const [ch, negKey, posKey] of this.keyAxes) {
-      const want = (this.held(posKey) ? 1 : 0) - (this.held(negKey) ? 1 : 0);
-      if (want === 0) {
-        this.kbHoldMs[ch] = 0;
-        this.kbHoldDir[ch] = 0;
-        const cur = this.kb[ch];
-        if (cur > 0) {
-          this.kb[ch] = Math.max(0, cur - step(RATE_DOWN));
-        } else if (cur < 0) {
-          this.kb[ch] = Math.min(0, cur + step(RATE_DOWN));
-        }
-      } else {
-        if (this.kbHoldDir[ch] !== want) {
-          this.kbHoldMs[ch] = 0;
-          this.kbHoldDir[ch] = want;
-        }
-        this.kbHoldMs[ch] += dtHold;
-        this.kb[ch] = want * analogMag(this.kbHoldMs[ch]);
-      }
-    }
-    const w = this.keys.has(this.throttleKeys.up);
-    const s = this.keys.has(this.throttleKeys.down);
-    if (!springThr) {
-      const thrWant = (w ? 1 : 0) - (s ? 1 : 0);
-      this.kb.throttle = Math.max(0, Math.min(1, this.kb.throttle + thrWant * step(THR_RATE)));
-      return { ...this.kb };
-    }
-    this.applyKeyboardCollective(dtHold, w, s, step(THR_SPRING));
-    return { ...this.kb };
-  }
-
-  /*
-   * KEYBOARD COLLECTIVE, same analog as the other keys.
-   *
-   * W is left-stick forward on a Mode 2 radio: a tap nudges throttle up,
-   * a hold climbs, a long hold punches. S is the other way. Rest is 0
-   * on the pad. Once throttle has actually left the pad, rest becomes
-   * hover so letting go holds height instead of dropping it. kbAir is
-   * latched on release, not while W is held, so the first takeoff does
-   * not jump from "mag from zero" to "mag from hover" mid-press.
-   *
-   * Only the keyboard-as-primary path calls this. A radio keeps analog
-   * latch. __stick and a reset clear the flags so a written throttle is
-   * not sprung out from under them.
-   */
-  applyKeyboardCollective(dtHold, w, s, springStep) {
-    const HOVER = 0.22; /* a hair over measured hover 0.2051, so level holds */
-    const LIFTOFF = 0.18;
-
-    const air = this.forcePadRest ? false : this.kbAir;
-    if (w && !s) {
-      this.kbThrFromKeys = true;
-      this.kbHoldMs.w += dtHold;
-      this.kbHoldMs.s = 0;
-      const mag = analogMag(this.kbHoldMs.w);
-      this.kb.throttle = air ? HOVER + mag * (1 - HOVER) : mag;
-    } else if (s && !w) {
-      this.kbThrFromKeys = true;
-      this.kbHoldMs.s += dtHold;
-      this.kbHoldMs.w = 0;
-      const mag = analogMag(this.kbHoldMs.s);
-      const rest = air ? HOVER : 0;
-      this.kb.throttle = rest * (1 - mag);
-      if (this.kb.throttle <= 0.04) {
-        this.kbAir = false;
-        this.kb.throttle = 0;
-      }
-    } else {
-      if (w && s) {
-        this.kbThrFromKeys = true;
-      }
-      if (!this.forcePadRest && this.kbHoldMs.w > 0 && this.kb.throttle >= LIFTOFF) {
-        this.kbAir = true;
-      }
-      this.kbHoldMs.w = 0;
-      this.kbHoldMs.s = 0;
-      if (!this.kbThrFromKeys) {
-        return;
-      }
-      const target = air ? HOVER : 0;
-      if (this.kb.throttle < target) {
-        this.kb.throttle = Math.min(target, this.kb.throttle + springStep);
-      } else if (this.kb.throttle > target) {
-        this.kb.throttle = Math.max(target, this.kb.throttle - springStep);
-      }
-    }
+    return this.keyboard.read(dtMs, (code) => this.held(code), (code) => this.keys.has(code), springThr);
   }
 
   /* Zero the sticks and the collective so a reset or a harness poke
@@ -2724,18 +2209,10 @@ export class InputManager {
    * their throttle is sticky, and a crash recovery that kept it high
    * would relaunch the wreck by itself. */
   resetKeyboardSticks() {
-    this.kb.roll = 0;
-    this.kb.pitch = 0;
-    this.kb.yaw = 0;
-    this.kb.throttle = 0;
+    this.keyboard.reset();
     /* The wheel's throttle holds, so a reset has to take it down or the
      * craft relaunches from the pad by itself, the touch throttle's bug. */
-    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
-    this.kbAir = false;
-    this.kbThrFromKeys = false;
-    this.forcePadRest = false;
-    this.kbHoldMs = { roll: 0, pitch: 0, yaw: 0, w: 0, s: 0 };
-    this.kbHoldDir = { roll: 0, pitch: 0, yaw: 0 };
+    this.mouseStick.zero();
     if (this.touchSource) {
       this.touchSource.reset();
     }
@@ -2743,182 +2220,60 @@ export class InputManager {
 
   /* A key, or a mouse button standing in for one. */
   held(code) {
-    return this.keys.has(code) || this.mouseKeys.has(code);
+    return this.keys.has(code) || this.mouseStick.buttonKeys.has(code);
   }
 
-  /*
-   * The Settings rows for mouse flight. The window listeners exist only
-   * while it is on, so a pilot who never picks it has no wheel listener
-   * that could hold up a menu's scroll.
-   */
-  setMouseConfig({
-    enabled, sens, expo, invert, centre,
-  }) {
-    this.mouseCfg = {
-      sens: MOUSE_SENS.includes(sens) ? sens : 100,
-      expo: MOUSE_EXPOS.includes(expo) ? expo : 0,
-      invert: Boolean(invert),
-      centre: MOUSE_CENTRES.includes(centre) ? centre : 'auto',
-    };
-    const on = Boolean(enabled);
-    if (on === this.mouseEnabled) {
-      return;
-    }
-    this.mouseEnabled = on;
-    this.mouse = { x: 0, y: 0, thr: 0, acc: 0 };
-    this.setMouseLive(false);
-    if (on) {
-      this.mouseListeners = [
-        ['mousemove', (e) => this.mouseMove(e.movementX || 0, e.movementY || 0)],
-        ['wheel', (e) => {
-          if (this.mouseLive) {
-            e.preventDefault();
-            this.mouseWheel(e.deltaY, e.deltaMode);
-          }
-        }, { passive: false }],
-        ['mousedown', (e) => this.mouseButton(e.button, true)],
-        ['mouseup', (e) => this.mouseButton(e.button, false)],
-        /* The right button is rudder, not a menu. */
-        ['contextmenu', (e) => {
-          if (this.mouseLive) {
-            e.preventDefault();
-          }
-        }],
-      ];
-      for (const [type, fn, opts] of this.mouseListeners) {
-        window.addEventListener(type, fn, opts);
-      }
-      return;
-    }
-    for (const [type, fn, opts] of this.mouseListeners || []) {
-      window.removeEventListener(type, fn, opts);
-    }
-    this.mouseListeners = null;
+  setMouseConfig(cfg) {
+    this.mouseStick.configure(cfg, this);
   }
 
-  /* The shell's word on whether the mouse is flying. Losing it drops the
-   * buttons, which would otherwise hold rudder through a pause. */
   setMouseLive(live) {
-    this.mouseLive = Boolean(live);
-    if (!this.mouseLive) {
-      this.mouseKeys.clear();
-    }
+    this.mouseStick.setLive(live);
   }
 
-  /* What is being flown: a plane or a quad decides the throttle step, and
-   * with `rates` (a quad on Acro) what 'auto' centring means. The shell
-   * reads it off the SETTING, not the switch of the moment, so a turtle
-   * recovery does not change the feel. */
+  /* A plane or a quad sets the wheel's step, and with `rates` (a quad on
+   * Acro) what 'auto' centring means. The shell passes the SETTING, so a
+   * turtle recovery does not change the feel. */
   setMouseCraft(wing, rates) {
-    this.mouseCraft = { wing: Boolean(wing), rates: Boolean(rates) };
+    this.mouseStick.setCraft(wing, rates);
   }
 
   mouseCentring() {
-    if (this.mouseCfg.centre !== 'auto') {
-      return this.mouseCfg.centre;
-    }
-    return this.mouseCraft.rates && !this.mouseCraft.wing ? 'spring' : 'hold';
+    return this.mouseStick.centring();
   }
 
   mouseThrottleStep() {
-    return this.mouseCraft.wing ? MOUSE.THR_STEP_WING : MOUSE.THR_STEP_QUAD;
+    return this.mouseStick.throttleStep();
   }
 
   mouseMove(dx, dy) {
-    if (!this.mouseLive) {
-      return;
-    }
-    const clamp = (v) => Math.max(-1, Math.min(1, v));
-    const k = this.mouseCfg.sens / 100 / MOUSE.FULL_PX;
-    /* Pulling the mouse toward you is pulling the stick back, nose up,
-     * which is +pitch; invert makes it a game camera instead. */
-    const ySign = this.mouseCfg.invert ? -1 : 1;
-    this.mouse.x = clamp(this.mouse.x + dx * k);
-    this.mouse.y = clamp(this.mouse.y + dy * k * ySign);
+    this.mouseStick.move(dx, dy);
   }
 
-  /*
-   * One notch, one step, whatever the device says a notch is. deltaMode
-   * turns lines and pages into pixels first. Then an event of at least
-   * NOTCH_EVENT_PX is a physical wheel and counts as the nearest whole
-   * number of notches, never less than one, which covers Chrome's 53, 100
-   * and 120 pixel notches alike. Anything smaller is a trackpad or a
-   * smooth wheel streaming fractions, and those add up until they make a
-   * notch. Scrolling up is more throttle.
-   */
   mouseWheel(deltaY, deltaMode = 0) {
-    if (!this.mouseLive || !Number.isFinite(deltaY) || deltaY === 0) {
-      return;
-    }
-    const px = deltaY * [1, MOUSE.NOTCH_PX / 3, MOUSE.NOTCH_PX][deltaMode === 1 || deltaMode === 2 ? deltaMode : 0];
-    let notches = 0;
-    if (Math.abs(px) >= MOUSE.NOTCH_EVENT_PX) {
-      notches = Math.sign(px) * Math.max(1, Math.round(Math.abs(px) / MOUSE.NOTCH_PX));
-      this.mouse.acc = 0;
-    } else {
-      this.mouse.acc += px;
-      notches = Math.trunc(this.mouse.acc / MOUSE.NOTCH_PX);
-      this.mouse.acc -= notches * MOUSE.NOTCH_PX;
-    }
-    const step = this.mouseThrottleStep();
-    const n = Math.round(this.mouse.thr / step) - notches;
-    this.mouse.thr = Math.max(0, Math.min(1, n * step));
+    this.mouseStick.wheel(deltaY, deltaMode);
   }
 
   mouseButton(button, down) {
-    if (!this.mouseLive) {
-      return;
-    }
-    if (button === 1) {
-      if (down) {
-        this.mouse.x = 0;
-        this.mouse.y = 0;
-      }
-      return;
-    }
-    if (button !== 0 && button !== 2) {
-      return;
-    }
     const yaw = this.keyAxes.find(([ch]) => ch === 'yaw');
-    const code = button === 0 ? yaw[1] : yaw[2];
-    if (down) {
-      this.mouseKeys.add(code);
-    } else {
-      this.mouseKeys.delete(code);
-    }
+    this.mouseStick.button(button, down, [yaw[1], yaw[2]]);
   }
 
   /*
-   * The mouse rung of poll()'s ladder. Every key still works on top, the
-   * way it does over a radio: a held stick key wins its channel, and W and
-   * S move the wheel's throttle at the radio overlay's latched rate, so a
-   * pilot with no wheel, or a broken one, can still fly all four channels.
+   * The mouse rung of the poll. Every key still works on top, as over a
+   * radio: a held stick key wins its channel, and the throttle keys move
+   * the wheel's throttle at the radio slider's rate, so a pilot with no
+   * wheel can still fly all four channels.
    */
   readMouse(dtMs) {
-    const m = this.mouse;
-    if (this.mouseCentring() === 'spring') {
-      const k = Math.exp(-dtMs / MOUSE.SPRING_TAU_MS);
-      /* Snapped to +0 near the end, or poll() would emit a sample on every
-       * tick of an exponential that never arrives. */
-      m.x = Math.abs(m.x * k) < 1e-3 ? 0 : m.x * k;
-      m.y = Math.abs(m.y * k) < 1e-3 ? 0 : m.y * k;
-    }
-    if (this.keys.has(MOUSE_CENTRE_KEY)) {
-      m.x = 0;
-      m.y = 0;
-    }
-    this.kb.throttle = m.thr;
+    const m = this.mouseStick;
+    m.settle(dtMs, this.keys.has(MOUSE_CENTRE_KEY));
+    this.kb.throttle = m.stick.thr;
     const kb = this.readKeyboard(dtMs, false);
     if (this.keys.has(this.throttleKeys.up) || this.keys.has(this.throttleKeys.down)) {
-      m.thr = kb.throttle;
+      m.stick.thr = kb.throttle;
     }
-    const expo = this.mouseCfg.expo / 100;
-    const next = {
-      roll: mouseShape(m.x, expo),
-      pitch: mouseShape(m.y, expo),
-      yaw: 0,
-      throttle: m.thr,
-    };
+    const next = { ...m.shapedStick(), yaw: 0, throttle: m.stick.thr };
     for (const ch of ['roll', 'pitch', 'yaw']) {
       if (kb[ch] !== 0) {
         next[ch] = kb[ch];
@@ -2963,13 +2318,8 @@ export class InputManager {
       return m;
     }
     this.stickMode = m;
-    this.keyAxes = keyAxes(m);
-    this.throttleKeys = throttleKeys(m);
-    for (const ch of ['roll', 'pitch', 'yaw']) {
-      this.kb[ch] = 0;
-      this.kbHoldMs[ch] = 0;
-      this.kbHoldDir[ch] = 0;
-    }
+    this.keyboard.setMode(m);
+    this.keyboard.centreSprings();
     if (this.touchSource && typeof this.touchSource.setStickMode === 'function') {
       this.touchSource.setStickMode(m);
     }
