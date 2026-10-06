@@ -763,6 +763,61 @@ function boundaryDocs(base) {
   return docs;
 }
 
+/*
+ * Markers at the edges of "parked on a gate's frame" (faces.js), which the
+ * random streams above miss: standing on the gate's foot, at the reach and
+ * depth limits, at the inner limit of the stile, beside a gate whose width
+ * normalize repaired to nothing, and the game golden's garbage-numbers
+ * track, where a cone repaired onto the foot of a zero width gate first
+ * showed the gap.
+ */
+function parkedDocs() {
+  const docs = [];
+  docs.push({
+    name: 'parked-garbage-numbers',
+    raw: {
+      id: 'g8',
+      field: { width: 'wide', depth: -4, gridSize: NaN },
+      settings: { tangentScale: -1, minCurveRadius: Infinity, samplesPerSegment: 1e6 },
+      elements: [
+        { id: 'a', type: 'gate', position: { x: NaN, y: Infinity, z: -Infinity }, yaw: NaN, pitch: 9, dims: { clearW: -1, levels: 100 } },
+        { id: 'b', type: 'ladder', position: { x: '12', y: '7.5', z: '1' }, yaw: '3', pitch: -9, dims: { levels: 0, sillH: 'x' } },
+        { id: 'c', type: 'cone', position: null, dims: { height: NaN, clearance: -3 } },
+      ],
+      sequence: [{ elementId: 'a', entry: Infinity }, { elementId: 'b', apertureIndex: NaN, entry: '-1' }, { elementId: 'c', clearance: NaN }],
+    },
+  });
+  const offsets = [
+    [0, 0], [0.1, 0], [0.149, 0], [0.15, 0], [0, 0.15], [0.343, 0], [0.3429, 0], [0.3431, 0], [0.5, 1.2], [0.5, 1.2000001],
+    [2.9, 0.7], [3, 0], [3.0000001, 0], [0, 3], [-0.6, -0.4], [1, 1], [-2, 1.1],
+  ];
+  const widths = [1.524, 0, -1, 'x', 0.2, 6];
+  offsets.forEach(([across, depth], n) => {
+    const clearW = widths[n % widths.length];
+    const yaw = [0, 0.7, Math.PI / 2, -2.5][n % 4];
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    const gx = 20;
+    const gy = 15;
+    for (const type of ['flag', 'cone']) {
+      docs.push({
+        name: `parked-${type}-${n}`,
+        raw: {
+          schemaVersion: 3,
+          id: `trk-${(0x20000000 + n * 31 + (type === 'cone' ? 1 : 0)).toString(16).slice(-8)}`,
+          elements: [
+            { id: 'g', type: 'gate', position: { x: gx, y: gy, z: 0 }, yaw, dims: { clearW } },
+            { id: 'm', type, position: { x: gx - s * across + c * depth, y: gy + c * across + s * depth, z: 0 } },
+            { id: 'h', type: 'gate', position: { x: gx + 10, y: gy + 4, z: 0 }, yaw: 1 },
+          ],
+          sequence: [{ elementId: 'h', entry: -1 }, { elementId: 'm' }, { elementId: 'g', entry: n % 2 ? 1 : -1 }],
+        },
+      });
+    }
+  });
+  return docs;
+}
+
 function buildCorpus() {
   const corpus = [];
   const real = realDocs();
@@ -793,6 +848,7 @@ function buildCorpus() {
     corpus.push({ name: `edge-${n}`, raw: edgeFieldDoc(edge, n) });
   }
   corpus.push(...boundaryDocs(real[0].raw));
+  corpus.push(...parkedDocs());
   return corpus;
 }
 
