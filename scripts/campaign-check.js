@@ -36,9 +36,9 @@
  * checks sessions there and has the owner's account as DEV_ACCOUNTS, as
  * the VM's does (a server named on the command line is not used for
  * these rows): with mission 1 never won, a pilot not on the list sees
- * mission 2 Win mission 1 first with ?missions=dev; the owner sees it
- * Play; and the owner without ?missions=dev still sees it Under
- * development.
+ * mission 2 Win mission 1 first with ?missions=dev; the owner without
+ * ?missions=dev still sees it Under development; with it, Play, whose
+ * press makes a private war room for mission 2 that starts it.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -195,6 +195,9 @@ const SEED = `(() => {
   }
 })();`;
 
+const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
+const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+
 const server = await roomsServer(process.argv[2], 'campaign', { devMissions: true });
 const pageUrl = `/index.html?rooms=${encodeURIComponent(server.url)}`;
 console.log(`Defend the Paraná, rooms at ${server.url}`);
@@ -297,7 +300,6 @@ try {
 
   /* PLAY MISSION 1: its consent first, asked once, then the briefing of
    * a room made for it. */
-  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
   await click(page, '.campaign-box .name-dialog-row button');
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
   await page.until(CONSENT, 10000).catch(() => {});
@@ -313,7 +315,6 @@ try {
   await page.until(CONSENT, 10000).catch(() => {});
   await page.sleep(700);
   await page.tap('Enter');
-  const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
   await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
   await page.sleep(600);
   const ROOM = `(() => {
@@ -544,6 +545,12 @@ try {
     localStorage.setItem(${JSON.stringify(KEY_STORAGE)}, ${JSON.stringify(owner.identity)});
     return true;
   })()`);
+  await reload(signedUrl);
+  const plain = await openCampaign();
+  const nm = plain.screen && plain.screen.missions;
+  check('the owner without ?missions=dev: mission 2 Under development, not playable (the release gate is unchanged)',
+    nm && nm[1].play === 'Under development' && !nm[1].playable && nm[0].playable, JSON.stringify(nm && nm.map((m) => m.play)));
+
   await reload(`${signedUrl}&missions=dev`);
   const asOwner = await openCampaign();
   const om = asOwner.screen && asOwner.screen.missions;
@@ -554,11 +561,28 @@ try {
     && om.slice(4).every((m) => m.play === 'Coming soon' && !m.playable), JSON.stringify(om && om.map((m) => m.play)));
   await shot(page2, 'unlocked-owner');
 
-  await reload(signedUrl);
-  const plain = await openCampaign();
-  const nm = plain.screen && plain.screen.missions;
-  check('the owner without ?missions=dev: mission 2 Under development, not playable (the release gate is unchanged)',
-    nm && nm[1].play === 'Under development' && !nm[1].playable && nm[0].playable, JSON.stringify(nm && nm.map((m) => m.play)));
+  /* AND PLAY WORKS, against a server shaped as the VM's (no DEV_MISSIONS):
+   * the room made for mission 2 is private, the one kind the server makes
+   * for a mission in development, and it starts it for the owner, its
+   * host, whose seat the accounts server vouched for. */
+  await click(page2, '[data-mission="itaipu-2"] .campaign-play');
+  await page2.until(CONSENT, 10000).catch(() => {});
+  await page2.sleep(700);
+  await page2.tap('Enter');
+  await page2.until(`${IN_LOBBY} && /Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
+  await page2.sleep(600);
+  const made = await page2.evaluate(`(() => {
+    const r = window.__rooms();
+    return { phase: r.phase, public: r.public, host: r.host === r.seat, mode: r.mode, pending: window.__campaign.pending(),
+      line: (document.querySelector('.war-lobby-mission') || {}).textContent || '' };
+  })()`);
+  check('the owner\'s Play on mission 2: a private war room made for it, its host, mission 2 remembered',
+    made.phase === 'open' && made.public === false && made.host && made.mode === 'war' && /Mission 2: /.test(made.line)
+    && made.pending && made.pending.mission === 'itaipu-2', JSON.stringify(made));
+  await page2.evaluate("(() => { window.__ui.act('friends-war-start'); return true; })()");
+  await page2.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
+  const took = await page2.evaluate("(() => { const v = window.__war().view; return { state: v.state, mission: v.mission, error: v.error ?? null }; })()");
+  check('and Start now starts mission 2 there', took.mission === 'itaipu-2' && ['briefing', 'countdown', 'live'].includes(took.state), JSON.stringify(took));
 
   const errs = page2.errors.filter((e) => !e.startsWith('network:'));
   check('no page error, signed in', errs.length === 0, errs.slice(0, 3).join(' | '));
