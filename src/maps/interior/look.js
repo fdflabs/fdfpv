@@ -97,8 +97,9 @@ const AIR_THIN = 0.2;
  * The 22 degree row's haze is a little under round 1A's lightness (0.42
  * against 0.47; that round's survey views gained from the haze's being
  * lighter than round 0's), and its shade is lit at 0.8 of the sky where
- * Itaipu's is at 0.55: at 0.55 the camp's shaded clearing printed at sRGB
- * (12, 16, 19) against the mock's (56, 46, 38).
+ * Itaipu's is at 0.55: round 2's light printed the camp's shaded clearing
+ * (low-camp) at sRGB (9, 17, 25), this table with the bounce at (21, 19,
+ * 20), still darker than the mock's (56, 46, 38).
  */
 const C = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
 const LIGHT = [
