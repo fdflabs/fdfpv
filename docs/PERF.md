@@ -796,6 +796,13 @@ merges, by its own design: grass.js's hunks here are not shader text.
   takes them to none in the window. Uploading every scene texture at
   load was tried and not kept: 605 ms on the title for textures the
   title never drew.
+- **Textures first drawn in flight**: on swiss2 none are left once the
+  title has drawn (a probe of every scene texture's upload state). On
+  Itaipu the hidden trees' bark photographs were decoded in flight,
+  10.6 to 11.6 ms in one frame; #472 decodes them at load (12 ms). The
+  trees' foliage atlas, a 2048 by 2048 canvas, costs 170 to 248 ms to
+  upload at load and 18 ms at its first draw in flight, so it is left
+  there.
 - Garbage: 24 to 34 ms collections remain, 35 MB a second (P2's).
 - wing-cruise uploads 1.4 GB of buffer data in 30 s (bufferSubData,
   35 ms in all): throughput, not a hitch; whose it is was not traced.
