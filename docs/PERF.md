@@ -739,11 +739,21 @@ view draws it; the lake's mirror reflects it in a level plane, and skips
 the grass anyway). Such a tile is left out of the draw until it is
 there; one that can show is worked out at once, as before, so the
 picture never waits on the background. The background works out every
-tile to 32 m past the drawn ring, nearest first, a row at a time within
-1 ms a frame per layer, and keeps going up to 32 m over the ceiling. A
-tile is one generator over its rows with one rng, so its clumps are the
-same however many frames it took. At 90 fps 1 ms buys about 40 near
-tiles a second; 30 m/s needs about 20.
+tile to two tiles past the drawn ring (32 m for the near layer, 64 m for
+the middle one), nearest first, a row at a time within 1 ms a frame per
+layer, and keeps going up to that far over the layer's ceiling (72 m
+over the ground for the near layer, 79 m for the middle). A tile is one
+generator over its rows with one rng, so its clumps are the same however
+many frames it took. At 90 fps 1 ms buys about 40 near tiles a second;
+30 m/s needs about 20.
+
+That is work main never did where nothing is drawn: wing-cruise at 40 m
+is over the middle layer's 15 m ceiling, and the background still built
+504 of its tiles in 30 s (414 ms, under 1 ms in any frame; the near
+layer 470 tiles, 1021 ms, which is the point: its ceiling is 40 m and
+the wing dips under it). On this card it hid in the GPU wait (the mean
+frame did not move); on a CPU bound machine it is up to 1 ms a frame per
+layer.
 
 Interleaved A (main), B (this), `--mode=quality`:
 
@@ -803,6 +813,10 @@ merges, by its own design: grass.js's hunks here are not shader text.
   trees' foliage atlas, a 2048 by 2048 canvas, costs 170 to 248 ms to
   upload at load and 18 ms at its first draw in flight, so it is left
   there.
+- The middle layer's background margin over its ceiling is its
+  `ahead` (64 m), which keeps it building tiles up to 79 m over the
+  ground for a layer drawn only under 15 m. A margin of its own, a few
+  metres, would take that away; not changed after the A/B was run.
 - Garbage: 24 to 34 ms collections remain, 35 MB a second (P2's).
 - wing-cruise uploads 1.4 GB of buffer data in 30 s (bufferSubData,
   35 ms in all): throughput, not a hitch; whose it is was not traced.
