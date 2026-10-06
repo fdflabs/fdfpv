@@ -40,6 +40,7 @@ jobs:
       # script literals and the served pages (scripts/brand-lint.js).
       - run: npm run lint:bf
       - run: npm run strings:selftest
+      - run: npm run pids:selftest
       - run: npm run version:check
       - run: npm run lap:selftest
       - run: npm run identity:selftest

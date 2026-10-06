@@ -21,6 +21,7 @@
     "dump:selftest": "node scripts/dump-selftest.js",
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
+    "pids:selftest": "node scripts/pids-selftest.js",
     "perf:overlay": "node scripts/perf-overlay-check.js",
     "perf:latency": "node scripts/perf-latency.js",
     "perf:peers": "node scripts/perf-peers.js",
