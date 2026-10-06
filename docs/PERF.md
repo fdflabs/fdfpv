@@ -884,6 +884,10 @@ objects kept, by function and by the src/ caller under it; `--gctrace`,
 V8's GC events on the main thread by collector; `--buffers`, each buffer
 upload's bytes charged to the src/ line that set needsUpdate.
 
+The trace undercounts the young generation's collections (14 to 19
+MinorGC events in runs whose heap fell 70 to 100 times), so it names a
+long pause; the profile counts them.
+
 Program switches were counted with a copy of three whose setProgram says
 why it went back to getProgram, served in place of the CDN's through
 tests/lib/page.js's override (a scratch tool, not committed).
@@ -947,14 +951,22 @@ Free running, 30 s, two runs each:
 
 Capped at 90 (the owner's target), 30 s, `--gctrace`, two runs each:
 
-| | garbage KB a frame | GC pauses | over 16.7 ms | mark-compact pause (trace) |
-| --- | --- | --- | --- | --- |
-| itaipu-war A | 464, 410 | 51, 55 | 3, 2 | 9.6, 16.7 |
-| itaipu-war B | 419, 402 | 49, 53 | 2, 2 | 14.7, 33.2 |
-| swiss-low A | 762, 834 | 102, 98 | 0, 0 | none in the window, none |
-| swiss-low B | 685, 644 | 75, 71 | 0, 0 | 10.1, 11.9 |
-| wing-cruise A | 580, 596 | 86, 86 | 0, 0 | 10.3, none |
-| wing-cruise B | 591, 620 | 88, 92 | 0, 1 | 11.0, 11.1 |
+| | garbage KB a frame | GC pauses | over 5 ms | over 16.7 ms | mark-compact pause (trace) | frames over 16.7 ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| itaipu-war A | 464, 410 | 51, 55 | 31, 33 | 3, 2 | 9.6, 16.7 | 12, 6 |
+| itaipu-war B | 419, 402 | 49, 53 | 33, 31 | 2, 2 | 14.7, 33.2 | 16, 9 |
+| swiss-low A | 762, 834 | 102, 98 | 10, 9 | 0, 0 | none in the window, none | 8, 74 |
+| swiss-low B | 685, 644 | 75, 71 | 33, 30 | 0, 0 | 10.1, 11.9 | 12, 90 |
+| wing-cruise A | 580, 596 | 86, 86 | 36, 32 | 0, 0 | 10.3, none | 10, 1 |
+| wing-cruise B | 591, 620 | 88, 92 | 29, 23 | 0, 1 | 11.0, 11.1 | 6, 40 |
+
+With the cap there is slack between frames, and V8 collects in it: the
+profile counts a collection run in that slack as a pause, but it holds no
+frame. Itaipu's pauses over 5 ms went from 3 to 12 free running to 31 to
+33 capped while its late frames stayed at 6 to 16; read the pause columns
+here as collections, the last column as what the pilot sees. The second
+swiss-low pair and the second wing-cruise B ran with GPU 0 at 57 to 75 %
+(another agent's page), which is most of their late frames.
 
 The garbage per frame fell by a fifth to a quarter on the Swiss valley
 (sampled 979 to 725 KB on swiss-low, 692 to 576 on wing-cruise) and by a
