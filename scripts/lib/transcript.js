@@ -42,7 +42,11 @@ export function canon(v, seen = new Set()) {
   const frozen = Object.isFrozen(v) ? '!' : '';
   let out;
   if (Array.isArray(v)) {
-    out = `${frozen}[${v.map((x) => canon(x, seen)).join(',')}]`;
+    // Array.from rather than map: an array carrying its own `constructor`
+    // property (a malformed stored blob can) breaks map's species lookup.
+    const extra = Object.keys(v).filter((k) => !/^\d+$/.test(k));
+    const props = extra.map((k) => `,${JSON.stringify(k)}:${canon(v[k], seen)}`).join('');
+    out = `${frozen}[${Array.from(v, (x) => canon(x, seen)).join(',')}${props}]`;
   } else if (v instanceof Map) {
     out = `${frozen}Map{${[...v].map(([k, x]) => `${canon(k, seen)}=>${canon(x, seen)}`).join(',')}}`;
   } else if (v instanceof Set) {
