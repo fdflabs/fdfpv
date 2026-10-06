@@ -76,23 +76,6 @@ const SOURCE_DAYS = 30;
  * board folds it into `other` rather than refusing the event. */
 const SOURCE_RE = /^[a-z0-9-]{2,32}$/;
 
-/*
- * MIRRORS STATS_CRAFT in the board's src/validate.js, which REFUSES a
- * session or a flush naming any other aircraft: the board's list is the
- * two quads it was written for, and the simulator flies twenty more. The
- * shell hands this file the real airframe id (describe() in src/main.js)
- * and wireCraft folds it onto the board's list here, at the wire, so the
- * fold is one function to delete once the board takes every airframe id
- * (folding an unknown one to `other`, as it already does for maps). Until
- * then every aircraft but the whoop counts as a five inch on the board,
- * which is what it has done since the planes arrived.
- */
-export const STATS_CRAFT = ['5inch', 'whoop65'];
-
-export function wireCraft(airframe) {
-  return STATS_CRAFT.includes(airframe) ? airframe : STATS_CRAFT[0];
-}
-
 /* One flush a minute. It is also the heartbeat that answers "flying now",
  * so it is sent even when nothing happened in the minute. */
 export const FLUSH_MS = 60_000;
@@ -356,12 +339,12 @@ export function createFlightStats({ describe, url = eventsUrl() } = {}) {
     try {
       const d = (typeof describe === 'function' ? describe() : null) || {};
       return {
-        craft: wireCraft(d.craft),
+        craft: String(d.craft || ''),
         map: String(d.map || 'custom'),
         input: String(d.input || 'keyboard'),
       };
     } catch (e) {
-      return { craft: wireCraft(null), map: 'custom', input: 'keyboard' };
+      return { craft: '', map: 'custom', input: 'keyboard' };
     }
   };
 
