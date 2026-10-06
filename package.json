@@ -24,6 +24,7 @@
     "perf:peers": "node scripts/perf-peers.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
+    "catalog-rules:selftest": "node scripts/catalog-rules-selftest.js",
     "rates:selftest": "node scripts/rates-selftest.js",
     "lint:shell": "node scripts/shell-check.js",
     "lint:input": "node scripts/input-check.js",
