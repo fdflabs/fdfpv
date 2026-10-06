@@ -133,7 +133,6 @@ src/share/session.js
 src/share/stats.js
 src/share/summary.js
 src/share/windows.js
-src/trackbuilder/faces.js
 src/trackbuilder/index.html
 src/trackbuilder/path.js
 src/trackbuilder/storage.js
