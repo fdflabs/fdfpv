@@ -2742,6 +2742,19 @@ export async function boot({
       view.setWaves(want);
       wavesHanded = want;
       wavesHandedTo = view;
+      /* The scene compiled again, against the composer's target, each
+       * time the water changes. Waves and still water are different
+       * programs for the water's materials, and the map compiled its
+       * scene with still water and with no target bound (the screen's
+       * variant, which nothing draws: 42 programs on swiss2 the first
+       * time this runs, on the title). Each was linked the first time
+       * its mesh came into view, in flight: the lake's bed and the reeds
+       * on swiss-low eight seconds in, 27 to 62 ms; Itaipu's canopy and
+       * a town ring, 6 to 18 ms (docs/PERF.md P6). compile() ignores the
+       * frustum, so the links start here, where a run starts (40 ms on
+       * the title the first time, 5 ms at a run's start after), and the
+       * driver has them done before the mesh is seen. */
+      prewarm([view.scene]);
     }
   }
 
