@@ -118,7 +118,7 @@ export function swissVehicles() {
         }
         /* A near wheel's shadow is under the body's own; only the far
          * wheels cast. */
-        const inst = new THREE.InstancedMesh(wheelGeo, mats.body, built.wheels.length);
+        const inst = new THREE.InstancedMesh(wheelGeo, mats.wheels, built.wheels.length);
         inst.castShadow = !glass;
         inst.receiveShadow = true;
         level.add(inst);

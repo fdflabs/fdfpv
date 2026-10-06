@@ -11,7 +11,7 @@
  *
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
- *         [--mode=quality|balanced|performance] [--objects]
+ *         [--mode=quality|balanced|performance] [--objects] [--alloc] [--buffers] [--gctrace]
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -68,8 +68,13 @@
  * a diagnostic, its hundreds of queries a frame cost time of their own,
  * so its frame times are not comparable with a run without it.
  *
- * Long tasks come from a PerformanceObserver, garbage collection from the
- * JS heap (performance.memory) falling between two frames.
+ * Long tasks come from a PerformanceObserver, the garbage rate from the
+ * JS heap (performance.memory) falling between two frames, and each
+ * collection's pause from the sampled profile (its "(garbage collector)"
+ * runs). --alloc names who allocates (the sampling heap profiler, the
+ * collected objects kept), --gctrace which collector each pause was (a
+ * trace of V8's GC events), --buffers who asks for each buffer upload.
+ * All three cost time of their own: diagnostics, not a baseline.
  *
  * HITCHES. Every texture upload, buffer upload and program link on the
  * view's context is timed and sized per frame, and each one over 1 ms is
@@ -123,7 +128,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BUDGET_MS = 1000 / 90;
 
 const opts = {
-  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false,
+  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false, alloc: false, buffers: false, gctrace: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -220,8 +225,18 @@ const INSTRUMENT = /* js */ `(() => {
         const t = now();
         try { return f(...a); } finally {
           const ms = now() - t;
-          const b = a[1] && a[1].byteLength ? a[1].byteLength : (typeof a[1] === 'number' ? a[1] : 0);
-          PP.up.bufMs += ms; PP.up.bufBytes += b;
+          /* bufferData(target, data | size, usage) and
+           * bufferSubData(target, offset, data, srcOffset, length): the
+           * second's bytes are its data's, from srcOffset for length
+           * elements, never its offset. */
+          let b = 0;
+          if (name === 'bufferData') {
+            b = a[1] && a[1].byteLength ? a[1].byteLength : (typeof a[1] === 'number' ? a[1] : 0);
+          } else if (a[2] && a[2].byteLength) {
+            const per = a[2].BYTES_PER_ELEMENT || 1;
+            b = a[4] ? a[4] * per : a[2].byteLength - (a[3] || 0) * per;
+          }
+          PP.up.bufMs += ms; PP.up.bufBytes += b; PP.bufPending += b;
           if (ms > 1) { note(name, ms, Math.round(b / 1024) + ' KB'); }
         }
       };
@@ -426,8 +441,9 @@ const INSTRUMENT = /* js */ `(() => {
   /* Called once the map is up: three's prototypes are reachable through
    * the page's import map by then, the same module instances the shell
    * holds. */
-  PP.hookThree = async () => {
+  PP.hookThree = async (buffers) => {
     const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
+    if (buffers) { await hookBuffers(); }
     const NAMES = { RenderPass: 'scene', AoPass: 'ao', CloudPass: 'clouds', MeterPass: 'meter', UnrealBloomPass: 'bloom', PhotoPass: 'photo', OutputPass: 'output' };
     const seen = new WeakSet();
     /* three's WebGLRenderer defines render() in its constructor, not on
@@ -488,6 +504,53 @@ const INSTRUMENT = /* js */ `(() => {
     return { gl: Boolean(PP.gl), timer: Boolean(PP.ext) };
   };
 
+  /* --buffers: WHO RE-UPLOADS A BUFFER. three uploads an attribute in
+   * objects.update() while it builds the render list, before
+   * renderBufferDirect, so the object being drawn cannot name it. The
+   * upload is asked for where the shell sets needsUpdate on an attribute
+   * (or an interleaved buffer), so that setter is wrapped and remembers
+   * the nearest src/ frame on the stack for the attribute. three calls
+   * the attribute's onUploadCallback right after its bufferData or
+   * bufferSubData calls, so the bytes those calls handed over since the
+   * last callback are charged there, to the site that asked: exact bytes,
+   * ranges included. A buffer three creates (a new or resized geometry)
+   * has no site and is charged as "new buffer". A stack per attribute per
+   * frame costs time of its own: a diagnostic, like --objects. */
+  PP.bufBy = new Map();
+  PP.bufPending = 0;
+  async function hookBuffers() {
+    const T = await import('three');
+    const site = () => {
+      const lines = String(new Error().stack).split('\\n');
+      const own = lines.find((l) => /\\/src\\//.test(l)) || '';
+      const m = own.match(/\\/src\\/([^?]+?)(?:\\?[^:]*)?:(\\d+)/);
+      return m ? m[1] + ':' + m[2] : '(no src frame)';
+    };
+    const asked = new WeakMap();
+    for (const C of [T.BufferAttribute, T.InterleavedBuffer]) {
+      const d = Object.getOwnPropertyDescriptor(C.prototype, 'needsUpdate');
+      Object.defineProperty(C.prototype, 'needsUpdate', {
+        configurable: true,
+        set(v) {
+          if (v === true && PP.rec && !asked.has(this)) { asked.set(this, site()); }
+          d.set.call(this, v);
+        },
+      });
+      const cb = C.prototype.onUploadCallback;
+      C.prototype.onUploadCallback = function () {
+        if (PP.rec) {
+          const k = asked.get(this) || 'new buffer';
+          asked.delete(this);
+          const e = PP.bufBy.get(k) || { n: 0, bytes: 0 };
+          e.n += 1; e.bytes += PP.bufPending;
+          PP.bufBy.set(k, e);
+        }
+        PP.bufPending = 0;
+        return cb.call(this);
+      };
+    }
+  }
+
   /* --objects: each mesh in the scene is its own segment inside
    * whichever draw is drawing it. Meshes the map streams in after this
    * count toward the draw round them. */
@@ -532,8 +595,10 @@ const INSTRUMENT = /* js */ `(() => {
       uaMemory = (await performance.measureUserAgentSpecificMemory()).bytes;
     }
     const t0 = rows.length ? rows[0].start : 0;
+    const buffers = [...PP.bufBy].map(([what, e]) => ({ what, ...e })).sort((a, b) => b.bytes - a.bytes);
+    PP.bufBy.clear();
     const events = PP.events.splice(0).map((e) => ({ ...e, t: Math.round(e.t - t0) / 1000 }));
-    return { rows, events, longTasks: longTasks.slice(), heap0, uaMemory, lostGpu: pendingGpu.length, errors: PP.errors.slice() };
+    return { rows, events, buffers, longTasks: longTasks.slice(), heap0, uaMemory, lostGpu: pendingGpu.length, errors: PP.errors.slice() };
   };
 })();`;
 
@@ -814,6 +879,7 @@ function summarise(raw) {
       progMs: rows.reduce((a, r) => a + (r.up ? r.up.progMs : 0), 0),
       maxFrameMs: Math.max(0, ...rows.map((r) => (r.up ? r.up.texMs + r.up.bufMs + r.up.progMs : 0))),
       events: (raw.events || []).slice().sort((a, b) => b.ms - a.ms).slice(0, 20),
+      by: (raw.buffers || []).slice(0, 25),
     },
     uaMemory: raw.uaMemory,
     lostGpu: raw.lostGpu,
@@ -865,6 +931,141 @@ function profileTop(profile, seconds) {
   const top = (m, n) => [...m].sort((a, b) => b[1] - a[1]).slice(0, n).map(([what, ms]) => ({ what, msPerS: ms / seconds }));
   return {
     functions: top(fns, 15), files: top(files, 10), shell: top(callers, 10), hitches: hitchesOf(profile, byId, parent, nameOf),
+    gc: gcPausesOf(profile, byId, seconds),
+  };
+}
+
+/*
+ * GARBAGE COLLECTION PAUSES. The main thread's time inside a collection is
+ * sampled as "(garbage collector)"; consecutive such samples are one pause,
+ * to the profile's half millisecond. A collection's concurrent marking runs
+ * on other threads and is not a pause; what is counted here is what held
+ * the frame. P2 read GC as a share of the window, which hides that one
+ * 30 ms pause is a dropped frame whatever the average.
+ */
+function gcPausesOf(profile, byId, seconds) {
+  const runs = [];
+  let cur = 0;
+  let at = 0;
+  let t = profile.startTime;
+  for (let k = 0; k < profile.samples.length; k += 1) {
+    t += profile.timeDeltas[k] ?? 0;
+    const dt = (profile.timeDeltas[k + 1] ?? 0) / 1000;
+    if (byId.get(profile.samples[k]).callFrame.functionName === '(garbage collector)') {
+      if (cur === 0) { at = (t - profile.startTime) / 1e6; }
+      cur += dt;
+      continue;
+    }
+    if (cur > 0) { runs.push({ at: Math.round(at * 100) / 100, ms: Math.round(cur * 10) / 10 }); cur = 0; }
+  }
+  if (cur > 0) { runs.push({ at: Math.round(at * 100) / 100, ms: Math.round(cur * 10) / 10 }); }
+  /* The profile runs on a little past the window, while the frames are
+   * handed back, and that collection is the script's, not the shell's. */
+  const pauses = runs.filter((p) => p.at < seconds);
+  const total = pauses.reduce((a, p) => a + p.ms, 0);
+  return {
+    count: pauses.length,
+    msPerS: total / seconds,
+    max: Math.max(0, ...pauses.map((p) => p.ms)),
+    over5: pauses.filter((p) => p.ms > 5).length,
+    over16: pauses.filter((p) => p.ms > 1000 / 60).length,
+    worst: pauses.slice().sort((a, b) => b.ms - a.ms).slice(0, 8),
+  };
+}
+
+/*
+ * --gctrace: WHICH COLLECTOR PAUSED. The CPU profile cannot tell a young
+ * generation scavenge from a full mark-compact or an incremental marking
+ * step, and the cure differs: a scavenge's pause grows with what survives
+ * it, a mark-compact's with the live heap. A browser trace of V8's own
+ * GC events on the renderer's main thread says which phase each pause
+ * was, with its own duration. Nested phases are counted inside their
+ * parent, so only the outermost event on the thread is a pause. The
+ * trace has a cost of its own, so its frame times are not a baseline.
+ */
+async function gcTraceStart(page) {
+  const events = [];
+  const threads = new Map();
+  let done = null;
+  const finished = new Promise((r) => { done = r; });
+  page.cdp.onEvent((msg) => {
+    if (msg.method === 'Tracing.dataCollected') {
+      for (const e of msg.params.value) {
+        if (e.ph === 'M' && e.name === 'thread_name') {
+          threads.set(`${e.pid}:${e.tid}`, e.args.name);
+        } else if (e.ph === 'X' && e.dur != null && /GC|Scaveng|Mark|Sweep/.test(e.name)) {
+          events.push({ name: e.name, ts: e.ts, dur: e.dur, th: `${e.pid}:${e.tid}` });
+        }
+      }
+    } else if (msg.method === 'Tracing.tracingComplete') {
+      done();
+    }
+  });
+  await page.cdp.send('Tracing.start', { categories: 'devtools.timeline,v8,disabled-by-default-v8.gc', transferMode: 'ReportEvents' });
+  return {
+    async stop() {
+      await page.cdp.send('Tracing.end');
+      await finished;
+      return events.filter((e) => threads.get(e.th) === 'CrRendererMain');
+    },
+  };
+}
+
+function gcTraceOf(events) {
+  events.sort((a, b) => a.ts - b.ts || b.dur - a.dur);
+  const outer = [];
+  let end = -Infinity;
+  for (const e of events) {
+    if (e.ts >= end) {
+      outer.push(e);
+      end = e.ts + e.dur;
+    }
+  }
+  const out = {};
+  for (const e of outer) {
+    const g = out[e.name] ||= { count: 0, totalMs: 0, max: 0, over5: 0, over16: 0 };
+    const ms = e.dur / 1000;
+    g.count += 1;
+    g.totalMs += ms;
+    g.max = Math.max(g.max, ms);
+    g.over5 += ms > 5 ? 1 : 0;
+    g.over16 += ms > 1000 / 60 ? 1 : 0;
+  }
+  return out;
+}
+
+/*
+ * --alloc: WHAT ALLOCATES. The sampling heap profiler, told to keep the
+ * objects the young and the old generation collected, so it reports what
+ * was allocated over the window rather than what is still alive: the
+ * garbage rate and who makes it. Rolled up by function and by the nearest
+ * src/ caller, as the CPU profile is.
+ */
+function allocTop(profile, seconds) {
+  const fileOf = (cf) => (cf.url ? cf.url.replace(/^.*?\/\/[^/]+\//, '').replace(/\?.*$/, '') : cf.functionName || '(native)');
+  const nameOf = (cf) => `${cf.functionName || '(anonymous)'} ${fileOf(cf)}${cf.url ? `:${cf.lineNumber + 1}` : ''}`;
+  const fns = new Map();
+  const callers = new Map();
+  const files = new Map();
+  const pairs = new Map();
+  let total = 0;
+  const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
+  const walk = (node, shell) => {
+    const cf = node.callFrame;
+    const own = /\/src\//.test(cf.url) ? nameOf(cf) : shell;
+    if (node.selfSize) {
+      total += node.selfSize;
+      add(fns, nameOf(cf), node.selfSize);
+      add(files, fileOf(cf), node.selfSize);
+      add(callers, own || '(no src caller)', node.selfSize);
+      add(pairs, `${own || '(no src caller)'} <- ${nameOf(cf)}`, node.selfSize);
+    }
+    for (const c of node.children || []) { walk(c, own); }
+  };
+  walk(profile.head, null);
+  const top = (m, n) => [...m].sort((a, b) => b[1] - a[1]).slice(0, n).map(([what, b]) => ({ what, mbPerS: b / 1048576 / seconds }));
+  return {
+    mbPerS: total / 1048576 / seconds, functions: top(fns, 15), files: top(files, 10), shell: top(callers, 20), pairs: top(pairs, 30),
   };
 }
 
@@ -977,8 +1178,16 @@ function table(id, s) {
     `  gpu parts  ${Object.entries(s.gpuParts).sort((a, b) => b[1].mean - a[1].mean).slice(0, opts.objects ? 40 : Infinity).map(([k, v]) => `${k} ${f(v.mean)}/${f(v.p10)}`).join(opts.objects ? '\n             ' : '  ')}`,
     `  draws      calls avg ${f(s.calls.avg, 0)} max ${s.calls.max}  tris avg ${f(s.trisM.avg)} M max ${f(s.trisM.max)} M`,
     `  main       long tasks ${s.longTasks.count} (${f(s.longTasks.totalMs, 0)} ms, max ${f(s.longTasks.maxMs, 0)})  gc ${s.gc.count} (${f(s.gc.mb, 0)} MB)  heap ${f(s.gc.heapMb, 0)} MB`,
+    `  gc pauses  ${s.profile.gc.count} (${f(s.profile.gc.msPerS, 1)} ms per s)  max ${f(s.profile.gc.max, 1)} ms  over 5 ms ${s.profile.gc.over5}  over 16.7 ms ${s.profile.gc.over16}  garbage ${f(s.gc.mb / Math.max(1e-9, s.seconds), 1)} MB/s, ${f((s.gc.mb * 1024) / Math.max(1, s.frames), 0)} KB a frame (heap falls)  worst ${s.profile.gc.worst.slice(0, 4).map((p) => `${f(p.ms, 1)} at ${f(p.at, 1)} s`).join(', ')}`,
+    ...(s.gcTrace ? Object.entries(s.gcTrace).sort((a, b) => b[1].totalMs - a[1].totalMs).slice(0, 8).map(([k, g]) => `  gc trace   ${k} ${g.count} (${f(g.totalMs, 0)} ms)  max ${f(g.max, 1)} ms  over 5 ms ${g.over5}  over 16.7 ms ${g.over16}`) : []),
+    ...(s.alloc ? [
+      `  allocated  ${f(s.alloc.mbPerS, 1)} MB/s (sampled, collected objects included); by src caller, MB/s:`,
+      ...s.alloc.shell.slice(0, 15).map((x) => `    from ${f(x.mbPerS, 2).padStart(6)}  ${x.what}`),
+      ...s.alloc.functions.slice(0, 8).map((x) => `    fn   ${f(x.mbPerS, 2).padStart(6)}  ${x.what}`),
+    ] : []),
     `  uploads    textures ${s.uploads.texN} (${f(s.uploads.texMb, 1)} MB, ${f(s.uploads.texMs, 1)} ms)  buffers ${f(s.uploads.bufMb, 1)} MB (${f(s.uploads.bufMs, 1)} ms)  programs linked ${s.uploads.progN} (${f(s.uploads.progMs, 1)} ms)  worst frame ${f(s.uploads.maxFrameMs, 1)} ms`,
     ...s.uploads.events.slice(0, 8).map((e) => `    at ${f(e.t, 1).padStart(5)} s  ${f(e.ms, 1).padStart(6)} ms  ${e.kind} ${e.what}`),
+    ...s.uploads.by.slice(0, 12).map((b) => `    buf ${f(b.bytes / 1048576, 1).padStart(7)} MB  ${String(b.n).padStart(6)} uploads  ${b.what}`),
     `  hotspots   ${s.hotspots.map((h, i) => `${i + 1}. ${h.what} ${f(h.ms)}`).join('  ')}`,
     '  main thread self time, ms per second:',
     ...s.profile.files.slice(0, 6).map((x) => `    file ${f(x.msPerS, 1).padStart(6)}  ${x.what}`),
@@ -1020,7 +1229,7 @@ async function runScenario(id) {
     /* The war's room picks its own map, so only the first map is waited
      * for here; each start() waits for its own. */
     await page.until('window.__map && window.__map().ready', 600000);
-    const hooked = await page.evaluate('window.__PP.hookThree().then(JSON.stringify)');
+    const hooked = await page.evaluate(`window.__PP.hookThree(${Boolean(opts.buffers)}).then(JSON.stringify)`);
     const setup = JSON.parse(hooked);
     if (!setup.gl || !setup.timer) {
       throw new Error(`perf-play: ${id}: no WebGL2 context or no timer queries (${hooked})`);
@@ -1037,6 +1246,13 @@ async function runScenario(id) {
     await page.cdp.send('Profiler.enable', {}, page.sessionId);
     await page.cdp.send('Profiler.setSamplingInterval', { interval: 500 }, page.sessionId);
     await page.cdp.send('Profiler.start', {}, page.sessionId);
+    const trace = opts.gctrace ? await gcTraceStart(page) : null;
+    if (opts.alloc) {
+      await page.cdp.send('HeapProfiler.enable', {}, page.sessionId);
+      await page.cdp.send('HeapProfiler.startSampling', {
+        samplingInterval: 16384, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true,
+      }, page.sessionId);
+    }
     if (opts.objects) {
       const n = await page.evaluate('window.__PP.tagObjects()');
       console.log(`  objects: ${n} meshes tagged`);
@@ -1044,9 +1260,13 @@ async function runScenario(id) {
     const grassBefore = await page.evaluate(GRASS_STATS);
     const raw = await page.evaluate(`window.__PP.record(${opts.seconds}, ${opts.pace === 'free'}, ${Number(opts.cap) || 0})`);
     const { profile } = await page.cdp.send('Profiler.stop', {}, page.sessionId);
+    const heap = opts.alloc ? (await page.cdp.send('HeapProfiler.stopSampling', {}, page.sessionId)).profile : null;
+    const gcEvents = trace ? await trace.stop() : null;
     const loadAfter = gpuLoad();
     const s = summarise(raw);
     s.profile = profileTop(profile, s.seconds);
+    s.alloc = heap ? allocTop(heap, s.seconds) : null;
+    s.gcTrace = gcEvents ? gcTraceOf(gcEvents) : null;
     s.hotspots = hotspots(s);
     s.crashes = await page.evaluate('window.__PP.crashes || 0');
     s.path = await page.evaluate('({ metres: window.__PP.dist || 0, clearance: window.__PP.clr })');

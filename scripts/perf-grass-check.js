@@ -30,8 +30,9 @@
  * from then on that compared the background against itself at two
  * speeds, and the middle layer, which draws what the background has
  * ready, failed on every run (2026-10-06). --base=REV serves REV's
- * grass.js for both references instead, its budget set too if it has
- * one; --base=0bba764a (main before the background) passes.
+ * grass.js and zones.js (the field model the clumps read) for both
+ * references instead, the budget set too if it has one; --base=0bba764a
+ * (main before the background) passes.
  *
  * That is checked on the instance buffers, not on pictures: the light,
  * the clouds and the wind follow the session's clock, which two page
@@ -91,14 +92,16 @@ if (process.env.SIM_GPU !== '1') {
 }
 const baseArg = process.argv.find((a) => a.startsWith('--base='));
 const base = baseArg ? baseArg.slice(7) : null;
-const GRASS = 'src/maps/swiss2/vegetation/grass.js';
-let baseSource = null;
-if (base) {
-  const shown = spawnSync('git', ['-C', root, 'show', `${base}:${GRASS}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
+/* The meadow's clumps come from grass.js and the field model it reads in
+ * zones.js; --base serves both of its own. */
+const BASE_FILES = ['src/maps/swiss2/vegetation/grass.js', 'src/maps/swiss2/vegetation/zones.js'];
+const baseOverride = {};
+for (const file of base ? BASE_FILES : []) {
+  const shown = spawnSync('git', ['-C', root, 'show', `${base}:${file}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
   if (shown.status !== 0) {
-    throw new Error(`perf-grass-check: git show ${base}:${GRASS} failed: ${shown.stderr}`);
+    throw new Error(`perf-grass-check: git show ${base}:${file} failed: ${shown.stderr}`);
   }
-  baseSource = shown.stdout;
+  baseOverride[`/${file}`] = shown.stdout;
 }
 
 /* The layers by mesh name, and the squares their records are hashed by. */
@@ -250,7 +253,7 @@ async function fly(label, override, budgetMs = null, needBudget = true) {
 /* The reference each layer is judged against, by layer name. */
 const ref = {};
 if (base) {
-  const was = await fly(`reference: ${base}'s grass.js`, { [`/${GRASS}`]: baseSource }, 0, false);
+  const was = await fly(`reference: ${base}'s grass.js and zones.js`, baseOverride, 0, false);
   ref[LAYERS[0]] = was;
   ref[LAYERS[1]] = was;
 } else {
