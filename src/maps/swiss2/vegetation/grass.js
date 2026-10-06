@@ -71,6 +71,9 @@ const FLAT0 = REGION_KEYS.indexOf('flat0');
 const UNMOWN = 32;
 /* Floats per clump: x, y, z, yaw, height, width, region, tint. */
 const STRIDE = 8;
+/* Where a tile's ground is read for its box: the corners and the middle,
+ * as u, v pairs over the tile. */
+const BOX_SAMPLES = [0, 0, 1, 0, 0, 1, 1, 1, 0.5, 0.5];
 
 /* Three cards crossed at sixty degrees, a metre wide and a metre high,
  * standing on the origin; the instance scales them. */
@@ -543,8 +546,17 @@ export function buildGrass({
    * of a few kilometres. */
   const tiles = new Map();
   const tileId = (ti, tj) => (ti + 32768) * 65536 + (tj + 32768);
-  let lastKey = '';
-  let drawn = [];
+  /* The tile the ring was last chosen from (NaN: none), the ring
+   * chosen then, and this frame's, as ti, tj pairs with their lengths.
+   * Kept arrays, not a key string: the ring is looked at every frame,
+   * and building its key was garbage every frame (docs/PERF.md P8). */
+  const span = Math.ceil(radius / tile) + 1;
+  let lastCi = NaN;
+  let lastCj = NaN;
+  const drawn = new Int32Array(2 * (2 * span + 1) ** 2);
+  const wanted = new Int32Array(drawn.length);
+  let drawnN = 0;
+  let wantedN = 0;
   /* The draw holds what it should: false after a tile it draws was
    * worked out in the background, or a tile it should draw could not be. */
   let current = false;
@@ -566,12 +578,14 @@ export function buildGrass({
   const tileBox = (ti, tj) => {
     let lo = Infinity;
     let hi = -Infinity;
-    for (const [u, v] of [[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.5]]) {
-      const y = heightAt((ti + u) * tile, (tj + v) * tile);
+    for (let k = 0; k < BOX_SAMPLES.length; k += 2) {
+      const y = heightAt((ti + BOX_SAMPLES[k]) * tile, (tj + BOX_SAMPLES[k + 1]) * tile);
       lo = Math.min(lo, y);
       hi = Math.max(hi, y);
     }
-    return box.set(pos.set(ti * tile, lo - 2, tj * tile), new THREE.Vector3((ti + 1) * tile, hi + 3, (tj + 1) * tile));
+    box.min.set(ti * tile, lo - 2, tj * tile);
+    box.max.set((ti + 1) * tile, hi + 3, (tj + 1) * tile);
+    return box;
   };
   /*
    * WHICH TILES CAN SHOW. A clump is folded to its root in the shader
@@ -689,11 +703,10 @@ export function buildGrass({
      * a clump seen from above is a star of cards, not a tuft. */
     if (above > ceiling) {
       geo.instanceCount = 0;
-      lastKey = '';
+      lastCi = NaN;
       return;
     }
-    const span = Math.ceil(radius / tile) + 1;
-    const wanted = [];
+    wantedN = 0;
     if (cull) {
       camera.updateMatrixWorld();
       viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -711,16 +724,24 @@ export function buildGrass({
         if (cull && !frustum.intersectsBox(tileBox(ti, tj))) {
           continue;
         }
-        wanted.push(ti, tj);
+        wanted[wantedN] = ti;
+        wanted[wantedN + 1] = tj;
+        wantedN += 2;
       }
     }
-    const key = `${ci},${cj}${cull ? `:${wanted.join(',')}` : ''}`;
+    let same = ci === lastCi && cj === lastCj;
+    if (same && cull) {
+      same = wantedN === drawnN;
+      for (let k = 0; same && k < wantedN; k += 1) {
+        same = wanted[k] === drawn[k];
+      }
+    }
     for (let k = 0; current && k < waiting.length; k += 2) {
       if (!tiles.has(tileId(waiting[k], waiting[k + 1])) && canShow(waiting[k], waiting[k + 1], px, pz)) {
         current = false;
       }
     }
-    if (key === lastKey && current) {
+    if (same && current) {
       return;
     }
     /* The ring drawn is the one worked out when the camera crossed into
@@ -729,9 +750,13 @@ export function buildGrass({
      * one round where the camera has got to since, which would draw
      * tiles at the ring's leading edge a crossing early, at a moment
      * that depends on how fast the background ran. */
-    if (key !== lastKey) {
-      lastKey = key;
-      drawn = wanted;
+    if (!same) {
+      lastCi = ci;
+      lastCj = cj;
+      for (let k = 0; k < wantedN; k += 1) {
+        drawn[k] = wanted[k];
+      }
+      drawnN = wantedN;
     }
     let n = 0;
     let built = 0;
@@ -739,7 +764,7 @@ export function buildGrass({
     let retry = false;
     wantedIds.clear();
     waiting.length = 0;
-    for (let k = 0; k < drawn.length; k += 2) {
+    for (let k = 0; k < drawnN; k += 2) {
       const ti = drawn[k];
       const tj = drawn[k + 1];
       const id = tileId(ti, tj);
