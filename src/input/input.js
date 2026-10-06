@@ -57,106 +57,15 @@ import { str } from '../strings/index.js';
 import {
   stickChannels, stickCaption, stickSideOf, DEFAULT_STICK_MODE, normaliseStickMode,
 } from './stickmode.js';
+import {
+  builtInKind, builtInMap, normaliseMap, reversals, centredReading, readSticks,
+} from './padmap.js';
+import {
+  migrateStickStorage, loadStickMap, saveStickMap, loadPadChoice, savePadChoice,
+} from './stickstore.js';
 
-const STORE_KEY = 'webfpv_stick_map_v1';
-const PAD_STORE_KEY = 'webfpv.pad.v1';
+export { standardPadMap } from './padmap.js';
 
-const DEFAULT_MAP = {
-  /* AETR axis order, up and right positive, throttle low at -1. */
-  roll: { axis: 0, center: 0, full: 1 },
-  pitch: { axis: 1, center: 0, full: -1 },
-  yaw: { axis: 3, center: 0, full: 1 },
-  throttle: { axis: 2, low: -1, high: 1 },
-};
-
-/*
- * A GAMEPAD IS NOT A RADIO, AND THE BROWSER SAYS WHICH ONE IT IS.
- *
- * DEFAULT_MAP is AETR because that is what a transmitter in joystick mode
- * sends. An Xbox pad sends something else entirely, and the browser tells
- * us so: `gamepad.mapping === 'standard'` promises the W3C layout, axes 0
- * and 1 the left stick, 2 and 3 the right, down and right positive. Flown
- * through AETR that pad had roll and pitch on the left stick, throttle on
- * the right stick's horizontal sprung to half, and yaw on the right stick's
- * vertical: "am having a hard time finding the order of sticks".
- *
- * So a standard pad's default puts the channels where the pilot's stick
- * mode puts them, read out of the same table the thumb sticks and the
- * keyboard use. Right is right. Pitch is +1 pulled back, which on this
- * layout is the positive end. Throttle is the whole of a stick that springs
- * to its middle: nought at the bottom, half at rest, full at the top, the
- * way drone sims treat a gamepad. A radio never reports 'standard', so it
- * never gets here, and a pilot's own saved calibration wins over both.
- */
-const STANDARD_STICKS = {
-  left: { horiz: 0, vert: 1 },
-  right: { horiz: 2, vert: 3 },
-};
-
-export function standardPadMap(mode) {
-  const sticks = stickChannels(mode);
-  const map = {};
-  for (const side of ['left', 'right']) {
-    const axes = STANDARD_STICKS[side];
-    map[sticks[side].horiz] = { axis: axes.horiz, center: 0, full: 1 };
-    map[sticks[side].vert] = sticks[side].vert === 'throttle'
-      ? { axis: axes.vert, low: 1, high: -1 }
-      : { axis: axes.vert, center: 0, full: 1 };
-  }
-  return map;
-}
-
-/*
- * THE SAME RADIO IS TWO DIFFERENT JOYSTICKS, AND ONLY ONE OF THEM IS AETR.
- *
- * A transmitter on its USB cable is EdgeTX's joystick: channels one to four
- * on axes 0 to 3, which is DEFAULT_MAP. The same transmitter over Bluetooth
- * is ExpressLRS's joystick, a different HID device with a different report:
- * it sends channels one and two as X and Y, three and four as Rx and Ry, and
- * five and six as Z and Rz. A browser lays axes out by HID usage, so
- * throttle lands on axis 3 and yaw on axis 4, with an aux switch on axis 2
- * between them. Flown through AETR the throttle stick was yaw and the
- * throttle was whatever the arm switch said, and the pilot who had just
- * unplugged a cable that worked was told to calibrate.
- *
- * Measured on a Radiomaster Pocket, ExpressLRS BLE Joystick, Chrome on
- * macOS, 2026-10-05: right, forward and up all positive. The device names
- * itself, so this is recognition, not a guess, and it is trusted the way a
- * standard gamepad's layout is. A pilot's own saved calibration still wins.
- */
-const ELRS_BLUETOOTH = 'elrs-bluetooth';
-const ELRS_BLUETOOTH_ID = /^ExpressLRS Joystick/;
-const ELRS_BLUETOOTH_MAP = {
-  roll: { axis: 0, center: 0, full: 1 },
-  pitch: { axis: 1, center: 0, full: -1 },
-  yaw: { axis: 4, center: 0, full: 1 },
-  throttle: { axis: 3, low: -1, high: 1 },
-};
-
-/*
- * Which built in map a pad gets, as a value that is falsy for the AETR
- * guess and truthy for a layout the device vouches for: the stick mode for
- * a standard gamepad, a name for a radio recognised by its id. mapKnown
- * reads the truthiness and followDefaultMap reads the change.
- */
-function defaultKindFor(gp, mode) {
-  if (!gp) {
-    return 0;
-  }
-  if (gp.mapping === 'standard') {
-    return mode;
-  }
-  return ELRS_BLUETOOTH_ID.test(gp.id || '') && gp.axes.length > 4 ? ELRS_BLUETOOTH : 0;
-}
-
-/* The built in map for whatever is plugged in. */
-function defaultMapFor(gp, mode) {
-  const kind = defaultKindFor(gp, mode);
-  if (kind === ELRS_BLUETOOTH) {
-    return ELRS_BLUETOOTH_MAP;
-  }
-  return kind ? standardPadMap(mode) : DEFAULT_MAP;
-}
 
 export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
 
@@ -297,59 +206,6 @@ const GUESS = {
   LEVEL_STEP: 1 / 16,
 };
 
-/*
- * WHICH CHANNELS ARE BACKWARDS, AND WHY THIS HAD TO EXIST.
- *
- * The wizard works out a channel's direction from the direction the pilot
- * pushed while it was asking, which is right and is what makes it work on a
- * radio with reversed channels in its own setup: whichever way they push
- * when told "fully to the right" becomes right. It has one failure mode,
- * and a human will always be able to hit it. Push the wrong way once, at
- * one of six steps, and that channel is backwards for good.
- *
- *   bug-b0d085f0, gazgano: "cant calibrate the sticks correctly. some are
- *   inverted and there's no option to change it"
- *
- * The second half of that sentence is the bug. The mapping was write once:
- * nothing in the shell could show a pilot what had been recorded, and
- * nothing could change one channel of it. The only repair for a single
- * wrong push was the whole wizard again, with the same chance of the same
- * mistake, which is why the report reads as helpless as it does.
- *
- * So direction is a property of the MAPPING, stored beside it, and it can
- * be flipped one channel at a time from the check step without touching
- * anything the wizard learned. Every transmitter ever built has this
- * control and it is on the first page of the menu.
- */
-function cloneReverse(rev) {
-  const out = {
-    roll: false, pitch: false, yaw: false, throttle: false,
-  };
-  if (rev) {
-    for (const ch of IDENT_CHANNELS) {
-      out[ch] = Boolean(rev[ch]);
-    }
-  }
-  return out;
-}
-
-function cloneMap(map) {
-  return {
-    roll: { ...map.roll },
-    pitch: { ...map.pitch },
-    yaw: { ...map.yaw },
-    throttle: { ...map.throttle },
-    /* Optional, and null for every radio that has buttons. It is not a
-     * flight channel: readGamepad never looks at it. */
-    select: map.select ? { ...map.select } : null,
-    /* Always all four keys, present or not in what came in, so a map
-     * stored before this existed loads with every channel the right way
-     * round rather than with undefined holes. */
-    reverse: cloneReverse(map.reverse),
-    stored: Boolean(map.stored),
-  };
-}
-
 function snapshotAxes(gp) {
   const n = Math.min(gp.axes.length, 8);
   const out = new Array(n);
@@ -387,41 +243,6 @@ function shortPadName(id) {
     return `${name.slice(0, 42)}...`;
   }
   return name;
-}
-
-function loadPadChoice() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PAD_STORE_KEY) || 'null');
-    if (raw && raw.kind === 'none') {
-      return { kind: 'none' };
-    }
-    if (raw && raw.kind === 'pad' && typeof raw.id === 'string' && Number.isInteger(raw.index)) {
-      return { kind: 'pad', id: raw.id, index: raw.index };
-    }
-  } catch (e) {
-    /* Private mode or a corrupt blob: fly the old first-pad rule. */
-  }
-  return { kind: 'auto' };
-}
-
-function savePadChoice(choice) {
-  try {
-    if (!choice || choice.kind === 'auto') {
-      localStorage.removeItem(PAD_STORE_KEY);
-      return;
-    }
-    if (choice.kind === 'none') {
-      localStorage.setItem(PAD_STORE_KEY, JSON.stringify({ kind: 'none' }));
-      return;
-    }
-    localStorage.setItem(PAD_STORE_KEY, JSON.stringify({
-      kind: 'pad',
-      id: choice.id,
-      index: choice.index,
-    }));
-  } catch (e) {
-    /* private mode */
-  }
 }
 
 function maxAbsDelta(axes, rest) {
@@ -702,24 +523,6 @@ function noteThrottleSpring(c, spec, axes) {
   spec.sprung = true;
 }
 
-/*
- * Map a raw axis onto -1..1. pos is the raw value that means +1 on the
- * channel, neg is -1. Legacy maps store `full` as (pos - center) instead.
- */
-function mapCentered(v, spec) {
-  const center = spec.center;
-  const pos = spec.pos != null ? spec.pos : center + (spec.full || 1);
-  const neg = spec.neg != null ? spec.neg : center - (pos - center);
-  if (v >= center) {
-    const top = pos > center ? pos : neg;
-    const sign = pos > center ? 1 : -1;
-    return sign * (v - center) / ((top - center) || 1);
-  }
-  const bot = pos < center ? pos : neg;
-  const sign = pos < center ? 1 : -1;
-  return sign * (center - v) / ((center - bot) || 1);
-}
-
 function calTitle(c) {
   return {
     center: 'Centre',
@@ -988,6 +791,7 @@ function mouseShape(v, expo) {
 
 export class InputManager {
   constructor() {
+    migrateStickStorage();
     this.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
     this.queue = [];
     this.source = str('input.the_keyboard');
@@ -1179,64 +983,23 @@ export class InputManager {
   }
 
   loadMap() {
-    try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (raw) {
-        return cloneMap({ ...DEFAULT_MAP, ...JSON.parse(raw), stored: true });
-      }
-    } catch {
-      /* fall through to default */
-    }
-    return cloneMap({ ...DEFAULT_MAP, stored: false });
+    return loadStickMap();
   }
 
   /*
-   * Guarded, like loadMap above it and like savePadChoice and saveSettings.
-   * It was the one bare localStorage write left in the shell, and setItem
-   * throws in private mode and on a full quota. The throw came out of
-   * acceptCalibration, past main.js's `if (input.acceptCalibration())`, and
-   * stranded the pilot on the calibration screen: the map was already in
-   * memory and worked for that session, but the screen never closed and the
-   * only visible sign was a console error. Failing to PERSIST a mapping is
-   * a disappointment. Failing to leave the wizard is a broken page.
+   * A failed write still leaves the map stored = true and flying: it is
+   * calibrated, it just will not outlive this tab. The false return is what
+   * lets the shell tell the pilot so instead of claiming it was saved.
    */
   saveMap() {
     this.map.stored = true;
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify(this.map));
-      return true;
-    } catch (e) {
-      /*
-       * Private mode or no quota. `stored` STAYS TRUE, deliberately. It reads
-       * like a fact about localStorage and is used as a fact about the map:
-       * padNav in main.js only lets a radio drive the menus when it is set,
-       * and the readout says "a radio that is not calibrated yet" when it is
-       * not. Clearing it here would take stick navigation away from somebody
-       * who had just finished calibrating, and call their mapping uncalibrated
-       * while it was flying the quad. The map is calibrated. It simply will
-       * not survive a reload in this browser.
-       *
-       * BUT THE PILOT HAS TO BE TOLD, and for a long time they were not.
-       * This swallowed the throw whole and the shell went on to print
-       * "Stick mapping saved." over the top of it. The next visit had none
-       * of it, so the radio was uncalibrated again with no account of what
-       * had happened to the minute they spent: "Do not save the stcks
-       * movement after setupp of Radiomaster Pocket", filed five minutes
-       * after the same pilot's ticket about the step before this one.
-       *
-       * So the failure is returned rather than hidden. What it is NOT is a
-       * refusal: the mapping is live and the quad flies on it for as long
-       * as this tab is open, which is worth saying plainly and is better
-       * than throwing the calibration away over a storage quota.
-       */
-      return false;
-    }
+    return saveStickMap(this.map);
   }
 
   /*
    * IS THE BUILT IN GUESS ACTUALLY THIS RADIO'S STICK ORDER?
    *
-   * DEFAULT_MAP is not a placeholder, it is AETR: the order every real
+   * AETR_MAP is not a placeholder, it is AETR: the order every real
    * transmitter in joystick mode reports, and the order this page's own
    * advice tells a pilot to put their radio in. A pilot with such a radio
    * plugs it in, the sticks fly the quad correctly, and they never open the
@@ -1249,7 +1012,7 @@ export class InputManager {
    * There is a cheap observation that tells the two apart, and it is the
    * throttle. A THROTTLE DOES NOT SPRING BACK. On a Mode 2 transmitter the
    * left gimbal has no vertical centring spring, so a parked radio leaves
-   * that axis sitting at one end, and the axis DEFAULT_MAP calls the
+   * that axis sitting at one end, and the axis AETR_MAP calls the
    * throttle reads near -1 with nobody touching it. Every other axis on the
    * machine is spring centred and reads about zero. So if the guessed
    * throttle axis is parked off centre, the guess is describing a real
@@ -1464,12 +1227,12 @@ export class InputManager {
     if (!gp || this.map.stored) {
       return;
     }
-    const mode = defaultKindFor(gp, this.stickMode);
+    const mode = builtInKind(gp, this.stickMode);
     if (mode === this.defaultMode) {
       return;
     }
     this.defaultMode = mode;
-    this.map = cloneMap({ ...defaultMapFor(gp, this.stickMode), stored: false });
+    this.map = normaliseMap({ ...builtInMap(gp, this.stickMode), stored: false });
     this.mapSeenParked = false;
     this.guessSpan = null;
     this.guessYawAlive = false;
@@ -1865,7 +1628,7 @@ export class InputManager {
    * released, for the same reason.
    */
   /*
-   * Is the assigned menu switch thrown? mapCentered turns the raw axis into
+   * Is the assigned menu switch thrown? centredReading turns the raw axis into
    * the same -1..1 the gimbals use, so a switch assigned by flicking it up
    * reads positive when it is up, whichever way round the hardware sends it.
    * NAV_DEFLECT is the threshold the cursor already uses, so a switch and a
@@ -1875,7 +1638,7 @@ export class InputManager {
     if (!gp || !spec || !Number.isInteger(spec.axis) || spec.axis >= gp.axes.length) {
       return false;
     }
-    return mapCentered(gp.axes[spec.axis], spec) >= NAV_DEFLECT;
+    return centredReading(gp.axes[spec.axis], spec) >= NAV_DEFLECT;
   }
 
   /*
@@ -2100,8 +1863,8 @@ export class InputManager {
         throttle: null,
         select: null,
         /* Nothing is backwards until a pilot says so. The wizard learns
-         * direction from the direction they push. See cloneReverse. */
-        reverse: cloneReverse(null),
+         * direction from the direction they push. See reversals. */
+        reverse: reversals(null),
       },
     };
   }
@@ -2142,7 +1905,7 @@ export class InputManager {
       steps: ['confirm'],
       /* So the screen can say which of the two things it is. */
       checkOnly: true,
-      draft: cloneMap(this.map),
+      draft: normaliseMap(this.map),
     };
     return true;
   }
@@ -2158,7 +1921,7 @@ export class InputManager {
       return false;
     }
     if (!c.draft.reverse) {
-      c.draft.reverse = cloneReverse(null);
+      c.draft.reverse = reversals(null);
     }
     c.draft.reverse[channel] = !c.draft.reverse[channel];
     return true;
@@ -2190,7 +1953,7 @@ export class InputManager {
    * a calibration they had just spent a minute on.
    *
    * Nothing is lost by passing. `select` rides along in the draft and
-   * cloneMap keeps it null, which is what every radio with buttons already
+   * normaliseMap keeps it null, which is what every radio with buttons already
    * stores, and the hold gesture stays armed because it is armed on the
    * button count rather than on this. The pilot gets the same shell they
    * would have had, one press slower.
@@ -2251,10 +2014,10 @@ export class InputManager {
     if (!c.draft.roll || !c.draft.pitch || !c.draft.yaw || !c.draft.throttle) {
       return false;
     }
-    /* select rides along in the draft and cloneMap keeps it. A radio with
+    /* select rides along in the draft and normaliseMap keeps it. A radio with
      * buttons never assigned one and carries null, which is the same as
      * before this existed. */
-    this.map = cloneMap({ ...c.draft, stored: true });
+    this.map = normaliseMap({ ...c.draft, stored: true });
     /* New axes to watch, so the old axes' step is not this map's. */
     this.forgetAxisResolution();
     /* A calibrated map answers the guess's questions by existing, and the
@@ -2319,7 +2082,7 @@ export class InputManager {
         });
       }
       if (c.step === 'center' || c.step === 'sweep') {
-        channels = this.readGamepad(gp, defaultMapFor(gp, this.stickMode));
+        channels = this.readGamepad(gp, builtInMap(gp, this.stickMode));
       } else {
         channels = this.readGamepad(gp, c.draft);
         /*
@@ -2404,7 +2167,7 @@ export class InputManager {
       canReverse: Boolean(moving),
       /* Which channels this draft has turned round, so the screen can
        * show the state rather than only the control. */
-      reverse: cloneReverse(c.draft && c.draft.reverse),
+      reverse: reversals(c.draft && c.draft.reverse),
       /* Whether this is the wizard's last step or the check opened on its
        * own, which is the difference between Save and Cancel meaning keep
        * and discard a NEW mapping or an edit to the saved one. */
@@ -2570,40 +2333,7 @@ export class InputManager {
   }
 
   readGamepad(gp, map = this.map) {
-    const ax = (i) => (i < gp.axes.length ? gp.axes[i] : 0);
-    const dead = (v) => (Math.abs(v) < 0.012 ? 0 : v);
-    const clamp = (v) => Math.max(-1, Math.min(1, v));
-    const m = map;
-    const norm = (spec) => {
-      if (!spec || !Number.isInteger(spec.axis)) {
-        return 0;
-      }
-      return dead(clamp(mapCentered(ax(spec.axis), spec)));
-    };
-    let throttle = 0;
-    if (m.throttle && Number.isInteger(m.throttle.axis)) {
-      const t = (ax(m.throttle.axis) - m.throttle.low) / ((m.throttle.high - m.throttle.low) || 1);
-      throttle = Math.max(0, Math.min(1, t));
-    }
-    /*
-     * The pilot's own reversals, applied last, over whatever the wizard
-     * recorded. See cloneReverse. A centred channel negates; the throttle
-     * is already nought to one, so it subtracts from one, which keeps it
-     * in range without a second clamp.
-     *
-     * `v !== 0` rather than a bare negation, because -0 is a real value in
-     * JavaScript and poll() compares samples with !==. A reversed channel
-     * sitting at rest would otherwise emit a sample every poll, for ever,
-     * and call it a change.
-     */
-    const rev = m.reverse || {};
-    const flip = (v, on) => (on && v !== 0 ? -v : v);
-    return {
-      roll: flip(norm(m.roll), rev.roll),
-      pitch: flip(norm(m.pitch), rev.pitch),
-      yaw: flip(norm(m.yaw), rev.yaw),
-      throttle: rev.throttle ? 1 - throttle : throttle,
-    };
+    return readSticks(gp.axes, map);
   }
 
   readKeyboard(dtMs, springThr = false) {

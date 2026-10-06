@@ -976,6 +976,69 @@ SCENARIOS['polling, heartbeat, the queue bound'] = () => session({}, (s) => {
   s.run(500, 50, 'heartbeat');
 });
 
+/* ---------------------------------------------------------- the key rename */
+
+/*
+ * The stick map and the joystick choice moved from the upstream project's
+ * key names to this project's. A pilot's saved values have to come with
+ * them, once, and nothing may be lost when storage misbehaves.
+ */
+console.log('storage keys move to this project\'s names');
+{
+  const MAP = JSON.stringify({ roll: { axis: 0, center: 0, pos: 1, neg: -1 }, stored: true });
+  const PAD = JSON.stringify({ kind: 'pad', id: 'Kept radio', index: 0 });
+  const NEW_MAP = 'fdfpv.stick_map.v1';
+  const NEW_PAD = 'fdfpv.pad.v1';
+  const OLD_MAP = 'webfpv_stick_map_v1';
+  const OLD_PAD = 'webfpv.pad.v1';
+  const dump = () => JSON.stringify([...env.store].sort());
+
+  resetEnv({ [OLD_MAP]: MAP, [OLD_PAD]: PAD, unrelated: 'x' });
+  let im = new InputManager();
+  check('old keys only: both values arrive under the new names',
+    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD, dump());
+  check('and the old keys are gone', !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD), dump());
+  check('and nothing else is touched', env.store.get('unrelated') === 'x');
+  check('and the migrated map and choice are the ones in force',
+    im.map.stored === true && im.map.roll.pos === 1 && im.padSummary().calibrated === true);
+  const once = dump();
+  im = new InputManager();
+  check('running it again changes nothing', dump() === once, dump());
+
+  resetEnv({ [NEW_MAP]: MAP, [NEW_PAD]: PAD });
+  im = new InputManager();
+  check('new keys only: left exactly as they were', env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD
+    && env.store.size === 2, dump());
+
+  const OTHER = JSON.stringify({ kind: 'none' });
+  resetEnv({ [OLD_MAP]: 'stale', [OLD_PAD]: OTHER, [NEW_MAP]: MAP, [NEW_PAD]: PAD });
+  im = new InputManager();
+  check('both spellings: the new value wins and the old key is removed',
+    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD && env.store.size === 2, dump());
+
+  resetEnv({ [OLD_MAP]: MAP, [OLD_PAD]: PAD });
+  env.quota = true;
+  im = new InputManager();
+  check('storage refusing writes: the old keys are kept intact',
+    env.store.get(OLD_MAP) === MAP && env.store.get(OLD_PAD) === PAD && !env.store.has(NEW_MAP), dump());
+  check('and the pilot still flies their own map and radio this visit',
+    im.map.stored === true && im.map.roll.pos === 1, JSON.stringify(im.map.roll));
+  env.pads = [makePad({ id: 'Kept radio' }), makePad({ id: 'Other', index: 1 })];
+  check('including their joystick choice', im.firstGamepad() && im.firstGamepad().id === 'Kept radio');
+  env.quota = false;
+  im = new InputManager();
+  check('and the move happens on the next visit that can write',
+    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD && !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD), dump());
+
+  resetEnv({ [OLD_PAD]: PAD });
+  env.quota = true;
+  im = new InputManager();
+  env.quota = false;
+  im.setPadChoice({ kind: 'auto' });
+  check('a choice made after a failed move supersedes the old key',
+    !env.store.has(OLD_PAD) && !env.store.has(NEW_PAD) && new InputManager().padSummary().using === 'Keyboard', dump());
+}
+
 /* ------------------------------------------------------------------ the run */
 
 const got = {};
