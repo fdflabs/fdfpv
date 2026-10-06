@@ -39,7 +39,6 @@ scripts/itaipu-check.js
 scripts/lib/flightrig.js
 scripts/link-selftest.js
 scripts/memory-check.js
-scripts/mouse-shell.js
 scripts/music.js
 scripts/music-selftest.js
 scripts/noun-lint.js
