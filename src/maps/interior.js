@@ -51,6 +51,7 @@ import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
+import { loadAtlases } from './swiss2/vegetation/atlas.js';
 import { HALF, PLAY_HALF } from '../share/interior/frame.js';
 import { makeWorld, fetchWorldBytes } from '../share/interior/world.js';
 import { landEdit, PLACES, dirOf } from '../share/interior/places.js';
@@ -130,8 +131,10 @@ async function buildInterior(shell, progress, q, hours) {
   const ground = world.groundAt;
   progress(0.5, 'vegetation');
   await yieldToPaint();
+  /* swiss2's photographed bark, for the trunks. */
+  const atlases = await loadAtlases();
   const trees = buildTrees({
-    THREE, scene, quality: q.id, canopy, world, sunDir: look.sunDir,
+    THREE, scene, quality: q.id, canopy, world, sunDir: look.sunDir, bark: atlases.bark,
   });
   trees.setSun(look.sunIrradiance());
   progress(0.7, 'town');
@@ -230,6 +233,7 @@ async function buildInterior(shell, progress, q, hours) {
     dispose() {
       terrain.dispose();
       trees.dispose();
+      atlases.dispose();
       built.dispose();
       life.dispose();
       scene.userData.interior = null;
