@@ -28,12 +28,12 @@ jobs:
       - run: npm run lint:presets
       - run: npm run lint:catalog
       - run: npm run rates:selftest
-      - run: npm run dump:selftest
       - run: npm run lint:nouns
       - run: npm run lint:copy
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
+      - run: npm run dump:selftest
       # The firmware's name only in its Credits attribution: string tables,
       # script literals and the served pages (scripts/brand-lint.js).
       - run: npm run lint:bf
