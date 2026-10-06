@@ -445,7 +445,10 @@ export function buildLift(ctx) {
 
   /* The cabins, spaced round the loop, riding it at SPEED. */
   const count = Math.floor(rope.length / SPACING);
-  const cabins = instanced(cabinGeometry(), mat, count);
+  /* A material of their own, alike: one shared with the plain structures
+   * sent three back through getProgram at every switch between the
+   * instanced cabins and them (docs/PERF.md P8). */
+  const cabins = instanced(cabinGeometry(), look.parts('lift', { rim: 0.2, spec: 0.1, specWidth: 0.012 }), count);
   cabins.name = 'cabins';
   scene.add(cabins);
   const cabinSolids = [];
