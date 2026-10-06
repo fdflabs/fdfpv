@@ -47,6 +47,7 @@
     "check:headwall": "node scripts/headwall-check.js",
     "check:trees": "node scripts/tree-check.js",
     "check:colliders": "node scripts/collider-audit.js",
+    "registry:selftest": "node scripts/registry-selftest.js",
     "check:collide-audit": "node scripts/collide-audit-swiss2.js",
     "check:tree-impact": "node scripts/tree-impact-check.js",
     "crash:tree-nan": "node scripts/tree-nan-selftest.js",
