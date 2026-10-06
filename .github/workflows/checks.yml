@@ -43,6 +43,7 @@ jobs:
       - run: npm run pids:selftest
       - run: npm run version:check
       - run: npm run lap:selftest
+      - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run rooms:selftest

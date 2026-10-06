@@ -24,6 +24,7 @@
     "pids:selftest": "node scripts/pids-selftest.js",
     "perf:overlay": "node scripts/perf-overlay-check.js",
     "perf:latency": "node scripts/perf-latency.js",
+    "ratepresets:selftest": "node scripts/ratepresets-selftest.js",
     "perf:peers": "node scripts/perf-peers.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
