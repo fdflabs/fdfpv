@@ -324,10 +324,46 @@ const CROWN_FRAG_PARS = /* glsl */ `
    * camera: from a kilometre away the quadratic's two terms are a
    * thousand times its answer, and float rounding loses it. The nearer
    * root, behind p when p is inside, is where the ray came in. */
+  /* How much of the clumps a crown shows, by how many metres a pixel
+   * covers on it: none from a few hundred metres out, so the far tiers
+   * and every survey keep round 4's crowns. */
+  float crClumpK = 0.0;
+  /* Close up, the crown is heaped of clumps of leaves: a height field over
+   * the direction from the crown's middle, in metres along its skin
+   * (clumps 1.6 m across with sprays of 0.7 m on them), high where a clump
+   * bulges out and low in the hollows between. Nothing finer: a value
+   * noise at a leaf cluster's few decimetres printed its lattice as
+   * square blocks once the hollows and the light leaned on it. */
+  float crHeap(vec3 dir, vec3 c, float r) {
+    /* The crown's own offset into the noise, kept small, so the hash's
+     * fract keeps its bits. */
+    vec3 q = dir * r + fract(c * 0.0173) * 61.0;
+    return 0.65 * crN(q / 1.6) + 0.35 * crN(q / 0.7 + 7.1);
+  }
+  float crHeapH = 1.0;
+  vec3 crHeapT = vec3(0.0);
   bool crHit(vec3 p, vec3 c, vec2 rr, out vec3 nw, out float up) {
     vec3 rad = vec3(rr.x, rr.y, rr.x);
     vec3 u = (p - c) / rad;
-    rad -= 0.42 * crN(normalize(u + vec3(0.0, 1e-4, 0.0)) * 2.3 + c * 0.37);
+    vec3 dir = normalize(u + vec3(0.0, 1e-4, 0.0));
+    /* The lobes a few decimetres in, and close up the clumps' hollows: in
+     * all at most 0.58 m inside the crown canopyBlocks tests
+     * (scripts/canopy-los.js allows its drawn crowns 0.6 m), never out. */
+    float crIn = 0.42 * (1.0 - crClumpK) * crN(dir * 2.3 + c * 0.37);
+    if (crClumpK > 0.0) {
+      float h = crHeap(dir, c, rr.x);
+      /* The heap's slope across the skin, for the clumps' light. */
+      vec3 t1 = normalize(cross(dir, abs(dir.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+      vec3 t2 = cross(dir, t1);
+      float e = 0.25 / rr.x;
+      float h1 = crHeap(normalize(dir + t1 * e), c, rr.x);
+      float h2 = crHeap(normalize(dir + t2 * e), c, rr.x);
+      crHeapT = (t1 * (h1 - h) + t2 * (h2 - h)) / 0.25;
+      crHeapH = h;
+      float hollow = 1.0 - smoothstep(0.25, 0.75, h);
+      crIn += crClumpK * 0.58 * hollow;
+    }
+    rad -= crIn;
     vec3 o = (p - c) / rad;
     vec3 e = normalize(p - cameraPosition) / rad;
     float a = dot(e, e);
@@ -336,6 +372,8 @@ const CROWN_FRAG_PARS = /* glsl */ `
     if (d < 0.0) return false;
     vec3 h = o + e * ((-b - sqrt(d)) / a);
     nw = normalize(h / rad);
+    /* A clump's normal leans down its heap's slope. */
+    nw = normalize(nw - crHeapT * 0.6 * crClumpK);
     up = h.y;
     return true;
   }
@@ -346,6 +384,10 @@ const CROWN_FRAG_PARS = /* glsl */ `
 const CROWN_FRAG_START = /* glsl */ `
   float crUp = vCrUp;
   float crShadeK = 1.0;
+  #if CROWN_MODE < 2
+    float crPx = length(fwidth(vCrW));
+    crClumpK = 1.0 - smoothstep(0.18, 0.5, crPx);
+  #endif
   #if CROWN_MODE < 3
     vec3 crNW;
     if (!crHit(CROWN_RAY_AT, CROWN_CENTRE, CROWN_RADII, crNW, crUp)) discard;
@@ -381,9 +423,10 @@ const CROWN_FRAG_START = /* glsl */ `
  * and yellow on top) and its clumps of leaves while they are over a
  * pixel. */
 const CROWN_FRAG_COLOUR = /* glsl */ `
-  float crShade = mix(0.42, 1.0, smoothstep(-0.85, 0.75, crUp)) * crShadeK;
+  /* The hollows between clumps, where the leaves shade each other. */
+  float crCrease = mix(1.0, 0.6 + 0.4 * smoothstep(0.2, 0.7, crHeapH), crClumpK);
+  float crShade = mix(0.42, 1.0, smoothstep(-0.85, 0.75, crUp)) * crShadeK * crCrease;
   #if CROWN_MODE < 2
-    float crPx = length(fwidth(vCrW));
     float crK1 = 1.0 - smoothstep(0.4, 1.3, crPx);
     float crK2 = 1.0 - smoothstep(0.12, 0.45, crPx);
     vec4 crCG = crNG(vCrW * 0.62);
@@ -469,6 +512,34 @@ function crownMaterial(THREE, mode, uniforms) {
   return thermalKind(mat, 'vegetation');
 }
 
+/* The trunks' bark: swiss2's photographed bark (`bark` its { map,
+ * normalMap }), wrapped twice round a trunk and repeated up it every
+ * metre and a half whatever the trunk's height, so a tall trunk's bark is
+ * no coarser than a short one's. A grey brown under it, as the region's
+ * hardwoods are. Without `bark`, the plain grey brown. */
+function trunkMaterial(THREE, bark) {
+  if (!bark) {
+    return new THREE.MeshStandardMaterial({ color: 0x3a3631, roughness: 1, metalness: 0 });
+  }
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x666a6a, map: bark.map, normalMap: bark.normalMap, roughness: 1, metalness: 0,
+  });
+  mat.onBeforeCompile = (shader) => {
+    const anchor = '#include <uv_vertex>';
+    if (!shader.vertexShader.includes(anchor)) {
+      throw new Error(`interior trees: three's vertex shader has no ${anchor} to patch`);
+    }
+    shader.vertexShader = shader.vertexShader.replace(anchor, `${anchor}
+      {
+        vec2 trunkUv = vec2(uv.x * 2.0, uv.y * length(instanceMatrix[1].xyz) / 1.5);
+        vMapUv = trunkUv;
+        vNormalMapUv = trunkUv;
+      }`);
+  };
+  mat.customProgramCacheKey = () => 'interior-trunk';
+  return mat;
+}
+
 function chunkKey(i, j) {
   return i * 4096 + j;
 }
@@ -479,7 +550,7 @@ function chunkKey(i, j) {
  * `canopy` canopy.js makeCanopy's; `world` world.js makeWorld's.
  */
 export function buildTrees({
-  THREE, scene, quality, canopy, world,
+  THREE, scene, quality, canopy, world, bark,
 }) {
   const group = new THREE.Group();
   group.name = 'interior-trees';
@@ -504,7 +575,7 @@ export function buildTrees({
   const lit = makeLit();
   lit(ptsMat);
   lit(blockMat);
-  const trunkMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0x3a3631, roughness: 1, metalness: 0 }), 'vegetation');
+  const trunkMat = thermalKind(trunkMaterial(THREE, bark), 'vegetation');
   const midSeed = new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1);
   midSeed.setUsage(THREE.DynamicDrawUsage);
   midGeo.setAttribute('aSeed', midSeed);
