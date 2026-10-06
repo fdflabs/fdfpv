@@ -161,6 +161,7 @@ jobs:
       - run: npm run crash:tree-nan
       - run: npm run river:check
       - run: npm run builder:selftest
+      - run: npm run trackbuilder:golden
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
