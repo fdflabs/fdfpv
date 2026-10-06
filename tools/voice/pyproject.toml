@@ -8,7 +8,7 @@
 # watermarker, imports pkg_resources, which setuptools 81 removed; without
 # it perth imports as None and the model fails to construct.
 #
-# This file is part of WebFPVSimulator, licensed GPLv3 or later.
+# This file is part of the Paraguayan Drone Combat Simulator, licensed GPLv3 or later.
 
 [project]
 name = "fdfpv-war-voice"

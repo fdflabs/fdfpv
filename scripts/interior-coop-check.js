@@ -16,6 +16,9 @@
  *     seated in its role's aircraft (the Bramor), not the one it flew
  *   - both pilots' camera reports reach the room (each seat's reports
  *     and poses held), and the room counts both
+ *   - each pilot's guide speaks to that pilot's role: the launch brief
+ *     is Survey One's on A's screen and Survey Two's on B's, and the
+ *     objective line is on both (src/share/ops/guide.js, local per page)
  *   - B, over the bridge with its ball locked on it, captures it: the
  *     room records it for B, and when the host ends the match A's debrief
  *     shows it as the squad's capture credited to B, with no picture (it
@@ -24,20 +27,20 @@
  *     room to the title, nothing stored
  *   - no page errors on any page; pictures outside the repository
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { mkdtempSync } from 'node:fs';
@@ -144,6 +147,16 @@ try {
   check('roles: A holds the core role, B a tracker copy', heldA.includes('isr') && heldB.some((k) => String(k).startsWith('tracker')), JSON.stringify(rolesB.held));
   const bState = await B.evaluate("({ airframe: window.__ui.settings.airframe, flown: window.__ops.flown(), map: window.__map().id, mode: window.__craftState().mode, consent: window.__ui.settings.interiorConsent })");
   check('B is seated in its role\'s aircraft (the Bramor, not the interceptor it flew), on the Interior, in the air', bState.airframe === 'bramor2300' && bState.flown === 'bramor2300' && bState.map === 'interior' && bState.mode === 'flight' && bState.consent === true, JSON.stringify(bState));
+
+  /* Each pilot's guide, by the role that pilot flies. */
+  await A.until("window.__ops.guide().said.includes('int1-g-launch')", 20000).catch(() => {});
+  await B.until("window.__ops.guide().said.includes('int1-g-tr-launch')", 20000).catch(() => {});
+  const gA = await A.evaluate('window.__ops.guide()');
+  const gB = await B.evaluate('window.__ops.guide()');
+  check('per role: A (ISR) is briefed as Survey One, B (TRACKER) as Survey Two, neither the other\'s',
+    gA.said.includes('int1-g-launch') && !gA.said.includes('int1-g-tr-launch') && gB.said.includes('int1-g-tr-launch') && !gB.said.includes('int1-g-launch'),
+    JSON.stringify({ a: gA.said, b: gB.said }));
+  check('both screens show the objective line', /CLIMB ABOVE 500 M/.test(gA.line) && /CLIMB ABOVE 500 M/.test(gB.line), JSON.stringify({ a: gA.line, b: gB.line }));
 
   /* Both cameras at the room. */
   await B.sleep(2000);

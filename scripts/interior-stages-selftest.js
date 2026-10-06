@@ -31,6 +31,12 @@
  *              low pass alerting the camp (the early dispersal and its
  *              line), four trackers watching the four ways out: the third
  *              star and its flag
+ *   guide      what a screen is told to do in each stage of the solo run
+ *              (src/share/ops/guide.js): the objective line and its count
+ *              from the stage data, the target (the climb, the nearest
+ *              item still to capture, the corridor, the pair as told, the
+ *              camp, home), the guide's line per role, never a contact the
+ *              room has not told; and when a nudge is due
  *   fails      three hard thresholds (the soft fail) and the restart from
  *              its checkpoint, captures kept and stars capped at two; the
  *              boundary's warnings to the crossing pilot alone and the
@@ -40,20 +46,20 @@
  * The world is track WORLD's (src/share/interior/ops.js over the shared
  * ground, src/share/ops/missions.js worldFor).
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { readFileSync } from 'node:fs';
@@ -66,6 +72,9 @@ import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
+import {
+  NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
+} from '../src/share/ops/guide.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
 import {
   aimAt, check, finish, opsRoom,
@@ -103,6 +112,21 @@ console.log('data');
   for (const r of [M.lines.boundary.warning, M.lines.boundary.final, M.lines.fail, M.lines.take, M.lines.downed, ...M.lost.map((l) => l.radio)]) {
     used.add(r);
   }
+  /* The guide's: each objective's brief, and the nudges' and the first
+   * flight's shared lines (src/share/ops/guide.js names them). */
+  for (const st of stagesOf(M)) {
+    for (const o of st.objectives ?? []) {
+      [o.guide ?? []].flat().flatMap((g) => (typeof g === 'object' ? Object.values(g) : [g])).forEach((x) => used.add(x));
+    }
+  }
+  for (const k of ['next', 'search', 'contacts', 'lkp', 'home', 'climb', 'first-1', 'first-2', 'dist-500', 'dist-1k', 'dist-2k', 'dist-3k', 'dist-5k', 'dist-far']) {
+    used.add(`int-g-${k}`);
+  }
+  for (let h = 1; h <= 12; h += 1) {
+    used.add(`int-g-clock-${h}`);
+  }
+  check('every primary objective has a guide line for each of its roles', stagesOf(M).every((st) => (st.objectives ?? []).filter((o) => o.tier === 'primary')
+    .every((o) => M.roles.every((r) => briefOf({ objective: o }, r.id)))));
   const unknown = [...used].filter((x) => !table.has(x));
   const unused = [...table].filter((x) => !used.has(x));
   check('every radio line the mission names is in MISSIONS.md\'s tables', !unknown.length, unknown.join());
@@ -432,6 +456,31 @@ function home(e, c) {
   return until(e, () => e.view(0).state !== 'live', 30000, 'the end');
 }
 
+/* The guide as a screen reads it: this pilot's focus, target and line.
+ * `say` keeps the key and its numbers, so a line is checked by its key. */
+const guideSay = (k, v) => (v ? `${k}${JSON.stringify(v)}` : k);
+function guideOf(e, c, roles = ['isr'], view = e.view(0)) {
+  const here = [...c.p];
+  here.agl = c.p[2] - M.z0;
+  const poseOf = (k) => {
+    const p = W.poseOnRoute(k.route, e.clock - k.t0);
+    return p ? [p.x, p.y, p.z] : null;
+  };
+  const focus = focusOf(M, view, roles);
+  const target = targetOf(M, view, focus, here, poseOf);
+  return {
+    view, focus, target, line: goalLine(focus, target, here, guideSay), here,
+  };
+}
+/* Every target the guide named in the solo run, with the contacts as the
+ * room told them then: the quiet rule's evidence. */
+const GUIDED = [];
+function guided(e, c) {
+  const g = guideOf(e, c);
+  GUIDED.push({ target: g.target, contacts: g.view.contacts });
+  return g;
+}
+
 /* ------------------------------------------------------------- solo */
 
 console.log('solo: one pilot flies The Old War to the end');
@@ -443,9 +492,32 @@ const SOLO = {};
   check('one pilot: dealt the ISR', e.view(0).roles.held[e.seatOf(0)].join() === 'isr');
   check('stage 1 opens at the go: the launch card and the mission rule', e.view(0).stage?.id === 'M1_CP_START'
     && e.view(0).cards.map((x) => `${x.id}:${x.tier}`).join() === 'launch:primary,rule:rule');
+  const g1 = guided(e, c);
+  check('guide, stage 1: climb past 500 m, the line says it and how high now; Survey One\'s brief, Survey Two\'s for a tracker',
+    g1.focus?.card.id === 'launch' && g1.target?.kind === 'climb' && g1.target.m === 500 && g1.line === 'ops.goal.climb{"m":500,"now":0}'
+    && briefOf(g1.focus, 'isr') === 'int1-g-launch' && briefOf(g1.focus, 'tracker') === 'int1-g-tr-launch', JSON.stringify({ line: g1.line, target: g1.target }));
   launch(e, c);
   e.fly(e.clock + 300);
   check('over 500 m: stage 2, the telemetry lines', heard(e, 0, 'int1-s1-clean') && heard(e, 0, 'int1-s1-proceed'));
+  {
+    const g = guided(e, c);
+    const alpha = M.items.filter((x) => x.set === 'alpha').map((x) => x.id);
+    const nearestAlpha = alpha.map((id) => [id, Math.hypot(itemAt(e, id)[0] - c.p[0], itemAt(e, id)[1] - c.p[1])]).sort((a, b) => a[1] - b[1])[0][0];
+    check('guide, stage 2: Sector Alpha, the nearest item still to capture, its name and the card\'s count 0/3',
+      g.focus?.card.id === 'alpha' && g.target?.kind === 'item' && g.target.item === nearestAlpha
+      && g.line === `ops.goal.item{"item":"ops.interior.item.${nearestAlpha}"} · ops.goal.count{"n":0,"of":3}` && briefOf(g.focus, 'isr') === 'int1-g-alpha',
+      JSON.stringify({ line: g.line, target: g.target }));
+    /* That item captured (the view as the room would send it): the
+     * target moves on to another Alpha item and the count follows. */
+    const v = e.view(0);
+    const next = guideOf(e, c, ['isr'], {
+      ...v,
+      captures: [...v.captures, { item: nearestAlpha, grade: 'clean', seat: 1, t: e.clock }],
+      cards: v.cards.map((k) => (k.id === 'alpha' ? { ...k, progress: [1, 3] } : k)),
+    });
+    check('guide, stage 2: one captured, the target is another Alpha item and the line counts 1/3',
+      next.target?.kind === 'item' && next.target.item !== nearestAlpha && alpha.includes(next.target.item) && next.line.endsWith('ops.goal.count{"n":1,"of":3}'), next.line);
+  }
   const grades = survey(e, c);
   check('Alpha and Bravo captured clean', Object.values(grades).every((g) => g === 'clean'), JSON.stringify(grades));
   check('the first Alpha still: Ibarra\'s line to the ISR', heard(e, 0, 'int1-s2-hold'));
@@ -455,6 +527,12 @@ const SOLO = {};
   check('the motorcycle on the road: discovered, then classified civilian by the script', moto && moto.cls === 'civilian', JSON.stringify(moto));
   until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
   check('Bravo complete: stage 3, Charlie', e.view(0).stage.id === 'M1_CP_BRAVO_COMPLETE' && heard(e, 0, 'int1-s2-charlie'));
+  {
+    const g = guided(e, c);
+    check('guide, stage 3: Charlie, the corridor the stage waits on (where to fly, not where the pair is)',
+      g.focus?.card.id === 'charlie' && g.target?.kind === 'zone' && g.target.id === 'corridor' && g.line === 'ops.goal.zone' && briefOf(g.focus, 'isr') === 'int1-g-charlie',
+      JSON.stringify({ line: g.line, target: g.target }));
+  }
   SOLO.atStage3 = e.clock;
   anomaly(e, c);
   check('the discovery window ran out: hold, the bearing, a search area', heard(e, 0, 'int1-s3-bearing'));
@@ -462,6 +540,12 @@ const SOLO = {};
   const pair = e.view(0).contacts.filter((x) => x.group === 'pair');
   check('the pair: UNKNOWN on discovery (each one seen)', pair.some((x) => x.cls === 'unknown') && pair.every((x) => x.cls === 'unknown' || (x.cls === null && x.state === 'undiscovered')), JSON.stringify(pair.map((x) => [x.id, x.cls, x.state])));
   check('stage 4: observe, and the mission rule', e.view(0).cards.map((x) => x.id).join() === 'observe,rule');
+  {
+    const g = guided(e, c);
+    check('guide, stage 4: the pair as the room tells it, the follow brief per role',
+      g.focus?.card.id === 'observe' && ['contact', 'lkp', 'search'].includes(g.target?.kind) && g.line === `ops.goal.${g.target.kind}`
+      && briefOf(g.focus, 'isr') === 'int1-g-follow' && briefOf(g.focus, 'tracker') === 'int1-g-tr-follow', JSON.stringify({ line: g.line, target: g.target }));
+  }
   /* The soft path: eyes away past 20 s, then back. */
   e.fly(e.clock + 10000);
   lookAway(e, c, 26000);
@@ -490,6 +574,13 @@ const SOLO = {};
     && pre.camp.mark === MARKED[pre.dials.mark] && pre.opened.length === 0 && !pre.choices.tarp, JSON.stringify({ camp: pre.camp, opened: pre.opened, choices: pre.choices }));
   check('the view\'s contacts carry their look and size', pre.contacts.every((x) => Number.isFinite(x.size) && x.size > 0)
     && pre.contacts.find((x) => x.id === 'moto-road').look === 'motorcycle' && pre.contacts.filter((x) => x.kind === 'person').every((x) => x.look === 'person'));
+  {
+    const g = guided(e, c);
+    const campItems = M.items.filter((x) => x.set === 'camp').map((x) => x.id);
+    check('guide, stage 5: document the camp, an item of its set, the count 0/5',
+      g.focus?.card.id === 'document' && g.target?.kind === 'item' && campItems.includes(g.target.item) && g.line.endsWith('ops.goal.count{"n":0,"of":5}')
+      && briefOf(g.focus, 'isr') === 'int1-g-camp', JSON.stringify({ line: g.line, target: g.target }));
+  }
   const camp = documentCamp(e, c);
   const post = e.view(0);
   check('the tarp moved: the view says so, and the mark is opened to every side', post.choices.tarp === 'moved' && post.opened.includes('symbol'));
@@ -504,6 +595,15 @@ const SOLO = {};
   check('the required intel in: the dispersal, its exchange', e.r.ops.match.choices?.dispersal?.value === 'started' && heard(e, 0, 'int1-s5-understand'));
   check('the early alert line was not said', !heard(e, 0, 'int1-s5-early'));
   check('the return card shows once the camp is documented', e.view(0).cards.some((x) => x.id === 'rtb'));
+  {
+    const g = guided(e, c);
+    const pad = M.points['pista-cero'].at;
+    check('guide, the return: home to Pista Cero, its brief',
+      g.focus?.card.id === 'rtb' && g.target?.kind === 'home' && g.target.at[0] === pad[0] && g.target.at[1] === pad[1] && g.line === 'ops.goal.home'
+      && briefOf(g.focus, 'isr') === 'int1-g-rtb', JSON.stringify({ line: g.line, target: g.target }));
+  }
+  check('guide: no target the solo run was given is a contact the room had not told',
+    GUIDED.every(({ target, contacts }) => !target || !target.contact || contacts.some((k) => k.id === target.contact && k.cls)), JSON.stringify(GUIDED.map((x) => x.target && x.target.kind)));
   home(e, c);
   const v = e.view(0);
   SOLO.view = v;
@@ -512,6 +612,29 @@ const SOLO = {};
   check('the result carries the flag for the campaign', v.result.flags.M1_SYMBOL_CAPTURED === true && !v.result.flags.M1_CAMP_FULLY_DOCUMENTED);
   check('a solo ISR heard no tracker line', !e.cues(0).some((x) => [x.radio].flat().some((r) => typeof r === 'string' && r.startsWith('int1-tr-'))));
   check(`within the light: ${Math.round((v.endAt - v.goAt) / 60000)} min of ${Math.round(sunsetMs(M1_CLOCK) / 60000)} to sunset`, v.endAt - v.goAt < sunsetMs(M1_CLOCK));
+}
+
+/* ------------------------------------------------------------ nudges */
+
+console.log('guide: when a nudge is due, and what it says');
+{
+  const n = createNudger();
+  n.progress('a', 0);
+  n.spoke(0);
+  check(`no nudge before ${NUDGE_IDLE_MS / 1000} s of no progress`, !n.due(NUDGE_IDLE_MS - 1, false) && n.due(NUDGE_IDLE_MS, false));
+  n.nudged(NUDGE_IDLE_MS);
+  check('the next waits longer while nothing changes', !n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS, false) && n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS * 1.5, false));
+  n.progress('b', 50000);
+  check('progress resets the idle clock and the gap', !n.due(60000, false) && n.due(70000, false));
+  const far = createNudger();
+  far.progress('a', 0);
+  far.spoke(0);
+  check('far from the objective: due once the gap has passed, progress or not', far.due(NUDGE_GAP_MS, true) && !far.due(NUDGE_GAP_MS - 1, true));
+  check('the clock bearing off the nose: ahead 12, right 3, behind 6, left 9', clockOf([0, 0], [0, 100], 0) === 12 && clockOf([0, 0], [100, 0], 0) === 3
+    && clockOf([0, 0], [0, -100], 0) === 6 && clockOf([0, 0], [-100, 0], 0) === 9 && clockOf([0, 0], [100, 0], Math.PI / 2) === 12);
+  check('the distance band', distLine(400) === 'int-g-dist-500' && distLine(1200) === 'int-g-dist-1k' && distLine(2200) === 'int-g-dist-2k' && distLine(9000) === 'int-g-dist-far');
+  check('a nudge: what, the clock, how far; a climb is "keep climbing"', nudgeOf({ kind: 'item', at: [1000, 0] }, [0, 0], 0).join() === 'int-g-next,int-g-clock-3,int-g-dist-1k'
+    && nudgeOf({ kind: 'climb', at: null }, [0, 0], 0).join() === 'int-g-climb' && nudgeOf(null, [0, 0], 0, 'int1-g-alpha').join() === 'int1-g-alpha');
 }
 
 /* ------------------------------------------------------------- lag */

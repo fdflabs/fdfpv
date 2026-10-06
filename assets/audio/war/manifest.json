@@ -3843,6 +3843,1673 @@
     }
    }
   },
+  "int-g-climb.en": {
+   "text": "Keep climbing.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.11,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2490443567,
+     "heard": "keep climbing. I came died, to make four eighty, to as first the medit. I think,",
+     "wer": 7.0,
+     "extra": 14,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2269034805,
+     "heard": "Keep climbing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5006,
+     "sha256": "8c681d978e5ed147292145d2df5882c146cf20f02db78d33f54e44d929ec4184"
+    },
+    "mp3": {
+     "bytes": 4964,
+     "sha256": "6e0170f8049ff8a053d7a482283d36541009a252caece6ded7cad84c468214d9"
+    }
+   }
+  },
+  "int-g-climb.es": {
+   "text": "Sigan subiendo.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.21,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3208344996,
+     "heard": "Sigan subiendo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5352,
+     "sha256": "9918c90baa317a9c4c38bccc3b70c1c7c8253a7a1ee4d8320d1268792e5281aa"
+    },
+    "mp3": {
+     "bytes": 5348,
+     "sha256": "b279e42ec99cdda5110c8ffcc7bf13d0d2fb9c1d5444815929d64d370ca239c7"
+    }
+   }
+  },
+  "int-g-clock-1.en": {
+   "text": "One o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.07,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1914432897,
+     "heard": "One o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 260
+    },
+    {
+     "attempt": 1,
+     "seed": 1340999086,
+     "heard": "One o'clock. H. By. Mitres.",
+     "wer": 1.5,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2176676239,
+     "heard": "One o'clock. Ochling dissing about her, wanting dissame disspentids.",
+     "wer": 3.5,
+     "extra": 7,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2935932547,
+     "heard": "One o'clock?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 150
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4770,
+     "sha256": "36d27ed43fc1a5aa45c27437e9a7f200264558ce61a85ca8565a72c96c102981"
+    },
+    "mp3": {
+     "bytes": 4556,
+     "sha256": "8f58e4a131a4647908cd60bbe0b14eebfe51f42e810d4a9c58386cb9feab746a"
+    }
+   }
+  },
+  "int-g-clock-1.es": {
+   "text": "A la una.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.87,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1028224414,
+     "heard": "A la una.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 3917,
+     "sha256": "b9b9d88f2cf051957684247fdfc65a5c3befd06b36fe920bdd9b0406b7653cdb"
+    },
+    "mp3": {
+     "bytes": 3764,
+     "sha256": "c85043b6fda8ad83643773417dc427130915aaa57f9b3c450ae36a24be4772c6"
+    }
+   }
+  },
+  "int-g-clock-10.en": {
+   "text": "Ten o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.98,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2061894807,
+     "heard": "Ten o'clock. Will is after off the third and tiny and eight summonsation people help for a round.",
+     "wer": 8.0,
+     "extra": 16,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 775587363,
+     "heard": "10 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4420,
+     "sha256": "292b1489daed3a70d1fc9fa7a1ea2dd5a798b0113dbff26a70cb2670013d963f"
+    },
+    "mp3": {
+     "bytes": 4436,
+     "sha256": "6c440c46f583a41b7ff5220ecf5f86a41789d8d4be00e6d65aeffc3df4d2949a"
+    }
+   }
+  },
+  "int-g-clock-10.es": {
+   "text": "A las diez.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.89,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1217024387,
+     "heard": "a las 10.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4031,
+     "sha256": "9496b20f25d9efc99c4eeb361173873a17f540d7c27fde3a40ed8f650fd24c8f"
+    },
+    "mp3": {
+     "bytes": 3572,
+     "sha256": "ce92988b8595b087323b48b8e73dafd64113488897ac6acba3e11d74699eed82"
+    }
+   }
+  },
+  "int-g-clock-11.en": {
+   "text": "Eleven o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.08,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1214752468,
+     "heard": "11 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 710
+    },
+    {
+     "attempt": 1,
+     "seed": 2648412962,
+     "heard": "11 o'clock, a problem where it just specials, and being. Offering of love internative. An itching person has dad.",
+     "wer": 8.5,
+     "extra": 17,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3384105940,
+     "heard": "11 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 190
+    },
+    {
+     "attempt": 3,
+     "seed": 4186183245,
+     "heard": "11 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4933,
+     "sha256": "d627f761e87199c22577703ab2ba1d867b92f4f51839220130ba0ecf1d814560"
+    },
+    "mp3": {
+     "bytes": 4724,
+     "sha256": "b16a81bd6e8eca2c3779832a3f84aa161fbd1264b08a20b8451bf436ecf4661a"
+    }
+   }
+  },
+  "int-g-clock-11.es": {
+   "text": "A las once.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.93,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 487635371,
+     "heard": "A las 11.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4169,
+     "sha256": "1822ab08d29a24139b2988ca577127a3e64fa4b7ab63bcba42d1757e6be79407"
+    },
+    "mp3": {
+     "bytes": 3956,
+     "sha256": "3fd329625750f7e2c6217a6c2a045824daced069cd13ef6aa02074cfe7a3ad95"
+    }
+   }
+  },
+  "int-g-clock-12.en": {
+   "text": "Twelve o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.12,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3967636045,
+     "heard": "twelve o'clock, and wander in the sea of est, and thus service of timing poich and roldest,",
+     "wer": 7.5,
+     "extra": 15,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3907341303,
+     "heard": "Twelve o'clock, and when so, more, and when more fight us.",
+     "wer": 4.5,
+     "extra": 9,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3123757064,
+     "heard": "12 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5019,
+     "sha256": "058ba91a102acb604700a358d6b0cb6457bd65c669a1ada4802fbbf63b9dc087"
+    },
+    "mp3": {
+     "bytes": 4652,
+     "sha256": "a9de0ec34a71cc9bd276d499cfef139a723086dc468347416ae5b3fc14751b26"
+    }
+   }
+  },
+  "int-g-clock-12.es": {
+   "text": "A las doce.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.14,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3657120147,
+     "heard": "A las 12,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5140,
+     "sha256": "1d302f60964cf615819383db4b1b3fbc1eaff780255aac524d3df5eee54ca742"
+    },
+    "mp3": {
+     "bytes": 4940,
+     "sha256": "da895365c648557f3043b611ab5cc4ef2b5155aaa4f3ff2a1282092e5d6d2e8a"
+    }
+   }
+  },
+  "int-g-clock-2.en": {
+   "text": "Two o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.37,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3148009031,
+     "heard": "Two o'clock. I chew a...",
+     "wer": 1.5,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2213994734,
+     "heard": "Two o'clock. Apps and buyer.",
+     "wer": 1.5,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2214308742,
+     "heard": "Two o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 100
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5994,
+     "sha256": "870791532ae1756ab3cfe99ae75eedf9e8e43b540f1937fcd862027db579bb93"
+    },
+    "mp3": {
+     "bytes": 4796,
+     "sha256": "6faa956bb5c092bde3db1f80ed4a7f4213977b745423413a3549440264fa5045"
+    }
+   }
+  },
+  "int-g-clock-2.es": {
+   "text": "A las dos.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.13,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 616428384,
+     "heard": "A las 2.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5036,
+     "sha256": "c75541af4a11373df5cf7194f8c4eec83f151b7adb6d98b193192bebf55eb284"
+    },
+    "mp3": {
+     "bytes": 4628,
+     "sha256": "748d61dbf699df4d59c15ccc97c1c298ca20a8c7fa4a721bffc2a697016cbfbb"
+    }
+   }
+  },
+  "int-g-clock-3.en": {
+   "text": "Three o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.12,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3790543695,
+     "heard": "Three o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5026,
+     "sha256": "205d93f5e7800be3748cc422e616cd0b24f800ec7155c9520eddc76e873f80ff"
+    },
+    "mp3": {
+     "bytes": 4556,
+     "sha256": "bb7252a3da2d5a209fdcdc8c7d58a436498804ef28fc295e36a7caa8777bc522"
+    }
+   }
+  },
+  "int-g-clock-3.es": {
+   "text": "A las tres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.09,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 834774475,
+     "heard": "A las 3.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4868,
+     "sha256": "935053adf439ed2fdb3eb57e8c03ec24e325134d2ad9afe8599353bf94dd89ca"
+    },
+    "mp3": {
+     "bytes": 4532,
+     "sha256": "65b8089d2fa8c843b7b16ac53f0a08b1197233467998888c07ef60f969642461"
+    }
+   }
+  },
+  "int-g-clock-4.en": {
+   "text": "Four o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.37,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1516626942,
+     "heard": "Four o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6096,
+     "sha256": "c2077a170f0620f7e2fe1dd952a4b2b8c94b0fff562c6e5c333f436b763a844a"
+    },
+    "mp3": {
+     "bytes": 5348,
+     "sha256": "b26acfb20dc97777c20abede361f163e03554ec82090e5a913b97b5dfa39457b"
+    }
+   }
+  },
+  "int-g-clock-4.es": {
+   "text": "A las cuatro.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.11,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3217981384,
+     "heard": "A las 4.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4958,
+     "sha256": "cf83faa62268cbabdc62ad8195db35cb2109deff0d428c30f2c568b482e677ad"
+    },
+    "mp3": {
+     "bytes": 4556,
+     "sha256": "6e6e4e8b5e6b938403de92f28a29030f872ab6094ad5d53e6b4166d97daba3f7"
+    }
+   }
+  },
+  "int-g-clock-5.en": {
+   "text": "Five o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.07,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2793033328,
+     "heard": "Five o'clock. Enable even whenever. Then you have Thid.",
+     "wer": 3.5,
+     "extra": 7,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 432922369,
+     "heard": "5 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4784,
+     "sha256": "f9ffaa681cbce3aa8d265aaa44018c8889bd072233d50d3df69f5c8e8d1cdb23"
+    },
+    "mp3": {
+     "bytes": 4268,
+     "sha256": "2d58167447b354e0b75164061251bcb1d032f589eb25063b778161c9e282ae38"
+    }
+   }
+  },
+  "int-g-clock-5.es": {
+   "text": "A las cinco.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.9,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4015147355,
+     "heard": "A las 5.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4050,
+     "sha256": "2246afb5e23c157f6f6f637e855d9a08dec8e6f351f93ff469250da2f8dda4a1"
+    },
+    "mp3": {
+     "bytes": 3860,
+     "sha256": "1bddcdc668b26026c7bbff3115540cd600b8d6727b6483211f0ba9ad7600c8a6"
+    }
+   }
+  },
+  "int-g-clock-6.en": {
+   "text": "Six o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.35,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2742729080,
+     "heard": "Six o'clock. Bice.",
+     "wer": 0.5,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 208217033,
+     "heard": "Six o'clock. Eye for me, the strith.",
+     "wer": 2.5,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2227361610,
+     "heard": "6 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6083,
+     "sha256": "0faef086d75be2644dc684f1d1365008fcc1403c75e74a1785ac709829181459"
+    },
+    "mp3": {
+     "bytes": 5588,
+     "sha256": "35d58fa0c415fc78cf28e38bcd65b8b271fde9396af751d0b63b8a49fef8bb28"
+    }
+   }
+  },
+  "int-g-clock-6.es": {
+   "text": "A las seis.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.9,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2456628847,
+     "heard": "A las seis. A las seis.",
+     "wer": 1.0,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3622723470,
+     "heard": "a las seis.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4108,
+     "sha256": "effdd5b056fac7d858f844a0612d6e7cdaf0443248081e37eac764e5c534992a"
+    },
+    "mp3": {
+     "bytes": 3644,
+     "sha256": "e0a03c6ba6c69d18609db923f5cf836779083a0c825280c34e9a510788bb63aa"
+    }
+   }
+  },
+  "int-g-clock-7.en": {
+   "text": "Seven o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.05,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 746157322,
+     "heard": "7 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4742,
+     "sha256": "f0829d8c70165304c221a7a582461bd0df8963ece45892ac5307860b5541611b"
+    },
+    "mp3": {
+     "bytes": 4604,
+     "sha256": "725336fddbab21d2411b305b025a2e5fb136225de0cbe71f6a1a3dc411014cd6"
+    }
+   }
+  },
+  "int-g-clock-7.es": {
+   "text": "A las siete.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.97,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2857802030,
+     "heard": "A las 7.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 1080
+    },
+    {
+     "attempt": 1,
+     "seed": 2862818948,
+     "heard": "A las 7.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4370,
+     "sha256": "90091634badd071c82b93b877cd5e9bd288fadf6f91e10a1480d237a3a228cab"
+    },
+    "mp3": {
+     "bytes": 3956,
+     "sha256": "45e55115c75f68e0d0c19df5b1da9208de699b3416f66e8a94885f31ac4ec20d"
+    }
+   }
+  },
+  "int-g-clock-8.en": {
+   "text": "Eight o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.86,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3483473901,
+     "heard": "eight o'clock, and reel it the talks persons in steered.",
+     "wer": 4.0,
+     "extra": 8,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3200798320,
+     "heard": "8 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 3913,
+     "sha256": "2cd7b832177d6bf23429e9ec0713be5c6ec996ad70798b770d9d8ff68da42411"
+    },
+    "mp3": {
+     "bytes": 3812,
+     "sha256": "17787ece70253da47f4c310d65093db20ec03a6db7e299cd57c36fcd3f4b4322"
+    }
+   }
+  },
+  "int-g-clock-8.es": {
+   "text": "A las ocho.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.96,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3813437278,
+     "heard": "A las 8.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4353,
+     "sha256": "2b3f442c4176b965ff00aa8ddabaea9743812497860b4a970fcf7c07290eed7d"
+    },
+    "mp3": {
+     "bytes": 4100,
+     "sha256": "0b481821b759f80e470bc1e31a1639c2d7cfb409841c495cb834ad59874860b5"
+    }
+   }
+  },
+  "int-g-clock-9.en": {
+   "text": "Nine o'clock.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.13,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2823812976,
+     "heard": "nine o'clock, as was, O'Connor.",
+     "wer": 1.5,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1032384695,
+     "heard": "Nine o'clock. Will you properly bit for Inkly and acted? Well, well, we reasoned the first tie. Weaver year.",
+     "wer": 8.5,
+     "extra": 17,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3619380643,
+     "heard": "9 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 380
+    },
+    {
+     "attempt": 3,
+     "seed": 83581040,
+     "heard": "Nine o'clock? Unplaces.",
+     "wer": 0.5,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 3426211707,
+     "heard": "Nine o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5121,
+     "sha256": "2306f17af031e9dcf6e34fd22ebb434d34d239282b08448d24f18b7a02a37bee"
+    },
+    "mp3": {
+     "bytes": 4892,
+     "sha256": "b9e8a7aefd527b011ce815878769fcc21f708bbf7b803d45f37f61a628cff3f7"
+    }
+   }
+  },
+  "int-g-clock-9.es": {
+   "text": "A las nueve.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.92,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1051110439,
+     "heard": "A las 9.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4184,
+     "sha256": "2af068b12362b316318c0cf4e8103ee223191a5a6b5081e8406e637e544b1255"
+    },
+    "mp3": {
+     "bytes": 3788,
+     "sha256": "1b43f7b39daaf104342b9cc7fb4a3b53c06e68b75b8d78158926d18e91819c47"
+    }
+   }
+  },
+  "int-g-contacts.en": {
+   "text": "Your contacts.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.51,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3063493266,
+     "heard": "Your contacts. Your contacts.",
+     "wer": 1.0,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3144556850,
+     "heard": "Your contacts. Your contacts.",
+     "wer": 1.0,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3952787365,
+     "heard": "Your contacts. It's Wyatt. It's problem of any evalash you can only funds with a decade.",
+     "wer": 7.0,
+     "extra": 14,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2395849911,
+     "heard": "Your contacts.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 460
+    },
+    {
+     "attempt": 4,
+     "seed": 2263364844,
+     "heard": "Your contacts.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6769,
+     "sha256": "bca6be3ce5dc6290f294641c157b8ca6b4fe0a9a50a9d1a61206fc8507b20f82"
+    },
+    "mp3": {
+     "bytes": 6452,
+     "sha256": "ac4d2ab74df415a50a914022a7defc21dd921e8a2ec0ef9c51d703855f771a23"
+    }
+   }
+  },
+  "int-g-contacts.es": {
+   "text": "Sus contactos.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.27,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2323672825,
+     "heard": "sus contactos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 2070
+    },
+    {
+     "attempt": 1,
+     "seed": 2819940302,
+     "heard": "Sus contactos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5646,
+     "sha256": "8eb0a69703f04052341e70b5f1d11f97b1fb951b99ee33425793c982c73a0a93"
+    },
+    "mp3": {
+     "bytes": 5300,
+     "sha256": "d5d154936f32fbff65c6e5151799451d882b1623f6e879d666a2dfcbf2ac9648"
+    }
+   }
+  },
+  "int-g-dist-1k.en": {
+   "text": "About one kilometre away.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.67,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 160606840,
+     "heard": "About one kilometer away.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 820
+    },
+    {
+     "attempt": 1,
+     "seed": 2486916052,
+     "heard": "about one kilometer away. About one",
+     "wer": 0.5,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 980714086,
+     "heard": "about one kilometer away, and is about a girl, a boist hout.",
+     "wer": 2.0,
+     "extra": 8,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2187579499,
+     "heard": "about one kilometer away, and EU.",
+     "wer": 0.5,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 456035011,
+     "heard": "about one kilometer away. About one",
+     "wer": 0.5,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 1162316833,
+     "heard": "about one kilometer away.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7570,
+     "sha256": "b7b35c0557e40ac0b21d5fb5052d6df7e8a7b50152417693eafec60433e9ee5f"
+    },
+    "mp3": {
+     "bytes": 7436,
+     "sha256": "c55f40edd75e8cbdaf3a87c44cc96d56b5c567a4c0eebd25e6befc9760fcfb46"
+    }
+   }
+  },
+  "int-g-dist-1k.es": {
+   "text": "A cerca de un kilómetro.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.36,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3726336101,
+     "heard": "a cerca de un kilómetro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6176,
+     "sha256": "fb09cbeb5a4a71645d41428b5b77c6cfdf80f85f68602e644ca7e880f2983840"
+    },
+    "mp3": {
+     "bytes": 5684,
+     "sha256": "60883fb2ecdd443c4ff5c64cdd8e44f62bb1145ab6ed05df3e6f596ce99fe05a"
+    }
+   }
+  },
+  "int-g-dist-2k.en": {
+   "text": "About two kilometres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.73,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 774410563,
+     "heard": "about two kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7817,
+     "sha256": "e12732486ed23a6683b93195b5115991ef1c141f98230dcb842d96077379cc9a"
+    },
+    "mp3": {
+     "bytes": 7580,
+     "sha256": "35d7a7d49b7578e35838112a170e2f17b23b20e62260bb089a7cfb82346ce0f2"
+    }
+   }
+  },
+  "int-g-dist-2k.es": {
+   "text": "A unos dos kilómetros.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.3,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 66382079,
+     "heard": "a unos 2 kilómetros,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5918,
+     "sha256": "2b9b19ed6549d484180a63b2276bae173702ec1c75e165f70d2bb5bca460f275"
+    },
+    "mp3": {
+     "bytes": 5660,
+     "sha256": "37aaf20d849c3b868224b5dfbf042a09d15e2e1b33aa52f53d2db9101bacfaa5"
+    }
+   }
+  },
+  "int-g-dist-3k.en": {
+   "text": "About three kilometres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.89,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 789716070,
+     "heard": "About three kilometers. About three kilometer.",
+     "wer": 1.0,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2593183874,
+     "heard": "about three kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8490,
+     "sha256": "4251e3d642568f5fe4568edbc51a29d5687a5ce31933d3d9e458715531bda126"
+    },
+    "mp3": {
+     "bytes": 8876,
+     "sha256": "c49009969bd85b2d33671690385a1b008870e229d75aa899d9fef5b6fbd63f62"
+    }
+   }
+  },
+  "int-g-dist-3k.es": {
+   "text": "A unos tres kilómetros.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.81,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2075769669,
+     "heard": "A unos 3 kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8202,
+     "sha256": "5dc60eb449059ae4f70e06342aa06aa68b8986e285c5b82b96565daf3a055e22"
+    },
+    "mp3": {
+     "bytes": 7796,
+     "sha256": "c9df62ad3398e6b8cde86da8b623a9be7be6397789f6a5c4418721426471ab72"
+    }
+   }
+  },
+  "int-g-dist-500.en": {
+   "text": "About five hundred metres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.67,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4251812763,
+     "heard": "about 500 meters,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7640,
+     "sha256": "1268f2675d6b7686285b20114f01c01567c0468439e5e9d11ee2ad99ea2a9bff"
+    },
+    "mp3": {
+     "bytes": 7844,
+     "sha256": "eb4af444c4d561fc58e804c20f66a0df9d3291c1e433af3fb4d76d6ffc21f85e"
+    }
+   }
+  },
+  "int-g-dist-500.es": {
+   "text": "A unos quinientos metros.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.6,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 161876362,
+     "heard": "...a unos 500 metros...",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7215,
+     "sha256": "f685fa5ab13f4dc9fb1c299bf109a77045069becc681223ce590130dada77225"
+    },
+    "mp3": {
+     "bytes": 7172,
+     "sha256": "4fe659f5dfdc17b44759ea8cd69f13225e1bf3fbb71f2411bc99b3d412e633df"
+    }
+   }
+  },
+  "int-g-dist-5k.en": {
+   "text": "About five kilometres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.65,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2369250961,
+     "heard": "About five kilometers. About five",
+     "wer": 0.667,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2531151226,
+     "heard": "about five kilometers,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7428,
+     "sha256": "6acd6866dce166908e768a247c44000a742ee1f5f24960718a992b91e5822618"
+    },
+    "mp3": {
+     "bytes": 7532,
+     "sha256": "ba1e738aa876d592e95a2b9e7586119b48e39424dde8a22b586da2f1a7c12e14"
+    }
+   }
+  },
+  "int-g-dist-5k.es": {
+   "text": "A unos cinco kilómetros.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.39,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 223563580,
+     "heard": "A unos cinco kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6265,
+     "sha256": "57662a9652648d8f3db65f0b8626c3988c4e4c11217fcfd79f77fc32544e4b62"
+    },
+    "mp3": {
+     "bytes": 6596,
+     "sha256": "5d5dab15c8991a5e5abca2bcec81545d9fc807af865886b380b42353574de7c7"
+    }
+   }
+  },
+  "int-g-dist-far.en": {
+   "text": "More than six kilometres.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.79,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1365420280,
+     "heard": "more than six kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8089,
+     "sha256": "ef1a8d2524dc591c1563111eef9b6bd8c5cc059ed97891ce74e4bfdc643b1547"
+    },
+    "mp3": {
+     "bytes": 8684,
+     "sha256": "ec98fa08c6634467a1672927dd4180c7d33750d15d7e0af93855e90dc45bd637"
+    }
+   }
+  },
+  "int-g-dist-far.es": {
+   "text": "A más de seis kilómetros.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.53,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4274624605,
+     "heard": "a más de 6 kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6923,
+     "sha256": "2d1216276abe8da4bb5f3ffcb493849a6cb9075dadabd76cd65dee366a5da322"
+    },
+    "mp3": {
+     "bytes": 6548,
+     "sha256": "565fd0562bf6e756f8d74f01e26e2b559beae05361533912274d7913e6aa1c2a"
+    }
+   }
+  },
+  "int-g-first-1.en": {
+   "text": "First flight with us. Launch, climb, then work through the camera ball.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.5,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 466987815,
+     "heard": "First flight with us. Launch, climb, then work through the camera ball.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19998,
+     "sha256": "5d0f5b25e0a30ff9104a0c6093d8bd44a9cc95d2982f20d45ff05281d02c65ad"
+    },
+    "mp3": {
+     "bytes": 19028,
+     "sha256": "7dea81d690c4284bcbf7fe9d98b9ce1ce520aa536b0b3ed1ff87159872e3d3b5"
+    }
+   }
+  },
+  "int-g-first-1.es": {
+   "text": "Primer vuelo con nosotros. Lancen, suban y trabajen con la cámara.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.27,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1239909372,
+     "heard": "primer vuelo con nosotros, lancen, suban y trabajen con la cámara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14956,
+     "sha256": "a7efc8de2c031242120e2dd04e9cdfaf6f64482a899c967cc2914da1b307e0b5"
+    },
+    "mp3": {
+     "bytes": 15596,
+     "sha256": "dad62c17db9d73bdfc37aa0b4d0b40e1b909a6c4037531799e376871db79b69c"
+    }
+   }
+  },
+  "int-g-first-2.en": {
+   "text": "When I ask for something, centre it in the box and capture.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.48,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 91400141,
+     "heard": "When I ask for something, center it in the box and capture.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15782,
+     "sha256": "b8b42a85009ec2ee3b4bd72ffa089aafac9cb7ffe491a6ee9428f11c8b954d06"
+    },
+    "mp3": {
+     "bytes": 16508,
+     "sha256": "777f5d17175d14286eb866c3e525716f16376695a7b03d072098d7d7cb20eadc"
+    }
+   }
+  },
+  "int-g-first-2.es": {
+   "text": "Cuando les pida algo, céntrenlo en el recuadro y capturen.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.39,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1742238722,
+     "heard": "Cuando les pida algo, céntrenlo en el recuadro y capturen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15256,
+     "sha256": "55360b828ae6c9e45b19632a1170a5d4c7372b1631350f884bb9b4fce050d788"
+    },
+    "mp3": {
+     "bytes": 14876,
+     "sha256": "dc6fdb73b442803a6dcccd200dc4219b5b60c67e302a7ceec008aca735d2956a"
+    }
+   }
+  },
+  "int-g-home.en": {
+   "text": "Home strip.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.98,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3875919646,
+     "heard": "Home Strip",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4423,
+     "sha256": "3d5d6e7e46f69af813e6c4269e6eed4556f3a08d57b5b4c92380fa81b80ce53e"
+    },
+    "mp3": {
+     "bytes": 4244,
+     "sha256": "46c1b22cdcdf66abf60f83b23dbc797f334b2b5ceb5a40c010b9cba8bf615695"
+    }
+   }
+  },
+  "int-g-home.es": {
+   "text": "La pista.",
+   "speaker": "ibarra-guide",
+   "seconds": 0.79,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1765545353,
+     "heard": "La pista.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 3534,
+     "sha256": "c44ebc8b93e8d7046a7ca44e78b2701dbbc52ba35364ff1eda7736111efe5a02"
+    },
+    "mp3": {
+     "bytes": 3164,
+     "sha256": "e0640bb369a4cbb84a052a525b6008d5a1178ca7f12a61af4347e92b54b0dfde"
+    }
+   }
+  },
+  "int-g-lkp.en": {
+   "text": "Last known position.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.46,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2083445612,
+     "heard": "Last known position.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6616,
+     "sha256": "5c17d250edd8e47f794443971a20d46c928d93046e6ba0264b968fdf941ffd96"
+    },
+    "mp3": {
+     "bytes": 6428,
+     "sha256": "43bb9e0b1a44e718d97e3387c689dd1cf27349992f71a39b9abfca39cf370f90"
+    }
+   }
+  },
+  "int-g-lkp.es": {
+   "text": "Última posición conocida.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.66,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 827438226,
+     "heard": "Última posición conocida.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7589,
+     "sha256": "118c6d06dca1366f1a8df820680404ce46e3ee9ecf5acd8f927ce262605243f9"
+    },
+    "mp3": {
+     "bytes": 7532,
+     "sha256": "962fae5b7ebbf9d8e7a080ebdbbd1ecdce919a0d9d7ca1e981302b8ac374a077"
+    }
+   }
+  },
+  "int-g-next.en": {
+   "text": "Next objective.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.51,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2824640574,
+     "heard": "Next objective. Manus is always to stay to her first.",
+     "wer": 4.0,
+     "extra": 8,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 678961522,
+     "heard": "Next objective.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6832,
+     "sha256": "b9c68c02dc4c7549758c73d0968ca2cd8d34924fc64eb02cecf352a4302eea03"
+    },
+    "mp3": {
+     "bytes": 7124,
+     "sha256": "6f3104f9619d3f0fff40542a0856e1d61689df266393994d88c0af5676bec641"
+    }
+   }
+  },
+  "int-g-next.es": {
+   "text": "Próximo objetivo.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.3,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2804793807,
+     "heard": "próximo objetivo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5783,
+     "sha256": "a96f1cedcf75b648c30055dd7e1027bc39139ee4b8bd60e6e68c5753452f555d"
+    },
+    "mp3": {
+     "bytes": 5492,
+     "sha256": "df39ded273c03d1ec406e2a3a96aee6f4dcc1af79aac2402652e014b1cb511f6"
+    }
+   }
+  },
+  "int-g-search.en": {
+   "text": "Search area.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.13,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1757206597,
+     "heard": "Search area.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 90
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5100,
+     "sha256": "ebeffd0dd68b39c4b748d6425634fb027fcff9a03e26d1f33efa2b1b39e1cedc"
+    },
+    "mp3": {
+     "bytes": 5348,
+     "sha256": "6b9ab40f0c168f93c3a23379d0f5f30b60123a3e177dec585b9cafe8bc549585"
+    }
+   }
+  },
+  "int-g-search.es": {
+   "text": "Área de búsqueda.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.2,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2126928738,
+     "heard": "Área de búsqueda",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5449,
+     "sha256": "f579da24888a9f82b3886096a4147091e704056974ffa6e9d3684a78658a6f65"
+    },
+    "mp3": {
+     "bytes": 4748,
+     "sha256": "d7b7a435751778eb846a7251923abe5a3135e8029438f41e5c84f4df94f78579"
+    }
+   }
+  },
   "int-lost-aircraft.en": {
    "text": "We lost that aircraft. Bring up another.",
    "speaker": "ferrer",
@@ -4038,6 +5705,572 @@
     "mp3": {
      "bytes": 15836,
      "sha256": "2ec4f8cc510e431f7da165f733fcdf10cbf98468e744363492f997d3cafff5b7"
+    }
+   }
+  },
+  "int1-g-alpha.en": {
+   "text": "Sector Alpha. The bridge, the road and the sheds. Centre each one in the box and capture.",
+   "speaker": "ibarra-guide",
+   "seconds": 5.97,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 253989449,
+     "heard": "Sector Alpha. The bridge, the road, and the sheds. Center each one in the box and capture.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26678,
+     "sha256": "4119f5eb30856d8f92cdc3c387f0a2b9a9e3a4b2d928ddddf8a8a7331caf17f3"
+    },
+    "mp3": {
+     "bytes": 26804,
+     "sha256": "72129535864359e4c1c06e752aaaf76ed883ebe450e5e0d1a33940f3fc300478"
+    }
+   }
+  },
+  "int1-g-alpha.es": {
+   "text": "Sector Alfa. El puente, el camino y los galpones. Centren cada uno en el recuadro y capturen.",
+   "speaker": "ibarra-guide",
+   "seconds": 5.55,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2828738958,
+     "heard": "sector alfa, el puente, el camino y los jalpones, centren cada uno en el recuadro y capturen",
+     "wer": 0.059,
+     "extra": 0,
+     "missing": [
+      "galpones"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3335871341,
+     "heard": "Sector Alfa, el puente, el camino y los alpones, centren cada uno en el recuadro y capturen.",
+     "wer": 0.059,
+     "extra": 0,
+     "missing": [
+      "galpones"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3068476530,
+     "heard": "Sector Alfa, El Puente, El Camino y Los Galpones. Centren cada uno en el recuadro y capturen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24963,
+     "sha256": "bbf1b610e6bcec40d403d473196f515d771c6f92b88ac5d21b028f19b48f2dd5"
+    },
+    "mp3": {
+     "bytes": 24260,
+     "sha256": "bb4830499713e763bb099df4777e070fc7f73d7c358730d62160c27e9764d5f6"
+    }
+   }
+  },
+  "int1-g-bravo.en": {
+   "text": "Sector Bravo. The colonia from above, then the river crossing.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.47,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1619305442,
+     "heard": "Sector Bravo. The colonia from above, then the river crossing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19932,
+     "sha256": "9a458af95f0aec24313e1c5be9161ce3e47696029b6e23130bf3d9115def2cc5"
+    },
+    "mp3": {
+     "bytes": 19028,
+     "sha256": "e36927bb222eeb2a51649ef8ba4fc7927cc3176c3c482e68762437253ee61911"
+    }
+   }
+  },
+  "int1-g-bravo.es": {
+   "text": "Sector Bravo. La colonia desde arriba, después el cruce del arroyo.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.27,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 245575773,
+     "heard": "Sector Brau, la colonia desde arriba, después el cruce del arroyo",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "bravo"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2435320444,
+     "heard": "Sector Brau, la colonia desde arriba, después el cruce del arroyo.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "bravo"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3764007705,
+     "heard": "Sector Bravo, la colonia desde arriba, después el cruce del arroyo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14828,
+     "sha256": "6ff4ca32b2072035e50e0dcbc2c4273cc6e3b44102e53797489d8fe892fb3739"
+    },
+    "mp3": {
+     "bytes": 15188,
+     "sha256": "2cad1940079559ff4070eca2f2ab38ea3bb6235413027e9f4cda512ca5306afc"
+    }
+   }
+  },
+  "int1-g-camp.en": {
+   "text": "Document the camp from standoff. Shelters, motorcycles, antenna, people, and the way in.",
+   "speaker": "ibarra-guide",
+   "seconds": 5.85,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 764605683,
+     "heard": "Document the camp from standoff. Shelters, motorcycles, antenna, people, and the way in.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 370
+    },
+    {
+     "attempt": 1,
+     "seed": 415511683,
+     "heard": "Document the camp from standoff, shelters, motorcycles, antenna, people, and the way in. I'me right,",
+     "wer": 0.154,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3666571356,
+     "heard": "Document the camp from standoff. Shelters, motorcycles, antenna, people and the way in,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26166,
+     "sha256": "7432d879d97c3eee3102bedf083dd4a4eb634e0765073cb3cec7bf4d558ad7a6"
+    },
+    "mp3": {
+     "bytes": 25964,
+     "sha256": "3f80f90b67c8a906e27c300f87e2f4a8f7056f65fa6dae674184aaeedbee75c9"
+    }
+   }
+  },
+  "int1-g-camp.es": {
+   "text": "Documenten el campamento a distancia. Refugios, motos, antena, personas y el acceso.",
+   "speaker": "ibarra-guide",
+   "seconds": 5.07,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 966267521,
+     "heard": "Documenten el campamento a distancia, refugios, motos, antena, personas y el acceso.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22956,
+     "sha256": "8d8480bb511dd6c5da043a6fa3ab730bfbf572bd4c9899dcb2521bd7c90a5ee1"
+    },
+    "mp3": {
+     "bytes": 22028,
+     "sha256": "cb066dd925c043df9181b6dc1a21be8fd2bfbfd15df97013ebcb19dbc45848c7"
+    }
+   }
+  },
+  "int1-g-charlie.en": {
+   "text": "Charlie. Fly to the marker and watch the tree line for movement.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.75,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3032216698,
+     "heard": "Charlie. Fly to the marker and watch the tree line for movement.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16721,
+     "sha256": "54b81b8af12184c9832d19e0b147178170475854b686dc90f0fef25850771d7f"
+    },
+    "mp3": {
+     "bytes": 16604,
+     "sha256": "e88adb7b02619788ed74b944c44047932957a805eaaafd1fc07c0037a52b629c"
+    }
+   }
+  },
+  "int1-g-charlie.es": {
+   "text": "Charlie. Vuelen hasta la marca y vigilen la línea de árboles.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.31,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 938832273,
+     "heard": "Charlie. Vuelen hasta la marca y vigilen la línea de árboles",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15014,
+     "sha256": "5b47336aa91608a9eae28a1aff7f0ec14d536e9fc854a26a09bde8489e15065b"
+    },
+    "mp3": {
+     "bytes": 14300,
+     "sha256": "2ebb6c7a2c6c4b9d9f736aecba6694d36c1b4dfe6faf1e67dd9dc2db58f47fab"
+    }
+   }
+  },
+  "int1-g-follow.en": {
+   "text": "Keep them in frame from high up. If you lose them, search the circle.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.53,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2823494533,
+     "heard": "Keep them in frame from high up. If you lose them, search the circle.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20014,
+     "sha256": "4aeb01350673edc77c364fbdab858888b9dcba117d3120bb6e5d9f3f51738542"
+    },
+    "mp3": {
+     "bytes": 19916,
+     "sha256": "50910e91fd375b27d4e71619aa9e47ce3569960f4001526ad9bce1d3273720ba"
+    }
+   }
+  },
+  "int1-g-follow.es": {
+   "text": "Manténganlos en cuadro desde lo alto. Si los pierden, busquen en el círculo.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.3,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2766380826,
+     "heard": "Mantengan los encuadros de 0 altos. Si los pierden, busquen en el círculo.",
+     "wer": 0.462,
+     "extra": 0,
+     "missing": [
+      "mantenganlos",
+      "cuadro",
+      "desde",
+      "alto"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3543136292,
+     "heard": "Manténgalos en cuadro desde lo alto. Si los pierden, busquen en el círculo.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": [
+      "mantenganlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 40115120,
+     "heard": "Manténganlos en cuadro desde lo alto. Si los pierden, busquen en el círculo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19431,
+     "sha256": "4d702250535c0668765ea476693d491c0b745a896d0d5bfbd957467999e248b7"
+    },
+    "mp3": {
+     "bytes": 18068,
+     "sha256": "4a9cc095efa6eb504e7077abc115d154dca6a22f59f8bda41c6c6c988399bf92"
+    }
+   }
+  },
+  "int1-g-launch.en": {
+   "text": "Survey One, you're clear. Launch and climb above five hundred metres.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.7,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 568416803,
+     "heard": "survey one you're clear launch and climb above 500 meters",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21038,
+     "sha256": "a4cc5489c669ce3f9fef73b7a9d67b644975da6cdd56ff61f13c4b454028cfcb"
+    },
+    "mp3": {
+     "bytes": 20396,
+     "sha256": "e766b487e57c7d0f30d69ffea4cef1b546f4a48762c43bc6eb42fad356c94804"
+    }
+   }
+  },
+  "int1-g-launch.es": {
+   "text": "Relevamiento Uno, tienen vía libre. Lancen y suban por encima de quinientos metros.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.75,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2404214318,
+     "heard": "Relevamiento 1. Tienen vía libre. Lancen y suban por encima de 500 metros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21514,
+     "sha256": "6c1a6a76f9db54b05c3f17af1370a3536abbc7b9264dd1ccdaa056e2e0c642e5"
+    },
+    "mp3": {
+     "bytes": 21428,
+     "sha256": "85ab32968a8eae662bd6b6147577fb12aa12f5b870251b51c69f86746b62312d"
+    }
+   }
+  },
+  "int1-g-rtb.en": {
+   "text": "That's the picture. Bring it home and land at Pista Cero.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.91,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1182691803,
+     "heard": "That's the picture. Bring it home and land at Pistacero.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 30
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17493,
+     "sha256": "63cab5479222eb00eaf2551056ce702138c8e132045eb054476775f36369a9eb"
+    },
+    "mp3": {
+     "bytes": 16892,
+     "sha256": "2f912b1c5a68ee2107deee75f17623fcaae2c333251142f4bb47a4245aff1563"
+    }
+   }
+  },
+  "int1-g-rtb.es": {
+   "text": "Esa es la imagen. Tráiganla a casa y aterricen en Pista Cero.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.54,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2263938068,
+     "heard": "Esa es la imagen. Traigan la casa y aterricen en pista cero.",
+     "wer": 0.167,
+     "extra": 0,
+     "missing": [
+      "traiganla"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4159772002,
+     "heard": "Esa es la imagen. Tráiganla a casa y aterricen en pista cero.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16006,
+     "sha256": "08d5f0a627505bc4e5c9688766210385aeadf146d5c4d7aedb9ab0c03ca1280d"
+    },
+    "mp3": {
+     "bytes": 15404,
+     "sha256": "c3146658878fcd9b9872ce73c080ca6dc5bcdf56be77ae3f47c3fbbbde701fd1"
+    }
+   }
+  },
+  "int1-g-tr-follow.en": {
+   "text": "Survey Two, work ahead of them. Watch the next gap from high up.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.22,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1282001570,
+     "heard": "Survey 2, work ahead of them. Watch the next gap from high up.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18639,
+     "sha256": "a211a70391473dd98080e5d557388a7e11b7bc76737c13a1ce4b4b2f0f4019fc"
+    },
+    "mp3": {
+     "bytes": 18188,
+     "sha256": "484ca0b815f285efcb4b1429ff0b63f99c2a319d018aab6e65f232bf5739446c"
+    }
+   }
+  },
+  "int1-g-tr-follow.es": {
+   "text": "Relevamiento Dos, adelántense. Vigilen el próximo claro desde lo alto.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.07,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1762745487,
+     "heard": "Relevamiento 2. Adelántense. Vigilen el próximo claro desde lo alto.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18371,
+     "sha256": "d4db84b4ee9b172fed4db69122932fce66e9540c1aa2b975d2125a92fc19d3ab"
+    },
+    "mp3": {
+     "bytes": 17516,
+     "sha256": "beaee7c9aa37e1ade1bf2b3ec94c9cd6975d9ffa1912b39810360a555291a53c"
+    }
+   }
+  },
+  "int1-g-tr-launch.en": {
+   "text": "Survey Two, you're clear. Launch and climb above five hundred metres.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.47,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3869962811,
+     "heard": "survey 2 you're clear launch and climb above 500 meters",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19846,
+     "sha256": "dab8c1c1e14448cc9e7ad14a883c28c24521c3819eb4c688dc1fd4d81d3785b5"
+    },
+    "mp3": {
+     "bytes": 19124,
+     "sha256": "3424955333df08694d5120683e2b01fde147cb3ceeb027b95fa7a176b42a7336"
+    }
+   }
+  },
+  "int1-g-tr-launch.es": {
+   "text": "Relevamiento Dos, tienen vía libre. Lancen y suban por encima de quinientos metros.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.69,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3138330036,
+     "heard": "Relevamiento 2 tienen vía libre, lancen y suban por encima de 500 metros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21216,
+     "sha256": "b832771f5d4cffcc3471da4e00f90e87f5eb85aa35387389e3d73fb183cdcad7"
+    },
+    "mp3": {
+     "bytes": 20900,
+     "sha256": "8159e7f2ff81d51313fc3938bea2dafe48a1695ce85ff5f71bf40c35213cc7f5"
     }
    }
   },

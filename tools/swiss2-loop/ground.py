@@ -32,7 +32,7 @@
 # compare hue, saturation, the ratios and the spreads; value is printed
 # for the record.
 #
-# This file is part of WebFPVSimulator, GPLv3; see the header of any
+# This file is part of the Paraguayan Drone Combat Simulator, GPLv3; see the header of any
 # JavaScript file in this repository for the full notice.
 import os
 import sys
