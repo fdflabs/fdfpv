@@ -601,6 +601,168 @@ function mutate(rng, doc) {
   return out;
 }
 
+/*
+ * Courses built to sit on the edges the face and line rules decide on: a
+ * flag parked at every distance from a gate's stile, markers the author has
+ * turned by hand, hairpins, waypoints, dive gates between level neighbours,
+ * knots on top of each other or a hair apart, foreign gates standing on the
+ * line or on a knot, and heights that differ by almost nothing.
+ */
+function edgeFieldDoc(rng, n) {
+  const wing = rng() < 0.2;
+  const unit = wing ? 6 : 1;
+  const els = [];
+  const seq = [];
+  const add = (el) => {
+    const id = `el-${els.length + 1}`;
+    els.push({ id, name: '', yawOverridden: false, pitch: 0, ...el });
+    return id;
+  };
+  const pass = (elementId, marker, extra = {}) => {
+    seq.push({
+      id: `sq-${seq.length + 1}`, elementId, apertureIndex: marker ? null : 0, entry: marker ? null : pick(rng, [0, 0, 0, 1, -1]),
+      passSide: marker ? pick(rng, ['left', 'right']) : null, clearance: marker ? pick(rng, [1.5, 0, 0.04, 0.05, 1, 5]) : null,
+      overridden: rng() < 0.15, ...extra,
+    });
+  };
+  let x = 30 * unit;
+  let y = 20 * unit;
+  let heading = rng() * Math.PI * 2;
+  let z = 0;
+  const stations = 4 + Math.floor(rng() * 6);
+  for (let k = 0; k < stations; k += 1) {
+    const turn = pick(rng, [0, 0.3, -0.3, 1.2, -1.2, Math.PI, Math.PI - 0.05, 2.5]);
+    heading += turn;
+    const step = pick(rng, [6, 8, 3, 0, 1e-7, 12]) * unit;
+    x += step * Math.cos(heading);
+    y += step * Math.sin(heading);
+    z = pick(rng, [z, z, z + 0.04, z + 0.05, z + 0.06, z + 0.2, z + 1, Math.max(0, z - 1), 3]);
+    const kind = pick(rng, ['gate', 'stile', 'stile', 'turned', 'waypoint', 'dive', 'stack', 'hoop', 'foreign', 'twin']);
+    const pos = { x, y, z };
+    const yaw = Math.round((heading + (rng() - 0.5) * 0.6) * 1e6) / 1e6;
+    if (kind === 'gate' || kind === 'hoop') {
+      pass(add({ type: kind === 'hoop' ? pick(rng, ['hoop175', 'hoop6']) : pick(rng, ['gate', 'flaggedGate', 'wideGate5']), position: pos, yaw, yawOverridden: rng() < 0.3 }), false);
+    } else if (kind === 'stile') {
+      const gate = add({ type: 'gate', position: pos, yaw, yawOverridden: rng() < 0.5 });
+      const half = (wing ? 5 : 1.524) / 2;
+      const d = pick(rng, [0, 0.01, 0.5, 1.19, 1.2, 1.21, 2, 2.99, 3, 3.01, 4]) * pick(rng, [1, -1]);
+      const off = half * Math.sign(d || 1) + d;
+      const flag = add({ type: pick(rng, ['flag', 'pole', 'cone']), position: { x: x - off * Math.sin(yaw), y: y + off * Math.cos(yaw), z: 0 }, yaw: rng() * 6 - 3, yawOverridden: rng() < 0.3 });
+      if (rng() < 0.7) {
+        pass(gate, false);
+      }
+      pass(flag, true);
+    } else if (kind === 'turned') {
+      pass(add({ type: pick(rng, ['flag', 'pole', 'pylon']), position: pos, yaw: pick(rng, [0, Math.PI / 2, -Math.PI / 2, rng() * 6 - 3, heading]), yawOverridden: true }), true);
+    } else if (kind === 'waypoint') {
+      pass(add({ type: 'waypoint', position: pos, yaw: 0 }), true, { clearance: 0 });
+    } else if (kind === 'dive') {
+      pass(add({ type: 'diveGate', position: { x, y, z: pick(rng, [0, z]) }, yaw, pitch: pick(rng, [Math.PI / 2, 1.570796, 1.5707, 1.2, -Math.PI / 2, 0.959931]), yawOverridden: rng() < 0.3 }), false);
+    } else if (kind === 'stack') {
+      const el = { id: '', type: pick(rng, ['doubleStack', 'ladder', 'tower', 'flaggedDoubleStack']), position: pos, yaw, yawOverridden: rng() < 0.3 };
+      el.id = add(el);
+      for (const s of stackRun(rng, seq.length, el)) {
+        seq.push({ ...s, id: `sq-${seq.length + 1}` });
+      }
+    } else if (kind === 'foreign') {
+      const prev = els[els.length - 1]?.position ?? pos;
+      add({ type: 'gate', position: { x: (prev.x + x) / 2, y: (prev.y + y) / 2, z: 0 }, yaw: pick(rng, [heading, heading + Math.PI / 2, rng() * 6]), yawOverridden: true });
+      pass(add({ type: 'gate', position: pos, yaw }), false);
+    } else {
+      /* Two openings on one spot, or a hair apart. */
+      pass(add({ type: 'gate', position: pos, yaw }), false);
+      pass(add({ type: 'gate', position: { x: x + pick(rng, [0, 1e-7, 1e-3]), y, z }, yaw: yaw + pick(rng, [0, Math.PI]) }), false);
+    }
+  }
+  if (rng() < 0.3 && seq.length > 1) {
+    /* Fly the first structure again, the other way. */
+    seq.push({ ...seq[0], id: `sq-${seq.length + 1}`, entry: seq[0].entry === null ? null : -seq[0].entry });
+  }
+  if (rng() < 0.6) {
+    const first = els[0]?.position ?? { x: 0, y: 0, z: 0 };
+    add({ type: 'startPads', name: 'Grid', position: { x: first.x - 4 * unit * Math.cos(heading), y: first.y, z: 0 }, yaw: pick(rng, [0, Math.PI, heading]) });
+  }
+  return {
+    schemaVersion: 3, id: `trk-${(0x40000000 + n * 15485863).toString(16).slice(-8)}`, name: `Edge ${n}`,
+    createdUtc: '2026-01-02T03:04:05Z', modifiedUtc: '2026-01-02T03:04:05Z', trackClass: wing ? 'wing' : 'full',
+    field: { width: 60 * unit, depth: 40 * unit, gridSize: 1 },
+    settings: { tangentScale: pick(rng, [1.1, 1.1, 0.5, 2]), minCurveRadius: 2.5, samplesPerSegment: pick(rng, [48, 48, 4, 24, 7]) },
+    branding: { logos: [] }, elements: els, sequence: seq,
+  };
+}
+
+/* The schema example with one field pushed to just under, on or just over a
+ * limit, or given the wrong type. Lengths and caps are where a reader
+ * clamps, truncates or drops. */
+function boundaryDocs(base) {
+  const docs = [];
+  const at = (label, edit) => {
+    const d = clone(base);
+    edit(d);
+    docs.push({ name: `bound-${label}`, raw: d });
+  };
+  for (const n of [0, 1, 23, 24, 25, 63, 64, 65, 119, 120, 121, 255, 256, 257, 1023, 1024, 1025, 4000]) {
+    at(`name${n}`, (d) => { d.name = 'n'.repeat(n); });
+    at(`elname${n}`, (d) => { d.elements[1].name = 'e'.repeat(n); });
+    at(`text${n}`, (d) => { d.elements[11].text = 't'.repeat(n); });
+    at(`credit${n}`, (d) => { d.credit = { designer: 'd'.repeat(n), series: 's', sponsor: 'p', source: 'u'.repeat(n), broughtOverBy: 'b', note: 'o'.repeat(n) }; });
+    at(`id${n}`, (d) => { d.id = `trk-${'a'.repeat(n)}`; });
+    at(`elid${n}`, (d) => { d.elements[2].id = `el-${'9'.repeat(Math.min(n, 300))}`; d.sequence[1].elementId = d.elements[2].id; });
+    at(`logoname${n}`, (d) => { d.branding = { logos: [{ id: 'logo-1', image: PNG, name: 'l'.repeat(n) }] }; });
+    at(`map${n}`, (d) => { d.schemaVersion = 4; d.map = 'a'.repeat(n); });
+  }
+  for (const v of [-1, 0, 1, 3, 4, 5, 6, 47, 48, 49, 511, 512, 513, 1000, 2.5, 4.5, '48', null]) {
+    at(`samples${v}`, (d) => { d.settings.samplesPerSegment = v; });
+  }
+  for (const v of [-1, 0, 0.01, 0.09, 0.1, 0.11, 0.5, 1, 1.1, 2, 5, 10, 100, '1.1', null]) {
+    at(`tangent${v}`, (d) => { d.settings.tangentScale = v; });
+    at(`radius${v}`, (d) => { d.settings.minCurveRadius = v; });
+    at(`grid${v}`, (d) => { d.field.gridSize = v; });
+  }
+  for (const v of [-5, 0, 4.9, 5, 5.1, 59, 60, 1000, 1e5, 1e6, '60', null]) {
+    at(`width${v}`, (d) => { d.field.width = v; });
+    at(`depth${v}`, (d) => { d.field.depth = v; });
+  }
+  for (const v of [-1, 0, 0.4, 0.5, 1, 1.5, 2, 3, 4, 5, 8, 9, 10, 16, 17, 64, '2', null, true]) {
+    at(`levels${v}`, (d) => { d.elements[4].dims.levels = v; });
+    at(`apidx${v}`, (d) => { d.sequence[3].apertureIndex = v; });
+    at(`pads${v}`, (d) => { d.elements[0].dims.pads = v; });
+  }
+  for (const v of [-10, -3.141593, -1.570797, -1.570796, -Math.PI / 2, 0, 1e-7, 1.570796, Math.PI / 2, 1.570797, 3.141593, 3.141594, 10, 'x']) {
+    at(`pitch${v}`, (d) => { d.elements[8].pitch = v; });
+    at(`yaw${v}`, (d) => { d.elements[2].yaw = v; });
+  }
+  /* Not much past a kilometre: a line that long is sampled and marked per metre. */
+  for (const v of [-1, 0, 1e-7, 0.04, 0.05, 0.06, 1.5, 20, 50, 51, 100, 1000, '2', null]) {
+    at(`clear${v}`, (d) => { d.sequence[0].clearance = v; });
+    at(`dim${v}`, (d) => { d.elements[2].dims.clearW = v; d.elements[6].dims.height = v; });
+    at(`pos${v}`, (d) => { d.elements[3].position = { x: v, y: v, z: v }; });
+  }
+  for (const v of [0, 1, 2, 4, 5, 6, 7, 10]) {
+    at(`logos${v}`, (d) => { d.branding = { logos: Array.from({ length: v }, (_, i) => ({ id: `logo-${i + 1}`, image: PNG, name: `${i}.png` })) }; });
+    at(`seqlen${v}`, (d) => { d.sequence = Array.from({ length: v * 40 }, (_, i) => ({ ...d.sequence[i % d.sequence.length], id: `sq-${i + 1}` })); });
+    at(`ellen${v}`, (d) => { for (let i = 0; i < v * 40; i += 1) d.elements.push({ ...clone(d.elements[2]), id: `el-${100 + i}` }); });
+  }
+  for (const size of [0.9, 1, 1.1]) {
+    at(`logobytes${size}`, (d) => {
+      const chars = Math.round(model.LOGO_MAX_CHARS * size);
+      d.branding = { logos: [{ id: 'logo-1', image: `data:image/png;base64,${'A'.repeat(chars - 22)}`, name: 'big.png' }] };
+    });
+    at(`brandbytes${size}`, (d) => {
+      const each = Math.round((model.BRANDING_MAX_CHARS * size) / 3);
+      d.branding = { logos: [1, 2, 3].map((i) => ({ id: `logo-${i}`, image: `data:image/png;base64,${'A'.repeat(each - 22)}`, name: `${i}.png` })) };
+    });
+  }
+  for (const side of ['left', 'right', 'both', 'top', 'centre', '', null, 3]) {
+    at(`flagside${side}`, (d) => { d.elements[2].type = 'flaggedGate'; d.elements[2].flagSide = side; d.elements[2].dims.flagH = pick(mulberry(String(side).length), [0, 1.45, 3, -1, 'x']); });
+  }
+  for (const v of [1, 2, 3, 4, 5, 0, -1, 99, '3', null, undefined, 3.5]) {
+    at(`version${String(v)}`, (d) => { d.schemaVersion = v; });
+    at(`version${String(v)}map`, (d) => { d.schemaVersion = v; d.map = 'alps'; });
+  }
+  return docs;
+}
+
 function buildCorpus() {
   const corpus = [];
   const real = realDocs();
@@ -624,6 +786,13 @@ function buildCorpus() {
     { schemaVersion: 4, map: 'alps' }, { schemaVersion: 2, branding: { logo: PNG, logoName: 'x.png' } },
     { schemaVersion: 3, trackClass: 'micro', elements: [], sequence: [] }];
   odd.forEach((raw, n) => corpus.push({ name: `odd-${n}`, raw }));
+  /* A stream of its own, so adding these left every document above as it
+   * was. */
+  const edge = mulberry(4242);
+  for (let n = 0; n < 120; n += 1) {
+    corpus.push({ name: `edge-${n}`, raw: edgeFieldDoc(edge, n) });
+  }
+  corpus.push(...boundaryDocs(real[0].raw));
   return corpus;
 }
 
