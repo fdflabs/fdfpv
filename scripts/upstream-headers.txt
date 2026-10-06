@@ -104,7 +104,6 @@ src/native/sim.c
 src/native/sim_internal.h
 src/render/attract.js
 src/render/audio.js
-src/render/celmat.js
 src/render/craft.js
 src/render/craftpose.js
 src/render/frame.js
@@ -116,7 +115,6 @@ src/render/post.js
 src/render/pylons.js
 src/render/quality.js
 src/render/scene.js
-src/render/session-textures.js
 src/render/shell.js
 src/render/showcase.js
 src/render/tracks.js
