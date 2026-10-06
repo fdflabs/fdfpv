@@ -46,8 +46,6 @@ scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
 scripts/og.js
-scripts/orbit-check.js
-scripts/path-check.js
 scripts/pixels.js
 scripts/posters.js
 scripts/preset-lint.js
@@ -61,7 +59,6 @@ scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
 scripts/trick-sweep.js
-scripts/wall-check.js
 src/art/banners.js
 src/art/startblock.js
 src/boot.js
