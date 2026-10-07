@@ -1,59 +1,45 @@
 /*
- * trick-sweep.js: does the same shape always get the same name?
+ * trick-sweep.js: does the trick recogniser ever pay for more than was flown?
  *
- * Copyright (C) 2026 Mathew Harvey
+ *     node scripts/trick-sweep.js                   hand-built laps and rotations, perturbed
+ *     node scripts/trick-sweep.js --all             every catalogue pattern, flown from its steps
+ *     node scripts/trick-sweep.js --all --write     ...and regenerate src/game/proven.js
+ *     node scripts/trick-sweep.js --show=Name[,Name] [--bank=N]   fly once, print what was measured
+ *     --only=text  (default mode)  run only the cases whose label holds text
+ *     --debug      (any mode)      print every primitive and every lap close
  *
- * This program is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation, either version 3 of the License, or (at your
- * option) any later version.
+ * A pilot never flies the textbook shape: the bank is off, the loop goes a
+ * bit short or long, the line wobbles. This flies each shape across those
+ * variations and sorts every flight into four piles: the trick it was
+ * (right), no trick (silent), a cheaper trick (under) or a dearer one
+ * (over). Silence and underpaying are the recogniser being cautious; paying
+ * more than was flown is the one thing a scoring game cannot do, so a single
+ * over-claim makes the run exit 1.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details. You should have received a copy of the
- * GNU General Public License along with this program. If not, see
- * <https://www.gnu.org/licenses/>.
+ * The flights carry a whole attitude (nose and up) and the body rates are
+ * taken from how that frame turns between samples, as a gyro would see them.
+ * That is what makes this different from score-selftest, which never hands
+ * the recogniser an up axis and so never reaches its de-banking path.
  *
+ * Every argument handed to the detector is pinned bit for bit by the
+ * trickdetect golden, so the arithmetic below keeps its exact operation
+ * order: a point on a circle is built from both basis vectors even where one
+ * component is zero, because scaling a zero by a negative gives -0.
  *
- * WHY THIS EXISTS, AND WHAT IT ASSERTS THAT score-selftest DOES NOT.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * score-selftest.js is 207 hand written cases: this exact flight names this
- * exact trick. That catches a broken rule. It cannot catch an UNSTABLE one,
- * because a rule that is right at the point it was written and wrong a
- * fifteenth of a turn either side of it passes every one of them.
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
  *
- * So this sweeps. For each trick it builds the flight the pattern describes,
- * then perturbs it across the range a human actually flies in: bank angle,
- * turn error, and drift on the axes the pattern does not name. Every sample
- * is classified into one of three:
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
  *
- *   CORRECT  the intended name
- *   SILENT   no name at all
- *   WRONG    a DIFFERENT trick
- *
- * and only the third is a failure. That asymmetry is the whole point. A
- * scorer that says nothing has told the pilot the truth: what they flew was
- * not clean enough to name. A scorer that says "Donkey Loop, 600" to a pilot
- * who flew a Powerloop has lied to them, put a number on a leaderboard that
- * nobody earned, and taught them the wrong thing about their own flying.
- * Silence is a miss. A wrong name is a bug.
- *
- *
- * AND IT FLIES WITH AN ATTITUDE, which is the second reason it exists.
- *
- * The recogniser resolves a lap's rotation using the craft's nose AND its up
- * axis, so that the loop's own turn can be told from the bank it was flown
- * at. score-selftest.js passes no up axis, so every one of its 207 checks
- * runs the raw fallback and NONE of them touch debankLap. The de-banking, the
- * one change that stopped a banked Powerloop being named a Donkey Loop, had
- * no offline coverage at all until this file.
- *
- * The flights here therefore carry a real orthonormal frame and DERIVE the
- * body rates from how it turns, the same way a gyro does, rather than being
- * handed rates that agree with a path by construction. A frame that does not
- * match its own path produces rates that do not match either, which is
- * exactly the mistake this is meant to be able to catch.
+ * You should have received a copy of the GNU General Public License
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { writeFileSync } from 'node:fs';
@@ -61,1219 +47,736 @@ import { PATTERNS, TrickDetector } from '../src/game/trickdetect.js';
 import { trickByName } from '../src/game/tricks.js';
 import { ObstacleField, OB_BAR, OB_POLE } from '../src/game/obstacles.js';
 
+const argv = process.argv;
+const flag = (name) => argv.includes(name);
+const option = (name) => {
+  const hit = argv.find((a) => a.startsWith(`${name}=`));
+  return hit === undefined ? undefined : hit.split('=')[1];
+};
+const DEBUG = flag('--debug');
+
 const TURN = Math.PI * 2;
 const DEG = Math.PI / 180;
+const DT = 0.001;
 
-const V = (x, y, z) => ({ x, y, z });
-const add = (a, b) => V(a.x + b.x, a.y + b.y, a.z + b.z);
-const sub = (a, b) => V(a.x - b.x, a.y - b.y, a.z - b.z);
-const mul = (a, s) => V(a.x * s, a.y * s, a.z * s);
+/* ---- vectors (Y up) ---- */
+
+const vec = (x, y, z) => ({ x, y, z });
+const add = (a, b) => vec(a.x + b.x, a.y + b.y, a.z + b.z);
+const sub = (a, b) => vec(a.x - b.x, a.y - b.y, a.z - b.z);
+const scale = (a, s) => vec(a.x * s, a.y * s, a.z * s);
 const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
-const cross = (a, b) => V(
-  a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x,
-);
+const cross = (a, b) => vec(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 const len = (a) => Math.sqrt(dot(a, a));
-const norm = (a) => { const l = len(a) || 1; return mul(a, 1 / l); };
+const unit = (a) => scale(a, 1 / (len(a) || 1));
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+/* The part of v square to n, renormalised: keeps an up axis honest after
+ * the nose has moved under it. */
+const squareTo = (v, n) => unit(sub(v, scale(n, dot(n, v))));
 
-/* Rotate v about a unit axis k by angle t. Rodrigues, written out because a
- * matrix library is a dependency and this is four lines. */
-function rot(v, k, t) {
-  const c = Math.cos(t);
-  const s = Math.sin(t);
-  return add(add(mul(v, c), mul(cross(k, v), s)), mul(k, dot(k, v) * (1 - c)));
+function rotate(v, k, angle) {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  return add(add(scale(v, c), scale(cross(k, v), s)), scale(k, dot(k, v) * (1 - c)));
 }
 
-/* ------------------------------------------------------------------ *
- * A flight with an attitude
- * ------------------------------------------------------------------ */
+/* Turn a frame about one of its own axes and renormalise both vectors. */
+function turnFrame(frame, axisName, angle) {
+  const axis = axisName === 'roll' ? frame.n
+    : axisName === 'yaw' ? frame.up : cross(frame.n, frame.up);
+  frame.n = unit(rotate(frame.n, axis, angle));
+  frame.up = unit(rotate(frame.up, axis, angle));
+}
 
-const STEP = 0.001;
+const Y_UP = vec(0, 1, 0);
+const RAIL_CENTRE = vec(0, 8, 0);
 
-const DEBUG = process.argv.includes('--debug');
+/* ---- one detector, one world, one flight ---- */
 
-/* Copied into the generated file, which needs its own header like every
- * other file here. */
-const LICENCE = `/*
- * proven.js: which tricks the sweep has actually landed.
- *
- * Copyright (C) 2026 Mathew Harvey
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or (at
- * your option) any later version.
- *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY, without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
- */
-`;
+let lastFlight = null;
+
+function makeWorld(pole) {
+  const field = new ObstacleField();
+  if (pole) {
+    field.add(OB_POLE, 0, 8, 0, 0, 1, 0, 8);
+  } else {
+    field.add(OB_BAR, 0, 8, 0, 1, 0, 0, 8);
+  }
+  field.build();
+  return field;
+}
+
+const dp = (v, n) => (v ?? 0).toFixed(n);
+const list2 = (a) => `[${(a ?? []).map((v) => v.toFixed(2)).join(',')}]`;
+
+function debugPrim(prim) {
+  if (prim.kind === 'path') {
+    console.log(`    [lap] ${prim.obstacle} turns ${prim.turns} raw ${dp(prim.rawTurns, 3)} `
+      + `side ${prim.startSide}->${prim.endSide} rot ${list2(prim.rot)} spin ${dp(prim.spin, 2)} `
+      + `align ${list2(prim.align)} own ${list2(prim.own)}`);
+  } else {
+    console.log(`    [rot] axis ${prim.axis} turns ${prim.turns} dir ${prim.dir}`);
+  }
+}
 
 class Flight {
-  constructor(field) {
-    this.out = [];
-    this.det = new TrickDetector((t) => this.out.push(t), field);
-    /*
-     * Every primitive the detector buffers, kept for --show. Three times
-     * this session a sweep result that looked like a scorer bug was the
-     * rig flying the wrong shape, and each time it cost a round of reading
-     * the recogniser before the flight was checked. The measured vector is
-     * the thing that settles it, so it is one flag away.
-     */
+  constructor(pole) {
+    this.names = [];
     this.prims = [];
-    const insert = this.det.insertPending.bind(this.det);
-    this.det.insertPending = (prim) => { this.prims.push(prim); insert(prim); };
+    this.det = new TrickDetector((trick) => this.names.push(trick.name), makeWorld(pole));
+    this.prev = null;
+    this.prevPos = vec(0, 0, 0);
+    this.speed = 12;
+
+    const det = this.det;
+    const insert = det.insertPending.bind(det);
+    det.insertPending = (prim) => {
+      this.prims.push(prim);
+      insert(prim);
+    };
     if (DEBUG) {
-      const push = this.det.insertPending.bind(this.det);
-      this.det.insertPending = (x) => {
-        console.log('    prim', x.kind === 'path'
-          ? `lap ${x.obstacle} turns=${x.turns} raw=${x.rawTurns.toFixed(3)} `
-            + `sides ${x.startSide}->${x.endSide} rot=[${x.rot.map((v) => v.toFixed(2))}] `
-            + `spin=${(x.spin || 0).toFixed(2)} align=[${(x.align || []).map((v) => v.toFixed(2))}] `
-            + `own=[${(x.own || []).map((v) => v.toFixed(2))}]`
-          : `rot axis=${x.axis} turns=${x.turns} dir=${x.dir}`);
-        return push(x);
+      const record = det.insertPending;
+      det.insertPending = (prim) => {
+        debugPrim(prim);
+        record(prim);
       };
-      const cp = this.det.closePath.bind(this.det);
-      this.det.closePath = (r, u) => {
-        if (r.open && r.obstacle) {
-          console.log('    closePath raw=', (r.lastWind - r.startWind).toFixed(3),
-            'sides', r.startSide, '->', r.lastSide);
+      const close = det.closePath.bind(det);
+      det.closePath = (run, upZ) => {
+        if (run.open && run.obstacle) {
+          console.log(`    [close] wind ${(run.lastWind - run.startWind).toFixed(3)} `
+            + `side ${run.startSide}->${run.lastSide}`);
         }
-        return cp(r, u);
+        return close(run, upZ);
       };
     }
-    this.prev = null;
-    this.pos = V(0, 0, 0);
-    this.speed = 12;
   }
 
-  /*
-   * One millisecond. The body rates are DERIVED from how the frame turned,
-   * which is what a gyro measures: for two nearly equal orthonormal frames
-   * the world angular velocity is half the sum of each axis crossed with
-   * where it moved to. Then p, q and r are that vector resolved onto the
-   * nose, the right wing and the up axis, which is the same decomposition
-   * the recogniser does at the far end.
-   */
-  go(pos, nose, up) {
-    const n = norm(nose);
-    const u = norm(sub(up, mul(n, dot(n, up))));
-    const rgt = cross(n, u);
+  /* One millisecond at this position and attitude. */
+  sample(pos, nose, upHint) {
+    const n = unit(nose);
+    const u = squareTo(upHint, n);
+    const right = cross(n, u);
     let p = 0;
     let q = 0;
     let r = 0;
     if (this.prev) {
-      const w = mul(add(add(
-        cross(this.prev.n, n),
-        cross(this.prev.r, rgt),
-      ), cross(this.prev.u, u)), 0.5 / STEP);
+      const w = scale(add(add(cross(this.prev.n, n), cross(this.prev.right, right)),
+        cross(this.prev.u, u)), 0.5 / DT);
       p = dot(w, n);
-      q = dot(w, rgt);
+      q = dot(w, right);
       r = dot(w, u);
-      this.speed = len(sub(pos, this.pos)) / STEP;
+      this.speed = len(sub(pos, this.prevPos)) / DT;
     }
-    /*
-     * upZ reaches the detector as the two quaternion components it derives
-     * it from: upZ = 1 - 2(qx^2 + qy^2). Any pair with the right sum will
-     * do, and the tests written before this one use the same trick.
-     */
     const upZ = Math.max(-1, Math.min(1, u.y));
     const qy = Math.sqrt(Math.max(0, (1 - upZ) / 2));
-    this.det.step(
-      STEP, p, q, r, 0, qy, this.speed,
-      pos.x, pos.y, pos.z,
-      n.x, n.y, n.z,
-      u.x, u.y, u.z,
-    );
-    this.prev = { n, u, r: rgt };
-    this.pos = pos;
-  }
-
-  /* Straight and level, holding whatever attitude it has, to shake the
-   * buffer out between manoeuvres. */
-  cruise(ms, dir = V(0, 0, -1)) {
-    const n = this.prev ? this.prev.n : dir;
-    const u = this.prev ? this.prev.u : V(0, 1, 0);
-    for (let i = 0; i < ms; i += 1) {
-      this.go(add(this.pos, mul(dir, 12 * STEP)), n, u);
-    }
+    this.det.step(DT, p, q, r, 0, qy, this.speed, pos.x, pos.y, pos.z, n.x, n.y, n.z, u.x, u.y, u.z);
+    this.prev = { n, u, right };
+    this.prevPos = pos;
   }
 
   finish() {
     lastFlight = this;
     this.det.flush(this.prev ? this.prev.u.y : 1);
-    return this.out.map((t) => t.name);
+    return this.names;
   }
 }
 
-const barField = (axis = V(1, 0, 0)) => {
-  const f = new ObstacleField();
-  f.add(OB_BAR, 0, 8, 0, axis.x, axis.y, axis.z, 8);
-  return f.build();
-};
-const poleField = () => {
-  const f = new ObstacleField();
-  f.add(OB_POLE, 0, 8, 0, 0, 1, 0, 8);
-  return f.build();
+/* ---- a lap round the rail or the post ---- */
+
+const LAP_DEFAULTS = {
+  turns: 1, from: 'under', bankDeg: 0, noseAlong: false, beforeSteps: [], addRoll: 0, addYaw: 0,
+  addPitch: 0, radius: 3.2, secs: 2.4, pole: false, track: false, inverted: false, drift: 0,
+  beforeYaw: 0, yawSpread: false, afterSteps: [],
 };
 
-/* ------------------------------------------------------------------ *
- * The manoeuvres, flown as shapes rather than as rate tables
- * ------------------------------------------------------------------ */
+/* How many milliseconds a pre or post lap rotation takes. */
+const rotationMs = (turns) => Math.round(Math.max(380, Math.abs(turns) * 720));
 
-/*
- * A lap around a rail.
- *
- *   bankDeg   how far the craft is rolled about its own nose, away from
- *             wings level with the loop. This is the number the de-banking
- *             exists for: at 45 degrees the raw body integral splits the
- *             loop's single turn evenly between pitch and yaw.
- *   noseAlong the nose points along the rail instead of across it, which
- *             makes the same circle a ROLL rather than a flip.
- *   addRoll / addYaw  turns the pilot adds on top of the lap, spread evenly
- *             across it, which is what the workbook means by a loop
- *             "carrying" a roll or a spin.
- */
-function flyLap(opts = {}) {
-  const {
-    turns = 1, from = 'under', bankDeg = 0, noseAlong = false, beforeSteps = [],
-    addRoll = 0, addYaw = 0, addPitch = 0, radius = 3.2, secs = 2.4, pole = false,
-    track = false, inverted = false, drift = 0, beforeYaw = 0, yawSpread = false,
-    afterSteps = [],
-  } = opts;
-  const axis = pole ? V(0, 1, 0) : V(1, 0, 0);
-  const f = new Flight(pole ? poleField() : barField(axis));
-  const c = V(0, 8, 0);
-  /* The plane the lap is flown in: everything perpendicular to the rail. */
-  const e1 = pole ? V(1, 0, 0) : V(0, 0, 1);
-  const e2 = pole ? V(0, 0, 1) : V(0, 1, 0);
-  const ph0 = pole ? 0 : (from === 'over' ? Math.PI / 2 : -Math.PI / 2);
-  const dir = -1;
-  const N = Math.round(secs * turns * 1000);
-
-  /* A run in along the tangent, so the lap is entered rather than begun. */
-  const at = (ph) => add(c, add(mul(e1, radius * Math.cos(ph)), mul(e2, radius * Math.sin(ph))));
-  const tangentAt = (ph) => norm(mul(add(mul(e1, -Math.sin(ph)), mul(e2, Math.cos(ph))), dir));
-  const start = at(ph0);
-  const tan0 = tangentAt(ph0);
-  const noseOf = (ph) => (noseAlong ? axis : tangentAt(ph));
-  /*
-   * Which way an added rotation has to turn, decided ONCE at the entry.
-   *
-   * An added rotation has to turn the same way the loop's own turn already
-   * appears on that body axis, or the two cancel: a Power Flip asking for
-   * the loop's flip and one more measured rot [0,0,0] and was named a
-   * Maverick Loop, 100 for a 350 point trick. Hard coding it as -dir fixed
-   * that and broke Split-Back, which enters from OVER, where the up vector
-   * and so the wing are flipped: the same -dir that added on one side
-   * subtracted on the other. How the loop's own turn lands on an axis is
-   * just how the rail lies against that axis, so that is what decides it.
-   *
-   * Computed per sample instead it flips every time the rail crosses the
-   * wing, which for a half lap from over is the middle of the manoeuvre, so
-   * the added flip reversed halfway and the residual came out -0.89 where
-   * +0.5 had been asked for. Near zero means the rail lies along the axis,
-   * the lap is carried on the other one, and the added rotation is
-   * independent of it: -dir is as good as anything there.
-   */
-  const sgnOf = (proj) => (Math.abs(proj) < 0.2 ? -dir : (proj >= 0 ? 1 : -1));
-  const sgnR = sgnOf(dot(axis, noseOf(ph0)));
-  const upOf = (ph, u) => {
-    /* Wings level with the loop means the top points at the middle of it. */
-    const inward = norm(sub(c, at(ph)));
-    let base = noseAlong ? inward : inward;
-    const n = noseOf(ph);
-    base = norm(sub(base, mul(n, dot(n, base))));
-    let out = rot(base, n, bankDeg * DEG);
-    /*
-     * THE ADDED ROTATION HAPPENS AT A POINT IN THE LOOP, not smeared across
-     * all of it. The workbook says so in as many words: "at the peak of the
-     * loop, perform a Flip". It also has to, arithmetically. Spread a whole
-     * roll evenly over a whole lap and the loop's own turn is shared with a
-     * body frame that is itself rolling, so the pitch integral averages to
-     * NOTHING and a Power Roll reads as a Mavvy Roll: the lap with a roll
-     * and no flip, which is a different and cheaper trick. Confined to the
-     * middle of the lap it comes out as the workbook prices it.
-     */
-    /* Derived the same way addPitch's is, off how the rail lies against the
-     * nose rather than against the wing. A Mavvy Roll asks for the lap's own
-     * roll and one more, and signed the other way the two cancelled and it
-     * measured a bare 3/4 roll. */
-    if (addRoll) { out = rot(out, n, sgnR * TURN * addRoll * winRoll(u)); }
-    if (addYaw) {
-      /* A yaw spin turns the whole frame about the craft's own up axis,
-       * which moves the NOSE, so it is applied to both. */
-      out = out;
+/* Each added rotation gets a share of the lap: one alone takes the middle
+ * third; two or three are laid end to end so they do not overlap. */
+function addedWindows(o) {
+  const added = [o.addRoll, o.addPitch, o.addYaw].map((v) => v !== 0);
+  const count = added.filter(Boolean).length;
+  const middle = (x) => clamp01((x - 0.32) / 0.36);
+  let k = 0;
+  return added.map((on) => {
+    if (!on || count < 2) {
+      return middle;
     }
-    if (inverted) { out = mul(out, -1); }
-    if (drift) { out = rot(out, n, drift * TURN * Math.sin(u * TURN)); }
-    return out;
-  };
-
-  /*
-   * IN AND OUT ALONG A DEPARTING LINE, not along the tangent.
-   *
-   * A tangent line still winds: run 14 m of it past a rail 3.2 m away and it
-   * subtends a fifth of a turn at each end, so a lap asked for as one turn
-   * measured 1.23 and one asked for as 1.12 measured 1.47, crossed to the
-   * far side of the rail and was correctly read as a lap and a HALF. That
-   * was the sweep flying something it had not asked for, not the recogniser
-   * misreading it. A pilot entering and leaving a loop moves AWAY from the
-   * thing, so the run in and the run out carry an outward component and the
-   * winding stops where the manoeuvre does.
-   */
-  /* Zero until the loop is a third in, one by two thirds through: the
-   * "at the peak of the loop" the workbook keeps describing. */
-  const window = (u) => Math.max(0, Math.min(1, (u - 0.32) / 0.36));
-  /*
-   * ONE AT A TIME WHEN THERE ARE TWO. A Split-Back is a half lap carrying
-   * half a roll and half an added flip, and flown over the same window they
-   * fight: the roll puts the craft belly up halfway through, the wing flips
-   * with it, and the rest of the added flip counts backwards. The lap
-   * measured pitch -0.01 where half a flip had been flown on top of half a
-   * lap, which reads as a scorer miss and is not one.
-   *
-   * The workbook describes them in sequence, "a 180 pitch down to invert,
-   * follow with", and a pilot flies them that way because they fight in the
-   * air too. So when a lap carries both, the roll happens and then the
-   * flip, in two windows that do not overlap.
-   */
-  const span = (a, b) => (u) => Math.max(0, Math.min(1, (u - a) / (b - a)));
-  const active = [addRoll !== 0, addPitch !== 0, addYaw !== 0];
-  const nAdded = active.filter(Boolean).length;
-  let slot = 0;
-  /* Each added rotation gets its own stretch of the lap when there is more
-   * than one, in the catalogue's own order: roll, then pitch, then yaw. */
-  const slotFor = (on) => {
-    if (!on || nAdded < 2) { return window; }
-    const k = slot;
-    slot += 1;
-    const w = 0.62 / nAdded;
+    const w = 0.62 / count;
     const a = 0.18 + k * (w + 0.06);
-    return span(a, a + w);
-  };
-  const winRoll = slotFor(active[0]);
-  const winPitch = slotFor(active[1]);
-  const winYaw = slotFor(active[2]);
-  const outAt = (ph) => norm(sub(at(ph), c));
-  const inDir = norm(add(tangentAt(ph0), mul(outAt(ph0), -1.1)));
-  /*
-   * The steps that come BEFORE the lap, on any axis, flown ON THE WAY IN.
-   *
-   * beforeYaw below handles the quarter yaw that opens the Jump Roping
-   * family and nothing else, so a Matty Twister's opening 360 roll and a
-   * Half Matty's half roll were never flown at all: the rig flew the lap
-   * alone, the lap named Matty Flip, and a 350 point trick read as a 200
-   * point one. That looked like a scorer under-claim until somebody asked
-   * what had actually been flown.
-   *
-   * On the move, not on the spot. Flown stationary they were flown, but a
-   * second of hover ahead of a 360 roll is a stall, and a Matty Twister
-   * came back named 360 Stall Rewind with no lap at all. A pilot rolls on
-   * the run in.
-   */
-  {
-    const each = beforeSteps.map((st) => Math.round(Math.max(380, Math.abs(st.turns) * 720)));
-    const gap = 200;
-    const total = each.reduce((a, b) => a + b + gap, 0);
-    const V = 13;
-    /*
-     * ROTATE ON THE LAST OF THE APPROACH, arriving as the lap opens.
-     *
-     * Flown as a separate run up before the ordinary 900 ms straight in,
-     * every one of these ended more than a second before the lap and the
-     * matcher's contiguity rule threw the pair apart: a Half Matty came
-     * back as "1/2 Roll, Matty Flip", two names and two small prices where
-     * one 350 point trick had been flown. The rule is right and the flying
-     * was wrong. A pilot rolls while closing on the object, so the straight
-     * run establishes the speed first and the roll finishes on the doorstep.
-     */
-    let back = 14 + V * (total / 1000);
-    for (let i = 0; i < 900; i += 1) {
-      back -= V * STEP;
-      f.go(add(start, mul(inDir, -back)), tan0, upOf(ph0, 0));
+    const b = a + w;
+    k += 1;
+    return (x) => clamp01((x - a) / (b - a));
+  });
+}
+
+function flyLap(options) {
+  const o = { ...LAP_DEFAULTS, ...options };
+  const axis = o.pole ? vec(0, 1, 0) : vec(1, 0, 0);
+  const e1 = o.pole ? vec(1, 0, 0) : vec(0, 0, 1);
+  const e2 = o.pole ? vec(0, 0, 1) : vec(0, 1, 0);
+  const ph0 = o.pole ? 0 : (o.from === 'over' ? Math.PI / 2 : -Math.PI / 2);
+  const d = -1;
+  const N = Math.round(o.secs * o.turns * 1000);
+  const [winRoll, winPitch, winYaw] = addedWindows(o);
+
+  const at = (ph) => add(RAIL_CENTRE, add(scale(e1, o.radius * Math.cos(ph)), scale(e2, o.radius * Math.sin(ph))));
+  const tangent = (ph) => unit(scale(add(scale(e1, -Math.sin(ph)), scale(e2, Math.cos(ph))), d));
+  const outward = (ph) => unit(sub(at(ph), RAIL_CENTRE));
+  const noseOf = (ph) => (o.noseAlong ? axis : tangent(ph));
+  /* Near square to the rail the sign is a coin toss, so it falls the way the lap turns. */
+  const sign = (proj) => (Math.abs(proj) < 0.2 ? -d : (proj >= 0 ? 1 : -1));
+  const rollSign = sign(dot(axis, noseOf(ph0)));
+
+  const upOf = (ph, x) => {
+    const n = noseOf(ph);
+    let up = rotate(squareTo(unit(sub(RAIL_CENTRE, at(ph))), n), n, o.bankDeg * DEG);
+    if (o.addRoll) {
+      up = rotate(up, n, rollSign * TURN * o.addRoll * winRoll(x));
     }
-    let bn = tan0;
-    let bu = upOf(ph0, 0);
-    const step = () => {
-      back = Math.max(0, back - V * STEP);
-      f.go(add(start, mul(inDir, -back)), bn, bu);
-    };
-    for (let k = 0; k < beforeSteps.length; k += 1) {
-      const st = beforeSteps[k];
-      /* Belly up first if the step asks for it: True Barani's yaw is an
-       * INVERTED 180, worth its place in a 375 point trick, and flown the
-       * right way up it is a plain 50 point Yaw Spin. */
-      if (st.inverted && bu.y > 0) {
-        const R = 420;
-        for (let i = 0; i < R; i += 1) {
-          bu = norm(rot(bu, bn, TURN * 0.5 / R));
-          step();
-        }
-        for (let i = 0; i < 200; i += 1) { step(); }
-      }
-      for (let i = 0; i < each[k]; i += 1) {
-        const ax = st.axis === 'roll' ? bn : (st.axis === 'yaw' ? bu : cross(bn, bu));
-        const d = (TURN * st.turns) / each[k];
-        bn = norm(rot(bn, ax, d));
-        bu = norm(rot(bu, ax, d));
-        step();
-      }
-      /* Long enough for the rotation to close, short enough to stay
-       * adjacent to what follows it. */
-      for (let i = 0; i < gap; i += 1) { step(); }
+    if (o.inverted) {
+      up = scale(up, -1);
+    }
+    if (o.drift) {
+      up = rotate(up, n, o.drift * TURN * Math.sin(x * TURN));
+    }
+    return up;
+  };
+
+  const flight = new Flight(o.pole);
+  const start = at(ph0);
+  const entry = tangent(ph0);
+  const lineIn = unit(add(entry, scale(outward(ph0), -1.1)));
+
+  /* Run in along a line aimed at the lap's start, far enough back that the
+   * rotations before the lap fit on it. */
+  const budget = o.beforeSteps.reduce((acc, s) => acc + rotationMs(s.turns) + 200, 0);
+  let back = 14 + 13 * (budget / 1000);
+  for (let i = 0; i < 900; i++) {
+    back = back - 13 * DT;
+    flight.sample(add(start, scale(lineIn, -back)), entry, upOf(ph0, 0));
+  }
+  const frame = { n: entry, up: upOf(ph0, 0) };
+  const approach = () => {
+    back = Math.max(0, back - 13 * DT);
+    flight.sample(add(start, scale(lineIn, -back)), frame.n, frame.up);
+  };
+  for (const step of o.beforeSteps) {
+    const ms = rotationMs(step.turns);
+    for (let i = 0; i < ms; i++) {
+      turnFrame(frame, step.axis, (TURN * step.turns) / ms);
+      approach();
+    }
+    for (let i = 0; i < 200; i++) {
+      approach();
     }
   }
-  /*
-   * The quarter yaw that OPENS the Jump Roping family, flown on the way in
-   * so it is adjacent to the lap. Twelve patterns in the catalogue are
-   * [rotation, lap] and every one of them is cheap; the one step laps they
-   * sit beside are dear, so if the opening rotation does not survive to the
-   * matcher the pilot is paid for the wrong and dearer trick.
-   */
-  if (beforeYaw) {
-    let n = tan0;
+
+  if (o.beforeYaw !== 0) {
+    let n = entry;
     let up = upOf(ph0, 0);
-    const N0 = 420;
-    for (let i = 0; i < N0; i += 1) {
-      const d = (TURN * beforeYaw) / N0;
-      n = norm(rot(n, up, d));
-      up = norm(sub(up, mul(n, dot(n, up))));
-      f.go(start, n, up);
+    for (let i = 0; i < 420; i++) {
+      n = unit(rotate(n, up, (TURN * o.beforeYaw) / 420));
+      up = squareTo(up, n);
+      flight.sample(start, n, up);
     }
-    for (let i = 0; i < 160; i += 1) { f.go(start, n, up); }
+    for (let i = 0; i < 160; i++) {
+      flight.sample(start, n, up);
+    }
   }
 
-  const sgnP = sgnOf(dot(axis, norm(cross(noseOf(ph0), upOf(ph0, 0)))));
-  for (let i = 0; i <= N; i += 1) {
-    const u = i / N;
-    const ph = ph0 + dir * TURN * turns * u;
+  const pitchSign = sign(dot(axis, unit(cross(noseOf(ph0), upOf(ph0, 0)))));
+  for (let i = 0; i <= N; i++) {
+    const x = i / N;
+    const ph = ph0 + d * TURN * o.turns * x;
     let n = noseOf(ph);
-    let up = upOf(ph, u);
-    if (addPitch) {
-      /*
-       * A pitch the pilot ADDS on top of the lap, about the craft's own
-       * wing. The workbook's Donkey Loop is "a Maverick loop, and during
-       * the loop a 180 pitch down to invert": the lap itself is flown on
-       * ROLL with the nose along the rail, and the flip is extra.
-       */
-      const wing = norm(cross(n, up));
-      /*
-       * THE SIGN IS DERIVED, NOT GUESSED.
-       *
-       * An added flip has to turn the SAME way the loop's own turn already
-       * appears on that body axis, or the two cancel: a Power Flip asking
-       * for the loop's flip and one more measured rot [0,0,0] and was named
-       * a Maverick Loop, 100 points for a 350 point trick. Hard coding the
-       * sign as -dir fixed that one and broke Split-Back, which is flown
-       * from OVER: the up vector flips with the entry side, so the wing
-       * flips with it, and the same -dir that added on one side subtracted
-       * on the other. Split-Back measured pitch -0.01 where it had flown
-       * half a flip on top of half a lap.
-       *
-       * How the loop's own turn lands on the wing is just how the rail lies
-       * against the wing, so that is what decides it. Near zero means the
-       * rail is along the nose, the lap is carried on roll, and the added
-       * flip is independent of it: -dir is as good as anything there.
-       */
-      const d = sgnP * TURN * addPitch * winPitch(u);
-      n = norm(rot(n, wing, d));
-      up = norm(rot(up, wing, d));
+    let up = upOf(ph, x);
+    if (o.addPitch) {
+      const wing = unit(cross(n, up));
+      const a = pitchSign * TURN * o.addPitch * winPitch(x);
+      n = unit(rotate(n, wing, a));
+      up = unit(rotate(up, wing, a));
     }
-    if (addYaw) {
-      /*
-       * A Cinnamon Roll's spin is SPREAD, not placed. The workbook says "a
-       * slow 360 yaw spin, timed to finish as you pass back under the
-       * object", and that is why its lap reads pitch 0 and roll 0: with the
-       * nose sweeping the whole way round, the loop's own turn is shared
-       * across the body axes and averages to nothing on both of them, which
-       * leaves the yaw as the only thing the lap carries.
-       */
-      const spin = dir * TURN * addYaw * (yawSpread ? u : winYaw(u));
-      n = rot(n, up, spin);
-      up = norm(sub(up, mul(n, dot(n, up))));
+    if (o.addYaw) {
+      n = rotate(n, up, d * TURN * o.addYaw * (o.yawSpread ? x : winYaw(x)));
+      up = squareTo(up, n);
     }
-    if (track) {
-      /* An Orbit holds the object on the screen, which is the whole
-       * difference between it and a turn that goes round twice. */
-      n = norm(sub(c, at(ph)));
-      up = norm(sub(V(0, 1, 0), mul(n, dot(n, V(0, 1, 0)))));
-      if (inverted) { up = mul(up, -1); }
+    if (o.track) {
+      n = unit(sub(RAIL_CENTRE, at(ph)));
+      up = squareTo(Y_UP, n);
+      if (o.inverted) {
+        up = scale(up, -1);
+      }
     }
-    f.go(at(ph), n, up);
+    flight.sample(at(ph), n, up);
   }
-  const phEnd = ph0 + dir * TURN * turns;
-  const tanEnd = tangentAt(phEnd);
-  const outDir = norm(add(tanEnd, mul(outAt(phEnd), 1.1)));
-  let ep = at(phEnd);
-  let en = tanEnd;
-  let eu = upOf(phEnd, 1);
-  /*
-   * The steps that FOLLOW the lap, flown on the way out: an Immelmann is
-   * half a loop and then the roll that finishes it, and a pattern's steps
-   * are a sequence, so a sweep that only ever flies the lap can never reach
-   * any of them.
-   */
-  /*
-   * FLY CLEAR BEFORE ROTATING. The exit used to run along tanEnd + 1.1 out,
-   * which still carries a tangential component, so the craft went on winding
-   * about the rail while it rolled: the lap stayed open, the roll landed
-   * inside it and was held as part of it, and an Immelmann Turn measured a
-   * lap of rot [0.50, 0.50, 0] and named a bare 1/2 Roll. A pilot leaving an
-   * Immelmann flies AWAY from the object, so the exit is radial and the lap
-   * is given the time it needs to close before the next step starts.
-   */
-  if (afterSteps.length) {
-    const away = norm(outAt(phEnd));
-    for (let i = 0; i < 420; i += 1) {
-      ep = add(ep, mul(away, 13 * STEP));
-      f.go(ep, en, eu);
+
+  const phEnd = ph0 + d * TURN * o.turns;
+  const exitTangent = tangent(phEnd);
+  const lineOut = unit(add(exitTangent, scale(outward(phEnd), 1.1)));
+  let pos = at(phEnd);
+  const out = { n: exitTangent, up: upOf(phEnd, 1) };
+  if (o.afterSteps.length) {
+    const away = unit(outward(phEnd));
+    for (let i = 0; i < 420; i++) {
+      pos = add(pos, scale(away, 13 * DT));
+      flight.sample(pos, out.n, out.up);
     }
   }
-  for (const st of afterSteps) {
-    const ms = Math.round(Math.max(380, Math.abs(st.turns) * 720));
-    for (let i = 0; i < ms; i += 1) {
-      const axis = st.axis === 'roll' ? en : (st.axis === 'yaw' ? eu : cross(en, eu));
-      const d = (TURN * st.turns) / ms;
-      en = norm(rot(en, axis, d));
-      eu = norm(rot(eu, axis, d));
-      ep = add(ep, mul(outDir, 12 * STEP));
-      f.go(ep, en, eu);
+  for (const step of o.afterSteps) {
+    const ms = rotationMs(step.turns);
+    for (let i = 0; i < ms; i++) {
+      turnFrame(out, step.axis, (TURN * step.turns) / ms);
+      pos = add(pos, scale(lineOut, 12 * DT));
+      flight.sample(pos, out.n, out.up);
     }
   }
-  for (let i = 0; i < 1200; i += 1) {
-    f.go(add(ep, mul(outDir, 12 * STEP * i)), en, eu);
+  /* The first run-out sample repeats the last position on purpose: speed 0 there is part of the pinned feed. */
+  for (let i = 0; i < 1200; i++) {
+    flight.sample(add(pos, scale(lineOut, 12 * DT * i)), out.n, out.up);
   }
-  return f.finish();
+  return flight;
 }
 
-/* A rotation flown in open air, well away from anything to wind around. */
-function flyRot(opts = {}) {
-  const {
-    axisName = 'roll', turns = 1, secs = 0.9, extra = 0, before = null,
-  } = opts;
-  const f = new Flight(barField());
-  const fly = V(0, 0, -1);
-  let pos = V(200, 20, 200);
-  let n = fly;
-  let up = V(0, 1, 0);
-  const spinAxis = () => (axisName === 'roll' ? n : (axisName === 'yaw' ? up : cross(n, up)));
-  const settle = (ms) => {
-    for (let i = 0; i < ms; i += 1) {
-      pos = add(pos, mul(fly, 12 * STEP));
-      f.go(pos, n, up);
+/* ---- open air: level cruise, rotations, level cruise ---- */
+
+class OpenAir {
+  constructor() {
+    this.flight = new Flight(false);
+    this.heading = vec(0, 0, -1);
+    this.pos = vec(200, 20, 200);
+    this.frame = { n: this.heading, up: vec(0, 1, 0) };
+  }
+
+  tick(forward) {
+    this.pos = add(this.pos, scale(this.heading, 12 * DT * forward));
+    this.flight.sample(this.pos, this.frame.n, this.frame.up);
+  }
+
+  cruise(ms) {
+    for (let i = 0; i < ms; i++) {
+      this.pos = add(this.pos, scale(this.heading, 12 * DT));
+      this.flight.sample(this.pos, this.frame.n, this.frame.up);
     }
-  };
-  settle(1400);
-  const spin = (t, ms) => {
-    const N = Math.round(ms);
-    for (let i = 0; i < N; i += 1) {
-      const d = (TURN * t) / N;
-      const k = spinAxis();
-      n = norm(rot(n, k, d));
-      up = norm(rot(up, k, d));
-      pos = add(pos, mul(fly, 12 * STEP));
-      f.go(pos, n, up);
+  }
+
+  hover(ms) {
+    for (let i = 0; i < ms; i++) {
+      this.flight.sample(this.pos, this.frame.n, this.frame.up);
     }
-  };
-  if (before) { spin(before.turns, before.secs * 1000); settle(200); }
-  spin(turns + extra, secs * 1000);
-  settle(1400);
-  return f.finish();
+  }
 }
 
+function flyRotation(axisName, turns, secs, extra) {
+  const air = new OpenAir();
+  air.cruise(1400);
+  const ms = Math.round(secs * 1000);
+  const total = turns + extra;
+  for (let i = 0; i < ms; i++) {
+    turnFrame(air.frame, axisName, (TURN * total) / ms);
+    air.cruise(1);
+  }
+  air.cruise(1400);
+  return air.flight;
+}
 
-/* ------------------------------------------------------------------ *
- * FLYING AN ARBITRARY PATTERN, from its own steps
- *
- * The hand written cases above cover fourteen families and there are
- * sixty four scoreable tricks. A sweep that only visits the ones somebody
- * remembered to write down is exactly the hole score-selftest already has,
- * one level up: a new pattern can be added and never flown.
- *
- * So this reads a pattern and works out how a pilot would fly it. The rules
- * are not guesses; each one is the arithmetic of the shape:
- *
- *   A lap's own turn goes on ROLL if the nose is along the rail and on PITCH
- *   if it is across, because holding a circle points the thrust at the
- *   middle of it and that IS a rotation. So a pattern asking for roll equal
- *   to the lap is flown nose along, one asking for pitch equal to the lap is
- *   flown nose across, and anything left over is what the pilot ADDS.
- *
- *   An added rotation happens AT THE PEAK, which the workbook says in as
- *   many words. The exception is a spin the workbook calls slow, which is
- *   spread, and a lap asking for no flip and no roll can only be flown that
- *   way: the nose has to sweep the whole way round or the loop's turn lands
- *   on one axis and the pattern is refused.
- *
- *   A rotation BEFORE a lap is flown on the way in, far enough out that the
- *   winding gate has not opened, because that is where a pilot does it.
- * ------------------------------------------------------------------ */
+/* ---- reading the catalogue ---- */
 
-const AX = { roll: 0, pitch: 1, yaw: 2 };
+const BUILDING_BLOCK = /^(1\/4|1\/2|3\/4|1) (Flip|Roll|Yaw)/;
 
-/* Which way each step turns, resolving sameAs and oppTo against the steps
- * they name. */
-function directions(steps) {
+const REFUSE_CONTACT = 'a touch on a solid, and this rig flies in empty air';
+const REFUSE_PROXIMITY = 'needs proximity to a solid';
+const REFUSE_TWO_LAPS = 'a second lap, and this rig plans one lap at a time';
+const REFUSE_BARE_LAP = 'a lap with no turn of its own, which the rig has no way to fly';
+
+/* Everything the planner needs from one catalogue entry. */
+function readPattern(pat) {
+  const steps = pat.steps;
   const dirs = steps.map(() => 1);
-  for (let i = 0; i < steps.length; i += 1) {
+  steps.forEach((s, i) => {
+    if (s.dir !== undefined) dirs[i] = s.dir;
+    if (s.oppTo !== undefined) dirs[i] = -dirs[s.oppTo];
+    if (s.sameAs !== undefined) dirs[i] = dirs[s.sameAs];
+  });
+  const axisOf = (i) => {
     const s = steps[i];
-    /* An explicit direction, which is the whole difference between a
-     * Snapback and a Juicy Flick: same two rotations, opposite first pitch.
-     * Ignoring it flew the Juicy Flick and read the miss as a scorer fault. */
-    if (s.dir !== undefined) { dirs[i] = s.dir; }
-    if (s.oppTo !== undefined) { dirs[i] = -dirs[s.oppTo]; }
-    if (s.sameAs !== undefined) { dirs[i] = dirs[s.sameAs]; }
-  }
-  return dirs;
+    if (s.axis) return s.axis;
+    if (s.axisIn && s.axisIn.length) return s.axisIn[0];
+    if (s.axisAs !== undefined) return axisOf(s.axisAs);
+    return 'roll';
+  };
+  const axes = steps.map((_, i) => axisOf(i));
+  const laps = steps.flatMap((s, i) => (s.path !== undefined ? [i] : []));
+  const lapAt = laps.length ? laps[0] : -1;
+  return { steps, dirs, axes, laps, lapAt, refusal: refusalOf(steps, laps) };
 }
 
-function axisOf(step, steps) {
-  if (step.axis) { return step.axis; }
-  if (step.axisIn && step.axisIn.length) { return step.axisIn[0]; }
-  if (step.axisAs !== undefined) { return axisOf(steps[step.axisAs], steps); }
-  return 'roll';
-}
-
-/*
- * Can this pattern be flown by the generic planner, and if not, why not?
- * Saying so out loud matters: a sweep that silently skips what it cannot fly
- * reports a coverage it does not have.
- */
-function whyNotFlyable(steps) {
-  if (steps.some((s) => s.tap)) {
-    return 'needs a contact, which wants a wall and a collider';
-  }
-  if (steps.some((s) => s.nearest !== undefined || s.near !== undefined)) {
-    return 'needs proximity to a solid';
-  }
-  if (steps.filter((s) => s.path !== undefined).length > 1) {
-    return 'two laps, which this planner does not sequence yet';
-  }
-  /*
-   * A lap that must carry NEITHER a flip NOR a roll, and no spin either, is
-   * not a shape a quadcopter can fly: holding a circle points the thrust at
-   * the middle of it, and that is a rotation about one axis or the other.
-   * The catalogue prices Jump Rope and Beginner Matty this way and the
-   * workbook describes them as laps flown "flat", which a pilot achieves by
-   * yawing through them, so the pattern is arguably short a yaw. Either way
-   * this planner will not pretend to fly one.
-   */
-  const lap = steps.find((s) => s.path !== undefined);
-  if (lap && lap.rot) {
-    const z = (v) => v !== undefined && Math.abs(v) < 0.26;
-    if (z(lap.rot.pitch) && z(lap.rot.roll) && !((lap.rot.yaw ?? 0) >= 0.9)) {
-      return 'a lap carrying no rotation at all, which cannot be flown';
-    }
-  }
-  const lapAt = steps.findIndex((s) => s.path !== undefined);
-  if (lapAt > 0 && steps.slice(0, lapAt).some((s) => s.path !== undefined)) {
-    return 'a lap before a lap';
-  }
+function refusalOf(steps, laps) {
+  if (steps.some((s) => s.tap)) return REFUSE_CONTACT;
+  if (steps.some((s) => s.nearest !== undefined || s.near !== undefined)) return REFUSE_PROXIMITY;
+  if (laps.length > 1) return REFUSE_TWO_LAPS;
+  const rot = laps.length ? steps[laps[0]].rot : undefined;
+  const none = (v) => v !== undefined && Math.abs(v) < 0.26;
+  if (rot && none(rot.pitch) && none(rot.roll) && !((rot.yaw ?? 0) >= 0.9)) return REFUSE_BARE_LAP;
   return null;
 }
 
-/* Turn a lap step into the way it is flown. */
+/* Turn a lap step's measured rotation into lap flight options: which way the
+ * nose points, and what is added on top of the lap's own turn. */
 function planLap(step) {
   const turns = step.turnsAtLeast !== undefined ? step.turnsAtLeast : (step.turns ?? 1);
   const r = step.rot || {};
   const near = (a, b) => Math.abs((a ?? 0) - b) < 0.26;
-  /*
-   * The lap's own turn belongs to whichever axis the pattern says carries
-   * it, and a pattern asking for NO flip is asking for a roll loop: a lap
-   * has to rotate about something, because holding a circle points the
-   * thrust at the middle of it. Flown the other way, as a pitch loop with a
-   * cancelling negative flip on top, a Maverick Loop came out a Power Flip:
-   * 350 points for a 100 point trick, on every sample, and it was the
-   * planner's nonsense rather than the scorer's.
-   */
-  /*
-   * WHERE THE LAP'S OWN TURN GOES.
-   *
-   * A lap is always a rotation, because holding a circle points the thrust
-   * at the middle of it. The only question is which body axis carries it,
-   * and the pattern answers that by how much FLIP it asks for against how
-   * far round it goes: a nose that follows the path all the way round a
-   * whole lap has pitched a whole turn, so pitch == turns is a Powerloop
-   * and the lap's turn is a flip. Ask for LESS flip than that and the nose
-   * cannot be following the path, so it is lying along the rail and the
-   * lap's turn is a ROLL: that is the whole Maverick family, and it is
-   * true of a Donkey Loop's half flip as much as a Maverick Loop's none.
-   * Ask for more and it is a Powerloop with extra on top.
-   *
-   * Keying off roll instead, which is what this did first, gets Mavvy Roll
-   * wrong: roll 2 is not near turns 1, so it flew a Powerloop with two
-   * added rolls and measured a half roll and a flip.
-   */
-  const noseAlong = r.pitch !== undefined
-    ? r.pitch < turns - 0.01
+  const noseAlong = r.pitch !== undefined ? r.pitch < turns - 0.01
     : (r.roll !== undefined && near(r.roll, turns));
-  const ownPitch = noseAlong ? 0 : turns;
-  const ownRoll = noseAlong ? turns : 0;
   const plan = {
     turns,
     from: step.from || 'under',
     noseAlong,
-    addPitch: r.pitch === undefined ? 0 : r.pitch - ownPitch,
-    addRoll: r.roll === undefined ? 0 : r.roll - ownRoll,
+    addPitch: r.pitch === undefined ? 0 : r.pitch - (noseAlong ? 0 : turns),
+    addRoll: r.roll === undefined ? 0 : r.roll - (noseAlong ? turns : 0),
     addYaw: r.yaw === undefined ? 0 : r.yaw,
     pole: step.path === 'pole',
     track: step.track === true,
     inverted: step.inverted === true,
     yawSpread: false,
   };
-  /*
-   * A lap that must carry NEITHER a flip nor a roll can only be flown with
-   * the nose sweeping: that is the only way the loop's own turn ends up on
-   * no axis at all. The workbook calls the spin "slow" for exactly this.
-   */
+  /* A flat lap whose only rotation is a full yaw: spread the yaw over the whole lap. */
   if (near(r.pitch, 0) && (r.roll === undefined || near(r.roll, 0)) && (r.yaw ?? 0) >= 0.9) {
-    plan.noseAlong = false;
-    plan.addPitch = 0;
-    plan.addRoll = 0;
-    plan.yawSpread = true;
+    Object.assign(plan, { noseAlong: false, addPitch: 0, addRoll: 0, yawSpread: true });
   }
+  /* A post lap is an orbit: nothing is added to it. */
   if (plan.pole) {
-    /* A post's lap is flown in the horizontal plane, and its own turn is a
-     * yaw, so nothing is added for it. */
-    plan.addPitch = 0;
-    plan.addRoll = 0;
-    plan.addYaw = 0;
+    Object.assign(plan, { addPitch: 0, addRoll: 0, addYaw: 0 });
   }
   return plan;
 }
 
-/*
- * Fly a whole pattern. Rotations before the lap go on the run in, the lap is
- * flown as its plan says, and rotations after it go on the way out.
- */
-function flyPattern(steps, opts = {}) {
-  const { bankDeg = 0, de = 0, drift = 0 } = opts;
-  const dirs = directions(steps);
-  const lapAt = steps.findIndex((s) => s.path !== undefined);
-  if (lapAt < 0) {
-    /* Pure rotations, in open air. */
-    const f = new Flight(barField());
-    const fly = V(0, 0, -1);
-    let pos = V(200, 20, 200);
-    let n = fly;
-    let up = V(0, 1, 0);
-    const settle = (ms) => {
-      for (let i = 0; i < ms; i += 1) {
-        pos = add(pos, mul(fly, 12 * STEP));
-        f.go(pos, n, up);
-      }
-    };
-    const hover = (ms) => { for (let i = 0; i < ms; i += 1) { f.go(pos, n, up); } };
-    settle(1500);
-    for (let i = 0; i < steps.length; i += 1) {
-      const st = steps[i];
-      /* The stall is the trick. Hover, and then rotate WITHOUT flying on
-       * at cruise, because a Stall Rewind is flown with the throttle cut. */
-      if (st.stallMs) { hover(Math.round(st.stallMs * 1.4)); }
-      const drift = st.stallMs ? 0 : 1;
-      /*
-       * Belly up before a step that asks for it. An Inverted Yaw Spin is a
-       * Yaw Spin flown upside down and is worth 400 against 50, so a rig
-       * that flew it the right way up was reading a 350 point gap as a
-       * scorer miss. The half roll that gets there is flown, not teleported,
-       * so it shows up as its own primitive, which is honest: that is what
-       * a pilot does.
-       */
-      if (st.inverted && up.y > 0) {
-        const R = 420;
-        for (let i = 0; i < R; i += 1) {
-          const d = TURN * 0.5 / R;
-          n = norm(rot(n, n, 0));
-          up = norm(rot(up, n, d));
-          pos = add(pos, mul(fly, 12 * STEP));
-          f.go(pos, n, up);
-        }
-        settle(260);
-      }
-      const name = axisOf(st, steps);
-      const t = (st.turns ?? 1) * (1 + de) * dirs[i];
-      const ms = Math.round(Math.max(420, Math.abs(t) * 780));
-      for (let k = 0; k < ms; k += 1) {
-        const axis = name === 'roll' ? n : (name === 'yaw' ? up : cross(n, up));
-        const d = (TURN * t) / ms;
-        n = norm(rot(n, axis, d));
-        up = norm(rot(up, axis, d));
-        pos = add(pos, mul(fly, 12 * STEP * drift));
-        f.go(pos, n, up);
-      }
-      if (i < steps.length - 1) { settle(180); }
-    }
-    settle(1500);
-    return f.finish();
+function flyPattern(info, bankDeg, de, drift) {
+  const { steps, dirs, axes, lapAt } = info;
+  const signed = (i) => ({ axis: axes[i], turns: (steps[i].turns ?? 1) * dirs[i] });
+  if (lapAt >= 0) {
+    const plan = planLap(steps[lapAt]);
+    const before = steps.slice(0, lapAt).map((_, i) => signed(i));
+    const after = steps.slice(lapAt + 1).map((_, k) => signed(lapAt + 1 + k));
+    const quarterYaw = lapAt === 1 && axes[0] === 'yaw';
+    return flyLap({
+      ...plan,
+      turns: plan.turns * (1 + de),
+      bankDeg,
+      drift,
+      beforeYaw: quarterYaw ? (steps[0].turns ?? 0.25) : 0,
+      beforeSteps: quarterYaw ? [] : before,
+      afterSteps: after,
+    });
   }
-  const plan = planLap(steps[lapAt]);
-  const beforeRot = steps.slice(0, lapAt);
-  return flyLap({
-    ...plan,
-    turns: plan.turns * (1 + de),
-    bankDeg,
-    drift,
-    beforeYaw: beforeRot.length === 1 && axisOf(beforeRot[0], steps) === 'yaw'
-      ? (beforeRot[0].turns ?? 0.25)
-      : 0,
-    beforeSteps: beforeRot.length === 1 && axisOf(beforeRot[0], steps) === 'yaw'
-      ? []
-      : beforeRot.map((st, j) => ({
-        axis: axisOf(st, steps),
-        turns: (st.turns ?? 1) * dirs[j],
-      })),
-    afterSteps: steps.slice(lapAt + 1).map((st, j) => ({
-      axis: axisOf(st, steps),
-      turns: (st.turns ?? 1) * dirs[lapAt + 1 + j],
-    })),
+
+  const air = new OpenAir();
+  air.cruise(1500);
+  steps.forEach((s, i) => {
+    if (s.stallMs) {
+      air.hover(Math.round(s.stallMs * 1.4));
+    }
+    if (s.inverted && air.frame.up.y > 0) {
+      for (let k = 0; k < 420; k++) {
+        /* rotate(n, n, 0) is the identity bar rounding, and the rounding is pinned. */
+        air.frame.n = unit(rotate(air.frame.n, air.frame.n, 0));
+        air.frame.up = unit(rotate(air.frame.up, air.frame.n, TURN * 0.5 / 420));
+        air.tick(1);
+      }
+      air.cruise(260);
+    }
+    const t = (s.turns ?? 1) * (1 + de) * dirs[i];
+    const ms = Math.round(Math.max(420, Math.abs(t) * 780));
+    for (let k = 0; k < ms; k++) {
+      turnFrame(air.frame, axes[i], (TURN * t) / ms);
+      air.tick(s.stallMs ? 0 : 1);
+    }
+    if (i < steps.length - 1) {
+      air.cruise(180);
+    }
   });
+  air.cruise(1500);
+  return air.flight;
 }
 
-/*
- * Fly one pattern from its own steps and print what the detector measured.
- * This is the debugger for the rig, not a check: it says what was flown and
- * what came back, and leaves the judging to a person.
- */
-function show(name, opts = {}) {
-  const pat = PATTERNS.find((p) => p.name === name);
-  if (!pat) { console.log(`no pattern named ${name}`); return; }
-  const why = whyNotFlyable(pat.steps);
-  console.log(`${name}  ${pointsOf(name)} points`);
-  console.log(`  asks   ${JSON.stringify(pat.steps)}`);
-  if (why) { console.log(`  cannot fly: ${why}`); return; }
-  const lapAt = pat.steps.findIndex((s) => s.path !== undefined);
-  if (lapAt >= 0) { console.log(`  plan   ${JSON.stringify(planLap(pat.steps[lapAt]))}`); }
-  const f = flyPatternProbe(pat.steps, opts);
-  const fmt = (v) => (v === null || v === undefined ? 'null'
-    : Array.isArray(v) ? `[${v.map((x) => x.toFixed(2)).join(', ')}]` : v.toFixed(2));
-  for (const pr of f.prims) {
-    if (pr.turns !== undefined && pr.rot) {
-      console.log(`  LAP    turns ${fmt(pr.turns)} dir ${pr.dir} from ${pr.startSide}`
-        + ` rot ${fmt(pr.rot)} spin ${fmt(pr.spin)} align ${fmt(pr.align)} own ${fmt(pr.own)}`);
-    } else {
-      const ax = ['roll', 'pitch', 'yaw'][pr.axis] || `axis ${pr.axis}`;
-      console.log(`  ROT    ${ax} ${fmt(pr.turns ?? 0)} dir ${pr.dir}`
-        + ` stallBefore ${pr.stallBeforeMs ?? 0} slow ${pr.slowMs ?? 0}`
-        + ` invFrac ${fmt(pr.invertedFrac ?? 0)} tapped ${pr.tapped}`);
-    }
-  }
-  console.log(`  named  ${f.names.length ? f.names.join(', ') : '(nothing)'}`);
-}
+/* ---- sorting flights into right, silent, under, over ---- */
 
-/* flyPattern, but handing back the flight so --show can read the prims. */
-let lastFlight = null;
-function flyPatternProbe(steps, opts) {
-  const names = flyPattern(steps, opts);
-  return { names, prims: lastFlight ? lastFlight.prims : [] };
-}
+const pointsOf = (name) => trickByName(name)?.points ?? 0;
 
-/* ------------------------------------------------------------------ *
- * The sweep
- * ------------------------------------------------------------------ */
-
-const BANKS = [0, 10, 20, 30, 40, 50, 60];
-const TURN_ERR = [-0.12, -0.06, 0, 0.06, 0.12];
-const DRIFTS = [0, 0.08, 0.16];
-
-function sweepLap(want, base, dims) {
-  const rows = [];
-  for (const bankDeg of dims.banks ?? BANKS) {
-    for (const de of dims.turnErr ?? TURN_ERR) {
-      for (const drift of dims.drifts ?? DRIFTS) {
-        /*
-         * The turn error is a FRACTION of the lap, not a fixed number of
-         * turns. A twelfth of a turn is a twelfth of a Powerloop and a
-         * QUARTER of a Matty Flip, and no pilot misses a half lap by a
-         * quarter of it. Applied flat, the sweep was asking a half lap to
-         * survive winding 0.38 turns, which is less than the half turn a
-         * craft flying DEAD STRAIGHT past the rail subtends, and the
-         * recogniser was right to refuse every one of them.
-         */
-        const base0 = base.turns ?? 1;
-        const names = flyLap({
-          ...base, bankDeg, drift, turns: base0 * (1 + de),
-        });
-        rows.push({ bankDeg, de, drift, names });
-      }
-    }
-  }
-  return classify(want, rows);
-}
-
-/*
- * THE ONE FAILURE THAT MATTERS IS OVER-CLAIMING.
- *
- * Three ways of not naming the intended trick, and they are not equal:
- *
- *   SILENT  nothing was named. The scorer has told the pilot the truth,
- *           which is that what they flew was not clean enough to name.
- *   UNDER   something CHEAPER was named. Usually a real component of the
- *           trick, like the roll out of a lap whose lap did not form. The
- *           pilot is short changed, which is a miss worth watching, but
- *           nothing false has been put on a board.
- *   OVER    something DEARER was named. This is the bug. A pilot who flew a
- *           Powerloop and is paid 600 for a Donkey Loop has been lied to,
- *           the leaderboard has a number on it nobody earned, and they have
- *           been taught the wrong thing about their own flying.
- *
- * So the sweep fails on OVER and reports the other two.
- */
-function pointsOf(name) {
-  const t = trickByName(name);
-  return t && t.points != null ? t.points : 0;
-}
-
-function classify(want, rows) {
-  const wants = Array.isArray(want) ? want : [want];
-  const target = Math.max(0, ...wants.map(pointsOf));
-  let correct = 0;
-  let silent = 0;
-  let under = 0;
-  const over = new Map();
-  const light = new Map();
+function judge(records, wanted) {
+  const target = Math.max(0, pointsOf(wanted));
+  const tally = { wanted, target, total: records.length, right: 0, silent: 0, under: 0, over: 0 };
+  const buckets = { over: new Map(), under: new Map() };
   const byBank = new Map();
   const byErr = new Map();
-  const note = (r, ok) => {
-    for (const [m, k] of [[byBank, r.bankDeg], [byErr, r.de]]) {
-      const c = m.get(k) || { n: 0, ok: 0 };
-      c.n += 1;
-      if (ok) { c.ok += 1; }
-      m.set(k, c);
+  for (const rec of records) {
+    const hit = rec.names.includes(wanted);
+    for (const [m, k] of [[byBank, rec.bank], [byErr, rec.err]]) {
+      const cell = m.get(k) || { n: 0, ok: 0 };
+      cell.n += 1;
+      cell.ok += hit ? 1 : 0;
+      m.set(k, cell);
     }
-  };
-  for (const r of rows) {
-    if (wants.some((w) => r.names.includes(w))) {
-      correct += 1;
-      note(r, true);
+    if (hit) {
+      tally.right += 1;
       continue;
     }
-    note(r, false);
-    /* Nothing but building blocks is silence: a bare half roll is the
-     * catalogue admitting it saw a fragment, not naming a trick. */
-    const real = r.names.filter((n) => !/^(1\/4|1\/2|3\/4|1) (Flip|Roll|Yaw)/.test(n));
+    const real = rec.names.filter((nm) => !BUILDING_BLOCK.test(nm));
     if (!real.length) {
-      silent += 1;
+      tally.silent += 1;
       continue;
     }
     const key = real.join(' + ');
-    const paid = real.reduce((a, n) => a + pointsOf(n), 0);
-    const bucket = paid > target ? over : light;
-    const cur = bucket.get(key) || { n: 0, at: null, paid };
-    cur.n += 1;
-    if (!cur.at) { cur.at = `bank ${r.bankDeg} turnErr ${r.de} drift ${r.drift}`; }
-    bucket.set(key, cur);
-    if (bucket === light) { under += 1; }
+    const paid = real.reduce((acc, nm) => acc + pointsOf(nm), 0);
+    const pile = paid > target ? 'over' : 'under';
+    tally[pile] += 1;
+    const entry = buckets[pile].get(key) || { key, paid, n: 0, first: rec };
+    entry.n += 1;
+    buckets[pile].set(key, entry);
   }
-  return {
-    total: rows.length, correct, silent, under, over, light, target, byBank, byErr,
-  };
+  const ranked = (m) => [...m.values()].sort((a, b) => b.n - a.n);
+  const ordered = (m) => [...m.entries()].sort((a, b) => a[0] - b[0]);
+  return { ...tally, overs: ranked(buckets.over), unders: ranked(buckets.under),
+    byBank: ordered(byBank), byErr: ordered(byErr) };
 }
 
-function report(label, res) {
-  const overN = [...res.over.values()].reduce((a, b) => a + b.n, 0);
-  const pct = (n) => `${Math.round((n / res.total) * 100)}%`;
-  const verdict = overN === 0 ? 'ok   ' : 'OVER ';
-  console.log(`  ${verdict}${label.padEnd(26)} right ${pct(res.correct).padStart(4)}`
-    + `  silent ${pct(res.silent).padStart(4)}  under ${pct(res.under).padStart(4)}`
-    + `  OVER ${pct(overN).padStart(4)}   (${res.total} @ ${res.target})`);
-  for (const [name, i] of [...res.over.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 4)) {
-    console.log(`        OVERPAID "${name}" ${i.paid} vs ${res.target}, ${i.n} times, first at ${i.at}`);
+const share = (n, total) => `${Math.round((n / total) * 100)}%`;
+
+function printJudgement(label, j) {
+  const col = (name, n) => `${name} ${share(n, j.total).padStart(4)}`;
+  console.log(`  ${j.over ? 'FAIL' : 'pass'} ${label.padEnd(26)} ${col('named', j.right)}  `
+    + `${col('quiet', j.silent)}  ${col('cheaper', j.under)}  ${col('dearer', j.over)}  `
+    + `[${j.total} flights, worth ${j.target}]`);
+  for (const e of j.overs.slice(0, 4)) {
+    const f = e.first;
+    console.log(`      overpaid: "${e.key}" (${e.paid} against ${j.target}) on ${e.n} flights, `
+      + `first at bank ${f.bank} error ${f.err} drift ${f.drift}`);
   }
-  for (const [name, i] of [...res.light.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 2)) {
-    console.log(`        under    "${name}" ${i.paid} vs ${res.target}, ${i.n} times`);
+  for (const e of j.unders.slice(0, 2)) {
+    console.log(`      cheaper:  "${e.key}" (${e.paid} against ${j.target}) on ${e.n} flights`);
   }
-  /* WHERE it misses matters as much as how often: a trick that is named at
-   * every bank and misses only at the extremes of turn error is solid, and
-   * one that misses scattered through the middle is not. */
-  if (res.byBank && res.correct < res.total) {
-    const cells = [...res.byBank.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([b, v]) => `${b}deg ${Math.round((v.ok / v.n) * 100)}%`);
-    console.log(`        by bank  ${cells.join('  ')}`);
-    const errs = [...res.byErr.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([e, v]) => `${e > 0 ? '+' : ''}${e} ${Math.round((v.ok / v.n) * 100)}%`);
-    console.log(`        by turn  ${errs.join('  ')}`);
+  if (j.right < j.total) {
+    const row = (cells, fmt) => cells.map(([k, c]) => `${fmt(k)}=${share(c.ok, c.n)}`).join(' ');
+    console.log(`      named by bank:  ${row(j.byBank, (k) => `${k}deg`)}`);
+    console.log(`      named by error: ${row(j.byErr, (k) => (k > 0 ? `+${k}` : `${k}`))}`);
   }
-  return overN;
+  return j.over;
 }
 
-/*
- * EVERY SCOREABLE PATTERN, flown from its own steps.
- *
- * The hand written cases cover the families that were argued about. This
- * covers the CATALOGUE, so a pattern cannot be added without being flown,
- * and it reports honestly on the ones the planner cannot fly rather than
- * quietly leaving them out of the denominator.
- */
-function sweepEverything() {
-  const BLOCK = /^(1\/4|1\/2|3\/4|1) (Flip|Roll|Yaw)/;
-  const seen = new Set();
-  const rows = [];
-  let skipped = 0;
-  const skipWhy = new Map();
-  const skips = [];
-  for (const pat of PATTERNS) {
-    if (seen.has(pat.name) || BLOCK.test(pat.name)) { continue; }
-    seen.add(pat.name);
-    if (!trickByName(pat.name)) { continue; }
-    const why = whyNotFlyable(pat.steps);
-    if (why) {
-      skipped += 1;
-      skipWhy.set(why, (skipWhy.get(why) || 0) + 1);
-      skips.push({ name: pat.name, why });
-      continue;
-    }
-    const samples = [];
-    for (const bankDeg of [0, 25, 45]) {
-      for (const de of [-0.08, 0, 0.08]) {
-        samples.push({ bankDeg, de, drift: 0, names: flyPattern(pat.steps, { bankDeg, de }) });
+/* ---- default mode: hand-built cases ---- */
+
+const GRID = { banks: [0, 10, 20, 30, 40, 50, 60], errs: [-0.12, -0.06, 0, 0.06, 0.12], drifts: [0, 0.08, 0.16] };
+const NARROW = { banks: [0, 20, 40], drifts: [0] };
+
+const LAP_CASES = [
+  ['Powerloop', 'Powerloop', { turns: 1, from: 'under' }, {}],
+  ['loop, nose along the rail', 'Maverick Loop', { turns: 1, from: 'under', noseAlong: true }, {}],
+  ['Matty Flip', 'Matty Flip', { turns: 0.5, from: 'over' }, {}],
+  /* No trick has this name, so the target is 0 and any real name is an over-claim. */
+  ['bare half lap from under', '(nothing)', { turns: 0.5, from: 'under' }, {}],
+  ['Power Roll', 'Power Roll', { turns: 1, from: 'under', addRoll: 1 }, { drifts: [0, 0.08] }],
+  ['Inverted 360 Powerloop', 'Inverted 360 Powerloop', { turns: 1, from: 'under', addYaw: 1 }, { drifts: [0, 0.08] }],
+  ['Donkey Loop', 'Donkey Loop', { turns: 1, from: 'under', noseAlong: true, addPitch: 0.5, addYaw: 1 }, NARROW],
+  ['Side Loop', 'Side Loop', { turns: 1, from: 'under', noseAlong: true, beforeYaw: 0.25 }, NARROW],
+  ['Cinnamon Roll', 'Cinnamon Roll',
+    { turns: 1, from: 'under', addYaw: 1, yawSpread: true, beforeYaw: 0.25 }, NARROW],
+  ['Mavvy Roll', 'Mavvy Roll', { turns: 1, from: 'under', noseAlong: true, addRoll: 1 }, { drifts: [0, 0.08] }],
+  ['Orbit x2', 'Orbit x2', { turns: 2, pole: true, track: true, radius: 6, secs: 3 }, { banks: [0], drifts: [0, 0.08] }],
+  ['Trippy Spin x2', 'Trippy Spin x2',
+    { turns: 2, pole: true, track: true, inverted: true, radius: 6, secs: 3 }, { banks: [0], drifts: [0, 0.08] }],
+];
+
+const ROTATION_CASES = [
+  ['Roll', 'roll', 1],
+  ['Flip', 'pitch', 1],
+  ['Yaw Spin', 'yaw', 1],
+  ['Double Roll', 'roll', 2],
+];
+
+function runHandCases() {
+  const only = option('--only')?.toLowerCase();
+  const wanted = (label) => only === undefined || label.toLowerCase().includes(only);
+  console.log('trick-sweep: each shape flown many times with the bank, turn and wobble a pilot really varies.');
+  console.log('Naming a dearer trick fails the run. Naming nothing, or something cheaper, is allowed.');
+  console.log('');
+  let over = 0;
+  for (const [label, name, base, narrow] of LAP_CASES) {
+    if (!wanted(label)) continue;
+    const g = { ...GRID, ...narrow };
+    const records = [];
+    for (const bank of g.banks) {
+      for (const err of g.errs) {
+        for (const drift of g.drifts) {
+          const names = flyLap({ ...base, bankDeg: bank, drift, turns: (base.turns ?? 1) * (1 + err) }).finish();
+          records.push({ bank, err, drift, names });
+        }
       }
     }
-    rows.push({ name: pat.name, res: classify(pat.name, samples) });
+    over += printJudgement(label, judge(records, name));
   }
-  return { rows, skipped, skipWhy, skips };
-}
-
-/*
- * WRITE DOWN WHAT WAS PROVEN, so the trick list can cite it.
- *
- * The list used to show all sixty four tricks with a price and a film and
- * nothing else, which tells a pilot that a trick they have never once been
- * able to land is as available as a Powerloop. The sweep is the only thing
- * that knows the difference, so it says so in a file rather than in a
- * console run nobody keeps: a picture is evidence for one round, a number
- * in a file is evidence forever.
- *
- * NOT FLOWN IS NOT THE SAME AS NOT SCOREABLE and the file keeps them apart.
- * The rig has no wall, so it cannot fly a Wall Ride; a pilot can. It cannot
- * fly a ballistic arc, so it cannot fly a Jump Rope; a pilot can. What the
- * rig cannot demonstrate it says nothing about, rather than marking it bad.
- */
-function writeProven(out) {
-  const { rows, skips } = out;
-  const q = (n) => `'${n.replace(/'/g, "\\'")}'`;
-  const flown = rows.map((r) => `  ${q(r.name)}: `
-    + `{ runs: ${r.res.total}, landed: ${r.res.correct} },`).join('\n');
-  const notFlown = skips.map((k) => `  ${q(k.name)}: ${q(k.why)},`).join('\n');
-  const body = `${LICENCE}
-/*
- * GENERATED FILE. Do not edit by hand.
- *
- * Written by \`node scripts/trick-sweep.js --all --write\`, which flies every
- * scoreable pattern from the pattern's own steps at three banks and three
- * turn errors and records what the recogniser called each flight. Rerun it
- * after any change to the catalogue or the recogniser, and commit the
- * result: the trick list reads it to tell a pilot which tricks are known to
- * score rather than presenting all of them as equally available.
- *
- * LANDED is the number of those flights the recogniser named correctly.
- * runs === landed means it named the trick on every sample.
- *
- * NOT_FLOWN is what the RIG cannot fly, which is not a statement about
- * whether a pilot can score it. The rig has no wall and cannot fly a
- * ballistic arc; a pilot has both. These are absences of evidence and the
- * list says so in those words.
- */
-
-export const PROVEN = {
-${flown}
-};
-
-export const NOT_FLOWN = {
-${notFlown}
-};
-`;
-  const path = new URL('../src/game/proven.js', import.meta.url);
-  writeFileSync(path, body);
-  console.log(`\nwrote src/game/proven.js: ${rows.length} flown, ${skips.length} not flown.`);
-}
-
-async function main() {
-  const only = (process.argv.find((a) => a.startsWith('--only=')) || '').split('=')[1] || '';
-  const showing = (process.argv.find((a) => a.startsWith('--show=')) || '').split('=')[1] || '';
-  const writing = process.argv.includes('--write');
-  if (showing) {
-    const bank = Number((process.argv.find((a) => a.startsWith('--bank=')) || '=0').split('=')[1]);
-    for (const nm of showing.split(',')) { show(nm.trim(), { bankDeg: bank }); }
-    return;
-  }
-  if (process.argv.includes('--all')) {
-    const swept = sweepEverything();
-    const { rows, skipped, skipWhy } = swept;
-    let over = 0;
-    let named = 0;
-    const misses = [];
-    for (const r of rows) {
-      const o = [...r.res.over.values()].reduce((a, b) => a + b.n, 0);
-      over += o;
-      if (r.res.correct === r.res.total) { named += 1; }
-      if (o > 0 || r.res.correct < r.res.total) {
-        misses.push({ name: r.name, res: r.res, over: o });
-      }
-    }
-    console.log(`Every scoreable pattern, flown from its own steps.\n`);
-    console.log(`  ${rows.length} patterns flown, ${named} named on every sample.`);
-    console.log(`  ${skipped} could not be flown by the planner:`);
-    for (const [why, n] of skipWhy) { console.log(`      ${n} ${why}`); }
-    console.log('');
-    for (const m of misses.sort((a, b) => b.over - a.over)) {
-      report(m.name, m.res);
-    }
-    console.log(over === 0
-      ? `\nAll ${rows.length} flown: nothing was ever paid more than it was worth.`
-      : `\n${over} samples were paid MORE than the trick they flew.`);
-    /* Only from a clean sweep. Evidence written out of a run that told a lie
-     * somewhere is not evidence. */
-    if (writing && over === 0) { writeProven(swept); }
-    if (writing && over !== 0) {
-      console.log('NOT written: a sweep with an over-claim in it is not evidence.');
-    }
-    process.exit(over === 0 ? 0 : 1);
-  }
-  console.log('trick-sweep: the same shape, perturbed the way a human varies it.');
-  console.log('A WRONG name is a failure. Silence is not: it is the scorer being honest.\n');
-  let bad = 0;
-
-  const CASES = [
-    ['Powerloop', () => sweepLap('Powerloop', { turns: 1, from: 'under' }, {})],
-    /*
-     * Nose along the rail, so the loop's own turn IS a roll: a lap with no
-     * body rotation at all is not flyable, because holding a circle points
-     * the thrust at the middle of it and that is a rotation. Both names are
-     * therefore honest readings of this shape, Mavvy Roll being the more
-     * precise one, and the sweep accepts either.
-     */
-    /*
-     * Was ['Mavvy Roll', 'Maverick Loop'], accepting either, because with
-     * Maverick Loop's roll unnamed the two patterns described the same
-     * motion and there was no right answer to insist on. Now that a Mavvy
-     * Roll is the lap's own roll AND one more, a bare rolled lap is a
-     * Maverick Loop and nothing else.
-     */
-    ['roll loop', () => sweepLap('Maverick Loop', { turns: 1, from: 'under', noseAlong: true }, {})],
-    ['Matty Flip', () => sweepLap('Matty Flip', { turns: 0.5, from: 'over' }, {})],
-    /*
-     * A bare half lap up from under is deliberately NOT a trick: the
-     * catalogue's members of that family all carry a roll or a flip out of
-     * it, so silence is the right answer and the sweep asserts that the
-     * answer is silence rather than some other trick's name.
-     */
-    ['half lap from under', () => sweepLap('(nothing)', { turns: 0.5, from: 'under' }, {})],
-    /*
-     * THE CONFUSABLE NEIGHBOURS, swept both ways. A Powerloop must never be
-     * named one of these and each of these must be named itself, because
-     * they sit half a turn apart on one axis and the dearer one used to win
-     * a tie on price. Power Roll is 450 and Inverted 360 Powerloop is 650
-     * against a Powerloop's 200, so this is where an over-claim would show.
-     */
-    ['Power Roll', () => sweepLap('Power Roll', {
-      turns: 1, from: 'under', addRoll: 1,
-    }, { drifts: [0, 0.08] })],
-    ['Inverted 360 Powerloop', () => sweepLap('Inverted 360 Powerloop', {
-      turns: 1, from: 'under', addYaw: 1,
-    }, { drifts: [0, 0.08] })],
-    /*
-     * THE JUMP ROPING FAMILY, which is where an over-claim would cost most.
-     * Every one is [quarter yaw, lap] and every one is cheap: Cinnamon Roll
-     * is 175 and Side Loop 200, sitting beside one step laps worth 250 and
-     * 600. If the opening quarter yaw does not reach the matcher next to the
-     * lap, the two step pattern is unreachable and the dear one step pattern
-     * takes the flight.
-     */
-    /*
-     * BOTH WAYS ROUND THE PAIR THAT COSTS MOST TO CONFUSE, 600 against 175.
-     *
-     * The workbook is what separates them, and it separates them by which
-     * loop they are built on. A Donkey Loop is "a MAVERICK loop, and during
-     * the loop a 180 pitch down to invert, then a 360 yaw spin, then
-     * complete the loop": the lap is flown nose along the rail so the loop
-     * itself is a ROLL, and the flip and the spin are added on top. An
-     * Inverted 360 Powerloop is "start a POWERLOOP, and at the peak a 360
-     * yaw spin while inverted": the lap is a flip.
-     *
-     * An earlier attempt flew the Donkey Loop on a pitch loop, which is not
-     * a Donkey Loop at all but an Inverted 360 Powerloop, and the recogniser
-     * named it one and was right to.
-     */
-    ['Donkey Loop', () => sweepLap('Donkey Loop', {
-      turns: 1, from: 'under', noseAlong: true, addPitch: 0.5, addYaw: 1,
-    }, { banks: [0, 20, 40], drifts: [0] })],
-    /*
-     * The Donkey Loop is UNDER-claimed rather than named, and the reason is
-     * worth keeping. Flown as the workbook writes it, a roll loop carrying
-     * both a 180 pitch and a 360 yaw, the body frame reading comes out
-     * [0, 0.13, 0.80]: the loop's own roll has been scrambled to nothing by
-     * the two rotations on top of it, and the added flip reads a tenth of a
-     * turn rather than a half. The per sample ownership is 0.78 against the
-     * 0.9 floor, so the de-banking declines, and declining is right: with
-     * three rotations interacting there is no clean axis to give the loop's
-     * turn to.
-     *
-     * It names Maverick Loop, 100 against 600. That is a MISS and not a lie,
-     * which is the bar this file actually holds the scorer to, and it is the
-     * honest answer for a trick whose three rotations the body frame cannot
-     * separate. Naming it would need the lap's rotation resolved in a frame
-     * carried along the lap rather than in the craft, which is a bigger
-     * change than anything here and is the next thing this needs.
-     */
-    ['Side Loop', () => sweepLap('Side Loop', {
-      turns: 1, from: 'under', noseAlong: true, beforeYaw: 0.25,
-    }, { banks: [0, 20, 40], drifts: [0] })],
-    ['Cinnamon Roll', () => sweepLap('Cinnamon Roll', {
-      turns: 1, from: 'under', addYaw: 1, yawSpread: true, beforeYaw: 0.25,
-    }, { banks: [0, 20, 40], drifts: [0] })],
-    /*
-     * The lap's own roll AND one more. This case used to fly a bare
-     * nose-along lap and call it a Mavvy Roll, which was only ever right
-     * because Maverick Loop left its roll unnamed and the dearer of two
-     * identical patterns won. It is a Maverick Loop, and a Mavvy Roll is
-     * that plus the 360 the workbook asks for at the peak.
-     */
-    ['Mavvy Roll', () => sweepLap('Mavvy Roll', {
-      turns: 1, from: 'under', noseAlong: true, addRoll: 1,
-    }, { drifts: [0, 0.08] })],
-    ['Orbit x2', () => sweepLap('Orbit x2', {
-      turns: 2, pole: true, track: true, radius: 6, secs: 3,
-    }, { banks: [0], drifts: [0, 0.08] })],
-    ['Trippy Spin x2', () => sweepLap('Trippy Spin x2', {
-      turns: 2, pole: true, track: true, inverted: true, radius: 6, secs: 3,
-    }, { banks: [0], drifts: [0, 0.08] })],
-  ];
-  const ROT_CASES = [
-    ['Roll', 'roll', 1],
-    ['Flip', 'pitch', 1],
-    ['Yaw Spin', 'yaw', 1],
-    ['Double Roll', 'roll', 2],
-  ];
-
-  for (const [label, fn] of CASES) {
-    if (only && !label.toLowerCase().includes(only.toLowerCase())) { continue; }
-    bad += report(label, fn());
-  }
-  for (const [want, axisName, turns] of ROT_CASES) {
-    if (only && !want.toLowerCase().includes(only.toLowerCase())) { continue; }
-    const rows = [];
+  for (const [name, axisName, turns] of ROTATION_CASES) {
+    if (!wanted(name)) continue;
+    const records = [];
     for (const extra of [-0.1, -0.05, 0, 0.05, 0.1]) {
       for (const secs of [0.7, 1.0, 1.4]) {
-        rows.push({ bankDeg: 0, de: extra, drift: 0, names: flyRot({ axisName, turns, secs, extra }) });
+        records.push({ bank: 0, err: extra, drift: 0, names: flyRotation(axisName, turns, secs, extra).finish() });
       }
     }
-    bad += report(want, classify(want, rows));
+    over += printJudgement(name, judge(records, name));
   }
-
-  console.log(bad === 0
-    ? '\ntrick-sweep: nothing was ever paid more than it was worth.'
-    : `\ntrick-sweep: ${bad} samples were paid MORE than the trick they flew.`);
-  process.exit(bad === 0 ? 0 : 1);
+  console.log('');
+  console.log(over === 0
+    ? 'trick-sweep: no flight was paid more than the trick it flew.'
+    : `trick-sweep: ${over} flights were paid more than the trick they flew.`);
+  process.exit(over > 0 ? 1 : 0);
 }
 
-main();
+/* ---- catalogue mode ---- */
+
+function sweepCatalogue() {
+  const seen = new Set();
+  const flown = [];
+  const refused = [];
+  for (const pat of PATTERNS) {
+    if (seen.has(pat.name) || BUILDING_BLOCK.test(pat.name)) continue;
+    seen.add(pat.name);
+    if (!trickByName(pat.name)) continue;
+    const info = readPattern(pat);
+    if (info.refusal) {
+      refused.push({ name: pat.name, reason: info.refusal });
+      continue;
+    }
+    const records = [];
+    for (const bank of [0, 25, 45]) {
+      for (const err of [-0.08, 0, 0.08]) {
+        records.push({ bank, err, drift: 0, names: flyPattern(info, bank, err, 0).finish() });
+      }
+    }
+    flown.push({ name: pat.name, j: judge(records, pat.name) });
+  }
+  return { flown, refused };
+}
+
+function runCatalogue() {
+  const { flown, refused } = sweepCatalogue();
+  const over = flown.reduce((acc, f) => acc + f.j.over, 0);
+  const reasons = new Map();
+  for (const r of refused) reasons.set(r.reason, (reasons.get(r.reason) ?? 0) + 1);
+
+  console.log('trick-sweep --all: every scoreable catalogue pattern, flown from its own step list.');
+  console.log('');
+  console.log(`  flown: ${flown.length}; named on all of their flights: ${flown.filter((f) => f.j.right === f.j.total).length}`);
+  console.log(`  not flown by this planner: ${refused.length}`);
+  for (const [reason, n] of reasons) console.log(`      ${n} x ${reason}`);
+  console.log('');
+  const notable = flown.filter((f) => f.j.over || f.j.right < f.j.total).sort((a, b) => b.j.over - a.j.over);
+  for (const f of notable) printJudgement(f.name, f.j);
+  console.log('');
+  console.log(over === 0
+    ? `trick-sweep --all: none of the ${flown.length} patterns was paid more than it flew.`
+    : `trick-sweep --all: ${over} flights were paid more than the trick they flew.`);
+
+  if (flag('--write')) {
+    if (over > 0) {
+      console.log('proven.js left alone: a sweep that over-claimed proves nothing.');
+    } else {
+      writeProven(flown, refused);
+      console.log('');
+      console.log(`wrote src/game/proven.js: ${flown.length} flown, ${refused.length} not flown.`);
+    }
+  }
+  process.exit(over > 0 ? 1 : 0);
+}
+
+const quote = (s) => `'${s.replace(/'/g, "\\'")}'`;
+
+const PROVEN_HEAD = `/*
+ * proven.js: which tricks the recogniser has been seen to name when flown.
+ *
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * GENERATED by \`node scripts/trick-sweep.js --all --write\` (npm run
+ * trick:proven). Do not edit by hand: rerun and commit after any change to
+ * the trick catalogue or the recogniser.
+ *
+ * Every scoreable pattern is flown from its own step list at three bank
+ * angles and three turn errors, nine flights each. RUNS is how many were
+ * flown and LANDED how many came out with the pattern's own name, so
+ * landed === runs means every flight. The trick list in the UI reads PROVEN
+ * and leaves out a trick that never landed.
+ *
+ * NOT_FLOWN lists the patterns this rig cannot fly yet, with the reason. It
+ * is a gap in the evidence, not a verdict on the trick.
+ */
+`;
+
+function writeProven(flown, refused) {
+  const lines = [PROVEN_HEAD, 'export const PROVEN = {'];
+  for (const f of flown) lines.push(`  ${quote(f.name)}: { runs: ${f.j.total}, landed: ${f.j.right} },`);
+  lines.push('};', '', 'export const NOT_FLOWN = {');
+  for (const r of refused) lines.push(`  ${quote(r.name)}: ${quote(r.reason)},`);
+  lines.push('};', '');
+  writeFileSync(new URL('../src/game/proven.js', import.meta.url), lines.join('\n'));
+}
+
+/* ---- --show: one flight per pattern, with what the recogniser measured ---- */
+
+function describePrim(prim) {
+  if (prim.turns !== undefined && prim.rot) {
+    return `  lap  turns ${prim.turns} dir ${prim.dir} from ${prim.startSide} rot ${list2(prim.rot)} `
+      + `spin ${dp(prim.spin, 2)} align ${list2(prim.align)} own ${list2(prim.own)}`;
+  }
+  const axisName = ['roll', 'pitch', 'yaw'][prim.axis] ?? `axis ${prim.axis}`;
+  return `  ${axisName} turns ${prim.turns} dir ${prim.dir} stall ${prim.stallBeforeMs ?? 0}ms `
+    + `slow ${prim.slowMs ?? 0}ms inverted ${dp(prim.invertedFrac, 2)} tapped ${prim.tapped}`;
+}
+
+function runShow(names) {
+  const bank = Number(option('--bank') ?? 0);
+  for (const name of names.split(',').map((s) => s.trim())) {
+    const pat = PATTERNS.find((p) => p.name === name);
+    if (!pat) {
+      console.log(`${name}: not in the catalogue`);
+      continue;
+    }
+    console.log(`${name} (${pointsOf(name)} points)`);
+    console.log(`  steps ${JSON.stringify(pat.steps)}`);
+    const info = readPattern(pat);
+    if (info.refusal) {
+      console.log(`  not flown: ${info.refusal}`);
+      continue;
+    }
+    if (info.lapAt >= 0) {
+      console.log(`  lap plan ${JSON.stringify(planLap(info.steps[info.lapAt]))}`);
+    }
+    const names = flyPattern(info, bank, 0, 0).finish();
+    for (const prim of lastFlight.prims) console.log(describePrim(prim));
+    console.log(`  named: ${names.length ? names.join(', ') : '(nothing)'}`);
+  }
+}
+
+const show = option('--show');
+if (show !== undefined) {
+  runShow(show);
+} else if (flag('--all')) {
+  runCatalogue();
+} else {
+  runHandCases();
+}
