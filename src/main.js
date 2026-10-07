@@ -13300,68 +13300,77 @@ export async function boot({
     syncAngleMode();
   }
 
+  /* A one-off line on the flight banner for `ms` of wall clock. */
+  function flashNotice(text, ms) {
+    notice = { text, untilMs: performance.now() + ms };
+  }
+
   /*
-   * Load a different tune. Same path a dropped file takes: fetch the diff,
-   * hand the text to sim_init, and reset. A failed fetch or a diff the
-   * module rejects puts the old tune back rather than leaving the shell
-   * flying something nobody chose, and says so.
+   * The text of a tune, or null after telling the pilot why there is none:
+   * the custom tune is the pilot's saved dump (a second tab can have
+   * cleared it since the row was drawn), every other tune is fetched. A
+   * fetch that a newer swap has overtaken fails silently, since the pilot
+   * has already moved on.
+   */
+  async function readTuneText(entry, gen) {
+    if (entry.id === 'custom') {
+      const dump = readFcDump();
+      if (dump == null) {
+        ui.settings.tune = configId;
+        flashNotice(str('main.no_saved_flight_controller_edits_to'), 3200);
+      }
+      return dump;
+    }
+    try {
+      return new TextDecoder().decode(await fetchBytes(tunePath(entry.id)));
+    } catch (e) {
+      if (isLiveConfigLoad(gen)) {
+        ui.settings.tune = configId;
+        flashNotice(str('main.could_not_be_loaded', { name: entry.name }), 3200);
+        console.error(e);
+      }
+      return null;
+    }
+  }
+
+  /*
+   * Fly another tune: the same path a dropped file takes, the diff composed
+   * with the pilot's rates and this tune's own PID sliders (another tune's
+   * sliders would be the wrong numbers), handed to sim_init, and the run
+   * reset on it. Whatever goes wrong, the menu goes back to the tune that
+   * is still flying and the pilot is told.
    */
   async function swapTune(id) {
     const entry = tuneById(id);
-    /* Bump first so switching back to the already loaded tune cancels an
-     * in-flight fetch of a different one. The old early return before the
-     * bump is how "off a tune and back" loaded the other tune anyway. */
+    /* The generation moves even for the tune already flying, which is what
+     * cancels a slower fetch of some other tune picked in between. */
     const gen = bumpConfigGen();
     if (entry.id === configId) {
       return;
     }
-    let text;
-    if (entry.id === 'custom') {
-      /* The pilot's saved dump, from storage rather than a fetch. The row
-       * only offers it while the dump exists, but a second tab can clear
-       * storage under a first, so absence still has to be survivable. */
-      text = readFcDump();
-      if (text == null) {
-        ui.settings.tune = configId;
-        notice = { text: str('main.no_saved_flight_controller_edits_to'), untilMs: performance.now() + 3200 };
-        return;
-      }
-    } else {
-      try {
-        text = new TextDecoder().decode(await fetchBytes(tunePath(entry.id)));
-      } catch (e) {
-        if (!isLiveConfigLoad(gen)) {
-          return;
-        }
-        ui.settings.tune = configId;
-        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 3200 };
-        console.error(e);
-        return;
-      }
-    }
-    if (!isLiveConfigLoad(gen)) {
+    const text = await readTuneText(entry, gen);
+    if (text == null || !isLiveConfigLoad(gen)) {
       return;
     }
-    /* The NEW tune's own PID adjustment, not the old one's: the adjustment
-     * is keyed by tune id, and carrying the old block across would fly one
-     * tune with another tune's sliders. */
-    const nextPids = pidsDiffFor(ui.settings.pids, entry.id);
-    const nextText = composeConfig(text, ui.settings.rates, RATES_KEEP, nextPids);
-    const code = sim.init(nextText);
+    const pids = pidsDiffFor(ui.settings.pids, entry.id);
+    const composed = composeConfig(text, ui.settings.rates, RATES_KEEP, pids);
+    const code = sim.init(composed);
     if (code !== SIM_OK) {
+      /* The module is left on the refused text, so the old one goes back
+       * in before anything else reads it. */
       ui.settings.tune = configId;
       sim.init(configText);
       adoptSimClock();
       reset();
       publishPids();
-      notice = { text: str('main.could_not_be_read', { name: entry.name, configFault: configFault(code) }), untilMs: performance.now() + 3600 };
+      flashNotice(str('main.could_not_be_read', { name: entry.name, configFault: configFault(code) }), 3600);
       return;
     }
     configId = entry.id;
-    tuneText = text;
-    configText = nextText;
-    pidsText = nextPids;
     configName = entry.id === 'custom' ? str('main.your_edits') : `${entry.id}.diff`;
+    tuneText = text;
+    configText = composed;
+    pidsText = pids;
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
     race.setRecordKey(recordKey());
@@ -13371,192 +13380,153 @@ export async function boot({
      * says itself (war.craft_switched): "Flying Acro" over its countdown
      * named a choice nobody made. */
     if (!inWarRoom()) {
-      notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
+      flashNotice(str('main.flying', { name: entry.name }), 2400);
     }
     reset();
   }
 
-  async function submitBoardTime() {
-    /* The board is flown on the full model only. An arcade lap is real
-     * practice but a different aircraft, and a leaderboard where the two
-     * mix is not a leaderboard. */
+  /*
+   * Why a run of this flight cannot go on a public board, or null. Both are
+   * a different machine: arcade is another flight model, and weight off
+   * stock is another aircraft, so a time on either is not comparable with
+   * the stock rows beside it.
+   */
+  function boardTimeRefusal() {
     if (runStyle === 'arcade') {
-      notice = {
-        text: str('main.arcade_laps_stay_off_the_public'),
-        untilMs: performance.now() + 3600,
-      };
-      return;
+      return str('main.arcade_laps_stay_off_the_public');
     }
-    /* And the weight, for the same reason in a different number: the
-     * slider scales the weight the craft carries, so a lap flown off 100 is
-     * a lap flown on a quad nobody else on the board is flying. */
     if (runWeight !== WEIGHT_STOCK) {
-      notice = {
-        text: str('main.laps_flown_at_percent_weight_stay', { runWeight }),
-        untilMs: performance.now() + 3600,
-      };
+      return str('main.laps_flown_at_percent_weight_stay', { runWeight });
+    }
+    return null;
+  }
+
+  /* The pilot's board name, asked for once when it has never been given. */
+  async function boardName(detailKey) {
+    return readPilotName() || ui.askName({ title: str('ui.your_name'), detail: str(detailKey) });
+  }
+
+  /* The lap to post on this track: the run's best by race's own reckoning,
+   * else a time kept from an earlier visit to the same track on the same
+   * craft, else null. */
+  function lapToPost(trackId, craft) {
+    const flown = race.bestLapMs();
+    if (flown != null) {
+      return flown;
+    }
+    const kept = readPendingTime();
+    const sameSeat = kept && kept.trackId === trackId && (kept.craft || '') === craft;
+    return sameSeat ? kept.lapMs : null;
+  }
+
+  /*
+   * Post the run's best lap on the seated board track, with this session's
+   * recording of it when there is one (a time kept from an earlier visit
+   * goes up bare). A plane's lap on a map track goes to the plane board.
+   */
+  async function submitBoardTime() {
+    const refused = boardTimeRefusal();
+    if (refused) {
+      flashNotice(refused, 3600);
       return;
     }
     const listing = inspectCourse();
-    const trackId = listing && listing.shareId;
-    if (!trackId || !listing.canPostTime) {
-      notice = { text: listing && listing.layoutDrift
-        ? str('main.update_this_track_on_the_board')
-        : str('main.this_track_is_not_on_the'), untilMs: performance.now() + 2800 };
+    const seatId = listing && listing.shareId;
+    if (!seatId || !listing.canPostTime) {
+      const why = listing && listing.layoutDrift ? 'main.update_this_track_on_the_board' : 'main.this_track_is_not_on_the';
+      flashNotice(str(why), 2800);
       return;
     }
-    /* race owns what a record lap is. This used to re-filter and re-min
-     * the log beside it, which is the same answer until one of them
-     * changes its mind about a voided lap. */
-    const fromRun = race.bestLapMs();
-    const pending = readPendingTime();
-    /* A plane's lap on a map track goes to the plane board, named. */
     const craft = lapCraft();
-    const fastest = fromRun != null
-      ? fromRun
-      : (pending && pending.trackId === trackId && (pending.craft || '') === craft ? pending.lapMs : null);
-    if (fastest == null) {
-      notice = { text: str('main.no_clean_lap_to_upload'), untilMs: performance.now() + 2800 };
+    const lapMs = lapToPost(seatId, craft);
+    if (lapMs == null) {
+      flashNotice(str('main.no_clean_lap_to_upload'), 2800);
       return;
     }
-    let name = readPilotName();
-    if (!name) {
-      name = await ui.askName({
-        title: str('ui.your_name'),
-        detail: str('main.a_time_on_the_public_board'),
-      });
-    }
+    const name = await boardName('main.a_time_on_the_public_board');
     if (!name) {
       return;
     }
-    /* The lap's own recording rides along when this session holds one, so
-     * the time lands on the board with a ghost anyone can chase. A pending
-     * time from an earlier visit has no recording, and posts bare, exactly
-     * as before ghosts existed. */
-    const ghost = ghostForUpload(fastest);
-    /*
-     * THE LAP GOES UP UNDER WHATEVER ID THE BOARD HOLDS THIS TRACK AT NOW.
-     *
-     * A seat remembers the id it was written with, and a track taken off the
-     * board and put back gets a new one: scripts/boardpresets.js --replace
-     * does exactly that, and so does an admin removal. Every browser holding
-     * the old seat is then pointing at an id the board has never heard of,
-     * and the pilot gets "That track is not on the board." on a lap they
-     * just flew, with the screen above still telling them the track IS on
-     * the board. That is the dead end this reaches around, and it was
-     * reported from the seat on a shipped RaceGOW room.
-     *
-     * Only on a 404, and only once. Every other failure is the board saying
-     * something the pilot needs to read rather than something to work
-     * around, and a retry loop on an upload is how a board ends up with the
-     * same lap twice.
-     */
-    let trackIdNow = trackId;
-    let boardNow = listing.board;
-    let healed = '';
-    /* Signed inside send, because a 404 below can move the post to the
-     * board's republished twin, and the signature covers the track id. */
+    const ghost = ghostForUpload(lapMs);
+    /* Where the post goes. It can move once, below. */
+    const target = { id: seatId, board: listing.board };
+    /* The signature covers the track id, so each attempt signs its own. */
     const send = async () => {
-      const auth = await identity.signTime({ trackId: trackIdNow, lapMs: Math.round(fastest), ghost, craft });
-      return postTime({
-        trackId: trackIdNow,
-        name,
-        lapMs: Math.round(fastest),
-        ghost,
-        key: auth.key,
-        sig: auth.sig,
-        craft,
-        origin: boardNow,
-      });
+      const lap = { trackId: target.id, lapMs: Math.round(lapMs), ghost, craft };
+      const auth = await identity.signTime(lap);
+      return postTime({ ...lap, name, key: auth.key, sig: auth.sig, origin: target.board });
     };
+    let healed = '';
     try {
       let posted;
       try {
         posted = await send();
       } catch (e) {
-        if (e && e.status === 404 && listing.doc) {
-          const twin = await findBoardTwin({
-            doc: listing.doc,
-            name: listing.name,
-            trackClass: 'full',
-            origin: listing.board,
-          });
-          if (!twin.found) {
-            throw new Error(twin.sameName
-              ? str('main.the_board_s_copy_of_is', { name: twin.sameName.name })
-              : str('main.that_track_is_no_longer_on'));
-          }
-          /* Re-seat before the retry, so the next lap and every screen that
-           * reads the seat are on the live listing too rather than healing
-           * the same dead id again. */
-          writeShareImport(twin.found);
-          ui.setShare({
-            id: twin.found.id,
-            name: twin.found.name,
-            author: twin.found.author,
-            board: twin.found.board,
-          });
-          trackIdNow = twin.found.id;
-          boardNow = twin.found.board;
-          healed = str('main.the_board_had_republished_this_track');
-          posted = await send();
-        } else {
+        /*
+         * A 404 means the board took this track down and may have put it
+         * back under a new id (scripts/boardpresets.js --replace, an admin
+         * removal), leaving this seat on an id it has never heard of. Find
+         * the copy with the same layout, move the seat to it so every later
+         * screen and lap uses the live id, and post there once. Anything
+         * else is the board's own answer, and is not retried: a retried
+         * upload is how a board gets the same lap twice.
+         */
+        if (!(e && e.status === 404 && listing.doc)) {
           throw e;
         }
+        const twin = await findBoardTwin({ doc: listing.doc, name: listing.name, trackClass: 'full', origin: listing.board });
+        if (!twin.found) {
+          throw new Error(twin.sameName
+            ? str('main.the_board_s_copy_of_is', { name: twin.sameName.name })
+            : str('main.that_track_is_no_longer_on'));
+        }
+        const live = twin.found;
+        writeShareImport(live);
+        ui.setShare({ id: live.id, name: live.name, author: live.author, board: live.board });
+        target.id = live.id;
+        target.board = live.board;
+        healed = str('main.the_board_had_republished_this_track');
+        posted = await send();
       }
-      writePostedBest(lapSlot(trackIdNow, craft), fastest);
-      /* Under the id it was stored against, which is the one the pilot flew
-       * it on, and under the live one too when the seat moved: a pending lap
-       * left behind a heal would be offered for upload again forever. */
-      clearPendingTime(trackId);
-      if (trackIdNow !== trackId) {
-        clearPendingTime(trackIdNow);
+      writePostedBest(lapSlot(target.id, craft), lapMs);
+      /* A kept time is cleared under the id it was flown on and, after a
+       * move, under the live one, or it would be offered again forever. */
+      clearPendingTime(seatId);
+      if (target.id !== seatId) {
+        clearPendingTime(target.id);
       }
-      const rank = posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '';
-      const withGhost = ghost ? str('main.ghost_attached_ready_to_be_chased') : '';
-      /* formatTime, the same one the menu row that triggered this upload is
-       * labelled with. A confirmation that spells the time differently from
-       * the button reads as a different number. */
-      notice = { text: str('main.uploaded', { name, formatTime: formatTime(fastest), rank, withGhost, healed }), untilMs: performance.now() + 3600 };
+      /* formatTime, as the row that started the upload spells it, so the
+       * confirmation reads as the same number. */
+      flashNotice(str('main.uploaded', {
+        name,
+        formatTime: formatTime(lapMs),
+        rank: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '',
+        withGhost: ghost ? str('main.ghost_attached_ready_to_be_chased') : '',
+        healed,
+      }), 3600);
       ui.markTimePosted(posted);
     } catch (e) {
-      notice = { text: str('main.could_not_upload_that_time', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
+      flashNotice(str('main.could_not_upload_that_time', { v1: e.message ?? e }), 3600);
     }
   }
 
   /*
-   * Put the finished freestyle run on the board.
-   *
-   * Deliberately UNLIKE submitBoardTime in one place: an arcade run is
-   * posted, and labelled. A lap flown on the arcade model is a different
-   * aircraft on the same track and mixing the two into one ranking makes
-   * the ranking meaningless, which is why arcade laps stay off. A freestyle
-   * run is not ranked against a track: the board carries the model on every
-   * row and gives a reader a filter, so an arcade run can be on the board
-   * and be honestly what it is. Refusing it instead would mean a pilot who
-   * flies the friendlier machine has no board at all.
-   */
-  /*
-   * Put the results screen up on a run that has ended. ONE function, called
-   * by the clock running out and by the harness hook, so a screenshot of
-   * this screen is a screenshot of the path a pilot takes rather than of a
-   * second copy of it that could drift.
-   *
-   * The turtle teardown is the race path's, verbatim and for the same
-   * reason: a run can end while the craft is upside down waiting to be
-   * flipped, and leaving that state armed behind a menu is how the next
-   * run starts with the motors parked.
+   * A results screen over a flight that has ended: the freestyle horn's,
+   * through the harness hook as well as the clock so both take the same
+   * path, and a room match's end.
    */
   function endFreestyleRun() {
     leaveFlightForResults();
     ui.showFreestyleResults(score.summary());
   }
-  /* A flight put down for a results screen: the freestyle clock's, or a
-   * room's match over (roomTagFrame). */
+
+  /* Puts the flight down. A craft left parked upside down (waiting for the
+   * turtle, or mid flip) is set on its wheels first, or the next run would
+   * start with its motors still parked. */
   function leaveFlightForResults() {
     mode = 'results';
-    if (turtleWait || turtleFlip.active) {
-      if (turtleWait && !turtleFlip.active) {
+    if (isTurtleParked()) {
+      if (!turtleFlip.active) {
         beginTurtleFlip();
       }
       finishTurtleFlip();
@@ -13568,87 +13538,57 @@ export async function boot({
     poseLock = false;
   }
 
-  async function submitFreestyleRun() {
-    const summary = score.summary();
-    /*
-     * FREE FLIGHT IS NOT A SCORE. It has no clock, so there is nothing for
-     * a board to compare it against: a pilot could sit in the town for an
-     * hour and out-total any two minute run ever flown. Refused here rather
-     * than hidden, so a pilot who meant to post learns why in one sentence.
-     */
+  /*
+   * Why a finished freestyle run cannot be posted, or null. Unlike a lap,
+   * an arcade run CAN be posted: the freestyle board names the model on
+   * every row and lets a reader filter by it. Weight off stock cannot,
+   * because the board has no column for it and such a row would look like
+   * a stock one.
+   */
+  function freestyleRefusal(summary) {
     if (summary.timed === false) {
-      notice = {
-        text: str('main.free_flight_has_no_clock_so'),
-        untilMs: performance.now() + 4200,
-      };
-      return;
+      /* Free flight has no clock, so any total could be beaten by staying
+       * out longer. */
+      return { text: str('main.free_flight_has_no_clock_so'), ms: 4200 };
     }
     if (!summary.tricks || !(summary.total > 0)) {
-      notice = { text: str('main.a_run_with_no_tricks_in'), untilMs: performance.now() + 2800 };
-      return;
+      return { text: str('main.a_run_with_no_tricks_in'), ms: 2800 };
     }
-    /*
-     * The harness can land a named trick straight into the scorer, which is
-     * the only way to photograph this overlay. A run that used it is not a
-     * flown run and must not reach a public table as if it were.
-     */
     if (summary.assisted) {
-      notice = { text: str('main.that_run_used_the_harness_hooks'), untilMs: performance.now() + 3200 };
-      return;
+      /* A trick landed through the harness is not a flown run. */
+      return { text: str('main.that_run_used_the_harness_hooks'), ms: 3200 };
     }
-    /*
-     * AND THE WEIGHT, WHICH IS REFUSED HERE RATHER THAN LABELLED, unlike
-     * the arcade style two functions up.
-     *
-     * The argument for letting an arcade run onto this board is that arcade
-     * is a NAMED model the board carries on every row, so a reader can see
-     * it and filter it and the pilot who prefers that machine still has a
-     * board. This slider is not a model, it is a continuum, and the board
-     * has no column for it: a row posted from 140 percent weight would sit
-     * beside a stock row looking identical and there would be nothing to
-     * read. Putting the column on the board is the better answer and is owed
-     * in PROGRESS.md; until it exists, refusing is the honest half.
-     */
     if (runWeight !== WEIGHT_STOCK) {
-      notice = {
-        text: str('main.runs_flown_at_percent_weight_stay', { runWeight }),
-        untilMs: performance.now() + 4200,
-      };
+      return { text: str('main.runs_flown_at_percent_weight_stay', { runWeight }), ms: 4200 };
+    }
+    return null;
+  }
+
+  async function submitFreestyleRun() {
+    const summary = score.summary();
+    const refused = freestyleRefusal(summary);
+    if (refused) {
+      flashNotice(refused.text, refused.ms);
       return;
     }
-    let name = readPilotName();
-    if (!name) {
-      name = await ui.askName({
-        title: str('ui.your_name'),
-        detail: str('main.a_run_on_the_public_board'),
-      });
-    }
+    const name = await boardName('main.a_run_on_the_public_board');
     if (!name) {
       return;
     }
     try {
-      const posted = await postFreestyleRun({
-        name,
-        map: view.id,
-        style: runStyle === 'arcade' ? 'arcade' : 'expert',
-        summary,
-      });
-      /* The board keeps one run per pilot and only their best, so a worse
-       * run is a 200 with improved false rather than an error. Saying
-       * "posted" for a score that is not up there would be a lie the pilot
-       * would only find by opening the board. */
-      notice = posted.improved === false
-        ? {
-          text: str('main.your_still_stands_only_your_best', { formatScore: formatScore(posted.score) }),
-          untilMs: performance.now() + 3600,
-        }
-        : {
-          text: str('main.posted', { name, formatScore: formatScore(summary.total), v3: posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '' }),
-          untilMs: performance.now() + 3600,
-        };
+      const style = runStyle === 'arcade' ? 'arcade' : 'expert';
+      const posted = await postFreestyleRun({ name, map: view.id, style, summary });
+      /* The board keeps each pilot's best run only, and answers a worse one
+       * with improved false: say that the old score stands, not "posted". */
+      if (posted.improved === false) {
+        flashNotice(str('main.your_still_stands_only_your_best', { formatScore: formatScore(posted.score) }), 3600);
+      } else {
+        const rank = posted.rank != null ? str('ui.rank', { rank: posted.rank }) : '';
+        flashNotice(str('main.posted', { name, formatScore: formatScore(summary.total), v3: rank }), 3600);
+      }
       ui.markRunPosted(posted);
     } catch (e) {
-      notice = { text: str('main.could_not_post_that_run', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
+      flashNotice(str('main.could_not_post_that_run', { v1: e.message ?? e }), 3600);
     }
   }
 
