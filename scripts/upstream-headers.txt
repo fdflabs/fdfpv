@@ -49,7 +49,6 @@ src/ui/update.js
 tests/browser/harness.html
 tests/browser/harness.js
 tests/gen/gen-baseline.js
-tests/lib/blackbox.js
 tests/lib/browser.js
 tests/lib/checks.js
 tests/lib/page.js
