@@ -1,43 +1,40 @@
 <!doctype html>
 <!--
-  harness.html: browser side of the verification harness. Loaded in
-  headless Chrome by tests/lib/browser.js for checks 3 and 13. The page
-  runs the same canonical replay as the Node side, from the same shared
-  modules, and resolves window.__simHarnessResult with the trace hash or
-  the sim error. It must never write to the console: check 13 requires a
-  clean console, so the only outputs are the result promise and genuine
-  page errors.
+  harness.html: the page verify opens in headless Chrome for checks 3 and
+  13 (tests/lib/browser.js runs it). It replays the committed baseline
+  through the same modules the Node runner uses, and its whole answer is
+  window.__simHarnessResult. The console has to stay silent, because
+  check 13 counts every error and warning the page produces.
 
-  This file is part of WebFPVSimulator.
+  The promise is created here, in a classic script in the head, so it
+  exists before the module that settles it has even been fetched: the
+  runner polls for it as soon as the page commits.
 
-  WebFPVSimulator is free software: you can redistribute it and/or modify
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or (at
   your option) any later version.
 
-  WebFPVSimulator is distributed in the hope that it will be useful, but
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY, without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
   General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
 -->
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>FDFPV verification harness</title>
-    <!-- Suppress the implicit favicon request; a 404 for it would count
-         as a console error in check 13. -->
-    <link rel="icon" href="data:," />
-    <script>
-      window.__simHarnessResult = new Promise((resolve) => {
-        window.__simHarnessResolve = resolve;
-      });
-    </script>
-    <script type="module" src="/tests/browser/harness.js"></script>
-  </head>
-  <body>
-    <p>FDFPV headless verification harness.</p>
-  </body>
+<meta charset="utf-8" />
+<title>FDFPV verification harness</title>
+<!-- No favicon fetch: its 404 would be a console error in check 13. -->
+<link rel="icon" href="data:," />
+<script>
+  window.__simHarnessResult = new Promise((settle) => {
+    window.__simHarnessResolve = settle;
+  });
+</script>
+<script type="module" src="/tests/browser/harness.js"></script>
+<p>FDFPV headless verification harness.</p>
 </html>
