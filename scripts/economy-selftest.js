@@ -24,6 +24,7 @@ import {
 } from '../src/game/economy.js';
 import { CHALLENGES, everyFirst } from '../src/game/progress.js';
 import { UPGRADES } from '../src/game/campaign.js';
+import { LESSONS } from '../src/game/training.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { addFlight } from '../src/share/flighttime.js';
 
@@ -48,7 +49,7 @@ for (const af of AIRFRAMES) {
 const everything = {
   v: 1,
   data: {
-    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true } },
+    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 } },
     campaign: { v: 1, missions: Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('mission:')).map((f) => [f.key.split(':')[1], { stars: 99, won: true, credits: 0 }])) },
     flightTime: flight,
   },
@@ -56,7 +57,8 @@ const everything = {
 const all = grantsFrom(everything);
 check('a record holding every fact there is pays exactly the ceiling', sum(all) === grantCeiling(), `${sum(all)} against ${grantCeiling()}`);
 check('every grant key is unique, so the server pays each once', new Set(all.map((g) => g.key)).size === all.length);
-check('a made up challenge, mission or aircraft pays nothing', !all.some((g) => /my_own/.test(g.key))
+check('a made up challenge, lesson, mission or aircraft pays nothing; every known lesson pays', !all.some((g) => /my_own|my_lesson/.test(g.key))
+  && LESSONS.every((l) => all.some((g) => g.key === `first:lesson:${l.id}` && g.amount === FIRST_TOKENS.lesson))
   && grantsFrom({ data: { campaign: { missions: { 'my-war-1': { stars: 3, won: true } } }, flightTime: addFlight({}, 'everydevice1', 'notaplane', 'free', 1e6, '2026-10-01') } }).length === 0);
 const twice = { ...everything, data: { ...everything.data, flightTime: addFlight(flight, 'otherdevice2', 'cub1400', 'free', 1e6, '2026-10-02') } };
 check('more flying on the same aircraft pays nothing more: repetition never pays', sum(grantsFrom(twice)) === sum(all));

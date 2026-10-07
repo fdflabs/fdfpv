@@ -54,6 +54,11 @@ this lane ships one section of it and the check named there.
     firsts: { [key]: true }   // XP paid for this first, e.g. 'mission:m1:win',
                               // 'mission:m1:star2', 'aircraft:cub1400:hour'
 
+    lessons: { [lessonId]: passedAtMs }   // training passes (training lane
+                              // writes; lead decision 2026-10-07); merge:
+                              // union, earliest pass wins; a known lesson
+                              // passed is a first ('lesson:<id>', XP once)
+
 Migration v1 to v2 (src/game/progress.js `PROGRESS_MIGRATIONS`, an ordered
 list of pure steps, each `n` to `n + 1`): adds `firsts: {}`. A v1 pilot's
 firsts are then paid on the next load by the same award path as a new one,

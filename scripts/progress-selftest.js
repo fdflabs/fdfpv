@@ -103,6 +103,11 @@ const everything = firstsOf({
 });
 const ceiling = everything.reduce((n, f) => n + f.xp, 0);
 check('every fact at once has a ceiling: stars clamp to three', everything.filter((f) => f.key.includes(':star')).length === 12 * 3 && ceiling < 1e5, `${everything.length} firsts, ${ceiling} XP`);
+const learner = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 1759800000000, not_yet_written: 1759800000001, bad: 'x' } });
+check('lesson passes are kept as times, unknown ids too, junk dropped', learner.lessons.first_takeoff === 1759800000000 && learner.lessons.not_yet_written && !('bad' in learner.lessons));
+const lessonEv = awardFirsts(learner, { lessons: learner.lessons });
+check('a known lesson passed is a first, paid once; an unknown one pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_takeoff'])
+  && learner.xp === FIRST_XP.lesson && awardFirsts(learner, { lessons: learner.lessons }).length === 0);
 check('milestones by name', same(milestonesOf({ cub1400: MILESTONE_S.ten }, 'cub1400f'), { flight: true, ten: true, hour: false }));
 
 console.log('what is locked');

@@ -61,6 +61,7 @@ import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 import { DECAL_KIND_IDS, FINISHES } from '../../configs/paint.js';
 import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
+import { LESSONS } from './training.js';
 
 const { POWER } = powerConfig;
 const { liveryKey, schemesFor } = liveryConfig;
@@ -179,7 +180,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, unlockAll };
 }
 
 /*
@@ -231,10 +232,27 @@ function flags(o, max) {
   return out;
 }
 
+/* Training passes (src/game/training.js, lead decision 2026-10-07): lesson
+ * id to the wall clock ms it was first passed, written by the training
+ * lane; ids are kept whether this build knows them or not, so an older
+ * computer never drops a newer lesson. */
+function passes(o) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, 200)) {
+    if (/^[a-z0-9_-]{1,40}$/.test(k) && Number.isFinite(v) && v > 0) {
+      out[k] = Math.floor(v);
+    }
+  }
+  return out;
+}
+
 /*
  * Stored progress made safe: migrated to PROGRESS_VERSION, XP a finite
  * whole number, the course, challenge, seen, casual track and firsts maps
- * of true flags only, and unlockAll a boolean.
+ * of true flags only, lessons passed as times, and unlockAll a boolean.
  * Nothing stored and `existing` (the browser had a profile from before
  * progression) is a pilot who already flew everything: unlocked.
  */
@@ -252,6 +270,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     seen: flags(p.seen, 2000),
     casual: flags(p.casual, 500),
     firsts: flags(p.firsts, 2000),
+    lessons: passes(p.lessons),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
@@ -455,23 +474,29 @@ export function awardChallenge(progress, id) {
  * FIRSTS (PROGRESSION.md section 3, docs/ECONOMY.md): a thing done for
  * the first time pays XP once, and the same thing again pays nothing. The
  * list is FINITE by construction, a known mission's win and stars and a
- * known aircraft's flight time milestones, because the server pays tokens
+ * known aircraft's flight time milestones and a known training lesson
+ * passed (PROGRESSION.md section 3), because the server pays tokens
  * for the same list (src/game/economy.js) and a list anyone could grow
  * (built courses) would be a mint.
  *
- * Read from the facts the pilot's settings already hold: `campaign` (the
+ * Read from the facts the pilot's settings already hold: `lessons` (progress.lessons), `campaign` (the
  * war's stars, src/game/campaign.js) and `seconds`, airborne seconds by
  * airframe id (src/share/flighttime.js flightTotals().byAirframe). A float
  * plane's time counts for its land plane, the one the hangar shows.
  */
-export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150 };
+export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150, lesson: 60 };
 export const MILESTONE_S = { flight: 1, ten: 600, hour: 3600 };
 const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
-export function firstsOf({ campaign = null, seconds = {} } = {}) {
+export function firstsOf({ campaign = null, seconds = {}, lessons = {} } = {}) {
   const out = [];
+  for (const l of LESSONS) {
+    if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0) {
+      out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
+    }
+  }
   const missions = isRecord(campaign) && isRecord(campaign.missions) ? campaign.missions : {};
   for (const id of [...MISSION_IDS]) {
     const m = missions[id];
@@ -507,6 +532,7 @@ export function everyFirst() {
   return firstsOf({
     campaign: { missions: Object.fromEntries([...MISSION_IDS].map((id) => [id, { won: true, stars: MAX_STARS }])) },
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
+    lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
   });
 }
 
