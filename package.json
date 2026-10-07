@@ -43,6 +43,7 @@
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
     "overlay:golden": "node scripts/overlay-golden.js",
     "cards:golden": "node scripts/cards-check.js",
+    "actions:golden": "node scripts/actions-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
