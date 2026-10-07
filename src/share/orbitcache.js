@@ -1,47 +1,44 @@
 /*
- * orbitcache.js: one looping thumbnail per world, recorded once.
+ * orbitcache.js: each world's card thumbnail, a short looping video
+ * recorded once per browser and kept in IndexedDB.
  *
- * Map cards used to keep a live WebGL copy of every world they showed. That
- * is a second (and third) renderer, a second post chain and, for the town,
- * a second copy of nineteen thousand meshes, on a page that is already
- * drawing the world behind the menu. A Steam Deck with other tabs open
- * cannot afford that.
+ * A live WebGL scene per map card would be a second (or third) renderer
+ * and post chain, and for the town a second copy of its nineteen thousand
+ * meshes, beside the world already drawing behind the menu: more than a
+ * Steam Deck with other tabs open can carry. A video is a hardware decoder
+ * instead. The first visit that needs a world's clip records one camera
+ * cycle at CLIP_W x CLIP_H, CLIP_FPS; every later visit plays it back.
+ * The board's featured card is about 670 by 340 CSS pixels, which is why
+ * the clip is 480 lines and not 240.
  *
- * So a thumbnail is a short video. The first visit that needs one records
- * one full camera cycle at 480p, 10 fps, into IndexedDB. Every visit after
- * that is a <video> element, which is a hardware decoder and not a scene
- * graph. The cache key includes the capture size so bumping CLIP_VERSION
- * is how a later change to the shot invalidates old clips. The board's
- * featured card is about 670 by 340 CSS pixels, so 240p read as a smear.
+ * A clip's key names the version and capture size, so raising
+ * CLIP_VERSION is how a change to the shot reaches clips already stored.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { moveDatabase } from './olddb.js';
+
 /*
- * 5: the four freestyle worlds were re-cut. Their title cameras used to fly
- * corridors, a chimney flue and, in two of them, the insides of walls, and
- * every clip in every browser that has ever opened Freestyle is a recording
- * of that. The path is not in the key and could not be, so this is the line
- * that reaches them.
- *
- * 4: the racing line stopped being painted twice. Every clip recorded
- * before that shows the old doubled, ghosted ground paint, and the shot is
- * the only thing that changed, so nothing else in the key would have
- * invalidated them. Bumping this is how a change to the SHOT reaches
- * thumbnails that are already in IndexedDB.
+ * Why each version was raised (a version is the only thing that retires
+ * stored clips, since the camera path is not in the key):
+ *   5  the freestyle worlds' title cameras were re-cut; they had flown
+ *      corridors, a chimney and the insides of walls.
+ *   4  the racing line stopped being painted twice, so older clips show
+ *      doubled ground paint.
  */
 export const CLIP_VERSION = 5;
 export const CLIP_W = 854;
@@ -51,33 +48,35 @@ export const CLIP_BITRATE = 800000;
 export const CLIP_MS_MAX = 12000;
 export const CLIP_MS_MIN = 8000;
 
-const DB_NAME = 'webfpv.orbitclips.v1';
+const DB_NAME = 'fdfpv.orbitclips.v1';
+/* Where the clips were kept before the project took its own name; moved
+ * into DB_NAME on first open (src/share/olddb.js). */
+const OLD_DB_NAME = 'webfpv.orbitclips.v1';
 const STORE = 'clips';
-const MAX_CLIPS = 12;
-const LOCK_NAME = 'fdfpv-orbit-capture';
+/* Worlds kept; the least recently recorded go first. */
+const KEEP = 12;
+const CAPTURE_LOCK = 'fdfpv-orbit-capture';
 
-const mem = new Map();
-let dbPromise = null;
-let lockChain = Promise.resolve();
+/* Clips already read or written this page, so a card shown twice does not
+ * go back to IndexedDB. */
+const held = new Map();
 
-function clipPrefix() {
-  return `v${CLIP_VERSION}:${CLIP_W}x${CLIP_H}@${CLIP_FPS}`;
-}
-
-/* One clip a world. A track's card shows the world it stands in. */
 export function clipKeyForMap(mapId) {
-  return `${clipPrefix()}:${mapId}`;
+  return `v${CLIP_VERSION}:${CLIP_W}x${CLIP_H}@${CLIP_FPS}:${mapId}`;
 }
 
-function openDb() {
-  if (dbPromise) {
-    return dbPromise;
+/* The database, or null where there is none (no IndexedDB, a private
+ * window that refuses it): then clips live only in `held`. Opened once. */
+let opening = null;
+function database() {
+  if (!opening) {
+    opening = moveDatabase(OLD_DB_NAME, openClips);
   }
-  dbPromise = new Promise((resolve) => {
-    if (typeof indexedDB === 'undefined') {
-      resolve(null);
-      return;
-    }
+  return opening;
+}
+
+function openClips() {
+  return new Promise((resolve) => {
     let req;
     try {
       req = indexedDB.open(DB_NAME, 1);
@@ -86,409 +85,421 @@ function openDb() {
       return;
     }
     req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'key' });
+      if (!req.result.objectStoreNames.contains(STORE)) {
+        req.result.createObjectStore(STORE, { keyPath: 'key' });
       }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => resolve(null);
   });
-  return dbPromise;
+}
+
+/* One request in a fresh transaction, as a promise of its result, or of
+ * `fallback` on any failure: a cache that fails is only a cache miss. */
+function ask(db, mode, makeRequest, fallback) {
+  return new Promise((resolve) => {
+    try {
+      const req = makeRequest(db.transaction(STORE, mode).objectStore(STORE));
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(fallback);
+    } catch (e) {
+      resolve(fallback);
+    }
+  });
+}
+
+/* Writes in one transaction, settled when it commits or fails. */
+function write(db, apply) {
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      apply(tx.objectStore(STORE));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch (e) {
+      resolve();
+    }
+  });
 }
 
 export async function getClip(key) {
-  if (mem.has(key)) {
-    return mem.get(key);
+  if (held.has(key)) {
+    return held.get(key);
   }
-  const db = await openDb();
+  const db = await database();
   if (!db) {
     return null;
   }
-  const blob = await new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).get(key);
-      req.onsuccess = () => {
-        const row = req.result;
-        resolve(row && row.blob instanceof Blob ? row.blob : null);
-      };
-      req.onerror = () => resolve(null);
-    } catch (e) {
-      resolve(null);
-    }
-  });
+  const row = await ask(db, 'readonly', (store) => store.get(key), null);
+  const blob = row && row.blob instanceof Blob ? row.blob : null;
   if (blob) {
-    mem.set(key, blob);
+    held.set(key, blob);
   }
   return blob;
 }
 
-async function prune(db) {
-  const rows = await new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => resolve([]);
-    } catch (e) {
-      resolve([]);
-    }
-  });
-  if (rows.length <= MAX_CLIPS) {
+async function keepNewest(db) {
+  const rows = (await ask(db, 'readonly', (store) => store.getAll(), [])) || [];
+  const excess = rows.length - KEEP;
+  if (excess <= 0) {
     return;
   }
-  rows.sort((a, b) => (a.t || 0) - (b.t || 0));
-  const drop = rows.slice(0, rows.length - MAX_CLIPS);
-  await new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE, 'readwrite');
-      for (const row of drop) {
-        tx.objectStore(STORE).delete(row.key);
-        mem.delete(row.key);
-      }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch (e) {
-      resolve();
+  const oldestFirst = [...rows].sort((a, b) => (a.t || 0) - (b.t || 0));
+  const dropped = oldestFirst.slice(0, excess).map((row) => row.key);
+  await write(db, (store) => {
+    for (const key of dropped) {
+      store.delete(key);
+      held.delete(key);
     }
   });
 }
 
+/* Keep a clip. False only for a clip not worth keeping (no key, not a
+ * Blob, empty); a database that is missing or fails still keeps it for
+ * this page. */
 export async function putClip(key, blob) {
-  if (!key || !(blob instanceof Blob) || !blob.size) {
+  if (!key || !(blob instanceof Blob) || blob.size === 0) {
     return false;
   }
-  mem.set(key, blob);
-  const db = await openDb();
-  if (!db) {
-    return true;
+  held.set(key, blob);
+  const db = await database();
+  if (db) {
+    await write(db, (store) => store.put({ key, blob, t: Date.now() }));
+    await keepNewest(db);
   }
-  await new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put({ key, blob, t: Date.now() });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch (e) {
-      resolve();
-    }
-  });
-  await prune(db);
   return true;
 }
 
 /*
- * Only one world is built for a thumbnail at a time, including across
- * iframes of this origin. Two city builds at once is how a Steam Deck
- * dropped the tab.
+ * Run `fn` when no other thumbnail capture is running, in this page or any
+ * other page or frame of this origin (Web Locks); in arrival order within
+ * this page where Web Locks are missing. Building two worlds at once for
+ * thumbnails is how a Steam Deck lost the tab. Resolves or rejects as `fn`
+ * does; a failed capture does not block the next.
  */
+let queueTail = Promise.resolve();
 export async function withCaptureLock(fn) {
-  const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+  const locks = typeof navigator === 'undefined' ? null : navigator.locks;
   if (locks && typeof locks.request === 'function') {
-    return locks.request(LOCK_NAME, fn);
+    return locks.request(CAPTURE_LOCK, fn);
   }
-  const run = lockChain.then(fn, fn);
-  lockChain = run.then(() => {}, () => {});
-  return run;
+  const turn = queueTail.then(fn, fn);
+  queueTail = turn.then(() => {}, () => {});
+  return turn;
 }
 
+const RECORDER_TYPES = ['video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+
+/* The first video type this browser can record, or '' for none. */
 export function pickRecorderMime() {
-  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+  const Recorder = typeof MediaRecorder === 'undefined' ? null : MediaRecorder;
+  if (!Recorder || !Recorder.isTypeSupported) {
     return '';
   }
-  for (const type of ['video/webm;codecs=vp8', 'video/webm', 'video/mp4']) {
-    if (MediaRecorder.isTypeSupported(type)) {
-      return type;
-    }
-  }
-  return '';
+  return RECORDER_TYPES.find((type) => Recorder.isTypeSupported(type)) || '';
 }
 
-function waitMs(ms, signal) {
+const aborted = () => new DOMException('aborted', 'AbortError');
+
+/* Resolve after `ms`, or reject with an AbortError when `signal` aborts
+ * first (or already has). */
+function pause(ms, signal) {
   return new Promise((resolve, reject) => {
     if (signal && signal.aborted) {
-      reject(new DOMException('aborted', 'AbortError'));
+      reject(aborted());
       return;
     }
-    const t = setTimeout(resolve, ms);
-    if (!signal) {
-      return;
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(aborted());
+      }, { once: true });
     }
-    const onAbort = () => {
-      clearTimeout(t);
-      reject(new DOMException('aborted', 'AbortError'));
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
+/* Resolves at once on a visible page; on a hidden one, when it is shown
+ * again (or rejects with an AbortError when `signal` aborts), so a capture
+ * never runs in a background tab that cannot draw. */
 export function whenVisible(signal) {
   if (typeof document === 'undefined' || !document.hidden) {
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
-    const done = (ok) => {
-      document.removeEventListener('visibilitychange', onVis);
+    const stopListening = () => {
+      document.removeEventListener('visibilitychange', onChange);
       if (signal) {
         signal.removeEventListener('abort', onAbort);
       }
-      if (ok) {
-        resolve();
-      } else {
-        reject(new DOMException('aborted', 'AbortError'));
-      }
     };
-    const onAbort = () => done(false);
-    const onVis = () => {
+    function onChange() {
       if (!document.hidden) {
-        done(true);
+        stopListening();
+        resolve();
       }
-    };
+    }
+    function onAbort() {
+      stopListening();
+      reject(aborted());
+    }
     if (signal && signal.aborted) {
       onAbort();
       return;
     }
-    document.addEventListener('visibilitychange', onVis);
+    document.addEventListener('visibilitychange', onChange);
     if (signal) {
       signal.addEventListener('abort', onAbort);
     }
   });
 }
 
-function findBytes(hay, needle, start, end) {
-  const last = end - needle.length;
-  outer: for (let i = start; i <= last; i += 1) {
-    for (let j = 0; j < needle.length; j += 1) {
-      if (hay[i + j] !== needle[j]) {
-        continue outer;
-      }
+/*
+ * Chrome's MediaRecorder leaves a WebM's Duration at zero or out, and a
+ * looping <video> of such a file restarts a few frames in. stampDuration
+ * writes the real length into the Segment Info, in place: the Duration
+ * element (EBML id 0x4489, a 4 or 8 byte big-endian float) in units of
+ * the TimecodeScale (id 0x2AD7B1, nanoseconds per unit, 1 ms by default).
+ * Both live in the header, so only the bytes before the first Cluster (id
+ * 0x1F43B675), and at most the first 16 KB, are searched. True when the
+ * Duration was found and written.
+ */
+const HEADER_SCAN = 16384;
+const ID_CLUSTER = [0x1f, 0x43, 0xb6, 0x75];
+const ID_TIMECODE_SCALE = [0x2a, 0xd7, 0xb1];
+const ID_DURATION = [0x44, 0x89];
+const DEFAULT_TIMECODE_SCALE = 1e6;
+
+function indexOfBytes(bytes, pattern, limit) {
+  for (let at = 0; at + pattern.length <= limit; at += 1) {
+    if (pattern.every((b, k) => bytes[at + k] === b)) {
+      return at;
     }
-    return i;
   }
   return -1;
 }
 
-function readVint(bytes, offset) {
-  if (offset >= bytes.length) {
+/* An EBML variable-length size at `at`: { width, value } or null. The
+ * count of leading zero bits in the first byte gives the width; that
+ * marker bit is not part of the value. */
+function ebmlSize(bytes, at) {
+  const first = bytes[at];
+  if (!first) {
     return null;
   }
-  const first = bytes[offset];
-  if (first === 0) {
+  const width = Math.clz32(first) - 23;
+  if (width > 8 || at + width > bytes.length) {
     return null;
   }
-  let length = 1;
-  let mask = 0x80;
-  while (length <= 8 && (first & mask) === 0) {
-    length += 1;
-    mask >>= 1;
+  let value = first & (0xff >> width);
+  for (let k = 1; k < width; k += 1) {
+    value = value * 256 + bytes[at + k];
   }
-  if ((first & mask) === 0 || offset + length > bytes.length) {
-    return null;
-  }
-  let value = first & (mask - 1);
-  for (let i = 1; i < length; i += 1) {
-    value = value * 256 + bytes[offset + i];
-  }
-  return { length, value };
+  return { width, value };
 }
 
-function readUint(bytes, offset, size) {
-  let value = 0;
-  for (let i = 0; i < size; i += 1) {
-    value = value * 256 + bytes[offset + i];
-  }
-  return value;
-}
+function stampDuration(bytes, durationMs) {
+  const cluster = indexOfBytes(bytes, ID_CLUSTER, Math.min(bytes.length, HEADER_SCAN));
+  const limit = cluster >= 0 ? cluster : Math.min(bytes.length, HEADER_SCAN);
 
-/*
- * Chrome's MediaRecorder writes a WebM whose Duration is 0 or missing.
- * A <video loop> then restarts after a few frames, which is the board
- * thumbnail that glitched. Stamp the real length in the header so the
- * element loops at the end of the shot.
- */
-function writeWebmDuration(bytes, durationMs) {
-  const headEnd = Math.min(bytes.length, 16384);
-  const cluster = findBytes(bytes, [0x1F, 0x43, 0xB6, 0x75], 0, headEnd);
-  const end = cluster < 0 ? headEnd : cluster;
-  let scale = 1000000;
-  const scaleAt = findBytes(bytes, [0x2A, 0xD7, 0xB1], 0, end);
-  if (scaleAt >= 0) {
-    const size = readVint(bytes, scaleAt + 3);
-    if (size && size.value > 0 && scaleAt + 3 + size.length + size.value <= end) {
-      const n = readUint(bytes, scaleAt + 3 + size.length, size.value);
+  let unitNs = DEFAULT_TIMECODE_SCALE;
+  const scaleId = indexOfBytes(bytes, ID_TIMECODE_SCALE, limit);
+  const scaleSize = scaleId >= 0 ? ebmlSize(bytes, scaleId + ID_TIMECODE_SCALE.length) : null;
+  if (scaleSize && scaleSize.value > 0) {
+    const from = scaleId + ID_TIMECODE_SCALE.length + scaleSize.width;
+    if (from + scaleSize.value <= limit) {
+      let n = 0;
+      for (let k = 0; k < scaleSize.value; k += 1) {
+        n = n * 256 + bytes[from + k];
+      }
       if (n > 0) {
-        scale = n;
+        unitNs = n;
       }
     }
   }
-  const durationValue = (durationMs * 1e6) / scale;
-  const durAt = findBytes(bytes, [0x44, 0x89], 0, end);
-  if (durAt < 0) {
+
+  const durationId = indexOfBytes(bytes, ID_DURATION, limit);
+  if (durationId < 0) {
     return false;
   }
-  const size = readVint(bytes, durAt + 2);
+  const size = ebmlSize(bytes, durationId + ID_DURATION.length);
   if (!size || (size.value !== 4 && size.value !== 8)) {
     return false;
   }
-  const dataAt = durAt + 2 + size.length;
-  if (dataAt + size.value > end) {
+  const from = durationId + ID_DURATION.length + size.width;
+  if (from + size.value > limit) {
     return false;
   }
-  const view = new DataView(bytes.buffer, bytes.byteOffset + dataAt, size.value);
+  const units = (durationMs * 1e6) / unitNs;
+  const view = new DataView(bytes.buffer, bytes.byteOffset + from, size.value);
   if (size.value === 4) {
-    view.setFloat32(0, durationValue);
+    view.setFloat32(0, units);
   } else {
-    view.setFloat64(0, durationValue);
+    view.setFloat64(0, units);
   }
   return true;
 }
 
-async function stampClipDuration(blob, durationMs) {
+/* The recording with its Duration stamped, or the recording as it came
+ * when it is not WebM or has no Duration to stamp. */
+async function withDuration(blob, durationMs) {
   const type = blob.type || '';
   if (!type.includes('webm') || !(durationMs > 0)) {
     return blob;
   }
-  const copy = new Uint8Array(await blob.arrayBuffer());
-  if (!writeWebmDuration(copy, durationMs)) {
-    return blob;
-  }
-  return new Blob([copy], { type });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  return stampDuration(bytes, durationMs) ? new Blob([bytes], { type }) : blob;
 }
 
+/* A JPEG of the canvas, for a browser that cannot record video. */
+async function stillOf(canvas, durationMs, signal) {
+  await pause(Math.min(400, durationMs), signal);
+  const still = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.72));
+  if (!still) {
+    throw new Error('Could not capture a still.');
+  }
+  return still;
+}
+
+/*
+ * Record `durationMs` of `canvas` as a clip Blob: video where the browser
+ * can record, a still JPEG where it cannot. Rejects with an AbortError
+ * when `signal` aborts.
+ */
 export async function recordCanvasStream(canvas, durationMs, signal) {
-  const mime = pickRecorderMime();
-  if (!mime) {
-    await waitMs(Math.min(400, durationMs), signal);
-    const still = await new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.72);
-    });
-    if (!still) {
-      throw new Error('Could not capture a still.');
-    }
-    return still;
+  const type = pickRecorderMime();
+  if (!type) {
+    return stillOf(canvas, durationMs, signal);
   }
   const stream = canvas.captureStream(CLIP_FPS);
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: CLIP_BITRATE });
-  const chunks = [];
-  rec.addEventListener('dataavailable', (e) => {
+  const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: CLIP_BITRATE });
+  const pieces = [];
+  recorder.addEventListener('dataavailable', (e) => {
     if (e.data && e.data.size) {
-      chunks.push(e.data);
+      pieces.push(e.data);
     }
   });
-  const stopped = new Promise((resolve, reject) => {
-    rec.addEventListener('stop', () => resolve());
-    rec.addEventListener('error', () => reject(new Error('Recording failed.')));
+  const finished = new Promise((resolve, reject) => {
+    recorder.addEventListener('stop', resolve);
+    recorder.addEventListener('error', () => reject(new Error('Recording failed.')));
   });
-  rec.start();
+  recorder.start();
   try {
-    /* Two extra frames so the encoder has the pose at the loop point.
-     * Duration stamped below is the intended length, so playback cuts
-     * there and the pad is not shown. */
-    await waitMs(durationMs + (2000 / CLIP_FPS), signal);
-    if (typeof rec.requestData === 'function' && rec.state === 'recording') {
-      rec.requestData();
+    /* Two frames past the end, so the encoder holds the pose at the loop
+     * point; the stamped Duration cuts playback before them. */
+    await pause(durationMs + 2 * (1000 / CLIP_FPS), signal);
+    if (recorder.state === 'recording' && typeof recorder.requestData === 'function') {
+      recorder.requestData();
     }
   } finally {
-    if (rec.state === 'recording') {
-      rec.stop();
+    if (recorder.state === 'recording') {
+      recorder.stop();
     }
-    try {
-      await stopped;
-    } catch (e) {
-      /* The blob is checked below. */
-    }
-    for (const track of stream.getTracks()) {
-      track.stop();
-    }
+    await finished.catch(() => {});
+    stream.getTracks().forEach((track) => track.stop());
   }
   if (signal && signal.aborted) {
-    throw new DOMException('aborted', 'AbortError');
+    throw aborted();
   }
-  if (!chunks.length) {
+  if (pieces.length === 0) {
     throw new Error('Recording produced no data.');
   }
-  const blob = new Blob(chunks, { type: mime });
-  return stampClipDuration(blob, durationMs);
+  return withDuration(new Blob(pieces, { type }), durationMs);
 }
 
+/* A clip covers one camera loop, kept between CLIP_MS_MIN and CLIP_MS_MAX;
+ * an unknown loop gets the longest clip. */
 export function clipDurationMs(loopMs) {
-  const n = Number(loopMs);
-  if (!Number.isFinite(n) || n <= 0) {
+  const loop = Number(loopMs);
+  if (!(Number.isFinite(loop) && loop > 0)) {
     return CLIP_MS_MAX;
   }
-  return Math.min(CLIP_MS_MAX, Math.max(CLIP_MS_MIN, n));
+  return Math.max(CLIP_MS_MIN, Math.min(CLIP_MS_MAX, loop));
 }
 
-function armVideoLoop(node) {
-  const play = () => node.play().catch(() => {});
-  const durationOk = () => Number.isFinite(node.duration) && node.duration > 0.2 && node.duration < 1e6;
-
-  const restart = () => {
+/*
+ * Keep a clip video playing round. Its loop attribute alone is not enough:
+ * a clip whose length the browser does not know (an unstamped WebM reads
+ * as Infinity or 0) never reaches an end to loop from. Seeking far past the
+ * end makes the browser work the length out; once it is known, play from
+ * the top. 'ended' restarts it too, for a codec that ignores loop.
+ */
+function keepLooping(video) {
+  const play = () => {
+    video.play().catch(() => {});
+  };
+  const fromTop = () => {
     try {
-      node.currentTime = 0;
+      video.currentTime = 0;
     } catch (e) {
-      /* A codec that cannot seek still fires play. */
+      /* Cannot seek: playing still restarts it. */
     }
     play();
   };
-
-  node.addEventListener('ended', restart);
-
-  const forceDuration = () => {
-    if (durationOk()) {
+  const lengthKnown = () => Number.isFinite(video.duration) && video.duration > 0.2 && video.duration < 1e6;
+  const learnLength = () => {
+    if (lengthKnown()) {
       play();
       return;
     }
-    const onTick = () => {
-      if (!durationOk()) {
-        return;
+    const onTime = () => {
+      if (lengthKnown()) {
+        video.removeEventListener('timeupdate', onTime);
+        fromTop();
       }
-      node.removeEventListener('timeupdate', onTick);
-      restart();
     };
-    node.addEventListener('timeupdate', onTick);
+    video.addEventListener('timeupdate', onTime);
     try {
-      node.currentTime = 1e101;
+      video.currentTime = 1e101;
     } catch (e) {
       play();
     }
   };
-
-  node.addEventListener('loadedmetadata', forceDuration);
-  node.addEventListener('canplay', play, { once: true });
-  if (node.readyState >= 1) {
-    forceDuration();
+  video.addEventListener('ended', fromTop);
+  video.addEventListener('loadedmetadata', learnLength);
+  video.addEventListener('canplay', play, { once: true });
+  if (video.readyState >= 1) {
+    learnLength();
   }
-  if (node.readyState >= 2) {
+  if (video.readyState >= 2) {
     play();
   }
 }
 
+/* Every switch that keeps a muted inline clip from offering sound,
+ * fullscreen, picture in picture, casting or download. */
+function quietInline(video) {
+  Object.assign(video, {
+    muted: true,
+    defaultMuted: true,
+    loop: true,
+    playsInline: true,
+    autoplay: true,
+    preload: 'auto',
+    disablePictureInPicture: true,
+    disableRemotePlayback: true,
+    volume: 0,
+  });
+  for (const name of ['playsinline', 'webkit-playsinline', 'muted']) {
+    video.setAttribute(name, '');
+  }
+  video.controlsList = 'nodownload nofullscreen noremoteplayback';
+}
+
+/* The element that shows a clip: a looping muted <video> for a video, an
+ * <img> for a still. `url` is its object URL, for the caller to revoke. */
 export function makeClipElement(blob, className) {
   const url = URL.createObjectURL(blob);
-  const video = (blob.type || '').startsWith('video/');
-  const node = document.createElement(video ? 'video' : 'img');
+  const isVideo = (blob.type || '').startsWith('video/');
+  const node = document.createElement(isVideo ? 'video' : 'img');
   if (className) {
     node.className = className;
   }
   node.setAttribute('aria-hidden', 'true');
-  if (video) {
-    node.muted = true;
-    node.defaultMuted = true;
-    node.loop = true;
-    node.playsInline = true;
-    node.autoplay = true;
-    node.preload = 'auto';
-    node.setAttribute('playsinline', '');
-    node.setAttribute('webkit-playsinline', '');
-    node.setAttribute('muted', '');
-    node.disablePictureInPicture = true;
-    node.disableRemotePlayback = true;
-    node.controlsList = 'nodownload nofullscreen noremoteplayback';
-    node.volume = 0;
+  if (isVideo) {
+    quietInline(node);
     node.src = url;
-    armVideoLoop(node);
+    keepLooping(node);
   } else {
     node.src = url;
     node.alt = '';

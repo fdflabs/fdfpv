@@ -352,6 +352,8 @@
     "lint:board": "node scripts/board-check.js",
     "board:live": "node scripts/board-live-check.js",
     "orbitpage:check": "node scripts/orbitpage-check.js",
+    "orbitcache:check": "node scripts/orbitcache-check.js",
+    "olddb:check": "node scripts/olddb-check.js",
     "lint:attract": "node scripts/attract-check.js",
     "trick:sweep": "node scripts/trick-sweep.js",
     "trick:proven": "node scripts/trick-sweep.js --all --write",
