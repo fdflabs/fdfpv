@@ -189,6 +189,9 @@ jobs:
       - run: npm run move:selftest
       # The two named tabs, simulator and board (src/share/windows.js).
       - run: npm run windows:selftest
+      # The pilot's name and the signed in account record
+      # (src/share/pilot.js), against a pinned transcript.
+      - run: npm run pilot:selftest
       # How a seated track relates to the board (src/share/listing.js),
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
