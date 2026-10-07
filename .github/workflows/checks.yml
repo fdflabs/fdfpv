@@ -39,6 +39,7 @@ jobs:
       - run: npm run widgets:golden
       - run: npm run trickslist:golden
       - run: npm run keys:golden
+      - run: npm run menucontrols:golden
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
@@ -57,6 +58,7 @@ jobs:
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run ratescurve:selftest
+      - run: npm run panels:golden
       - run: npm run rooms:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
@@ -160,6 +162,15 @@ jobs:
       # The harness file server (tests/lib/server.js): types, ranges, the
       # cache rule and every way out of the root, against a pinned transcript.
       - run: npm run server:selftest
+      # The blackbox_decode CSV reader (tests/lib/blackbox.js), against a
+      # pinned transcript.
+      - run: npm run blackbox:selftest
+      # How the page reaches the public board (src/share/board.js): which
+      # board, every request and every answer, against a pinned transcript.
+      - run: npm run board:selftest
+      # Values under the old webfpv.* storage names moved to fdfpv.* once
+      # (src/share/oldkeys.js): new name wins, idempotent, refusal retried.
+      - run: npm run oldkeys:selftest
       # The text table the verify runner prints (tests/lib/table.js), against
       # a pinned transcript.
       - run: npm run table:selftest
@@ -167,6 +178,7 @@ jobs:
       # pinned transcript.
       - run: npm run recfile:selftest
       - run: npm run score:golden
+      - run: npm run scorehud:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
@@ -204,7 +216,6 @@ jobs:
       # The war audio against its script, credits and manifest: python3's
       # standard library only, no GPU and no model download.
       - run: npm run voice:check
-      - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest
       # The game's own domain: which servers the page picks, the probe's

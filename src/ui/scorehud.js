@@ -1,408 +1,307 @@
 /*
- * scorehud.js: the freestyle score, on the screen, the way Tony Hawk does it.
+ * scorehud.js: the freestyle score overlay, built on the skate game model.
  *
- * THE THING BEING COPIED, precisely, because "like Tony Hawk" is not a
- * specification. THPS puts four separate readouts on screen and each one
- * does a different job:
+ * Four readouts, each with one job:
  *
- *   1. The running total, top left, permanent, and it only ever goes up.
- *   2. The trick name, shouted the instant the trick is recognised, one
- *      line per trick, stacking upward and fading out on its own.
- *   3. The live combo: the points in the chain and the multiplier they will
- *      be worth, sitting under the names, redrawn every frame so the number
- *      climbs while you are still flying.
- *   4. The verdict. The combo line either banks, and the number flies into
- *      the total, or it BAILS in red and the number goes to nothing.
+ *   1. The banked total, top left, always there, never going down.
+ *   2. Trick names, one row per trick the moment it is recognised, stacking
+ *      with the newest at the bottom and leaving on their own.
+ *   3. The live combo: points so far, the multiplier, a word for how big it
+ *      is, and a bar for the time left to land the next trick.
+ *   4. The verdict in the middle of the screen: the combo banks and flies
+ *      into the total, or it bails in red and is gone.
  *
- * Number 4 is the one that matters. A score that only counts up is a
- * counter. A score that can be lost in front of you is a game, and the whole
- * reason the combo is drawn separately from the total is so that the pilot
- * can see exactly how much is at risk before they decide to try one more
- * thing.
+ * The verdict is the point. Drawing the combo apart from the total shows
+ * the pilot what is at risk before they try one more trick, and a score
+ * that can be lost in front of you is what turns a counter into a game.
  *
- * WHERE IT SITS. Down the left, because the existing flight OSD has the top
- * centre (lap clock), both bottom corners (pack and speed) and the bottom
- * centre (the stick ghost). The left column between the top and the bottom
- * corner is the only run of screen this can have without covering something
- * a pilot is already reading, and it happens to be where THPS puts it.
+ * It sits down the left because the flight OSD already owns the top centre
+ * (clock), both bottom corners (pack, speed) and the bottom centre (stick
+ * ghost). The left column is the one strip that covers nothing a pilot is
+ * reading.
  *
- * NO ANIMATION LOOP. Everything that moves is a CSS keyframe on a node that
- * removes itself when the animation ends. This file never asks for a frame,
- * never holds a timer that outlives the run, and does no work at all on a
- * frame where nothing changed except the combo bar, because a rAF driven
- * overlay competing with the render loop is how a smooth sim gets a stutter
- * that nobody can find.
+ * There is no frame loop here. Everything that moves is a CSS keyframe on a
+ * node that takes itself away when it ends, with a timer behind it for when
+ * the animation never runs (prefers-reduced-motion). An overlay asking for
+ * its own frames would compete with the render loop, and that kind of
+ * stutter is the hardest kind to find.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { formatScore } from '../game/score.js';
 import { str } from '../strings/index.js';
 
-/* Local, because ui.js keeps its own copy private and this file is meant to
- * be readable without it. */
-function el(tag, cls, text) {
+/* Six rows is what fits beside the quad at 720p without reaching the pack
+ * readout. A longer chain loses its oldest names, not its count: the combo
+ * line still carries every point. */
+const MAX_ROWS = 6;
+
+/* How long each kind of node lives if its animation never reports an end.
+ * The name row's 2600 is the 2.2 s keyframe in index.html plus slack. */
+const LIFE_MS = { row: 2600, burst: 900, ring: 1200 };
+
+/*
+ * Words for the multiplier, highest threshold first. A number does not tell
+ * a pilot they are into something worth protecting; a word shouted at them
+ * does. The Japanese is the word a person in the town would actually say,
+ * because the score was the one thing on screen not speaking the place's
+ * language.
+ */
+const TIER_WORDS = [
+  { at: 5, en: 'Perfect', jp: '最高' },
+  { at: 4, en: 'Wild', jp: 'やばい' },
+  { at: 3, en: 'Sweet', jp: 'すごい' },
+  { at: 2, en: 'Nice', jp: 'いいね' },
+];
+
+const tierWord = (mult) => TIER_WORDS.find((w) => mult >= w.at) ?? null;
+
+/* The speed lines down the frame start a tier later than the badge: a
+ * doubled combo earns a word but not the whole screen. */
+const SPEED_LINES_FROM = 3;
+
+/* How a trick row looks by execution. Anything unlisted is drawn plain,
+ * with its execution written beside it. */
+const EXECUTION_LOOK = {
+  CLEAN: { cls: null, ink: 'var(--cream)' },
+  SLOPPY: { cls: 'is-sloppy', ink: 'var(--amber)' },
+  BUMP: { cls: 'is-bump', ink: '#ff7d96' },
+};
+const PLAIN_LOOK = { cls: null, ink: 'var(--cream)' };
+
+function node(tag, cls, text) {
   const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
-    n.textContent = text;
-  }
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
   return n;
 }
 
 /*
- * How many trick names may stack up before the oldest is dropped.
- *
- * A twelve trick combo would otherwise write a column of names taller than
- * the screen. Six is what fits beside the quad at 720p without reaching the
- * pack readout, and the combo line under them says how many there really
- * are, so nothing is hidden, only elided.
+ * Puts child under parent until its animation ends or ms pass, whichever is
+ * first. The event bubbles, so an animation inside child ending also counts:
+ * a name row goes when the first of its own animations finishes.
  */
-const NAME_STACK_MAX = 6;
-
-/* How long a name stays up. Long enough to read at speed, short enough that
- * a fast chain does not become a wall of text. Must match the CSS. */
-const NAME_LIFE_MS = 2200;
-
-/*
- * THE COMBO TIERS, and what each one is called.
- *
- * A multiplier is a number and a number is not a feeling. Tony Hawk never
- * shouted the multiplier at you, it shouted a WORD, and the word is what
- * tells a pilot they are into something worth not binning. The threshold is
- * the multiplier the scorer already computes, so this adds no state and no
- * second opinion about how well the run is going.
- *
- * The Japanese half is not decoration. The town is a Japanese one, it reads
- * its own signage, and the score is the only thing on screen that was
- * speaking a different language from the place it sits in. Each is the
- * ordinary spoken word a person would actually use, not a translation of
- * the English one.
- */
-const TIERS = [
-  { at: 2, en: 'Nice', jp: 'いいね' },
-  { at: 3, en: 'Sweet', jp: 'すごい' },
-  { at: 4, en: 'Wild', jp: 'やばい' },
-  { at: 5, en: 'Perfect', jp: '最高' },
-];
-
-function tierFor(mult) {
-  let hit = null;
-  for (const t of TIERS) {
-    if (mult >= t.at) {
-      hit = t;
-    }
-  }
-  return hit;
+function fleeting(parent, child, ms) {
+  parent.append(child);
+  const leave = () => {
+    if (child.parentNode === parent) parent.removeChild(child);
+  };
+  child.addEventListener('animationend', leave, { once: true });
+  setTimeout(leave, ms);
 }
 
-/*
- * A ray fan, thrown behind a trick name and thrown away again.
- *
- * One node, one keyframe, self removing: the rule this file opens with. The
- * colour follows the execution, so a bumped trick bursts in the same pink
- * its name is written in and the pilot never has to read the tag to know
- * something was clipped.
- */
-function burst(host, colour) {
-  const n = el('div', 'score-burst');
-  if (colour) {
-    n.style.setProperty('--burst', colour);
-  }
-  host.append(n);
-  const drop = () => {
-    if (n.parentNode === host) {
-      host.removeChild(n);
-    }
-  };
-  n.addEventListener('animationend', drop, { once: true });
-  setTimeout(drop, 900);
+/* Restarts a CSS animation on a node that may be mid way through one. The
+ * offsetWidth read forces the style flush between the two writes. */
+function replay(n, before, after) {
+  before();
+  void n.offsetWidth;
+  after();
 }
 
 export class ScoreHud {
   constructor(root) {
-    this.root = el('div', 'score-hud is-off');
+    this.el = node('div', 'score-hud is-off');
 
-    this.totalBox = el('div', 'score-total');
-    /*
-     * THE LABEL CARRIES THE WARNING, because the Freestyle screen's warning
-     * is read once and then the pilot flies for an hour.
-     *
-     * The recogniser is not finished: it misses shapes it should name and
-     * puts the wrong name on some it catches. A pilot who is told a Split-S
-     * was a Half Matty learns the wrong thing about their own flying, and
-     * the only defence against that is for the overlay saying it to admit
-     * what it is, in the one place the pilot is already looking. It is a
-     * word beside the label rather than a banner, because a banner over the
-     * town would be worse than the thing it is apologising for, and it sits
-     * next to "SCORE" so it reads as a qualifier on the number rather than
-     * as an event that just happened.
-     */
-    const label = el('div', 'score-label', str('ui.score'));
-    label.append(el('span', 'score-beta', str('scorehud.in_development')));
-    this.totalBox.append(label);
-    this.totalValue = el('div', 'score-value score-cut', '0');
-    this.totalBox.append(this.totalValue);
-    /*
-     * NO CLOCK HERE, deliberately.
-     *
-     * A run is two minutes now and it needs a clock, and this looked like
-     * the place for one: it is where the score is. It is not. Freestyle
-     * already draws a clock in the OSD's top centre slot, where the lap
-     * clock lives and where a pilot's eye already goes for one, and a
-     * second clock beside the score is two answers to the same question.
-     * See setOsd in src/ui/ui.js, which counts the run down in that slot
-     * and used to count an airtime up in it.
-     */
+    const total = node('div', 'score-total');
+    /* The recogniser still misnames some shapes, and a pilot told their
+     * Split-S was a Half Matty learns the wrong thing. The overlay admits
+     * it next to the label, the one place the pilot keeps looking, as a
+     * qualifier on the number rather than a banner over the town. There is
+     * no clock here: the OSD's top centre already counts the run down. */
+    const label = node('div', 'score-label', str('ui.score'));
+    label.append(node('span', 'score-beta', str('scorehud.in_development')));
+    this.totalText = node('div', 'score-value score-cut', '0');
+    total.append(label, this.totalText);
 
-    /* The trick names, newest at the bottom so the eye does not have to
-     * track upward to find the thing that just happened. */
-    this.names = el('div', 'score-names');
+    this.rows = node('div', 'score-names');
 
-    this.comboBox = el('div', 'score-combo is-off');
-    this.comboPoints = el('span', 'score-combo-points', '0');
-    this.comboMult = el('span', 'score-combo-mult', '');
-    const line = el('div', 'score-combo-line score-cut');
-    line.append(this.comboPoints, this.comboMult);
-    this.comboBar = el('div', 'score-combo-fill');
-    const bar = el('div', 'score-combo-bar');
-    bar.append(this.comboBar);
-    this.comboBox.append(line, bar);
+    this.combo = node('div', 'score-combo is-off');
+    const line = node('div', 'score-combo-line score-cut');
+    this.pointsText = node('span', 'score-combo-points', '0');
+    this.multText = node('span', 'score-combo-mult', '');
+    this.badge = node('span', 'score-tier');
+    this.badge.hidden = true;
+    this.badgeEn = node('span', 'score-tier-en');
+    this.badgeJp = node('span', 'score-tier-jp');
+    this.badge.append(this.badgeEn, this.badgeJp);
+    line.append(this.pointsText, this.multText, this.badge);
+    const track = node('div', 'score-combo-bar');
+    /* Scaled, not resized: a width change would lay the overlay out again
+     * on every frame. */
+    this.fill = node('div', 'score-combo-fill');
+    track.append(this.fill);
+    this.combo.append(line, track);
 
-    /* The tier badge lives on the combo line, beside the number it is
-     * describing, because it is a word for that number and nothing else. */
-    this.tier = el('span', 'score-tier');
-    this.tier.hidden = true;
-    this.tierEn = el('span', 'score-tier-en');
-    this.tierJp = el('span', 'score-tier-jp');
-    this.tier.append(this.tierEn, this.tierJp);
-    line.append(this.tier);
+    this.verdict = node('div', 'score-verdict score-cut');
 
-    /* Banked and bailed both land here, in the middle of the screen, because
-     * that is the one moment the pilot should look away from the quad. */
-    this.verdict = el('div', 'score-verdict score-cut');
+    /* First, so the lines are behind every number. */
+    const speedLines = node('div', 'score-lines');
 
-    /* Speed lines down both edges, driven entirely by a class on the root.
-     * Behind everything, so it can never sit over a number. */
-    this.lines = el('div', 'score-lines');
+    this.el.append(speedLines, total, this.rows, this.combo, this.verdict);
+    root.append(this.el);
 
-    this.root.append(this.lines, this.totalBox, this.names, this.comboBox, this.verdict);
-    root.append(this.root);
-
-    this.shownTotal = -1;
-    this.shownPoints = -1;
-    this.shownMult = -1;
-    this.shownTier = -1;
     this.visible = false;
+    /* What the screen currently says, so a frame that changes nothing
+     * writes nothing. null means "not on screen, write the next value". */
+    this.drawn = { total: null, points: null, mult: null, tier: null };
   }
 
   setVisible(on) {
-    if (on === this.visible) {
-      return;
-    }
+    if (on === this.visible) return;
     this.visible = on;
-    this.root.className = on ? this.rootClass() : `${this.rootClass()} is-off`;
-    if (!on) {
-      this.clearTransient();
-    }
+    this.paintFrame();
+    if (!on) this.clearLive();
   }
 
-  /* The root carries the combo tier, because the speed lines are drawn from
-   * it and they belong to the whole frame rather than to the combo box. */
-  rootClass() {
-    const t = this.shownMult >= 5 ? 5 : (this.shownMult >= 4 ? 4 : (this.shownMult >= 3 ? 3 : 0));
-    return t ? `score-hud tier-${t}` : 'score-hud';
+  /*
+   * The root's class: visibility, plus the speed lines for the multiplier
+   * last drawn. Repainted when visibility or the tier changes, not when a
+   * combo merely ends, so the lines of a banked combo stay until the next
+   * one starts or the screen changes.
+   */
+  paintFrame() {
+    const word = this.drawn.mult === null ? null : tierWord(this.drawn.mult);
+    let cls = 'score-hud';
+    if (word && word.at >= SPEED_LINES_FROM) cls += ` tier-${word.at}`;
+    if (!this.visible) cls += ' is-off';
+    this.el.className = cls;
   }
 
-  /* Wipe the names, the combo line and any verdict, leaving the total. Used
-   * on a map change and when the flight screen is left. */
-  clearTransient() {
-    this.names.textContent = '';
-    this.comboBox.className = 'score-combo is-off';
+  /* Everything but the total goes: names, combo, verdict, tier. For a map
+   * change and for leaving the flight screen. */
+  clearLive() {
+    this.rows.textContent = '';
+    this.combo.className = 'score-combo is-off';
     this.verdict.className = 'score-verdict score-cut';
     this.verdict.textContent = '';
-    this.shownPoints = -1;
-    this.shownMult = -1;
-    this.shownTier = -1;
-    this.tier.hidden = true;
-    if (this.visible) {
-      this.root.className = 'score-hud';
-    }
+    this.badge.hidden = true;
+    this.drawn.points = null;
+    this.drawn.mult = null;
+    this.drawn.tier = null;
+    if (this.visible) this.paintFrame();
   }
 
   reset() {
-    this.clearTransient();
-    this.totalValue.textContent = '0';
-    this.shownTotal = 0;
+    this.clearLive();
+    this.totalText.textContent = '0';
+    this.drawn.total = 0;
   }
 
-  /*
-   * Once a frame, from the scorer's view(). Every write is guarded on the
-   * value having changed, because setting textContent to the string it
-   * already holds still costs a style invalidation, and this runs at frame
-   * rate over a 1 kHz simulation.
-   */
+  /* Each frame, with the scorer's view(). Writes are skipped when the text
+   * would not change, because even a same value textContent write costs a
+   * style invalidation at frame rate. */
   update(view) {
-    if (!view) {
+    if (!view) return;
+    const d = this.drawn;
+    if (view.total !== d.total) {
+      d.total = view.total;
+      this.totalText.textContent = formatScore(view.total);
+    }
+    const live = view.combo;
+    if (!live) {
+      this.combo.className = 'score-combo is-off';
+      d.points = null;
+      d.mult = null;
       return;
     }
-    if (view.total !== this.shownTotal) {
-      this.shownTotal = view.total;
-      this.totalValue.textContent = formatScore(view.total);
+    if (live.points !== d.points) {
+      d.points = live.points;
+      this.pointsText.textContent = formatScore(live.points);
     }
-    const c = view.combo;
-    if (!c) {
-      if (this.comboBox.className !== 'score-combo is-off') {
-        this.comboBox.className = 'score-combo is-off';
-        this.shownPoints = -1;
-        this.shownMult = -1;
-      }
-      return;
-    }
-    if (this.comboBox.className !== 'score-combo') {
-      this.comboBox.className = 'score-combo';
-    }
-    if (c.points !== this.shownPoints) {
-      this.shownPoints = c.points;
-      this.comboPoints.textContent = formatScore(c.points);
-    }
-    if (c.mult !== this.shownMult) {
-      this.shownMult = c.mult;
-      this.comboMult.textContent = c.mult > 1 ? ` x ${c.mult}` : '';
-      /* Tier: the colour of the number, the badge beside it and the speed
-       * lines down the frame are one decision made once, here. */
-      const t = tierFor(c.mult);
-      const step = t ? t.at : 0;
-      if (step !== this.shownTier) {
-        this.shownTier = step;
-        this.comboBox.className = step ? `score-combo tier-${step}` : 'score-combo';
-        if (t) {
-          this.tier.hidden = false;
-          this.tierEn.textContent = t.en;
-          this.tierJp.textContent = t.jp;
-          /* Restart the badge's landing animation on each new tier. */
-          this.tier.style.animation = 'none';
-          void this.tier.offsetWidth;
-          this.tier.style.animation = '';
-        } else {
-          this.tier.hidden = true;
-        }
-        if (this.visible) {
-          this.root.className = this.rootClass();
-        }
+    let comboCls = 'score-combo';
+    if (live.mult !== d.mult) {
+      d.mult = live.mult;
+      this.multText.textContent = live.mult > 1 ? ` x ${live.mult}` : '';
+      const word = tierWord(live.mult);
+      const tier = word ? word.at : 0;
+      if (tier !== d.tier) {
+        d.tier = tier;
+        /* The tier colour on the combo line is set only on the frame the
+         * tier changes; the next frame puts the plain class back. */
+        if (word) comboCls += ` tier-${tier}`;
+        this.showBadge(word);
+        if (this.visible) this.paintFrame();
       }
     }
-    /* The bar is a transform, not a width: a width change relayouts the
-     * whole overlay every frame and a transform does not. */
-    this.comboBar.style.transform = `scaleX(${c.remain})`;
+    if (this.combo.className !== comboCls) this.combo.className = comboCls;
+    this.fill.style.transform = `scaleX(${live.remain})`;
   }
 
-  /* The scorer's queued events, at most a handful a frame. */
+  showBadge(word) {
+    this.badge.hidden = !word;
+    if (!word) return;
+    this.badgeEn.textContent = word.en;
+    this.badgeJp.textContent = word.jp;
+    replay(this.badge, () => { this.badge.style.animation = 'none'; }, () => { this.badge.style.animation = ''; });
+  }
+
+  /* The scorer's drained events for this frame, usually none or one. */
   events(list) {
-    if (!list) {
-      return;
-    }
+    if (!list) return;
     for (const e of list) {
       if (e.kind === 'trick') {
-        this.pushName(e.name, e.points, e.execution);
+        this.addRow(e);
       } else if (e.kind === 'bank') {
-        this.showVerdict(`+${formatScore(e.points)}`, 'is-bank');
-        this.ring('');
+        this.announce(`+${formatScore(e.points)}`, 'is-bank');
       } else if (e.kind === 'bail') {
-        this.showVerdict(e.points > 0 ? str('scorehud.bailed', { formatScore: formatScore(e.points) }) : 'Bailed', 'is-bail');
-        this.ring('is-bail');
-        this.names.textContent = '';
+        const text = e.points > 0 ? str('scorehud.bailed', { formatScore: formatScore(e.points) }) : 'Bailed';
+        this.announce(text, 'is-bail');
+        this.rows.textContent = '';
       }
     }
   }
 
   /*
-   * One trick name. The execution shows as a colour rather than as a second
-   * line: clean is cream, sloppy is amber, a bump is amber and struck
-   * through in the sense that its number is already halved, and the number
-   * beside the name is what it was actually worth after every penalty, not
-   * the catalogue price. A pilot who flies the same trick four times should
-   * be able to SEE the repeat penalty happening.
+   * One trick row. Execution is a colour, not a second line, and the number
+   * is what the trick was worth after every penalty, so a pilot repeating a
+   * trick watches its value shrink. The burst behind the name goes in the
+   * row first, so it moves with the row and the text paints over it.
    */
-  pushName(name, points, execution) {
-    const row = el('div', 'score-name score-cut');
-    if (execution === 'SLOPPY') {
-      row.classList.add('is-sloppy');
-    } else if (execution === 'BUMP') {
-      row.classList.add('is-bump');
-    }
-    /* The ink burst goes on the ROW, so it travels with the name up the
-     * stack and cannot be left behind pointing at nothing, and it goes on
-     * FIRST so the type is painted over it. See .score-name > span. */
-    burst(row, execution === 'BUMP'
-      ? '#ff7d96'
-      : (execution === 'SLOPPY' ? 'var(--amber)' : 'var(--cream)'));
-    row.append(el('span', 'score-name-text', name));
-    row.append(el('span', 'score-name-points', formatScore(points)));
-    if (execution !== 'CLEAN') {
-      row.append(el('span', 'score-name-tag', execution.toLowerCase()));
-    }
-    this.names.append(row);
-    while (this.names.childElementCount > NAME_STACK_MAX) {
-      this.names.removeChild(this.names.firstChild);
-    }
-    /* animationend is not guaranteed on a node whose animation never runs,
-     * for instance under prefers-reduced-motion, so the timer is the one
-     * that actually removes it and the event only makes it prompt. */
-    const drop = () => {
-      if (row.parentNode === this.names) {
-        this.names.removeChild(row);
-      }
-    };
-    row.addEventListener('animationend', drop, { once: true });
-    setTimeout(drop, NAME_LIFE_MS + 400);
+  addRow({ name, points, execution }) {
+    const look = EXECUTION_LOOK[execution] ?? PLAIN_LOOK;
+    const row = node('div', 'score-name score-cut');
+    if (look.cls) row.classList.add(look.cls);
+    const burst = node('div', 'score-burst');
+    burst.style.setProperty('--burst', look.ink);
+    fleeting(row, burst, LIFE_MS.burst);
+    row.append(node('span', 'score-name-text', name), node('span', 'score-name-points', formatScore(points)));
+    if (execution !== 'CLEAN') row.append(node('span', 'score-name-tag', execution.toLowerCase()));
+    fleeting(this.rows, row, LIFE_MS.row);
+    while (this.rows.childElementCount > MAX_ROWS) this.rows.removeChild(this.rows.firstChild);
   }
 
   /*
-   * A hard ring, once, on a bank or a bail. Two of them a hundred
-   * milliseconds apart, because one ring reads as a circle and two read as
-   * an impact, which is the whole grammar of the thing being borrowed.
+   * The verdict text, and two rings out from it about a tenth of a second
+   * apart (the delay is in the CSS): one ring reads as a circle, two read
+   * as an impact. A bail's rings are red.
    */
-  ring(cls) {
-    for (const late of ['', 'is-late']) {
-      const n = el('div', `score-ring ${cls} ${late}`.trim());
-      this.root.append(n);
-      const drop = () => {
-        if (n.parentNode === this.root) {
-          this.root.removeChild(n);
-        }
-      };
-      n.addEventListener('animationend', drop, { once: true });
-      setTimeout(drop, 1200);
-    }
-  }
-
-  showVerdict(text, cls) {
+  announce(text, cls) {
     this.verdict.textContent = text;
-    /* Restart the animation on a node that may already be running one. */
-    this.verdict.className = 'score-verdict score-cut';
-    void this.verdict.offsetWidth;
-    this.verdict.className = `score-verdict score-cut is-on ${cls}`;
+    replay(
+      this.verdict,
+      () => { this.verdict.className = 'score-verdict score-cut'; },
+      () => { this.verdict.className = `score-verdict score-cut is-on ${cls}`; },
+    );
+    const ringCls = cls === 'is-bail' ? 'score-ring is-bail' : 'score-ring';
+    fleeting(this.el, node('div', ringCls), LIFE_MS.ring);
+    fleeting(this.el, node('div', `${ringCls} is-late`), LIFE_MS.ring);
   }
 
   dispose() {
-    if (this.root.parentNode) {
-      this.root.parentNode.removeChild(this.root);
-    }
+    if (this.el.parentNode) this.el.parentNode.removeChild(this.el);
   }
 }
