@@ -334,6 +334,7 @@
     "lint:interior-names": "node scripts/interior-names.js",
     "interior:views": "node scripts/interior-views.js",
     "interior:collide": "node scripts/interior-collide.js",
+    "interior:camp": "node scripts/interior-camp-check.js",
     "canopy:los": "node scripts/canopy-los.js",
     "people:route": "node scripts/people-route.js",
     "lint:copy": "node scripts/copy-lint.js",
