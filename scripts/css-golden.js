@@ -283,7 +283,8 @@ const SHEET = `(() => {
   };
   walk(sheet.cssRules);
   const matches = {};
-  for (const m of new Set(media)) { matches[m] = matchMedia(m).matches; }
+  /* Sorted: where a block sits in the sheet is not behaviour. */
+  for (const m of [...new Set(media)].sort()) { matches[m] = matchMedia(m).matches; }
   return {
     media: matches,
     unseen: unseen.sort(),
