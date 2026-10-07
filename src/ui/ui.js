@@ -218,8 +218,10 @@ import {
 import {
   WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, boardCraft, craftSvg, reticleSvg,
 } from './ways.js';
-/* scripts/modes-selftest.js reads the table from here. */
-export { WAYS };
+import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js';
+/* scripts/modes-selftest.js reads the table from here, and the HUDs and
+ * main.js read the clock formats. */
+export { WAYS, formatRunClock, formatTime };
 
 /* Whether a Flight controller save exists, which is what puts Your edits
  * on the Tune row. Read fresh each time: the pilot can save one two rows
@@ -371,56 +373,6 @@ function drawnFit(key, id, fit) {
     fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
     combat: fit.combat ?? null,
   };
-}
-
-/*
- * m:ss, for the freestyle run clock. Whole seconds, rounded UP so the
- * readout reaches 0:00 exactly when the run ends rather than sitting on it
- * for a second first, and no hundredths: this is written every frame and a
- * hundredths readout is sixty style invalidations a second for a number
- * nobody reads at that resolution, and it jitters under the eye.
- *
- * Not formatTime, which is the LAP clock's shape and prints hundredths
- * because a lap is won and lost in them. A run is not.
- */
-export function formatRunClock(ms) {
-  /* An untimed run reports Infinity, which is not a clock. Nothing in the
-   * shell builds one, only the self-test does, but a readout that can print
-   * "Infinity:NaN" is one refactor away from being seen. */
-  if (!Number.isFinite(ms)) {
-    return '--:--';
-  }
-  const left = Math.ceil((ms > 0 ? ms : 0) / 1000);
-  const m = Math.floor(left / 60);
-  const sec = left - m * 60;
-  return `${m}:${sec < 10 ? '0' : ''}${sec}`;
-}
-
-export function formatTime(ms) {
-  if (ms == null || !Number.isFinite(ms)) {
-    return '--.--';
-  }
-  const total = ms / 1000;
-  const m = Math.floor(total / 60);
-  const s = total - m * 60;
-  if (m > 0) {
-    return `${m}:${s.toFixed(2).padStart(5, '0')}`;
-  }
-  return s.toFixed(2);
-}
-
-function formatDelta(ms) {
-  if (ms == null || !Number.isFinite(ms)) {
-    return '';
-  }
-  const core = formatTime(Math.abs(ms));
-  if (ms < 0) {
-    return `-${core}`;
-  }
-  if (ms > 0) {
-    return `+${core}`;
-  }
-  return core;
 }
 
 function makeGimbal(caption) {
@@ -1159,14 +1111,6 @@ function courseCardKey(card) {
     return null;
   }
   return `${card.course.kind}:${card.course.track.id}`;
-}
-
-/* The day a track was last saved, in the pilot's own language's order. */
-function formatDay(utc) {
-  const d = new Date(utc);
-  return Number.isFinite(d.getTime())
-    ? d.toLocaleDateString(currentLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
-    : '';
 }
 
 /*
