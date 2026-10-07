@@ -102131,6 +102131,11 @@
      "facts": [],
      "links": [
       {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aircraft",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -102150,6 +102155,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102228,6 +102241,11 @@
      "facts": [],
      "links": [
       {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aircraft",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -102247,6 +102265,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102340,6 +102366,11 @@
      "facts": [],
      "links": [
       {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aircraft",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -102364,6 +102395,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102450,6 +102489,11 @@
      "facts": [],
      "links": [
       {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aircraft",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -102469,6 +102513,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",

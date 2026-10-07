@@ -58,6 +58,7 @@ const CRUMBS = {
   fc: ['ui.quad', 'ui.firmware_bench'],
   paused: ['ui.paused'],
   results: ['ui.run_complete'],
+  walk: ['hub.hangar', 'walk.card'],
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
@@ -256,6 +257,9 @@ function leaveFor(ui, screen) {
   }
   if (leaving('rates')) {
     ui.ratesFrom = null;
+  }
+  if (leaving('walk')) {
+    ui.closeWalk();
   }
   /* A storage complaint belongs to the visit that caused it. */
   if (screen === 'rates' && from !== 'rates') {
@@ -696,6 +700,13 @@ export const navMethods = {
       return hints;
     }
     const pad = this.lastInput === 'pad';
+    if (this.screen === 'walk') {
+      return [
+        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
+        { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },
+      ];
+    }
     const hints = [];
     const arrows = (a, b) => (pad ? ['Pitch'] : [a, b]);
     if (this.cardScreen()) {

@@ -3661,4 +3661,12 @@ export default {
   "count.ops_brief_wait.one": "Esperando: {n} piloto no vio la sesión informativa",
   "count.ops_brief_wait.other": "Esperando: {n} pilotos no vieron la sesión informativa",
   "rooms.refused_ops": "Todavía hay una misión en curso: termínenla primero.",
+  "walk.card": "Entrar",
+  "walk.blurb": "Tu hangar como un lugar: la aeronave en su soporte, el banco, la puerta al campo.",
+  "walk.walk": "Caminar",
+  "walk.use": "Usar",
+  "walk.stand": "Aeronave",
+  "walk.bench": "Pintura y piezas",
+  "walk.shelf": "Piezas",
+  "walk.door": "Volar",
 };

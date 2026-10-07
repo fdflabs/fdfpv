@@ -3657,4 +3657,12 @@ export default {
   "count.ops_brief_wait.one": "Waiting: {n} pilot has not seen the briefing",
   "count.ops_brief_wait.other": "Waiting: {n} pilots have not seen the briefing",
   "rooms.refused_ops": "A mission is still running: end it first.",
+  "walk.card": "Walk in",
+  "walk.blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+  "walk.walk": "Walk",
+  "walk.use": "Use",
+  "walk.stand": "Aircraft",
+  "walk.bench": "Paint and parts",
+  "walk.shelf": "Parts",
+  "walk.door": "Fly",
 };

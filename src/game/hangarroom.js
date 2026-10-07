@@ -209,9 +209,10 @@ export function startPose(room) {
  * and furniture. */
 export const WALK_SPEED = 2.2;
 export const TURN_RATE = 2.6;
-export const BODY_R = 0.25;
+export const BODY_R = 0.2;
 
-function blocked(room, occ, x, z) {
+/* Whether the body standing at x, z would be in a wall or furniture. */
+export function blocked(room, occ, x, z) {
   const hw = (room.w * CELL) / 2;
   const hd = (room.d * CELL) / 2;
   if (x < -hw + BODY_R || x > hw - BODY_R || z < -hd + BODY_R || z > hd - BODY_R) {
