@@ -197,28 +197,45 @@ function roadMaterial(THREE) {
       float hw = vRbStrip.y;
       float verge = vRbStrip.z;
       float d = abs(a);
-      /* The carriageway's edge, ragged where the grass grows back. */
-      float rag = (rbNoise(w * 0.45) - 0.5) * 0.9 + (rbNoise(w * 2.3) - 0.5) * 0.35;
-      float core = clamp((hw + rag - d) / max(fp, 0.25) + 0.5, 0.0, 1.0);
-      vec3 earth = vec3(0.34, 0.1, 0.036) * (0.85 + 0.3 * rbNoise(w * 0.18));
+      /* The carriageway's edge, eroded and ragged where the grass grows
+       * back: a blend over a metre and more, not a pixel (round 5's edge
+       * at a quarter metre cut the road out of the zooms like a sticker). */
+      float rag = (rbNoise(w * 0.45) - 0.5) * 1.4 + (rbNoise(w * 2.3) - 0.5) * 0.5;
+      float core = clamp((hw + rag - d) / max(fp, 1.2) + 0.5, 0.0, 1.0);
+      /* The laterite's colour runs along the road: paler dusty stretches,
+       * darker where it holds the damp, over tens of metres (the slow
+       * noise), and the dust's own patches at a few metres. Round 5's
+       * (0.34, 0.1, 0.036) printed an orange stripe twice as bright and
+       * far more saturated than the ploughed earth beside it. */
+      float slow = rbNoise(w * 0.022 + 3.0);
+      vec3 earth = mix(vec3(0.25, 0.115, 0.06), vec3(0.34, 0.185, 0.11), slow) * (0.86 + 0.28 * rbNoise(w * 0.18));
       /* Two lanes' wheel tracks on a road, one pair on a track, packed
-       * darker; the crown between them dusty and lighter. */
+       * and damp, so darker and redder, wandering a little along; the
+       * crown between them dusty and lighter. */
+      float wander = (rbNoise(w * 0.05 + 11.0) - 0.5) * 0.9;
       float ruts = 0.0;
       if (hw > 2.4) {
-        ruts = max(max(rbBand(d - hw * 0.3, 0.32, fp), rbBand(d - hw * 0.72, 0.32, fp)), 0.0);
+        ruts = max(rbBand(d - hw * 0.3 + wander, 0.5, fp), rbBand(d - hw * 0.72 - wander, 0.5, fp));
       } else {
-        ruts = rbBand(d - 0.8, 0.28, fp);
+        ruts = rbBand(d - 0.8 + wander, 0.4, fp);
       }
+      ruts *= 0.7 + 0.3 * rbNoise(w * 0.3 + 5.0);
       float crown = (1.0 - smoothstep(0.0, hw * 0.5, d)) * 0.5;
-      vec3 col = earth * (1.0 + 0.18 * crown) * mix(1.0, 0.84, ruts);
-      col = mix(col, vec3(0.27, 0.14, 0.08), crown * 0.35 * (1.0 - ruts));
+      vec3 col = earth * (1.0 + 0.22 * crown);
+      col = mix(col, vec3(0.36, 0.22, 0.14), crown * 0.5);
+      col = mix(col, earth * vec3(0.6, 0.52, 0.52), ruts);
+      /* The road's own wear at a few metres: a washout, a patch of
+       * loose stones paler than the packed earth. */
+      float wear = rbNoise(w * 0.24 + 17.0);
+      col *= 0.9 + 0.22 * wear;
       /* Gravel and clods, close up. */
       float near = 1.0 - smoothstep(0.03, 0.2, fp);
       col *= 1.0 + (rbNoise(w * 9.0) - 0.5) * 0.4 * near;
-      /* The verge: dust and worn dry grass, thinning out. */
+      /* The verge: dust blown off the road onto worn dry grass, thinning
+       * out unevenly, no edge of its own. */
       float vn = rbNoise(w * 0.6 + 7.0);
-      float vergeA = (1.0 - smoothstep(hw, hw + verge, d + (vn - 0.5) * 2.0)) * 0.8;
-      vec3 dust = mix(vec3(0.26, 0.15, 0.085), vec3(0.2, 0.15, 0.085), vn);
+      float vergeA = (1.0 - smoothstep(hw * 0.7, hw + verge, d + (vn - 0.5) * 2.5)) * (0.55 + 0.3 * vn);
+      vec3 dust = mix(vec3(0.24, 0.15, 0.09), vec3(0.19, 0.145, 0.085), vn);
       diffuseColor.rgb = mix(dust, col, core);
       diffuseColor.a = max(core, vergeA);
     }`));
