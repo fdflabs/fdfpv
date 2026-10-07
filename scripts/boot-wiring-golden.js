@@ -5,14 +5,17 @@
  *     node scripts/boot-wiring-golden.js            compare
  *     node scripts/boot-wiring-golden.js --record   write the record (old code!)
  *
- * The middle of boot() in src/main.js, between the peer marks and the
- * motor audio, is a run of small decisions that no other check reads as a
+ * The middle of boot() in src/main.js, from the peer marks to the start
+ * pose, is a run of small decisions that no other check reads as a
  * whole: the graphics preset a detected GPU lowers, a map named in the
  * address, the record line while the title shows its own world, a board
  * link's track and chase (?share=&ghost=), the online row of the loading
  * screen, the thumb sticks' pause and aircraft buttons, the words the
  * stats beacon carries, the activity a flight is filed under, a resize
- * applied once a frame, and the movie export's surface. Each scenario
+ * applied once a frame, and the movie export's surface; and past the
+ * motor audio, the music dock's skip, the tune boot flies and its fall
+ * back to the first tune, what the PIDs screen is handed, and the floor
+ * world a world that will not build gives way to. Each scenario
  * boots the real page and records what those decisions left behind, as
  * plain values, so a rewrite that decides one differently shows here.
  *
@@ -46,6 +49,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../src/fc/dump.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const RECORD = join(root, 'tests', 'fixtures', 'boot-wiring-golden.json');
@@ -413,6 +417,102 @@ SCENARIOS.surface = async () => {
     await page.close();
   }
 };
+
+/* THE TUNE AT BOOT, read back as the Tune and PIDs screens see it. A
+ * stored choice of the pilot's own dump falls back to the first tune when
+ * the dump is gone or the module refuses it, and the refused dump stays
+ * stored for the pilot to fix. */
+const TUNE_READ = `(() => {
+  const t = window.__tune();
+  let stored = {};
+  try { stored = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}'); } catch (e) { stored = {}; }
+  return {
+    tune: { id: t.id, name: t.name, menu: t.menu },
+    storedTune: stored.tune === undefined ? '<undefined>' : stored.tune,
+    dump: localStorage.getItem(${JSON.stringify(FC_DUMP_KEY)}),
+    pidsLive: JSON.parse(JSON.stringify(window.__ui.pidsLive)),
+  };
+})()`;
+const dumpSeed = (body) => `try {
+  localStorage.setItem(${JSON.stringify(FC_DUMP_KEY)}, ${JSON.stringify(body)});
+  localStorage.setItem(${JSON.stringify(FC_DUMP_AIRFRAME_KEY)}, 'interceptor');
+} catch (e) { /* Storage refused. */ }`;
+for (const [name, extra, dump] of [
+  ['tune-default', {}, null],
+  ['tune-custom-missing', { tune: 'custom' }, null],
+  ['tune-custom-dump', { tune: 'custom' }, 'set p_roll = 61\nset d_roll = 33\n'],
+  ['tune-custom-clamped', { tune: 'custom' }, 'set p_roll = 99999\n'],
+  /* A word for a numeric key: the module refuses the whole config. */
+  ['tune-custom-refused', { tune: 'custom' }, 'set p_roll = lots\n'],
+]) {
+  SCENARIOS[name] = async () => {
+    const page = await boot({ url: '/index.html?map=alps', seed: [settingsSeed({ map: 'alps', ...extra }), ...(dump == null ? [] : [dumpSeed(dump)])] });
+    try {
+      return { ...(await page.evaluate(TUNE_READ)), rows: await page.evaluate(ROWS) };
+    } finally {
+      await page.close();
+    }
+  };
+}
+
+/* A WORLD THAT WILL NOT BUILD at boot falls back to the Alps, with the
+ * banner saying so. Named in the address, the seat moves to the Alps; as
+ * the title's own world, the title world goes and the seat stays. */
+for (const [name, url, refuse, map] of [
+  ['floor-seat', '/index.html?map=itaipu', '/src/maps/itaipu.js', 'itaipu'],
+  ['floor-title', '/index.html', '/src/maps/swiss2.js', 'swiss2'],
+]) {
+  SCENARIOS[name] = async () => {
+    const page = await openPage({
+      root, width: 1280, height: 720, url, seed: [WATCH, settingsSeed({ map })],
+      override: { [refuse]: "throw new Error('golden: this world refuses to build');" },
+    });
+    try {
+      await page.until('!!window.__shellReady', WAIT);
+      await page.until('window.__map && window.__map().ready', WAIT);
+      return {
+        view: await page.evaluate('window.__map().id'),
+        settings: await page.evaluate(READ_SETTINGS(['map'])),
+        banners: await page.evaluate('window.__goldenBanners.slice(0, 1)'),
+      };
+    } finally {
+      await page.close();
+    }
+  };
+}
+
+/* THE MUSIC DOCK: the bed follows the screen, and a skip pins the setting
+ * only when what was skipped was a flight record and a record was pinned.
+ * A skip wakes the audio, and a woken context in headless Chromium never
+ * finishes a fade, so the title's skip has a page of its own. */
+const MUSIC_NOW = "(() => { const st = window.__audio.musicStatus(); return { context: st && st.context, dock: window.__ui.musicNow ? window.__ui.musicNow.context : null, setting: window.__ui.settings.musicTrack }; })()";
+SCENARIOS['music-title'] = async () => {
+  const page = await boot({ url: '/index.html?map=alps', seed: [settingsSeed({ map: 'alps', sound: true })] });
+  try {
+    const title = await page.evaluate(MUSIC_NOW);
+    await page.evaluate("window.__ui.settings.musicTrack = 'golden-pin'; window.__ui.onMusicSkip(1); true");
+    return { title, afterSkip: await page.evaluate(MUSIC_NOW) };
+  } finally {
+    await page.close();
+  }
+};
+/* With no records this build plays nothing, so a flight skip lands on id
+ * '' and a pinned setting takes that, which is what shows the pin. */
+for (const [name, pin] of [['music-rotation', 'rotation'], ['music-pinned', 'golden-pin']]) {
+  SCENARIOS[name] = async () => {
+    const page = await boot({ url: '/index.html?map=alps', seed: [settingsSeed({ map: 'alps', sound: true })] });
+    try {
+      await fly(page);
+      await page.until("window.__audio.musicStatus().context === 'flight'", 15000).catch(() => {});
+      await page.evaluate(`window.__ui.settings.musicTrack = ${JSON.stringify(pin)}; true`);
+      const flight = await page.evaluate(MUSIC_NOW);
+      await page.evaluate('window.__ui.onMusicSkip(1); true');
+      return { flight, afterSkip: await page.evaluate(MUSIC_NOW) };
+    } finally {
+      await page.close();
+    }
+  };
+}
 
 const canon = (v) => JSON.stringify(v, null, 1);
 const old = recording ? {} : JSON.parse(readFileSync(RECORD, 'utf8'));
