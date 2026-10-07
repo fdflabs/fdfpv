@@ -72,8 +72,6 @@ src/share/flightlog.js
 src/share/ghostdata.js
 src/share/listing.js
 src/share/orbitcache.js
-src/share/orbit.html
-src/share/orbit.js
 src/share/pilot.js
 src/share/session.js
 src/share/stats.js
