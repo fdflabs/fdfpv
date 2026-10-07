@@ -11228,69 +11228,94 @@ export async function boot({
   }
 
   /*
-   * Put the craft back at the start line. Hits no longer teleport the
-   * craft: R is the pilot asking for a restart, not a recovery from a
-   * lockout. `at` reseats the spawn when the map itself moved.
+   * resetCraft parks the craft on the spawn at rest and forgets what the
+   * last stretch of flight left behind. It never touches the lap clock
+   * (simTimeMs): a recovery in place keeps the run, and only reset() begins
+   * a new one. `at` ({ x, y, z, yaw }) moves the spawn first, for a
+   * recovery or a map that moved under the craft. `keepSticks` is a swap in
+   * the air (seatSwap): the pilot goes on flying the new aircraft on the
+   * sticks already held, so they are not dropped to zero under it.
    */
-  /* `keepSticks` is for a swap in flight (seatSwap): the pilot is flying
-   * the new aircraft on the sticks they were holding, so a keyboard's or a
-   * thumb's held throttle is not dropped to zero under it. */
   function resetCraft(at, keepSticks = false) {
     if (at) {
-      startX = at.x;
-      startZ = at.z;
-      startYaw = at.yaw;
-      startPitch = 0;
-      startY = spawnHeight(startX, startZ, at.y);
-      qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
-      qSpawnInv.copy(qSpawn).invert();
+      seatSpawnAt(at);
     }
-    /* A war's warhead arrived or changed since the payload was seated (the
-     * room's loadout echo, combatSeated): seat it now, between runs, before
-     * the reset puts the moved CG at rest. */
-    if (airframeById(runAirframe).combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
-      applyCombat(airframeById(runAirframe));
+    restartPlant();
+    clearCrashHold();
+    forgetContacts();
+    parkAtSpawn();
+    rearmSticks(keepSticks);
+    breakTrails(Boolean(at));
+    statePrev = readState();
+    stateCurr = statePrev;
+  }
+
+  function seatSpawnAt(at) {
+    startX = at.x;
+    startZ = at.z;
+    startYaw = at.yaw;
+    startPitch = 0;
+    startY = spawnHeight(at.x, at.z, at.y);
+    qSpawn.setFromAxisAngle(AXIS_Y, at.yaw);
+    qSpawnInv.copy(qSpawn).invert();
+  }
+
+  /* The plant's calls here are in the order recorded flights and
+   * contact:golden start from, so they stay in it. */
+  function restartPlant() {
+    const af = airframeById(runAirframe);
+    /* A warhead that arrived since the payload was seated (the room's
+     * loadout echo) is seated now, between runs, before the reset puts the
+     * moved CG at rest. */
+    if (af.combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
+      applyCombat(af);
     }
     sim.reset();
     plantStarts += 1;
-    /* A war began or ended, or a room was joined or left, since the last
-     * run: its damage mode now, between runs, since setting it clears the
-     * crash state. */
-    if (warCrashDue || (damage.available && crashDamageWanted(ui.settings) !== runDamage)) {
+    /* Setting the damage mode clears the crash state, so a war or room
+     * change waits for a reset to apply it. */
+    const damageChanged = damage.available && crashDamageWanted(ui.settings) !== runDamage;
+    if (warCrashDue || damageChanged) {
       warCrashDue = false;
       applyCrashMode(ui.settings);
     }
     sim.setCellVoltage(runVoltage);
     declareWater();
     crashReset();
-    /*
-     * THE LAP CLOCK IS NOT TOUCHED, and the two clocks being separate
-     * variables is what makes that possible. simStepIdx mirrors the module's
-     * own step_index, which sim_reset has just put back to zero, so it MUST
-     * follow or every queued stick sample lands in the integrator's future.
-     * simTimeMs is the LAP clock and belongs to the race, which is still
-     * running: zeroing it here is what used to hand a crashed pilot their
-     * lap time back. adoptSimClock reads that zero from the module rather
-     * than assuming it, so a future reset that keeps a warmup offset cannot
-     * silently desync the RC grid again.
-     */
+    /* sim_reset put the module's step counter back to zero; queued stick
+     * samples and the leftover step time belong to the old count, and the
+     * RC grid must follow the module's clock or samples land in its future. */
     acc = 0;
     rcPending.length = 0;
     adoptSimClock();
+  }
+
+  /* Out of the turtle and the crashflip. The plant is told twice on a
+   * reset, which the recorded call order carries. */
+  function dropTurtle() {
+    setCrashflip(false);
+    turtleRecover = false;
+    turtleOnSupport = false;
+    setTurtleParkMotors(false);
+  }
+
+  function clearCrashHold() {
     crashed = false;
     clipCrashUntil = 0;
     clipCrashKind = '';
     clipGraceUntil = performance.now() + CLIP_SPAWN_GRACE_MS;
     resetClipWatch(clipWatch);
-    setCrashflip(false);
     manualFlip = false;
     sim.e.sim_set_crashflip(0);
-    turtleRecover = false;
-    turtleOnSupport = false;
-    setTurtleParkMotors(false);
+    dropTurtle();
     poseLock = false;
     airHoldMs = 0;
     airGoUntil = 0;
+  }
+
+  /* What the last contact and hit judged. Kept, a craft resting on the
+   * start line reports the arrival speed of the crash that sent it there. */
+  function forgetContacts() {
     obsHasPrev = false;
     obsContact = false;
     obsTouched = false;
@@ -11305,9 +11330,25 @@ export async function boot({
     impactKick.x = 0;
     impactKick.y = 0;
     impactKick.z = 0;
-    /* Back on the ground, landed, exactly as at boot. */
+    lastDescent = 0;
+    lastTiltDeg = 0;
+    lastClosing = 0;
+    lastUpDot = 0;
+    lastHitKind = 'none';
+    lastHitIndex = -1;
+    groundCueAtWall = -1e9;
+    bounceCount = 0;
+    bounceAtWall = 0;
+    groundBounceAtWall = 0;
+    releasePress();
+    raceHasPrev = false;
+    groundHasPrev = false;
+  }
+
+  function parkAtSpawn() {
     landed = true;
     takingOff = false;
+    takeoffUntil = 0;
     launchStaging = false;
     input.forcePadRest = false;
     lcPrevState = 0;
@@ -11317,356 +11358,252 @@ export async function boot({
     if (lcArmed && ui.settings.launchControl) {
       applyLaunchSwitch(true);
     }
-    /* Parked again, so the takeoff hint is due again. Render only. */
+    /* Parked again, so the takeoff hint is due again. */
     flownThisRun = false;
-    /* startY is that same query, taken a few lines up by adoptSpawn or by
-     * the `at` branch. Asking the terrain twice for one point is how the
-     * two drift if one of them ever grows an offset. */
+    /* The terrain under the spawn was asked once, for startY; asking again
+     * is how two answers for one point drift apart. */
     groundY = startY;
-    /* Clear the judgement that produced the last crash. Leaving it behind is
-     * how __craftState reports a 2.8 m/s arrival on a craft sitting calmly on
-     * the start line, which reads as a landing gate that does not work. */
-    lastDescent = 0;
-    lastTiltDeg = 0;
-    lastClosing = 0;
-    lastUpDot = 0;
-    lastHitKind = 'none';
-    lastHitIndex = -1;
-    groundCueAtWall = -1e9;
-    takeoffUntil = 0;
+  }
+
+  function rearmSticks(keepSticks) {
     input.drain();
-    if (!keepSticks) {
-      input.keys.clear();
-      input.resetKeyboardSticks();
-      /* A spawn: a pad whose throttle rests at half has to show it low
-       * before anything leaves the ground. See input.holdThrottleLow. A
-       * swap in the air keeps its sticks and is never held. */
-      input.holdThrottleLow(TAKEOFF_RELEASE);
+    if (keepSticks) {
+      return;
     }
-    raceHasPrev = false;
-    releasePress();
-    bounceCount = 0;
-    bounceAtWall = 0;
-    groundBounceAtWall = 0;
-    /* The race interpolates a gate crossing between its own previous sim
-     * time and this one. A respawn teleports the craft, so the segment
-     * either side of it is not a flight path: leaving prevSimMs behind put
-     * a crossing time somewhere in the gap. Nulling it makes the first
-     * update after a recovery use simMs exactly. */
+    input.keys.clear();
+    input.resetKeyboardSticks();
+    /* A pad whose throttle rests at half has to show it low before the
+     * craft may leave the ground (input.holdThrottleLow). */
+    input.holdThrottleLow(TAKEOFF_RELEASE);
+  }
+
+  /* The craft jumped, so the segment across the jump is not a flight path.
+   * The race interpolates gate crossings from prevSimMs and the ghost from
+   * its last pose; a moved spawn is also a cut in the ghost recording, so
+   * its replay sees one impossible segment rather than a glide. */
+  function breakTrails(moved) {
     race.prevSimMs = null;
-    /* The ghost recorder must not interpolate across the same teleport: a
-     * recovery mid-lap is a cut in the recording, held on the near side so
-     * the replay's cut detector sees one impossible segment, not a glide.
-     * The seed pose is stale for the same reason. */
-    if (at) {
+    if (moved) {
       ghostRecorder.cutHere();
     }
     ghostPrev.valid = false;
-    groundHasPrev = false;
-    statePrev = readState();
-    stateCurr = statePrev;
   }
 
   /*
-   * Clip-through and thrash catch. Freeze on the glitch pose so the banner
-   * can say Crashed, then re-seat the craft in place: see finishClipCrash.
+   * The glitch catch (clip-through, thrash, plant fault): the craft is held
+   * where it is, frozen, for CLIP_CRASH_HOLD_MS so the pilot can read
+   * Crashed, then finishClipCrash puts it back in the air nearby.
    */
   function beginClipCrash(kind, nowWall) {
     if (crashed) {
       return;
     }
     crashed = true;
-    /* A bail, in the Tony Hawk sense: the open combo is lost rather than
-     * banked, and the workbook's streak multiplier goes back to one. The
-     * detector's buffer goes too, or a half roll from before the crash
-     * would pair with a half roll after it into a trick nobody flew.
-     * Guarded on the mode like the two ground paths, so a race map never
-     * touches the scorer at all rather than relying on there being nothing
-     * for it to touch. */
+    clipCrashKind = kind;
+    clipCrashUntil = nowWall + CLIP_CRASH_HOLD_MS;
+    /* A bail: the open combo is lost and the streak goes back to one. The
+     * detector's buffer goes too, or half a roll before the crash would
+     * pair with half a roll after it. Race maps never reach the scorer. */
     if (view.mode === 'freestyle') {
       trickDetector.reset();
       score.crash();
     }
-    clipCrashKind = kind;
-    clipCrashUntil = nowWall + CLIP_CRASH_HOLD_MS;
-    setCrashflip(false);
-    turtleRecover = false;
-    turtleOnSupport = false;
-    setTurtleParkMotors(false);
+    dropTurtle();
     sim.rest();
     stateCurr = readState();
     statePrev = stateCurr;
     acc = 0;
     race.recover('Crashed', nowWall);
-    /* One of the two places this shell declares a crash. The other is the
-     * hard ground hit at the bounce ceiling in the ground path, which is
-     * the one a pilot actually flies into; this one is the glitch catch. */
     flightStats.noteCrash();
     if (crashCam) {
       crashCam.noteCrash('clip');
     }
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-    /* The same departure window feelImpact reads. This cue is the loudest
-     * thing in the mix, it plays at full level with no scale, and it sat
-     * outside the one guard the launch had. A glitch crash six frames off a
-     * launch stand is a leftover overlap, not a crash. */
+    /* Inside the takeoff window this is a launch stand's leftover overlap,
+     * not a crash, and the cue is the loudest sound in the mix. */
     if (typeof audio.event === 'function' && nowWall >= takeoffUntil) {
       audio.event('crash');
     }
   }
 
   /*
-   * A PLANT STATE THAT IS NOT A STATE. A step that hands back a number that
-   * is not finite, or a spin past the plant's own ceiling (SIM_RATE_MAX in
-   * src/native/sim_internal.h, which no rigid body here reaches), is a bug
-   * in the plant, and everything downstream of it believes it: the trick
-   * detector took an F-16's runaway tumble (crash.c, point_spin) for a run
-   * of rolls it went on naming one at a time, 261,823 of them when the
-   * page was paused on the next throw, which it never answered. So the
-   * state is judged at the boundary, after every step and before anything
-   * reads it. A bad one is counted (window.__crash().plantFaults), said on
-   * the console, and the craft is wrecked where it last was sound: the
-   * plant reset, which is the only thing that clears a non-finite value
-   * out of its parts and pieces, put back at that pose at rest, and handed
-   * to the clip crash's hold and recovery in place. The run is left alone,
-   * as for any other glitch.
+   * A plant state that is not finite, or spins past anything a rigid body
+   * here reaches (SIM_RATE_MAX in src/native/sim_internal.h), is a plant
+   * bug that everything downstream would believe: the trick detector once
+   * named a runaway tumble as hundreds of thousands of rolls and hung the
+   * page. The frame loop judges each state with plantStateSound and hands
+   * a bad one to plantFault: counted (window.__crash().plantFaults), said on
+   * the console, and the craft wrecked where it was last sound. Only a
+   * plant reset clears a non-finite value out of its parts, so the reset
+   * comes first and the sound pose is put back on top of it.
    */
   const PLANT_RATE_MAX = 1.0e4;
   let plantFaults = 0;
 
   function plantStateSound(st) {
-    for (let k = 0; k < st.length; k += 1) {
-      if (!Number.isFinite(st[k])) {
-        return false;
-      }
+    if (!st.every(Number.isFinite)) {
+      return false;
     }
-    return st[11] * st[11] + st[12] * st[12] + st[13] * st[13] <= PLANT_RATE_MAX * PLANT_RATE_MAX;
+    const spinSq = st[11] * st[11] + st[12] * st[12] + st[13] * st[13];
+    return spinSq <= PLANT_RATE_MAX * PLANT_RATE_MAX;
   }
 
   function plantFault(bad, sound, nowWall) {
     plantFaults += 1;
-    /* Position, velocity, attitude and rates, plant frame, as they came back. */
+    /* Plant frame position, velocity, attitude and rates as they came back. */
     const got = Array.from(bad.subarray(1, 14)).join(' ');
     console.error(`plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
     resetCraft(null);
-    const code = sim.e.sim_set_pose(sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]);
-    if (code !== SIM_OK) {
-      throw new Error(`sim_set_pose after a plant fault: ${simErrorName(code)}`);
-    }
-    sim.rest();
-    stateCurr = readState();
-    statePrev = stateCurr;
-    poseFromState(stateCurr, pCurr);
-    landed = false;
-    flownThisRun = true;
+    holdPlantAt([sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]], 'plantFault');
     beginClipCrash('plant', nowWall);
   }
 
-  /*
-   * RECOVER IN PLACE, rather than back on the start line.
-   *
-   * This used to call reset(), which is what R does: adoptSpawn() back to
-   * the map's own spawn and race.reset(), which empties `log`, `laps` and
-   * the lap clock. So a mesh glitch, which is OUR bug and not a thing the
-   * pilot did, cost them every completed lap of the run. The owner's
-   * instruction is the other way round: "the system should register this
-   * state and just reset the quad in place."
-   *
-   * So: pick the nearest clear air to where the accident happened, put the
-   * craft there upright on its own heading, and leave the run alone. The
-   * lap being flown keeps running, which is the right price. Nothing about
-   * the race is touched, so `next`, the splits and the clock all carry on.
-   *
-   * Finding clear air is the whole of the work. Reseating inside the wall
-   * the craft was stuck in would trip the same detector on the next frame
-   * and put the pilot in a loop, which is worse than the glitch. Rise
-   * first, because up is where a quad came from and where it wants to go,
-   * and only then try the compass. A point is clear when the collider
-   * sweep says so at a level attitude and it is above the terrain.
-   */
-  const RECOVER_RISE = [0.6, 1.2, 2.0, 3.0, 4.5];
-  const RECOVER_OUT = [0, 1.0, 2.0, 3.5];
-  const RECOVER_DIR = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
-
-  function recoverSpotClear(x, y, z) {
-    const surf = view.height(x, z, y - SURFACE_BIAS);
-    if (!(y - surf > REST_HEIGHT)) {
-      return false;
-    }
-    if (!view.colliders) {
-      return true;
-    }
-    return view.colliders.hit(
-      x, y, z, x, y, z,
-      craftVerticalHalf(0),
-      0, 0, 0, 1,
-      craftVerticalOffset(),
-    ) < 0;
-  }
-
-  function findRecoverSpot(x, y, z, out) {
-    for (let ri = 0; ri < RECOVER_OUT.length; ri += 1) {
-      const out_r = RECOVER_OUT[ri];
-      for (let li = 0; li < RECOVER_RISE.length; li += 1) {
-        const lift = RECOVER_RISE[li];
-        if (out_r === 0) {
-          if (recoverSpotClear(x, y + lift, z)) {
-            out.set(x, y + lift, z);
-            return true;
-          }
-          continue;
-        }
-        for (let di = 0; di < RECOVER_DIR.length; di += 1) {
-          const px = x + RECOVER_DIR[di][0] * out_r;
-          const pz = z + RECOVER_DIR[di][1] * out_r;
-          if (recoverSpotClear(px, y + lift, pz)) {
-            out.set(px, y + lift, pz);
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  function finishClipCrash() {
-    clipCrashUntil = 0;
-    clipCrashKind = '';
-    crashed = false;
-    resetClipWatch(clipWatch);
-    if (!findRecoverSpot(pCurr.x, pCurr.y, pCurr.z, pProbe)) {
-      /* Nowhere within four and a half metres is clear. That is not a
-       * glitch any more, it is a craft somewhere it cannot be put back,
-       * so fall through to the old behaviour and give them the line. */
-      reset();
-      return;
-    }
-    /* Heading is kept: being spun to face north because a wall grabbed an
-     * arm is its own disorientation, and the pilot was flying somewhere. */
-    const yaw = craftHeadingYaw();
-    const spotY = pProbe.y;
-    resetCraft({ x: pProbe.x, z: pProbe.z, y: spotY, yaw });
-    /*
-     * resetCraft seats the spawn frame on the SURFACE under the point and
-     * parks the craft on it, which is right on the start line and wrong
-     * here: the clear air we found may be a storey above that surface, and
-     * the surface itself may be inside whatever the craft was stuck in.
-     * Lift the plant to the point that was actually checked. startY is the
-     * surface, SPAWN_ALT is the parked offset the spawn already carries,
-     * so the plant owes the difference.
-     */
-    const lift = (spotY - startY) - SPAWN_ALT;
-    if (lift > 0) {
-      const code = sim.e.sim_set_pose(0, 0, lift, 1, 0, 0, 0);
+  /* Seats the plant at `pose` (position, then quaternion w x y z, plant
+   * frame) at rest, or leaves it where it is when pose is null, and takes
+   * the craft as airborne from there. */
+  function holdPlantAt(pose, caller) {
+    if (pose) {
+      const code = sim.e.sim_set_pose(...pose);
       if (code !== SIM_OK) {
-        throw new Error(`sim_set_pose: ${simErrorName(code)}`);
+        throw new Error(`sim_set_pose in ${caller}: ${simErrorName(code)}`);
       }
       sim.rest();
     }
     stateCurr = readState();
     statePrev = stateCurr;
     poseFromState(stateCurr, pCurr);
-    /* Airborne, level, at rest, and the pilot has the sticks. */
     landed = false;
-    takingOff = false;
     flownThisRun = true;
-    groundY = startY;
-    obsHasPrev = false;
-    raceHasPrev = false;
+  }
+
+  /*
+   * The recovery in place. A glitch is our bug, not the pilot's, so it must
+   * not cost the run (owner: "register this state and just reset the quad
+   * in place"): the craft goes to the nearest clear air, upright on its own
+   * heading, and the race, its clock and its laps carry on.
+   *
+   * Clear air is the whole job: put back inside what it was stuck in, the
+   * craft trips the same catch next frame and the pilot is in a loop. The
+   * tries go out in rings, nearest first, and up before sideways within a
+   * ring, since up is where a craft came from. A spot is clear above the
+   * surface by more than the rest height and free of colliders at a level
+   * attitude.
+   */
+  const RECOVER_TRIES = (() => {
+    const rises = [0.6, 1.2, 2.0, 3.0, 4.5];
+    const compass = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+    const tries = [];
+    for (const ring of [0, 1.0, 2.0, 3.5]) {
+      const heads = ring === 0 ? [[0, 0]] : compass;
+      for (const up of rises) {
+        for (const [dx, dz] of heads) {
+          tries.push([dx * ring, up, dz * ring]);
+        }
+      }
+    }
+    return tries;
+  })();
+
+  function clearAirAt(x, y, z) {
+    const surface = view.height(x, z, y - SURFACE_BIAS);
+    if (!(y - surface > REST_HEIGHT)) {
+      return false;
+    }
+    if (!view.colliders) {
+      return true;
+    }
+    const hit = view.colliders.hit(x, y, z, x, y, z, craftVerticalHalf(0), 0, 0, 0, 1, craftVerticalOffset());
+    return hit < 0;
+  }
+
+  function findClearAir(from, out) {
+    for (const [dx, up, dz] of RECOVER_TRIES) {
+      if (clearAirAt(from.x + dx, from.y + up, from.z + dz)) {
+        out.set(from.x + dx, from.y + up, from.z + dz);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function finishClipCrash() {
+    if (!findClearAir(pCurr, pProbe)) {
+      /* Nothing clear within reach: the craft is somewhere it cannot be put
+       * back, so the pilot gets the start line instead. */
+      reset();
+      return;
+    }
+    /* Facing north after a wall grabbed an arm is its own disorientation;
+     * the pilot was flying somewhere. */
+    const spot = { x: pProbe.x, y: pProbe.y, z: pProbe.z, yaw: craftHeadingYaw() };
+    resetCraft(spot);
+    /* resetCraft parks the craft SPAWN_ALT above the surface under the
+     * spot, which may be a storey below the air that was checked, or
+     * inside whatever the craft was stuck in. The plant owes the rest. */
+    const lift = (spot.y - startY) - SPAWN_ALT;
+    holdPlantAt(lift > 0 ? [0, 0, lift, 1, 0, 0, 0] : null, 'finishClipCrash');
     simClockPrevMs = simTimeMs;
-    /* The watch has to be allowed to settle before it can fire again. The
-     * spot was checked clear, but the terrain query and the collider sweep
-     * are not the same test, and a recovery that instantly re-triggers is
-     * a loop the pilot cannot leave, which is worse than the glitch. */
+    /* The terrain query and the collider sweep are different tests, so the
+     * catch gets a grace to settle in rather than firing again at once. */
     recoverGraceUntil = performance.now() + CLIP_SPAWN_GRACE_MS;
     if (typeof audio.event === 'function') {
       audio.event('takeoff');
     }
   }
 
-  /* The craft's heading, flattened onto the ground plane, as a spawn yaw.
-   * Taken off the rendered attitude so it is the direction the pilot was
-   * looking, not a plant axis. */
+  /* The yaw the pilot was looking along: the rendered nose flattened onto
+   * the ground plane, or the spawn's when the nose points straight up or
+   * down or nothing has been read yet. */
   function craftHeadingYaw() {
     if (!stateCurr) {
       return startYaw;
     }
-    upAxis.set(0, 0, -1).applyQuaternion(qPrev);
-    if (Math.abs(upAxis.x) < 1e-6 && Math.abs(upAxis.z) < 1e-6) {
-      return startYaw;
-    }
-    return Math.atan2(-upAxis.x, -upAxis.z);
+    const nose = upAxis.set(0, 0, -1).applyQuaternion(qPrev);
+    const level = Math.abs(nose.x) >= 1e-6 || Math.abs(nose.z) >= 1e-6;
+    return level ? Math.atan2(-nose.x, -nose.z) : startYaw;
   }
 
-  /* The first fault the frame loop threw, or null. See the frame boundary
-   * for what it is for; it lives here so that reset(), which clears it, is
-   * not reaching forward into a dead zone. */
+  /* The frame loop's first unreported fault (see the frame boundary).
+   * Declared here, ahead of reset(), which clears it: the pilot pressing R
+   * took the fault banner's offer, so the next fault is reported anew. */
   let frameFault = null;
 
+  /* R: a new run from the map's own spawn. */
   function reset() {
-    /* A reset is the pilot taking the offer the fault banner made, so the
-     * next fault is a new one and deserves to be reported in its turn. See
-     * the frame boundary. */
     frameFault = null;
-    /* The pack charge a run flies on is fixed when the run starts. It is
-     * a setting, and settings are reachable from the pause menu, so
-     * without this a player could change packs mid run and have the lap
-     * compared against another pack's record. */
+    /* The pack a run flies on is fixed at its start, or a pack changed from
+     * the pause menu would compare a lap against another pack's record. */
     runVoltage = ui.settings.packVoltage;
-    /* Back to the MAP's own spawn. A crash recovery moves the spawn offset
-     * to a point on the course, and a new run must not begin from wherever
-     * the last one happened to end. */
     adoptSpawn();
-    /*
-     * The LAP clock, which resetCraft deliberately leaves alone: a crash
-     * recovery keeps the run going, a fresh run does not. Setting it here,
-     * before the craft reset, keeps the two clocks in the same order they
-     * were written in. Nothing in resetCraft reads it: adoptSimClock and
-     * pinRcGrid follow simStepIdx, which mirrors the module.
-     */
+    /* The lap clock goes back here, and with it every stamp taken on it,
+     * or a stale stamp keeps a fresh run inside an expired cooldown. */
     simTimeMs = 0;
-    /* Anything that holds a stamp ON that clock has to go back with it, or a
-     * fresh run compares a zeroed clock against last run's stamp and stays
-     * inside a cooldown that has already expired. */
     trickTouchAtSimMs = -1e9;
-    /*
-     * Everything else a reset does to the CRAFT is resetCraft's job, and it
-     * used to be a verbatim copy of it, comments and all, which is the kind
-     * of duplication that survives until the two drift and a crash recovery
-     * starts clearing something a restart does not. Passing null keeps the
-     * spawn adoptSpawn just set.
-     */
     resetCraft(null);
     race.reset();
-    /* A new run scores from nothing, and the detector's clock goes back to
-     * zero with the sim clock above so the two agree about when a trick
-     * happened. */
-    /*
-     * RE-READ EVERY RUN, not once at boot. A pilot switches between a
-     * scored run and free flight from the Freestyle screen and then presses
-     * fly, and a shape decided at construction would have kept whichever
-     * one happened to be stored when the page loaded.
-     */
+    /* Scored or free flight is re-read every run: the pilot switches it on
+     * the Freestyle screen between runs. The detector restarts with the
+     * clock so the two agree on when a trick happened. */
     score.timed = scoredRun();
     score.reset();
     trickDetector.restart();
     ui.resetScore();
-    /* A fresh run records from its own first crossing. The session book
-     * keeps what earlier runs flew; only the in-flight recording dies. */
+    /* Only the recording in flight dies; the session book keeps its laps. */
     ghostRecorder.abort();
     ghostGap = null;
     ghostChased = null;
     ghostRig.setPresence(0);
     runLaps = ui.settings.laps;
+    progressKey = '';
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-    /* Not on the way to the title: that reset parks the craft for a menu. */
+    /* A run whose spawn is in the air starts flying, except under the
+     * title, where the craft is only parked behind a menu. */
     const sp = runSpawn();
     if (sp && sp.air && mode !== 'title') {
       airStart(sp.air.y);
     }
-    progressKey = '';
-    /* A run starts on the pilot's own picture, whatever the last one left
-     * full screen (I). */
+    /* Whatever the last run left full screen (I), a run starts on the
+     * pilot's own picture. */
     sensors.setMainView('eo');
   }
 

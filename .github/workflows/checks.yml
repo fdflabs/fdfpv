@@ -41,6 +41,7 @@ jobs:
       - run: npm run keys:golden
       - run: npm run menucontrols:golden
       - run: npm run nav:golden
+      - run: npm run uirest:golden
       - run: npm run dialogs:golden
       - run: npm run overlay:golden
       - run: npm run session:golden
@@ -188,6 +189,9 @@ jobs:
       # The .rec stick recording format (tests/lib/recfile.js), against a
       # pinned transcript.
       - run: npm run recfile:selftest
+      # tests/gen/gen-baseline.js still writes the committed
+      # tests/inputs/baseline.rec byte for byte and refuses to overwrite it.
+      - run: npm run genbaseline:selftest
       - run: npm run score:golden
       - run: npm run scorehud:golden
       - run: npm run tricks:golden
@@ -205,6 +209,7 @@ jobs:
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
       - run: npm run collide:golden
+      - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
       - run: npm run contact:selftest
       - run: npm run collide:turned

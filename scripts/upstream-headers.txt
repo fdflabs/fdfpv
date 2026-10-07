@@ -27,4 +27,3 @@ src/native/sim_internal.h
 src/ui/credits.js
 src/ui/ui.js
 src/ui/update.js
-tests/gen/gen-baseline.js
