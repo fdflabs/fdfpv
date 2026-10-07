@@ -97,11 +97,11 @@ function node(tag, cls, text) {
  */
 function fleeting(parent, child, ms) {
   parent.append(child);
-  const drop = () => {
+  const leave = () => {
     if (child.parentNode === parent) parent.removeChild(child);
   };
-  child.addEventListener('animationend', drop, { once: true });
-  setTimeout(drop, ms);
+  child.addEventListener('animationend', leave, { once: true });
+  setTimeout(leave, ms);
 }
 
 /* Restarts a CSS animation on a node that may be mid way through one. The
@@ -164,7 +164,7 @@ export class ScoreHud {
     if (on === this.visible) return;
     this.visible = on;
     this.paintFrame();
-    if (!on) this.clearTransient();
+    if (!on) this.clearLive();
   }
 
   /*
@@ -183,7 +183,7 @@ export class ScoreHud {
 
   /* Everything but the total goes: names, combo, verdict, tier. For a map
    * change and for leaving the flight screen. */
-  clearTransient() {
+  clearLive() {
     this.rows.textContent = '';
     this.combo.className = 'score-combo is-off';
     this.verdict.className = 'score-verdict score-cut';
@@ -196,7 +196,7 @@ export class ScoreHud {
   }
 
   reset() {
-    this.clearTransient();
+    this.clearLive();
     this.totalText.textContent = '0';
     this.drawn.total = 0;
   }
@@ -211,22 +211,22 @@ export class ScoreHud {
       d.total = view.total;
       this.totalText.textContent = formatScore(view.total);
     }
-    const c = view.combo;
-    if (!c) {
+    const live = view.combo;
+    if (!live) {
       this.combo.className = 'score-combo is-off';
       d.points = null;
       d.mult = null;
       return;
     }
-    if (c.points !== d.points) {
-      d.points = c.points;
-      this.pointsText.textContent = formatScore(c.points);
+    if (live.points !== d.points) {
+      d.points = live.points;
+      this.pointsText.textContent = formatScore(live.points);
     }
     let comboCls = 'score-combo';
-    if (c.mult !== d.mult) {
-      d.mult = c.mult;
-      this.multText.textContent = c.mult > 1 ? ` x ${c.mult}` : '';
-      const word = tierWord(c.mult);
+    if (live.mult !== d.mult) {
+      d.mult = live.mult;
+      this.multText.textContent = live.mult > 1 ? ` x ${live.mult}` : '';
+      const word = tierWord(live.mult);
       const tier = word ? word.at : 0;
       if (tier !== d.tier) {
         d.tier = tier;
@@ -238,7 +238,7 @@ export class ScoreHud {
       }
     }
     if (this.combo.className !== comboCls) this.combo.className = comboCls;
-    this.fill.style.transform = `scaleX(${c.remain})`;
+    this.fill.style.transform = `scaleX(${live.remain})`;
   }
 
   showBadge(word) {
