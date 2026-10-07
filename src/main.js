@@ -18739,14 +18739,14 @@ export async function boot({
     return { id: rcLink.id, hz, delayMs, jitterMs, lossPpm, sent, dropped, presets: Object.keys(LINK_PRESETS) };
   };
 
-  /* The flight recorder, and the CSV the download button would save. */
+  /* The flight recorder: whether it runs, what it holds, and the length of
+   * the CSV the download button would save. */
   window.__flightLog = () => ({
     on: flightLog.on,
     rows: flightLog.count,
     seconds: flightLog.seconds,
     csv: flightLog.count > 1 ? flightLog.csv().length : 0,
   });
-  window.__flightLogCsv = () => flightLog.csv();
 
   /* The ghost chase: what is armed, what is being recorded, where the rig is. */
   window.__ghost = () => {
