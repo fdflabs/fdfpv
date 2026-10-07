@@ -558,6 +558,41 @@ function linkedCraft() {
   return AIRFRAME_IDS.includes(id) ? id : null;
 }
 
+/*
+ * Seat the aircraft a link names, as the gate's answer. Through
+ * seatAirframe rather than assigning settings.airframe first, because
+ * seatAirframe reads the airframe being left to decide whether the rates and
+ * throttle cap are still that machine's stock ones; written first, a whoop
+ * link on a five inch profile kept 670 degree rates and no cap. Whether a
+ * link seated one.
+ */
+function seatLinkedCraft(settings) {
+  const id = linkedCraft();
+  if (!id) {
+    return false;
+  }
+  seatAirframe(settings, id);
+  settings.airframeAsked = true;
+  saveSettings(settings);
+  return true;
+}
+
+/* The overlay writes text, class and bar width every frame; a node keeps
+ * its last value under `slot` and is touched only when the value moved,
+ * because even an equal write replaces children and dirties style. */
+function writeChanged(node, slot, value, apply) {
+  if (!node || node[slot] === value) {
+    return;
+  }
+  node[slot] = value;
+  apply(node, value);
+}
+
+const asText = (value) => (value == null ? '' : String(value));
+
+/* The tutorial's input sources; anything else shows the keyboard. */
+const HOWTO_SOURCES = new Set(['radio', 'launch', 'touch', 'mouse']);
+
 export class Ui {
   constructor(root) {
     this.root = root;
@@ -594,14 +629,9 @@ export class Ui {
      * airframeAsked is what lets the link skip the gate and what the
      * choice screen writes so the seat is an answer, not a default.
      */
-    const linkedAf = linkedCraft();
-    if (linkedAf) {
-      seatAirframe(this.settings, linkedAf);
-      this.settings.airframeAsked = true;
-      saveSettings(this.settings);
-    }
+    const seatedByLink = seatLinkedCraft(this.settings);
     /* The gate is up while either half is unanswered: see onGate. */
-    this.craftGate = !linkedAf;
+    this.craftGate = !seatedByLink;
     /* The hub on the gate, null for home and its three hub cards. */
     this.hub = null;
     /* A guided first flight is in the air; main.js reads it. */
@@ -649,9 +679,10 @@ export class Ui {
      * cold put them back where they were. renderMenu re-picks only when
      * the cursor fell off the list, and zero is a valid row, so the first
      * paint is told here. */
-    if (this.craftGate || !this.mode) {
-      const seated = seatedWay(this.settings, this.mode).id;
-      this.cursor = Math.max(0, GATE_WAYS.findIndex((w) => w.id === seated));
+    const gateOpen = this.craftGate || !this.mode;
+    if (gateOpen) {
+      const seatedId = seatedWay(this.settings, this.mode).id;
+      this.cursor = Math.max(0, GATE_WAYS.findIndex(({ id }) => id === seatedId));
     }
     /* The course card the pilot chose (courseCardKey), whose list is
      * showing, and the last one they stood on, where Back to the list
@@ -674,12 +705,10 @@ export class Ui {
      * could disagree with the player's for one frame; an empty crate
      * names nothing.
      */
+    const firstRecord = MENU_TRACKS[0];
     this.musicNow = {
-      id: MENU_TRACKS[0]?.id ?? '',
-      name: MENU_TRACKS[0]?.name ?? '',
-      selection: this.settings.musicTrack,
-      index: 0,
-      context: 'menu',
+      id: firstRecord ? firstRecord.id : '', name: firstRecord ? firstRecord.name : '',
+      selection: this.settings.musicTrack, index: 0, context: 'menu',
     };
     /* The live sticks for the Rates curve: the frame loop writes them
      * through paintRates, the panel reads them on every redraw. */
@@ -767,8 +796,8 @@ export class Ui {
    * meanwhile, which is where a world swap always lands.
    */
   play() {
-    this.settings.map = 'track';
     this.mode = 'race';
+    Object.assign(this.settings, { map: 'track' });
     saveSettings(this.settings);
     this.returnTo = 'title';
     if (this.onAction) {
@@ -784,12 +813,10 @@ export class Ui {
    * camera there; Escape out of the builder comes back to this screen.
    */
 
-  /*
-   * The tutorial's one column, and the sticks above it. Rebuilt rather than
-   * toggled because it is six lines of type and a switch nobody flips twice.
-   */
+  /* Which input the tutorial teaches. The column is rebuilt, not toggled:
+   * it is a few lines, and the source rarely changes twice. */
   setHowtoSource(id) {
-    this.howtoSource = ['radio', 'launch', 'touch', 'mouse'].includes(id) ? id : 'keyboard';
+    this.howtoSource = HOWTO_SOURCES.has(id) ? id : 'keyboard';
     this.renderHowto();
     if (this.onUiSound) {
       this.onUiSound('adjust');
@@ -806,70 +833,39 @@ export class Ui {
   titleStop() {
     const items = this.items();
     if (this.onGate()) {
-      /* At home, Flight Club, the first hub (the owner, 2026-10-03); in
-       * a hub, the seated aircraft's card. */
-      const seated = seatedWay(this.settings, this.mode).action;
-      const want = this.hub ? seated : `hub-${HUBS[0].id}`;
-      const at = items.findIndex((it) => it.action === want);
-      if (at >= 0) {
-        return at;
+      /* Home opens on the first hub (Flight Club, the owner's call of
+       * 2026-10-03); inside a hub, on the seated aircraft's card. */
+      const target = this.hub ? seatedWay(this.settings, this.mode).action : `hub-${HUBS[0].id}`;
+      const found = items.findIndex(({ action }) => action === target);
+      if (found !== -1) {
+        return found;
       }
     }
     return this.firstStop(items);
   }
 
-  /*
-   * The overlay's three write guards. setOsd runs every flight frame, and
-   * assigning a node the string it already holds still replaces its text
-   * child and invalidates style, on an overlay composited above the WebGL
-   * canvas: 17 mutation records a frame in flight before these, 3 on the
-   * title. The last value lives on the node, so no map has to follow a
-   * DOM the screens rebuild. scorehud.js keeps the same guard.
-   */
+  /* Write guards for the overlay: setOsd runs every flight frame over the
+   * WebGL canvas, and unguarded writes cost 17 mutation records a frame
+   * (scorehud.js guards the same way). */
   static text(el, value) {
-    if (!el) {
-      return;
-    }
-    const next = value == null ? '' : String(value);
-    if (el.__lastText === next) {
-      return;
-    }
-    el.__lastText = next;
-    el.textContent = next;
+    writeChanged(el, '__lastText', asText(value), (node, text) => { node.textContent = text; });
   }
 
   static klass(el, value) {
-    if (!el) {
-      return;
-    }
-    const next = value == null ? '' : String(value);
-    if (el.__lastClass === next) {
-      return;
-    }
-    el.__lastClass = next;
-    el.className = next;
+    writeChanged(el, '__lastClass', asText(value), (node, cls) => { node.className = cls; });
   }
 
-  /* A width in per cent, to one decimal before the compare: a pack that
-   * drains a ten thousandth of a per cent a frame would otherwise write
-   * every frame and move nothing a pilot can see. */
+  /* A width in per cent rounded to a tenth first, so a pack draining
+   * imperceptibly does not rewrite the bar every frame. */
   static bar(el, frac) {
-    if (!el) {
-      return;
-    }
-    const clamped = Math.max(0, Math.min(1, frac));
-    const pct = Math.round(clamped * 1000) / 10;
-    if (el.__lastBar === pct) {
-      return;
-    }
-    el.__lastBar = pct;
-    el.style.width = `${pct}%`;
+    const tenths = Math.round(1000 * Math.min(1, Math.max(0, frac)));
+    writeChanged(el, '__lastBar', tenths / 10, (node, pct) => { node.style.width = `${pct}%`; });
   }
 
-  /* The scrolling box for the screen the cursor is on, or null when the
-   * screen has none. Used only for measurement. */
+  /* The current screen's scrolling box (its menu when it has no separate
+   * scroller), or null. Read only to measure. */
   menuScrollNode() {
-    const host = this.screens && this.screens[this.screen];
+    const host = this.screens ? this.screens[this.screen] : null;
     if (!host) {
       return null;
     }
@@ -877,11 +873,12 @@ export class Ui {
   }
 
   adjust(dir) {
-    const it = this.items()[this.cursor];
-    if (it && it.adjust) {
-      it.adjust(dir);
-      this.writeSettings();
+    const row = this.items()[this.cursor];
+    if (!row || !row.adjust) {
+      return;
     }
+    row.adjust(dir);
+    this.writeSettings();
   }
 
 
