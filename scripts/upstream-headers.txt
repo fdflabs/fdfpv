@@ -6,16 +6,11 @@ configs/registry.js
 icon.svg
 index.html
 render.yaml
-scripts/attract-check.js
-scripts/board-check.js
 scripts/build-selftest.js
 scripts/collider-audit.js
 scripts/craft-check.js
-scripts/device-check.js
 scripts/icons.js
-scripts/memory-check.js
 scripts/pixels.js
-scripts/responsive-check.js
 src/game/airframehull.js
 src/game/verify.js
 src/main.js
