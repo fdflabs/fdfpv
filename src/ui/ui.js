@@ -1,29 +1,21 @@
 /*
- * ui.js: the product shell. Title, how to fly, credits, settings, pause,
- * results, stick calibration, the flight overlay, and the flight-controller screen.
+ * ui.js: the Ui class, the shell's menus and flight overlay. Title and hubs,
+ * the tutorial, settings, pause, results, calibration, the firmware bench
+ * and the overlay drawn over a flight all hang off it; the screens' rows,
+ * painters and moves live in the modules beside it (items, nav, actions,
+ * page, overlay and the rest) and are installed onto this class.
  *
- * Why this exists: the page used to load straight into a falling quad with
- * a monospace debug dump in the corner. That reads as a tech demo. A
- * player arriving cold needs a title to land on, a way to start, a way to
- * learn the sticks, a way to change the few settings that matter, and a
- * result to read at the end of a run.
+ * Every menu works from the keyboard alone and from a radio or gamepad
+ * alone. A radio has no dependable buttons, so its sticks drive the menus:
+ * pitch moves the cursor, roll right chooses, roll left goes back, and any
+ * pad button also chooses. The title and Settings leave the sticks to the
+ * aircraft, so their rows take the mouse and keyboard, with a radio switch
+ * still choosing on the title, and each screen says so. Value rows also
+ * have mouse controls: arrows for a stepped number, a dropdown for a list.
  *
- * Every screen is navigable from the keyboard alone and from a radio or
- * gamepad alone, except Settings and the title. On a radio there are no
- * reliable menu buttons, so the sticks drive the other menus: pitch moves
- * the cursor, roll right selects, roll left goes back. Any gamepad button
- * also selects. Title and Settings keep the sticks for the airframe, so
- * those screens are mouse and keyboard for the rows. A radio switch still
- * selects on the title. The screens say so. Rows that hold a value also
- * have a mouse control: up and down arrows for a stepped number, a
- * dropdown for a named list.
- *
- * The DOM is built here rather than in index.html so the markup and the
- * state machine that drives it sit in one file. Styling lives in
- * index.html next to the rest of the page's CSS.
- *
- * Nothing in this file touches the simulation. It reads state that the
- * shell hands it and returns the player's intent as action strings.
+ * The markup is built in JavaScript beside the state that drives it; the
+ * CSS stays in index.html. Nothing here touches the simulation: the shell
+ * hands in state and gets back the player's intent as action strings.
  *
  * This file is part of WebFPVSimulator.
  *
