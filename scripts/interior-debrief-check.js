@@ -250,9 +250,43 @@ try {
   check('the failure said with its reason', /MISSION FAILED · The contacts were lost/.test(d2.text), d2.text.slice(0, 120));
   check('the host may play again from the checkpoint', d2.buttons.includes('again'));
   await shot('debrief-lost-no-symbol.png');
+  /*
+   * REACHABLE BY A REAL POINTER. The calls above click from script, which
+   * works through pointer-events: none; the owner (2026-10-07) could not
+   * see Continue, scroll to it or click it, because #ui is pointer-events:
+   * none and the debrief never took them back. A real pointer reaches what
+   * elementFromPoint returns, and only on screen.
+   */
+  const REACH = `(() => {
+    const out = {};
+    for (const act of ['again', 'continue']) {
+      const b = document.querySelector('.debrief button[data-act="' + act + '"]');
+      if (!b) { out[act] = 'missing'; continue; }
+      const r = b.getBoundingClientRect();
+      const on = r.width > 0 && r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      out[act] = on && hit && (hit === b || b.contains(hit)) ? 'ok' : (on ? 'covered by ' + (hit ? hit.className || hit.tagName : 'nothing') : 'off screen');
+    }
+    const box = document.querySelector('.debrief-box');
+    out.scrolls = getComputedStyle(document.querySelector('.debrief')).pointerEvents !== 'none' && box.scrollHeight > box.clientHeight ? 'yes' : (box.scrollHeight > box.clientHeight ? 'no' : 'fits');
+    out.focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.act || '' : '';
+    return JSON.stringify(out);
+  })()`;
+  const reach = JSON.parse(await page.evaluate(REACH));
+  check('a real pointer reaches Play again and Continue, on screen, without scrolling', reach.again === 'ok' && reach.continue === 'ok', JSON.stringify(reach));
+  check('a debrief taller than the screen scrolls under the pointer', reach.scrolls !== 'no', JSON.stringify(reach));
+  check('Continue has the keyboard focus, so Enter presses it', reach.focused === 'continue', JSON.stringify(reach));
   await page.evaluate("(document.querySelector('.debrief button[data-act=\"again\"]').click(), true)");
   const sent = await page.evaluate('window.__ops.sent().slice(-1)[0]');
   check('which sends the contract\'s start from the checkpoint', sent && sent.op === 'start' && sent.mission === 'interior-1' && sent.from === 'checkpoint', JSON.stringify(sent));
+  /* Escape is Continue: a debrief is never a dead end. */
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify({ ...lost, id: 5 })} }), true)`);
+  await page.until('window.__debrief().open', 10000).catch(() => {});
+  await page.sleep(300);
+  const before = await page.evaluate('window.__debrief().open');
+  await page.tap('Escape');
+  await page.sleep(300);
+  check('Escape closes it, the same as Continue', before && !(await page.evaluate('window.__debrief().open')), `open before: ${before}`);
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
