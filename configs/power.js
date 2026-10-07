@@ -324,17 +324,37 @@ const RADIAN = [
 
 /* The Bramor C4EYE: C-Astral publishes neither motor nor pack, only 3 h on
  * LiPo. The 6S 22000 is derived from that endurance on this plant
- * (docs/POWER-STAGE1.md) and its mass is inside the published 4.5 kg;
- * nothing else is offered. */
+ * (docs/POWER-STAGE1.md) and its mass is inside the published 4.5 kg.
+ * Stock stays the published aircraft; the one alternative is an uprate
+ * the owner asked for, to make it more forgiving. */
+const BRAMOR_6S = [lipo('6s22000', 6, 22000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')];
+/* ESTIMATED, no maker's figure: a 500 kV motor of the stock one's size on
+ * the same 12 x 8 and 6S pack. The prop's coefficients are unchanged, so
+ * with speed in proportion to kV the static thrust goes with its square,
+ * (500/470)^2 = 1.132, the pitch speed with it, and the full throttle
+ * current with its cube at the same voltage, (500/470)^3 = 1.204, about
+ * 1.2 kW. A heavier stator and a bigger ESC add 40 g at the motor, 0.35 m
+ * behind the CG: 0.040 * 0.35 / 4.54 is 3.1 mm aft. */
+const BRAMOR_KV_UP = 500 / 470;
 const BRAMOR = [
   {
     id: 'stock', name: 'power.bramor.stock', kind: 'electric', voice: 'wing',
     kv: 470, propIn: 12, pitchIn: 8, blades: 2,
     thrustN: 35.0, currentA: 45.0, rpmNoLoad: 10434, pitchSpeedMs: 30.0, lvcV: 0,
     massKg: 4.5, cgShiftM: 0,
-    packs: [lipo('6s22000', 6, 22000, null, 'https://www.c-astral.com/en/unmanned-systems/bramor-c4eye')],
+    packs: BRAMOR_6S,
     pack: '6s22000',
     source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye', 'https://www.c-astral.com/media/uploads/fm/catalogue/c-astral_katalog2019-spread.pdf'],
+  },
+  {
+    id: '500kv', name: 'power.bramor.500kv', kind: 'electric', voice: 'wing',
+    kv: 500, propIn: 12, pitchIn: 8, blades: 2,
+    thrustN: 35.0 * BRAMOR_KV_UP * BRAMOR_KV_UP, currentA: 45.0 * BRAMOR_KV_UP * BRAMOR_KV_UP * BRAMOR_KV_UP,
+    rpmNoLoad: 10434 * BRAMOR_KV_UP, pitchSpeedMs: 30.0 * BRAMOR_KV_UP, lvcV: 0,
+    massKg: 4.54, cgShiftM: -(0.040 * 0.35) / 4.54,
+    packs: BRAMOR_6S,
+    pack: '6s22000',
+    source: ['https://www.c-astral.com/en/unmanned-systems/bramor-c4eye'],
   },
 ];
 

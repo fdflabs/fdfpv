@@ -828,6 +828,7 @@ export default {
   "power.bombshell.electric": "El eléctrico de BMJR: Himax 2816 1220 kV, 3S 850",
   "power.bombshell.stock": "Cox Texaco .049 de dos tiempos, 7 x 3,5 (de serie)",
   "power.bramor.stock": "Brushless propulsor, 6S (de serie)",
+  "power.bramor.500kv": "Propulsor reforzado de 500 kV, 6S",
   "power.cub.stock": "3536 850 kV, 11 x 7, 3S (de serie)",
   "power.kadet.electric": "El eléctrico de SIG: Himax 5018 530 kV, 5S 5000",
   "power.f16.stock": "Turbina Freewing de 70 mm y 12 palas, 2957 2210 kV, 6S (de serie)",
