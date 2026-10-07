@@ -201,6 +201,9 @@ jobs:
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest
+      # What this browser tells the board's statistics page, and when it
+      # refuses (src/share/stats.js), against a pinned transcript.
+      - run: npm run stats:selftest
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
