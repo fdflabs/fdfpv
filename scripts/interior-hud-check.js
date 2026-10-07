@@ -335,6 +335,11 @@ try {
   await page.sleep(500);
   const hud2 = await page.evaluate('window.__opsHud()');
   check('a classification change is told as a card event', hud2.events.some((e) => /CONTACT CLASSIFICATION UPDATED/.test(e) && /UNKNOWN > PERSON OF INTEREST/.test(e)), JSON.stringify(hud2.events));
+  /* A cue's card may be the script's heading and its line. */
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', op: 'cue', cues: [{ at: 0, stage: 'M1_CP_CONTACT_FOUND', heard: 'all', card: ['card.intelligence_updated', 'card.possible_armed'] }] }), true)`);
+  await page.sleep(500);
+  const told = (await page.evaluate('window.__opsHud()')).events;
+  check('a two line cue card is told as one card event, both lines', told.some((e) => /INTELLIGENCE UPDATED/.test(e) && /POSSIBLE ARMED PERSONNEL/.test(e)), JSON.stringify(told));
   check('and the chip changes with it', hud2.marks.some((m) => m.kind === 'contact' && m.id === 'seen' && /PERSON OF INTEREST/.test(m.chip)));
   const v3 = baseView({ contacts: [contact('hidden', 'seen', 'unknown', { by: [1] }), contact('seen', 'seen', 'poi', { by: [1] }), contact('lost', 'lost', 'poi', { lkp: spots.lost })] });
   await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v3)} }), true)`);

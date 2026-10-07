@@ -1,797 +1,580 @@
 /*
- * checks.js: the 13 Stage 1 verification checks from STAGE1.md, one entry
- * each. Every numeric band and method constant comes from
- * tests/thresholds.json; nothing numeric is hardcoded here. Node only.
+ * checks.js: the Stage 1 verification checks, STAGE1.md's thirteen and the
+ * three the shell grew since (the audio bed, world scale, map isolation).
+ * Node only; tests/verify.js is the runner.
  *
- * Each check returns { measured, pass, reason }. A SimError thrown while
- * driving the module is caught by the runner and reported as a FAIL with
- * the sim's error name, which is how the Loop A stub reports every check
- * as NOT_IMPLEMENTED without a single crash or skip.
+ * A check is { num, id, thresholdText, run(ctx) } and run resolves to
+ * { measured, pass, reason } (check 1 adds skipped when the toolchain is
+ * not on the machine). Every band and method constant is read from
+ * ctx.th, which is tests/thresholds.json; nothing numeric lives here. The
+ * sim checks drive dist/sim.wasm through tests/lib/replay.js and let a
+ * SimError propagate, because the runner prints it by name and that is
+ * how an unimplemented module reads as sixteen named failures and not one
+ * crash. The browser checks read what verify.js already measured through
+ * ctx.browserRun, ctx.audioBedRun and ctx.scaleRun and only judge it.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { SIM_OK, simErrorName } from './simmod.js';
 import { SimError, must, replayTrace, runScript, ST } from './replay.js';
 
-const DEG = 180 / Math.PI; // measurement display only, never in the physics path
+export { SimError };
 
-function short(hash) {
-  return hash ? hash.slice(0, 12) : 'none';
-}
+/* Display only: the physics path never converts through JS trig. */
+const RAD_TO_DEG = 180 / Math.PI;
 
 export function parseRollSrate(diffText) {
-  const m = diffText.match(/^set roll_srate = (\d+)\s*$/m);
-  if (!m) {
+  const line = /^set roll_srate = (\d+)\s*$/m.exec(diffText);
+  if (!line) {
     throw new Error('fixture diff has no "set roll_srate" line');
   }
-  return Number(m[1]);
+  return Number(line[1]);
+}
+
+/* Verdicts. A reason is only ever printed next to a FAIL. */
+const ok = (measured) => ({ measured, pass: true, reason: '' });
+const fail = (measured, reason) => ({ measured, pass: false, reason });
+const judge = (measured, passed, reason) => (passed ? ok(measured) : fail(measured, reason));
+const inside = (x, band) => x >= band.min && x <= band.max;
+const banded = (measured, x, band) => judge(measured, inside(x, band), 'outside band');
+const tolerated = (measured, err, tol) => judge(measured, err <= tol, 'outside tolerance');
+const pct = (fraction) => (fraction * 100).toFixed(2);
+const abbrev = (hash) => (hash ? hash.slice(0, 12) : 'none');
+const ms = (seconds) => Math.round(seconds * 1000);
+
+/* The sim, configured, at rest, on a fresh pack of the given cell voltage. */
+async function configuredSim(ctx, diffText) {
+  const sim = await ctx.freshSim();
+  must(sim.init(diffText), 'sim_init');
+  return sim;
+}
+
+function repack(sim, cellVoltage) {
+  must(sim.reset(), 'sim_reset');
+  must(sim.setCellVoltage(cellVoltage), 'sim_set_cell_voltage');
+}
+
+/* One constant stick segment; onSample(tMs, state) after every 1 ms step. */
+function hold(sim, sticks, durMs, onSample, fromMs = 0) {
+  return runScript(sim, [{ durMs, ...sticks }], onSample, fromMs);
+}
+
+/* Mean of a sampled quantity over the last windowMs of a totalMs hold. */
+function tailMean(totalMs, windowMs) {
+  let sum = 0;
+  let count = 0;
+  return {
+    add(tMs, value) {
+      if (tMs > totalMs - windowMs) {
+        sum += value;
+        count += 1;
+      }
+    },
+    mean: () => sum / count,
+  };
 }
 
 /*
- * Bisect throttle to steady hover: judged by vertical velocity after
- * settle_s of constant throttle from rest. More throttle climbs, less
- * sinks, so vz is monotonic in throttle and bisection is sound.
+ * The throttle that holds the craft still. Climb rate after a fixed settle
+ * from rest grows with throttle, so the search halves the interval that
+ * brackets zero vertical speed. NaN when full throttle still sinks or zero
+ * throttle still climbs, since no throttle in 0..1 hovers then. Runs out
+ * of steps at the last midpoint rather than giving up.
  */
-function trimHover(sim, cellVoltage, th5) {
-  const settleMs = Math.round(th5.settle_s.value * 1000);
-  const tol = th5.vz_tolerance_m_s.value;
-  const evalVz = (throttle) => {
-    must(sim.reset(), 'sim_reset');
-    must(sim.setCellVoltage(cellVoltage), 'sim_set_cell_voltage');
+function hoverThrottle(sim, cellVoltage, hoverTh) {
+  const settleMs = ms(hoverTh.settle_s.value);
+  const climbRateAt = (throttle) => {
+    repack(sim, cellVoltage);
     let vz = NaN;
-    runScript(sim, [{ durMs: settleMs, throttle }], (tMs, state) => {
+    hold(sim, { throttle }, settleMs, (tMs, state) => {
       vz = state[ST.VZ];
     });
     return vz;
   };
-  if (evalVz(1) < 0 || evalVz(0) > 0) {
+  if (climbRateAt(1) < 0 || climbRateAt(0) > 0) {
     return NaN;
   }
-  let lo = 0;
-  let hi = 1;
-  let mid = 0.5;
-  for (let i = 0; i < th5.max_bisection_steps.value; i += 1) {
-    mid = (lo + hi) / 2;
-    const vz = evalVz(mid);
-    if (Math.abs(vz) <= tol) {
-      return mid;
+  const still = hoverTh.vz_tolerance_m_s.value;
+  let low = 0;
+  let high = 1;
+  let throttle = 0.5;
+  for (let step = 0; step < hoverTh.max_bisection_steps.value; step += 1) {
+    throttle = (low + high) / 2;
+    const vz = climbRateAt(throttle);
+    if (Math.abs(vz) <= still) {
+      break;
     }
     if (vz > 0) {
-      hi = mid;
+      high = throttle;
     } else {
-      lo = mid;
+      low = throttle;
     }
   }
-  return mid;
+  return throttle;
 }
 
 /*
- * The check 6 punch-out procedure, shared with check 11: settle at hover
- * throttle, then full throttle. Returns altitude gained over the punch and
- * the peak motor RPM seen during it.
+ * Hover for settleS, then full throttle for punchS: the altitude gained
+ * during the punch and the highest RPM any motor reached in it. Checks 6
+ * and 11 share this so the sag comparison is the punch-out itself.
  */
-function punchOut(sim, cellVoltage, hoverThrottle, settleS, punchS) {
-  must(sim.reset(), 'sim_reset');
-  must(sim.setCellVoltage(cellVoltage), 'sim_set_cell_voltage');
-  const settleMs = Math.round(settleS * 1000);
-  const punchMs = Math.round(punchS * 1000);
-  let z0 = NaN;
-  let z1 = NaN;
+function punchOut(sim, cellVoltage, hoverTrim, settleS, punchS) {
+  repack(sim, cellVoltage);
+  let altitudeBefore = NaN;
+  let altitudeAfter = NaN;
   let peakRpm = 0;
-  const tSettled = runScript(
-    sim,
-    [{ durMs: settleMs, throttle: hoverThrottle }],
-    (tMs, state) => {
-      z0 = state[ST.PZ];
-    },
-  );
-  runScript(
-    sim,
-    [{ durMs: punchMs, throttle: 1 }],
-    (tMs, state) => {
-      z1 = state[ST.PZ];
-      for (const i of [ST.RPM0, ST.RPM1, ST.RPM2, ST.RPM3]) {
-        if (state[i] > peakRpm) {
-          peakRpm = state[i];
-        }
-      }
-    },
-    tSettled,
-  );
-  return { gain: z1 - z0, peakRpm };
+  const tHover = hold(sim, { throttle: hoverTrim }, ms(settleS), (tMs, state) => {
+    altitudeBefore = state[ST.PZ];
+  });
+  hold(sim, { throttle: 1 }, ms(punchS), (tMs, state) => {
+    altitudeAfter = state[ST.PZ];
+    peakRpm = Math.max(peakRpm, state[ST.RPM0], state[ST.RPM1], state[ST.RPM2], state[ST.RPM3]);
+  }, tHover);
+  return { gain: altitudeAfter - altitudeBefore, peakRpm };
 }
 
 /*
- * The check 9 procedure, shared with check 12: constant throttle, full
- * right roll, mean |p| over the final steady window, in deg/s.
+ * Full right roll at a fixed throttle: mean |p| over the last windowS of a
+ * holdS stick hold, in deg/s. Checks 9 and 12 share it.
  */
-function steadyRollRate(sim, cellVoltage, throttle, holdS, windowS) {
-  must(sim.reset(), 'sim_reset');
-  must(sim.setCellVoltage(cellVoltage), 'sim_set_cell_voltage');
-  const holdMs = Math.round(holdS * 1000);
-  const windowMs = Math.round(windowS * 1000);
-  let sum = 0;
-  let n = 0;
-  runScript(sim, [{ durMs: holdMs, throttle, roll: 1 }], (tMs, state) => {
-    if (tMs > holdMs - windowMs) {
-      sum += Math.abs(state[ST.P]);
-      n += 1;
-    }
+function steadyRollRateDegS(sim, cellVoltage, rollTh) {
+  repack(sim, cellVoltage);
+  const holdMs = ms(rollTh.hold_s.value);
+  const tail = tailMean(holdMs, ms(rollTh.steady_window_s.value));
+  hold(sim, { throttle: rollTh.throttle.value, roll: 1 }, holdMs, (tMs, state) => {
+    tail.add(tMs, Math.abs(state[ST.P]));
   });
-  return (sum / n) * DEG;
+  return tail.mean() * RAD_TO_DEG;
 }
+
+const NO_HOVER = 'hover not reachable';
+
+async function buildClean(ctx) {
+  const th = ctx.th.checks['build-clean'];
+  const build = ctx.build;
+  /*
+   * A machine with no compiler and no sources has nothing to build and
+   * nothing to diff, and a FAIL there would blame the code for the setup.
+   * verify.js probes both before deciding, and the runner prints the
+   * skipped text in its own column so a green run cannot hide it.
+   */
+  if (build.toolchainAbsent) {
+    return { measured: 'not built here', pass: true, skipped: build.toolchainAbsent };
+  }
+  const steps = [`build exit ${build.exitCode}`];
+  let fault = build.exitCode === th.build_exit_code.value ? '' : `build:wasm exited ${build.exitCode}`;
+  const vendorClean = build.vendorDiff.length === th.vendor_diff_chars.value;
+  steps.push(vendorClean ? 'vendor diff empty' : 'vendor diff DIRTY');
+  if (!fault && !vendorClean) {
+    fault = 'vendor/betaflight modified in place';
+  }
+  /* The module itself is only consulted once the build it came from is
+   * trusted, so the first fault is the one reported. */
+  if (!fault) {
+    const sim = await ctx.freshSim();
+    const abi = sim.abiVersion();
+    steps.push(`abi ${abi}`);
+    if (abi !== th.abi_version.value) {
+      fault = `abi version ${abi}, expected ${th.abi_version.value}`;
+    } else {
+      const code = sim.init(ctx.configA);
+      steps.push(`init ${simErrorName(code)}`);
+      if (code !== SIM_OK) {
+        fault = simErrorName(code);
+      }
+    }
+  }
+  return judge(steps.join(', '), !fault, fault);
+}
+
+async function determinismRepeat(ctx) {
+  const first = await replayTrace(await ctx.freshSim(), ctx.rec, ctx.canonicalOpts());
+  const second = await replayTrace(await ctx.freshSim(), ctx.rec, ctx.canonicalOpts());
+  return judge(`a=${abbrev(first)} b=${abbrev(second)}`, first === second, 'hashes differ');
+}
+
+async function determinismCrossHost(ctx) {
+  const nodeHash = await ctx.nodeCanonicalHash();
+  const { result } = await ctx.browserRun();
+  if (!result?.ok) {
+    const why = result?.errorName ?? 'no result';
+    return fail(`node=${abbrev(nodeHash)} chrome=${why}`, why);
+  }
+  return judge(
+    `node=${abbrev(nodeHash)} chrome=${abbrev(result.hash)}`,
+    nodeHash === result.hash,
+    'hashes differ',
+  );
+}
+
+async function frameIndependence(ctx) {
+  const th = ctx.th.checks['frame-independence'];
+  const rates = th.render_rates_hz.value;
+  const hashes = new Set();
+  for (const renderHz of rates) {
+    hashes.add(await replayTrace(await ctx.freshSim(), ctx.rec, { ...ctx.canonicalOpts(), renderHz }));
+  }
+  return judge(
+    `${hashes.size} distinct hash(es) across ${rates.length} rates`,
+    hashes.size === th.distinct_hashes.value,
+    'traces differ across render rates',
+  );
+}
+
+async function hoverThrottleCheck(ctx) {
+  const th = ctx.th.checks['hover-throttle'];
+  const trim = hoverThrottle(await configuredSim(ctx, ctx.configA), th.cell_voltage.value, th);
+  if (Number.isNaN(trim)) {
+    return fail('no trim found in 0..1', NO_HOVER);
+  }
+  return banded(trim.toFixed(4), trim, th.band);
+}
+
+async function punchOutCheck(ctx) {
+  const th = ctx.th.checks['punch-out'];
+  const sim = await configuredSim(ctx, ctx.configA);
+  const volts = th.cell_voltage.value;
+  const trim = hoverThrottle(sim, volts, ctx.th.checks['hover-throttle']);
+  if (Number.isNaN(trim)) {
+    return fail('no hover trim', NO_HOVER);
+  }
+  const { gain } = punchOut(sim, volts, trim, th.hover_settle_s.value, th.full_throttle_s.value);
+  return banded(`${gain.toFixed(1)} m`, gain, th.band_m);
+}
+
+async function terminalVelocity(ctx) {
+  const th = ctx.th.checks['terminal-velocity'];
+  const sim = await configuredSim(ctx, ctx.configA);
+  repack(sim, th.cell_voltage.value);
+  const durMs = ms(th.duration_s.value);
+  const tail = tailMean(durMs, ms(th.plateau_window_s.value));
+  hold(sim, { throttle: 1 }, durMs, (tMs, state) => {
+    const [vx, vy, vz] = [state[ST.VX], state[ST.VY], state[ST.VZ]];
+    tail.add(tMs, Math.sqrt(vx * vx + vy * vy + vz * vz));
+  });
+  const speed = tail.mean();
+  return banded(`${speed.toFixed(1)} m/s`, speed, th.band_m_s);
+}
+
+async function motorStepResponse(ctx) {
+  const th = ctx.th.checks['motor-step-response'];
+  const sim = await configuredSim(ctx, ctx.configA);
+  repack(sim, th.cell_voltage.value);
+  /* Every motor pinned at zero, then motor 0 alone stepped to full duty:
+   * the response is the ESC and motor, not the controller. */
+  must(sim.motorOverride(-1, 0), 'sim_motor_override');
+  const tStep = hold(sim, { throttle: 0 }, ms(th.pre_hold_s.value), null);
+  must(sim.motorOverride(0, 1), 'sim_motor_override');
+  const rpmAtMs = [];
+  hold(sim, { throttle: 0 }, ms(th.settle_s.value), (tMs, state) => {
+    rpmAtMs.push(state[ST.RPM0]);
+  }, tStep);
+  const finalRpm = rpmAtMs[rpmAtMs.length - 1];
+  if (!(finalRpm > 0)) {
+    return fail('no RPM response', 'motor never spun up');
+  }
+  const target = th.target_fraction.value * finalRpm;
+  const reached = rpmAtMs.findIndex((rpm) => rpm >= target);
+  /* Sample i is the state 1 ms after the step, plus i more. */
+  const riseMs = reached < 0 ? -1 : reached + 1;
+  return judge(
+    `${riseMs} ms`,
+    riseMs > 0 && inside(riseMs / 1000, th.band_s),
+    'outside band',
+  );
+}
+
+async function rateTracking(ctx) {
+  const th = ctx.th.checks['rate-tracking'];
+  const configured = parseRollSrate(ctx.configA) * th.actual_srate_to_deg_s.value;
+  const rate = steadyRollRateDegS(await configuredSim(ctx, ctx.configA), th.cell_voltage.value, th);
+  const err = Math.abs(rate - configured) / configured;
+  return tolerated(
+    `${rate.toFixed(1)} deg/s vs ${configured} configured (${pct(err)} percent off)`,
+    err,
+    th.tolerance_fraction.value,
+  );
+}
+
+async function yawCoupling(ctx) {
+  const th = ctx.th.checks['yaw-coupling'];
+  const sim = await configuredSim(ctx, ctx.configA);
+  repack(sim, th.cell_voltage.value);
+  const dt = 1 / ctx.th.physics.step_hz.value;
+  let heading = 0;
+  hold(sim, { throttle: th.throttle.value, roll: 1 }, ms(th.roll_hold_s.value), (tMs, state) => {
+    heading += state[ST.R] * dt;
+  });
+  const drift = heading * RAD_TO_DEG;
+  /*
+   * Banded both ways. A symmetric QUADX cancels roll to yaw coupling
+   * exactly, so what the plant shows is its modelled build tolerance: the
+   * floor notices that model going missing, the cap notices it inflated,
+   * and the sign is the convention PROGRESS.md argues.
+   */
+  const size = Math.abs(drift);
+  let why = '';
+  if (size < th.min_abs_body_yaw_deg.value) {
+    why = 'drift below floor: the build tolerance model is not being felt';
+  } else if (size > th.max_abs_body_yaw_deg.value) {
+    why = 'drift above the build tolerance band';
+  } else if (Math.sign(drift) !== th.expected_sign.value) {
+    why = 'wrong sign';
+  }
+  return judge(`${drift.toFixed(2)} deg`, !why, why);
+}
+
+async function batterySag(ctx) {
+  const th = ctx.th.checks['battery-sag'];
+  const [fullVolts, lowVolts] = th.cell_voltages.value;
+  const sim = await configuredSim(ctx, ctx.configA);
+  const trim = hoverThrottle(sim, fullVolts, ctx.th.checks['hover-throttle']);
+  if (Number.isNaN(trim)) {
+    return fail('no hover trim', NO_HOVER);
+  }
+  const punch = (volts) => punchOut(sim, volts, trim, th.hover_settle_s.value, th.full_throttle_s.value);
+  const full = punch(fullVolts);
+  const low = punch(lowVolts);
+  if (!(full.peakRpm > 0)) {
+    return fail('no RPM at full charge', 'motors never spun');
+  }
+  const dropPercent = ((full.peakRpm - low.peakRpm) / full.peakRpm) * 100;
+  return banded(
+    `${dropPercent.toFixed(2)} percent lower (${Math.round(full.peakRpm)} vs ${Math.round(low.peakRpm)} RPM)`,
+    dropPercent,
+    th.band_percent,
+  );
+}
+
+async function diffPassthrough(ctx) {
+  const th = ctx.th.checks['diff-passthrough'];
+  const srateA = parseRollSrate(ctx.configA);
+  const srateB = parseRollSrate(ctx.configB);
+  if (srateA === srateB) {
+    return fail('fixture diffs identical', 'bad fixtures');
+  }
+  const expected = srateB / srateA;
+  const rateA = steadyRollRateDegS(await configuredSim(ctx, ctx.configA), th.cell_voltage.value, th);
+  const rateB = steadyRollRateDegS(await configuredSim(ctx, ctx.configB), th.cell_voltage.value, th);
+  if (!(rateA > 0)) {
+    return fail('zero roll rate with config A', 'no rotation');
+  }
+  const ratio = rateB / rateA;
+  const err = Math.abs(ratio / expected - 1);
+  return tolerated(
+    `ratio ${ratio.toFixed(4)} vs ${expected.toFixed(4)} expected (${pct(err)} percent off)`,
+    err,
+    th.tolerance_fraction.value,
+  );
+}
+
+async function consoleClean(ctx) {
+  const th = ctx.th.checks['console-clean'];
+  const { errors, warnings, result } = await ctx.browserRun();
+  const ran = Boolean(result?.ok);
+  const quiet = errors.length <= th.max_errors.value && warnings.length <= th.max_warnings.value;
+  let why = '';
+  if (!ran) {
+    why = result?.errorName ?? 'harness run failed';
+  } else if (!quiet) {
+    why = errors[0] ?? warnings[0];
+  }
+  return judge(
+    `errors=${errors.length} warnings=${warnings.length} run=${ran ? 'ok' : result?.errorName ?? 'no result'}`,
+    ran && quiet,
+    why,
+  );
+}
+
+async function audioBed(ctx) {
+  const th = ctx.th.checks['audio-bed'];
+  const bed = await ctx.audioBedRun();
+  const advance = Number(bed.musicAdvance);
+  const faults = [];
+  if (bed.state !== 'running') {
+    faults.push(`context ${bed.state}`);
+  }
+  if (!bed.engineAttached) {
+    faults.push('engine not attached');
+  }
+  if (!bed.musicAttached) {
+    faults.push('music graph not attached');
+  }
+  if (!(bed.musicGain >= th.min_music_gain.value)) {
+    faults.push(`music gain ${bed.musicGain.toFixed(4)}`);
+  }
+  if (!(advance >= th.min_music_advance_s.value)) {
+    faults.push(`media advanced ${advance.toFixed(3)} s`);
+  }
+  if (!(bed.nodes > 0 && bed.nodes <= th.max_nodes.value)) {
+    faults.push(`${bed.nodes} nodes`);
+  }
+  return judge(
+    `ctx ${bed.state}, music gain ${bed.musicGain.toFixed(3)}, `
+      + `media ${advance.toFixed(2)} s in ${bed.elapsed.toFixed(2)} s, ${bed.nodes} nodes`,
+    faults.length === 0,
+    faults.join('; '),
+  );
+}
+
+/*
+ * Check 15 reads the drawn craft and the gate scale off the live page and
+ * holds them to real world sizes, in metres, so a scale error no draw call
+ * budget can see fails here. The craft's figures are divided back through
+ * the page's DECLARED world scale, and the declared scale is itself held
+ * to the threshold file and to the collider's true radius, so a scale that
+ * never reached the model and an undeclared group scale both fail.
+ */
+async function worldScale(ctx) {
+  const th = ctx.th.checks['world-scale'];
+  const { craft, gateScale } = await ctx.scaleRun();
+  const rows = [];
+  const faults = [];
+  const metres = (v) => `${v.toFixed(4)} m`;
+
+  const declared = typeof craft.worldScale === 'number' && craft.worldScale > 0;
+  if (!declared) {
+    faults.push('the page did not publish a world scale');
+  }
+  const scale = declared ? craft.worldScale : 1;
+  rows.push(`world scale ${scale.toFixed(4)}`);
+  if (Math.abs(scale - th.world_scale.value) > 1e-9) {
+    faults.push(`the page declares a world scale of ${scale}, the threshold file ${th.world_scale.value}`);
+  }
+
+  const sized = (label, value, band) => {
+    rows.push(`${label} ${metres(value)}`);
+    if (!(Number.isFinite(value) && inside(value, band))) {
+      faults.push(`${label} ${metres(value)} outside ${band.min} to ${band.max}`);
+    }
+  };
+  sized('craft body', craft.bodyLength * scale, th.craft_body_m);
+  const sweep = craft.sweepMeasured * scale;
+  sized('craft sweep radius', sweep, th.craft_sweep_m);
+
+  const slack = th.craft_radius_tolerance_m.value;
+  rows.push(`declared scale applied to ${metres(sweep)} against a true ${metres(craft.craftRTrue)}`);
+  if (Math.abs(sweep - craft.craftRTrue) > slack) {
+    faults.push(
+      `the drawn craft is ${craft.sweepMeasured.toFixed(4)} m, which is not the true `
+        + `${craft.craftRTrue.toFixed(4)} m at the declared scale ${scale.toFixed(4)}`,
+    );
+  }
+  /* The collision sphere against the drawn disc: a gate scored against a
+   * bigger quad than the one on screen is a scale error the pilot feels. */
+  const sphereGap = Math.abs(craft.craftR - craft.sweepMeasured);
+  rows.push(`collision radius ${metres(craft.craftR)} vs swept ${metres(craft.sweepMeasured)}`);
+  if (sphereGap > slack) {
+    faults.push(`collision radius is ${(sphereGap * 1000).toFixed(1)} mm from the swept disc`);
+  }
+
+  /* The gate's declared departure from the rulebook, held to the
+   * threshold file so changing it takes two edits on purpose. */
+  if (typeof gateScale !== 'number') {
+    faults.push('the page did not publish a gate scale');
+  } else if (Math.abs(gateScale - th.gate_scale.value) > 1e-9) {
+    faults.push(`the page declares a gate scale of ${gateScale}, the threshold file ${th.gate_scale.value}`);
+  }
+  rows.push(`gate scale ${(gateScale ?? 0).toFixed(4)}`);
+
+  return judge(rows.join(', '), faults.length === 0, faults.join('; '));
+}
+
+/*
+ * Check 16 measures the lazy load instead of asserting it: the URLs the
+ * page fetched with the Alps selected must hold no Swiss valley module,
+ * the URLs after choosing the valley must hold its whole graph (and match
+ * the loading bar's typed count), and the Alps' own frame after a round
+ * trip through the valley must cost what it cost at boot. Everything is
+ * this run against itself, so no machine's constant can rot.
+ */
+async function mapIsolation(ctx) {
+  const th = ctx.th.checks['map-isolation'];
+  const r = await ctx.scaleRun();
+  const early = r.otherUrlsWhileBaseSelected;
+  const fetched = r.otherUrlsAfterChoosing.length;
+  const boot = r.baseBudget;
+  const back = r.baseBudgetAfterRoundTrip;
+  const faults = [];
+  if (early.length !== 0) {
+    faults.push(`${early.length} Swiss valley module(s) fetched with the Alps selected, first ${early[0]}`);
+  }
+  if (fetched < th.swiss2_modules_min.value) {
+    faults.push(`only ${fetched} Swiss valley modules fetched after choosing it`);
+  }
+  if (r.otherExpectedModules == null) {
+    faults.push('MAP_MODULE_COUNT has no count for the Swiss valley');
+  } else if (fetched !== r.otherExpectedModules) {
+    faults.push(`MAP_MODULE_COUNT says ${r.otherExpectedModules} Swiss valley modules, the browser fetched ${fetched}`);
+  }
+  if (!boot) {
+    faults.push('the Alps budget was not measured');
+  }
+  if (!back) {
+    faults.push('the Alps budget after a round trip was not measured');
+  } else if (boot) {
+    /* Byte figures get floating point slack; counts get none. */
+    const held = [
+      ['P1 draw calls', 'p1', 0],
+      ['P2 triangles', 'p2', 0],
+      ['P5 target MB', 'p5', 0.05],
+      ['P10 attribute MB', 'p10', 0.05],
+      ['meshes', 'meshes', 0],
+    ];
+    for (const [label, key, slack] of held) {
+      if (!(Math.abs(back[key] - boot[key]) <= slack)) {
+        faults.push(`${label} ${back[key]} against ${boot[key]} at boot, across a round trip`);
+      }
+    }
+    /* Only growth is a leak: a material registers when it first compiles,
+     * so the rebuilt Alps may honestly report fewer. */
+    if (back.cel > boot.cel) {
+      faults.push(`cel material clock walk grew ${boot.cel} to ${back.cel} across a round trip`);
+    }
+  }
+  const cost = (b) => `P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB`;
+  return judge(
+    `Swiss valley modules: ${early.length} with the Alps selected, ${fetched} after choosing it; `
+      + (boot ? `Alps ${cost(boot)}, ${boot.meshes} meshes` : 'no budget')
+      + (back ? `; after a Swiss valley round trip ${cost(back)}` : ''),
+    faults.length === 0,
+    faults.join('; '),
+  );
+}
+
+const CHECKS = [
+  [1, 'build-clean', 'exit 0, vendor diff empty, init OK', buildClean],
+  [2, 'determinism-repeat', 'two in-process replay hashes identical', determinismRepeat],
+  [3, 'determinism-cross-host', 'Node and headless Chrome hashes identical', determinismCrossHost],
+  [4, 'frame-independence', 'traces at 30, 60, 144, 240 Hz identical', frameIndependence],
+  [5, 'hover-throttle', '0.20 to 0.30', hoverThrottleCheck],
+  [6, 'punch-out', '95 to 147 m', punchOutCheck],
+  [7, 'terminal-velocity', '35.7 to 56.8 m/s', terminalVelocity],
+  [8, 'motor-step-response', '10 to 30 ms', motorStepResponse],
+  [9, 'rate-tracking', 'within 3 percent of configured max rate', rateTracking],
+  [10, 'yaw-coupling', '|drift| 0.04 to 0.60 deg, sign negative', yawCoupling],
+  [11, 'battery-sag', 'peak RPM 4 to 15 percent lower at 3.60 V', batterySag],
+  [12, 'diff-passthrough', 'rate ratio matches diff ratio within 2 percent', diffPassthrough],
+  [13, 'console-clean', 'zero errors, zero warnings', consoleClean],
+  [14, 'audio-bed', 'context running, bed audible, media advancing', audioBed],
+  [15, 'world-scale', 'reference objects inside their real world bands', worldScale],
+  [16, 'map-isolation', 'no Swiss valley module requested with the Alps selected, Alps cost unchanged', mapIsolation],
+];
 
 export function buildChecks() {
-  return [
-    {
-      num: 1,
-      id: 'build-clean',
-      thresholdText: 'exit 0, vendor diff empty, init OK',
-      async run(ctx) {
-        const th = ctx.th.checks['build-clean'];
-        /*
-         * NO TOOLCHAIN IS NOT A BROKEN BUILD. This check compiles Betaflight
-         * through emcc and asserts the vendored tree came out unmodified,
-         * which is the read-only vendor rule in CLAUDE.md and the reason the
-         * check exists. On a machine with no emcc and no submodule checked
-         * out there is nothing to compile and nothing to diff, and saying
-         * FAIL there reports a fault in the code when the fault is in the
-         * setup. verify.js decides this, on both conditions at once, by
-         * probing for the compiler and the sources rather than by reading the
-         * build's error text.
-         *
-         * Everything below still runs the moment either is present.
-         */
-        if (ctx.build.toolchainAbsent) {
-          return {
-            measured: 'not built here',
-            pass: true,
-            skipped: ctx.build.toolchainAbsent,
-          };
-        }
-        const parts = [];
-        let pass = true;
-        let reason = '';
-        parts.push(`build exit ${ctx.build.exitCode}`);
-        if (ctx.build.exitCode !== th.build_exit_code.value) {
-          pass = false;
-          reason = `build:wasm exited ${ctx.build.exitCode}`;
-        }
-        const diffChars = ctx.build.vendorDiff.length;
-        parts.push(diffChars === th.vendor_diff_chars.value ? 'vendor diff empty' : 'vendor diff DIRTY');
-        if (pass && diffChars !== th.vendor_diff_chars.value) {
-          pass = false;
-          reason = 'vendor/betaflight modified in place';
-        }
-        if (pass) {
-          const sim = await ctx.freshSim();
-          const v = sim.abiVersion();
-          parts.push(`abi ${v}`);
-          if (v !== th.abi_version.value) {
-            pass = false;
-            reason = `abi version ${v}, expected ${th.abi_version.value}`;
-          } else {
-            const code = sim.init(ctx.configA);
-            parts.push(`init ${simErrorName(code)}`);
-            if (code !== SIM_OK) {
-              pass = false;
-              reason = simErrorName(code);
-            }
-          }
-        }
-        return { measured: parts.join(', '), pass, reason };
-      },
-    },
-    {
-      num: 2,
-      id: 'determinism-repeat',
-      thresholdText: 'two in-process replay hashes identical',
-      async run(ctx) {
-        const a = await replayTrace(await ctx.freshSim(), ctx.rec, ctx.canonicalOpts());
-        const b = await replayTrace(await ctx.freshSim(), ctx.rec, ctx.canonicalOpts());
-        return {
-          measured: `a=${short(a)} b=${short(b)}`,
-          pass: a === b,
-          reason: a === b ? '' : 'hashes differ',
-        };
-      },
-    },
-    {
-      num: 3,
-      id: 'determinism-cross-host',
-      thresholdText: 'Node and headless Chrome hashes identical',
-      async run(ctx) {
-        const node = await ctx.nodeCanonicalHash();
-        const browser = await ctx.browserRun();
-        if (!browser.result || !browser.result.ok) {
-          const name = browser.result?.errorName ?? 'no result';
-          return {
-            measured: `node=${short(node)} chrome=${name}`,
-            pass: false,
-            reason: name,
-          };
-        }
-        const same = node === browser.result.hash;
-        return {
-          measured: `node=${short(node)} chrome=${short(browser.result.hash)}`,
-          pass: same,
-          reason: same ? '' : 'hashes differ',
-        };
-      },
-    },
-    {
-      num: 4,
-      id: 'frame-independence',
-      thresholdText: 'traces at 30, 60, 144, 240 Hz identical',
-      async run(ctx) {
-        const th = ctx.th.checks['frame-independence'];
-        const hashes = [];
-        for (const hz of th.render_rates_hz.value) {
-          hashes.push(
-            await replayTrace(await ctx.freshSim(), ctx.rec, {
-              ...ctx.canonicalOpts(),
-              renderHz: hz,
-            }),
-          );
-        }
-        const distinct = new Set(hashes).size;
-        return {
-          measured: `${distinct} distinct hash(es) across ${hashes.length} rates`,
-          pass: distinct === th.distinct_hashes.value,
-          reason: distinct === th.distinct_hashes.value ? '' : 'traces differ across render rates',
-        };
-      },
-    },
-    {
-      num: 5,
-      id: 'hover-throttle',
-      thresholdText: '0.20 to 0.30',
-      async run(ctx) {
-        const th = ctx.th.checks['hover-throttle'];
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        const trim = trimHover(sim, th.cell_voltage.value, th);
-        if (Number.isNaN(trim)) {
-          return { measured: 'no trim found in 0..1', pass: false, reason: 'hover not reachable' };
-        }
-        const pass = trim >= th.band.min && trim <= th.band.max;
-        return {
-          measured: trim.toFixed(4),
-          pass,
-          reason: pass ? '' : 'outside band',
-        };
-      },
-    },
-    {
-      num: 6,
-      id: 'punch-out',
-      thresholdText: '95 to 147 m',
-      async run(ctx) {
-        const th = ctx.th.checks['punch-out'];
-        const th5 = ctx.th.checks['hover-throttle'];
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        const trim = trimHover(sim, th.cell_voltage.value, th5);
-        if (Number.isNaN(trim)) {
-          return { measured: 'no hover trim', pass: false, reason: 'hover not reachable' };
-        }
-        const { gain } = punchOut(
-          sim,
-          th.cell_voltage.value,
-          trim,
-          th.hover_settle_s.value,
-          th.full_throttle_s.value,
-        );
-        const pass = gain >= th.band_m.min && gain <= th.band_m.max;
-        return { measured: `${gain.toFixed(1)} m`, pass, reason: pass ? '' : 'outside band' };
-      },
-    },
-    {
-      num: 7,
-      id: 'terminal-velocity',
-      thresholdText: '35.7 to 56.8 m/s',
-      async run(ctx) {
-        const th = ctx.th.checks['terminal-velocity'];
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        must(sim.reset(), 'sim_reset');
-        must(sim.setCellVoltage(th.cell_voltage.value), 'sim_set_cell_voltage');
-        const durMs = Math.round(th.duration_s.value * 1000);
-        const windowMs = Math.round(th.plateau_window_s.value * 1000);
-        let sum = 0;
-        let n = 0;
-        runScript(sim, [{ durMs, throttle: 1 }], (tMs, state) => {
-          if (tMs > durMs - windowMs) {
-            const vx = state[ST.VX];
-            const vy = state[ST.VY];
-            const vz = state[ST.VZ];
-            sum += Math.sqrt(vx * vx + vy * vy + vz * vz);
-            n += 1;
-          }
-        });
-        const speed = sum / n;
-        const pass = speed >= th.band_m_s.min && speed <= th.band_m_s.max;
-        return { measured: `${speed.toFixed(1)} m/s`, pass, reason: pass ? '' : 'outside band' };
-      },
-    },
-    {
-      num: 8,
-      id: 'motor-step-response',
-      thresholdText: '10 to 30 ms',
-      async run(ctx) {
-        const th = ctx.th.checks['motor-step-response'];
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        must(sim.reset(), 'sim_reset');
-        must(sim.setCellVoltage(th.cell_voltage.value), 'sim_set_cell_voltage');
-        must(sim.motorOverride(-1, 0), 'sim_motor_override');
-        const preMs = Math.round(th.pre_hold_s.value * 1000);
-        const settleMs = Math.round(th.settle_s.value * 1000);
-        const tPre = runScript(sim, [{ durMs: preMs, throttle: 0 }], null);
-        must(sim.motorOverride(0, 1), 'sim_motor_override');
-        const rpmByMs = [];
-        runScript(
-          sim,
-          [{ durMs: settleMs, throttle: 0 }],
-          (tMs, state) => {
-            rpmByMs.push(state[ST.RPM0]);
-          },
-          tPre,
-        );
-        const finalRpm = rpmByMs[rpmByMs.length - 1];
-        if (!(finalRpm > 0)) {
-          return { measured: 'no RPM response', pass: false, reason: 'motor never spun up' };
-        }
-        const target = th.target_fraction.value * finalRpm;
-        let riseMs = -1;
-        for (let i = 0; i < rpmByMs.length; i += 1) {
-          if (rpmByMs[i] >= target) {
-            riseMs = i + 1;
-            break;
-          }
-        }
-        const riseS = riseMs / 1000;
-        const pass = riseMs > 0 && riseS >= th.band_s.min && riseS <= th.band_s.max;
-        return { measured: `${riseMs} ms`, pass, reason: pass ? '' : 'outside band' };
-      },
-    },
-    {
-      num: 9,
-      id: 'rate-tracking',
-      thresholdText: 'within 3 percent of configured max rate',
-      async run(ctx) {
-        const th = ctx.th.checks['rate-tracking'];
-        const configured =
-          parseRollSrate(ctx.configA) * th.actual_srate_to_deg_s.value;
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        const rate = steadyRollRate(
-          sim,
-          th.cell_voltage.value,
-          th.throttle.value,
-          th.hold_s.value,
-          th.steady_window_s.value,
-        );
-        const err = Math.abs(rate - configured) / configured;
-        const pass = err <= th.tolerance_fraction.value;
-        return {
-          measured: `${rate.toFixed(1)} deg/s vs ${configured} configured (${(err * 100).toFixed(2)} percent off)`,
-          pass,
-          reason: pass ? '' : 'outside tolerance',
-        };
-      },
-    },
-    {
-      num: 10,
-      id: 'yaw-coupling',
-      thresholdText: '|drift| 0.04 to 0.60 deg, sign negative',
-      async run(ctx) {
-        const th = ctx.th.checks['yaw-coupling'];
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        must(sim.reset(), 'sim_reset');
-        must(sim.setCellVoltage(th.cell_voltage.value), 'sim_set_cell_voltage');
-        const holdMs = Math.round(th.roll_hold_s.value * 1000);
-        const dt = 1 / ctx.th.physics.step_hz.value;
-        let yawRad = 0;
-        runScript(
-          sim,
-          [{ durMs: holdMs, throttle: th.throttle.value, roll: 1 }],
-          (tMs, state) => {
-            yawRad += state[ST.R] * dt;
-          },
-        );
-        const yawDeg = yawRad * DEG;
-        /*
-         * A BAND, not a floor. A symmetric QUADX cancels roll-to-yaw
-         * coupling exactly (the three line proof is in PROGRESS.md), so the
-         * only coupling a physical model can show is its build tolerance,
-         * and the plant's is measured at -0.12 deg here. The floor catches
-         * the tolerance model being deleted, which is the 0.00 this check
-         * read for the project's whole life; the cap catches the cants
-         * being inflated to fake a coupling, which is the only way the old
-         * 2.0 deg floor could ever have been satisfied.
-         */
-        const bigEnough = Math.abs(yawDeg) >= th.min_abs_body_yaw_deg.value;
-        const smallEnough = Math.abs(yawDeg) <= th.max_abs_body_yaw_deg.value;
-        const signOk = Math.sign(yawDeg) === th.expected_sign.value;
-        const pass = bigEnough && smallEnough && signOk;
-        let reason = '';
-        if (!bigEnough) {
-          reason = 'drift below floor: the build tolerance model is not being felt';
-        } else if (!smallEnough) {
-          reason = 'drift above the build tolerance band';
-        } else if (!signOk) {
-          reason = 'wrong sign';
-        }
-        return { measured: `${yawDeg.toFixed(2)} deg`, pass, reason };
-      },
-    },
-    {
-      num: 11,
-      id: 'battery-sag',
-      thresholdText: 'peak RPM 4 to 15 percent lower at 3.60 V',
-      async run(ctx) {
-        const th = ctx.th.checks['battery-sag'];
-        const th5 = ctx.th.checks['hover-throttle'];
-        const [vHigh, vLow] = th.cell_voltages.value;
-        const sim = await ctx.freshSim();
-        must(sim.init(ctx.configA), 'sim_init');
-        const trim = trimHover(sim, vHigh, th5);
-        if (Number.isNaN(trim)) {
-          return { measured: 'no hover trim', pass: false, reason: 'hover not reachable' };
-        }
-        const high = punchOut(sim, vHigh, trim, th.hover_settle_s.value, th.full_throttle_s.value);
-        const low = punchOut(sim, vLow, trim, th.hover_settle_s.value, th.full_throttle_s.value);
-        if (!(high.peakRpm > 0)) {
-          return { measured: 'no RPM at full charge', pass: false, reason: 'motors never spun' };
-        }
-        const dropPct = ((high.peakRpm - low.peakRpm) / high.peakRpm) * 100;
-        const pass = dropPct >= th.band_percent.min && dropPct <= th.band_percent.max;
-        return {
-          measured: `${dropPct.toFixed(2)} percent lower (${Math.round(high.peakRpm)} vs ${Math.round(low.peakRpm)} RPM)`,
-          pass,
-          reason: pass ? '' : 'outside band',
-        };
-      },
-    },
-    {
-      num: 12,
-      id: 'diff-passthrough',
-      thresholdText: 'rate ratio matches diff ratio within 2 percent',
-      async run(ctx) {
-        const th = ctx.th.checks['diff-passthrough'];
-        const srateA = parseRollSrate(ctx.configA);
-        const srateB = parseRollSrate(ctx.configB);
-        if (srateA === srateB) {
-          return { measured: 'fixture diffs identical', pass: false, reason: 'bad fixtures' };
-        }
-        const expected = srateB / srateA;
-        const rates = [];
-        for (const cfg of [ctx.configA, ctx.configB]) {
-          const sim = await ctx.freshSim();
-          must(sim.init(cfg), 'sim_init');
-          rates.push(
-            steadyRollRate(
-              sim,
-              th.cell_voltage.value,
-              th.throttle.value,
-              th.hold_s.value,
-              th.steady_window_s.value,
-            ),
-          );
-        }
-        if (!(rates[0] > 0)) {
-          return { measured: 'zero roll rate with config A', pass: false, reason: 'no rotation' };
-        }
-        const ratio = rates[1] / rates[0];
-        const err = Math.abs(ratio / expected - 1);
-        const pass = err <= th.tolerance_fraction.value;
-        return {
-          measured: `ratio ${ratio.toFixed(4)} vs ${expected.toFixed(4)} expected (${(err * 100).toFixed(2)} percent off)`,
-          pass,
-          reason: pass ? '' : 'outside tolerance',
-        };
-      },
-    },
-    {
-      num: 13,
-      id: 'console-clean',
-      thresholdText: 'zero errors, zero warnings',
-      async run(ctx) {
-        const th = ctx.th.checks['console-clean'];
-        const browser = await ctx.browserRun();
-        const errs = browser.errors.length;
-        const warns = browser.warnings.length;
-        const runOk = Boolean(browser.result && browser.result.ok);
-        const runText = runOk ? 'ok' : browser.result?.errorName ?? 'no result';
-        const clean = errs <= th.max_errors.value && warns <= th.max_warnings.value;
-        const pass = clean && runOk;
-        let reason = '';
-        if (!runOk) {
-          reason = browser.result?.errorName ?? 'harness run failed';
-        } else if (!clean) {
-          reason = browser.errors[0] ?? browser.warnings[0];
-        }
-        return {
-          measured: `errors=${errs} warnings=${warns} run=${runText}`,
-          pass,
-          reason,
-        };
-      },
-    },
-    {
-      num: 14,
-      id: 'audio-bed',
-      thresholdText: 'context running, bed audible, media advancing',
-      async run(ctx) {
-        const th = ctx.th.checks['audio-bed'];
-        const a = await ctx.audioBedRun();
-        const gainOk = a.musicGain >= th.min_music_gain.value;
-        const advanceOk = a.musicAdvance >= th.min_music_advance_s.value;
-        const nodesOk = a.nodes > 0 && a.nodes <= th.max_nodes.value;
-        const liveOk = a.state === 'running' && a.engineAttached && a.musicAttached;
-        const pass = gainOk && advanceOk && nodesOk && liveOk;
-        const reasons = [];
-        if (a.state !== 'running') {
-          reasons.push(`context ${a.state}`);
-        }
-        if (!a.engineAttached) {
-          reasons.push('engine not attached');
-        }
-        if (!a.musicAttached) {
-          reasons.push('music graph not attached');
-        }
-        if (!gainOk) {
-          reasons.push(`music gain ${a.musicGain.toFixed(4)}`);
-        }
-        if (!advanceOk) {
-          reasons.push(`media advanced ${Number(a.musicAdvance).toFixed(3)} s`);
-        }
-        if (!nodesOk) {
-          reasons.push(`${a.nodes} nodes`);
-        }
-        return {
-          measured:
-            `ctx ${a.state}, music gain ${a.musicGain.toFixed(3)}, ` +
-            `media ${Number(a.musicAdvance).toFixed(2)} s in ${a.elapsed.toFixed(2)} s, ` +
-            `${a.nodes} nodes`,
-          pass,
-          reason: reasons.join('; '),
-        };
-      },
-    },
-    {
-      num: 15,
-      id: 'world-scale',
-      thresholdText: 'reference objects inside their real world bands',
-      /*
-       * THE CHECK THAT WOULD HAVE CAUGHT THE GRASS.
-       *
-       * Every budget in this project stayed correct while grass blades were
-       * 0.26 to 0.68 m and a 1.524 m regulation gate vanished from frame. A
-       * draw call count cannot see a scale error; only an object whose real
-       * size is known can. So this asserts that things whose size a tape
-       * measure would settle measure what they claim, the craft and the
-       * gate, and it prints every number it measured so a reviewer reads the
-       * value rather than the verdict. Every band below is a real world size,
-       * not a comparison against the quad.
-       *
-       * The town's bands, its kerb, doorway and level crossing boom and the
-       * audit of its collider fit, went with the town on 2026-09-28: they
-       * measured the town's own geometry and there is nothing left for them
-       * to measure. The valleys' buildings are held by scripts/roof-check.js.
-       */
-      async run(ctx) {
-        const r = await ctx.scaleRun();
-        const rows = [];
-        const fails = [];
-        const band = (label, value, min, max, unit) => {
-          const ok = typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
-          rows.push(`${label} ${typeof value === 'number' ? value.toFixed(4) : String(value)}${unit}`);
-          if (!ok) {
-            fails.push(`${label} ${typeof value === 'number' ? value.toFixed(4) : String(value)}${unit} outside ${min} to ${max}`);
-          }
-        };
-        const th = ctx.th.checks['world-scale'];
-
-        /*
-         * The craft, measured off the drawn geometry rather than off the
-         * constants that drew it, and then divided back through the DECLARED
-         * world scale.
-         *
-         * The world is built at WORLD_SCALE times the aircraft's own scale
-         * (src/render/frame.js), so the drawn craft's world bounding box is
-         * deliberately 1/WORLD_SCALE of a real 5 inch machine and banding it
-         * raw would fail on a change that is working as intended. Dividing it
-         * out keeps the band asserting exactly what it always asserted, that
-         * the airframe IS a real 5 inch machine, and the assertion below that
-         * the scale is actually applied is what stops this becoming a licence
-         * to draw any size at all: an undeclared group scale still fails the
-         * band, and a declared scale that never reached the model fails the
-         * ratio.
-         */
-        const scale = r.craft.worldScale;
-        if (!(typeof scale === 'number' && scale > 0)) {
-          fails.push('the page did not publish a world scale');
-        }
-        const s = typeof scale === 'number' && scale > 0 ? scale : 1;
-        rows.push(`world scale ${s.toFixed(4)}`);
-        if (Math.abs(s - th.world_scale.value) > 1e-9) {
-          fails.push(`the page declares a world scale of ${s}, the threshold file ${th.world_scale.value}`);
-        }
-        band('craft body', r.craft.bodyLength * s, th.craft_body_m.min, th.craft_body_m.max, ' m');
-        band('craft sweep radius', r.craft.sweepMeasured * s, th.craft_sweep_m.min, th.craft_sweep_m.max, ' m');
-        /* The declared scale against the one the renderer actually applied.
-         * Measured over the airframe's true sweep radius, which collide.js
-         * owns and publishes beside the scaled one. */
-        const scaleErr = Math.abs(r.craft.sweepMeasured * s - r.craft.craftRTrue);
-        rows.push(`declared scale applied to ${(r.craft.sweepMeasured * s).toFixed(4)} m against a true ${r.craft.craftRTrue.toFixed(4)} m`);
-        if (scaleErr > th.craft_radius_tolerance_m.value) {
-          fails.push(
-            `the drawn craft is ${(r.craft.sweepMeasured).toFixed(4)} m, which is not the true `
-            + `${r.craft.craftRTrue.toFixed(4)} m at the declared scale ${s.toFixed(4)}`,
-          );
-        }
-        /* And the collision sphere against that same geometry. A gate scored
-         * against a quad bigger than the one on screen is a scale error the
-         * player feels and no budget can see. Both sides are world metres, so
-         * this comparison is the same one it has always been. */
-        const sweepErr = Math.abs(r.craft.craftR - r.craft.sweepMeasured);
-        rows.push(`collision radius ${r.craft.craftR.toFixed(4)} m vs swept ${r.craft.sweepMeasured.toFixed(4)} m`);
-        if (sweepErr > th.craft_radius_tolerance_m.value) {
-          fails.push(`collision radius is ${(sweepErr * 1000).toFixed(1)} mm from the swept disc`);
-        }
-
-        /*
-         * The gate scale. A built track's five inch gates are MultiGP's
-         * published figures times the DECLARED gate scale: they are
-         * deliberately built 15 percent over the rulebook and track.js says
-         * so in one named constant. The page's declared scale is asserted
-         * against the threshold file, so the two cannot drift apart.
-         *
-         * The race field's own bands went with the field: its gate opening
-         * measured on the field's gates, its grass blades and its clubhouse
-         * verandah. A built gate's opening is the builder's gateSpec, which
-         * scripts/build-selftest.js holds.
-         */
-        if (typeof r.gateScale !== 'number') {
-          fails.push('the page did not publish a gate scale');
-        } else if (Math.abs(r.gateScale - th.gate_scale.value) > 1e-9) {
-          fails.push(`the page declares a gate scale of ${r.gateScale}, the threshold file ${th.gate_scale.value}`);
-        }
-        rows.push(`gate scale ${(r.gateScale ?? 0).toFixed(4)}`);
-
-        return {
-          measured: rows.join(', '),
-          pass: fails.length === 0,
-          reason: fails.join('; '),
-        };
-      },
-    },
-    {
-      num: 16,
-      id: 'map-isolation',
-      thresholdText: 'no Swiss valley module requested with the Alps selected, Alps cost unchanged',
-      /*
-       * THE LAZY LOAD, MEASURED RATHER THAN ASSERTED.
-       *
-       * "A world loads only when chosen" is exactly the kind of claim that
-       * stays true right up until somebody adds a convenience import at the
-       * top of a shared file and a whole world's graph comes back at boot
-       * with nothing to show for it. So this reads the browser's own resource
-       * timing: every URL the page requested while the Alps were selected,
-       * and every URL after the Swiss valley was chosen. Zero Swiss valley
-       * modules in the first list is the isolation; a full graph in the
-       * second is the proof that the first list is not empty because the
-       * loader is broken.
-       *
-       * The second half is the cost. The Alps' frame must be untouched by
-       * the Swiss valley existing at all, so its draw calls, triangles,
-       * render target bytes and attribute bytes after a round trip through
-       * the valley are asserted against the same run's figures from before
-       * it. The pair was the airfield and the city until both were retired
-       * on 2026-09-28; the Alps and the Swiss valley are the pair that is
-       * left with one of them not importing the other, since the valley
-       * builds through the Alps' modules and not the other way round.
-       */
-      async run(ctx) {
-        const r = await ctx.scaleRun();
-        const th = ctx.th.checks['map-isolation'];
-        const fails = [];
-        const before = r.otherUrlsWhileBaseSelected.length;
-        const after = r.otherUrlsAfterChoosing.length;
-        if (before !== 0) {
-          fails.push(`${before} Swiss valley module(s) fetched with the Alps selected, first ${r.otherUrlsWhileBaseSelected[0]}`);
-        }
-        if (after < th.swiss2_modules_min.value) {
-          fails.push(`only ${after} Swiss valley modules fetched after choosing it`);
-        }
-        /* The loading bar's typed module weight against what the browser
-         * actually fetched on this cold load. 61 sat in main.js for a round
-         * while the city's real count was 63, and nothing could notice: a
-         * bar weight cannot break a load, which is exactly why it needs a
-         * check rather than a comment. */
-        if (r.otherExpectedModules == null) {
-          fails.push('MAP_MODULE_COUNT has no count for the Swiss valley');
-        } else if (after !== r.otherExpectedModules) {
-          fails.push(`MAP_MODULE_COUNT says ${r.otherExpectedModules} Swiss valley modules, the browser fetched ${after}`);
-        }
-        /*
-         * No recorded figures, only this run's against itself: P1 303, P2
-         * 1014037, P10 32 MB and 169 meshes were once compared here as
-         * exact equalities and never matched what this check measures,
-         * because they came from a run with a course seeded and verify has
-         * never seeded one. Both sentences below compare measurements from
-         * THIS run to each other, so neither needs a constant recorded on
-         * somebody's machine, and neither can rot.
-         */
-        const b = r.baseBudget;
-        const b2 = r.baseBudgetAfterRoundTrip;
-        if (!b) {
-          fails.push('the Alps budget was not measured');
-        }
-        /* And again after Alps to Swiss valley to Alps. This is the
-         * measurement that can see a leak: anything the valley fails to free
-         * is invisible until the Alps are measured on the far side of a
-         * round trip. */
-        if (!b2) {
-          fails.push('the Alps budget after a round trip was not measured');
-        } else {
-          /*
-           * Against BOOT, not against a constant. Anything the valley fails
-           * to free shows up here, on any machine, without anybody having to
-           * re-measure a constant first, and a legitimate change to the
-           * Alps' own dressing cannot switch the leak detector off.
-           */
-          if (b) {
-            const held = (label, got, want, tol) => {
-              if (!(Math.abs(got - want) <= tol)) {
-                fails.push(`${label} ${got} against ${want} at boot, across a round trip`);
-              }
-            };
-            held('P1 draw calls', b2.p1, b.p1, 0);
-            held('P2 triangles', b2.p2, b.p2, 0);
-            held('P5 target MB', b2.p5, b.p5, 0.05);
-            held('P10 attribute MB', b2.p10, b.p10, 0.05);
-            held('meshes', b2.meshes, b.meshes, 0);
-          }
-          /* The per frame cel clock walk must not GROW across a round trip.
-           * This is the measurement that catches a disposed material's
-           * uniform kept alive forever: every budget above counts targets
-           * and triangles, and a dead uniform object costs neither. Not an
-           * equality: a material only registers when it first compiles, so
-           * the rebuilt Alps legitimately report fewer until every view has
-           * rendered once. */
-          if (b && b2.cel > b.cel) {
-            fails.push(`cel material clock walk grew ${b.cel} to ${b2.cel} across a round trip`);
-          }
-        }
-        return {
-          measured:
-            `Swiss valley modules: ${before} with the Alps selected, ${after} after choosing it; ` +
-            (b ? `Alps P1 ${b.p1}, P2 ${b.p2}, P5 ${b.p5} MB, P10 ${b.p10} MB, ${b.meshes} meshes` : 'no budget') +
-            (b2 ? `; after a Swiss valley round trip P1 ${b2.p1}, P2 ${b2.p2}, P5 ${b2.p5} MB, P10 ${b2.p10} MB` : ''),
-          pass: fails.length === 0,
-          reason: fails.join('; '),
-        };
-      },
-    },
-  ];
+  return CHECKS.map(([num, id, thresholdText, run]) => ({ num, id, thresholdText, run }));
 }
-
-export { SimError };

@@ -3495,6 +3495,8 @@ export default {
   "card.classification_updated": "CONTACT CLASSIFICATION UPDATED",
   "card.intelligence_updated": "INTELLIGENCE UPDATED",
   "card.search_area": "SEARCH AREA ADDED",
+  "card.unidentified_movement": "UNIDENTIFIED MOVEMENT",
+  "card.possible_armed": "POSSIBLE ARMED PERSONNEL",
   "card.last_known": "LAST KNOWN POSITION",
   "card.archive_searching": "ARCHIVE MATCH SEARCHING...",
   "ops.class.unknown": "UNKNOWN",

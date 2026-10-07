@@ -138,11 +138,13 @@ const SEED_A = `(() => {
 
 const dir = mkdtempSync(join(tmpdir(), 'war-lobby-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-/* devMissions: the Spillway's rows below start mission 2, in development. */
+/* devMissions, and the page's ?missions=dev: the rows below start
+ * missions 1 and 2, both in development (mission 1 held since
+ * 2026-10-07; src/game/campaign.js released). */
 const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`the war's lobby, rooms at ${rooms}`);
-const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
+const url = `/index.html?rooms=${encodeURIComponent(rooms)}&missions=dev`;
 
 /* A REAL LOSS, decided by the room's own rule (edge/rooms/war.js settle:
  * lost the instant the output is under the mission's floor), in this

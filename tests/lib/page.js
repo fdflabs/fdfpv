@@ -1,181 +1,334 @@
 /*
- * page.js: one headless Chromium page, driven over the DevTools protocol.
+ * page.js: a headless Chromium tab with the shell in it, driven over the
+ * DevTools protocol. Every browser check (scripts/shell-check.js, shots,
+ * the two-page room checks, the goldens) opens the shell through openPage
+ * and drives the handle it returns; this is the one place that knows how
+ * Chrome is started, how the repo is served to it, and how a key press is
+ * made to look real.
  *
- * Lifted out of scripts/shots.js so that more than one tool can drive the
- * real shell. shots.js takes pictures; scripts/shell-check.js walks every
- * screen with the arrow keys and asserts what it finds. Both need the same
- * six awkward things, and none of them is worth writing twice: a Chromium
- * that starts headless with a software rasteriser, a DevTools socket, the
- * console and page errors collected as they arrive, the Three.js CDN served
- * from a local cache because the container's Chromium does not inherit the
- * proxy, a device metrics override so a measurement means the same thing on
- * every machine, and stored settings seeded before the first line of the app
- * runs.
+ * Four things every caller needs and none should write: a Chromium started
+ * headless with a software rasteriser and a profile of its own; the console
+ * and page errors collected as they arrive; the Three.js CDN answered from a
+ * cache on disk, because a container's Chromium has no proxy and a check that
+ * refetched a megabyte per run is a check nobody runs; and stored settings
+ * seeded through the same door the pilot uses, before the app's first line.
  *
- * The CDN cache is shared with shots.js on purpose. A shell check that
- * refetched a megabyte of Three.js on every run would be a check nobody
- * runs.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { existsSync, rmSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createHash } from 'node:crypto';
 
-import { startServer } from './server.js';
 import { findChrome } from './browser.js';
+import { startServer } from './server.js';
 
-const CACHE = process.env.SIM_CDN_CACHE || join(tmpdir(), 'fdfpv-cdn');
+/* One file per URL, named by the first 32 hex digits of the URL's sha256.
+ * scripts/export-selftest.js reads the same directory, so the name rule is
+ * a contract and not a detail. */
+const CDN_CACHE = process.env.SIM_CDN_CACHE || join(tmpdir(), 'fdfpv-cdn');
+const CDN_HOST = 'https://cdn.jsdelivr.net/*';
 
-/* Virtual key codes for the keys the shell listens to. Chromium wants one
- * for a key event to look real to the page. */
-const VK = {
-  Enter: 13, Escape: 27, Space: 32, Tab: 9, Backspace: 8,
-  ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40,
-  Home: 36, End: 35, PageUp: 33, PageDown: 34,
-  F1: 112, F2: 113, F3: 114, F8: 119,
-  BracketLeft: 219, BracketRight: 221,
-};
+const cacheFile = (url) => join(CDN_CACHE, createHash('sha256').update(url).digest('hex').slice(0, 32));
 
-export function keyInfo(code) {
-  if (/^Key[A-Z]$/.test(code)) {
-    const ch = code.slice(3);
-    return {
-      key: ch.toLowerCase(), code, windowsVirtualKeyCode: ch.charCodeAt(0), text: ch.toLowerCase(),
-    };
-  }
-  if (/^Digit[0-9]$/.test(code)) {
-    const d = code.slice(5);
-    return { key: d, code, windowsVirtualKeyCode: d.charCodeAt(0), text: d };
-  }
-  const named = { Enter: '\r', Space: ' ', Tab: '\t' };
-  return {
-    key: code === 'Space' ? ' ' : code,
-    code,
-    windowsVirtualKeyCode: VK[code] ?? 0,
-    text: named[code],
-  };
-}
-
-export class Cdp {
-  constructor(ws) {
-    this.ws = ws;
-    this.nextId = 1;
-    this.pending = new Map();
-    this.listeners = [];
-    this.dead = null;
-    const fail = (e) => {
-      if (this.dead) {
-        return;
-      }
-      this.dead = e;
-      for (const { reject } of this.pending.values()) {
-        reject(e);
-      }
-      this.pending.clear();
-    };
-    ws.addEventListener('close', () => fail(new Error('Chrome closed the DevTools connection')));
-    ws.addEventListener('error', () => fail(new Error('DevTools connection errored')));
-    ws.addEventListener('message', (ev) => {
-      const msg = JSON.parse(typeof ev.data === 'string' ? ev.data : new TextDecoder().decode(ev.data));
-      if (msg.id && this.pending.has(msg.id)) {
-        const { resolve, reject } = this.pending.get(msg.id);
-        this.pending.delete(msg.id);
-        if (msg.error) {
-          reject(new Error(`CDP ${msg.method ?? ''} ${msg.error.message}`));
-        } else {
-          resolve(msg.result);
-        }
-      } else if (msg.method) {
-        for (const l of this.listeners) {
-          l(msg);
-        }
-      }
-    });
-  }
-
-  send(method, params = {}, sessionId) {
-    if (this.dead) {
-      return Promise.reject(this.dead);
-    }
-    const id = this.nextId;
-    this.nextId += 1;
-    const payload = { id, method, params };
-    if (sessionId) {
-      payload.sessionId = sessionId;
-    }
-    this.ws.send(JSON.stringify(payload));
-    return new Promise((resolve, reject) => this.pending.set(id, { resolve, reject }));
-  }
-
-  onEvent(fn) {
-    this.listeners.push(fn);
-  }
-}
-
-async function cdnBytes(url) {
-  await mkdir(CACHE, { recursive: true });
-  const path = join(CACHE, createHash('sha256').update(url).digest('hex').slice(0, 32));
-  if (existsSync(path)) {
-    return readFile(path);
+async function fetchThroughCache(url) {
+  const file = cacheFile(url);
+  if (existsSync(file)) {
+    return readFile(file);
   }
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`cdn fetch ${url}: ${res.status}`);
   }
-  const buf = Buffer.from(await res.arrayBuffer());
-  await writeFile(path, buf);
-  return buf;
+  const body = Buffer.from(await res.arrayBuffer());
+  await mkdir(CDN_CACHE, { recursive: true });
+  await writeFile(file, body);
+  return body;
 }
 
-export function describe(obj) {
-  if (!obj) {
+/* Windows virtual key codes for the named keys a check taps. A key event
+ * with no code is one the page's key handlers see but never match. */
+const NAMED_KEY_CODES = {
+  Backspace: 8, Tab: 9, Enter: 13, Escape: 27, Space: 32,
+  PageUp: 33, PageDown: 34, End: 35, Home: 36,
+  ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40,
+  F1: 112, F2: 113, F3: 114, F8: 119,
+  BracketLeft: 219, BracketRight: 221,
+};
+
+/* Keys that type a character carry it as `text`; the rest carry none. */
+const NAMED_KEY_TEXT = { Enter: '\r', Tab: '\t', Space: ' ' };
+
+/* The fields Input.dispatchKeyEvent wants for a KeyboardEvent.code. */
+export function keyInfo(code) {
+  const letter = code.match(/^Key([A-Z])$/);
+  if (letter) {
+    const ch = letter[1].toLowerCase();
+    return { key: ch, code, windowsVirtualKeyCode: letter[1].charCodeAt(0), text: ch };
+  }
+  const digit = code.match(/^Digit([0-9])$/);
+  if (digit) {
+    return { key: digit[1], code, windowsVirtualKeyCode: digit[1].charCodeAt(0), text: digit[1] };
+  }
+  return {
+    key: code === 'Space' ? ' ' : code,
+    code,
+    windowsVirtualKeyCode: NAMED_KEY_CODES[code] ?? 0,
+    text: NAMED_KEY_TEXT[code],
+  };
+}
+
+/* A Runtime.RemoteObject as one line of text, for a console line or an
+ * error message. Strings are themselves; everything else is Chrome's own
+ * description when it gave one, else its value as JSON. */
+export function describe(remote) {
+  if (!remote) {
     return 'unknown';
   }
-  if (obj.type === 'string') {
-    return obj.value;
+  if (remote.type === 'string') {
+    return remote.value;
   }
-  return obj.description ?? JSON.stringify(obj.value ?? obj);
+  return remote.description ?? JSON.stringify(remote.value ?? remote);
 }
 
 /*
- * Open the shell in headless Chromium and hand back a driver.
+ * The DevTools protocol over one websocket: numbered requests matched to
+ * their replies, and every unsolicited message handed to the subscribers.
+ * Once the socket drops, every call in flight and every later one rejects
+ * with the same error, so a check fails where it is instead of hanging.
+ */
+export class Cdp {
+  #socket;
+  #calls = new Map();
+  #subscribers = [];
+  #serial = 0;
+  #gone = null;
+
+  constructor(ws) {
+    this.#socket = ws;
+    ws.addEventListener('message', (ev) => this.#receive(ev.data));
+    ws.addEventListener('close', () => this.#drop(new Error('Chrome closed the DevTools connection')));
+    ws.addEventListener('error', () => this.#drop(new Error('DevTools connection errored')));
+  }
+
+  #receive(data) {
+    const msg = JSON.parse(typeof data === 'string' ? data : new TextDecoder().decode(data));
+    const call = msg.id && this.#calls.get(msg.id);
+    if (call) {
+      this.#calls.delete(msg.id);
+      if (msg.error) {
+        call.reject(new Error(`CDP ${msg.method ?? ''} ${msg.error.message}`));
+      } else {
+        call.resolve(msg.result);
+      }
+      return;
+    }
+    if (msg.method) {
+      for (const fn of this.#subscribers) {
+        fn(msg);
+      }
+    }
+  }
+
+  #drop(err) {
+    if (this.#gone) {
+      return;
+    }
+    this.#gone = err;
+    for (const call of this.#calls.values()) {
+      call.reject(err);
+    }
+    this.#calls.clear();
+  }
+
+  send(method, params = {}, sessionId) {
+    if (this.#gone) {
+      return Promise.reject(this.#gone);
+    }
+    this.#serial += 1;
+    const id = this.#serial;
+    const request = sessionId ? { id, method, params, sessionId } : { id, method, params };
+    return new Promise((resolve, reject) => {
+      this.#calls.set(id, { resolve, reject });
+      this.#socket.send(JSON.stringify(request));
+    });
+  }
+
+  onEvent(fn) {
+    this.#subscribers.push(fn);
+  }
+}
+
+/* SIM_GPU=1 draws on this machine's GPU, for the checks that time frames
+ * (a CPU rasteriser's frame time says nothing about a GPU's, and its threads
+ * fight the page's main thread for cores). Everything else gets the
+ * software rasteriser every machine has. */
+const rasterFlags = () => (process.env.SIM_GPU === '1'
+  ? ['--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu']
+  : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']);
+
+function chromeFlags({ width, height, profile, args }) {
+  return [
+    '--headless=new',
+    '--no-sandbox',
+    ...rasterFlags(),
+    '--disable-dev-shm-usage',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--hide-scrollbars',
+    /* A check is not a pilot: unmuted, the title music and the motors come
+     * out of the desktop's speakers. The audio graph still runs muted, so
+     * the audio checks still measure it. */
+    '--mute-audio',
+    '--force-device-scale-factor=1',
+    `--window-size=${width},${height}`,
+    '--remote-debugging-port=0',
+    `--user-data-dir=${profile}`,
+    ...args,
+    'about:blank',
+  ];
+}
+
+/* Chrome prints its DevTools address on stderr once it listens; the whole
+ * stderr tail goes in the error when it never does, because that is where
+ * Chrome says why. */
+function devtoolsUrl(proc, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    let tail = '';
+    const timer = setTimeout(() => reject(new Error(`no DevTools endpoint: ${tail.slice(-1500)}`)), timeoutMs);
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    proc.stderr.on('data', (chunk) => {
+      tail += chunk.toString();
+      const found = tail.match(/DevTools listening on (ws:\/\/\S+)/);
+      if (found) {
+        clearTimeout(timer);
+        resolve(found[1]);
+      }
+    });
+  });
+}
+
+function openSocket(url) {
+  const ws = new WebSocket(url);
+  return new Promise((resolve, reject) => {
+    ws.addEventListener('open', () => resolve(ws), { once: true });
+    ws.addEventListener('error', () => reject(new Error('DevTools websocket failed')), { once: true });
+  });
+}
+
+/* The profile is hundreds of files and up to 150 MB on a tmpfs. A run that
+ * dies before close() would leave it, and enough of those once filled the
+ * disk; so the removal is also hooked on process exit. Chrome's helpers
+ * outlive the main process by a moment and are still writing it, which
+ * fails the first delete with ENOTEMPTY, hence the retries. */
+const RM_RETRIES = { recursive: true, force: true, maxRetries: 20, retryDelay: 100 };
+
+/* The one console: console.error and console.assert, uncaught exceptions
+ * and error level log entries (a failed resource) are errors; console.warn
+ * and warning level entries are warnings. Everything else is noise. */
+function collectConsole(msg, errors, warnings) {
+  switch (msg.method) {
+    case 'Runtime.consoleAPICalled': {
+      const { type, args } = msg.params;
+      const line = args.map(describe).join(' ');
+      if (type === 'error' || type === 'assert') {
+        errors.push(`console.${type}: ${line}`);
+      } else if (type === 'warning') {
+        warnings.push(`console.warning: ${line}`);
+      }
+      return;
+    }
+    case 'Runtime.exceptionThrown': {
+      const { exception, text } = msg.params.exceptionDetails;
+      errors.push(`uncaught: ${exception ? describe(exception) : text}`);
+      return;
+    }
+    case 'Log.entryAdded': {
+      const { level, source, text } = msg.params.entry;
+      if (level === 'error') {
+        errors.push(`${source}: ${text}`);
+      } else if (level === 'warning') {
+        warnings.push(`${source}: ${text}`);
+      }
+      return;
+    }
+    default:
+  }
+}
+
+/* Answer an intercepted request: an overridden path from the option, any
+ * other from the CDN cache. A failure fails the request and leaves a line
+ * in errors, so the check that needed the module reports why. */
+async function answerRequest(cdp, sessionId, { requestId, request }, override, errors) {
+  try {
+    const path = new URL(request.url).pathname;
+    const body = path in override ? Buffer.from(override[path]) : await fetchThroughCache(request.url);
+    await cdp.send('Fetch.fulfillRequest', {
+      requestId,
+      responseCode: 200,
+      responseHeaders: [
+        { name: 'content-type', value: 'text/javascript; charset=utf-8' },
+        { name: 'access-control-allow-origin', value: '*' },
+      ],
+      body: body.toString('base64'),
+    }, sessionId);
+  } catch (err) {
+    errors.push(`cdn proxy failed for ${request.url}: ${err.message}`);
+    await cdp.send('Fetch.failRequest', { requestId, errorReason: 'Failed' }, sessionId).catch(() => {});
+  }
+}
+
+/* An accounts server of the page's own with an account made on it, so the
+ * page boots signed in as `callsign`. Imported only when asked: it brings
+ * the tracks server and SQLite along. */
+async function signIn(callsign) {
+  const { seedSignedIn, startAccounts } = await import('./account.js');
+  const accounts = await startAccounts();
+  const id = `sim-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const account = await accounts.signUp(id, callsign);
+  return { accounts, account, seed: seedSignedIn(accounts.origin, account) };
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/*
+ * Open `url` of the repo at `root` in a fresh headless Chromium and return
+ * the driver.
  *
- * `seed` is a list of script sources evaluated on every new document,
- * before the app runs. That is how a stored setting gets in: the same door
- * the pilot uses, rather than a test only hook that can drift from it.
+ * `seed`: script sources run on every new document before the app does.
+ * That is how a stored setting gets in, through the same storage the pilot
+ * writes, rather than a test hook that can drift from it.
  *
- * `args` are Chromium flags added after the defaults, for a check that
- * needs one of its own (scripts/voicechat-two-page.js: a fake microphone).
+ * `args`: Chromium flags added after the defaults, for the one check that
+ * needs its own (a fake microphone).
  *
- * `account`, a callsign, boots the page as a pilot signed in with it: an
- * accounts server of the page's own with Google stood in for
- * (tests/lib/account.js), an account made there, and its session in the
- * page's storage before the app runs. SIM_ACCOUNT=1 turns it on, as
- * 'Tester', for every page a check opens. Off, the page is the loopback
- * build with no accounts server, where nothing asks anybody to sign in.
+ * `account`: a callsign; the page boots signed in as that pilot (see
+ * signIn). SIM_ACCOUNT=1 turns it on, as 'Tester', for every page. Off,
+ * the page is the loopback build with no accounts server, where nothing
+ * asks anybody to sign in.
  *
- * `override` maps a path the page fetches from its own server
- * ('/src/maps/swiss2/vegetation/grass.js') to the JavaScript served in its
- * place, so a check can run another version of one module beside this
- * tree's (scripts/perf-grass-check.js runs main's).
+ * `override`: a path the page fetches from its own server mapped to the
+ * JavaScript served in its place, so a check can run another version of
+ * one module beside this tree's.
  */
 export async function openPage({
   root,
@@ -192,253 +345,154 @@ export async function openPage({
   if (!chrome) {
     throw new Error('no Chromium found');
   }
-  let accounts = null;
-  let signedIn = null;
-  let signedInSeed = [];
-  if (account) {
-    /* Loaded only here: it brings the tracks server, and SQLite, along. */
-    const { seedSignedIn, startAccounts } = await import('./account.js');
-    accounts = await startAccounts();
-    signedIn = await accounts.signUp(`sim-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, account);
-    signedInSeed = [seedSignedIn(accounts.origin, signedIn)];
-  }
+  const signedIn = account ? await signIn(account) : null;
   const server = await startServer(root);
-  const userDataDir = await mkdtemp(join(tmpdir(), 'sim-page-'));
-  /* SIM_GPU=1 renders on this machine's GPU instead of SwiftShader, for a
-   * check that measures frame time (scripts/itaipu-check.js): a CPU
-   * rasteriser's frame says nothing about a GPU's, and its threads compete
-   * with the page's main thread for the cores. Every other run keeps the
-   * software rasteriser every machine has. */
-  const raster = process.env.SIM_GPU === '1'
-    ? ['--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu']
-    : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
-  const proc = spawn(chrome, [
-    '--headless=new',
-    '--no-sandbox',
-    ...raster,
-    '--disable-dev-shm-usage',
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--hide-scrollbars',
-    /* A headless run is not a pilot: without this the title music and
-     * motors play out of the desktop's speakers while a check runs. The
-     * page's audio graph and media clock still run, so the audio-bed
-     * check still measures them. */
-    '--mute-audio',
-    '--force-device-scale-factor=1',
-    `--window-size=${width},${height}`,
-    '--remote-debugging-port=0',
-    `--user-data-dir=${userDataDir}`,
-    ...args,
-    'about:blank',
-  ]);
-  /* THE PROFILE IS A FEW HUNDRED FILES AND UP TO 150 MB, and /tmp here is a
-   * tmpfs. Nothing removed it, so four hundred runs left 10.8 GB behind and
-   * filled the quota until no process could write a byte. close() removes
-   * it after Chrome has exited; this covers a run that throws or is killed
-   * before it gets there. */
-  const dropProfile = () => {
+  const profile = await mkdtemp(join(tmpdir(), 'sim-page-'));
+  const proc = spawn(chrome, chromeFlags({ width, height, profile, args }));
+  const sweep = () => {
     proc.kill();
-    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+    rmSync(profile, RM_RETRIES);
   };
-  process.once('exit', dropProfile);
+  process.once('exit', sweep);
 
-
-  let stderrBuf = '';
-  const wsUrl = await new Promise((resolve, reject) => {
-    const t = setTimeout(
-      () => reject(new Error(`no DevTools endpoint: ${stderrBuf.slice(-1500)}`)),
-      30000,
-    );
-    proc.on('error', (e) => { clearTimeout(t); reject(e); });
-    proc.stderr.on('data', (d) => {
-      stderrBuf += d.toString();
-      const m = stderrBuf.match(/DevTools listening on (ws:\/\/\S+)/);
-      if (m) {
-        clearTimeout(t);
-        resolve(m[1]);
-      }
-    });
-  });
-
-  const ws = new WebSocket(wsUrl);
-  await new Promise((resolve, reject) => {
-    ws.addEventListener('open', resolve, { once: true });
-    ws.addEventListener('error', () => reject(new Error('DevTools websocket failed')), { once: true });
-  });
+  const ws = await openSocket(await devtoolsUrl(proc));
   const cdp = new Cdp(ws);
   const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+  const call = (method, params = {}) => cdp.send(method, params, sessionId);
 
   const errors = [];
   const warnings = [];
-  cdp.onEvent(async (msg) => {
+  cdp.onEvent((msg) => {
     if (msg.sessionId !== sessionId) {
       return;
     }
-    if (msg.method === 'Runtime.consoleAPICalled') {
-      const text = msg.params.args.map(describe).join(' ');
-      if (msg.params.type === 'error' || msg.params.type === 'assert') {
-        errors.push(`console.${msg.params.type}: ${text}`);
-      } else if (msg.params.type === 'warning') {
-        warnings.push(`console.warning: ${text}`);
-      }
-    } else if (msg.method === 'Runtime.exceptionThrown') {
-      const d = msg.params.exceptionDetails;
-      errors.push(`uncaught: ${d.exception ? describe(d.exception) : d.text}`);
-    } else if (msg.method === 'Log.entryAdded') {
-      const e = msg.params.entry;
-      if (e.level === 'error') {
-        errors.push(`${e.source}: ${e.text}`);
-      } else if (e.level === 'warning') {
-        warnings.push(`${e.source}: ${e.text}`);
-      }
-    } else if (msg.method === 'Fetch.requestPaused') {
-      const { requestId, request } = msg.params;
-      try {
-        const own = Object.keys(override).find((path) => new URL(request.url).pathname === path);
-        const buf = own ? Buffer.from(override[own]) : await cdnBytes(request.url);
-        await cdp.send('Fetch.fulfillRequest', {
-          requestId,
-          responseCode: 200,
-          responseHeaders: [
-            { name: 'content-type', value: 'text/javascript; charset=utf-8' },
-            { name: 'access-control-allow-origin', value: '*' },
-          ],
-          body: buf.toString('base64'),
-        }, sessionId);
-      } catch (e) {
-        errors.push(`cdn proxy failed for ${request.url}: ${e.message}`);
-        await cdp.send('Fetch.failRequest', { requestId, errorReason: 'Failed' }, sessionId).catch(() => {});
-      }
+    if (msg.method === 'Fetch.requestPaused') {
+      answerRequest(cdp, sessionId, msg.params, override, errors);
+      return;
     }
+    collectConsole(msg, errors, warnings);
   });
 
-  await cdp.send('Runtime.enable', {}, sessionId);
-  await cdp.send('Log.enable', {}, sessionId);
-  await cdp.send('Page.enable', {}, sessionId);
-  await cdp.send('Fetch.enable', {
-    patterns: [{ urlPattern: 'https://cdn.jsdelivr.net/*' }, ...Object.keys(override).map((path) => ({ urlPattern: `*${path}*` }))],
-  }, sessionId);
-  await cdp.send('Emulation.setDeviceMetricsOverride', {
+  await call('Runtime.enable');
+  await call('Log.enable');
+  await call('Page.enable');
+  await call('Fetch.enable', {
+    patterns: [CDN_HOST, ...Object.keys(override).map((path) => `*${path}*`)].map((urlPattern) => ({ urlPattern })),
+  });
+  /* The same width and height on every machine, whatever window Chrome
+   * thinks it has, so a measurement means one thing. */
+  await call('Emulation.setDeviceMetricsOverride', {
     width: Number(width), height: Number(height), deviceScaleFactor: 1, mobile: false,
-  }, sessionId);
+  });
   if (touch) {
-    await cdp.send('Emulation.setTouchEmulationEnabled', {
-      enabled: true, maxTouchPoints: 5,
-    }, sessionId);
+    await call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
   }
-  /* A controller plugged into this machine is a real pad to headless
-   * Chrome too: the owner's RadioMaster flew the P-51 and the Cub off
-   * their parking spots at three quarter throttle mid check. No run sees a
-   * pad unless its own seed, evaluated after this one, stubs one. */
-  await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: 'navigator.getGamepads = () => [];' }, sessionId);
-  for (const source of [...signedInSeed, ...seed]) {
-    await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source }, sessionId);
+  /* A controller plugged into this machine is a real pad to headless Chrome
+   * too, and one has flown a check's aircraft off its parking spot. No page
+   * sees a pad unless its own seed, run after this one, stubs one. */
+  const seeds = ['navigator.getGamepads = () => [];', ...(signedIn ? [signedIn.seed] : []), ...seed];
+  for (const source of seeds) {
+    await call('Page.addScriptToEvaluateOnNewDocument', { source });
   }
-  await cdp.send('Page.navigate', { url: `${server.origin}${url}` }, sessionId);
+  await call('Page.navigate', { url: `${server.origin}${url}` });
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-  /* Evaluate and hand back the value. A thrown expression is an error here
-   * rather than a logged line, because every caller of this helper is
-   * asserting on the answer. */
+  /* The expression's value, with a promise awaited. A throw is an error
+   * here, not a logged line: every caller is asserting on the answer. */
   async function evaluate(expression) {
-    const r = await cdp.send('Runtime.evaluate', {
+    const { result, exceptionDetails } = await call('Runtime.evaluate', {
       expression, returnByValue: true, awaitPromise: true,
-    }, sessionId);
-    if (r.exceptionDetails) {
-      const d = r.exceptionDetails;
-      throw new Error(`evaluate threw: ${d.exception ? describe(d.exception) : d.text}`);
+    });
+    if (exceptionDetails) {
+      const { exception, text } = exceptionDetails;
+      throw new Error(`evaluate threw: ${exception ? describe(exception) : text}`);
     }
-    return r.result.value;
+    return result.value;
   }
 
-  /* Poll until the expression is truthy. A wait in milliseconds is not
-   * evidence of anything: on a software rasteriser a frame takes about
-   * 120 ms, so a keypress followed by a fixed wait can read the state
-   * BEFORE the key. */
+  /* Poll until the expression is truthy. A fixed wait proves nothing: a
+   * software rasteriser's frame takes about 120 ms, so a key followed by a
+   * wait can read the state from before the key. */
   async function until(expression, timeoutMs = 30000) {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
-      const ok = await evaluate(expression).catch(() => false);
-      if (ok) {
+      if (await evaluate(expression).catch(() => false)) {
         return;
       }
       if (Date.now() > deadline) {
         throw new Error(`timed out waiting for: ${expression}`);
       }
-      await sleep(100);
+      await wait(100);
     }
   }
 
-  /* Until the loading screen is gone. It stays 400 ms after the first
-   * frame and fades for 400 more (src/ui/loading.js complete), over the
-   * title and anything opened on it, and a mouse event in that time lands
-   * on it: war:public clicked campaign Play there, and no room was made. A
-   * key goes to the page either way; a click has to wait for this. */
-  async function loaded(timeoutMs = 15000) {
-    await until("document.getElementById('pdcs-loader').hidden", timeoutMs);
-  }
+  /* The loading screen stays 400 ms past the first frame and fades 400
+   * more, over the title and whatever is open on it. A key reaches the page
+   * through it; a click lands on it, so a click waits for this. */
+  const loaded = (timeoutMs = 15000) => until("document.getElementById('pdcs-loader').hidden", timeoutMs);
 
-  /*
-   * A pilot's mouse click on the element `selector` matches, scrolled into
-   * view, at its middle; false when there is none. Every one is counted in
-   * page.clicks, for the checks that hold a way in to a number of clicks
-   * (the owner, 2026-10-02: "one two clicks max").
-   */
-  const counted = { clicks: 0 };
+  /* A left click at the middle of the first element `selector` matches,
+   * scrolled into view; false when nothing matches. Counted in page.clicks
+   * for the checks that hold a way in to a number of clicks. */
+  let clicks = 0;
   async function click(selector) {
     await loaded();
-    const at = await evaluate(`(() => {
-      const n = document.querySelector(${JSON.stringify(selector)});
-      if (!n) { return null; }
-      n.scrollIntoView({ block: 'center' });
-      const r = n.getBoundingClientRect();
-      return [r.left + r.width / 2, r.top + r.height / 2];
+    const centre = await evaluate(`(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) { return null; }
+      el.scrollIntoView({ block: 'center' });
+      const box = el.getBoundingClientRect();
+      return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
     })()`);
-    if (!at) {
+    if (!centre) {
       return false;
     }
     for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
-      await cdp.send('Input.dispatchMouseEvent', { type, x: at[0], y: at[1], button: 'left', clickCount: 1 }, sessionId);
+      await call('Input.dispatchMouseEvent', { type, ...centre, button: 'left', clickCount: 1 });
     }
-    counted.clicks += 1;
+    clicks += 1;
     return true;
   }
 
   async function tap(code) {
     const info = keyInfo(code);
-    await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...info }, sessionId);
-    await sleep(30);
-    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...info }, sessionId);
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', ...info });
+    await wait(30);
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', ...info });
   }
 
   async function close() {
-    try {
-      ws.close();
-    } catch (e) { /* The socket is already gone. Nothing to close. */ }
-    const exited = proc.exitCode !== null || proc.signalCode !== null
-      ? Promise.resolve()
-      : new Promise((done) => proc.once('exit', done));
+    ws.close();
+    const stillRunning = proc.exitCode === null && proc.signalCode === null;
+    const exited = stillRunning ? new Promise((resolve) => proc.once('exit', resolve)) : Promise.resolve();
     proc.kill();
     await exited;
     await server.close();
-    if (accounts) {
-      await accounts.stop();
+    if (signedIn) {
+      await signedIn.accounts.stop();
     }
-    process.removeListener('exit', dropProfile);
-    /* Chrome's helpers outlive the main process by a moment and are still
-     * writing the profile, which fails the delete with ENOTEMPTY; rm
-     * retries exactly that. */
-    await rm(userDataDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+    process.removeListener('exit', sweep);
+    await rm(profile, RM_RETRIES);
   }
 
   return {
-    cdp, sessionId, errors, warnings, origin: server.origin, proc, accounts, account: signedIn,
-    evaluate, until, loaded, click, tap, sleep, close,
+    cdp,
+    sessionId,
+    errors,
+    warnings,
+    origin: server.origin,
+    proc,
+    accounts: signedIn?.accounts ?? null,
+    account: signedIn?.account ?? null,
+    evaluate,
+    until,
+    loaded,
+    click,
+    tap,
+    sleep: wait,
+    close,
     get clicks() {
-      return counted.clicks;
+      return clicks;
     },
   };
 }

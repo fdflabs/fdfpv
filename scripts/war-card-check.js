@@ -17,10 +17,12 @@
  * missions; mission 1's Play with no consent stored is the consent
  * screen; Back leaves the pilot on that page with no room; Play again and
  * Continue:
- * a PUBLIC room named for its host (the owner opened the war to public
- * rooms on 2026-10-01 so a friend finds it), this pilot its host, Itaipu
- * seated, the room screen with the war's start row under the cursor,
- * listed as the war's with its mission. Reloaded (consent now stored),
+ * a room named for its host, this pilot its host, Itaipu seated, the
+ * room screen with the war's start row under the cursor. The page has
+ * ?missions=dev, since mission 1 is held (the owner, 2026-10-07), so the
+ * room is private and not listed: the server makes a public room only
+ * for a released mission (campaign-check has the public page, mission 1
+ * Under development). Reloaded (consent now stored),
  * the way in (the page, then Play) goes to a new Itaipu room with no
  * consent screen at all.
  *
@@ -256,9 +258,14 @@ async function toClub(p) {
   }
 }
 
-const server = await roomsServer(process.argv[2], 'war-card');
+/* devMissions, and the page's ?missions=dev: mission 1, the way in's,
+ * is in development (held since 2026-10-07), which only a check's own
+ * server starts and only such a page offers (src/game/campaign.js
+ * released). A server named on the command line must run with
+ * DEV_MISSIONS=on. */
+const server = await roomsServer(process.argv[2], 'war-card', { devMissions: true });
 console.log(`the Defend the Paraná card, rooms at ${server.url}`);
-const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
+const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}&missions=dev`, width: 1280, height: 720 });
 try {
   await page.until('window.__shellReady === true', 300000);
   await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
@@ -349,15 +356,16 @@ try {
   check('Back leaves the pilot on the campaign page, no room, nothing stored', back.page && back.page.page === 'missions' && back.phase === 'idle' && !back.consent,
     JSON.stringify(back));
 
-  /* Continue: the public room. */
+  /* Continue: the room, private, the one kind the server makes for a
+   * mission in development (src/main.js onWarCard). */
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
   await answer(page, 'Continue');
   const one = await landed(page);
-  check('Continue: a public Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one, true), JSON.stringify(one));
+  check('Continue: a private Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one), JSON.stringify(one));
   const named = await page.evaluate('window.__rooms().name');
   const oneLine = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === one.code);
-  check('named for its host, and listed as the war\'s, mission 1', /, Paraná$/.test(named || '') && oneLine && oneLine.game === 'war' && oneLine.mission === 'itaipu-1',
+  check('named for its host, and not listed, being private', /, Paraná$/.test(named || '') && oneLine === undefined,
     JSON.stringify({ named, oneLine }));
   await shot(page, 'war-room-host');
 
@@ -367,7 +375,7 @@ try {
   await page.evaluate(WATCH_DIALOG);
   await playMission1(page);
   const two = await landed(page);
-  check('the way in again: a new public Itaipu room, the start row under the cursor', landedWell(two, true) && two.code !== one.code, JSON.stringify(two));
+  check('the way in again: a new private Itaipu room, the start row under the cursor', landedWell(two) && two.code !== one.code, JSON.stringify(two));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
 
   /* MAKE A ROOM'S GAME ROW, opened while the lobby still builds the
