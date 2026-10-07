@@ -194,6 +194,7 @@ jobs:
       - run: npm run genbaseline:selftest
       - run: npm run score:golden
       - run: npm run scorehud:golden
+      - run: npm run debrief:selftest
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
