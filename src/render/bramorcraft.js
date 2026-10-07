@@ -368,10 +368,14 @@ function wingletGeometry(sign, n) {
 
 /*
  * The raised tail cone the motor rides: elliptical rings from over the
- * pod's back, where it blends into the body, up and aft to the motor.
+ * pod's back, where it blends into the body, up and aft to the motor. The
+ * first ring lies wholly under the skin (topAt(0, 0.34) is 54 mm, the
+ * ring's top 40 mm), so the cone rises out of the back rather than
+ * starting on a flat face standing proud of it.
  */
 function tailConeGeometry(segments) {
   const rings = [
+    [0.34, 0.010, 0.060, 0.030],
     [0.44, 0.030, 0.080, 0.040],
     [0.54, 0.048, 0.062, 0.042],
     [0.64, 0.068, 0.040, 0.034],
@@ -389,8 +393,10 @@ function tailConeGeometry(segments) {
   return loft(secs, TAIL_CONE_FLIP);
 }
 
-/* Which way the tail cone's rings wind, looked at in the preview. */
-const TAIL_CONE_FLIP = true;
+/* The rings run from +x over the top and advance aft, along +z, which the
+ * loft winds outward as it is: flipped, the cone was drawn inside out, its
+ * near wall culled and its far wall lit from inside. */
+const TAIL_CONE_FLIP = false;
 
 /* A folding prop blade, built along +x from its hinge, long and slim. */
 function bladeGeometry(segments) {
@@ -664,11 +670,12 @@ export function buildBramorCraft(opts = {}) {
   group.add(cameraMount);
 
   /* The pitot, low on the nose's left side, and two antenna stubs on the
-   * back. The stubs are NAMED antenna: wire, not aircraft. */
+   * back, outboard of the tail cone, which is 75 mm wide where they stand.
+   * The stubs are NAMED antenna: wire, not aircraft. */
   {
     const pitot = tube(new THREE.Vector3(-0.055, -0.035, 0.13 - NOSE_TO_CG), new THREE.Vector3(-0.058, -0.037, 0.04 - NOSE_TO_CG), 0.0035, black, 6);
     group.add(pitot);
-    for (const x of [0.030, 0.052]) {
+    for (const x of [0.090, 0.112]) {
       const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.004, 0.040, 6), black);
       mast.position.set(x, topAt(x, 0.47) + 0.018, 0.47 - NOSE_TO_CG);
       mast.name = 'antenna';
@@ -740,7 +747,8 @@ export function buildBramorCraft(opts = {}) {
     { x: -HALF + 0.02, y: midY(HALF), z: leZ(HALF) + 0.03, front: true },
     { x: HALF - 0.02, y: midY(HALF), z: leZ(HALF) + 0.03, front: false },
     { x: 0, y: -0.058, z: 0.12 - NOSE_TO_CG, front: true },
-    { x: 0, y: HUB_Y + 0.018, z: PROP_Z - 0.05, front: false },
+    /* On the cone's top, which is 108 mm over the CG there. */
+    { x: 0, y: 0.108, z: PROP_Z - 0.05, front: false },
   ];
   for (const at of lampAt) {
     const base = at.front ? 0xe8a8b8 : 0x7dffb4;
