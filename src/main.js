@@ -1937,103 +1937,75 @@ export async function boot({
   const peerMarks = new PeerMarks(uiRoot, shell.renderer.domElement);
   const peerMarkGround = (x, z) => view.height(x, z, Infinity);
   /*
-   * The thumb sticks, on a device that has thumbs to offer. Mounted after
-   * the Ui so the overlay sits ABOVE every screen in the stacking order,
-   * which is exactly why the frame loop below only shows it in flight:
-   * over a menu its catchment zones would swallow the taps. Pause goes
-   * through the same two calls the Escape key makes from flight.
+   * Thumb sticks, built only where the device reports touch points. They go
+   * in after the Ui so they sit above every screen it draws, and the frame
+   * loop keeps them hidden outside flight: over a menu their catch zones
+   * would take the taps meant for it.
    */
-  let touch = null;
-  if (touchWanted()) {
-    touch = mountTouchSticks({
-      onPause: () => {
-        if (ui.screen === 'flight') {
-          ui.act('pause');
-          ui.show('paused');
-          /* Hide NOW, not on the next frame: the frame loop confirms this
-           * a beat later, and that beat is long enough on a slow phone for
-           * the pilot's second tap to land on a stick zone that is sitting
-           * over the menu it just opened. */
-          touch.setVisible(false);
-        }
-      },
-      /* The aircraft picker over the paused flight, hidden now for the
-       * same reason. */
-      onSwap: () => {
-        if (ui.screen === 'flight') {
-          ui.openSwap('flight');
-          touch.setVisible(false);
-        }
-      },
-    });
+  const touch = touchWanted() ? mountTouchSticks({
+    onPause: () => leaveFlightFromThumbs(() => {
+      ui.act('pause');
+      ui.show('paused');
+    }),
+    onSwap: () => leaveFlightFromThumbs(() => ui.openSwap('flight')),
+  }) : null;
+  /* Both buttons mean something only in flight, the same two steps the
+   * Escape key takes for Pause, and both hide the sticks at once rather
+   * than on the frame loop's next pass: on a slow phone the pilot's second
+   * tap can land in a stick zone lying over the menu just opened. */
+  function leaveFlightFromThumbs(open) {
+    if (ui.screen !== 'flight') {
+      return;
+    }
+    open();
+    touch.setVisible(false);
+  }
+  if (touch) {
     uiRoot.append(touch.root);
     input.attachTouch(touch);
   }
   /*
-   * THE SITE'S COUNTERS.
-   *
-   * Built HERE, as soon as the input and the shell exist, rather than down
-   * beside the frame loop that drives it: the crash handler two thousand
-   * lines below calls noteCrash, and a `const` declared after its callers
-   * is a temporal dead zone waiting for the day somebody calls one of them
-   * a little earlier. Nothing here needs a world, so nothing here has to
-   * wait for one.
-   *
-   * The board's statistics page counts sessions, laps and flight time. This
-   * is the only thing in the simulator that reports any of it, and all it
-   * ever sends is a few small numbers: see src/share/stats.js for what is
-   * NOT in them, which is the part that matters.
-   *
-   * describe() is a callback rather than three fields, because the aircraft,
-   * the map and the input can all change between the first frame and the
-   * flush a minute later. It is read at send time so a flush says what the
-   * pilot was actually flying, and it is passed in so stats.js never has to
-   * import the shell.
-   *
-   * The input is folded to one of three words HERE, because this is where
-   * both halves of the answer live: a radio and a game controller both
-   * arrive through the Gamepad API and are the same answer to "did they use
-   * sticks", and the board has no business knowing which radio.
-   *
-   * The craft is the real airframe id. The board counts the ids it knows
-   * and folds any other to `other` itself, so nothing is folded here.
+   * Counters for the board's statistics page: sessions, laps and flight
+   * time, and nothing else (src/share/stats.js lists what is never sent).
+   * Made this early because the crash path far below counts into it, and a
+   * const reached before its own line throws. Nothing in it waits on a
+   * world.
    */
-  const flightStats = createFlightStats({
-    describe: () => ({
-      craft: ui.settings.airframe,
-      /* The board's stats still spell Track mode 'custom', the seat's old
-       * name (STATS_MAPS in fdfpv-leaderboard's validate.js). */
-      map: ui.settings.map === 'track' ? 'custom' : ui.settings.map,
-      input: (() => {
-        if (input.firstGamepad()) {
-          return 'gamepad';
-        }
-        if (input.touchSource && input.touchSource.active()) {
-          return 'touch';
-        }
-        return 'keyboard';
-      })(),
-    }),
-  });
+  const flightStats = createFlightStats({ describe: describeFlight });
   /*
-   * The last flush, sent when the page goes away. pagehide rather than
-   * unload, because a browser that put this tab in its back/forward cache
-   * never fires unload and the minute is lost; visibilitychange covers the
-   * mobile case, where a tab being backgrounded is how a session usually
-   * ends and pagehide may never come at all.
-   *
-   * Both may fire for the same departure. That is harmless: the second one
-   * finds the counters already cleared and sends a flush of noughts, which
-   * costs the board one row it already had.
+   * The three words every stats event carries, asked when the event is
+   * sent, so a flush a minute in names what is flown then and stats.js
+   * never imports the shell. The board still spells the Track seat 'custom'
+   * (STATS_MAPS in fdfpv-leaderboard's validate.js) and folds airframe ids
+   * it does not know itself. Input is only keyboard, touch or gamepad: a
+   * radio reaches the browser as a gamepad, and which radio is not the
+   * board's business.
    */
-  window.addEventListener('pagehide', () => {
+  function describeFlight() {
+    let how = 'keyboard';
+    if (input.firstGamepad()) {
+      how = 'gamepad';
+    } else if (input.touchSource && input.touchSource.active()) {
+      how = 'touch';
+    }
+    const seat = ui.settings.map;
+    return { craft: ui.settings.airframe, map: seat === 'track' ? 'custom' : seat, input: how };
+  }
+  /*
+   * What is still counted goes when the page does. pagehide fires where
+   * unload never would (a tab kept in the back/forward cache), and a hidden
+   * page covers phones, where backgrounding is how a session usually ends.
+   * One exit can fire both: the second finds the counters empty and costs
+   * the board a row of zeros.
+   */
+  const pageLeaving = () => {
     flightStats.leaving();
     commitFlightTime();
-  });
+  };
+  window.addEventListener('pagehide', pageLeaving);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      flightStats.leaving();
-      commitFlightTime();
+      pageLeaving();
     }
   });
 
@@ -2121,49 +2093,30 @@ export async function boot({
   });
   window.__perfOverlay = () => ({ on: perfOverlay.on, ...perfOverlay.shown, text: perfOverlay.el.textContent });
   /*
-   * A machine with no usable GPU hands WebGL to SwiftShader or llvmpipe and
-   * keeps drawing, so nothing fails and nothing says why. It just runs at a
-   * handful of frames per second, and because the picture is what tells a
-   * pilot where the quad is, a slow picture reads as a slow radio. The
-   * sticks are not late: they are sampled off their own 2 ms timer and
-   * stamped, and the module consumes each one at the moment it was taken.
-   * The frame carrying the answer back is what is late.
-   *
-   * Detection could not know this earlier. loadSettings runs before any
-   * context exists and can only read the user agent, which names a Steam
-   * Deck and nothing else. This is the first line that has the renderer, so
-   * it is the first line that can tell a CPU rasteriser from a GPU.
-   *
-   * Only a DETECTED value is lowered. Someone who picked High on this
-   * machine and meant it keeps it, however it runs.
+   * The first line with a renderer, so the first that can see what really
+   * draws. The preset chosen before it (loadSettings, from the user agent
+   * alone) cannot tell a CPU rasteriser or a laptop's shared-memory chip
+   * from a GPU. A CPU rasteriser keeps drawing at a few frames a second,
+   * and since the picture is how the pilot sees the quad, a late picture
+   * feels like late sticks (the sticks are sampled on their own timer and
+   * are not late), so it goes to Low. An integrated chip draws well but is
+   * short of fill rate and bandwidth, so High steps down to Medium, the
+   * tier quality.js aims at those chips (Apple Silicon is left alone, see
+   * INTEGRATED_RE). Only a preset the shell chose is lowered; one the pilot
+   * picked stays. graphicsAuto stays set, because the value is still the
+   * shell's, and the next boot finds nothing to lower.
    */
-  if (gpuInfo.software && ui.settings.graphicsAuto && ui.settings.graphics !== 'low') {
-    ui.settings.graphics = 'low';
-    /* Still detected, not chosen, so this stays set. It costs nothing: the
-     * value is already Low, so the test above short circuits on every later
-     * boot, and leaving the flag honest is what lets a future round raise a
-     * machine back up if it turns out to have had a GPU all along. */
-    ui.persistSettings();
-    ui.renderMenu();
-  } else if (gpuInfo.integrated && ui.settings.graphicsAuto && ui.settings.graphics === 'high') {
-    /*
-     * THE SAME BRANCH, ONE STEP SMALLER, FOR THE MACHINE MEDIUM IS NAMED
-     * FOR.
-     *
-     * detectDefaultGraphics runs before any context exists and can only read
-     * the user agent, which names a Steam Deck, a phone and nothing else.
-     * So every laptop booted into High, including the UHD 620 and Iris class
-     * parts that quality.js explicitly describes as Medium's target. This is
-     * the first line that has the renderer's name, which is the only way to
-     * tell an integrated chip from a discrete one, and it is the line the
-     * software test above already stands on.
-     *
-     * Medium and not Low: an iGPU draws perfectly well, it is short of fill
-     * rate and memory bandwidth, and Medium is where the shadows come down
-     * to 1024 and the bloom pass goes away. Apple Silicon is deliberately
-     * not matched, per the note on INTEGRATED_RE.
-     */
-    ui.settings.graphics = 'medium';
+  const gpuPreset = (() => {
+    if (!ui.settings.graphicsAuto) {
+      return null;
+    }
+    if (gpuInfo.software) {
+      return ui.settings.graphics === 'low' ? null : 'low';
+    }
+    return gpuInfo.integrated && ui.settings.graphics === 'high' ? 'medium' : null;
+  })();
+  if (gpuPreset) {
+    ui.settings.graphics = gpuPreset;
     ui.persistSettings();
     ui.renderMenu();
   }
@@ -2171,16 +2124,12 @@ export async function boot({
   /* The aircraft picker's models, in the shell's own renderer. */
   const pickStage = createCarouselStage(shell.renderer);
   /*
-   * boot.js read the stored map before any module loaded, so it could weight
-   * the loading screen. ui.js is the owner of the setting; if the two ever
-   * disagree the ui wins, because it is what the player sees.
-   *
-   * The menu is rebuilt after the change, not just the value. The Ui builds
-   * its rows in its constructor, which has already run by this line, so a
-   * map named in the URL used to land in the settings and leave the Map row
-   * still reading the map it was not showing.
+   * A map named in the address wins over the stored one. boot.js only read
+   * it to weight the loading bar; the Ui owns the setting, and it built its
+   * rows in its constructor, so they are rebuilt here or the menu would go
+   * on naming a map that is not the one shown.
    */
-  if (mapId && ui.settings.map !== mapId) {
+  if (mapId && mapId !== ui.settings.map) {
     ui.settings.map = mapId;
     ui.renderMenu();
   }
@@ -2251,117 +2200,104 @@ export async function boot({
     return seated ? seated.document.map : seat.home;
   }
   /* The record line. While the title shows its own world the seat's course
-   * is not built, so the Ui is told that rather than the Alps' mode. */
+   * is unbuilt, and an undefined record and mode tell the Ui exactly that. */
   function paintBest() {
-    if (titleWorld) {
-      ui.setBest(undefined);
-      return;
-    }
-    ui.setBest(race.bestMs, view.mode);
+    const built = !titleWorld;
+    ui.setBest(built ? race.bestMs : undefined, built ? view.mode : undefined);
   }
   /*
-   * THE FLIGHT CONTROLLER'S BYTES ARE ASKED FOR BEFORE THE BOARD IS, AND
-   * THIS IS THE ONE PLACE THE TWO OVERLAP.
+   * The flight controller's bytes are fetched now, beside the board, not
+   * after it. dist/sim.wasm needs nothing from the address, the board or
+   * the settings, and the board can be a sleeping host a minute from
+   * waking; in series, the board's round trips sat in front of the wasm
+   * (1519 ms against a local board). scripts/boot-check.js holds the order.
    *
-   * dist/sim.wasm depends on nothing: not the URL, not the board, not the
-   * settings. The board fetch below depends on the network reaching another
-   * host that may be asleep. They used to run in series, so the wasm request
-   * did not leave the browser until both board round trips had come back:
-   * measured 1519 ms on a local board, and a cold Render service takes about
-   * a minute to wake. Starting it here costs nothing and takes those round
-   * trips off the critical path.
-   *
-   * The progress callback is deliberately gated. loading.report(id) starts
-   * that stage if it is not the current one, so an ungated callback would
-   * flip the screen to "Flight controller" while it is really waiting on the
-   * board, which is the same lie in a new place. Instead the last reading is
-   * held and replayed when the sim stage genuinely begins.
+   * Progress shows only once the sim stage is the live one. The loading
+   * screen opens whatever stage reports, so an early report would claim
+   * "Flight controller" while the board is the real wait; the latest
+   * reading is kept and shown when the stage opens.
    */
   let simProgress = null;
   let simStageLive = false;
-  const simBytes = fetchBytes(WASM_URL, (f, got, total) => {
-    simProgress = [f, str('main.of_kb', { v1: (got / 1024).toFixed(0), v2: (total / 1024).toFixed(0) })];
+  const simBytes = fetchBytes(WASM_URL, (frac, got, total) => {
+    const kb = (bytes) => (bytes / 1024).toFixed(0);
+    simProgress = [frac, str('main.of_kb', { v1: kb(got), v2: kb(total) })];
     if (simStageLive) {
-      loading.report('sim', simProgress[0], simProgress[1]);
+      loading.report('sim', ...simProgress);
     }
   });
-  /* A rejection here is handled at the await below, in the stage that owns
-   * it. Without this the failure is unhandled for as long as the board takes,
-   * and the console gets a promise rejection warning before the screen gets
-   * its honest message. */
+  /* A failure is reported where the bytes are awaited, by the sim stage.
+   * This only keeps the browser from calling the rejection unhandled while
+   * the board is still being asked. */
   simBytes.catch(() => {});
   /*
-   * A published track arrives as ?share=id. Fetch it before the world is
-   * built so the world built is the one the track the board sent stands in.
-   *
-   * This is a named stage because it is a network wait on a service that
-   * sleeps, and a player who is told "Renderer" while the board wakes up
-   * will go looking for the wrong problem.
+   * A published track's link (?share=id) is fetched before any world is
+   * built, so the world built is the one it stands in. It is a stage of its
+   * own because the board can be asleep, and a pilot told "Renderer" while
+   * it wakes would look for the wrong problem.
    */
   loading.start('board');
   loading.system('online', 'loading');
   try {
-    const fromUrl = await adoptShareFromLocation();
-    /* The board is asked only for a link that names a published track;
-     * any other boot makes no connection here. */
-    loading.system('online', fromUrl ? 'ready' : 'na');
-    if (fromUrl) {
-      /*
-       * THE AIRCRAFT THAT MAY RACE THE LINKED TRACK, before anything reads
-       * a seat. Every quad may, and a plane that fits every gate; a link
-       * naming a plane that does not fit gives way to the five inch, and the
-       * track moves from the planes' seat to the quads' with it, or the
-       * pilot lands with the track they were sent to in the other seat.
-       * applySettings runs once below and swaps the plant to match, the
-       * same path an aircraft change from the menu takes.
-       */
-      if (ui.seatCraftForDoc(fromUrl.document)) {
-        const stale = readShareImport('wing');
-        if (stale && stale.id === fromUrl.id) {
-          clearShareImport('wing');
-        }
-        writeShareImport(fromUrl);
-      }
-      ui.settings.map = 'track';
-      ui.renderMenu();
+    const linked = await adoptShareFromLocation();
+    /* Without a link boot asks the board nothing, and the row says so. */
+    loading.system('online', linked ? 'ready' : 'na');
+    if (linked) {
+      seatLinkedTrack(linked);
     }
   } catch (e) {
     loading.system('online', 'fail');
     ui.setBanner(str('main.could_not_open_that_published_track', { v1: e.message ?? e }), true);
   }
-  /* Done either way: a board that was down is a board that has finished
-   * being asked. Without this the stage records no duration and the bar
-   * keeps its weight without ever filling it. */
+  /* Whichever way it went, so the stage has a duration and the bar fills
+   * the share it was given. */
   loading.done('board');
   /*
-   * A board chase link arrives as ?ghost=tm-xxxxxxxx beside the ?share=.
-   * The id is only held here; the fetch happens once the course is loaded
-   * and its listing known, in ghostCourseChanged, so a slow board cannot
-   * stall boot.
+   * The linked track takes the Track seat, after the aircraft question:
+   * ui.seatCraftForDoc moves the pilot onto an aircraft that may race it
+   * (any quad, a plane that fits every gate, else the five inch) and says
+   * whether that moved the track from the planes' seat to the quads', in
+   * which case a stale copy of it in the planes' seat goes and it is written
+   * to the quads'. Done before anything reads a seat; applySettings, run
+   * once below, swaps the plant to match.
    */
-  let wantGhostId = '';
-  try {
-    const fromUrl = new URLSearchParams(window.location.search).get('ghost') || '';
-    if (/^tm-[0-9a-f]{8}$/.test(fromUrl)) {
-      wantGhostId = fromUrl;
+  function seatLinkedTrack(linked) {
+    if (ui.seatCraftForDoc(linked.document)) {
+      const planeSeat = readShareImport('wing');
+      if (planeSeat && planeSeat.id === linked.id) {
+        clearShareImport('wing');
+      }
+      writeShareImport(linked);
     }
-  } catch (e) {
-    /* No URL to read. */
+    ui.settings.map = 'track';
+    ui.renderMenu();
   }
   /*
-   * The handle lives in this browser. If it has changed since this browser
-   * last published, push it to the board so the author line and the times
-   * posted under the old handle catch up. A layout change is not sent here:
-   * that still asks first, because it clears times.
+   * A chase link adds ?ghost=tm- and eight hex digits. Only the id is kept
+   * here; the ghost is fetched once the course and its board times are
+   * known (ghostCourseChanged), so a slow board never holds up the boot.
+   */
+  const wantGhostId = boardTimeIdIn(window.location.search);
+  function boardTimeIdIn(search) {
+    let id = '';
+    try {
+      id = new URLSearchParams(search).get('ghost') || '';
+    } catch (e) {
+      return '';
+    }
+    return /^tm-[0-9a-f]{8}$/.test(id) ? id : '';
+  }
+  /*
+   * A handle changed since this browser last published is sent to the
+   * board, so the author line and the times posted under the old one catch
+   * up. A changed layout is not: that clears times, so it is asked first.
+   * Nothing waits on this, and a board that is down catches up the next
+   * time the name is saved.
    */
   (async () => {
-    try {
-      const listing = inspectCourse();
-      await pushOwnedListing(listing && listing.doc ? listing.doc : null);
-    } catch (e) {
-      /* The board can stay a step behind until they save the name again. */
-    }
-  })();
+    const own = inspectCourse();
+    await pushOwnedListing(own && own.doc ? own.doc : null);
+  })().catch(() => {});
 
   let view = null;
   /*
@@ -2389,81 +2325,61 @@ export async function boot({
     r.setRenderTarget(was);
   }
   /*
-   * RESIZE IS APPLIED ONCE A FRAME, NOT ONCE AN EVENT.
-   *
-   * post.setSize reallocates both composer targets, the normal target and
-   * every pass including the bloom ladder. Dragging a window edge fires tens
-   * of resize events a second, so the old handler turned a drag into a storm
-   * of GPU allocations, with the previous set of targets still alive until
-   * the collector got to them. Setting a flag and doing the work at the top
-   * of the frame collapses a drag into one resize per frame, which is the
-   * most a screen can show anyway.
+   * Resizes are coalesced to one a frame. Sizing the post chain reallocates
+   * every composer target and the bloom levels, and a window drag fires
+   * dozens of events a second, each of which used to leave a whole set of
+   * dead targets for the collector. The event only marks the size stale;
+   * the frame applies it.
    */
   let resizeDirty = false;
-  window.addEventListener('resize', () => {
-    resizeDirty = true;
-  });
-  /* The movie export's surface while one is set, else null: see
-   * setExportSurface. A resize waits for it to go. */
+  window.addEventListener('resize', () => { resizeDirty = true; });
+  /* The movie export's surface while one is set (setExportSurface), else
+   * null. A resize waits until it goes. */
   let exportShot = null;
   function applyResizeIfDirty() {
-    if (!resizeDirty || exportShot) {
+    if (exportShot || !resizeDirty) {
       return;
     }
     resizeDirty = false;
-    const d = shell.resize();
+    const size = shell.resize();
     /*
-     * The pixel ratio is re-read here, which it never used to be.
-     *
-     * pixelRatioFor was evaluated at boot, on a preset change and on a
-     * settings write, and nowhere else. Browser zoom fires resize and
-     * changes devicePixelRatio, so Ctrl-plus left the canvas rendering at
-     * the old ratio in fewer CSS pixels, which is a blurry upscale; dragging
-     * a window from a 2x laptop panel to a 1x monitor kept rendering four
-     * times the pixels the monitor could show. It also matters more now that
-     * the ratio depends on the window's area through the field's pixel
-     * budget, which by definition changes when the window does.
+     * The pixel ratio is worked out again on every resize. Browser zoom and
+     * a move to another screen change devicePixelRatio and fire resize, and
+     * the ratio also follows the window's area through the field's pixel
+     * budget. A ratio kept from boot renders blurry after Ctrl-plus, or four
+     * times the pixels a 1x monitor can show.
      */
     const dyn = dynres.state.scale;
-    const wantPr = pixelRatioFor(ui.settings.graphics, renderScaleOf(ui.settings), null, dyn);
-    if (Math.abs(wantPr - shell.pixelRatio) > 0.001) {
-      applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings), null, dyn);
+    const scale = renderScaleOf(ui.settings);
+    if (Math.abs(pixelRatioFor(ui.settings.graphics, scale, null, dyn) - shell.pixelRatio) > 0.001) {
+      applyPixelRatio(shell, ui.settings.graphics, scale, null, dyn);
     }
-    /* mapReady as well as view: a swap disposes the old pipeline before it
-     * builds the new one, and a resize landing in that window used to call
-     * setSize on render targets that had already been freed. mapReady is
-     * false for exactly that gap. */
-    if (view && view.post && mapReady) {
-      view.post.setSize(d.w, d.h);
-      if (view.post.sharpen) {
-        view.post.sharpen.enabled = dyn < 1;
-      }
+    /* Not between a map swap tearing down the old post chain and building
+     * the new one, which is exactly when mapReady is false: setSize there
+     * touches freed targets. */
+    if (!view || !view.post || !mapReady) {
+      return;
+    }
+    view.post.setSize(size.w, size.h);
+    if (view.post.sharpen) {
+      view.post.sharpen.enabled = dyn < 1;
     }
   }
   /*
-   * THE MOVIE EXPORT DRAWS AT THE MOVIE'S SIZE, NOT THE WINDOW'S.
-   *
-   * src/replay/export.js takes each frame off this canvas, so for an export
-   * the drawing buffer is w x h exactly (pixel ratio 1) while the page keeps
-   * its CSS size, and the world's own clock (grass, water) is the movie's:
-   * clock() is the movie time of the frame being drawn, so a frame held
-   * while the encoder catches up does not move the grass. Returns the
-   * restore, which re-applies the window's size and ratio, and any resize
-   * that arrived meanwhile.
+   * The movie export (src/replay/export.js) reads its frames off this
+   * canvas, so while it runs the drawing buffer is exactly w x h at ratio 1,
+   * the page's CSS size untouched, and the world's moving parts (grass,
+   * water) follow clock(), the movie time of the frame being drawn: a frame
+   * held while the encoder catches up holds the grass with it. Returns the
+   * restore, which puts the window's size and ratio back and applies any
+   * resize that came meanwhile, once.
    */
   function setExportSurface(w, h, clock) {
     if (exportShot) {
       throw new Error('an export surface is already set');
     }
     exportShot = { clock, wind0: performance.now() * 0.001, waves0: renderSimT };
-    shell.pixelRatio = 1;
-    shell.renderer.setPixelRatio(1);
-    shell.renderer.setSize(w, h, false);
-    shell.camera.aspect = w / h;
-    shell.camera.updateProjectionMatrix();
-    if (view && view.post && mapReady) {
-      view.post.setSize(w, h);
-    }
+    sizeForMovie(w, h);
     return () => {
       if (!exportShot) {
         return;
@@ -2472,6 +2388,16 @@ export async function boot({
       resizeDirty = true;
       applyResizeIfDirty();
     };
+  }
+  function sizeForMovie(w, h) {
+    shell.pixelRatio = 1;
+    shell.renderer.setPixelRatio(1);
+    shell.renderer.setSize(w, h, false);
+    shell.camera.aspect = w / h;
+    shell.camera.updateProjectionMatrix();
+    if (view && view.post && mapReady) {
+      view.post.setSize(w, h);
+    }
   }
   const audio = new MotorAudio();
   /* The ground's material where the craft is, as the plant was last told
