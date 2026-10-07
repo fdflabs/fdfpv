@@ -6426,10 +6426,6 @@ export class Ui {
       openNamedWindow(boardPageUrl(this.share && this.share.board, boardCraft(this.settings.airframe)), BOARD_WINDOW);
       return;
     }
-    if (action === 'reportbug') {
-      this.openBugReport();
-      return;
-    }
     if (action === 'feel') {
       this.openFeelReport();
       return;
@@ -6478,30 +6474,6 @@ export class Ui {
       if (card && card.course && card.course.kind === 'board') {
         this.showStandings(card.course.track);
       }
-      return;
-    }
-    /*
-     * Standings for the seated track. Its listing carries the share id and
-     * the board it came from, which is all fetchTrackTimes needs; the name
-     * and gates come off the seat so the screen has something to draw
-     * before the network answers.
-     */
-    if (action === 'standings') {
-      const listing = liveListing();
-      const seat = activeCourseSummary();
-      if (!listing || !listing.shareId) {
-        return;
-      }
-      this.showStandings({
-        id: listing.shareId,
-        name: (seat && seat.name) || listing.name || str('ui.this_track'),
-        author: listing.author || '',
-        designer: (seat && seat.designer) || listing.designer || '',
-        series: (seat && seat.series) || listing.series || '',
-        gates: (seat && seat.gates) || 0,
-        board: listing.board || '',
-        map: listing.doc && isMapTrack(listing.doc) ? listing.doc.map : '',
-      });
       return;
     }
     if (action === 'standings-fly') {
@@ -6713,20 +6685,6 @@ export class Ui {
       }
       return;
     }
-    /*
-     * `tricks` BELONGS HERE and was missing, so the Trick list door did
-     * nothing. The screen was built, the row was on the Freestyle menu with
-     * action 'tricks', and SCREEN_ACTIONS listed it, so every part that
-     * announces the room existed; this is the one that walks into it, and
-     * it is a hand written list of screen names that the new screen was
-     * never added to. Pressing Enter on the row left the pilot exactly
-     * where they were, which is the whole feature unreachable.
-     *
-     * Found by driving the real shell rather than by reading: window.__ui
-     * .show('tricks') rendered the screen perfectly, which is what made it
-     * look fine, and only pressing the key a pilot presses showed that
-     * nothing happened.
-     */
     if (typeof action === 'string' && action.startsWith('friends-')) {
       if (this.onFriends) {
         this.onFriends(action);
@@ -6748,7 +6706,7 @@ export class Ui {
     }
     if (action === 'howto' || action === 'pilot' || action === 'quad'
       || action === 'courses' || action === 'freestyle' || action === 'credits'
-      || action === 'tricks' || action === 'friends') {
+      || action === 'friends') {
       /*
        * A room opened FROM another room remembers which, so Back is the way
        * you came rather than a jump to the title. Only from a real room,

@@ -71,7 +71,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -206,7 +208,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -648,13 +656,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -1737,7 +1744,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -1872,7 +1881,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -2314,13 +2329,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -3417,7 +3431,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -3552,7 +3568,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -3994,13 +4016,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -5114,7 +5135,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -5303,7 +5326,13 @@
     "changed": {},
     "parked": true,
     "resumed": {
-     "calls": [],
+     "calls": [
+      [
+       "onAction",
+       "standings",
+       "object"
+      ]
+     ],
      "changed": {}
     }
    },
@@ -5880,13 +5909,12 @@
     "resumed": {
      "calls": [
       [
-       "show",
-       "tricks"
+       "onAction",
+       "tricks",
+       "object"
       ]
      ],
-     "changed": {
-      "screen": "tricks"
-     }
+     "changed": {}
     }
    },
    "friends": {
@@ -7250,7 +7278,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -7387,8 +7417,9 @@
    "standings": {
     "calls": [
      [
-      "showStandings",
-      "Board ring"
+      "onAction",
+      "standings",
+      "object"
      ]
     ],
     "changed": {}
@@ -7811,13 +7842,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -8889,7 +8919,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -9024,7 +9056,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -9445,13 +9483,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -10523,7 +10560,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -10658,7 +10697,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -11073,13 +11118,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -12172,7 +12216,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -12307,7 +12353,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -12740,13 +12792,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -13857,7 +13908,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -13992,7 +14045,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -14441,13 +14500,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -15591,7 +15649,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -15732,8 +15792,9 @@
    "standings": {
     "calls": [
      [
-      "showStandings",
-      "Board ring"
+      "onAction",
+      "standings",
+      "object"
      ]
     ],
     "changed": {}
@@ -16166,13 +16227,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -17261,7 +17321,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -17398,8 +17460,9 @@
    "standings": {
     "calls": [
      [
-      "showStandings",
-      "Board ring"
+      "onAction",
+      "standings",
+      "object"
      ]
     ],
     "changed": {}
@@ -17843,13 +17906,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -18947,7 +19009,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -19082,7 +19146,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -19515,13 +19585,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -20635,7 +20704,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -20770,7 +20841,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -21204,14 +21281,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -22298,7 +22373,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -22511,7 +22588,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -22945,14 +23028,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -24044,7 +24125,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -24254,7 +24337,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -24688,14 +24777,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -25787,7 +25874,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -25958,7 +26047,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -26392,14 +26487,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -27486,7 +27579,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -27699,7 +27794,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -28133,14 +28234,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -29232,7 +29331,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -29433,7 +29534,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -29867,14 +29974,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -30966,7 +31071,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -31142,7 +31249,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -31576,14 +31689,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -32675,7 +32786,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -32871,7 +32984,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -33305,14 +33424,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -34404,7 +34521,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -34596,7 +34715,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -35030,14 +35155,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -36129,7 +36252,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -36258,7 +36383,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -36692,14 +36823,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -37791,7 +37920,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -38018,7 +38149,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -38480,14 +38617,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -39579,7 +39714,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -39729,7 +39866,13 @@
     }
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -40191,14 +40334,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "courses"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -41290,7 +41431,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -41425,7 +41568,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -41851,14 +42000,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "freestyle"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -42965,7 +43112,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -43100,7 +43249,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -43519,13 +43674,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -44601,7 +44755,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -44736,7 +44892,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -45155,13 +45317,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -46225,7 +46386,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -46360,7 +46523,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -46779,13 +46948,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -47852,7 +48020,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -47987,7 +48157,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -48422,14 +48598,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "returnTo": "title"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -49524,7 +49698,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -49659,7 +49835,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -50102,14 +50284,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": null
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -51211,7 +51391,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -51346,7 +51528,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -51767,13 +51955,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -52848,7 +53035,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -52983,7 +53172,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -53404,13 +53599,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -54485,7 +54679,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -54620,7 +54816,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -55052,13 +55254,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -56147,7 +56348,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -56282,7 +56485,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -56714,13 +56923,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -57821,7 +58029,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -57956,7 +58166,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -58388,13 +58604,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -59490,7 +59705,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -59625,7 +59842,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -60057,13 +60280,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -61165,7 +61387,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -61300,7 +61524,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -61732,13 +61962,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -62844,7 +63073,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -62979,7 +63210,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -63414,14 +63651,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "quad"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -64516,7 +64751,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -64651,7 +64888,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -65086,14 +65329,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "pilot"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -66198,7 +66439,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -66333,7 +66576,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -66765,13 +67014,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -67859,7 +68107,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -67994,7 +68244,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -68426,13 +68682,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -69517,7 +69772,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -69652,7 +69909,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -70084,13 +70347,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -71188,7 +71450,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -71323,7 +71587,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -71755,13 +72025,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -72851,7 +73120,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -72986,7 +73257,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -73418,13 +73695,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -74512,7 +74788,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -74647,7 +74925,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -75079,13 +75363,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -76175,7 +76458,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -76313,7 +76598,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -76766,13 +77057,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -77864,7 +78154,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -78002,7 +78294,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -78442,13 +78740,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -79540,7 +79837,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -79668,7 +79967,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -80100,13 +80405,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -81198,7 +81502,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -81333,7 +81639,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -81776,13 +82088,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -82883,7 +83194,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -83018,7 +83331,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -83461,13 +83780,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -84568,7 +84886,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -84703,7 +85023,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -85146,13 +85472,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -86253,7 +86578,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -86388,7 +86715,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -86818,13 +87151,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -87922,7 +88254,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -88059,8 +88393,9 @@
    "standings": {
     "calls": [
      [
-      "showStandings",
-      "Board ring"
+      "onAction",
+      "standings",
+      "object"
      ]
     ],
     "changed": {}
@@ -88494,13 +88829,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -89592,7 +89926,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -89727,7 +90063,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -90159,13 +90501,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -91241,7 +91582,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -91376,7 +91719,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -91808,13 +92157,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -92900,7 +93248,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -93035,7 +93385,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -93465,13 +93821,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -94563,7 +94918,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -94700,8 +95057,9 @@
    "standings": {
     "calls": [
      [
-      "showStandings",
-      "Board ring"
+      "onAction",
+      "standings",
+      "object"
      ]
     ],
     "changed": {}
@@ -95141,14 +95499,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "launch"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
@@ -96239,7 +96595,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -96374,7 +96732,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -96798,8 +97162,9 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
     "changed": {}
@@ -97882,7 +98247,9 @@
    "reportbug": {
     "calls": [
      [
-      "openBugReport"
+      "onAction",
+      "reportbug",
+      "object"
      ]
     ],
     "changed": {}
@@ -98017,7 +98384,13 @@
     "changed": {}
    },
    "standings": {
-    "calls": [],
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
     "changed": {}
    },
    "standings-fly": {
@@ -98452,14 +98825,12 @@
    "tricks": {
     "calls": [
      [
-      "show",
-      "tricks"
+      "onAction",
+      "tricks",
+      "object"
      ]
     ],
-    "changed": {
-     "screen": "tricks",
-     "roomFrom": "pilot"
-    }
+    "changed": {}
    },
    "friends": {
     "calls": [
