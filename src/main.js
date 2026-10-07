@@ -12946,8 +12946,9 @@ export async function boot({
       return;
     }
     const layout = layoutFingerprint(doc);
-    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || ms < builderBest.ms) {
-      builderBest = { docId: doc.id, layout, ms };
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || builderBest.wing !== wing || ms < builderBest.ms) {
+      builderBest = { docId: doc.id, layout, ms, wing };
     }
   }
 
@@ -16094,7 +16095,8 @@ export async function boot({
       }
       if (race.laps.length > lapsBefore) {
         const seated = seatedMapTrack();
-        ui.progress.lap(progressCourse(), medalFor(seated && seated.document && seated.document.medals, race.lastLapMs));
+        const medals = seated && seated.document && seated.document.medals;
+        ui.progress.lap(progressCourse(), medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing));
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');

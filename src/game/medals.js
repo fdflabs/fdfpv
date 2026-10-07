@@ -9,6 +9,11 @@
  * no other pilot's time ever moves them. A course without the key has no
  * medals.
  *
+ * A course has two boards, quads and fixed wings (the board's plane board),
+ * and a plane's lap is no measure of a quad's. So the medals carry which
+ * board set them, `wing: true` when a fixed wing flew the gold, and a lap
+ * flown on the other kind reaches none.
+ *
  * Pure: no DOM, no storage, so the progress merge on the server and the
  * selftest read the same rules.
  *
@@ -34,10 +39,14 @@ export const MEDAL_STEPS = ['bronze', 'silver', 'gold'];
 const RATIO = { gold: 1, silver: 1.15, bronze: 1.35 };
 const LAP_MAX_MS = 3_600_000;
 
-/* A stored medals entry made safe: { goldMs } or null. */
+/* A stored medals entry made safe: { goldMs, wing? } or null. `wing` is
+ * written only when true, so a quad's medals read as they always did. */
 export function cleanMedals(raw) {
   const n = Number(raw && raw.goldMs);
-  return Number.isInteger(n) && n >= 1 && n <= LAP_MAX_MS ? { goldMs: n } : null;
+  if (!Number.isInteger(n) || n < 1 || n > LAP_MAX_MS) {
+    return null;
+  }
+  return raw.wing === true ? { goldMs: n, wing: true } : { goldMs: n };
 }
 
 /* The three times, gold first, rounded up to the ms; null without medals. */
@@ -49,10 +58,11 @@ export function medalTimes(medals) {
   return { gold: m.goldMs, silver: Math.ceil(m.goldMs * RATIO.silver), bronze: Math.ceil(m.goldMs * RATIO.bronze) };
 }
 
-/* The best medal a lap reaches, or null. Equal to a time reaches it. */
-export function medalFor(medals, lapMs) {
+/* The best medal a lap reaches, or null. Equal to a time reaches it.
+ * `wing` is whether a fixed wing flew the lap. */
+export function medalFor(medals, lapMs, wing = false) {
   const times = medalTimes(medals);
-  if (!times || !Number.isFinite(lapMs) || lapMs <= 0) {
+  if (!times || !Number.isFinite(lapMs) || lapMs <= 0 || Boolean(medals.wing) !== Boolean(wing)) {
     return null;
   }
   return [...MEDAL_STEPS].reverse().find((step) => lapMs <= times[step]) ?? null;
@@ -75,15 +85,22 @@ export function newSteps(before, now) {
  * The medals a course is published with. `held` is what the document
  * carries, `layout` the layout being published (src/share/listing.js
  * layoutFingerprint), `publishedLayout` the layout last published from
- * this browser, and `flown` the builder's best test lap, { layout, ms },
- * or null. Gold is the builder's best lap on THIS layout: a test lap on it,
- * or the held gold if the layout is the one it was set on, whichever is
- * faster. A layout nobody has lapped since it changed gets no medals, so a
- * medal time never belongs to another course.
+ * this browser, and `flown` the builder's best test lap, { layout, ms,
+ * wing }, or null. Gold is the builder's best lap on THIS layout: a test
+ * lap on it, or the held gold if the layout is the one it was set on and
+ * the same kind of aircraft flew it, whichever is faster; a test lap on
+ * the other kind replaces it. A layout nobody has lapped since it changed
+ * gets no medals, so a medal time never belongs to another course.
  */
 export function publishMedals(held, layout, publishedLayout, flown) {
-  const kept = publishedLayout === layout ? cleanMedals(held) : null;
-  const lap = flown && flown.layout === layout && Number.isFinite(flown.ms) ? Math.round(flown.ms) : null;
-  const best = Math.min(kept ? kept.goldMs : Infinity, lap ?? Infinity);
-  return Number.isFinite(best) ? cleanMedals({ goldMs: best }) : null;
+  const lap = flown && flown.layout === layout && Number.isFinite(flown.ms) ? flown : null;
+  let kept = publishedLayout === layout ? cleanMedals(held) : null;
+  if (kept && lap && Boolean(kept.wing) !== Boolean(lap.wing)) {
+    kept = null;
+  }
+  const best = Math.min(kept ? kept.goldMs : Infinity, lap ? Math.round(lap.ms) : Infinity);
+  if (!Number.isFinite(best)) {
+    return null;
+  }
+  return cleanMedals({ goldMs: best, wing: lap ? Boolean(lap.wing) : Boolean(kept.wing) });
 }

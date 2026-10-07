@@ -97,7 +97,7 @@ the file.
 | `settings` | object | Per track tuning for the derived racing line. |
 | `branding` | object | The sponsors' logos the course is dressed in. Optional; see below. |
 | `credit` | object or null | Who designed the layout and where it came from, for a track that came from somewhere else: `designer`, `series`, `sponsor`, `source`, `broughtOverBy`, `note`, all optional strings. `null` on anything a pilot builds. Written by `toPlain`, kept by `duplicateTrack`, drawn only as text. |
-| `medals` | object, or absent | `{ goldMs }`, a whole number of ms: the builder's own best lap on this layout, written at publish (src/game/medals.js). Silver and bronze are 1.15 and 1.35 times it, worked out where read. Absent on a course nobody has set them on, and dropped by `duplicateTrack`. Not layout: outside the board's layout hash, so setting it never clears times. |
+| `medals` | object, or absent | `{ goldMs, wing? }`: `goldMs` a whole number of ms, the builder's own best lap on this layout; `wing: true` when a fixed wing flew it, and then only a fixed wing's lap reaches a medal (the course's plane board), otherwise only a quad's. Written at publish (src/game/medals.js). Silver and bronze are 1.15 and 1.35 times it, worked out where read. Absent on a course nobody has set them on, and dropped by `duplicateTrack`. Not layout: outside the board's layout hash, so setting it never clears times. |
 | `elements` | array | Everything standing on the field, in no particular order. |
 | `sequence` | array | The flying order. THIS is the course. |
 

@@ -52,6 +52,10 @@ check('equal to bronze is bronze', medalFor(M, 54000) === 'bronze');
 check('slower than bronze is none', medalFor(M, 54001) === null);
 check('no medals on the course, none', medalFor(undefined, 1) === null);
 check('a lap that is not a lap is none', medalFor(M, NaN) === null && medalFor(M, 0) === null);
+const W = { goldMs: 40000, wing: true };
+check('a plane gold is no measure of a quad lap', medalFor(W, 30000) === null && medalFor(W, 30000, true) === 'gold');
+check('a quad gold is no measure of a plane lap', medalFor(M, 30000, true) === null);
+check('wing is kept only when true', JSON.stringify(cleanMedals({ goldMs: 5, wing: false })) === '{"goldMs":5}' && cleanMedals(W).wing === true);
 check('the better medal', betterMedal('silver', 'gold') === 'gold' && betterMedal('gold', undefined) === 'gold' && betterMedal(null, undefined) === null && betterMedal('bronze', 'x') === 'bronze');
 check('new steps', JSON.stringify(newSteps(null, 'gold')) === '["bronze","silver","gold"]' && newSteps('gold', 'silver').length === 0 && JSON.stringify(newSteps('bronze', 'silver')) === '["silver"]');
 
@@ -64,6 +68,9 @@ check('a faster test lap replaces it', publishMedals({ goldMs: 39000 }, L1, L1, 
 check('a rename (same layout, no lap) keeps gold', publishMedals({ goldMs: 39000 }, L1, L1, null).goldMs === 39000);
 check('a changed layout with no lap on it has no medals', publishMedals({ goldMs: 39000 }, L2, L1, { layout: L1, ms: 30000 }) === null);
 check('a changed layout lapped gets its own gold', publishMedals({ goldMs: 39000 }, L2, L1, { layout: L2, ms: 45000 }).goldMs === 45000);
+check('a plane test lap publishes plane medals', publishMedals(null, L1, '', { layout: L1, ms: 50000, wing: true }).wing === true);
+check('a test lap on the other kind replaces a faster held gold', JSON.stringify(publishMedals({ goldMs: 39000 }, L1, L1, { layout: L1, ms: 50000, wing: true })) === '{"goldMs":50000,"wing":true}');
+check('a held plane gold kept on a rename stays a plane gold', publishMedals(W, L1, L1, null).wing === true);
 check('never lapped, never published: none', publishMedals(undefined, L1, undefined, null) === null);
 
 /* The document. */
