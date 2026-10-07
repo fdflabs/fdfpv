@@ -140,7 +140,7 @@ import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud, heldRolesOf } from './ui/opshud.js';
 import {
-  FAR_M as GUIDE_FAR_M, briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
+  briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
 } from './share/ops/guide.js';
 import { RolesBoard } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
@@ -1758,12 +1758,14 @@ export async function boot({
       opsGuide.target = target;
       opsGuide.line = goalLine(focus, target, here, opsSay);
       /* Progress: a count moved, a card done, a contact told or seen, a
-       * search area drawn or cleared, the stage moved on. */
+       * search area drawn or cleared, the stage moved on; or the pilot
+       * closing on the objective. */
+      const dist = target && target.at ? Math.hypot(target.at[0] - here[0], target.at[1] - here[1]) : null;
       opsNudger.progress([
         v.stage && v.stage.id, focus && focus.card.id, focus && JSON.stringify(focus.card.progress ?? null), (v.captures || []).length,
         (v.contacts || []).map((c) => `${c.cls ?? ''}${c.state}`).join(), (v.search || []).map((s) => s.id).join(),
         target && target.kind === 'climb' ? Math.floor(here.agl / 50) : '',
-      ].join('|'), nowWall);
+      ].join('|'), nowWall, dist);
       /* The first flight start, before anything else is said. */
       if (mission.campaign && !firstSeen(mission.campaign) && !opsGuide.first) {
         opsGuide.first = { campaign: mission.campaign, until: nowWall + FIRST_MS };
@@ -1784,8 +1786,7 @@ export async function boot({
           opsGuide.queue.push([brief]);
         }
       }
-      const far = Boolean(target && target.at && Math.hypot(target.at[0] - here[0], target.at[1] - here[1]) > GUIDE_FAR_M);
-      if (!quietNow && !opsGuide.queue.length && radioQuiet() && opsNudger.due(nowWall, far)) {
+      if (!quietNow && !opsGuide.queue.length && radioQuiet() && opsNudger.due(nowWall)) {
         const said = nudgeOf(target, here, heading, briefOf(focus, active));
         if (said) {
           opsGuide.queue.push(said);
