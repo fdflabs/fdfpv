@@ -65,6 +65,46 @@ export function isPowered(flags) {
   return (flags & DAMAGE_FLAGS.batteryEjected) === 0;
 }
 
+/* Where the craft is, not what broke: a craft in a tree or the water is
+ * whole until a part flag says otherwise. */
+const PLACE_FLAGS = DAMAGE_FLAGS.inTree | DAMAGE_FLAGS.inWater;
+
+/*
+ * THE CONDITION THE PLAYER READS: 'destroyed' is a wreck by the same test
+ * that ends the flight, 'impaired' is any break the pilot can still fly on,
+ * 'operational' is whole. Read from the flags after a step, never fed back,
+ * so it cannot change a trajectory.
+ */
+export function conditionOf(flags, fixedWing) {
+  if (isWreck(flags, fixedWing)) {
+    return 'destroyed';
+  }
+  return (flags & ~PLACE_FLAGS) !== 0 ? 'impaired' : 'operational';
+}
+
+/* The one part the OSD names, worst first: what the pilot loses sight or
+ * control by before what only looks bad. The words are osd.part_<name>. */
+const PART_ORDER = [
+  ['battery', DAMAGE_FLAGS.batteryEjected],
+  ['wing', DAMAGE_FLAGS.wingLost],
+  ['tail', DAMAGE_FLAGS.tailLost],
+  ['arm', DAMAGE_FLAGS.armLost | DAMAGE_FLAGS.armBent],
+  ['motor', DAMAGE_FLAGS.motorLost],
+  ['prop', DAMAGE_FLAGS.propLost | DAMAGE_FLAGS.propChipped],
+  ['camera', DAMAGE_FLAGS.cameraLost | DAMAGE_FLAGS.cameraKnocked],
+  ['antenna', DAMAGE_FLAGS.antennaLost],
+  ['surface', DAMAGE_FLAGS.surfaceLost],
+  ['frame', DAMAGE_FLAGS.crushed],
+  ['gear', DAMAGE_FLAGS.gearLost],
+  ['float', DAMAGE_FLAGS.floatLost],
+  ['canopy', DAMAGE_FLAGS.canopyLost],
+];
+
+export function damagedPart(flags) {
+  const hit = PART_ORDER.find(([, mask]) => (flags & mask) !== 0);
+  return hit ? hit[0] : null;
+}
+
 /*
  * A reader over one loaded module (tests/lib/simmod.js Sim). `available` is
  * false on a dist/sim.wasm older than the crash ABI, and then every read
