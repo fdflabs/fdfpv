@@ -86,6 +86,7 @@
     "tricks:golden": "node scripts/tricks-golden.js",
     "tricks:gen": "node scripts/tricks-gen.js",
     "trick:golden": "node scripts/trickdetect-golden.js",
+    "trickfilm:golden": "node scripts/trickfilm-golden.js",
     "obstacles:golden": "node scripts/obstacles-golden.js",
     "track:golden": "node scripts/track-golden.js",
     "guide:golden": "node scripts/guide-golden.js",
