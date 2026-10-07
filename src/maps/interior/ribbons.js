@@ -247,6 +247,16 @@ function roadMaterial(THREE) {
  * the tighter bends and take at most about a quarter of the width: at up
  * to two fifths of it in every bend of a river that meanders everywhere,
  * round 3's sand left a thin dark thread inside a pale ribbon.
+ *
+ * Round 6: at a survey's range the water was still a thin dark thread,
+ * darker than the gallery forest either side, where every reference
+ * aerial shows the river lighter than its banks: the silt's own tan
+ * seen through a surface that also carries the sky. The dark deep brown
+ * is the water's colour under a camera close enough to see into it;
+ * past a few metres a pixel the silt (siltFar) takes over, with the
+ * surface at the slick's low roughness so the sky's sheen rides on the
+ * tan rather than on a near black. The blue grey haze (look.js) keeps
+ * the sheen from printing lavender as round 3's did.
  */
 function waterMaterial(THREE) {
   const m = new THREE.MeshStandardMaterial({
@@ -280,6 +290,8 @@ function waterMaterial(THREE) {
         vec3 shoal = vec3(0.11, 0.092, 0.06);
         float swirl = rbNoise(w * 0.008) * 0.5 + rbNoise(w * 0.03) * 0.3 + rbNoise(w * 0.11) * 0.2;
         vec3 col = mix(deep, shoal, shallow * 0.75) * (0.8 + 0.45 * swirl);
+        vec3 siltFar = vec3(0.19, 0.15, 0.095) * (0.88 + 0.25 * swirl);
+        col = mix(col, siltFar, smoothstep(0.3, 2.0, rbFp));
         /* Sand bars on the inside of a tighter bend (bend's sign is the
          * inside), wider where it turns harder, broken along it. */
         float inside = t * sign(bend);
@@ -302,7 +314,7 @@ function waterMaterial(THREE) {
        * surface. */
       {
         float slick = rbNoise(vRbWorld.xz * 0.006 + 3.7) * 0.7 + rbNoise(vRbWorld.xz * 0.02) * 0.3;
-        float far = mix(0.1, 0.3, smoothstep(0.3, 0.75, slick));
+        float far = mix(0.08, 0.24, smoothstep(0.3, 0.75, slick));
         roughnessFactor = mix(mix(roughnessFactor, far, smoothstep(0.5, 6.0, rbFp)), 1.0, rbBar);
       }`)
     .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
