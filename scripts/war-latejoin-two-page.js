@@ -207,7 +207,11 @@ async function joinFromRooms(code) {
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-war-late-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 1 is in development (held since 2026-10-07), which
+ * only a check's own server starts (src/game/campaign.js released).
+ * --listed plays it from the campaign's page, which makes a public room
+ * only for a released mission: with none released it fails, as it should. */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 const roomWarOf = () => {
   const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.war.match);

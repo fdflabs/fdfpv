@@ -233,7 +233,9 @@ const DRIVE = /* js */ `(async (opts) => {
 })`;
 
 const scratch = await mkdtemp(join(tmpdir(), 'fdfpv-warintro-'));
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 1 is in development (held since 2026-10-07), which
+ * only a check's own server starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 const url = `/index.html?map=itaipu&rooms=${encodeURIComponent(`http://127.0.0.1:${server.port}`)}`;
 /* The host has seen this cut (the driver below says so for itself, per
  * run); the guest page has not. */

@@ -86,11 +86,13 @@ export const CONCEAL_POINTS = {
   'forest-edge': 0, gap1: 2, 'path-crossing': 4, clearing: 6, gap2: 7, opening: 8, 'camp-edge': 10,
 };
 /* Each route's alternate reacquisition point (the HARD_THRESHOLD move,
- * MISSIONS.md M1): west and east from the cañada, mid from the path
- * crossing to the west of the routes; each its own route from there. */
+ * MISSIONS.md M1): west and east from the cañada, mid from a second path
+ * crossing north of its clearing (places.js picada-norte), so Vega's
+ * "the path crossing north of last contact" points where the search
+ * ring is; each its own route from there. */
 const ALT = {
   west: [[9.065, 9.11], [8.97, 9.17], [8.86, 9.22], [8.76, 9.29], OPEN_A, OPEN_B, CAMP_EDGE],
-  mid: [[8.45, 8.955], [8.5, 9.06], [8.6, 9.17], [8.62, 9.27], OPEN_A, OPEN_B, CAMP_EDGE],
+  mid: [[8.8, 9.235], [8.77, 9.245], [8.74, 9.255], [8.69, 9.27], OPEN_A, OPEN_B, CAMP_EDGE],
   east: [[9.075, 9.24], [8.95, 9.25], [8.83, 9.24], [8.76, 9.29], OPEN_A, OPEN_B, CAMP_EDGE],
 };
 export const ALT_POINTS = { reacquire: 0, opening: 4, 'camp-edge': 6 };
@@ -151,16 +153,20 @@ const PAIR_OUT = [[8.594, 9.428], [8.565, 9.48], [8.52, 9.62], [8.43, 9.8], [8.3
 const BRAVO_MOTO = [[5.6, 5.9], [6.6, 5.96], [7.4, 6.02], [8.1, 6.06], [8.6, 6.1], [8.86, 6.13], [9.1, 6.16], [9.45, 6.16], [9.8, 6.12], [10.3, 6.02], [10.9, 5.75], [11.45, 5.2]];
 
 export const ROUTES = {};
+/* The long objects show only from the narrow opening on (the script's
+ * M1_06 reveal), not from the forest's edge: before it they are still an
+ * unknown pair. */
+const LONG_FROM = { conceal: CONCEAL_POINTS.opening, alt: ALT_POINTS.opening };
 for (const [k, pts] of Object.entries(CONCEAL)) {
   const dwell = [{ i: 2, s: 12, action: 'stand' }, { i: 6, s: 10, action: 'lookUp' }, { i: 8, s: 6, action: 'stand' }];
   ROUTES[`conceal-${k}-a`] = {
-    pts: km(pts), speed: WALK, dwell, end: 'stay', segments: [{ from: 0, to: pts.length - 1, action: 'carryLong' }],
+    pts: km(pts), speed: WALK, dwell, end: 'stay', segments: [{ from: LONG_FROM.conceal, to: pts.length - 1, action: 'carryLong' }],
   };
   ROUTES[`conceal-${k}-b`] = {
-    pts: beside(km(pts)), speed: WALK, dwell, end: 'stay', segments: [{ from: 4, to: pts.length - 1, action: 'carryLong' }],
+    pts: beside(km(pts)), speed: WALK, dwell, end: 'stay', segments: [{ from: LONG_FROM.conceal, to: pts.length - 1, action: 'carryLong' }],
   };
   ROUTES[`conceal-${k}-alt-a`] = {
-    pts: km(ALT[k]), speed: WALK, end: 'stay', segments: [{ from: 0, to: ALT[k].length - 1, action: 'carryLong' }],
+    pts: km(ALT[k]), speed: WALK, end: 'stay', segments: [{ from: LONG_FROM.alt, to: ALT[k].length - 1, action: 'carryLong' }],
   };
   ROUTES[`conceal-${k}-alt-b`] = { pts: beside(km(ALT[k])), speed: WALK, end: 'stay' };
 }
