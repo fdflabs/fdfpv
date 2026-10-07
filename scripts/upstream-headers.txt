@@ -41,7 +41,6 @@ scripts/pixels.js
 scripts/posters.js
 scripts/preset-lint.js
 scripts/quality-check.js
-scripts/replay-log.js
 scripts/responsive-check.js
 scripts/run-bash.js
 scripts/serve.js
