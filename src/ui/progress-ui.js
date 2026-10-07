@@ -291,6 +291,7 @@ export class Progress {
     const events = awardFirsts(this.state, {
       campaign: this.ui.settings.campaign,
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
+      lessons: this.state.lessons,
     });
     if (events.length) {
       this.save();
@@ -628,6 +629,9 @@ const MISSION_KEYS = new Map([
 /* A first's words, from its key (progress.js firstsOf). */
 export function firstTitle(key) {
   const [what, id, part] = key.split(':');
+  if (what === 'lesson') {
+    return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
+  }
   if (what === 'mission') {
     const mission = str(MISSION_KEYS.get(id) ?? id);
     return part === 'win' ? str('progress.first.win', { mission }) : str('progress.first.star', { mission, n: part.slice(4) });

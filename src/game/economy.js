@@ -8,7 +8,8 @@
  * a key, and the server pays a key at most once per account. The keys
  * come from a FINITE list read off the synced record: the firsts that pay
  * XP (src/game/progress.js firstsOf: a known mission's win and stars, a
- * known aircraft's flight time milestones) and the seven challenges. Laps
+ * known aircraft's flight time milestones, a known lesson passed) and the
+ * seven challenges. Laps
  * and built courses pay XP and never tokens, since anyone can make a new
  * course. So repetition pays nothing, and the most a record can ever be
  * paid is grantCeiling(), whatever is written in it.
@@ -43,7 +44,7 @@ import { MAX_STARS, cleanCampaign } from './campaign.js';
 import { flightTotals } from '../share/flighttime.js';
 
 /* Tokens a first pays, by the kind of first (progress.js firstsOf keys). */
-export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60 };
+export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20 };
 export const CHALLENGE_TOKENS = 50;
 
 /*
@@ -89,12 +90,16 @@ function factsOf(blob) {
   return {
     campaign: cleanCampaign(data.campaign),
     seconds: flightTotals(data.flightTime).byAirframe,
+    lessons: isRecord(progress.lessons) ? progress.lessons : {},
     challenges: CHALLENGES.filter((c) => done[c.id] === true).map((c) => c.id),
   };
 }
 
 function tokensForFirst(key) {
-  const part = key.split(':')[2];
+  const [what, , part] = key.split(':');
+  if (what === 'lesson') {
+    return FIRST_TOKENS.lesson;
+  }
   return FIRST_TOKENS[part.startsWith('star') ? 'star' : part];
 }
 

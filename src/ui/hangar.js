@@ -236,6 +236,7 @@ export class Hangar {
     this.hintKind = 'key';
     this.focus = 'overview';
     this.orbit = { elev: 0, zoom: 1 };
+    this.flip = false;
     this.hover = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
@@ -272,6 +273,15 @@ export class Hangar {
      * moves, on every tab but Power, which has them whole. */
     this.specEl = el('div', 'hangar-spec');
     this.stage.append(this.specEl);
+    /* FLIP (docs/redesign/WORKSHOP-PAINT.md): the plane rolled over on its
+     * stand, its underside up. On the stage, which takes every press to
+     * turn the plane, so the button keeps its own. */
+    this.flipBtn = button('hangar-flip', str('hangar.flip'));
+    this.flipBtn.dataset.key = 'flip';
+    this.flipBtn.setAttribute('aria-pressed', 'false');
+    this.flipBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    this.flipBtn.addEventListener('click', () => this.toggleFlip());
+    this.stage.append(this.flipBtn);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
@@ -446,6 +456,7 @@ export class Hangar {
     this.hintKind = hint;
     this.turn = 0;
     this.orbit = { elev: 0, zoom: 1 };
+    this.setFlip(false);
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -1330,8 +1341,23 @@ export class Hangar {
     this.orbit.zoom = Math.max(ORBIT_ZOOM[0], Math.min(ORBIT_ZOOM[1], this.orbit.zoom * k));
   }
 
+  setFlip(on) {
+    this.flip = on;
+    this.flipBtn.setAttribute('aria-pressed', String(on));
+    this.flipBtn.classList.toggle('on', on);
+  }
+
+  toggleFlip() {
+    this.setFlip(!this.flip);
+    this.sound('select');
+  }
+
   /* The keys that move the view rather than the cursor. True if used. */
   viewKey(code) {
+    if (code === 'KeyV') {
+      this.toggleFlip();
+      return true;
+    }
     const turn = { KeyJ: -KEY_TURN, KeyL: KEY_TURN }[code];
     const tilt = { KeyI: KEY_TILT, KeyK: -KEY_TILT }[code];
     const zoom = { KeyU: 1 / KEY_ZOOM, KeyO: KEY_ZOOM }[code];
@@ -1475,6 +1501,7 @@ export class Hangar {
       hangar: {
         focus: (this.tab === 'colours' && this.shop.focus()) || this.focus,
         orbit: { ...this.orbit },
+        flip: this.flip,
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
