@@ -2,38 +2,33 @@
  * craft-check.js: the drawn aircraft against the hull that sweeps it, and
  * both against the real machine, for every airframe the shell offers.
  *
- * WHY THIS EXISTS SEPARATELY FROM CHECK 15.
+ * tests/verify.js check 15 holds that the collisions hug the graphics, but
+ * only for one quad: it finds the body's box and the prop discs by that
+ * quad's sizes and is pinned to a baseline taken at one window size over
+ * one seeded course. An aircraft built differently, with ducts, hoops or
+ * wings and no cylinder of the sizes it looks for, would pass it with any
+ * scale error. This check looks at every airframe instead.
  *
- * tests/verify.js check 15 has asserted since it was written that "the
- * collisions hug the graphics", and it does it well, for the five inch: it
- * finds the body's box and the prop discs' cylinders by their five inch
- * sizes, and it is pinned to a baseline measured at one window size with one
- * course seeded. None of that reaches the whoop, which is drawn by a
- * different builder out of ducts and a bumper hoop and has no cylinder over
- * 50 mm on it. So the second aircraft in the project has never had the one
- * check that would catch a scale error on it.
+ * What it measures is deliberately dumb: every vertex of every drawn mesh,
+ * in the craft's own frame, outline hulls left out (those are back sided
+ * shells scaled 1.13, paint and not the machine). A bounding box lies about
+ * anything round, a torus's corner sits 1.41 of its radius out, while the
+ * vertices are the silhouette. Three numbers come out: the reach across
+ * from the centre, the reach up and the reach down.
  *
- * WHAT IT MEASURES, and it is deliberately dumb: every VERTEX of every mesh
- * the model draws, transformed into the craft's own frame, minus the
- * outline hulls, which are back sided shells scaled 1.13 and are paint. A
- * bounding box would do for a slab and lies about a torus, whose box corner
- * is 1.41 of its radius; the vertices are the silhouette itself. Out of
- * them come three numbers: how far the machine reaches from its centre
- * across, how far it reaches up, and how far it reaches down.
+ * Those are held against three things:
+ *   the COLLIDER   src/game/collide.js sweeps CRAFT_R across and
+ *                  [-CRAFT_V_DOWN, +CRAFT_V_UP] up and down, and that is
+ *                  what gates, poles and walls are tested against;
+ *   the PLANT      src/native/plant.c, whose contact hull rests the craft
+ *                  on the ground and whose numbers configs/airframes.js
+ *                  snapshots;
+ *   the REAL AIRCRAFT  its published size, quoted in the model's comments
+ *                  and in the table below.
  *
- * Those go against three things:
- *
- *   the COLLIDER, src/game/collide.js, which sweeps CRAFT_R across and
- *     [-CRAFT_V_DOWN, +CRAFT_V_UP] vertically and is what a gate, a pole and
- *     a wall are tested against;
- *   the PLANT, src/native/plant.c, whose contact hull rests the craft on the
- *     ground and whose numbers configs/airframes.js snapshots; and
- *   the REAL AIRCRAFT, whose published size is in the comments of the model
- *     and the airframe table: a 220 mm five inch, and a 65 mm whoop
- *     with a 65 mm wheelbase across 82.6 mm of frame.
- *
- * Run it with `npm run check:craft`. It boots the shell once per aircraft,
- * so it costs about half a minute.
+ * Run: npm run check:craft. It boots the shell in headless Chromium once per
+ * airframe, and once more per extra propulsion of an aircraft launched off
+ * a rail, so it takes a while.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -57,11 +52,11 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /*
- * The published size of each machine, from outside this repository, and the
- * tolerance each one is held to.
+ * REAL: each machine's published size, taken from outside this repository,
+ * and the tolerance the drawn model is held to against it.
  *
  *   sky1800   an 1800 mm twin boom pusher: the span is the manufacturer's,
  *             and the reach is the wingtip, because the tail, 0.77 m aft,
@@ -167,11 +162,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and 0.954 m aft, 1573 mm; the span is held by
  *             scripts/combat-models-check.js.
  *
- * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
- * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
- * is what a collider sweeps. They are different numbers about one machine
- * and both are checked. `wheelbaseMm` is the motor to motor figure a quad
- * is named for; a wing has none.
+ * spanMm is the axis aligned width, the figure a manufacturer prints.
+ * sweepMm is the diagonal reach, which is what a collider sweeps. Both are
+ * checked. wheelbaseMm is the motor to motor figure a quad is named for; a
+ * wing has none.
  */
 const REAL = {
   sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
@@ -196,23 +190,21 @@ const REAL = {
   striker2500: { spanMm: 3092.0, sweepMm: 3146.6, tolMm: 6 },
 };
 
-/* Measure the drawn model, in the craft's own frame, from its vertices. */
+/* The drawn model, in the craft's own frame, measured from its vertices. */
 const MEASURE = `(() => {
   const THREE = window.__three;
-  const scene = window.__mapScene();
-  let g = null;
-  scene.traverse((o) => { if (o.name === 'craft') { g = o; } });
+  const g = window.__mapScene().getObjectByName('craft');
   if (!g) { return { error: 'no craft in the scene' }; }
-  g.updateMatrixWorld(true);
-  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert();
+  g.updateWorldMatrix(true, true);
+  const toCraft = new THREE.Matrix4().copy(g.matrixWorld).invert();
   const v = new THREE.Vector3();
   const m = new THREE.Matrix4();
-  let up = -Infinity;
-  let down = Infinity;
-  let reach = 0;
-  let across = 0;
-  let verts = 0;
-  let meshes = 0;
+  let top = -Infinity;
+  let bottom = Infinity;
+  let radial = 0;
+  let half = 0;
+  let nVerts = 0;
+  let nMeshes = 0;
   /* A pusher's prop turns about a level axis, so where its blades and its
    * disc polygon reach below the hub depends on the phase the frame count
    * has turned it to (src/main.js turns it a step a frame, at rest too).
@@ -228,14 +220,13 @@ const MEASURE = `(() => {
     spinning.forEach((c, i) => { c.rotation.y = phase0[i] + (k * Math.PI) / 180; });
     g.traverse((o) => {
       if (!o.isMesh || !o.geometry || !o.geometry.getAttribute) { return; }
-      /* An outline hull is a back sided copy scaled 1.13. It is paint and it
-       * is not the aircraft: measuring it reports a machine 13 percent big. */
+      /* An outline hull is paint: measuring it reports a machine 13 percent
+       * too big. */
       if (o.material && o.material.userData && o.material.userData.hullColor !== undefined) { return; }
       if (o.visible === false) { return; }
-      /* And the antenna is wire, not aircraft. Both models name theirs: it
-       * is the tallest thing on either machine, 16 mm over the whoop's
-       * camera and 21 mm over the five inch's, and a rigid contact hull that
-       * covered it would make a quad bounce off its own aerial. */
+      /* An antenna is wire and often the tallest thing on a quad; a rigid
+       * hull grown to cover it would make the craft bounce off its own
+       * aerial, so it is not part of the reach. */
       if (o.name === 'antenna' || (o.parent && o.parent.name === 'antenna')) { return; }
       /* Nor is a catapult, which stands under it while it is parked, or
        * the Bramor's parachute: see src/render/bramorcraft.js. */
@@ -244,30 +235,35 @@ const MEASURE = `(() => {
       if (gear || o.name === 'chute') { return; }
       const pos = o.geometry.getAttribute('position');
       if (!pos) { return; }
-      o.updateMatrixWorld(true);
-      m.multiplyMatrices(inv, o.matrixWorld);
-      if (first) { meshes += 1; }
+      o.updateWorldMatrix(true, false);
+      m.multiplyMatrices(toCraft, o.matrixWorld);
+      if (first) {
+        nMeshes += 1;
+        nVerts += pos.count;
+      }
       for (let i = 0; i < pos.count; i += 1) {
         v.fromBufferAttribute(pos, i).applyMatrix4(m);
-        if (first) { verts += 1; }
-        if (v.y > up) { up = v.y; }
-        if (v.y < down) { down = v.y; }
-        const r = Math.hypot(v.x, v.z);
-        if (r > reach) { reach = r; }
-        const a = Math.max(Math.abs(v.x), Math.abs(v.z));
-        if (a > across) { across = a; }
+        top = Math.max(top, v.y);
+        bottom = Math.min(bottom, v.y);
+        radial = Math.max(radial, Math.hypot(v.x, v.z));
+        half = Math.max(half, Math.abs(v.x), Math.abs(v.z));
       }
     });
   }
   spinning.forEach((c, i) => { c.rotation.y = phase0[i]; });
-  const th = window.__craftState().thresholds;
+  const t = window.__craftState().thresholds;
   return {
-    up, down, reach, across, verts, meshes,
-    worldScale: th.worldScale,
-    craftRadius: th.craftRadius,
-    craftRadiusTrue: th.craftRadiusTrue,
-    craftUpTrue: th.craftUpTrue,
-    craftDownTrue: th.craftDownTrue,
+    up: top,
+    down: bottom,
+    reach: radial,
+    across: half,
+    verts: nVerts,
+    meshes: nMeshes,
+    worldScale: t.worldScale,
+    craftRadius: t.craftRadius,
+    craftRadiusTrue: t.craftRadiusTrue,
+    craftUpTrue: t.craftUpTrue,
+    craftDownTrue: t.craftDownTrue,
   };
 })()`;
 
@@ -285,17 +281,15 @@ const MEASURE = `(() => {
  */
 const MEASURE_LAUNCHER = `(() => {
   const THREE = window.__three;
-  const scene = window.__mapScene();
-  let g = null;
-  scene.traverse((o) => { if (o.name === 'craft') { g = o; } });
+  const g = window.__mapScene().getObjectByName('craft');
   if (!g) { return { error: 'no craft in the scene' }; }
   let launcher = null;
   g.traverse((o) => { if (o.name === 'launcher') { launcher = o; } });
   if (!launcher) { return { launcher: false }; }
   const rail = launcher.getObjectByName('rail');
   if (!rail) { return { launcher: true, rail: false }; }
-  g.updateMatrixWorld(true);
-  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert();
+  g.updateWorldMatrix(true, true);
+  const toCraft = new THREE.Matrix4().copy(g.matrixWorld).invert();
   const cg = new THREE.Vector3().setFromMatrixPosition(g.matrixWorld);
   const v = new THREE.Vector3();
   const w = new THREE.Vector3();
@@ -310,9 +304,9 @@ const MEASURE_LAUNCHER = `(() => {
     if (!o.isMesh || !o.visible || paint(o) || o.name === 'chute') { return; }
     let skip = false;
     o.traverseAncestors((p) => { skip = skip || ['launcher', 'chute', 'antenna', 'prop-mount'].includes(p.name) || !p.visible; });
-    const pos = o.geometry.getAttribute('position');
+    const pos = o.geometry && o.geometry.getAttribute('position');
     if (skip || !pos) { return; }
-    m.multiplyMatrices(inv, o.matrixWorld);
+    m.multiplyMatrices(toCraft, o.matrixWorld);
     for (let i = 0; i < pos.count; i += 1) {
       v.fromBufferAttribute(pos, i).applyMatrix4(m);
       plan.expandByPoint(v);
@@ -328,7 +322,7 @@ const MEASURE_LAUNCHER = `(() => {
     const pos = o.geometry.getAttribute('position');
     draws += 1;
     tris += (o.geometry.index ? o.geometry.index.count : pos.count) / 3;
-    m.multiplyMatrices(inv, o.matrixWorld);
+    m.multiplyMatrices(toCraft, o.matrixWorld);
     for (let i = 0; i < pos.count; i += 1) {
       v.fromBufferAttribute(pos, i);
       w.copy(v).applyMatrix4(o.matrixWorld);
@@ -364,11 +358,12 @@ const MEASURE_LAUNCHER = `(() => {
 })()`;
 
 const rows = [];
-let fails = 0;
+let failures = 0;
+
 function report(id, pass, measured, extra = '') {
   rows.push({ id, pass, measured, extra });
   if (!pass) {
-    fails += 1;
+    failures += 1;
   }
 }
 /* How far a drawn launcher may sit from its rail's numbers. The Bramor's
@@ -376,35 +371,19 @@ function report(id, pass, measured, extra = '') {
  * 11 mm short of its foot, so its lower corner is 12 mm into it. */
 const LAUNCHER_TOL_MM = 20;
 const LAUNCHER_TOL_DEG = 0.5;
-function near(id, got, want, tolMm, unit = 'mm') {
+function near(id, got, want, tol, unit = 'mm') {
   const off = Math.abs(got - want);
-  report(id, off <= tolMm,
-    `${got.toFixed(1)} ${unit}`,
-    `against ${want.toFixed(1)}, ${off.toFixed(1)} off, tolerance ${tolMm}`);
+  report(id, off <= tol, `${got.toFixed(1)} ${unit}`,
+    `against ${want.toFixed(1)}, ${off.toFixed(1)} off, tolerance ${tol}`);
 }
 
-/*
- * A MISMATCH THAT IS KNOWN, MEASURED AND CANNOT BE FIXED FROM HERE.
- *
- * The five inch's contact hull reaches 45 mm below the CG and the lowest
- * thing the model draws is 30 mm below it, so a parked five inch floats
- * 15 mm: the plant rests the craft on a hull that is deeper than the
- * aircraft on screen. It is plant.c's `hull_hz_down`, which is compiled
- * into dist/sim.wasm, and configs/airframes.js snapshots it precisely so
- * that the collider and the plant agree about where the bottom of the quad
- * is. Changing it means changing the C and rebuilding the module, which
- * needs an Emscripten toolchain this container does not have, and it moves
- * the machine every threshold in tests/ was fitted against. So it is
- * recorded rather than adjusted, here and in PROGRESS.md.
- *
- * PINNED, not excused: the gap is allowed to be what it measured today and
- * no more, so the day somebody rebuilds the module, or the model grows a
- * battery that reaches further down, this says so.
- */
+/* A mismatch that is known, measured and cannot be put right from here is
+ * pinned rather than excused: the gap may be what was measured and no more,
+ * plus half a millimetre, so a module rebuild or a model change that moves
+ * it is still reported. */
 function pinned(id, got, want, pinMm, why) {
   const off = Math.abs(got - want);
-  report(id, off <= pinMm + 0.5,
-    `${got.toFixed(1)} mm`,
+  report(id, off <= pinMm + 0.5, `${got.toFixed(1)} mm`,
     `against ${want.toFixed(1)}, ${off.toFixed(1)} off, a known ${pinMm.toFixed(1)}: ${why}`);
 }
 
@@ -444,22 +423,23 @@ async function measure(airframeId, propulsion = null) {
     root,
     width: 960,
     height: 540,
-    /* The light world, the Alps, rather than the title's own valley
-     * (src/boot.js); the model is measured in the scene either way. */
+    /* The Alps, the light world, rather than the title's own valley
+     * (src/boot.js): the model is measured in the scene either way. */
     url: '/index.html?map=alps',
-    seed: [`try {
-      const k = ${JSON.stringify(SETTINGS_KEY)};
-      const s = JSON.parse(localStorage.getItem(k) || '{}');
-      Object.assign(s, ${JSON.stringify(seated)});
-      s.airframeAsked = true;
-      localStorage.setItem(k, JSON.stringify(s));
-    } catch (e) { /* storage refused */ }`],
+    seed: [`
+      try {
+        const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}');
+        Object.assign(s, ${JSON.stringify(seated)});
+        s.airframeAsked = true;
+        localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
+      } catch (e) { /* storage refused: the run id wait below then fails */ }
+    `],
   });
   try {
     await page.until('!!window.__boot && window.__boot().frames > 2', 30000);
-    /* The aircraft is swapped when the settings are applied, which happens
-     * on the first frame; give the model a moment to be built. */
-    await page.until("window.__craft().run === " + JSON.stringify(airframeId), 20000);
+    /* The aircraft is swapped when the settings apply on the first frame,
+     * so give the model a moment to arrive. */
+    await page.until('window.__craft().run === ' + JSON.stringify(airframeId), 20000);
     /* Into a run, because the title draws the Skyhunter whatever is seated
      * (TITLE_CRAFT in src/main.js) and this measures the seated model. */
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
@@ -484,8 +464,8 @@ async function main() {
       report(`${af.id}: measured`, false, r ? String(r.error) : 'no answer');
       continue;
     }
-    /* The drawn model is built at the world's scale; the aircraft's own
-     * metres are what everything else here is in. */
+    /* The model is built at world scale; everything else is in the
+     * aircraft's own metres. */
     const s = r.worldScale;
     const drawnReach = (r.reach / s) * 1000;
     const drawnAcross = (r.across / s) * 1000 * 2;
@@ -493,17 +473,17 @@ async function main() {
     const drawnDown = (-r.down / s) * 1000;
     const dims = af.dims;
 
-    report(`${af.id}: model measured`, r.verts > 100,
-      `${r.verts} vertices over ${r.meshes} meshes`, 'outline hulls excluded');
+    report(`${af.id}: model measured`, r.verts > 100, `${r.verts} vertices over ${r.meshes} meshes`,
+      'outline hulls excluded');
 
     /* 1. The drawn machine against the real one. */
     near(`${af.id}: drawn span`, drawnAcross, real.spanMm, real.tolMm);
     near(`${af.id}: drawn sweep`, drawnReach, real.sweepMm / 2, real.tolMm);
 
     /*
-     * 2. The collider against the drawn machine. This is the one that
-     * matters in flight: the hull that meets a gate has to be the machine
-     * the pilot can see, on every axis.
+     * 2. The collider against the drawn machine, the one that matters in
+     * flight: the hull that meets a gate has to be the machine the pilot
+     * sees, on every axis.
      */
     if (af.id === 'bramor2300') {
       /*
@@ -548,11 +528,10 @@ async function main() {
       throw new Error(`craft-check: ${af.id} is a quad with no rule for its hull down`);
     }
 
-    /* 3. And the collider against the plant, through the table both read.
-     * A drift here is a craft that rests at one height and collides at
-     * another. */
-    near(`${af.id}: collider vs airframe table`,
-      r.craftRadiusTrue * 1000, (dims.arm + dims.hullR) * 1000, 0.001);
+    /* 3. The collider against the plant, through the table both read: a
+     * drift between them is a craft that rests at one height and collides
+     * at another. */
+    near(`${af.id}: collider vs airframe table`, r.craftRadiusTrue * 1000, (dims.arm + dims.hullR) * 1000, 0.001);
     near(`${af.id}: table up`, r.craftUpTrue * 1000, dims.vHalfUp * 1000, 0.001);
     near(`${af.id}: table down`, r.craftDownTrue * 1000, dims.vHalfDown * 1000, 0.001);
 
@@ -580,16 +559,17 @@ async function main() {
     }
   }
 
-  const w = Math.max(...rows.map((r) => r.id.length));
+  const width = Math.max(...rows.map((row) => row.id.length));
   console.log('\ncraft-check: the drawn aircraft, the hull that sweeps it, and the real machine\n');
-  for (const r of rows) {
-    console.log(`${r.pass ? ' ok  ' : 'FAIL '} ${r.id.padEnd(w)}  ${r.measured.padEnd(26)} ${r.extra}`);
+  for (const row of rows) {
+    const status = row.pass ? ' ok  ' : 'FAIL ';
+    console.log(`${status} ${row.id.padEnd(width)}  ${row.measured.padEnd(26)} ${row.extra}`);
   }
-  console.log(`\n${rows.length - fails} of ${rows.length} checks pass\n`);
-  process.exit(fails === 0 ? 0 : 1);
+  console.log(`\n${rows.length - failures} of ${rows.length} checks pass\n`);
+  process.exit(failures === 0 ? 0 : 1);
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((err) => {
+  console.error(err);
   process.exit(2);
 });

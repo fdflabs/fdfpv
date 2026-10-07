@@ -14,7 +14,6 @@ scripts/craft-check.js
 scripts/device-check.js
 scripts/icons.js
 scripts/memory-check.js
-scripts/og.js
 scripts/pixels.js
 scripts/responsive-check.js
 src/game/airframehull.js
