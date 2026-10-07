@@ -61,7 +61,9 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
-import { headingOf } from './game/training.js';
+import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { createGlidePath } from './render/glidepath.js';
+import { createGateCue } from './ui/gatecue.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -9850,6 +9852,47 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /*
+   * A LESSON'S AIDS (src/game/training.js): the glide path to the strip
+   * and the next gate's chevron, drawn only while a lesson that names one
+   * is in flight. Nothing here reaches the plant.
+   */
+  const glidePath = createGlidePath();
+  shell.keepAcrossMaps(glidePath.group);
+  const gateCueHud = createGateCue();
+  let glideKey = null;
+  let glideAt = null;
+  const cueCam = { x: 0, y: 0, z: 0, forward: new THREE.Vector3(), up: new THREE.Vector3() };
+  const cueTo = { x: 0, y: 0, z: 0 };
+  function aidsFrame() {
+    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
+    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
+    const scene = shell.quad.parent;
+    if (scene && glidePath.group.parent !== scene) {
+      scene.add(glidePath.group);
+    }
+    if (strip && glideKey !== ui.settings.map) {
+      glideKey = ui.settings.map;
+      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
+    }
+    glidePath.show(strip ? glideAt : null, strip);
+    const gate = aid === 'gate' && !race.freestyle ? race.gates[race.next] : null;
+    if (!gate) {
+      gateCueHud.show(null);
+      return;
+    }
+    const c = shell.camera;
+    cueCam.x = c.position.x;
+    cueCam.y = c.position.y;
+    cueCam.z = c.position.z;
+    c.getWorldDirection(cueCam.forward);
+    cueCam.up.set(0, 1, 0).applyQuaternion(c.quaternion);
+    cueTo.x = gate.x;
+    cueTo.y = gate.y + (gate.apertures[0] ? gate.apertures[0].centreY : 0);
+    cueTo.z = gate.z;
+    gateCueHud.show(gateCue(cueCam, cueTo));
+  }
+  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null, gateCue: gateCueHud.shown() });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -16353,6 +16396,7 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
+    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the

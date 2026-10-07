@@ -21,7 +21,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LESSONS, LessonWatch, TRACKS, headingOf, lessonById } from '../src/game/training.js';
+import { readFileSync } from 'node:fs';
+import { GLIDE, LESSONS, LessonWatch, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -131,6 +132,25 @@ expect('every lesson is on a listed track', LESSONS.every((l) => TRACKS.includes
 for (const t of TRACKS) {
   expect(`training.track.${t} en and es`, typeof en[`training.track.${t}`] === 'string' && typeof es[`training.track.${t}`] === 'string', true);
 }
+
+/* The aids. The Swiss valley's strip is the Alps' terrain's, which Node
+ * cannot import (it needs Three.js), so its length is read from the source. */
+const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8'))[1]);
+expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
+expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);
+expect('a glide lesson flies where there is a strip', LESSONS.filter((l) => l.aid === 'glide').every((l) => Boolean(STRIPS[l.place])), true);
+const pts = glidePoints(STRIPS.swiss2, 3);
+expect('the glide path has its gates', pts.length, GLIDE.count);
+expect('all short of the threshold, on the approach side', pts.every((p) => p.z > STRIPS.swiss2.z && p.x === STRIPS.swiss2.x), true);
+expect('each higher than the one nearer the strip, at the slope', pts.every((p, i) => i === 0 || Math.abs((p.y - pts[i - 1].y) / (p.z - pts[i - 1].z) - Math.tan(GLIDE.slope)) < 1e-12), true);
+expect('the nearest one a metre or so over the ground', pts[0].y - 3 > 0.5 && pts[0].y - 3 < 3, true);
+const eye = { x: 0, y: 0, z: 0, forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } };
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+expect('a gate dead ahead needs no arrow', gateCue(eye, { x: 0, y: 1, z: -40 }).ahead, true);
+expect('a gate to the right: the arrow points right', near(gateCue(eye, { x: 10, y: 0, z: 0 }).angle, Math.PI / 2), true);
+expect('to the left: left', near(gateCue(eye, { x: -10, y: 0, z: 0 }).angle, -Math.PI / 2), true);
+expect('above: up', near(gateCue(eye, { x: 0, y: 10, z: 0 }).angle, 0), true);
+expect('behind and a little right: right, not ahead', gateCue(eye, { x: 1, y: 0, z: 20 }).angle > 0 && !gateCue(eye, { x: 1, y: 0, z: 20 }).ahead, true);
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

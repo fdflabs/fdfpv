@@ -127,6 +127,29 @@ try {
   check('in the air the judge reads the heading every frame', judged && judged.id === 'first_turns' && Number.isFinite(judged.heading), JSON.stringify(judged));
   await shot(page, 'flying');
 
+  check('Turns draws no aid', await page.evaluate('window.__aids().glide === null && !window.__aids().gateCue'));
+
+  /* THE GLIDE PATH: Land, flown from the page, put on the approach. */
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-lesson="first_land"] .campaign-play');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'first_land'", 15000).catch(() => {});
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await page.sleep(1000);
+  await page.evaluate('(window.__placeCraft(0, 32, 330), true)');
+  await page.sleep(1200);
+  const glide = await page.evaluate('window.__aids()');
+  check('Land draws the glide path: ten rings down to the strip\'s +z end', glide.glide && glide.glide.length === 10
+    && glide.glide.every((p, i) => p[2] > 80 && (i === 0 || (p[1] > glide.glide[i - 1][1] && p[2] > glide.glide[i - 1][2]))), JSON.stringify(glide.glide && glide.glide.slice(0, 3)));
+  await shot(page, 'glide');
+  /* From beside the approach, to see the rings meet the strip. */
+  await page.evaluate('(window.__setCam(60, 25, 260, 0, 2, 60, 50), true)');
+  await page.sleep(800);
+  await shot(page, 'glide-side');
+  await page.evaluate('(window.__setCam(null), true)');
   await page.evaluate("window.__ui.show('title'); true");
   await page.sleep(500);
   await page.evaluate("window.__ui.pickForWay('way-race-5inch'); true");

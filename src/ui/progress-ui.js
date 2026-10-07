@@ -263,6 +263,11 @@ export class Progress {
     this.lesson = null;
   }
 
+  /* The visual aid the lesson in flight draws, or null. */
+  lessonAid() {
+    return this.lesson ? this.lesson.lesson.aid ?? null : null;
+  }
+
   /* After a lesson call: a toast for each step done, and the pass. */
   lessonNews() {
     const w = this.lesson;
