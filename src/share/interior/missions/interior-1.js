@@ -103,6 +103,15 @@ const FIRST_OUT_S = 20;
 
 const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
+/* A checkpoint restart starts on Pista Cero's rail: a stage's
+ * `restartLead` is the seconds a first timer takes to fly back out to
+ * its action (the climb past 300 m at 5 m/s, then 18 m/s), which the
+ * room holds the stage's clocks for (edge/rooms/ops.js start). */
+const TRANSIT_S = (at) => {
+  const [a, b] = [P2(PLACES.pistaCero.at), at];
+  return Math.round(60 + Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) / 18);
+};
+
 /* The pair's loss thresholds (MISSIONS.md 1.7: 20 s and 45 s by default,
  * tuned per mission). Hard is 75 s here, a lead decision (reversible):
  * under WORLD's canopy an orbiting fixed wing about 150 m off the pair
@@ -113,10 +122,11 @@ const PAIR_TRACK = { soft: 20, hard: 75 };
 
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
+const GONE = { chosen: 'dispersal', is: 'started' };
 const DISPERSAL = {
   any: [
     { captured: { set: 'camp' }, n: 5 },
-    { time: 480 },
+    { station: 480 },
     { alert: 'camp', level: 'high' },
   ],
 };
@@ -138,6 +148,10 @@ export default {
   /* The hours of the day on the room clock (WORLD's clock.js): a screen
    * moves the sun by it, the light rule below ends at its sunset. */
   clock: M1_CLOCK,
+  /* The Bramor's thermal core starts on this palette (sensorview.js
+   * THERMAL_PALETTES) when the ball first comes up in a match; the period
+   * key still cycles it. */
+  sensor: { palette: 'arctic' },
   /* The marked shelter as the map names it, by the mark's dial, so the
    * screen paints the mark on the shelter the room judges (SHELTERS). */
   camp: { mark: { dial: 'mark', map: MARKED } },
@@ -232,8 +246,12 @@ export default {
     opening: { at: ALONG('opening'), r: 25 },
     'camp-edge': { at: ALONG('camp-edge'), r: 25 },
   },
+  /* The camp's alertness is stage 5's (MISSIONS.md M1): the pair's
+   * route and the Charlie corridor are inside its reach, and a pilot
+   * low over them before the camp is found must not have it already
+   * dispersing when stage 5 opens. */
   sites: [{
-    id: 'camp', at: P2(CAMP_AT), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
+    id: 'camp', stage: 'M1_CP_CAMP_FOUND', at: P2(CAMP_AT), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
   }],
   dials: {
     conceal: ['west', 'mid', 'east'],
@@ -251,7 +269,8 @@ export default {
   },
   /* The mission's fails beyond its stages' (MISSIONS.md M1, recovery and
    * fails): the ISR down with nobody else airborne, and the light gone
-   * (two minutes past the latest the script can need: a broken run). */
+   * (clock.js: about 12 minutes after a first timer at 18 m/s would land,
+   * so it ends a run that dawdled or got lost, not an ordinary one). */
   lost: [
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
     { when: { clock: Math.round(sunsetMs(M1_CLOCK) / 1000) }, why: 'light', radio: 'int-fail-function' },
@@ -347,6 +366,7 @@ export default {
     {
       id: 'M1_CP_CONTACT_FOUND',
       title: 'ops.interior.m1.s4',
+      restartLead: TRANSIT_S(ALONG('forest-edge')),
       objectives: [
         {
           id: 'observe', text: 'ops.interior.m1.obj.observe', tier: 'primary', done: { route: 'pair', point: 'camp-edge' }, guide: { isr: 'int1-g-follow', tracker: 'int1-g-tr-follow' },
@@ -354,7 +374,7 @@ export default {
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
-        { at: 2, radio: 'int1-tr-picket', heard: TRACKER },
+        { when: { station: 0 }, at: 2, radio: 'int1-tr-picket', heard: TRACKER },
         { when: { lost: 'pair', s: 8 }, radio: 'int1-s4-welcome' },
         {
           when: { lost: 'pair', s: 20 }, repeat: true, radio: ['int1-s4-lost', 'int1-s4-pilot'], card: 'card.last_known', search: { id: 'pair-lkp', contact: 'pair', r: 150 },
@@ -386,9 +406,18 @@ export default {
     {
       id: 'M1_CP_CAMP_FOUND',
       title: 'ops.interior.m1.s5',
+      restartLead: TRANSIT_S(P2(CAMP_AT)),
+      /* RETURN TO BASE comes with the dispersal (the script's M1_09), not
+       * after the documentation: a camp gone early (its timer, an alert)
+       * takes PERSONNEL with it. Listed first, so it is the guide's
+       * focus once shown; documentation goes on beside it, and is missed
+       * once the camp's people have all gone. */
       objectives: [
         {
-          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 }, guide: 'int1-g-camp',
+          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', show: GONE, done: { landed: 'pista-cero', roles: ['isr'] }, guide: 'int1-g-rtb',
+        },
+        {
+          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 }, fail: { vanished: 'camp' }, guide: 'int1-g-camp',
         },
         {
           id: 'lookout', text: 'ops.interior.m1.obj.lookout', tier: 'optional', done: { captured: 'lookout' },
@@ -402,16 +431,21 @@ export default {
         {
           id: 'distant', text: 'ops.interior.m1.obj.distant', tier: 'optional', done: { vanished: 'camp', watched: true },
         },
-        {
-          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', after: 'document', done: { landed: 'pista-cero', roles: ['isr'] }, guide: 'int1-g-rtb',
-        },
       ],
       cues: [
-        { at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
-        { at: 4, radio: 'int1-tr-angle', heard: TRACKER },
+        { when: { station: 0 }, at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
+        { when: { station: 0 }, at: 4, radio: 'int1-tr-angle', heard: TRACKER },
+        /* Once the dispersal has started nobody walks back into the camp
+         * (the tarp's walk starts in it and ends there): the mark is
+         * opened with the camp being stripped instead. */
         {
-          when: { captured: { set: 'camp' }, n: 3 }, at: 5, move: [{ contacts: 'camp-tarp', route: { dial: 'mark', map: { s1: 'camp-tarp-move-s1', s2: 'camp-tarp-move-s2', s3: 'camp-tarp-move-s3' } } }], choose: { name: 'tarp', value: 'moved' },
+          when: { captured: { set: 'camp' }, n: 3 },
+          at: 5,
+          unless: GONE,
+          move: [{ contacts: 'camp-tarp', route: { dial: 'mark', map: { s1: 'camp-tarp-move-s1', s2: 'camp-tarp-move-s2', s3: 'camp-tarp-move-s3' } } }],
+          choose: { name: 'tarp', value: 'moved' },
         },
+        { when: { all: [{ captured: { set: 'camp' }, n: 3 }, GONE] }, choose: { name: 'tarp', value: 'moved' } },
         {
           when: { captured: 'symbol', grade: 'usable' },
           flag: 'M1_SYMBOL_CAPTURED',
@@ -432,8 +466,10 @@ export default {
             ...Object.entries(OUT).map(([d, ids]) => ids.map((id, k) => ({
               contacts: id, route: `out-${d}-${'ab'[k]}`, after: { dial: 'firstOut', map: Object.fromEntries(Object.keys(OUT).map((x) => [x, x === d ? 0 : FIRST_OUT_S])) },
             }))).flat(),
-            { contacts: 'pair-a', route: 'pair-out-a', after: 30 },
-            { contacts: 'pair-b', route: 'pair-out-b', after: 30 },
+            /* No alternate on the way out: a hard threshold would send
+             * the pair back along its concealment route to the camp. */
+            { contacts: 'pair-a', route: 'pair-out-a', alt: null, after: 30 },
+            { contacts: 'pair-b', route: 'pair-out-b', alt: null, after: 30 },
           ],
         },
         { when: DISPERSAL, radio: 'int1-tr-split', heard: TRACKER },
@@ -442,7 +478,7 @@ export default {
       ],
       /* Home once the camp has gone: the debrief (M1_10) is the outro
        * over the squad's stills, VIEW's. */
-      exits: [{ when: { all: [{ chosen: 'dispersal', is: 'started' }, { landed: 'pista-cero', roles: ['isr'] }] }, to: 'won', why: 'landed' }],
+      exits: [{ when: { all: [GONE, { landed: 'pista-cero', roles: ['isr'] }] }, to: 'won', why: 'landed' }],
     },
   ],
 };

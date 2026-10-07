@@ -1,189 +1,71 @@
 /*
- * quality-check.js: the graphics presets, against the machines they name.
+ * quality-check.js: the graphics presets (src/render/quality.js) and GPU
+ * detection (src/render/gpuinfo.js), held to the machines they name. Every
+ * preset has a field pixel budget, no real screen exceeds the render target
+ * memory budget, screens at or below 1080p keep the authored ratio, the
+ * Render scale slider still scales, no note promises a planting lever, and
+ * real renderer strings are classified integrated or discrete correctly.
+ * Arithmetic on the table only. Run with npm run lint:quality.
  *
- * WHY THIS EXISTS.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * quality.js is a table of numbers with a comment above it saying which
- * machine each row is for, and nothing checked that the numbers still meant
- * what the comment said. Three defects lived in there at once and all three
- * were found by reading, not by a check:
- *
- *   - The race field had no pixel budget at all, so a 1440 by 900 laptop
- *     with a 2x panel rendered 5.2 Mpx through three full resolution passes,
- *     about twice the project's own render target ceiling.
- *   - Detection returned High for every machine that was not a Steam Deck,
- *     a phone or an iPad, including the integrated laptop chips the Medium
- *     row explicitly names.
- *   - The Settings notes promised "thinned planting" on a map that has no
- *     planting lever.
- *
- * These are not opinions about how the world should look. They are
- * arithmetic on the table, so they are checkable, and this checks them on
- * every run rather than on the next time somebody reads the file.
- *
- * WHAT IT DOES NOT DO. It does not measure a frame, because a frame needs a
- * GPU and this has to run on a laptop with no browser open. Everything here
- * is the table's own numbers and the functions that read them.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * The table is numbers with a comment saying which machine each row is for,
+ * and nothing checked that the numbers still meant what the comment said.
+ * Three defects lived there at once, all found by reading: the race field
+ * had no pixel budget, so a 1440x900 laptop at 2x rendered 5.2 Mpx through
+ * three full resolution passes, about twice the target ceiling; detection
+ * returned High for everything that was not a Deck, phone or iPad, including
+ * the integrated chips the Medium row names; and a note promised thinned
+ * planting on a map with no planting lever. Those are arithmetic, not
+ * opinion, so they are checked every run. A frame is not measured: that
+ * needs a GPU, and this has to run on a laptop with no browser open.
  */
 
 import { GRAPHICS_IDS, qualityFor, pixelRatioFor } from '../src/render/quality.js';
 import { isIntegratedGpu } from '../src/render/gpuinfo.js';
 
-const rows = [];
-let failed = 0;
-
-function check(name, ok, detail) {
-  rows.push([name, ok ? 'ok' : 'FAIL', detail]);
-  if (!ok) {
-    failed += 1;
-  }
-}
-
 /*
- * The screens this product actually meets, with the pixel ratio the browser
- * reports on each. Every one of them is a real configuration: the 1440 by
- * 900 at 2x is the MacBook Air, the 1366 by 768 is still the commonest
- * laptop panel in the world, and the 430 by 932 at 3x is an iPhone.
+ * From the P5 budget in tests/thresholds.json: the field's chain at 1600x900
+ * measured 90.2 MB, 33.6 MB of it the fixed 2048 shadow map, so 56.6 MB is
+ * carried by 1.44 Mpx (two RGBA16F composer targets, the normal target and
+ * the bloom ladder). The shadow map is fixed size and added separately.
  */
-const SCREENS = [
-  { name: 'MacBook Air 1440x900', w: 1440, h: 900, dpr: 2 },
-  { name: 'laptop 1366x768', w: 1366, h: 768, dpr: 1 },
-  { name: 'desktop 1920x1080', w: 1920, h: 1080, dpr: 1 },
-  { name: 'desktop 2560x1440', w: 2560, h: 1440, dpr: 1 },
-  { name: 'desktop 3840x2160', w: 3840, h: 2160, dpr: 1 },
-  { name: 'Steam Deck 1280x800', w: 1280, h: 800, dpr: 1 },
-  { name: 'iPhone 430x932', w: 430, h: 932, dpr: 3 },
-];
-
-/*
- * The ceiling this project sets itself for resolution dependent render
- * targets, from tests/thresholds.json's own P5 budget. The field's chain at
- * 1600 by 900 measured 90.2 MB of which 33.6 MB is the fixed shadow map, so
- * 56.6 MB is carried by 1.44 Mpx: 39 bytes a pixel across two RGBA16F
- * composer targets, the normal target and the bloom ladder. That ratio is
- * what turns a pixel count into megabytes here.
- */
-const TARGET_BYTES_PER_PIXEL = 56.6e6 / 1.44e6;
-const TARGET_BUDGET_MB = 120;
-
-/* The shadow map is fixed size and does not scale with the window, so it is
- * added separately. Eight bytes a texel, which is what makes the measured
- * 2048 map 33.6 MB. */
+const BYTES_PER_PIXEL = 56.6e6 / 1.44e6;
+const BUDGET_MB = 120;
 const SHADOW_BYTES_PER_TEXEL = 8;
+/* Screens at or below this many pixels are 1080p or smaller. */
+const FULL_HD_PIXELS = 2.074e6;
 
-/* Every preset has a field pixel budget, and it is a number. */
-for (const id of GRAPHICS_IDS) {
-  const q = qualityFor(id);
-  const b = q.field && q.field.pixelBudget;
-  check(
-    `${id}: field has a pixel budget`,
-    Number.isFinite(b) && b > 0,
-    Number.isFinite(b) ? `${(b / 1e6).toFixed(2)} Mpx` : 'MISSING, so a dense panel renders unbounded',
-  );
-}
-
-/*
- * No screen renders more than the project's own render target budget.
- *
- * This is the check that would have caught the 5.2 Mpx MacBook: at 39 bytes
- * a pixel it is 237 MB of targets against a 120 MB ceiling.
- */
-for (const id of GRAPHICS_IDS) {
-  for (const s of SCREENS) {
-    global.window = { devicePixelRatio: s.dpr, innerWidth: s.w, innerHeight: s.h };
-    const pr = pixelRatioFor(id, 1);
-    const mpx = (s.w * s.h * pr * pr) / 1e6;
-    const shadowMb = ((q0(id).field.shadowMap ** 2) * SHADOW_BYTES_PER_TEXEL) / 1e6;
-    const mb = (mpx * 1e6 * TARGET_BYTES_PER_PIXEL) / 1e6 + shadowMb;
-    check(
-      `${id}: ${s.name}`,
-      mb <= TARGET_BUDGET_MB,
-      `ratio ${pr.toFixed(2)}, ${mpx.toFixed(2)} Mpx, about ${mb.toFixed(0)} MB of targets${mb > TARGET_BUDGET_MB ? `  <-- over the ${TARGET_BUDGET_MB} MB budget` : ''}`,
-    );
-  }
-}
-
-function q0(id) {
-  return qualityFor(id);
-}
+/* Real configurations: the MacBook Air, the commonest laptop panel, an iPhone. */
+const SCREENS = [
+  ['MacBook Air 1440x900', 1440, 900, 2],
+  ['laptop 1366x768', 1366, 768, 1],
+  ['desktop 1920x1080', 1920, 1080, 1],
+  ['desktop 2560x1440', 2560, 1440, 1],
+  ['desktop 3840x2160', 3840, 2160, 1],
+  ['Steam Deck 1280x800', 1280, 800, 1],
+  ['iPhone 430x932', 430, 932, 3],
+].map(([name, w, h, dpr]) => ({ name, w, h, dpr }));
 
 /*
- * NOTHING AT OR BELOW 1080p IS TOUCHED.
- *
- * The budgets are the 1080p pixel count the render target ceiling was
- * measured at, so every screen at or under it renders exactly what the table
- * authors. This is the check that says the fix for the dense panels did not
- * quietly change the frame everything else was measured on.
- */
-for (const id of GRAPHICS_IDS) {
-  const q = qualityFor(id);
-  for (const s of SCREENS.filter((x) => x.dpr === 1 && x.w * x.h <= 2.074e6)) {
-    global.window = { devicePixelRatio: 1, innerWidth: s.w, innerHeight: s.h };
-    const pr = pixelRatioFor(id, 1);
-    /* Low authors its own 0.85 downscale, which is a choice in the table
-     * rather than a budget clamping a screen. */
-    const authored = Math.min(1, q.pixelRatioCap) * q.resolutionScale;
-    check(
-      `${id}: ${s.name} keeps its authored ratio`,
-      Math.abs(pr - authored) < 0.001,
-      `${pr.toFixed(3)} against the table's ${authored.toFixed(3)}`,
-    );
-  }
-}
-
-/* The Render scale slider still multiplies through, at every preset. */
-for (const id of GRAPHICS_IDS) {
-  global.window = { devicePixelRatio: 1, innerWidth: 1920, innerHeight: 1080 };
-  const full = pixelRatioFor(id, 1);
-  const half = pixelRatioFor(id, 0.5);
-  check(
-    `${id}: Render scale still scales`,
-    half < full,
-    `100 percent gives ${full.toFixed(3)}, 50 percent gives ${half.toFixed(3)}`,
-  );
-}
-
-/*
- * The Settings notes describe what the preset does. A note that names a
- * lever the preset does not pull is worse than no note: it sends a pilot
- * looking for a change that will not come.
- *
- * No world has a planting lever. The freestyle town's foliageKeep was the
- * only one, and it went with the town, so no note may promise planting.
- */
-for (const id of GRAPHICS_IDS) {
-  const q = qualityFor(id);
-  const note = String(q.note || '');
-  const plantingWords = /plant|foliage|tree|grass/i.test(note);
-  check(
-    `${id}: note does not promise a planting lever no world has`,
-    !plantingWords,
-    plantingWords ? 'promises planting, and no world has a planting lever' : 'no planting claim',
-  );
-}
-
-/*
- * Detection, by GPU name.
- *
- * The strings are real ones, as a browser reports them. The discrete parts
- * are here because the patterns share words with the integrated ones and a
- * careless pattern matches both: "Radeon Graphics" is an APU and "Radeon RX
- * 7900" is not, "Iris Xe" is integrated and "Arc A770" is not.
+ * Real browser strings. Discrete parts are here because patterns share words
+ * with integrated ones: "Radeon Graphics" is an APU and "Radeon RX 7900" is
+ * not, "Iris Xe" is integrated and "Arc A770" is not.
  */
 const INTEGRATED = [
   'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)',
@@ -195,7 +77,7 @@ const INTEGRATED = [
   'Adreno (TM) 650',
   'PowerVR Rogue GE8320',
 ];
-const NOT_INTEGRATED = [
+const DISCRETE = [
   'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)',
   'ANGLE (NVIDIA, NVIDIA GeForce GTX 1650, D3D11)',
   'ANGLE (AMD, AMD Radeon RX 7900 XTX Direct3D11 vs_5_0 ps_5_0, D3D11)',
@@ -204,17 +86,89 @@ const NOT_INTEGRATED = [
   'Apple GPU',
   'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device), SwiftShader driver)',
 ];
-for (const raw of INTEGRATED) {
-  check(`integrated: ${raw.slice(0, 54)}`, isIntegratedGpu(raw), 'recognised, so a detected High comes down to Medium');
-}
-for (const raw of NOT_INTEGRATED) {
-  check(`discrete:   ${raw.slice(0, 54)}`, !isIntegratedGpu(raw), 'left alone, so it keeps the authored look');
+
+/*
+ * No world has a planting lever: the freestyle town's foliage setting was the
+ * only one and went with the town. A note naming a lever the preset does not
+ * pull sends a pilot looking for a change that never comes.
+ */
+const PLANTING = /plant|foliage|tree|grass/i;
+
+const results = [];
+function record(name, ok, detail) {
+  results.push({ name, ok, detail });
 }
 
-const w = Math.max(...rows.map((r) => r[0].length));
-console.log('quality-check: the presets, against the machines they name\n');
-for (const [name, status, detail] of rows) {
-  console.log(`${status === 'ok' ? ' ok ' : 'FAIL'}  ${name.padEnd(w)}  ${detail}`);
+/* pixelRatioFor reads the device ratio and viewport from the global window only. */
+function ratioOn(id, scale, w, h, dpr) {
+  globalThis.window = { devicePixelRatio: dpr, innerWidth: w, innerHeight: h };
+  return pixelRatioFor(id, scale);
 }
-console.log(`\n${rows.length - failed} of ${rows.length} checks clean`);
-process.exit(failed === 0 ? 0 : 1);
+
+for (const id of GRAPHICS_IDS) {
+  const budget = qualityFor(id).field?.pixelBudget;
+  const finite = Number.isFinite(budget);
+  record(`${id}: field has a pixel budget`, finite && budget > 0,
+    finite ? `${(budget / 1e6).toFixed(2)} Mpx` : 'MISSING, so a dense panel renders unbounded');
+}
+
+/* This is the check that would have caught the 5.2 Mpx MacBook (about 237 MB against 120). */
+for (const id of GRAPHICS_IDS) {
+  const { shadowMap } = qualityFor(id).field;
+  for (const { name, w, h, dpr } of SCREENS) {
+    const pr = ratioOn(id, 1, w, h, dpr);
+    const mpx = w * h * pr * pr / 1e6;
+    const mb = mpx * BYTES_PER_PIXEL + shadowMap * shadowMap * SHADOW_BYTES_PER_TEXEL / 1e6;
+    const over = mb > BUDGET_MB ? `  <-- over the ${BUDGET_MB} MB budget` : '';
+    record(`${id}: ${name}`, mb <= BUDGET_MB,
+      `ratio ${pr.toFixed(2)}, ${mpx.toFixed(2)} Mpx, about ${mb.toFixed(0)} MB of targets${over}`);
+  }
+}
+
+/*
+ * The budgets are the 1080p pixel count the ceiling was measured at, so the
+ * fix for dense panels must not quietly change the frame everything else was
+ * measured on. Low's own 0.85 downscale is a table choice, not a clamp.
+ */
+for (const id of GRAPHICS_IDS) {
+  const preset = qualityFor(id);
+  const authored = Math.min(1, preset.pixelRatioCap) * preset.resolutionScale;
+  for (const { name, w, h } of SCREENS.filter((s) => s.dpr === 1 && s.w * s.h <= FULL_HD_PIXELS)) {
+    const pr = ratioOn(id, 1, w, h, 1);
+    record(`${id}: ${name} keeps its authored ratio`, Math.abs(pr - authored) < 0.001,
+      `${pr.toFixed(3)} against the table's ${authored.toFixed(3)}`);
+  }
+}
+
+for (const id of GRAPHICS_IDS) {
+  const full = ratioOn(id, 1, 1920, 1080, 1);
+  const half = ratioOn(id, 0.5, 1920, 1080, 1);
+  record(`${id}: Render scale still scales`, half < full,
+    `100 percent gives ${full.toFixed(3)}, 50 percent gives ${half.toFixed(3)}`);
+}
+
+for (const id of GRAPHICS_IDS) {
+  const planting = PLANTING.test(String(qualityFor(id).note ?? ''));
+  record(`${id}: note does not promise a planting lever no world has`, !planting,
+    planting ? 'promises planting, and no world has a planting lever' : 'no planting claim');
+}
+
+for (const raw of INTEGRATED) {
+  record(`integrated: ${raw.slice(0, 54)}`, isIntegratedGpu(raw) === true,
+    'recognised, so a detected High comes down to Medium');
+}
+for (const raw of DISCRETE) {
+  record(`discrete:   ${raw.slice(0, 54)}`, isIntegratedGpu(raw) === false,
+    'left alone, so it keeps the authored look');
+}
+
+const width = Math.max(...results.map((r) => r.name.length));
+console.log('quality-check: the presets, against the machines they name');
+console.log('');
+for (const { name, ok, detail } of results) {
+  console.log(`${ok ? ' ok ' : 'FAIL'}  ${name.padEnd(width)}  ${detail}`);
+}
+const clean = results.filter((r) => r.ok).length;
+console.log('');
+console.log(`${clean} of ${results.length} checks clean`);
+process.exit(clean === results.length ? 0 : 1);

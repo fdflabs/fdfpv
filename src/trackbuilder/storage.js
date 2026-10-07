@@ -1,302 +1,298 @@
 /*
- * storage.js: the pilot's tracks in local storage, and the autosave.
+ * storage.js: the pilot's tracks in this browser, and the builder autosave.
  *
- * Two kinds of key, both versioned, both namespaced under webfpv.trackbuilder
- * so nothing here can collide with the simulator's own settings key:
+ * Four kinds of localStorage entry, all under one prefix (STORAGE_PREFIX)
+ * and each versioned:
  *
- *   webfpv.trackbuilder.library.v1            every saved track, by id
- *   webfpv.trackbuilder.autosave.map.<id>.v1  the track open in the builder
- *                                             in that world, saved or not
- *   webfpv.trackbuilder.online.v1             where each saved track stands
- *                                             with the tracks server
- *   webfpv.trackbuilder.forks.v1              ids that turned out to be
- *                                             another pilot's, and the copy
- *                                             each one's edits now go to
+ *   <prefix>.library.v1            every saved track, keyed by track id
+ *   <prefix>.online.v1             each saved track's standing with the
+ *                                  tracks server, keyed by track id
+ *   <prefix>.forks.v1              ids that proved to be another pilot's,
+ *                                  each mapped to the copy that took over
+ *   <prefix>.autosave.map.<id>.v1  what was open in the builder in world
+ *                                  <id>, saved or not
  *
- * THE LIBRARY IS THE COPY THAT COUNTS, and the tracks server is where it
- * goes next (src/share/cloud.js). A save lands here first and is marked
- * pending; cloud.js uploads it when it can and marks it online, and a save
- * that cannot go up stays pending and stays here. So being offline, or the
- * server being down, never costs a pilot a track, and nothing in the builder
- * waits on the network.
+ * The prefix is still the old "webfpv.trackbuilder": pilots' tracks are
+ * stored under it, and src/share/move.js and src/ui/ui.js name it too, so
+ * renaming it needs a migration across all three. It is one constant so
+ * that change is one line here.
  *
- * The autosave is what makes a refresh safe. It is written on a short timer
- * after every edit rather than on every edit, because serialising a track on
- * each mouse move is the one place the builder could be made to feel slow.
+ * This browser's library is the copy that matters. A save lands here and
+ * is marked pending; src/share/cloud.js uploads it when it can and marks it
+ * online. Offline, or with the server down, nothing is lost and the builder
+ * never waits on the network.
  *
- * THE LIBRARY STILL HOLDS WHAT OLDER BUILDS SAVED IN IT: tracks drawn for the
- * race field and RaceGOW rooms, which nothing flies any more. They are left
- * where they are, because deleting a pilot's data is not an upgrade, and
- * every list here reads only the tracks built inside a world.
+ * The library may also hold race field and RaceGOW room tracks saved by
+ * older builds. Nothing flies those now, but they are the pilot's data, so
+ * they stay; every list here shows only tracks built inside a world.
  *
- * Every read goes through model.normalize, so a hand edited local storage
- * entry or a track from an older build cannot put the builder in a state it
- * cannot draw. Every write is wrapped, because private browsing throws on
- * localStorage.setItem and losing an autosave must never lose the session.
+ * Reads go through model.normalize, so a hand edited entry or an old
+ * build's track cannot leave the builder with something it cannot draw.
+ * Writes go through writeJson, which answers false instead of throwing
+ * when private browsing or the quota refuses them.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
   isMapTrack, newTrackId, normalize, toPlain, touch,
 } from './model.js';
-/* readJson and writeJson come from src/share/session.js, which had the same
- * two functions byte for byte. Private mode and the quota are handled there:
- * a failed write returns false and the caller tells the user. */
 import { readJson, writeJson } from '../share/session.js';
 
-const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-const ONLINE_KEY = 'webfpv.trackbuilder.online.v1';
-const FORKS_KEY = 'webfpv.trackbuilder.forks.v1';
+const STORAGE_PREFIX = 'webfpv.trackbuilder';
+const LIBRARY = `${STORAGE_PREFIX}.library.v1`;
+const STANDINGS = `${STORAGE_PREFIX}.online.v1`;
+const FORKS = `${STORAGE_PREFIX}.forks.v1`;
+const autosaveKey = (mapId) => `${STORAGE_PREFIX}.autosave.map.${mapId}.v1`;
 
-/* What cloud.js listens for, so a save is uploaded without every caller of
- * saveTrack having to know there is a server. */
-export const TRACK_SAVED_EVENT = 'webfpv-track-saved';
+/* cloud.js listens for this, so callers of saveTrack need not know a
+ * server exists. Only ever dispatched on this page's window. */
+export const TRACK_SAVED_EVENT = 'fdfpv-track-saved';
 
-/* A track built inside a world has an autosave seat per world: the builder
- * opens on whatever was left open in the world it is entered in. */
-function mapAutosaveKey(mapId) {
-  return `webfpv.trackbuilder.autosave.map.${mapId}.v1`;
+/* A forked track can be forked again; following more links than this means
+ * the forks entry is corrupt (a cycle), and the id reached so far is used. */
+const MAX_FORK_HOPS = 8;
+
+/* A stored JSON object keyed by id. Anything else stored there (an array,
+ * a number, garbage) reads as empty rather than breaking every caller. */
+function readTable(key) {
+  const value = readJson(key, {});
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
-function readLibrary() {
-  const lib = readJson(LIBRARY_KEY, {});
-  return (lib && typeof lib === 'object' && !Array.isArray(lib)) ? lib : {};
+function notifySaved() {
+  try {
+    window.dispatchEvent(new Event(TRACK_SAVED_EVENT));
+  } catch (e) {
+    /* The Node checks have no window, and nothing uploads there. */
+  }
 }
 
-/* The tracks built inside one world, or inside any world when `mapId` is
- * not given, newest change first. */
+/* The library with one entry added, replaced or removed (value null). */
+function putInLibrary(id, plain) {
+  const library = readTable(LIBRARY);
+  if (plain) {
+    library[id] = plain;
+  } else {
+    delete library[id];
+  }
+  return writeJson(LIBRARY, library);
+}
+
+/* The tracks built inside world `mapId`, or inside any world when it is
+ * null or omitted, most recently changed first. */
 export function listMapTracks(mapId) {
-  return Object.values(readLibrary())
+  const tracks = Object.values(readTable(LIBRARY))
     .filter((raw) => isMapTrack(raw) && (mapId == null || raw.map === mapId))
-    .map((raw) => normalize(raw).doc)
-    .sort((a, b) => String(b.modifiedUtc).localeCompare(String(a.modifiedUtc)));
+    .map((raw) => normalize(raw).doc);
+  return tracks.sort((a, b) => String(b.modifiedUtc).localeCompare(String(a.modifiedUtc)));
 }
 
-/* One saved track built inside a world, or null. */
+/* A saved track built inside a world, or null for any other id. */
 export function loadMapTrack(id) {
-  const raw = readLibrary()[id];
+  const raw = readTable(LIBRARY)[id];
   return raw && isMapTrack(raw) ? normalize(raw).doc : null;
 }
 
 /*
- * WHERE EACH TRACK STANDS WITH THE SERVER, by id:
+ * Each track's standing with the server, keyed by id:
  *
- *   { state: 'pending' }                  saved here, this save not
- *                                         uploaded yet
- *   { state: 'online', hash, updatedUtc } the server holds this save
- *   { state: 'failed', error }            the server refused it; the next
- *                                         save of the track tries again
- *   { state: 'delete' }                   deleted here, to delete there
+ *   { state: 'pending', hash?, updatedUtc? }  saved here since the last
+ *                                             upload, or never uploaded
+ *   { state: 'online', hash, updatedUtc }     the server has this save
+ *   { state: 'failed', error }                refused; the next save retries
+ *   { state: 'delete' }                       deleted here, still there
  *
- * `hash` covers what was uploaded, so a save that changed nothing is not
- * sent twice; `updatedUtc` is the server's own time for it, so a newer save
- * made on another computer under the same pilot key is recognised.
+ * hash is of what was last uploaded, so an unchanged save is not sent
+ * again; updatedUtc is the server's clock, so a newer save made elsewhere
+ * with the same pilot key can be recognised.
  */
 export function readOnlineStates() {
-  const all = readJson(ONLINE_KEY, {});
-  return (all && typeof all === 'object' && !Array.isArray(all)) ? all : {};
+  return readTable(STANDINGS);
 }
 
+/* Set one track's standing, or clear it with a falsy state. */
 export function writeOnlineState(id, state) {
-  const all = readOnlineStates();
+  const standings = readTable(STANDINGS);
   if (state) {
-    all[id] = state;
+    standings[id] = state;
   } else {
-    delete all[id];
+    delete standings[id];
   }
-  return writeJson(ONLINE_KEY, all);
+  return writeJson(STANDINGS, standings);
 }
 
-function announceSave() {
-  try {
-    window.dispatchEvent(new Event(TRACK_SAVED_EVENT));
-  } catch (e) {
-    /* No window, as in the Node checks, where nothing uploads anyway. */
+/* Where edits to track `id` go now: `id` itself, or the copy it was forked
+ * to, following forks of forks. */
+function liveIdOf(id) {
+  const forks = readJson(FORKS, {}) || {};
+  let live = id;
+  for (let hops = 0; hops < MAX_FORK_HOPS && forks[live]; hops += 1) {
+    live = forks[live];
   }
-}
-
-/* The id a track's edits go to now: its own, or the copy it was forked to
- * when the server said the id is another pilot's. Chains are followed,
- * with a bound, because a copy can be forked again. */
-function currentId(id) {
-  const forks = readJson(FORKS_KEY, {}) || {};
-  let at = id;
-  for (let i = 0; i < 8 && forks[at]; i += 1) {
-    at = forks[at];
-  }
-  return at;
+  return live;
 }
 
 /*
- * Save into the library and mark the track for upload. A track whose id
- * turned out to belong to another pilot is saved under its copy's id
- * instead, and `doc` itself takes that id, so the builder holding it carries
- * on editing the copy.
+ * Save `doc` and queue it for upload. If its id was forked, it is saved
+ * under the copy's id and `doc` is given that id, so the builder holding it
+ * keeps editing the copy. False when the browser refused the write.
  */
 export function saveTrack(doc) {
-  doc.id = currentId(doc.id);
+  doc.id = liveIdOf(doc.id);
   touch(doc);
-  const lib = readLibrary();
-  lib[doc.id] = toPlain(doc);
-  if (!writeJson(LIBRARY_KEY, lib)) {
+  if (!putInLibrary(doc.id, toPlain(doc))) {
     return false;
   }
-  /* The last upload's hash and time are kept: they are what says this id
-   * is on the server already, for a delete, and whether anything changed. */
-  const { hash, updatedUtc } = readOnlineStates()[doc.id] || {};
-  writeOnlineState(doc.id, { state: 'pending', hash, updatedUtc });
-  announceSave();
+  /* Keep the last upload's hash and time: they say whether the server holds
+   * this id (for a later delete) and whether anything changed. */
+  const previous = readOnlineStates()[doc.id] || {};
+  writeOnlineState(doc.id, { state: 'pending', hash: previous.hash, updatedUtc: previous.updatedUtc });
+  notifySaved();
   return true;
 }
 
-/*
- * A track that came FROM the server, one of this pilot's own saved on
- * another computer: into the library as it is, already online, so it is not
- * sent straight back.
- */
+/* A track downloaded from the server (this pilot's, saved on another
+ * computer): stored as it came and marked online, so it is not uploaded
+ * straight back. */
 export function storeFromServer(doc, online) {
-  const lib = readLibrary();
-  lib[doc.id] = toPlain(doc);
-  if (!writeJson(LIBRARY_KEY, lib)) {
+  if (!putInLibrary(doc.id, toPlain(doc))) {
     return false;
   }
   return writeOnlineState(doc.id, { state: 'online', ...online });
 }
 
 /*
- * The server said this id is another pilot's, so this browser's edits go
- * to a copy of it under a new id, the same name, marked for upload. The
- * library entry moves rather than being duplicated, because the pilot made
- * one track and should see one. Returns the new id, or null.
+ * The server says track `id` belongs to another pilot. Move this browser's
+ * copy to a fresh id, same content, and queue it for upload; the old id
+ * forwards to it. Moved, not duplicated: the pilot made one track. Returns
+ * the new id, or null when there is no such track or the write failed.
  */
 export function forkTrack(id) {
-  const lib = readLibrary();
-  const raw = lib[id];
-  if (!raw) {
+  const library = readTable(LIBRARY);
+  if (!library[id]) {
     return null;
   }
-  const copy = toPlain(normalize(raw).doc);
+  const copy = toPlain(normalize(library[id]).doc);
   copy.id = newTrackId();
-  lib[copy.id] = copy;
-  delete lib[id];
-  if (!writeJson(LIBRARY_KEY, lib)) {
+  library[copy.id] = copy;
+  delete library[id];
+  if (!writeJson(LIBRARY, library)) {
     return null;
   }
-  const forks = readJson(FORKS_KEY, {}) || {};
+  const forks = readJson(FORKS, {}) || {};
   forks[id] = copy.id;
-  writeJson(FORKS_KEY, forks);
+  writeJson(FORKS, forks);
   writeOnlineState(id, null);
   writeOnlineState(copy.id, { state: 'pending' });
-  announceSave();
+  notifySaved();
   return copy.id;
 }
 
 /*
- * Tracks saved before there was a server have no state at all. They are
- * marked for upload once, which is how a pilot's existing tracks reach the
- * server the first time this build runs. Returns how many were marked.
+ * Tracks saved before the server existed have no standing. Mark each one
+ * pending, once, which is how they first reach the server. Returns how many
+ * were marked.
  */
 export function markUnsyncedTracks() {
-  const states = readOnlineStates();
-  let n = 0;
-  for (const raw of Object.values(readLibrary())) {
-    if (isMapTrack(raw) && raw.id && !states[raw.id]) {
-      states[raw.id] = { state: 'pending' };
-      n += 1;
+  const standings = readOnlineStates();
+  let marked = 0;
+  /* Checked as it goes: two library entries naming one id count once. */
+  for (const raw of Object.values(readTable(LIBRARY))) {
+    if (isMapTrack(raw) && raw.id && !standings[raw.id]) {
+      standings[raw.id] = { state: 'pending' };
+      marked += 1;
     }
   }
-  if (n) {
-    writeJson(ONLINE_KEY, states);
+  if (marked) {
+    writeJson(STANDINGS, standings);
   }
-  return n;
+  return marked;
 }
 
 /*
- * Take a track out of the library, and out of its world's autosave if it is
- * the one left open there, or the builder would open on a track the pilot
- * has just deleted. False when there was nothing to delete or the browser
- * refused the write.
+ * Remove track `id` here, queue its removal from the server if the server
+ * may hold it, and drop its world's autosave if that is this track, or the
+ * builder would reopen what was just deleted. False when there was no such
+ * track or the write failed.
  */
 export function deleteTrack(id) {
-  const lib = readLibrary();
-  const raw = lib[id];
-  if (!raw) {
+  const raw = readTable(LIBRARY)[id];
+  if (!raw || !putInLibrary(id, null)) {
     return false;
   }
-  delete lib[id];
-  if (!writeJson(LIBRARY_KEY, lib)) {
-    return false;
-  }
-  /* Deleted here means deleted online too. A track that never reached the
-   * server has nothing there to delete. */
-  const was = readOnlineStates()[id];
-  writeOnlineState(id, was && (was.state !== 'pending' || was.updatedUtc) ? { state: 'delete' } : null);
-  announceSave();
-  if (isMapTrack(raw)) {
-    const open = readMapAutosave(raw.map);
-    if (open && open.doc.id === id) {
-      try {
-        localStorage.removeItem(mapAutosaveKey(raw.map));
-      } catch (e) {
-        /* The library write above went through; a stale autosave only
-         * reopens the track in the builder, where it can be deleted again. */
-      }
+  /* Pending with no server time means it never went up: nothing to delete
+   * there. */
+  const standing = readOnlineStates()[id];
+  const onServer = standing && (standing.state !== 'pending' || standing.updatedUtc);
+  writeOnlineState(id, onServer ? { state: 'delete' } : null);
+  notifySaved();
+  if (isMapTrack(raw) && readMapAutosave(raw.map)?.doc.id === id) {
+    try {
+      localStorage.removeItem(autosaveKey(raw.map));
+    } catch (e) {
+      /* The delete itself went through; a stale autosave only reopens the
+       * track in the builder, where it can be deleted again. */
     }
   }
   return true;
 }
 
 export function writeAutosave(doc) {
-  return writeJson(mapAutosaveKey(doc.map), toPlain(doc));
+  return writeJson(autosaveKey(doc.map), toPlain(doc));
 }
 
+/* normalize's result ({ doc, repairs }) for what was left open in world
+ * `mapId`, or null. */
 export function readMapAutosave(mapId) {
-  const raw = readJson(mapAutosaveKey(mapId), null);
+  const raw = readJson(autosaveKey(mapId), null);
   return raw && isMapTrack(raw) && raw.map === mapId ? normalize(raw) : null;
 }
 
 /*
- * A debounced autosave. The builder calls schedule() after every edit; the
- * write happens once the edits stop.
+ * Debounced autosave: schedule(doc) after every edit, and the write happens
+ * delayMs after the last one; flush() writes now. Serialising on every
+ * mouse move is the one thing that would make the builder feel slow.
  */
 export function makeAutosaver(delayMs = 700) {
-  let timer = null;
-  let latest = null;
+  let pending = null;
+  let doc = null;
+  const cancel = () => {
+    if (pending != null) {
+      clearTimeout(pending);
+      pending = null;
+    }
+  };
+  const write = () => {
+    if (doc) {
+      writeAutosave(doc);
+    }
+  };
   return {
-    schedule(doc) {
-      latest = doc;
-      if (timer != null) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(() => {
-        timer = null;
-        if (latest) {
-          writeAutosave(latest);
-        }
+    schedule(next) {
+      doc = next;
+      cancel();
+      pending = setTimeout(() => {
+        pending = null;
+        write();
       }, delayMs);
     },
     flush() {
-      if (timer != null) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      if (latest) {
-        writeAutosave(latest);
-      }
+      cancel();
+      write();
     },
   };
 }

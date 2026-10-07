@@ -47,20 +47,20 @@
  * along as the section `builds` (syncedView), and come back through
  * src/ui/builds.js normaliseBuilds, the same judge as at boot.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { currentLocale, str } from '../strings/index.js';
@@ -73,7 +73,7 @@ import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../share/progressmerge.js';
 import { tracksOrigin } from '../share/cloud.js';
-import { SETTINGS_KEY, loadSettings } from './ui.js';
+import { SETTINGS_KEY, loadSettings, saveSettings } from './settings.js';
 import {
   buildsBlob, buildsFromBlob, fitBuild, saveBuilds, stockView, unfitFamily,
 } from './builds.js';
@@ -208,7 +208,7 @@ function clearProgress() {
       delete s[k];
     }
     delete s.buildFits;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    saveSettings(s);
   } catch (e) {
     /* Private mode: it goes with the page. */
   }
@@ -461,10 +461,11 @@ export function createAccountUi({ ui, identity, say }) {
     }
     if (changed) {
       try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-        const fresh = loadSettings();
-        for (const k of Object.keys(data)) {
-          s[k] = fresh[k];
+        if (saveSettings(s)) {
+          const fresh = loadSettings();
+          for (const k of Object.keys(data)) {
+            s[k] = fresh[k];
+          }
         }
       } catch (e) {
         /* Private mode: the merge lives in this page. */
@@ -478,11 +479,8 @@ export function createAccountUi({ ui, identity, say }) {
     }
     changed = changed || JSON.stringify(s.buildFits || {}) !== fitsBefore;
     if (changed) {
-      try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-      } catch (e) {
-        /* Private mode: the merge lives in this page. */
-      }
+      /* Refused in private mode: the merge lives in this page. */
+      saveSettings(s);
       ui.renderMenu();
     }
     const view = syncedView();

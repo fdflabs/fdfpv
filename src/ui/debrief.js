@@ -39,7 +39,8 @@ import { itemsOf } from '../share/ops/stages.js';
 
 const CSS = `
 .debrief { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 45;
-  background: rgba(3, 5, 6, 0.82); font-family: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; }
+  background: rgba(3, 5, 6, 0.82); font-family: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  pointer-events: auto; user-select: text; }
 .debrief.open { display: flex; }
 .debrief-box { width: min(64em, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; box-sizing: border-box;
   color: rgba(236, 244, 240, 0.92); padding: 1.2em 1.4em; border: 1px solid rgba(236, 244, 240, 0.3);
@@ -64,7 +65,8 @@ const CSS = `
 .debrief-still.rec { border-style: dashed; border-color: #ffc04a; }
 .debrief-still.missing { opacity: 0.55; }
 .debrief-next { margin-top: 1em; color: rgba(236, 244, 240, 0.7); }
-.debrief-row { display: flex; justify-content: flex-end; gap: 0.8em; margin-top: 1.2em; flex-wrap: wrap; }
+.debrief-row { display: flex; justify-content: flex-end; gap: 0.8em; margin-top: 1.2em; flex-wrap: wrap;
+  position: sticky; bottom: -1.2em; padding: 0.8em 0 1.2em; background: rgba(8, 12, 14, 0.97); }
 .debrief-btn { font: inherit; letter-spacing: 0.14em; color: #fff; background: transparent; border: 1px solid rgba(236, 244, 240, 0.5);
   padding: 0.55em 1.1em; min-height: 44px; min-width: 44px; cursor: pointer; }
 .debrief-btn.on { background: rgba(236, 244, 240, 0.12); }
@@ -209,6 +211,19 @@ export class Debrief {
     this.box.setAttribute('role', 'dialog');
     this.isOpen = false;
     this.shownFor = null;
+    /* Escape is Continue: a debrief must never be a dead end. Captured
+     * ahead of the game's own keys, which would otherwise take it. */
+    window.addEventListener('keydown', (e) => {
+      if (!this.isOpen || e.code !== 'Escape') {
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const done = this.box.querySelector('button[data-act="continue"]');
+      if (done) {
+        done.click();
+      }
+    }, true);
     this.urls = [];
     this.frames = [];
     window.__debrief = () => ({
@@ -318,5 +333,7 @@ export class Debrief {
     });
     this.isOpen = true;
     this.el.classList.add('open');
+    /* Focused so Enter or Space presses it with no mouse at all. */
+    done.focus({ preventScroll: true });
   }
 }
