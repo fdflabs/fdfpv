@@ -18557,20 +18557,13 @@ export async function boot({
   };
 
   /*
-   * Freestyle scoring. The writers stage a trick, the horn or a bail through
-   * the real scorer, because flying one in a headless browser is not
-   * reproducible. A staged trick is flagged `assisted`, which the results
-   * screen carries and the board refuses, so no capture can post a score.
+   * Freestyle scoring: the run's summary, and the horn without waiting out
+   * the clock, which a headless page would take minutes to reach.
    */
   window.__score = () => score.summary();
   window.__scoreFinish = () => {
     score.finish();
     endFreestyleRun();
-    return score.summary();
-  };
-  window.__scoreCrash = () => {
-    trickDetector.reset();
-    score.crash();
     return score.summary();
   };
 
