@@ -188,6 +188,9 @@ jobs:
       # The .rec stick recording format (tests/lib/recfile.js), against a
       # pinned transcript.
       - run: npm run recfile:selftest
+      # tests/gen/gen-baseline.js still writes the committed
+      # tests/inputs/baseline.rec byte for byte and refuses to overwrite it.
+      - run: npm run genbaseline:selftest
       - run: npm run score:golden
       - run: npm run scorehud:golden
       - run: npm run tricks:golden
