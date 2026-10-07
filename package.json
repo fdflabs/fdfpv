@@ -443,6 +443,7 @@
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
     "training:selftest": "node scripts/training-selftest.js",
+    "training:check": "node scripts/training-check.js",
     "flighttime:selftest": "node scripts/flighttime-selftest.js",
     "stats:selftest": "node scripts/stats-selftest.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",

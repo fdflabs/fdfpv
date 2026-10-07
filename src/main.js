@@ -61,6 +61,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { headingOf } from './game/training.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -145,6 +146,7 @@ import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilm
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { createTrainingScreen } from './ui/training.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
@@ -6871,6 +6873,30 @@ export async function boot({
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
   /*
+   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
+   * Stabilised or Acro) and goes in by the card it is flown from, Free
+   * Flight on its world or Track mode's tracks; its judge rides on the
+   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   */
+  const trainingScreen = createTrainingScreen({
+    ui,
+    passed: () => false,
+    fly: (lesson) => {
+      const s = ui.settings;
+      const craft = lesson.airframe || s.airframe;
+      if (craft !== s.airframe) {
+        seatAirframe(s, craft);
+      }
+      if (lesson.tune) {
+        s.tune = lesson.tune;
+      }
+      ui.progress.startLesson(lesson);
+      ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
+    },
+  });
+  ui.onTrainingCard = () => trainingScreen.open();
+  window.__training = trainingScreen;
+  /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
    * first core role's aircraft, seated before the room is joined so every
@@ -11459,7 +11485,7 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun(ctx);
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr) });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
@@ -16071,7 +16097,7 @@ export async function boot({
         ui.progress.gatePass();
       }
       if (race.laps.length > lapsBefore) {
-        ui.progress.lap(progressCourse());
+        ui.progress.lap(progressCourse(), { ms: race.laps[race.laps.length - 1], ghostMs: ghostChased ? ghostChased.durationMs : null });
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');

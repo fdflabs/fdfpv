@@ -21,7 +21,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LESSONS, LessonWatch, lessonById } from '../src/game/training.js';
+import { LESSONS, LessonWatch, TRACKS, headingOf, lessonById } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -99,6 +99,38 @@ expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }),
 expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
 expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
 expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
+
+/* The turn sign against the plant's frame (src/render/frame.js: z up, x
+ * forward, y left): rotate the nose by the state's quaternion and see
+ * which side it points to. A heading that rises must be a nose that went
+ * to +y, the left. */
+function stateYawPitch(yaw, pitch) {
+  /* q = yaw about z, then pitch about the body's y. */
+  const cy = Math.cos(yaw / 2);
+  const sy = Math.sin(yaw / 2);
+  const cp = Math.cos(pitch / 2);
+  const sp = Math.sin(pitch / 2);
+  const st = new Float64Array(16);
+  st[7] = cy * cp;
+  st[8] = -sy * sp;
+  st[9] = cy * sp;
+  st[10] = sy * cp;
+  return st;
+}
+function noseOf(st) {
+  const [w, x, y, z] = [st[7], st[8], st[9], st[10]];
+  return [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+}
+for (const yaw of [0.4, 1.5, -0.7, 2.9]) {
+  const st = stateYawPitch(yaw, 0.3);
+  const nose = noseOf(st);
+  expect(`heading ${yaw} read back`, Math.abs(headingOf(st) - yaw) < 1e-9, true);
+  expect(`heading ${yaw} > 0 is a nose to the left (+y)`, Math.sign(nose[1]) === Math.sign(Math.sin(yaw)), true);
+}
+expect('every lesson is on a listed track', LESSONS.every((l) => TRACKS.includes(l.track)), true);
+for (const t of TRACKS) {
+  expect(`training.track.${t} en and es`, typeof en[`training.track.${t}`] === 'string' && typeof es[`training.track.${t}`] === 'string', true);
+}
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

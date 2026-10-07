@@ -31,8 +31,9 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
+import { LessonWatch } from '../game/training.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
@@ -242,25 +243,75 @@ export class Progress {
     this.watch.start(ctx);
   }
 
+  /*
+   * THE LESSON being flown (src/game/training.js), or none: judged beside
+   * the challenges from the same calls, and said in toasts. It lasts until
+   * another lesson or endLesson (any other card).
+   */
+  startLesson(lesson) {
+    this.lesson = lesson ? new LessonWatch(lesson) : null;
+    this.lessonStep = 0;
+    if (lesson) {
+      this.toast({
+        cls: 'lap', icon: '1', kicker: str('training.toast_lesson'),
+        title: str(`training.lesson.${lesson.id}`), sub: str(`training.lesson.${lesson.id}_note`),
+      });
+    }
+  }
+
+  endLesson() {
+    this.lesson = null;
+  }
+
+  /* After a lesson call: a toast for each step done, and the pass. */
+  lessonNews() {
+    const w = this.lesson;
+    if (!w || w.step === this.lessonStep) {
+      return;
+    }
+    const total = w.lesson.steps.length;
+    if (w.passed) {
+      this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
+      this.lesson = null;
+      return;
+    }
+    if (w.step > this.lessonStep) {
+      this.toast({ cls: 'lap', icon: String(w.step + 1), kicker: str('training.toast_step', { n: w.step + 1, of: total }), title: str(`training.lesson.${w.lesson.id}`) });
+    }
+    this.lessonStep = w.step;
+  }
+
   gatePass() {
     this.award(this.watch.gatePass());
   }
 
   touch(kind) {
     this.watch.touch(kind);
+    if (this.lesson && RIM_KINDS.includes(kind)) {
+      this.lesson.rim();
+    }
   }
 
-  /* A lap closed on `course`, { key, kind }. */
-  lap(course) {
+  /* A lap closed on `course`, { key, kind }; `ms` its time and `ghostMs`
+   * the ghost's it was flown against, or null. */
+  lap(course, { ms = null, ghostMs = null } = {}) {
     const events = awardLap(this.state, course);
     const done = this.watch.lap();
     this.save();
     this.show(events);
     this.award(done);
+    if (this.lesson) {
+      this.lesson.lap({ ms, ghostMs });
+      this.lessonNews();
+    }
   }
 
   tick(state) {
     this.award(this.watch.tick(state));
+    if (this.lesson) {
+      this.lesson.tick(state);
+      this.lessonNews();
+    }
   }
 
   award(ids) {

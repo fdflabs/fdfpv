@@ -501,6 +501,29 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -1671,6 +1694,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "gate-hub-club": {
@@ -2172,6 +2239,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -3358,6 +3448,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "gate-hub-hangar": {
@@ -3859,6 +3993,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -5047,6 +5204,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "gate-visitor": {
@@ -5692,6 +5893,34 @@
       "settings.cameraAngle": 5,
       "settings.tune": "wing-acro",
       "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+     }
+    }
+   },
+   "way-training": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "show",
+       "freestyle"
+      ]
+     ],
+     "changed": {
+      "screen": "freestyle",
+      "mode": "freestyle",
+      "craftGate": false,
+      "settings.airframe": "timber1500",
+      "settings.airframeAsked": true,
+      "settings.cameraFov": 100,
+      "settings.cameraAngle": 5,
+      "settings.tune": "timber-acro",
+      "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
      }
     }
    },
@@ -7205,6 +7434,60 @@
       "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
      }
     }
+   },
+   "way-training picked:cub": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "show",
+       "freestyle"
+      ]
+     ],
+     "changed": {
+      "screen": "freestyle",
+      "mode": "freestyle",
+      "craftGate": false,
+      "settings.airframeAsked": true,
+      "settings.cameraFov": 95,
+      "settings.cameraAngle": 45,
+      "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+     }
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "show",
+       "freestyle"
+      ]
+     ],
+     "changed": {
+      "screen": "freestyle",
+      "mode": "freestyle",
+      "craftGate": false,
+      "settings.airframe": "timber1500",
+      "settings.airframeAsked": true,
+      "settings.cameraFov": 100,
+      "settings.cameraAngle": 5,
+      "settings.tune": "timber-acro",
+      "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+     }
+    }
    }
   },
   "title-race": {
@@ -7689,6 +7972,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -8846,6 +9150,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "title-race-noseat": {
@@ -9330,6 +9674,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -10487,6 +10852,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "title-freestyle": {
@@ -10951,6 +11356,29 @@
     "changed": {
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1530 chars, hash bb2adf5c"
     }
    },
    "friends-leave": {
@@ -12143,6 +12571,50 @@
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "interceptor",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "store.webfpv.settings.v3": "1524 chars, hash dbfb9162"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1530 chars, hash bb2adf5c"
+    }
    }
   },
   "title-freestyle-itaipu": {
@@ -12625,6 +13097,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1511 chars, hash 67effaf2"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1531 chars, hash a5ba37a7"
     }
    },
    "friends-leave": {
@@ -13835,6 +14330,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1511 chars, hash 67effaf2"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash fa393579"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1531 chars, hash a5ba37a7"
+    }
    }
   },
   "title-freestyle-noseat": {
@@ -14329,6 +14868,35 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1507 chars, hash 9edccbb2"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.map": "alps",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1527 chars, hash 786260e7"
     }
    },
    "friends-leave": {
@@ -15576,6 +16144,62 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1507 chars, hash 9edccbb2"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "settings.airframeAsked": true,
+     "settings.map": "alps",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1521 chars, hash 14796839"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.map": "alps",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1527 chars, hash 786260e7"
+    }
    }
   },
   "title-firstrun": {
@@ -16072,6 +16696,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -17248,6 +17894,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "paused": {
@@ -17749,6 +18437,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -18936,6 +19647,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "paused-freestyle": {
@@ -19416,6 +20171,30 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1511 chars, hash 7f0bec32"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1531 chars, hash 7bdec167"
     }
    },
    "friends-leave": {
@@ -20631,6 +21410,52 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1511 chars, hash 7f0bec32"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1531 chars, hash 7bdec167"
+    }
    }
   },
   "courses": {
@@ -21123,6 +21948,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -22299,6 +23146,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -22872,6 +23761,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -24051,6 +24962,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -24621,6 +25574,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -25801,6 +26776,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "courses-local-no": {
@@ -26329,6 +27346,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -27505,6 +28544,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -28078,6 +29159,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -29257,6 +30360,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -29818,6 +30963,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -30997,6 +32164,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -31533,6 +32742,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -32712,6 +33943,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -33268,6 +34541,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -34447,6 +35742,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -34999,6 +36336,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -36178,6 +37537,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -36667,6 +38068,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -37846,6 +39269,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -38461,6 +39926,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -39640,6 +41127,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -40178,6 +41707,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -41358,6 +42909,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "freestyle": {
@@ -41830,6 +43423,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1505 chars, hash 8ab6f9ad"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1525 chars, hash 98a7a178"
     }
    },
    "friends-leave": {
@@ -43039,6 +44655,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1505 chars, hash 8ab6f9ad"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1519 chars, hash 6239c566"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1525 chars, hash 98a7a178"
+    }
    }
   },
   "friends-out": {
@@ -43521,6 +45181,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -44682,6 +46363,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "friends-room": {
@@ -45164,6 +46885,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -46313,6 +48055,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "friends-lobby": {
@@ -46795,6 +48577,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -47947,6 +49750,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "friends-room-paused": {
@@ -48437,6 +50280,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -49625,6 +51490,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "friends-from-courses": {
@@ -50121,6 +52028,29 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomFrom": null,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -51318,6 +53248,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomFrom": null,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomFrom": null,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "rooms": {
@@ -51805,6 +53779,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -52962,6 +54957,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "roomnew": {
@@ -53449,6 +55484,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -54605,6 +56661,46 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -55101,6 +57197,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -56275,6 +58393,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "fc-dirty": {
@@ -56768,6 +58928,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -57956,6 +60138,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "fc-dirty-run": {
@@ -58449,6 +60673,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -59632,6 +61878,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "fc-search": {
@@ -60125,6 +62413,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -61314,6 +63624,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "fc-confirm": {
@@ -61807,6 +64159,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -63000,6 +65374,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "quad": {
@@ -63493,6 +65909,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -64678,6 +67116,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "pilot": {
@@ -65171,6 +67651,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1488 chars, hash 4d89149"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1508 chars, hash 2882671c"
     }
    },
    "friends-leave": {
@@ -66366,6 +68868,49 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1488 chars, hash 4d89149"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "settings.tune": "betaflight-interceptor",
+     "store.webfpv.settings.v3": "1502 chars, hash ccfe82"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1508 chars, hash 2882671c"
+    }
    }
   },
   "rates-from-pilot": {
@@ -66859,6 +69404,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -68034,6 +70601,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "rates-plain": {
@@ -68527,6 +71136,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -69699,6 +72330,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "rates-preset": {
@@ -70192,6 +72865,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -71377,6 +74072,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "rates-preset-no": {
@@ -71870,6 +74607,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -73047,6 +75806,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "pids-from-quad": {
@@ -73540,6 +76341,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -74715,6 +77538,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "pids-plain": {
@@ -75208,6 +78073,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -76385,6 +79272,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "standings": {
@@ -76904,6 +79833,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -78080,6 +81031,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -78587,6 +81580,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -79763,6 +82778,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -80252,6 +83309,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -81428,6 +84507,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -81933,6 +85054,29 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -83120,6 +86264,50 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -83625,6 +86813,29 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -84812,6 +88023,50 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -85317,6 +88572,29 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -86505,6 +89783,50 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "credits": {
@@ -86998,6 +90320,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -88181,6 +91525,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "results": {
@@ -88674,6 +92060,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -89853,6 +93261,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "flight": {
@@ -90346,6 +93796,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -91508,6 +94980,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   },
@@ -92004,6 +95518,28 @@
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
    },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
+   },
    "friends-leave": {
     "calls": [
      [
@@ -93175,6 +96711,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "howto": {
@@ -93668,6 +97246,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -94845,6 +98445,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "launch": {
@@ -95338,6 +98980,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -96522,6 +100186,48 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "tricks": {
@@ -97009,6 +100715,27 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -98174,6 +101901,46 @@
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
     }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
+    }
    }
   },
   "drop-open": {
@@ -98667,6 +102434,28 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    },
    "friends-leave": {
@@ -99842,6 +103631,48 @@
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
      "store.webfpv.settings.v3": "1504 chars, hash 5fc0b0dd"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1518 chars, hash a3497b96"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1524 chars, hash eccc2188"
     }
    }
   }
@@ -102095,6 +105926,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -102197,6 +106033,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -102304,6 +106145,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "action": "hub-club"
@@ -102419,6 +106265,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "action": "hub-club"

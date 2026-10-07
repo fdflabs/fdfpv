@@ -23,6 +23,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}
@@ -115,6 +120,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}
@@ -246,6 +256,21 @@
       "Invite code"
      ],
      "svg": "<svg 412 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Learn to fly",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/swiss2.jpg",
+     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "facts": [
+      "Short lessons, in order",
+      "Stabilised first, then Acro",
+      "Nothing waits on them"
+     ],
+     "svg": "<svg 623 chars>",
      "drives": {}
     },
     {
@@ -402,6 +427,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}
@@ -23414,6 +23444,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}
@@ -23506,6 +23541,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}
@@ -23637,6 +23677,21 @@
       "Invite code"
      ],
      "svg": "<svg 412 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-training",
+     "label": "Learn to fly",
+     "action": "way-training",
+     "card": "training",
+     "art": "assets/posters/swiss2.jpg",
+     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "facts": [
+      "Short lessons, in order",
+      "Stabilised first, then Acro",
+      "Nothing waits on them"
+     ],
+     "svg": "<svg 623 chars>",
      "drives": {}
     },
     {
@@ -23793,6 +23848,11 @@
        "label": "Free Flight",
        "action": "way-freestyle-wing1000",
        "key": "freestyle-wing1000"
+      },
+      {
+       "label": "Learn to fly",
+       "action": "way-training",
+       "key": "training"
       }
      ],
      "drives": {}

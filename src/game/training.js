@@ -54,6 +54,23 @@ export const LESSONS = [
   { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, steps: [{ ghost: true }] },
 ];
 
+/* The tracks in the order the page lists them. */
+export const TRACKS = ['first', 'racing'];
+
+/*
+ * The craft's heading from a plant state (src/sim, CLAUDE.md): the body to
+ * world quaternion is st[7..10] as w, x, y, z, in the plant's frame, z up,
+ * x forward, y left (src/render/frame.js). The yaw about +z, so a turn to
+ * the left raises it: what LessonWatch's turn steps count as left.
+ */
+export function headingOf(st) {
+  const w = st[7];
+  const x = st[8];
+  const y = st[9];
+  const z = st[10];
+  return Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+}
+
 export function lessonById(id) {
   return LESSONS.find((l) => l.id === id) ?? null;
 }

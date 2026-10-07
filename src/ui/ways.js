@@ -200,6 +200,21 @@ export const WAYS = [
     blurb: str('ops.campaign.interior.card_blurb'),
     facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
   },
+  /* Learn to fly, the lessons (src/game/training.js): a solo card, not a
+   * room game, so it is not in the mode registry, as the Interior's is
+   * not. Its own page lists the lessons; a lesson seats its aircraft. */
+  {
+    id: 'training',
+    training: true,
+    category: 'flightclub',
+    airframes: ['timber1500'],
+    mode: 'freestyle',
+    label: str('training.card'),
+    art: 'assets/posters/swiss2.jpg',
+    svg: planeSvg(),
+    blurb: str('training.card_blurb'),
+    facts: [str('training.card_steps'), str('training.card_assists'), str('training.card_gates')],
+  },
 ].map((way) => ({ ...way, action: `way-${way.id}` }));
 
 /* The cards the title draws. */

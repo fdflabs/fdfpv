@@ -1165,6 +1165,14 @@ export class Ui {
       this.onCampaignCard();
       return;
     }
+    /* Any other card ends a lesson in flight. */
+    if (!way.training && this.progress) {
+      this.progress.endLesson();
+    }
+    if (way.training && this.onTrainingCard) {
+      this.onTrainingCard();
+      return;
+    }
     if (way.opsCampaign && this.onOpsCampaignCard) {
       this.onOpsCampaignCard(way.opsCampaign);
       return;
