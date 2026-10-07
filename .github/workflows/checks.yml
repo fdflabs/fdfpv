@@ -57,6 +57,7 @@ jobs:
       - run: npm run identity:selftest
       - run: npm run live:selftest
       - run: npm run ratescurve:selftest
+      - run: npm run panels:golden
       - run: npm run rooms:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
