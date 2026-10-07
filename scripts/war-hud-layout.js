@@ -189,7 +189,9 @@ async function one(width, height, style, rooms) {
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-warhud-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 1 is in development (held since 2026-10-07), which
+ * only a check's own server starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 try {
   for (const [w, h] of SIZES) {
     for (const style of STYLES) {
