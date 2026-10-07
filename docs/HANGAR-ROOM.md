@@ -23,9 +23,9 @@ main room with the pilot second, the war field hangar third.
 | stand | the aircraft picker (`hangar-aircraft`) | this lane | yes |
 | bench | paint and parts (`customise`) | paint lane, parts lane | yes, today's hangar tabs |
 | shelf | parts bench | parts lane | no: `customise` until it lands |
-| shop | the shop | progression lane | no: the station is not placed until it lands |
-| trophy wall | campaign progress and records | progression lane | no: not placed until it lands |
-| tv | replays | this lane later (item 28) | no: not placed until it lands |
+| shop | the shop | progression lane | no: drawn, no prompt until it lands |
+| trophy wall | campaign progress and records | progression lane | no: drawn, no prompt until it lands |
+| tv | replays | this lane later (item 28) | no: drawn, no prompt until it lands |
 | door | Fly (`fly`, the same as the launch card) | existing | yes |
 
   A station opens its screen through `ui.act(action)`, the same door a
@@ -76,35 +76,54 @@ rank, no insignia.
 - `src/render/interior/figures.js` makeFigures: the pilot, one instance.
 - `src/render/craft.js` craftBuilderFor and livery.js: the aircraft.
 
-## Perf budget (measured, see "Perf test" below)
+## Perf budget
 
 The room replaces the world's draw, so its budget is a share of the 11.1
 ms frame (docs/PERF.md, 90 fps) that leaves the UI room. Per frame, the
-largest tier, aircraft and pilot in it:
+largest tier, aircraft and pilot in it, shadow pass included:
 
-| Preset | Draw calls | Triangles | Textures | GPU ms (this box) |
+| Preset | Draw calls | Triangles | Textures | GPU ms, median (this box) |
 | --- | --- | --- | --- | --- |
 | low | 40 | 150 k | 2 | 2.0 |
 | medium | 60 | 150 k | 3 | 3.0 |
 | high | 70 | 150 k | 3 | 4.0 |
 
 Textures: the room itself uses none (vertex colours); the count is the
-render target and the shadow map. Draw calls are dominated by the
-aircraft (one per part); the room is a handful of merged meshes, one per
-material, whatever the furniture count. `npm run hangar:perf` fails a
-run over the budget. Numbers measured are in the PR and in the table
-below.
+render target and the shadow map. The GPU column is a small share of the
+frame on purpose: a Low machine (Steam Deck class) is several times
+slower than this box's RTX 3060 Ti. `npm run hangar:perf` fails a run
+over the budget.
+
+### Measured 2026-10-07 (RTX 3060 Ti, ANGLE GL ES 3.2, 1600 by 900)
+
+The budget was written before the first run; the first runs broke it on
+draw calls (Bramor on the stand: 55 at Low, 108 with its shadow pass),
+which is why the parked aircraft is now drawn as one merged copy per
+material. After that, airfield tier with the Bramor (69 meshes, the most
+of the hangar's aircraft):
+
+| Preset | Calls | Triangles | Textures | GPU ms median | CPU submit ms |
+| --- | --- | --- | --- | --- | --- |
+| low | 17 | 12.6 k | 2 | 0.10 | 0.30 |
+| medium | 32 | 19.3 k | 3 | 0.61 | 0.40 |
+| high | 32 | 19.3 k | 3 | 1.13 | 0.40 |
+
+The same room with the furniture as one mesh per piece: 138 calls at
+Low, 273 at Medium and High. GPU 95th percentiles reached 15 ms in some
+runs: GPU 0 is shared with the desktop and other lanes' checks (load
+average 17 during the run), and those spikes moved between runs and
+presets, so they measure the neighbours, not the room.
 
 ## Perf test
 
 `scripts/hangar-room-perf.js` opens `scripts/hangar-room-perf.html` on the
 GPU (SIM_GPU=1), builds each tier with the default layout, the pilot and
-an aircraft (the Cub, the most parts of the hangar's planes), walks the
+the aircraft with the most meshes of a list that covers every builder kind (the Bramor, 69), walks the
 pilot a fixed loop with the camera following, and per preset reads
 renderer.info (calls, triangles, textures, geometries, programs) and GPU
 time (EXT_disjoint_timer_query_webgl2) over 300 frames. It also builds
 the naive variant, one mesh per furniture piece, to show what merging
-saves. It runs through `~/.cache/run-check-slot.sh`, never alongside
+saves. Pictures of every tier and preset land in the out dir. It runs through `~/.cache/run-check-slot.sh`, never alongside
 another GPU run on GPU 0 (`nvidia-smi pmon -c 1` first).
 
 ## Does not do

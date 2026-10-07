@@ -24,6 +24,8 @@
     "fc-bench:selftest": "node scripts/fc-bench-selftest.js",
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
+    "hangar:perf": "node scripts/hangar-room-perf.js",
+    "hangar:room": "node scripts/hangar-room-check.js",
     "pids:selftest": "node scripts/pids-selftest.js",
     "perf:overlay": "node scripts/perf-overlay-check.js",
     "perf:latency": "node scripts/perf-latency.js",
