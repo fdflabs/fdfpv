@@ -93,6 +93,11 @@ export const VOICE_DUCK = 0.55;
 /* The music already playing is moved to a film's time only when it is
  * this far off it, so the film's own clock never makes it stutter. */
 export const MUSIC_SEEK_S = 0.25;
+/* A bed asked to stop fades out over this long, ms, instead of pausing on
+ * the spot: a film's silent shot after a room tone (int1-intro's rail)
+ * sounded like the sound dropping out (owner's flight, 2026-10-07). */
+export const BED_FADE_MS = 1500;
+const BED_FADE_STEP_MS = 50;
 /* Under a teammate on voice chat the radio and the music step aside:
  * DUCK_DB down in DUCK_ATTACK_MS, back up over DUCK_RELEASE_MS once the
  * last one stops. Ramped in dB, so the attack and the release are even. */
@@ -249,6 +254,9 @@ export class WarRadio {
     this.pauseTimer = 0;
     this.track = '';
     this.musicLevel = 0;
+    /* The bed fading out: its timer and how far along, 0..1. */
+    this.fadeTimer = 0;
+    this.fadeU = 0;
     this.onSpeak = null;
     /* Told each line id as its file is asked to play (a pause is not a
      * line): the ops room's subtitles follow the voice by it. */
@@ -462,15 +470,21 @@ export class WarRadio {
       }
       return;
     }
+    const was = this.track;
     this.track = track;
     if (!this.bed) {
       return;
     }
     const el = this.bed.el;
+    clearInterval(this.fadeTimer);
+    this.fadeTimer = 0;
+    this.fadeU = 0;
     if (!track) {
-      el.pause();
-      el.removeAttribute('src');
-      el.load();
+      if (was) {
+        this.fadeOut(was);
+      } else {
+        this.unload();
+      }
       return;
     }
     el.loop = BEDS[track]?.loop ?? false;
@@ -486,6 +500,32 @@ export class WarRadio {
     if (p && typeof p.catch === 'function') {
       p.catch(() => {});
     }
+  }
+
+  /* The bed that was `track` down to nothing over BED_FADE_MS, then off;
+   * a new track asked for meanwhile cuts the fade short (music()). */
+  fadeOut(track) {
+    const bus = BEDS[track]?.bus ?? COMBAT_BUS;
+    const t0 = Date.now();
+    this.fadeTimer = setInterval(() => {
+      this.fadeU = Math.min(1, (Date.now() - t0) / BED_FADE_MS);
+      if (this.fadeU >= 1) {
+        clearInterval(this.fadeTimer);
+        this.fadeTimer = 0;
+        this.fadeU = 0;
+        this.unload();
+        return;
+      }
+      const duck = 10 ** (this.duckDb / 20);
+      this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus) * duck * (1 - this.fadeU);
+    }, BED_FADE_STEP_MS);
+  }
+
+  unload() {
+    const el = this.bed.el;
+    el.pause();
+    el.removeAttribute('src');
+    el.load();
   }
 
   setMusicLevel(v) {
@@ -510,7 +550,8 @@ export class WarRadio {
     if (this.filmVoice) {
       this.filmVoice.gain.value = Math.min(1, this.output * VOICE_LEVEL) * duck;
     }
-    if (this.bed) {
+    /* A fading bed sets its own volume each step (fadeOut). */
+    if (this.bed && !this.fadeTimer) {
       const bus = BEDS[this.track]?.bus ?? COMBAT_BUS;
       this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus) * duck;
     }
