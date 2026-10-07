@@ -10,8 +10,6 @@ icon.svg
 index.html
 render.yaml
 scripts/arcade-check.js
-scripts/attract-check.js
-scripts/board-check.js
 scripts/bombshell-shell.js
 scripts/boot-check.js
 scripts/boot-loader-check.js
@@ -20,7 +18,6 @@ scripts/build-selftest.js
 scripts/build-wasm.sh
 scripts/collider-audit.js
 scripts/craft-check.js
-scripts/device-check.js
 scripts/drone-wireframe.js
 scripts/flightcheck.js
 scripts/flight-report.js
@@ -29,7 +26,6 @@ scripts/frame-check.js
 scripts/gatecards.js
 scripts/icons.js
 scripts/itaipu-check.js
-scripts/memory-check.js
 scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
@@ -37,7 +33,6 @@ scripts/og.js
 scripts/pixels.js
 scripts/posters.js
 scripts/quality-check.js
-scripts/responsive-check.js
 scripts/run-bash.js
 scripts/serve.js
 scripts/shell-check.js
