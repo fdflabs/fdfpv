@@ -262,7 +262,7 @@ import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DE
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
-import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
+import { fetchWithProgress, planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
@@ -286,15 +286,9 @@ import { crashRecord } from './share/crashrecord.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
- * The module's bytes, resolved against this file rather than the site root.
- *
- * It was '/dist/sim.wasm', which is the same URL as long as the shell is the
- * whole site. It is not any more: fdfpv.example serves the landing page at the
- * root and this shell under /sim/, so a leading slash asked the landing page
- * for the physics and got its 404 page back. Every other file the boot path
- * needs moved the same way and for the same reason. Nothing about the module
- * changed, only where the page looks for it, and at the root it still
- * resolves to exactly /dist/sim.wasm.
+ * The physics module's address, beside this file rather than at the site
+ * root, because a deploy serves the shell under /sim/ with a landing page
+ * at the root, where '/dist/sim.wasm' fetched the landing page's 404.
  *
  * A deployed page loads this module at ?v=<commit> (scripts/stamp-version.js)
  * and the physics has to come from the same deploy as the code that calls
@@ -304,57 +298,30 @@ import { stateHash } from './replay/recorder.js';
 const WASM_URL = new URL(`../dist/sim.wasm${new URL(import.meta.url).search}`, import.meta.url).href;
 
 /*
- * Metres between sim z = 0 and the ground plane, which is where the craft
- * spawns, and it is the PARKED height, not a hover.
- *
- * It was 0.9 m, a leftover from when the craft spawned hanging in mid air,
- * and it is the number behind the takeoff bug the owner reported: the
- * landed render sat the craft on the grass while the physics state waited
- * 0.9 m up, so every takeoff unfroze 82 cm in the air with dead motors,
- * popped up visually, fell 0.7 m while the motors spooled from zero,
- * arrived at about 3.4 m/s and was judged a crash the pilot never flew. A
- * throttle punch out-spooled the fall, which is why "wiggle and punch"
- * worked and a gentle takeoff did not. The physics now spawns exactly
- * where the parked render has always shown the craft: resting on the
- * ground.
- */
-/*
- * AND IT IS THE AIRCRAFT'S OWN NUMBER, not a constant.
- *
- * It was 0.045 for everything, which is the five inch's: plant.c's
- * `hull_hz_down` for that machine, the distance from its centre to the
- * surface it parks on. A 65 mm whoop parks 10 mm off the floor. With the
- * five inch's figure the shell put the ground plane 45 mm under the
- * whoop's centre, so the plant rested it 35 mm in the air after every
- * reset, drew it parked there, and called it grounded while it still had
- * 45 mm of clear floor beneath it. Measured through window.__ground on the
- * shipped build: a parked whoop sat 39.7 mm above the floor under it. That
- * is more than the machine's own height, and it is the "hits the ground
- * too soon, then lifts off the ground a little when it resets" the owner
- * flew.
- *
- * configs/airframes.js carries the figure per airframe as `vHalfDown`,
- * snapshotted from plant.c (the whoop's gates rested the real module on a
- * plane against it until the whoop was removed; scripts/crash-rules-selftest.js
- * still walks the collider onto a slab to prove it reaches exactly that).
- * Seated by syncCraftScale, between runs only, with
- * the collision dimensions and the drawn model: these two are a FRAME, and
- * moving one mid lap would move the floor under a craft that is flying.
+ * WHERE THE GROUND HOLDS THE CRAFT, metres from its centre down to the
+ * surface it parks on. SPAWN_ALT is where the ground plane sits under the
+ * plant's origin (worldPosToSim puts the surface at sim z minus it), and
+ * REST_HEIGHT is where the parked render and a landing put the craft;
+ * seatRestHeight sets both from the seated airframe so they cannot part.
+ * They are each aircraft's own figure: one machine's number under another
+ * rests it in the air or in the floor. The spawn is the parked pose, not a
+ * hover, so a takeoff starts from the grass the pilot sees. Seated between
+ * runs only, with the hull and the model (syncCraftScale), since moving
+ * the floor mid lap moves it under a flying craft. 0.045 is the five
+ * inch's, the figure before any airframe is seated.
  */
 let SPAWN_ALT = 0.045;
-/* The craft rests with its underside on the ground, not its centre.
- * Identical to SPAWN_ALT so the parked pose, the spawn state and a landing
- * all agree about where the ground holds the craft. */
 let REST_HEIGHT = 0.045;
-/* One seat for both, so they cannot drift apart. An aircraft on wheels
- * rests where its gear holds it, not on its lowest drawn point; one on
- * floats rests where they float it when it starts on water. */
 /* The gear pose an aircraft stands at: the kit's, or the hangar's parts'
  * (bigger tyres stand it higher), set by the shell once it has settings. */
 let partsGearOf = () => null;
 function gearOf(af) {
   return af ? (partsGearOf(af.id) ?? af.gear ?? null) : null;
 }
+/* An aircraft on wheels rests where its gear holds it, not on its lowest
+ * drawn point; one on floats rests where they float it when it starts on
+ * water; anything else on its hull's lower half extent from
+ * configs/airframes.js (vHalfDown, snapshotted from plant.c). */
 function seatRestHeight(af, onWater = false) {
   const dims = af && af.dims;
   const h = onWater && af.floats ? af.floats.restHeight
@@ -363,115 +330,64 @@ function seatRestHeight(af, onWater = false) {
   SPAWN_ALT = h;
   REST_HEIGHT = h;
 }
-/* Raising the throttle this far off the ground is a deliberate takeoff. The
- * launch latch uses 0.05, which is right for arming a run from rest but
- * would lift the craft off the instant it landed with any throttle held. */
+
+/*
+ * TAKING OFF AND SITTING DOWN. A parked craft takes off when the throttle
+ * passes TAKEOFF_THROTTLE (the launch latch's 0.05 would lift it the moment
+ * it landed with any throttle held) and may only sit down again once the
+ * throttle is back under TAKEOFF_RELEASE. The gap between them is the
+ * hysteresis a thumb resting near one threshold needs, or the craft lands
+ * and leaves on alternate frames with a blip each time. GROUND_CUE_GAP_MS
+ * is the least time between two of those blips whatever the latch does (it
+ * gates the sound, nothing else). TAKEOFF_WINDOW_MS is how long after a
+ * takeoff contact cues stay muted, on the wall clock: a flag cleared in
+ * the same frame cannot cover a frame that is 100 ms long.
+ */
 const TAKEOFF_THROTTLE = 0.25;
-/*
- * And the throttle a pilot has to come back BELOW before the craft is
- * allowed to think about sitting down again. One threshold for both edges
- * is a latch with no hysteresis: a stick resting on 0.25, which is where a
- * thumb sits while it decides, took off and sat down on alternate frames
- * and played the two loudest blips in the mix at frame rate. That train
- * measures 19 dB over the bed and 12 dB over a full crash cue, and it is
- * what "a loud noise, like I am stuck to the mesh for a moment" sounds
- * like. The gap is deliberately wide: nothing between 0.18 and 0.25 is a
- * decision, it is a thumb.
- */
 const TAKEOFF_RELEASE = 0.18;
-/*
- * And a floor on how often the pair may SOUND, whatever the latch does.
- * A genuine touch and go inside a fifth of a second does not deserve two
- * blips, and this is the backstop that means no future path can machine
- * gun them again. It gates the cue only: landed, takingOff and the
- * physics are untouched by it.
- */
 const GROUND_CUE_GAP_MS = 220;
-/*
- * How long after a takeoff the contact cues stay muted, on the WALL clock.
- *
- * 8ebd6b8 muted them on the `takingOff` flag, and the flag is not a window:
- * it is set at the top of the frame and cleared in the same frame, thirty
- * lines before the branch that judges the frame's contact and calls
- * feelImpact. So the guard covered every frame of a departure except the
- * last one, which is the one with the impulse in it. A frame can be 100 ms
- * long, so a flag cannot bound a window a frame can step over: a clock
- * can.
- */
 const TAKEOFF_WINDOW_MS = 250;
+
 /*
- * Bias subtracted from the height query's fromY, metres.
- *
- * The city's multi level height query answers "what is my floor" with a
- * WALKER'S rule: a platform is eligible when its top is within a 0.55 m
- * step of fromY. A quad is not a walker: with the craft's true 0.040 m
- * vertical half extent, the overbridge deck at 7.20 m became an eligible
- * floor for a craft flying UNDER it at 6.69 m, below the deck's own
- * underside, and the round 15b bug came back. Shifting fromY down by this
- * bias turns the walker's 0.55 m step into a 0.15 m landable depth: deep
- * enough that a kerb or a low step still judges contact, shallow enough
- * that a deck can never be your floor from underneath it. The remaining
- * gap under the deck, centre heights 6.91 m and up, is inside the bridge's
- * own structure and the underside slab collider crashes it.
+ * Taken off the height query's fromY, metres. The city's multi level query
+ * picks a floor by a walker's rule, any platform within a 0.55 m step of
+ * fromY, which let a deck above a craft flying under it count as its
+ * floor. Lowered by this much, the step becomes a 0.15 m landable depth:
+ * a kerb still counts, a deck from underneath never does.
  */
 const SURFACE_BIAS = 0.40;
 /* The plant reports motor speed in rpm; the rooms' wire carries rad/s. */
 const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 /*
- * How far the CAMERA is lifted while the craft is sitting on the ground, in
- * world metres. Render only: nothing about the physics, the collision test
- * or the trajectory can see it.
- *
- * A parked quad's lens is 5.6 cm over the surface in this world, and the
- * session's near plane is 0.2 m (src/render/shell.js, chosen for depth
- * precision across a 2.6 km valley). Those two numbers cannot both be
- * honoured: with the camera tilted up 30 degrees and a 100 degree vertical
- * field, the ground in front of a parked craft is nearer than the near plane
- * for most of the lower frame, so it is clipped away and the frame comes
- * back as a flat band of background under a thin strip of grass. That is
- * what the owner saw as clipping through the ground at the start and after a
- * crash, and it is also true of any perch mid course.
- *
- * 0.30 m puts the surface back outside the near plane across the whole
- * frame, and it is not an invention: a race quad starts from a launch pad,
- * and a pad is about this high. It is eased in and out rather than snapped,
- * because a landing that teleported the view up 30 cm would read as a bounce
- * the pilot did not fly.
+ * How far the camera rises while the craft sits on the ground, world
+ * metres, eased in and out. Render only. A parked lens is 5.6 cm off the
+ * surface and the near plane is 0.2 m (src/render/shell.js), so tilted up
+ * the ground ahead fell inside the near plane and was clipped away; 0.30 m
+ * clears it across the frame, about the height of a launch pad.
  */
 const PARKED_LIFT = 0.30;
+
 /*
- * Opening shot when a run starts: orbit the quad on the pad, settle
- * behind it, then dolly into the FPV camera. The three spans are wall
- * milliseconds of the same 1 ms accumulator the frame already uses, so
- * a hitch stretches the shot rather than skipping it.
+ * THE OPENING SHOT of a run, in wall milliseconds on the frame's own clock:
+ * an orbit round the craft on the pad, an approach that settles behind it,
+ * then a zoom into the FPV lens. The orbit starts behind the right shoulder
+ * (INTRO_THETA0, radians) and sweeps 300 degrees to dead astern, and the
+ * approach closes from there; radii and heights are world metres, outside
+ * the near plane. INTRO_FLOOR_CLEAR keeps the camera that far above what is
+ * under it, enough for a launch block's deck and smaller than the finish
+ * shot's, which would throw this close shot into the air.
+ *
+ * One frame advances the shot by at most INTRO_STEP_MAX, the physics
+ * accumulator's own cap: a hitch stretches the shot by its own length, and
+ * a slow but steady machine still plays it at its authored speed. (A 30 fps
+ * cap here once ran the shot at a third of its speed on a slow laptop.)
  */
 const INTRO_ORBIT = 2200;
 const INTRO_APPROACH = 800;
 const INTRO_ZOOM = 1000;
 const INTRO_FLY = INTRO_ORBIT + INTRO_APPROACH;
 const INTRO_TOTAL = INTRO_FLY + INTRO_ZOOM;
-/*
- * Hitch frames are capped at 100 ms in the loop. Adding that whole cap to the
- * intro clock burns the pad shot before a single exterior frame is shown.
- *
- * IT WAS 33, WHICH IS 30 FPS, AND THAT CAPPED THE STEADY STATE TOO.
- *
- * A cap on the step is a cap on how fast the shot can play, so a machine
- * running at 25 fps gave 33 of every 40 ms to a 4.0 s shot and took 4.8 s
- * over it; at 20 fps, 6.1 s; measured on this container at about 9 fps the
- * intro ran at 0.3 times speed. That is every run start and every Restart
- * run, on exactly the ordinary laptop this project is for, and the pilot
- * reads it as the simulator being slow before they have touched a stick.
- *
- * 100 matches the physics accumulator's own cap, which is the right shape:
- * a hitch stretches the shot by its own length and no more, and a slow but
- * steady machine plays the shot at the speed it was authored at, in fewer
- * frames. The comment above is why the number is not simply Infinity.
- */
 const INTRO_STEP_MAX = 100;
-/* Orbit starts on a three-quarter behind the right shoulder and walks
- * 300 degrees, which lands dead astern. Approach then closes from that
- * same point. Radii are world metres, outside the 0.2 m near plane. */
 const INTRO_THETA0 = 0.55;
 const INTRO_ORBIT_SPAN = (300 * Math.PI) / 180;
 const INTRO_ORBIT_RADIUS = 0.72;
@@ -479,48 +395,31 @@ const INTRO_ORBIT_HEIGHT = 0.30;
 const INTRO_APPROACH_RADIUS = 0.40;
 const INTRO_APPROACH_HEIGHT = 0.14;
 const INTRO_FOV = 40;
-/* How far the intro camera stays above whatever is under it. Smaller than
- * the finish camera's 0.42 because the pad shot is an intimate one and a
- * big clearance would throw it into the air; enough to clear a launch
- * block's deck, which is the thing it was actually falling into. */
 const INTRO_FLOOR_CLEAR = 0.12;
-/* FPV lens floor lives in lens.js (fpvLensClear). Intro and finish
- * already keep their cameras out of the dirt. */
-/* Finish shot. Pulls off the FPV lens onto a three-quarter of the
- * frozen craft, then sways. Radii in world metres. */
+/* The closing shot: off the FPV lens to a three-quarter view of the frozen
+ * craft, in world metres, then a slow sway. (The FPV lens keeps its own
+ * floor, fpvLensClear in src/render/lens.js.) */
 const FINISH_FOV = 46;
 const FINISH_RADIUS = 2.35;
 const FINISH_HEIGHT = 0.88;
 const FINISH_PULL_MS = 1050;
 const FINISH_SWAY = 0.00055;
+/* Smoothstep over 0 to 1, flat outside it: the shots' easing. */
 function introEase(t) {
-  if (t <= 0) {
-    return 0;
-  }
-  if (t >= 1) {
-    return 1;
-  }
-  return t * t * (3 - 2 * t);
+  const u = Math.min(1, Math.max(0, t));
+  return u * u * (3 - 2 * u);
 }
-/* The controller consumes each input sample as one RC frame, so the shell
- * must feed it at a radio's rate rather than the display's. 250 Hz is a
- * typical ELRS link and matches the harness recording rate. */
-const RC_HZ = 250;
+
 /*
- * The physics step rate. This MUST equal SIM_STEP_HZ in
- * src/native/sim_abi.h; the ABI does not report it, so the two are kept in
- * step by hand and a mismatch shows up as the shell stepping the module at
- * the wrong speed.
- *
- * The shell's clock is an integer STEP INDEX, not milliseconds. It was
- * milliseconds, which is the same thing only while a step is a
- * millisecond: `steps = Math.floor(acc)` reads an accumulator of
- * milliseconds as a count of steps, and every `simTimeMs += steps` says
- * the same. Raising the rate turns each of those into a silent factor of
- * eight. Counting steps and deriving milliseconds keeps one clock. At
- * 1000 Hz MS_PER_STEP is exactly 1 and every expression below reduces to
- * what it replaced.
+ * CLOCKS. The controller takes each stick sample as one RC frame, so the
+ * shell feeds it at a radio's rate (RC_HZ, a typical ELRS link and the
+ * harness recording rate), not the display's. SIM_HZ is the physics step
+ * rate and must equal SIM_STEP_HZ in src/native/sim_abi.h, which the ABI
+ * does not report. The shell counts steps and derives milliseconds from
+ * them (MS_PER_STEP), so a different step rate cannot turn into a silent
+ * factor somewhere a count of steps was read as milliseconds.
  */
+const RC_HZ = 250;
 const SIM_HZ = 1000;
 const MS_PER_STEP = 1000 / SIM_HZ;
 /* The most wall time one frame steps the plant, ms: a longer frame (a
@@ -531,72 +430,47 @@ const FRAME_DT_MAX = 100;
  * wall time since the last is slow, and in a room the pilot is told
  * (roomSlowFrame). One hitch is not most frames. */
 const SLOW_WINDOW_MS = 2000;
-/*
- * How near a wall a Wall Ride is flown, in metres.
- *
- * The workbook says "just a few inches away from the wall", which is a
- * five inch quad's own width. Two metres is the radius the proximity query
- * is asked with, not the distance a trick demands: the query answers "is
- * anything within two metres", the pattern asks for a great deal closer,
- * and the gap between them is what stops the query missing a wall the craft
- * is about to be beside. See TrickDetector.near.
- */
+/* The radius the trick detector's wall query asks with, metres. A Wall
+ * Ride is flown far closer; the query only has to find the wall before
+ * the craft is beside it (TrickDetector.near). */
 const WALL_NEAR_M = 2.0;
 
-/* Pack nominal, for the charge bar: 6S between empty and full. */
-/* The 6 is PLANT.cells in src/native/plant.c, restated here because the ABI
- * does not report it. These are the HUD gauge's ends only: the physics reads
- * its own constant and never these. Change the plant's cell count and this
- * has to follow, or the bar lies while the flight is right. */
-/* Per cell; the airframe says how many cells, so the wing's 4S reads right. */
+/* The pack gauge's ends per cell, volts, times the airframe's cell count.
+ * The HUD's only: the plant has its own figures. */
 const PACK_EMPTY_PER_CELL = 3.3;
 const PACK_FULL_PER_CELL = 4.2;
-/* Full throttle rotor speed on a charged pack, measured off the compiled
- * module at 25,570 RPM. Only the lens shake reads it, to turn motor speed
- * into a 0 to 1 imbalance scale, so a few percent either way is invisible. */
+/* Rotor speed at full throttle on a full pack, rpm, as the module measured
+ * it (25,570). Only the lens shake reads it, as the top of its scale. */
 const FULL_THROTTLE_RPM = 25600;
 
 const uiRoot = document.getElementById('ui');
 
-/*
- * Why a dropped tune was refused, in words. The module answers with a
- * code, and a code on screen is developer output: the player wants to
- * know whether to blame the file or the game.
- */
+/* A refused tune file, in words a pilot can act on: whether the file is
+ * wrong or the simulator would not take it. */
 function configFault(code) {
-  if (code === -4) {
-    return str('main.it_does_not_look_like_a');
-  }
-  if (code === -2) {
-    return str('main.the_file_was_empty_or_too');
-  }
-  return str('main.the_simulator_refused_it_and_kept');
+  const why = {
+    [-4]: 'main.it_does_not_look_like_a',
+    [-2]: 'main.the_file_was_empty_or_too',
+  };
+  return str(why[code] ?? 'main.the_simulator_refused_it_and_kept');
 }
 
-/* Streamed, so the loading screen can report bytes rather than a spinner. */
-async function fetchBytes(url, onProgress) {
-  const { fetchWithProgress } = await import('./ui/loading.js');
+/* A file's bytes, streamed so the loading screen can count them. */
+function fetchBytes(url, onProgress) {
   return fetchWithProgress(url, onProgress);
 }
 
-/* Reused rather than allocated at every spawn. */
+/* World axes for quaternion builds, allocated once. */
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_X = new THREE.Vector3(1, 0, 0);
 
 /*
- * Bring one map in and make it the world.
+ * How many modules each map's import fetches, which is only the weight of
+ * the loading bar's module stage (moduleCounter watches the browser's
+ * resource timing for them): a wrong count moves the bar at the wrong pace
+ * and cannot break a load. A map with no entry weighs 4.
  *
- * The module fetch and the world build are separate stages of the loading
- * screen because they fail and stall for entirely different reasons: the
- * first is the network, the second is the main thread. The module counter
- * reports the fetch honestly by watching the browser's own resource timing as
- * it walks the import graph, which needs no cooperation from the map.
- *
- * EXPECTED MODULE COUNTS are a bar weight, nothing more. Getting one wrong
- * makes that stage's bar move at the wrong rate; it cannot break the load,
- * and the stage still ends when the import resolves.
- */
-/* swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
  * all. The Alps modules it builds through are counted under their own
  * prefix, so they are not in this number, and a pilot who flew the Alps
  * first already has them. Check 16 asserts this count against what the
@@ -604,7 +478,6 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * that is wrong cannot break a load and so nothing else would notice: 61
  * sat here for a round for the city while the real count was 63.
  *
- * A map with no entry weighs 4, which is a guess and only a bar's pace.
  * The freestyle town and the airfield were removed on 2026-09-28, and the
  * town's 72 went with it. `npm run lint:memory` prints the fetched count
  * per map beside this number.
@@ -612,7 +485,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * The prefix a map's modules are counted under is `/src/maps/<id>`, and it
  * stays leading-slash while the rest of the file went relative, which is
  * not an oversight. It is never fetched. moduleCounter matches it as a
- * SUBSTRING of each performance entry's full URL, and a shell mounted at
+ * substring of each performance entry's full URL, and a shell mounted at
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
@@ -655,19 +528,14 @@ function timeOf(options) {
   return withTimeOption(options).time || 'day';
 }
 
-async function loadMap(shell, id, loading, mapOptions) {
-  const options = withTimeOption(mapOptions);
-  const entry = mapById(id);
-  /* Track mode's seat is resolved to a world by worldId before anything
-   * asks for one, so a seat reaching here is a caller that skipped it. */
-  if (entry.id !== id || !entry.load) {
-    throw new Error(`${id} is not a world that can be built`);
-  }
-  loading.mapInfo({ name: entry.name, poster: entry.poster });
+/* The map module's import, as the loading screen's module stage. It is a
+ * stage of its own because it fails for network reasons, where the build
+ * after it stalls on the main thread. */
+async function importMapModule(entry, loading) {
   loading.start('module');
   const counter = moduleCounter(
-    `/src/maps/${id}`,
-    MAP_MODULE_COUNT[id] ?? 4,
+    `/src/maps/${entry.id}`,
+    MAP_MODULE_COUNT[entry.id] ?? 4,
     (f, got, total) => loading.report('module', f, str('main.of_modules', { got, total })),
   );
   let mod;
@@ -678,6 +546,22 @@ async function loadMap(shell, id, loading, mapOptions) {
   }
   loading.done('module');
   loading.detail = '';
+  return mod;
+}
+
+/* Builds world `id` and returns it: its module fetched, its scene built
+ * through the loading screen's world stage, its water and the ground over
+ * that water attached. */
+async function loadMap(shell, id, loading, mapOptions) {
+  const options = withTimeOption(mapOptions);
+  const entry = mapById(id);
+  /* Track mode's seat is resolved to a world by worldId before anything
+   * asks for one, so a seat reaching here is a caller that skipped it. */
+  if (entry.id !== id || !entry.load) {
+    throw new Error(`${id} is not a world that can be built`);
+  }
+  loading.mapInfo({ name: entry.name, poster: entry.poster });
+  const mod = await importMapModule(entry, loading);
   loading.mapPhases(mod.PHASES);
   loading.start('world');
   await yieldToPaint();
@@ -7978,34 +7862,59 @@ export async function boot({
     roomTagAction(action);
     return true;
   };
-  const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
-  let ghostLap = null; /* the lap being chased, armed at each lap start */
-  let ghostChased = null; /* the lap the last FINISHED lap was chased against */
-  let ghostChoice = 'best'; /* off, best, previous, or board:tm-xxxxxxxx */
-  let ghostBoardTimes = null; /* this course's posted times, for the picker */
-  let ghostBoardLap = null; /* the downloaded board ghost, decoded once */
-  let ghostBoardBusy = false;
-  let ghostGap = null; /* { deltaMs, final, untilWall } for the OSD */
-  /* The ?ghost= a board chase link arrived with, parsed at boot above,
-   * armed once the course's times are fetched. */
+  /*
+   * THE GHOST CHASE. src/game/ghost.js records and samples laps; this is the
+   * shell's half: what is chased, what the menu row offers, the gap at each
+   * gate and the record key. The names below that other parts of boot()
+   * read or write (the harness hooks, frameBody, the reset, the rig swap)
+   * are that code's contract: ghostLap, ghostChased, ghostGap, ghostChoice,
+   * ghostBoardTimes, ghostBoardLap, ghostQueryId and ghostPrev's fields.
+   *
+   * ghostChoice is 'off', 'best', 'previous' or `board:<time id>`.
+   * ghostLap is the lap flown against now and ghostChased the one the last
+   * closed lap was flown against: the line re-arms the first before the
+   * results read the second. ghostGap is { deltaMs, final, untilWall }.
+   */
+  /* A chase fades in this long off the line and out this long past the
+   * ghost's own finish, and shows faintly across a recorded crash. */
+  const CHASE_FADE_MS = 400;
+  const CHASE_CUT_PRESENCE = 0.15;
+  /* How long the OSD keeps a gate's gap lit, wall clock. */
+  const GAP_SHOWN_MS = 2800;
+  /* The menu row lists this many board rivals; the board page has the rest. */
+  const BOARD_RIVALS = 5;
+  const SESSION_MODES = ['off', 'best', 'previous'];
+  let ghostChoice = storedGhostChoice();
+  let ghostLap = null;
+  let ghostChased = null;
+  let ghostGap = null;
+  let ghostBoardTimes = null;
+  let ghostBoardLap = null;
+  /* A ?ghost= chase link waits here until the course's board times are in. */
   let ghostQueryId = wantGhostId;
-  /* The previous frame's pose, so a lap start can seed the recorder with
-   * the frame BEFORE the crossing and the t = 0 keyframe is interpolated
-   * across the line rather than held from the frame after it. */
+  /* frameBody writes the frame's pose here after the race step, so the next
+   * lap start can put a keyframe from before the line into the recording. */
   const ghostPrev = { valid: false, simMs: 0, x: 0, y: 0, z: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
+  /* The board time being fetched and the course it was asked for, or null. */
+  let boardFetch = null;
+  /* Scratch for GhostLap.sample, reused every frame. */
+  const chasePose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
 
-  function normalizeGhostChoice(raw) {
-    return raw === 'off' || raw === 'previous' ? raw : 'best';
+  /* Only the session modes persist. A board pick names one time on one
+   * course, so a fresh course starts from the pilot's session mode. */
+  function storedGhostChoice() {
+    return SESSION_MODES.includes(ui.settings.ghost) ? ui.settings.ghost : 'best';
   }
-  ghostChoice = normalizeGhostChoice(ui.settings.ghost);
 
-  /* Ghosts are course-shaped, not tune-shaped: any config's lap can pace
-   * any other. The book is keyed accordingly. */
+  /* The session book is keyed by course, not by tune: a lap on any config
+   * paces any other. A seated track is its own course, with a plane's laps
+   * kept apart from a quad's; a world flown free is keyed by the world. */
   function ghostCourseKey() {
-    /* A seated track is keyed by the track; a world flown free is keyed by
-     * the world. */
-    const course = loadedCourseKey(view);
-    return course ? `custom:${course}${lapCraft() ? '#wing' : ''}` : view.id;
+    const track = loadedCourseKey(view);
+    if (!track) {
+      return view.id;
+    }
+    return lapCraft() ? `custom:${track}#wing` : `custom:${track}`;
   }
 
   /*
@@ -8023,174 +7932,173 @@ export async function boot({
     return seated ? lapCraftOf(seated.document, runAirframe) : '';
   }
 
-  function ghostLabelFor(lap) {
-    if (lap.source === 'board') {
-      return `${lap.name || str('main.rival')}  ${formatTime(lap.durationMs)}`;
-    }
-    return `${lap.label === 'Session best' ? str('main.best') : str('main.last')}  ${formatTime(lap.durationMs)}`;
+  /* The book's lap for a session mode on the current course, or null. */
+  function sessionLap(choice) {
+    const course = ghostCourseKey();
+    return choice === 'previous' ? ghostBook.previous(course) : ghostBook.best(course);
   }
 
-  /* What the current choice resolves to right now, or null. Session slots
-   * fill in as laps are flown, so a choice can be ahead of its data: Best
-   * with no lap yet simply flies no ghost until there is one. */
-  function resolveGhost() {
-    /* No ghost on a built track's TEST flight: the track changes under it
-     * between runs, so its lap is of a track that may no longer exist. A
-     * published map track (build.racing) is a course like any other, and
-     * chases and records exactly as the field does. */
-    if (race.freestyle || ghostChoice === 'off' || (build && build.testing)) {
+  /* No chase while freestyling, nor on a builder's TEST flight, whose track
+   * may change before its lap could be flown again. A published map track
+   * (build.racing) races like any other course. */
+  function chaseAllowed() {
+    return !race.freestyle && !(build && build.testing);
+  }
+
+  /*
+   * The rig's name tag. GhostBook labels its laps in the page's locale,
+   * and the locale is fixed for a page's life (a change reloads), so the
+   * best is told apart by its label in that same locale. Asking the book
+   * which lap is its best instead would mislabel a best that has just been
+   * beaten but is still the one armed.
+   */
+  function ghostLabelFor(lap) {
+    let who = lap.name || str('main.rival');
+    if (lap.source !== 'board') {
+      who = lap.label === str('ghost.session_best') ? str('main.best') : str('main.last');
+    }
+    return str('main.text', { name: who, formatTime: formatTime(lap.durationMs) });
+  }
+
+  /* What the choice points at now, or null. A session mode can be ahead of
+   * its data (Best before any lap is closed) and then simply chases nothing
+   * until a lap exists. A board choice is armed only once its lap is here. */
+  function chosenLap() {
+    if (!chaseAllowed() || ghostChoice === 'off') {
       return null;
     }
-    if (ghostChoice.startsWith('board:')) {
-      return ghostBoardLap && `board:${ghostBoardLap.timeId}` === ghostChoice ? ghostBoardLap : null;
+    if (!ghostChoice.startsWith('board:')) {
+      return sessionLap(ghostChoice);
     }
-    const key = ghostCourseKey();
-    return ghostChoice === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
+    const loaded = ghostBoardLap ? `board:${ghostBoardLap.timeId}` : '';
+    return loaded === ghostChoice ? ghostBoardLap : null;
   }
 
   function armGhost() {
-    ghostLap = resolveGhost();
+    ghostLap = chosenLap();
     if (ghostLap) {
       ghostRig.setLabel(ghostLabelFor(ghostLap));
     }
   }
 
-  /*
-   * The Ghost menu row, rebuilt whenever the data behind it moves. The row
-   * itself lives in ui.js; this is the one place that knows what can be
-   * chased, so it owns the labels, the availability notes and the cycle
-   * order: off, session best, previous lap, then every board time that
-   * carries a recording.
-   */
-  function ghostRowChoices() {
-    const list = [
+  /* The Ghost row's options, in the order its arrows step through them. */
+  function ghostOptions() {
+    const rivals = (ghostBoardTimes || []).map((time) => ({
+      id: `board:${time.id}`,
+      label: str('main.text', { name: time.name, formatTime: formatTime(time.lapMs) }),
+    }));
+    return [
       { id: 'off', label: 'Off' },
       { id: 'best', label: str('main.your_best_this_session') },
       { id: 'previous', label: str('main.your_previous_lap') },
+      ...rivals,
     ];
-    for (const t of ghostBoardTimes || []) {
-      list.push({ id: `board:${t.id}`, label: str('main.text', { name: t.name, formatTime: formatTime(t.lapMs) }) });
-    }
-    return list;
   }
 
-  function ghostRowNote() {
+  /* The row's note: what the current choice will fly, or why nothing. */
+  function ghostRowNoteText() {
     if (ghostChoice === 'off') {
       return str('main.nobody_to_chase_laps_still_record');
     }
     if (ghostChoice.startsWith('board:')) {
-      if (ghostBoardBusy) {
+      if (boardFetch) {
         return str('main.fetching_that_lap_from_the_board');
       }
-      return ghostBoardLap
-        ? str('main.a_recorded_lap_from_the_public')
-        : str('main.that_lap_could_not_be_fetched');
+      return str(ghostBoardLap ? 'main.a_recorded_lap_from_the_public' : 'main.that_lap_could_not_be_fetched');
     }
-    const key = ghostCourseKey();
-    const have = ghostChoice === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
-    if (!have) {
-      return str('main.no_lap_on_record_this_session');
-    }
-    return str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(have.durationMs) });
+    const lap = sessionLap(ghostChoice);
+    return lap
+      ? str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(lap.durationMs) })
+      : str('main.no_lap_on_record_this_session');
   }
 
+  /* ui.js draws the row; the shell is what knows its contents, so it pushes
+   * them again whenever they change. A board choice not in the list (a
+   * harness-loaded lap) shows as the session best's entry. */
   function syncGhostRow() {
     if (race.freestyle) {
       ui.setGhostRow(null);
       return;
     }
-    const choices = ghostRowChoices();
-    const current = choices.find((c) => c.id === ghostChoice) || choices[1];
-    ui.setGhostRow({
-      value: current.label,
-      note: ghostRowNote(),
-      cycle: (dir) => pickGhostByStep(dir),
-    });
+    const options = ghostOptions();
+    const shown = options.find((o) => o.id === ghostChoice) || options[1];
+    ui.setGhostRow({ value: shown.label, note: ghostRowNoteText(), cycle: stepGhost });
   }
 
-  function pickGhostByStep(dir) {
-    const choices = ghostRowChoices();
-    const at = Math.max(0, choices.findIndex((c) => c.id === ghostChoice));
-    const next = choices[(at + (dir < 0 ? -1 : 1) + choices.length) % choices.length];
-    pickGhost(next.id);
+  /* The row's arrows: the next option either way round, read when pressed
+   * since the list grows as board times arrive. */
+  function stepGhost(dir) {
+    const options = ghostOptions();
+    const at = Math.max(0, options.findIndex((o) => o.id === ghostChoice));
+    const step = dir < 0 ? options.length - 1 : 1;
+    pickGhost(options[(at + step) % options.length].id);
   }
 
   function pickGhost(id) {
     ghostChoice = id;
-    if (id === 'off' || id === 'best' || id === 'previous') {
+    if (SESSION_MODES.includes(id)) {
       ui.settings.ghost = id;
       ui.persistSettings();
-      armGhost();
-      syncGhostRow();
+    } else if (!ghostBoardLap || `board:${ghostBoardLap.timeId}` !== id) {
+      /* A board lap is fetched once and kept decoded for the course. */
+      fetchBoardLap(id.slice('board:'.length));
       return;
     }
-    /* A board pick fetches the recording once and keeps it decoded. */
-    const timeId = id.slice('board:'.length);
-    if (ghostBoardLap && ghostBoardLap.timeId === timeId) {
-      armGhost();
-      syncGhostRow();
-      return;
+    armGhost();
+    syncGhostRow();
+  }
+
+  /* The course's board listing when it is a shared course, else null. */
+  function ghostListing() {
+    let listing = null;
+    try {
+      listing = inspectCourse();
+    } catch (e) {
+      return null;
     }
-    loadBoardGhost(timeId);
+    return listing && listing.shareId ? listing : null;
   }
 
-  function adoptBoardGhost(payload, timeId) {
-    const lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), {
-      label: str('main.board_lap'),
-      name: payload.name || '',
-      source: 'board',
-    });
-    lap.timeId = timeId;
-    ghostBoardLap = lap;
-    return lap;
-  }
-
-  function loadBoardGhost(timeId) {
+  /* Downloads one board time's recording and arms it, unless the pilot has
+   * moved to another course while it was on the way. */
+  async function fetchBoardLap(timeId) {
     const listing = ghostListing();
     if (!listing) {
       return;
     }
-    const key = ghostCourseKey();
-    ghostBoardBusy = true;
+    const ask = { timeId, course: ghostCourseKey() };
+    boardFetch = ask;
     syncGhostRow();
-    (async () => {
-      try {
-        const payload = await fetchGhost(listing.shareId, timeId, listing.board);
-        if (ghostCourseKey() !== key) {
-          return; /* The course changed under the fetch. */
-        }
-        adoptBoardGhost(payload, timeId);
-        armGhost();
-      } catch (e) {
-        if (ghostCourseKey() !== key) {
-          return;
-        }
-        ghostBoardLap = null;
-        notice = { text: str('main.could_not_fetch_that_ghost', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
-      } finally {
-        if (ghostCourseKey() === key) {
-          ghostBoardBusy = false;
-          syncGhostRow();
-        }
-      }
-    })();
-  }
-
-  function ghostListing() {
+    let lap = null;
+    let failure = null;
     try {
-      const listing = inspectCourse();
-      return listing && listing.shareId ? listing : null;
+      const payload = await fetchGhost(listing.shareId, timeId, listing.board);
+      lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), { label: str('main.board_lap'), name: payload.name || '', source: 'board' });
+      lap.timeId = timeId;
     } catch (e) {
-      return null;
+      failure = e;
     }
+    if (ghostCourseKey() !== ask.course) {
+      return;
+    }
+    if (boardFetch === ask) {
+      boardFetch = null;
+    }
+    if (failure) {
+      ghostBoardLap = null;
+      notice = { text: str('main.could_not_fetch_that_ghost', { v1: failure.message ?? failure }), untilMs: performance.now() + 3600 };
+    } else {
+      ghostBoardLap = lap;
+      armGhost();
+    }
+    syncGhostRow();
   }
 
   /*
-   * A course just became current: forget the last course's board data,
-   * re-arm the persisted choice, and go looking for what the board holds.
-   * The times fetch is a nicety with the same standing as the course list:
-   * a board that is down means a picker with the two session modes and
-   * nothing else, never a broken menu.
+   * A new course: drop everything tied to the old one, restore the pilot's
+   * session mode, and ask the board for this course's recorded rivals. The
+   * board is optional here, as it is for the course list: when it cannot be
+   * reached the row offers the session modes and nothing breaks.
    */
   function ghostCourseChanged() {
     ghostRecorder.abort();
@@ -8199,233 +8107,184 @@ export async function boot({
     ghostGap = null;
     ghostBoardTimes = null;
     ghostBoardLap = null;
-    ghostBoardBusy = false;
+    boardFetch = null;
     ghostPrev.valid = false;
     ghostRig.setPresence(0);
-    ghostChoice = normalizeGhostChoice(ui.settings.ghost);
+    ghostChoice = storedGhostChoice();
     syncGhostRow();
     livePeersClear();
     syncLive();
     const listing = ghostListing();
-    if (!listing || race.freestyle) {
+    if (listing && !race.freestyle) {
+      listBoardRivals(listing, ghostCourseKey());
+    }
+  }
+
+  async function listBoardRivals(listing, course) {
+    let times;
+    try {
+      times = await fetchTrackTimes(listing.shareId, listing.board);
+    } catch (e) {
       return;
     }
-    const key = ghostCourseKey();
-    (async () => {
-      try {
-        const times = await fetchTrackTimes(listing.shareId, listing.board);
-        if (ghostCourseKey() !== key) {
-          return;
-        }
-        /* The five fastest recorded laps are plenty of rivals for one
-         * menu row; the full table lives on the board page. On a map track
-         * they are the seated aircraft's board's: the quads' laps for a
-         * quad, the planes' for a plane. */
-        const plane = Boolean(lapCraft());
-        ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, 5);
-        syncGhostRow();
-        if (ghostQueryId) {
-          const wanted = ghostQueryId;
-          ghostQueryId = '';
-          if (times.some((t) => t.id === wanted && t.hasGhost)) {
-            ghostChoice = `board:${wanted}`;
-            loadBoardGhost(wanted);
-          }
-        }
-      } catch (e) {
-        /* No board today. The session modes still work. */
-      }
-    })();
+    if (ghostCourseKey() !== course) {
+      return;
+    }
+    /* On a map track the seated aircraft's board: a quad's laps for a quad,
+     * a plane's for a plane. Only times that carry a recording can be
+     * chased. */
+    const plane = Boolean(lapCraft());
+    ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, BOARD_RIVALS);
+    syncGhostRow();
+    const linked = ghostQueryId;
+    ghostQueryId = '';
+    if (linked && times.some((t) => t.id === linked && t.hasGhost)) {
+      ghostChoice = `board:${linked}`;
+      fetchBoardLap(linked);
+    }
+  }
+
+  /* One recorder keyframe: a lap time and the craft's pose as drawn. */
+  function recordPose(lapMs, at, q) {
+    ghostRecorder.push(lapMs, at.x, at.y, at.z, q.x, q.y, q.z, q.w);
   }
 
   /*
-   * Per frame, after the race has scored the travel. Records the running
-   * lap, closes the recording at the line, arms the next chase, and reads
-   * the gap at each gate. lapStartBefore and lapsBefore are the race's
-   * state from before this frame's update, which is how a lap boundary is
-   * seen without the race having to announce one.
+   * Called every frame after the race has scored the frame's travel, with
+   * the race's lap start and lap count from BEFORE that update: a change in
+   * either is how a lap boundary shows up here.
+   *
+   * Order matters at a boundary. The gap is read first, against the lap
+   * that was armed while it was flown (re-arming first would compare a new
+   * best with itself). Then the finished lap is closed, with this frame's
+   * pose (just past the line, on the old lap's clock) as its last keyframe
+   * so the stored tail runs through the line at speed. Then the next lap's
+   * recording opens with the previous frame's pose (just before the line)
+   * so its first keyframe straddles t = 0.
    */
   function ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passedAny) {
-    /* The test flight's exception, for resolveGhost's reason. */
-    if (race.freestyle || (build && build.testing)) {
+    if (!chaseAllowed()) {
       return;
     }
-    const lapDone = race.laps.length > lapsBefore;
-    /*
-     * The gap, read at the gate just crossed, BEFORE any re-arm below:
-     * your split against the split of the ghost you were actually chasing
-     * this lap. Reading it after the re-arm compared a finishing lap with
-     * itself, which is a proud zero every time it sets a best.
-     */
+    const closed = race.laps.length > lapsBefore;
     if (passedAny && ghostLap && lapStartBefore != null) {
-      let mine = null;
-      let theirs = null;
-      if (lapDone) {
-        mine = race.lastLapMs;
-        theirs = ghostLap.durationMs;
-      } else if (race.splits.length) {
-        const k = race.splits.length - 1;
-        mine = race.splits[k];
-        theirs = ghostLap.splitMs(k);
-      }
-      if (mine != null && theirs != null) {
-        ghostGap = { deltaMs: mine - theirs, final: lapDone, untilWall: nowWall + 2800 };
-      }
+      noteGap(closed, nowWall);
     }
-    if (lapDone) {
-      /* Close the finished lap. Its own clock ran up to lastLapMs; this
-       * frame's pose sits just past the line on that clock, and feeding it
-       * before finishing is what lets the stored tail cross the line at
-       * speed instead of freezing on it. */
-      const tOld = (simNow - race.lapStartMs) + race.lastLapMs;
-      ghostRecorder.push(tOld, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w);
-      const lapRecord = ghostRecorder.finish(race.lastLapMs, race.lastSplits);
-      ghostBook.keep(ghostCourseKey(), lapRecord);
-      /* Who this lap was flown against, for the results line. The re-arm
-       * below may replace ghostLap with the lap just recorded. */
+    if (closed) {
+      recordPose(simNow - race.lapStartMs + race.lastLapMs, pCurr, qPrev);
+      ghostBook.keep(ghostCourseKey(), ghostRecorder.finish(race.lastLapMs, race.lastSplits));
       ghostChased = ghostLap;
       syncGhostRow();
     }
-    if (race.lapStartMs != null && race.lapStartMs !== lapStartBefore) {
-      /* A lap just began, at the crossing this frame contains. */
+    if (race.lapStartMs == null) {
+      return;
+    }
+    const opened = race.lapStartMs !== lapStartBefore;
+    if (opened) {
       ghostRecorder.begin();
       if (ghostPrev.valid) {
-        ghostRecorder.push(
-          ghostPrev.simMs - race.lapStartMs,
-          ghostPrev.x, ghostPrev.y, ghostPrev.z,
-          ghostPrev.qx, ghostPrev.qy, ghostPrev.qz, ghostPrev.qw,
-        );
+        ghostRecorder.push(ghostPrev.simMs - race.lapStartMs, ghostPrev.x, ghostPrev.y, ghostPrev.z, ghostPrev.qx, ghostPrev.qy, ghostPrev.qz, ghostPrev.qw);
       }
-      ghostRecorder.push(
-        simNow - race.lapStartMs,
-        pCurr.x, pCurr.y, pCurr.z,
-        qPrev.x, qPrev.y, qPrev.z, qPrev.w,
-      );
+    }
+    recordPose(simNow - race.lapStartMs, pCurr, qPrev);
+    if (opened) {
       armGhost();
-    } else if (race.lapStartMs != null) {
-      ghostRecorder.push(
-        simNow - race.lapStartMs,
-        pCurr.x, pCurr.y, pCurr.z,
-        qPrev.x, qPrev.y, qPrev.z, qPrev.w,
-      );
     }
   }
 
-  /* The chase itself: pose the rig at the ghost's own lap time, fade it in
-   * off the line, out past its finish, and down across a recorded crash
-   * recovery. Runs every frame; zero presence parks the whole group. */
+  /* The gap at the gate just passed: the lap time against the ghost's at
+   * the line, else the newest split against the ghost's same split. */
+  function noteGap(closed, nowWall) {
+    const k = race.splits.length - 1;
+    const mine = closed ? race.lastLapMs : (k >= 0 ? race.splits[k] : null);
+    const theirs = closed ? ghostLap.durationMs : (k >= 0 ? ghostLap.splitMs(k) : null);
+    if (mine == null || theirs == null) {
+      return;
+    }
+    ghostGap = { deltaMs: mine - theirs, final: closed, untilWall: nowWall + GAP_SHOWN_MS };
+  }
+
+  /* Poses the rig at the ghost's own lap time every frame it can be seen;
+   * otherwise parks it (zero presence hides the whole group). */
   function ghostFrame(simNow) {
-    const running = ghostLap && !race.freestyle && race.lapStartMs != null
-      && (mode === 'flight' || mode === 'paused');
-    if (!running) {
+    const flying = mode === 'flight' || mode === 'paused';
+    if (!ghostLap || race.freestyle || race.lapStartMs == null || !flying) {
       ghostRig.setPresence(0);
       return;
     }
     const t = simNow - race.lapStartMs;
-    const tail = ghostLap.durationMs - t;
-    let presence = 1;
-    if (t < 400) {
-      presence = t / 400;
+    ghostLap.sample(t, chasePose);
+    const past = t - ghostLap.durationMs;
+    let presence = past > 0 ? Math.max(0, 1 - past / CHASE_FADE_MS) : Math.min(1, t / CHASE_FADE_MS);
+    if (chasePose.cut) {
+      presence = Math.min(presence, CHASE_CUT_PRESENCE);
     }
-    if (tail < 0) {
-      presence = Math.max(0, 1 + tail / 400);
-    }
-    if (ghostSampleInto(t)) {
-      presence = Math.min(presence, 0.15);
-    }
-    ghostRig.group.position.set(ghostSample.px, ghostSample.py, ghostSample.pz);
-    ghostRig.group.quaternion.set(ghostSample.qx, ghostSample.qy, ghostSample.qz, ghostSample.qw);
+    ghostRig.group.position.set(chasePose.px, chasePose.py, chasePose.pz);
+    ghostRig.group.quaternion.set(chasePose.qx, chasePose.qy, chasePose.qz, chasePose.qw);
     ghostRig.setPresence(presence);
-    /* The rig is session lived and the scene is not: whichever scene holds
-     * the hero craft holds the ghost, checked here rather than at the swap
-     * so no load path can strand it in a disposed world. */
-    if (presence > 0 && shell.quad.parent && ghostRig.group.parent !== shell.quad.parent) {
-      shell.quad.parent.add(ghostRig.group);
+    /* The rig outlives scenes. It follows the hero craft into whichever
+     * scene holds it, here rather than at a swap, so no load path can leave
+     * it in a disposed world. */
+    const scene = shell.quad.parent;
+    if (presence > 0 && scene && ghostRig.group.parent !== scene) {
+      scene.add(ghostRig.group);
     }
   }
 
-  function ghostSampleInto(t) {
-    ghostLap.sample(t, ghostSample);
-    return ghostSample.cut;
-  }
-
-  /* One sentence for the results screen when a ghost was being chased:
-   * whether the run's best lap beat it, and by how much. ghostChased, not
-   * ghostLap: by the time results show, the finish line has re-armed the
-   * chase, and a run that just set a best would be compared with itself. */
+  /* The results line about the ghost the last lap was flown against, or
+   * null: level within 10 ms, else who was ahead and by how much. */
   function ghostResultNote() {
-    if (!ghostChased) {
-      return null;
-    }
-    const best = race.bestLapMs();
+    const best = ghostChased ? race.bestLapMs() : null;
     if (best == null) {
       return null;
     }
+    const theirs = ghostChased.durationMs;
     const who = ghostChased.source === 'board'
-      ? (ghostChased.name || str('main.the_board_lap'))
+      ? ghostChased.name || str('main.the_board_lap')
       : ghostChased.label.toLowerCase();
-    const d = best - ghostChased.durationMs;
-    if (Math.abs(d) < 10) {
-      return str('main.level_with_the_ghost_at', { who, formatTime: formatTime(ghostChased.durationMs) });
+    const vars = { who, formatTime: formatTime(theirs) };
+    const margin = best - theirs;
+    if (Math.abs(margin) < 10) {
+      return str('main.level_with_the_ghost_at', vars);
     }
-    if (d < 0) {
-      return str('main.you_beat_the_ghost_at_by', { who, formatTime: formatTime(ghostChased.durationMs), v3: (Math.abs(d) / 1000).toFixed(2) });
-    }
-    return str('main.the_ghost_at_stayed_ahead', { who, formatTime: formatTime(ghostChased.durationMs), v3: (d / 1000).toFixed(2) });
+    const v3 = (Math.abs(margin) / 1000).toFixed(2);
+    return str(margin < 0 ? 'main.you_beat_the_ghost_at_by' : 'main.the_ghost_at_stayed_ahead', { ...vars, v3 });
   }
 
-  /* The recording of a finished lap whose time is being uploaded, as wire
-   * base64, or null when this session holds no recording of that exact
-   * lap. Previous is checked before best: the two can share a duration,
-   * and then either encoding is the same lap. */
+  /* The wire base64 of this session's recording of a lap being posted, or
+   * null when the session holds none of that time. The previous lap is
+   * tried first; when it ties the best they are the same lap anyway. */
   function ghostForUpload(lapMs) {
-    const key = ghostCourseKey();
-    for (const lap of [ghostBook.previous(key), ghostBook.best(key)]) {
-      if (lap && Math.round(lap.durationMs) === Math.round(lapMs)) {
-        return ghostToBase64(encodeGhost(lap));
-      }
-    }
-    return null;
+    const want = Math.round(lapMs);
+    const lap = [sessionLap('previous'), sessionLap('best')].find((l) => l && Math.round(l.durationMs) === want);
+    return lap ? ghostToBase64(encodeGhost(lap)) : null;
   }
 
-  /* Best laps are only comparable on the same config, pack voltage and
-   * flight style: an arcade lap is flown on a different aircraft and
-   * must not sit in an expert record. Expert keeps the bare key so every
-   * record set before the style existed stays exactly where it was. */
+  /*
+   * The localStorage key a best lap is kept under, which is a storage
+   * format: changing any part of it hides every pilot's bests. A record is
+   * only comparable on the same machine, so the key names the config text
+   * (a 32 bit djb2 variant, xor form), the pack voltage, the flight style
+   * (arcade only; expert has no suffix), the airframe and the gravity
+   * multiple. The empty suffixes are the oldest records' (expert, gravity
+   * exactly 1.0), which keep their keys even where nothing can reach them
+   * now, like the five inch's.
+   */
   function recordKey() {
-    let h = 5381;
-    for (let i = 0; i < configText.length; i += 1) {
-      h = ((h * 33) ^ configText.charCodeAt(i)) >>> 0;
+    let hash = 5381;
+    for (let at = 0; at < configText.length; at += 1) {
+      hash = (Math.imul(hash, 33) ^ configText.charCodeAt(at)) >>> 0;
     }
-    const style = runStyle === 'arcade' ? '.arcade' : '';
-    /*
-     * The AIRFRAME is in the key, and it has to be: two aircraft's laps on
-     * the same track are not the same record, and the config hash above
-     * cannot tell two plants on one tune file apart. The EMPTY suffix was
-     * the five inch's, so every record set before the airframe joined the
-     * key stayed where it was; the five inch was removed on 2026-10-03 and
-     * its records stay under that key, untouched and unread, as the
-     * orphaned keys below do.
-     */
-    const craft = `.${runAirframe}`;
-    /*
-     * AND THE WEIGHT, on exactly the rule above it, keyed on the multiple of
-     * g the plant is holding rather than on the slider, so the key names the
-     * machine and not the menu. A lap at a different weight is a lap on a
-     * quad that hovers, climbs and drops differently, and filing it beside
-     * another would make the record meaningless.
-     *
-     * THE EMPTY SUFFIX IS THE 1.0 MACHINE AND STAYS THAT WAY. Every record
-     * set before the slider existed was flown at exactly 1.0, and the shell's
-     * normal is now 1.62, so the normal carries `.g162` and those old records
-     * stay under the bare key, untouched and unreachable, because nothing on
-     * the new band lands on 1.000 exactly: the floaty end is 0.972. That is
-     * the append-only rule applied to a pilot's own bests. The `.grav` and
-     * `.air` suffixes that came before were each live for under two hours on
-     * a slider with a different meaning and are orphaned the same way.
-     */
-    const gravPart = runGravityScale === 1 ? '' : `.g${Math.round(runGravityScale * 100)}`;
-    return `webfpv.best.${h.toString(16)}.${runVoltage.toFixed(2)}${style}${craft}${gravPart}`;
+    const parts = [
+      'webfpv.best',
+      hash.toString(16),
+      runVoltage.toFixed(2) + (runStyle === 'arcade' ? '.arcade' : ''),
+      runAirframe,
+    ];
+    if (runGravityScale !== 1) {
+      parts.push(`g${Math.round(runGravityScale * 100)}`);
+    }
+    return parts.join('.');
   }
 
   let mode = 'title'; /* title, flight, paused, results, replay */
@@ -12305,12 +12164,31 @@ export async function boot({
     return { recordSuffix, reach: airframeById(runAirframe).fixedWing ? PLANE_REACH : 0 };
   }
 
+  /*
+   * The world in `view` has just been built and becomes the one flown. With
+   * keepPlace it is the same world and course rebuilt for a new look, so
+   * the run carries on, paused, where it stood. Otherwise everything tied to
+   * the old world starts again on this one, from the title.
+   */
   function adoptLoadedView(keepPlace, stayMode, stayScreen) {
     prewarm([...FX_ROOTS, shell.quad]);
     attractCam = makeAttractCamera(view);
-    if (!keepPlace) {
-      /* A map track's records are its own (seatMapCourse), not the world's. */
-      /* A world adopted fresh is the seat's, whatever a swap held before. */
+    if (keepPlace) {
+      /* The new gate meshes need the current next-gate highlight. */
+      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+      ui.setShare(view.share || null);
+      paintBest();
+      mode = stayMode === 'flight' ? 'paused' : stayMode;
+      /* Only if the pilot is still on it: a war lobby builds its mission's
+       * world while the pilot waits (warTimeFrame), about 5 s, and one who
+       * left the room and opened Make a room meanwhile was thrown back to
+       * the room screen, with no room. */
+      if (stayScreen && ui.screen === stayScreen) {
+        ui.show(stayScreen);
+      }
+    } else {
+      /* A world adopted fresh is the seat's, whatever a swap held before,
+       * and a map track's records are its own (seatMapCourse). */
       worldHold = null;
       race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
       race.setRecordKey(recordKey());
@@ -12325,24 +12203,10 @@ export async function boot({
       ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
-    } else {
-      /* Same map, new look. Physics and the lap stay where they were; the
-       * new gate meshes just need the current next-gate highlight. */
-      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-      ui.setShare(view.share || null);
-      paintBest();
-      mode = stayMode === 'flight' ? 'paused' : stayMode;
-      /* Only if the pilot is still on it: a war lobby builds its mission's
-       * world while the pilot waits (warTimeFrame), about 5 s, and one who
-       * left the room and opened Make a room meanwhile was thrown back to
-       * the room screen, with no room. */
-      if (stayScreen && ui.screen === stayScreen) {
-        ui.show(stayScreen);
-      }
     }
     finishLoadingOnFrame = true;
-    /* The world just changed, so what is worth flying around changed with
-     * it. Once per map, never per run: it scans every collider. */
+    /* Scanning every collider for what is worth flying round is a once per
+     * world job, never a once per run one. */
     rebuildObstacles();
     mapReady = true;
   }
@@ -12426,18 +12290,21 @@ export async function boot({
     view.recordSuffix = `.map.${seated.document.id}`;
   }
 
+  /* Whether the standing world is the one the settings name: its id, its
+   * graphics level, the course seated on it and the time it was built at. */
   function worldMatchesSettings() {
+    const quality = normalizeGraphics(ui.settings.graphics);
     /* A run that has changed aircraft keeps its world: see worldHold. */
-    if (worldHold && view && ui.settings.map === worldHold.map
-      && normalizeGraphics(ui.settings.graphics) === worldHold.graphics) {
+    if (worldHold && view && ui.settings.map === worldHold.map && quality === worldHold.graphics) {
       return true;
     }
-    const wantId = worldId();
-    const wantQ = normalizeGraphics(ui.settings.graphics);
-    return view
-      && wantId === view.id
-      && wantQ === view.graphics
-      && wantedCourseKey(wantId) === loadedCourseKey(view)
+    if (!view) {
+      return false;
+    }
+    const id = worldId();
+    return id === view.id
+      && quality === view.graphics
+      && wantedCourseKey(id) === loadedCourseKey(view)
       && worldTime === timeOf(worldTimeOptions());
   }
 
@@ -12464,18 +12331,21 @@ export async function boot({
     return worldSync;
   }
 
+  /* Builds world `id` at `quality` into `view`. The caller has disposed the
+   * old one first, so two worlds' render targets never stand at once. */
+  async function loadWorldInto(id, quality, timeOptions) {
+    applyPixelRatio(shell, quality, renderScaleOf(ui.settings));
+    view = await loadMap(shell, id, loading, { quality, renderScale: renderScaleOf(ui.settings), ...timeOptions });
+  }
+
   async function syncWorldNow() {
-    /* Resolved, not raw: worldId turns the Track seat into a world and an id
-     * no map has into the seat's (mapById's fallback), so the tail guard
-     * below cannot see a mismatch that never clears: dispose, rebuild,
-     * re-enter, forever. ?map= is taken verbatim in boot.js, so an unknown
-     * id is reachable from a stale bookmark. */
+    /* Resolved, not raw: worldId turns the Track seat into a world and an
+     * unknown id (a stale bookmark's ?map=, which boot.js takes verbatim)
+     * into the seat's, so the tail check below cannot chase a mismatch
+     * that never clears. */
     const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
-    if (swapInFlight) {
-      return;
-    }
-    if (mapReady && worldMatchesSettings()) {
+    if (swapInFlight || (mapReady && worldMatchesSettings())) {
       return;
     }
     /*
@@ -12499,22 +12369,18 @@ export async function boot({
       }
       return;
     }
+    /* Only the graphics level moved: the same world and course, rebuilt. */
     const keepPlace = mapReady && wantId === view.id && wantedCourseKey(wantId) === loadedCourseKey(view);
     /*
-     * Which menu the pilot goes back to after the swap, or null for the
-     * title. This is a list of PAGE screens, and it has to name every one a
-     * settings change can be made from: 'rates' is here because every arrow
-     * key on that screen runs applySettings, which lands here whenever the
-     * world no longer matches, and without it a rate nudge would bounce the
-     * pilot to the title. The 'fc' it replaces named a screen that no
-     * longer exists, and would have failed silently: show() on an unknown
-     * name displays no node and leaves the previous screen's rows behind.
-     * 'friends' because a card seats its own world on the room screen
-     * (ui.js, the card's world wins), and a swap to another world, which
-     * otherwise ends on the title, ends back there (adoptLoadedView).
+     * The screens a swap hands back to the pilot when it is done, rather
+     * than the title: every page a settings change can be made from. 'rates'
+     * is one because each arrow on it runs applySettings, which swaps the
+     * world whenever it no longer matches. 'friends' because a card seats
+     * its own world on the room screen (ui.js, the card's world wins), and
+     * the swap should end back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
-    const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
+    const stayScreens = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
+    const stayScreen = stayScreens.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
     mapReady = false;
@@ -12527,60 +12393,41 @@ export async function boot({
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
-    /* Paint the loading screen BEFORE disposing a world and building another,
-     * because both of those block the main thread and a screen nobody
-     * composited is not a screen. */
+    /* Disposing and building both hold the main thread, so the loading
+     * screen is given a frame to be composited first. */
     await yieldToPaint();
-    const previous = view.id;
-    const previousGraphics = view.graphics;
+    const before = { id: view.id, graphics: view.graphics };
     if (build) {
       build.exit(false);
     }
     try {
       view.dispose();
     } catch (e) {
-      /* Already gone, or the last swap never produced a world. */
+      /* Nothing to dispose: the last swap never produced a world. */
     }
     /* A new world starts native: its cost is not the old one's. */
     dynres.reset();
-    applyPixelRatio(shell, wantQ, renderScaleOf(ui.settings));
     try {
-      view = await loadMap(shell, wantId, loading, {
-        quality: wantQ,
-        renderScale: renderScaleOf(ui.settings),
-        ...worldTimeOptions(),
-      });
+      await loadWorldInto(wantId, wantQ, worldTimeOptions());
       worldTime = timeOf(worldTimeOptions());
       await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
     } catch (e) {
-      /*
-       * The old world is already gone by here, deliberately: disposing before
-       * building is what keeps two maps' render targets from ever coexisting.
-       * Rebuild the map that was just disposed. A message with no world
-       * behind it used to leave mapReady false forever.
-       */
+      /* The old world is gone already, so it is built again, and the
+       * settings put back to it, rather than leaving no world at all. The
+       * title's own world is not the pilot's seat and never written there. */
       console.error(e);
-      /* The title's world is not the pilot's seat, so it is never written
-       * there. */
       if (!titleWorld) {
-        ui.settings.map = previous;
+        ui.settings.map = before.id;
       }
-      ui.settings.graphics = previousGraphics;
+      ui.settings.graphics = before.graphics;
       try {
-        applyPixelRatio(shell, previousGraphics, renderScaleOf(ui.settings));
-        view = await loadMap(shell, previous, loading, {
-          quality: previousGraphics,
-          renderScale: renderScaleOf(ui.settings),
-        });
+        await loadWorldInto(before.id, before.graphics, {});
         worldTime = timeOf({});
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
-        notice = {
-          text: str('main.could_not_be_loaded', { name: entry.name }),
-          untilMs: performance.now() + 4200,
-        };
+        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 4200 };
       } catch (e2) {
         console.error(e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));
@@ -12588,28 +12435,31 @@ export async function boot({
     } finally {
       swapInFlight = false;
     }
-    /* A change requested DURING the swap was refused by the guard at the top,
-     * and ui.js has already saved it, so the setting and the loaded map would
-     * otherwise stay diverged with the title screen naming a map that is not
-     * there. Honour it now. */
+    /* A change made while the swap ran was turned away at the top, and ui.js
+     * has saved it, so the settings and the world would stay apart. */
     if (mapReady && !worldMatchesSettings()) {
       await syncWorldNow();
     }
   }
+
   async function swapMap(id) {
     ui.settings.map = id;
     return syncWorld();
   }
 
   /*
-   * ANGLE MODE is a Betaflight flight-mode flag, not a plant change. The
-   * module defaults to acro. Keyboard stick input cannot hold a rate, so
-   * it always raises ANGLE_MODE; a radio uses the setting. Changing this
-   * does not re-init the module and does not reset the craft.
+   * Angle mode is a Betaflight flight mode flag sent to the module as it
+   * stands; changing it neither re-inits the module nor resets the craft.
+   * angleModeOn mirrors what the module was last told.
+   *
+   * Launch control: the Settings row only offers the feature, and the L key
+   * arms it (lcArmed). While the module reports it holding, the craft sits
+   * on the stand (launchStaging); lcAcroUntil keeps the flight mode in acro
+   * through the hold and briefly after the release, and lcGoUntil is when
+   * the GO banner after a release ends. lcBoost marks a launch in progress
+   * and lcPrevState is the module's state on the last frame.
    */
   let angleModeOn = false;
-  /* L-switch for launch control. The Settings row only enables the
-   * feature; this is the mode switch, captured at the sitting. */
   let lcArmed = false;
   let launchStaging = false;
   let lcBoost = false;
@@ -12618,85 +12468,47 @@ export async function boot({
   let lcGoUntil = 0;
 
   function wantAngleMode() {
+    /* The turtle and its recovery own the mixer. */
     if (crashflipOn || turtleRecover) {
       return false;
     }
+    /* A launch is flown in acro, through the hold and just past it. */
     if (lcAcroUntil === Infinity || (lcAcroUntil > 0 && performance.now() < lcAcroUntil)) {
       return false;
     }
-    /* The thumb sticks are a proportional stick, so they are a RADIO here,
-     * not a keyboard: they fly whichever mode the setting says. Keys keep
-     * forcing angle because a key is a bang-bang input and acro on one is
-     * a crash generator. */
-    if (input.isTouchPrimary()) {
-      return ui.settings.flightMode === 'angle';
-    }
-    /* The mouse is a proportional stick too, and for the same reason. */
-    if (input.isMousePrimary()) {
-      return ui.settings.flightMode === 'angle';
-    }
     /*
-     * THE HARNESS OVERRIDE IS A GIMBAL, NOT A KEY.
+     * A proportional input (the thumb sticks, the mouse, a radio, or the
+     * harness's window.__stick, which writes a gimbal's channels) flies the
+     * mode the pilot chose. So does anything in freestyle, keys included:
+     * angle holds the craft to about thirty degrees of bank, which puts
+     * every trick in the catalogue out of reach, and freestyle exists for
+     * them whether or not the scorer is on.
      *
-     * window.__stick writes a proportional channel straight into the poll
-     * ladder, so it can hold a rate the way a radio does and the reason
-     * keys force angle does not apply to it. It was landing on the
-     * keyboard branch anyway, and ANGLE MODE CANNOT LOOP: the craft is
-     * held to about thirty degrees of bank, so every probe that tried to
-     * fly a Powerloop swept eighty three degrees of pitch in three seconds
-     * of full back stick and flew away in a climb. That is why no check in
-     * this repository had ever flown one of these tricks: every "verified"
-     * loop was a path drawn by arithmetic and fed to the recogniser
-     * directly, because the only thing that could actually FLY was locked
-     * out of acro. A pilot on a radio is unaffected either way.
+     * Keys on a race force angle: a key is all or nothing, and acro on one
+     * cannot hold a line.
      */
-    if (input.harnessChannels) {
-      return ui.settings.flightMode === 'angle';
-    }
-    /*
-     * FREESTYLE IS THE TRICK MODE, AND NO TRICK IS POSSIBLE IN ANGLE.
-     *
-     * Angle holds the craft to about thirty degrees of bank, so a pilot in
-     * it cannot fly a Powerloop, a Split-S, a Matty Flip, an Orbit, a roll
-     * or a flip: the entire catalogue is out of reach. Forcing it on the
-     * keyboard therefore does not make freestyle safer for a key pilot, it
-     * makes freestyle pointless for them, and a scoring system nobody on a
-     * keyboard can score in is not a scoring system.
-     *
-     * IT IS NOT GATED ON freestyleScoring AND MUST NOT BE. The scorer was
-     * how the case got made, but the case does not rest on it: a pilot who
-     * wants to fly a flip in the town wants to fly a flip whether or not
-     * anything is naming it, and scoring is off by default, so gating this
-     * would lock every keyboard pilot out of every trick unless they first
-     * switched on a feature the product tells them is unfinished. That is
-     * the opposite trade. Racing keeps the guard.
-     *
-     * So in freestyle the SETTING decides, on a keyboard as much as on a
-     * radio. Racing keeps the guard, where holding a line matters more than
-     * inverting and a key is a bang bang input.
-     */
-    if (view && view.mode === 'freestyle') {
+    const proportional = input.isTouchPrimary() || input.isMousePrimary() || Boolean(input.harnessChannels);
+    if (proportional || (view && view.mode === 'freestyle')) {
       return ui.settings.flightMode === 'angle';
     }
     return input.isKeyboardPrimary() || ui.settings.flightMode === 'angle';
   }
 
+  /* The nose's angle below the horizon in degrees, from a state's body
+   * quaternion (w, x, y, z at 7 to 10): the body x axis in world terms,
+   * against its length in the y, z plane. */
   function pitchNoseDownDeg(st) {
-    const w = st[7];
-    const x = st[8];
-    const y = st[9];
-    const z = st[10];
-    const ux = 2 * (x * z - w * y);
-    const uy = 2 * (y * z + w * x);
-    const uz = 1 - 2 * (x * x + y * y);
-    const horiz = Math.sqrt(uy * uy + uz * uz);
-    return Math.atan2(-ux, horiz) * (180 / Math.PI);
+    const [w, x, y, z] = [st[7], st[8], st[9], st[10]];
+    const forwardZ = 2 * (x * z - w * y);
+    const sideZ = 2 * (y * z + w * x);
+    const upZ = 1 - 2 * (x * x + y * y);
+    return Math.atan2(-forwardZ, Math.sqrt(sideZ * sideZ + upZ * upZ)) * (180 / Math.PI);
   }
 
+  /* The module's launch control state: 0 idle, 1 and 2 holding, 3
+   * released. An older dist/sim.wasm has no launch control and is idle. */
   function lcState() {
-    return typeof sim.launchControlState === 'function'
-      ? sim.launchControlState()
-      : 0;
+    return typeof sim.launchControlState === 'function' ? sim.launchControlState() : 0;
   }
 
   function applyLaunchSwitch(on) {
@@ -12710,28 +12522,23 @@ export async function boot({
     sim.e.sim_set_launch_stand(0, 0, 0, 0, 1, 0, 0, 0);
   }
 
-  /* Seed the plant with the ramp pitch the parked overlay was drawing,
-   * then let the module hold a rear-arm hinge every 1 ms step. Without
-   * that seed, launching off a 28 degree block dropped the craft onto a
-   * level physics pose and walking the stick walked it off the rails. */
+  /* The stand holds a hinge at the rear arms every step, seeded with the
+   * ramp pitch the parked overlay was drawing; on a level seed a 28 degree
+   * block dropped the craft flat and the sticks walked it off the rails. */
   function enableLaunchStand() {
     const st = readState();
-    const h = startPitch * 0.5;
-    const code = sim.e.sim_set_launch_stand(
-      1, st[1], st[2], st[3],
-      Math.cos(h), 0, Math.sin(h), 0,
-    );
+    const half = startPitch * 0.5;
+    const code = sim.e.sim_set_launch_stand(1, st[1], st[2], st[3], Math.cos(half), 0, Math.sin(half), 0);
     if (code === SIM_OK) {
       stateCurr = readState();
       statePrev = stateCurr;
     }
   }
 
+  /* Onto the stand, from a landed craft that is the right way up. */
   function beginLaunchStaging() {
-    if (!(mode === 'flight' && landed)) {
-      return;
-    }
-    if (stateCurr && plantUpZ(stateCurr) < 0) {
+    const upright = !stateCurr || plantUpZ(stateCurr) >= 0;
+    if (mode !== 'flight' || !landed || !upright) {
       return;
     }
     landed = false;
@@ -12743,23 +12550,47 @@ export async function boot({
     enableLaunchStand();
   }
 
+  /* Off the stand. With `park`, in flight, the craft is set down landed
+   * where it is, as if the launch had never been staged. */
   function endLaunchStaging(park) {
     launchStaging = false;
     input.forcePadRest = false;
     lcBoost = false;
     disableLaunchStand();
-    if (park && mode === 'flight') {
-      sim.rest();
-      landed = true;
-      takingOff = false;
-      stateCurr = readState();
-      statePrev = stateCurr;
-      acc = 0;
+    if (!park || mode !== 'flight') {
+      return;
+    }
+    sim.rest();
+    landed = true;
+    takingOff = false;
+    stateCurr = readState();
+    statePrev = stateCurr;
+    acc = 0;
+  }
+
+  /* The module released a held launch: the stand goes and the craft flies,
+   * in acro for the first moment, with GO on the banner. */
+  function releaseLaunch(nowMs) {
+    launchStaging = false;
+    input.forcePadRest = false;
+    disableLaunchStand();
+    lcBoost = true;
+    takingOff = true;
+    takeoffUntil = nowMs + TAKEOFF_WINDOW_MS;
+    flownThisRun = true;
+    racePrev.copy(shell.quad.position);
+    raceHasPrev = true;
+    lcGoUntil = nowMs + 900;
+    lcAcroUntil = nowMs + 480;
+    if (typeof audio.event === 'function') {
+      audio.event('takeoff');
     }
   }
 
+  /* Once a frame: follows the module's launch control state, and drops an
+   * armed switch whose Settings row was turned off. Returns the state. */
   function syncLaunchControl(nowMs) {
-    if (!ui.settings.launchControl && lcArmed) {
+    if (lcArmed && !ui.settings.launchControl) {
       applyLaunchSwitch(false);
       if (launchStaging) {
         endLaunchStaging(true);
@@ -12767,27 +12598,16 @@ export async function boot({
       lcAcroUntil = 0;
     }
     const st = lcState();
-    if (st === 1 || st === 2) {
+    const holding = (s) => s === 1 || s === 2;
+    if (holding(st)) {
       lcAcroUntil = Infinity;
-      if (landed && mode === 'flight' && !turtleWait && !turtleFlip.active && !turtleRecover) {
+      const turtled = turtleWait || turtleFlip.active || turtleRecover;
+      if (landed && mode === 'flight' && !turtled) {
         beginLaunchStaging();
       }
     } else if (st === 3) {
-      if (lcPrevState === 1 || lcPrevState === 2) {
-        launchStaging = false;
-        input.forcePadRest = false;
-        disableLaunchStand();
-        lcBoost = true;
-        takingOff = true;
-        takeoffUntil = nowMs + TAKEOFF_WINDOW_MS;
-        flownThisRun = true;
-        racePrev.copy(shell.quad.position);
-        raceHasPrev = true;
-        lcGoUntil = nowMs + 900;
-        lcAcroUntil = nowMs + 480;
-        if (typeof audio.event === 'function') {
-          audio.event('takeoff');
-        }
+      if (holding(lcPrevState)) {
+        releaseLaunch(nowMs);
       }
     } else {
       if (launchStaging) {
@@ -12801,70 +12621,46 @@ export async function boot({
     return st;
   }
 
+  /* Tells the module the flight mode when it changes, and keeps the craft
+   * card's caption on the mode being flown. */
   function syncAngleMode() {
     const want = wantAngleMode();
     if (want !== angleModeOn) {
       angleModeOn = want;
       sim.setAngleMode(want);
     }
-    if (ui.setCraftCaption && !(showcase && showcase.failed)) {
-      ui.setCraftCaption(want
-        ? str('main.angle_sticks_are_tilt_hands_off')
-        : str('ui.acro_sticks_are_rates_hands_off'));
+    if (!ui.setCraftCaption || (showcase && showcase.failed)) {
+      return;
     }
+    ui.setCraftCaption(str(want ? 'main.angle_sticks_are_tilt_hands_off' : 'ui.acro_sticks_are_rates_hands_off'));
   }
 
-  /* The pilot's render scale as a multiplier, 100 percent being native. */
+  /* The Render scale setting as a multiplier of native resolution. */
   function renderScaleOf(s) {
     return (Number(s.renderScale) || 100) / 100;
   }
 
   /*
-   * Everything the shell derived from the OLD plant, re-derived. Four things
-   * and they have to move together, which is why this is one function rather
-   * than four lines at the call site:
-   *
-   *   the collision dimensions, which src/game/collide.js publishes as live
-   *     module bindings so every importer follows without knowing;
-   *   the drawn model, which is a different builder entirely for a whoop;
-   *   the ground plane the module holds, because a 23 mm thick machine does
-   *     not park 45 mm off the deck; and
-   *   the record key, because a whoop lap and a five inch lap on the same
-   *     track are not the same record.
-   *
-   * Between runs only. Every collision query in flight reads the dimensions
-   * and swapping them mid lap would move the hull under a craft that is
-   * already resolving a contact.
+   * After the plant changes airframe, everything the shell keeps about the
+   * old one follows: the collision dimensions (src/game/collide.js exports
+   * them as live bindings), the parts, the cell count, the parked height
+   * (which places the ground plane, the spawn and the landed test; see
+   * SPAWN_ALT), the drawn model, the ghost's model, the motor voice and the
+   * camera mount. Between runs only: a hull swapped mid flight would move
+   * under a contact being resolved.
    */
   function syncCraftScale() {
-    setCraftAirframe(airframeById(runAirframe).dims);
+    const craft = airframeById(runAirframe);
+    setCraftAirframe(craft.dims);
     seatCraftParts();
-    runCells = airframeById(runAirframe).cells;
-    /* Where this aircraft's centre sits when it is parked, which is where
-     * the shell puts the ground plane, the spawn and the landed test. See
-     * SPAWN_ALT at the top of this file. */
-    seatRestHeight(airframeById(runAirframe), startsAfloat());
+    runCells = craft.cells;
+    seatRestHeight(craft, startsAfloat());
     dressCraft();
     swapGhostRig();
-    const isWing = Boolean(airframeById(runAirframe).fixedWing);
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
-    setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
+    setFlownVoice(craft.voice ?? (craft.fixedWing ? 'wing' : 'quad'));
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
-    /*
-     * The ground PLANE needs no raising here: raiseGroundFromState asserts
-     * it from the craft's own pose every step it matters, and the shell
-     * does not hold one. This paragraph exists because the first version of
-     * this function called a raiseGround() that does not exist.
-     *
-     * Where that plane goes under the craft is another matter, and it is
-     * the line above. worldPosToSim puts the surface at sim z minus
-     * SPAWN_ALT, so SPAWN_ALT IS how far the plant's origin stands off the
-     * floor, and it has to be this aircraft's parked height or the plant
-     * rests the craft in the air. That was the bug: "a 23 mm thick machine
-     * does not park 45 mm off the deck" was written here, correctly, while
-     * both numbers stayed the five inch's.
-     */
   }
 
   /*
@@ -12893,13 +12689,45 @@ export async function boot({
     drawnCombat = combat;
   }
 
+  /*
+   * The settings, applied. Called on every change ui.js makes and at boot,
+   * so each part below compares and only acts on what moved. The order is
+   * load-bearing where the module is concerned: the run's plant first
+   * (voltage, style, airframe and what hangs on it), then gravity, the
+   * record key, the world, the tune, the rates and the PIDs, and the module
+   * receives exactly that sequence.
+   */
   function applySettings(s) {
-    /*
-     * The pilot's stick mode, first, because everything below it that draws
-     * a stick wants to know. input.setStickMode forwards to the thumb
-     * sticks; ui.setStickMode redraws the captions and the how-to prose.
-     * Both are no-ops when the mode has not moved.
-     */
+    applyControlSettings(s);
+    applyCameraSettings(s);
+    applyDisplaySettings(s);
+    if (mode === 'title') {
+      applyRunSettings(s);
+    }
+    applyAirSettings(s);
+    race.setRecordKey(recordKey());
+    paintBest();
+    if (!worldMatchesSettings()) {
+      syncWorld();
+    }
+    /* Only a move of the Tune row swaps the tune. Comparing with the loaded
+     * tune instead would throw away a dropped diff, which is no registry
+     * tune, on the next unrelated change such as the volume. */
+    if (s.tune !== menuTune) {
+      menuTune = s.tune;
+      configLoadWait = swapTune(s.tune).catch((e) => {
+        console.error(e);
+      });
+    }
+    applyRatesSettings(s);
+    applyPidSettings(s);
+    applyDeviceSettings(s);
+    syncAngleMode();
+  }
+
+  /* The stick mode first, since every stick drawn after it reads it (both
+   * calls do nothing when it has not moved), then the mouse. */
+  function applyControlSettings(s) {
     input.setStickMode(s.stickMode);
     if (ui.setStickMode) {
       ui.setStickMode(s.stickMode);
@@ -12911,19 +12739,24 @@ export async function boot({
       invert: s.mouseInvert,
       centre: s.mouseCentre,
     });
+  }
+
+  /* The FPV camera's uptilt (clamped, and the clamp written back) and its
+   * vertical field of view, a lens choice on a real quad. */
+  function applyCameraSettings(s) {
     camTilt = clampCameraAngle(s.cameraAngle);
     s.cameraAngle = camTilt;
     qTilt.setFromAxisAngle(AXIS_X, cameraTiltRad(camTilt));
-    /* Vertical field of view. The default 100 keeps every measured budget
-     * comparable; the setting exists because how roomy a course feels is a
-     * pilot preference on real quads too, set by lens choice. */
     if (shell.camera.fov !== s.cameraFov) {
       shell.camera.fov = s.cameraFov;
       shell.camera.updateProjectionMatrix();
     }
-    /* Render scale changes are free, no world rebuild: set the ratio and
-     * walk the same guarded resize path a window resize takes, so the
-     * composer and every prepass target follow in one place. */
+  }
+
+  /* Render scale, the dynamic resolution mode and the perf overlay. A size
+   * change takes the same guarded resize path a window resize does, so the
+   * composer and every prepass target follow; no world is rebuilt. */
+  function applyDisplaySettings(s) {
     const userScale = renderScaleOf(s);
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
@@ -12931,240 +12764,157 @@ export async function boot({
     perfOverlay.setOn(s.perfOverlay);
     dynres.setWatch(s.perfOverlay);
     const wantPr = pixelRatioFor(s.graphics, userScale, null, dynres.state.scale);
-    const userChanged = !!(view && view.post && view.post.userScale != null
-      && view.post.userScale !== userScale);
-    if (view && view.post && view.post.userScale != null) {
-      view.post.userScale = userScale;
+    const post = view && view.post && view.post.userScale != null ? view.post : null;
+    const scaleMoved = Boolean(post) && post.userScale !== userScale;
+    if (post) {
+      post.userScale = userScale;
     }
     /* An export surface re-applies the settings' size when it goes. */
-    if (!exportShot && (shell.pixelRatio !== wantPr || userChanged)) {
-      if (shell.pixelRatio !== wantPr) {
-        applyPixelRatio(shell, s.graphics, userScale, null, dynres.state.scale);
-      }
-      const d = shell.resize();
-      if (view && view.post && mapReady) {
-        view.post.setSize(d.w, d.h);
-      }
+    if (exportShot || (shell.pixelRatio === wantPr && !scaleMoved)) {
+      return;
     }
-    if (mode === 'title') {
-      /* Between runs the choice takes effect at once. During a run it
-       * waits for the next one, so the record it is measured against is
-       * the pack it was flown on. */
-      runVoltage = s.packVoltage;
-      sim.setCellVoltage(runVoltage);
-      /* Flight style rides the same rule: the record and the physics a
-       * run is flown on are decided when it starts, not mid lap. Guarded
-       * because an older dist/sim.wasm predates the export. */
-      runStyle = s.flightStyle === 'arcade' ? 'arcade' : 'expert';
-      if (typeof sim.e.sim_set_flight_style === 'function') {
-        sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
+    if (shell.pixelRatio !== wantPr) {
+      applyPixelRatio(shell, s.graphics, userScale, null, dynres.state.scale);
+    }
+    const size = shell.resize();
+    if (view && view.post && mapReady) {
+      view.post.setSize(size.w, size.h);
+    }
+  }
+
+  /*
+   * What a run is flown on, taken only between runs so that a record is
+   * measured on one machine from its start: the pack voltage, the flight
+   * style, the airframe (the whole plant: mass, inertia, motors, rotors,
+   * pack and hull) or a Loadout propulsion, then crash damage, power,
+   * tuning and parts, each after the airframe it belongs to. Exports an
+   * older dist/sim.wasm lacks are skipped, and that build flies what it has.
+   */
+  function applyRunSettings(s) {
+    runVoltage = s.packVoltage;
+    sim.setCellVoltage(runVoltage);
+    runStyle = s.flightStyle === 'arcade' ? 'arcade' : 'expert';
+    if (typeof sim.e.sim_set_flight_style === 'function') {
+      sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
+    }
+    const craft = airframeById(s.airframe).id;
+    const plant = seatedSimId(craft);
+    if (craft !== runAirframe || plant !== runSimId) {
+      runAirframe = craft;
+      runSimId = plant;
+      if (typeof sim.e.sim_set_airframe === 'function') {
+        sim.e.sim_set_airframe(runSimId);
       }
-      /*
-       * THE AIRFRAME, on the same between-runs rule and for a stronger
-       * version of the same reason. Pack charge and flight style change what
-       * a run measures; the airframe changes the ENTIRE PLANT, the mass, the
-       * inertia, the motors, the rotors, the pack and the collision hull, so
-       * applying it mid lap would be swapping the aircraft under the pilot.
-       *
-       * Guarded because an older dist/sim.wasm predates the export, same as
-       * the flight style above. On such a build the shell simply flies the
-       * five inch, which is what that build has.
-       */
-      const wantCraft = airframeById(s.airframe).id;
-      /* A propulsion chosen on the Loadout tab is a plant of its own, so it
-       * changes the plant as an airframe does, on the same rule. */
-      const wantSim = seatedSimId(wantCraft);
-      if (wantCraft !== runAirframe || wantSim !== runSimId) {
-        runAirframe = wantCraft;
-        runSimId = wantSim;
-        if (typeof sim.e.sim_set_airframe === 'function') {
-          sim.e.sim_set_airframe(runSimId);
-        }
-        /*
-         * The plant changed under a module that is already initialised, so
-         * everything the shell derived from the OLD plant has to follow: the
-         * craft's own dimensions, its collision hull, its model and the
-         * ground plane it sits on. syncCraftScale does all four and is
-         * called here rather than left to worldMatchesSettings because the
-         * craft is session lived and the world is not.
-         */
-        syncCraftScale();
-        /* The plant raised the old airframe's flaps with it. */
-        flapNotch = 0;
-      }
-      /* Crash damage rides the same rule: a run is flown on one set of
-       * physics from its start. After the airframe, whose part table it
-       * picks. See THE CRASH SHELL. */
-      applyCrashMode(s);
-      /* The power system too, after the airframe it belongs to: a fresh
-       * pack and a full tank every run. The tuning after the power it is
-       * balanced on, and the hangar's parts over both. */
-      applyPower(s);
-      applyTuning(s);
-      applyParts(s);
+      /* The craft is session lived and the world is not, so its derived
+       * state follows here rather than in a world rebuild. */
+      syncCraftScale();
+      /* The plant raised the old airframe's flaps with it. */
+      flapNotch = 0;
     }
-    /*
-     * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
-     *
-     * See the note at runWeight: this is the one physics setting with a
-     * control on the flight screen, and it is there so the pilot can feel it
-     * arrive. Waiting for the next run would make the slider a promise
-     * instead of a knob.
-     *
-     * What it costs is paid on the lap rather than hidden: a lap the change
-     * lands inside was flown on two different aircraft and is voided, which
-     * is the same bookkeeping a gate frame strike gets and shows up the same
-     * way on the results screen. Between laps, on the start line, or in
-     * freestyle, nothing is interrupted.
-     *
-     * Guarded because an older dist/sim.wasm predates the export, same as
-     * the flight style and the airframe. On such a build the slider moves and
-     * the plant does not, so the guard also holds the shell's own idea of the
-     * run's air at stock: a record must not be filed under an air the module
-     * never flew.
-     */
-    {
-      const wantWeight = clampWeight(s.weight);
-      /*
-       * The scale follows the airframe as well as the slider, because the
-       * base lives on the airframe entry; and the test is on the SCALE, not
-       * the weight, so the boot time disagreement between the module's 1.0
-       * and the shell's normal is seen, and so an airframe swap that moved
-       * the base would be too. The airframe itself only changes between
-       * runs, above, so this cannot swap the plant under a lap.
-       */
-      const wantScale = gravityScaleFor(wantWeight, runAirframe);
-      if (wantScale !== runGravityScale) {
-        if (typeof sim.e.sim_set_gravity === 'function'
-          && sim.e.sim_set_gravity(wantScale) === SIM_OK) {
-          /*
-           * NOT gated on mode, and the first version was. The slider sits
-           * below the pause panel, dimmed but uncovered, so it can be dragged
-           * while paused; with `mode === 'flight'` in this test a pilot who
-           * paused mid lap, dragged it and resumed finished a lap flown under
-           * two gravities that was never voided and then filed under the new
-           * key. A running lap is a running lap whichever screen is over it.
-           * Title and results have no lap, because reset clears one, so the
-           * boot time push of a stored value cannot void anything.
-           */
-          const midLap = race.currentLapMs(simTimeMs) != null;
-          runWeight = wantWeight;
-          runGravityScale = wantScale;
-          if (midLap) {
-            race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
-          }
-        } else {
-          ui.settings.weight = runWeight;
-          ui.paintAir();
-        }
-      } else {
-        runWeight = wantWeight;
-      }
+    applyCrashMode(s);
+    applyPower(s);
+    applyTuning(s);
+    applyParts(s);
+  }
+
+  /*
+   * Weight, the one physics setting that applies mid run: it has a control
+   * on the flight screen so the pilot can feel it arrive. A lap it lands in
+   * was flown on two aircraft and is voided, paused or not, since the
+   * slider stays reachable under the pause panel; at the title there is no
+   * lap to void. What reaches the module is the gravity multiple, which
+   * follows the airframe's base as well as the slider. On a module without
+   * the export, or one that refuses it, the slider goes back to the weight
+   * actually flown, so no record is filed under an air never flown.
+   */
+  function applyAirSettings(s) {
+    const weight = clampWeight(s.weight);
+    const scale = gravityScaleFor(weight, runAirframe);
+    if (scale === runGravityScale) {
+      runWeight = weight;
+      return;
     }
-    race.setRecordKey(recordKey());
-    paintBest();
-    if (!worldMatchesSettings()) {
-      syncWorld();
+    const taken = typeof sim.e.sim_set_gravity === 'function' && sim.e.sim_set_gravity(scale) === SIM_OK;
+    if (!taken) {
+      ui.settings.weight = runWeight;
+      ui.paintAir();
+      return;
     }
-    /*
-     * Only a MOVE of the Tune item swaps the tune. Comparing against what
-     * is loaded instead would undo a dropped diff the next time the pilot
-     * changed the volume, because a dropped file is not a registry tune.
-     */
-    if (s.tune !== menuTune) {
-      menuTune = s.tune;
-      configLoadWait = swapTune(s.tune).catch((e) => {
-        console.error(e);
-      });
+    const midLap = race.currentLapMs(simTimeMs) != null;
+    runWeight = weight;
+    runGravityScale = scale;
+    if (midLap) {
+      race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
     }
-    /*
-     * Rates are part of the config text, so changing one re-inits the module.
-     * Compared as the CLI text the profile emits rather than field by field,
-     * so a change to any of the eleven fields, the rates type included, is
-     * one string comparison and none of them can be forgotten here.
-     *
-     * IT DOES NOT RESET THE RUN, and that is the difference between this
-     * branch and the tune and PID branches around it. A tune changes the
-     * MACHINE and a lap flown half on each is not a lap. Rates change the
-     * PILOT: how far their sticks go. The owner asked for the change to be
-     * flyable mid run, and the request is right, because tuning stick feel
-     * means tuning it against a corner and you cannot do that if every nudge
-     * costs the lap. So the module is re-inited and the craft is put back
-     * where it stood by reseatAfterConfigSwap, which also says what it
-     * cannot carry across.
-     *
-     * The record key still changes, because recordKey hashes the whole
-     * composed config and the rates are in it. A lap flown across a rate
-     * change is therefore compared against its own key and not against the
-     * old one's best, which is the protection reset() used to provide by
-     * throwing the lap away. Keeping the lap and keying it honestly is the
-     * better half of that trade.
-     */
+  }
+
+  /*
+   * Rates are part of the config text, so a change re-inits the module,
+   * but without resetting the run: rates are the pilot's stick feel, which
+   * is tuned against a corner mid run, not the machine. The craft is put
+   * back where it stood (reseatAfterConfigSwap), and the record key moves
+   * with the text, so the lap is kept and filed honestly.
+   *
+   * The new text is composed into a local and adopted only if the module
+   * takes it. A refused sim_init has already reset the parameter groups and
+   * applied part of the text, so the recovery re-inits the text that last
+   * worked.
+   */
+  function applyRatesSettings(s) {
     const nextRates = ratesDiff(s.rates);
-    if (nextRates !== ratesText) {
-      /*
-       * Composed into a LOCAL first. A refused sim_init is not a no-op down
-       * in the module: bridge_parse_config has already reset every
-       * parameter group to its default and applied part of the new text, so
-       * the craft is flying a half applied config with the PREVIOUS run's
-       * filter and PID init products. The other four init sites recover by
-       * re-initing the text that worked; this one did not, and it had
-       * already overwritten configText with the rejected text, so every one
-       * of those recoveries would have restored the bad config too.
-       */
-      const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, pidsText);
-      /* Read BEFORE the init that zeroes it. */
-      const before = readState();
-      if (sim.init(nextText) === SIM_OK) {
-        ratesText = nextRates;
-        configText = nextText;
-        race.setRecordKey(recordKey());
-        paintBest();
-        reseatAfterConfigSwap(before);
-      } else if (sim.init(configText) === SIM_OK) {
-        /* Back to the config that worked, and put the craft back on it. The
-         * failed attempt moved the module underneath the craft, and a
-         * refused rate change should cost a pilot nothing at all, so this
-         * re-seats rather than resetting too. */
-        reseatAfterConfigSwap(before);
-      }
-      publishPids();
+    if (nextRates === ratesText) {
+      return;
     }
-    /*
-     * The PID adjustment, same contract as rates: part of the config text,
-     * so changing it re-inits the module and resets the craft. Compared as
-     * the CLI text configs/pids.js emits for the LOADED tune, so a slider
-     * moved on the tune that is flying re-inits, and an adjustment stored
-     * for a different tune changes nothing until that tune is chosen.
-     * While a tune swap is in flight configId is still the old tune, this
-     * comparison stays a no-op, and swapTune adopts the new tune's block
-     * itself.
-     */
+    const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, pidsText);
+    /* Read before the init that zeroes the state. */
+    const before = readState();
+    const taken = sim.init(nextText) === SIM_OK;
+    if (taken) {
+      ratesText = nextRates;
+      configText = nextText;
+      race.setRecordKey(recordKey());
+      paintBest();
+    }
+    if (taken || sim.init(configText) === SIM_OK) {
+      reseatAfterConfigSwap(before);
+    }
+    publishPids();
+  }
+
+  /*
+   * The PID adjustment for the tune that is flying (configs/pids.js), also
+   * part of the config text, but a change to the machine, so it resets the
+   * run. An adjustment stored for another tune moves nothing until that
+   * tune flies; while a swap is in flight configId is still the old tune,
+   * and swapTune takes the new tune's block itself.
+   */
+  function applyPidSettings(s) {
     const nextPids = pidsDiffFor(s.pids, configId);
-    if (nextPids !== pidsText) {
-      /* A local first, same reason as rates above: a refused sim_init has
-       * already half-applied the new text, and recovery must restore the
-       * text that worked, not the rejected one. */
-      const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, nextPids);
-      if (sim.init(nextText) === SIM_OK) {
-        pidsText = nextPids;
-        configText = nextText;
-        adoptSimClock();
-        sim.setCellVoltage(runVoltage);
+    if (nextPids === pidsText) {
+      return;
+    }
+    const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, nextPids);
+    const taken = sim.init(nextText) === SIM_OK;
+    if (taken) {
+      pidsText = nextPids;
+      configText = nextText;
+    }
+    if (taken || sim.init(configText) === SIM_OK) {
+      adoptSimClock();
+      sim.setCellVoltage(runVoltage);
+      if (taken) {
         race.setRecordKey(recordKey());
         paintBest();
-        reset();
-      } else if (sim.init(configText) === SIM_OK) {
-        adoptSimClock();
-        sim.setCellVoltage(runVoltage);
-        reset();
       }
-      publishPids();
+      reset();
     }
-    /* The radio, and the recorder. Both are re-read here so a change in
-     * Settings lands without a restart. setPreset on the same id is a
-     * no-op, and setEnabled only clears the log when it goes from off to
-     * on, so neither re-applies anything on an unrelated settings change. */
+    publishPids();
+  }
+
+  /* The radio link, the flight recorder, sound and the mix. setPreset and
+   * setEnabled act only on a real change, so an unrelated setting re-applies
+   * nothing here. */
+  function applyDeviceSettings(s) {
     if (rcLink.id !== s.link) {
       rcLink.setPreset(s.link);
       rcLink.reset(rcNextMs);
@@ -13175,7 +12925,6 @@ export async function boot({
     audio.setLevel(s.volume / 10);
     audio.setEnabled(s.sound);
     applyMix(s);
-    syncAngleMode();
   }
 
   /* A one-off line on the flight banner for `ms` of wall clock. */
