@@ -67,6 +67,11 @@ jobs:
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run keynotes:selftest
+      # The headless page driver every browser check opens the shell through
+      # (tests/lib/page.js): keyInfo, describe and the export list against a
+      # pinned transcript. Its browser half, --browser, stays local: it needs
+      # a Chromium (npm run page:selftest -- --browser).
+      - run: npm run page:selftest
       - run: npm run rooms:accounts
       # The checks' stand in for Google signs nobody in on the deployed
       # game: no production config names it, and the tracks server run as

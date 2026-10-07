@@ -57,6 +57,7 @@
     "lint:fc": "node scripts/fc-trace.js",
     "failsafe:trace": "node scripts/failsafe-trace.js",
     "keynotes:selftest": "node scripts/keynotes-selftest.js",
+    "page:selftest": "node scripts/page-selftest.js",
     "lint:frame": "node scripts/frame-check.js",
     "render:golden": "node scripts/render-golden.js",
     "check:wall": "node scripts/wall-check.js",
