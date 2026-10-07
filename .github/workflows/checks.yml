@@ -301,6 +301,7 @@ jobs:
       # Every quad motor against its maker's bench and the plant: the
       # stock motor bit identical to the table (docs/MOTORS-STAGE1.md).
       - run: npm run motors:check
+      - run: npm run wear:selftest
       # The UI playground (tests/browser/playground.html, development
       # only) lists every menu component and token, and only classes the
       # sheet in index.html really styles (docs/redesign/PLAN.md 4.5).
