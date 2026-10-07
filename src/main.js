@@ -14223,8 +14223,8 @@ export async function boot({
     const finishFpvQuat = new THREE.Quaternion();
     /* Milliseconds into the results camera's pull, or -1 when it is off. */
     let finishCamMs = -1;
-  /* Eased toward PARKED_LIFT while the craft is down and toward zero once it
-   * is flying, so the view rises off the pad rather than jumping. */
+  /* How far the FPV lens sits raised while parked; placeLens eases it in
+   * and out so taking off is a glide, not a step. */
   let parkedLift = PARKED_LIFT;
 
   /*
