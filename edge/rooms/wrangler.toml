@@ -4,9 +4,10 @@
 #     npx wrangler deploy --config edge/rooms/wrangler.toml
 #     npx wrangler dev --config edge/rooms/wrangler.toml
 #
-# No wrangler in package.json, for the reason edge/wrangler.toml gives.
-# Separate from the router and from the tracks server on purpose: rooms hold
-# sockets and nothing else, and share no storage with either.
+# No wrangler in package.json: this repository has no build step, and a
+# deploy tool is no reason to grow node_modules; npx fetches it for the one
+# command. Separate from the tracks server on purpose: rooms hold sockets
+# and nothing else, and share no storage with it.
 
 name = "fdfpv-rooms"
 main = "do.js"

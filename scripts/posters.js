@@ -1,128 +1,121 @@
 /*
- * posters.js: the still on a world card, taken by the world it is a still of.
+ * posters.js: the still each world card in the Freestyle picker shows
+ * while that world's orbit clip is not cached yet. npm run gen:posters, or
+ * node scripts/posters.js [mapId ...] for some of them.
  *
- * WHAT THIS IS FOR. A first visit to Freestyle has no clips cached, and
- * making them costs a Three.js scene per world on the main thread. The
- * cards used to spend that minute as four dark rectangles with the word
- * "loading" on them, which is the worst possible moment to tell somebody
- * nothing at all about the places they are choosing between. Now the
- * rectangle is a photograph of the place, the clip arrives over the top of
- * it when it is ready, and a pilot who picks before then has still seen
- * what they picked.
+ * A first Freestyle visit has no clips cached, and making them costs a
+ * Three.js scene per world on the main thread. The cards used to spend
+ * that minute as dark rectangles saying "loading", the worst moment to tell
+ * somebody nothing about the places they are choosing between. Now the
+ * card is a photograph of the place, the clip arrives over it, and a pilot
+ * who picks early has still seen what they picked.
  *
- * WHY IT IS RENDERED AND NOT DRAWN, the same argument as scripts/og.js: a
- * hand-made picture of a world drifts out of date the first time the world
- * changes, and nobody notices until somebody flies a town that does not look
- * like its card. This one is a frame of the real shell, rendered by the real
- * renderer through scripts/shots.js.
+ * Rendered, not drawn, for the same reason as scripts/og.js: a hand-made
+ * picture drifts the first time the world changes and nobody notices. Each
+ * still is a frame of the real shell through scripts/shots.js, from a
+ * camera parked by hand, written to the path the map registry names.
  *
- * THE CAMERAS BELOW ARE THE DESIGN. One per world, parked by hand, chosen so
- * that the frame reads as a PLACE at 340 px wide on a card: an establishing
- * three quarter with a horizon in it, from outside, far enough back that the
- * world's own landmark is in the shot. Not a corridor and not a wall two
- * metres away. That constraint is the whole brief, so the numbers live here
- * rather than in somebody's shell history, and each one says what it is
- * looking at.
- *
- * REGENERATE, DO NOT EDIT, the same rule as the icons and the share card:
- *
- *     npm run gen:posters                 # every world
- *     node scripts/posters.js alps       # just this one
- *
- * A run takes minutes: it builds each world in headless Chromium at the
+ * REGENERATE, DO NOT EDIT, the same rule as the icons and the share card.
+ * A run takes minutes: each world is built in headless Chromium at the
  * authored preset, one at a time.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MAPS } from '../src/maps/registry.js';
-/* The clip's own frame size, so the still and the clip that replaces it are
- * the same picture at the same shape and the card does not jump. */
 import { CLIP_W, CLIP_H } from '../src/share/orbitcache.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/* The same number og.js and gatecards.js ship at. */
+/* The quality og.js and gatecards.js use: a card is 340 px wide, lossless
+ * would be four times the bytes for no visible difference, and every
+ * generator that puts rendered frames in the tree puts the same kind in. */
 const QUALITY = 82;
 
 /*
- * Camera, then the point it looks at. Metres, world frame, Y up, which is
- * the render frame rather than the physics frame; see CLAUDE.md.
+ * The cameras are the design: one per world, parked so the frame reads as
+ * a PLACE at 340 px wide. An establishing three-quarter view with a
+ * horizon, from outside, far enough back that the landmark is in shot; not
+ * a corridor, not a wall two metres away.
+ *
+ * [eyeX, eyeY, eyeZ, targetX, targetY, targetZ] in metres, Y up, in the
+ * render (world) frame, not the physics frame (see CLAUDE.md).
  */
 const CAMERAS = {
-  /*
-   * Down the valley from 260 m over its south end: the village and its
-   * church by the river, the road, forest on both walls and the range
-   * closing the far end. The place, not a street in it.
-   */
+  /* Down the valley from 260 m over its south end: the village and its
+   * church by the river, the road, forest on both walls, the range closing
+   * the far end. The place, not a street in it. */
   alps: [300, 260, 900, -120, 60, -400],
-  /*
-   * The same valley from lower and further east, looking north over the
-   * village to the head of the valley: the meadows, the road, the forests
-   * on both walls, the rock and the snow over them, and the haze on the far
-   * wall, which is what tells it apart from the Alps' card at a glance.
-   * Made with SIM_GPU=1: this card is the photographic look, and the
-   * software rasteriser samples textures at lower precision than a GPU.
-   */
+  /* The same valley from lower and further east, looking north over the
+   * village to the valley head: meadows, road, forest on both walls, rock
+   * and snow above, haze on the far wall, which is what tells it from the
+   * Alps card at a glance. Made with SIM_GPU=1: the card is the
+   * photographic look, and the software rasteriser samples textures at
+   * lower precision than a GPU. */
   swiss2: [250, 140, 700, -150, 40, -500],
-  /*
-   * The works from the south east, over the forecourt. Far enough out that
-   * the stack, the preheater and the length of the pack hall are all in one
-   * frame with the sunset behind them, which is the thing the flythrough
-   * spent its whole loop inside of and never once showed.
-   */
-  /*
-   * The corner of the entrance front, so the frame carries both the thing
-   * that names the place, CIVIC BATHS over the doors, and the shape of the
-   * hall behind it with its stair towers. Shot from above head height
-   * because at eye level the boundary hedge takes the bottom half.
-   */
-  /*
-   * The house across the back lawn, deck on, at about tree height. The
-   * fence line and the paddock trees give it a horizon, and the sun is low
-   * enough that the deck reads as a place somebody lives rather than a
-   * cream box.
-   */
 };
 
-/*
- * The overlay comes off entirely. og.js keeps the wordmark because a share
- * card is an advertisement; this one is a picture INSIDE the interface, and
- * a menu drawn on top of a menu is nonsense.
- */
-const HIDE_UI = "(() => { const n = document.getElementById('ui');"
-  + " if (n) { n.style.display = 'none'; } return 'hidden'; })()";
-
-const wanted = process.argv.slice(2);
-const targets = MAPS.filter((m) => m.poster && CAMERAS[m.id])
-  .filter((m) => !wanted.length || wanted.includes(m.id));
-
-if (!targets.length) {
-  const known = MAPS.filter((m) => m.poster).map((m) => m.id).join(', ');
-  throw new Error(`No poster to make. Known: ${known}`);
+function shotArgs(out, id, camera) {
+  const q = JSON.stringify(id);
+  return [
+    `--out=${out}`,
+    /* The clip's own frame size, so the clip that replaces the still is the
+     * same picture at the same shape and the card does not jump. */
+    `--w=${CLIP_W}`,
+    `--h=${CLIP_H}`,
+    `--jpeg=${QUALITY}`,
+    /* Headless Chromium rasterises on the CPU, so boot would detect a slow
+     * machine and drop the preset; the poster is the authored look. */
+    '--graphics=high',
+    /* Boot on the light world and swap: a page naming no world opens on
+     * the title's own valley (src/boot.js). */
+    '--url=/index.html?map=alps',
+    'until:!!window.__boot && window.__boot().frames > 2',
+    `eval:(() => { window.__setMap(${q}); return 'swap'; })()`,
+    /* The id as well as ready: ready alone is still true of the previous
+     * world for a frame or two after the swap. */
+    `until:window.__map().id === ${q} && window.__map().ready`,
+    /* The whole overlay goes. A poster is a picture inside the interface,
+     * and a menu drawn on a menu is nonsense. */
+    "eval:(() => { const n = document.getElementById('ui'); if (n) { n.style.display = 'none'; } return 'hidden'; })()",
+    /* The world's animation and the sun's shadow map settle over a few
+     * frames; a first-frame capture has black shadows and stopped traffic. */
+    'wait:900',
+    `eval:JSON.stringify((() => { window.__setCam(${camera.join(',')}); window.__posterFrame = window.__boot().frames; return "camera"; })())`,
+    /* Frames, not milliseconds: the camera lands on the next animation
+     * frame, and a wall-clock wait on a software rasteriser sometimes
+     * captures the one before. */
+    'until:window.__boot().frames > window.__posterFrame + 5',
+    `shot:${id}`,
+  ];
 }
 
-/* Every map without a camera here would silently ship the loading rectangle,
- * so say so rather than leaving it to somebody's first visit to notice. */
+const wanted = process.argv.slice(2);
+const targets = MAPS.filter((m) => m.poster && CAMERAS[m.id] && (wanted.length === 0 || wanted.includes(m.id)));
+if (targets.length === 0) {
+  throw new Error(`No poster to make. Known: ${MAPS.filter((m) => m.poster).map((m) => m.id).join(', ')}`);
+}
+/* Without a camera here the card would silently keep the loading
+ * rectangle, so say so on every run. */
 for (const m of MAPS) {
   if (m.poster && !CAMERAS[m.id]) {
     console.warn(`${m.id} declares a poster and has no camera in this file.`);
@@ -131,54 +124,17 @@ for (const m of MAPS) {
 
 const out = await mkdtemp(join(tmpdir(), 'fdfpv-posters-'));
 try {
-  for (const map of targets) {
-    const cam = CAMERAS[map.id];
-    const run = spawnSync('node', [
-      join(root, 'scripts/shots.js'),
-      `--out=${out}`,
-      `--w=${CLIP_W}`,
-      `--h=${CLIP_H}`,
-      /* JPEG, because this ships. A card is 340 px wide and the lossless
-       * copy is four times the bytes for a difference nobody can see. The
-       * quality is the one og.js and gatecards.js use, so the three
-       * generators that put a rendered frame in the tree all put the same
-       * kind of frame in it. */
-      `--jpeg=${QUALITY}`,
-      /* Headless Chromium rasterises on the CPU, so boot would otherwise
-       * detect a slow machine and drop the preset, and the poster would
-       * come out at whatever quality the machine that made it happened to
-       * pick. The authored look, every time. */
-      '--graphics=high',
-      /* Boot the Alps, the light one, before choosing. A page that names
-       * no world opens on the title's own valley, see src/boot.js. */
-      '--url=/index.html?map=alps',
-      'until:!!window.__boot && window.__boot().frames > 2',
-      `eval:(() => { window.__setMap(${JSON.stringify(map.id)}); return 'swap'; })()`,
-      /* Both halves. `ready` alone is true of the previous world for a
-       * frame or two, so the id has to agree before the camera is parked. */
-      `until:window.__map().id === ${JSON.stringify(map.id)} && window.__map().ready`,
-      `eval:${HIDE_UI}`,
-      /* The world's own animation and the sun's shadow map both settle over
-       * a few frames after a swap; a capture taken on the first one has
-       * black shadows and stopped traffic. */
-      'wait:900',
-      `eval:JSON.stringify((() => { window.__setCam(${cam.join(',')});`
-        + ' window.__posterFrame = window.__boot().frames; return "camera"; })())',
-      /* Frames, not milliseconds. __setCam takes effect on the next
-       * animation frame, and a wall clock wait on a software rasteriser
-       * sometimes captures the frame before the camera moved. */
-      'until:window.__boot().frames > window.__posterFrame + 5',
-      `shot:${map.id}`,
-    ], { cwd: root, stdio: 'inherit' });
-
-    if (run.status !== 0) {
-      throw new Error(`shots.js exited ${run.status} on ${map.id}`);
+  for (const m of targets) {
+    const r = spawnSync('node',[join(root, 'scripts', 'shots.js'), ...shotArgs(out, m.id, CAMERAS[m.id])], {
+      cwd: root, stdio: 'inherit',
+    });
+    if (r.status !== 0) {
+      throw new Error(`shots.js exited ${r.status} on ${m.id}`);
     }
-
-    const dest = resolve(root, map.poster);
+    const dest = resolve(root, m.poster);
     await mkdir(dirname(dest), { recursive: true });
-    await copyFile(join(out, `${map.id}.jpg`), dest);
-    console.log(`${map.id} -> ${dest}`);
+    await copyFile(join(out, `${m.id}.jpg`), dest);
+    console.log(`${m.id} -> ${dest}`);
   }
 } finally {
   await rm(out, { recursive: true, force: true });

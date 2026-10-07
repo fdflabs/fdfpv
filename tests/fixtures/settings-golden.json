@@ -466,7 +466,8 @@
    "WEIGHT_MAX": 140,
    "WEIGHT_MIN": 60,
    "WEIGHT_STEP": 5,
-   "WEIGHT_STOCK": 100
+   "WEIGHT_STOCK": 100,
+   "YAW_TIP_RATE": 500
   },
   "gravityScaleFor": [
    [
