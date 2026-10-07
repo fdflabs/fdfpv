@@ -48,7 +48,6 @@ scripts/serve.js
 scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
-src/boot.js
 src/game/airframehull.js
 src/game/verify.js
 src/main.js
@@ -101,7 +100,6 @@ src/ui/scorehud.js
 src/ui/trickfilm.js
 src/ui/ui.js
 src/ui/update.js
-src/units.js
 tests/browser/harness.html
 tests/browser/harness.js
 tests/gen/gen-baseline.js
