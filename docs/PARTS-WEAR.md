@@ -81,7 +81,8 @@ settings.packs[packId] = { v: 1,           // per pilot, shared by airframes
   charge: 'full' | 'storage' | 'flat',
   from: 'sky1800' | null }                 // the airframe a starter pack came with
 settings.wear[airframeId] = { v: 1,
-  motor: 1000, prop: 1000, frame: 1000,    // per mille, integers
+  motor: 1000, prop: 1000,                 // per mille, integers
+  parts: { [i]: 870 },                     // structure by crash part index, worn ones only
   flights: 12 }
 ```
 
@@ -110,7 +111,7 @@ during a flight. h = health / 1000.
 | pack charge 'storage' | PACK_C x 0.6 (flown from 3.85 V a cell) | sag only, cells start lower (needs ABI: deferred) |
 | motor | THRUST x (0.9 + 0.1 h), CURRENT unchanged | `sim_set_motors` R x (1.2 - 0.2 h) |
 | prop | THRUST x (0.85 + 0.15 h) | KT x (0.85 + 0.15 h) |
-| frame | none in the plant (crash damage stays the existing taped and broken parts) | same |
+| structure (`parts[i]`) | none in the plant (crash damage stays the existing taped and broken parts) | same |
 
 Sources the PR must cite: LiPo end of life at 80 percent capacity with
 internal resistance about doubled (maker cycle-life figures), so
@@ -124,7 +125,7 @@ state after and a DELTA out. The flight summary is read once at the end:
 
 ```
 flight = { airframe, packId, drawnC, capacityC, minCellV, lvcV,
-           fullThrottleS, impacts: [ { kind: 'prop'|'motor'|'frame', energyJ } ] }
+           fullThrottleS, impacts: [ { kind: 'prop'|'motor'|'structure', i, energyJ } ] }
 ```
 
 - A pack loses health by its depth of discharge (drawnC / capacityC, one
@@ -132,7 +133,9 @@ flight = { airframe, packId, drawnC, capacityC, minCellV, lvcV,
   'flat'.
 - The motor wears by seconds at full throttle; the prop and the motor by
   impacts (the crash events `sim_damage_events` already reports: prop
-  chip, prop lost, motor lost); the frame by impact energy.
+  chip, prop lost, motor lost); a structural part, by its crash part table
+  index `i` (the index `settings.parts` damage already uses), by impact
+  energy.
 - Everything rounds to integer per mille, so accruing the same flight twice
   gives the same state on any machine.
 
@@ -145,14 +148,16 @@ nothing else:
 ```
 delta = { airframe,
           pack: { id, spec, before, after, cycles, charge } | null,
-          parts: [ { part: 'motor'|'prop'|'frame'|'pack', before, after,
+          parts: [ { part: 'motor'|'prop'|'structure'|'pack', i?, before, after,
                      cause: 'cycle'|'heat'|'impact'|'overdischarge' } ],
           retired: [packId] }
 ```
 
 and in flight it may read `wearOf(settings, airframeId)` (the seated
-state, per mille) for a HUD line. Proposed in the plan file; changes go
-through it.
+state, per mille) for a HUD line. The training lane proposed per part
+index wear as 0..1 with bands (good under 0.5, worn under 0.85, repair at
+0.85 and over): that is `parts[i]` here, and `wearLevel(health)` gives
+their 0..1 (0 new). Agreed in the plan file; changes go through it.
 
 ### Repair, charging and the furniture hooks
 
