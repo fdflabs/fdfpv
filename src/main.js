@@ -9431,56 +9431,89 @@ export async function boot({
   }
   showCourseNotes();
 
+  /*
+   * Readings of a plant state array: [7..10] the attitude quaternion
+   * (w, x, y, z), [4..6] the velocity, [11..13] the body rates. Each length
+   * is summed in index order, as every other reading in this file is, so
+   * a gate comparing two of them compares the same bits.
+   */
+  function stateNorm(st, i) {
+    return Math.sqrt(st[i] * st[i] + st[i + 1] * st[i + 1] + st[i + 2] * st[i + 2]);
+  }
+
+  /* The body's up axis dotted with world up: 1 skids down, -1 on its back.
+   * Clamped because a quaternion a hair off unit length can land outside. */
   function plantUpZ(st) {
-    const x = st[8];
-    const y = st[9];
-    const u = 1 - 2 * (x * x + y * y);
-    if (u > 1) {
-      return 1;
-    }
-    return u < -1 ? -1 : u;
+    const tip = st[8] * st[8] + st[9] * st[9];
+    return Math.min(1, Math.max(-1, 1 - 2 * tip));
   }
 
   function plantRateMag(st) {
-    return Math.sqrt(st[11] * st[11] + st[12] * st[12] + st[13] * st[13]);
+    return stateNorm(st, 11);
   }
 
-  function turtleKeysHeld() {
-    return input.keys.has('ArrowUp')
-      || input.keys.has('ArrowDown')
-      || input.keys.has('ArrowLeft')
-      || input.keys.has('ArrowRight');
+  function plantSpeed(st) {
+    return stateNorm(st, 4);
   }
 
-  function turtleStickHeld(roll, pitch) {
-    if (turtleKeysHeld()) {
-      return true;
-    }
-    if (input.isTouchPrimary() && (roll > 0.08 || roll < -0.08 || pitch > 0.08 || pitch < -0.08)) {
-      return true;
-    }
-    return (roll * roll + pitch * pitch) >= TURTLE_STICK_MIN * TURTLE_STICK_MIN;
+  /*
+   * THE TURTLE, the shell's scripted recovery for a quad at rest on its
+   * back. Its state is the flags declared with the crash state above:
+   *
+   *   turtleWait        parked inverted, the plant frozen, waiting for a poke
+   *   turtleFlip.active the flip playing, the pose driven by the shell
+   *   crashflipOn       true through both, for the OSD and the banner
+   *   turtleRecover     upright again, pitch and roll ignored until centred
+   *   turtleResumeGate  a pause resumed mid turtle: wait for a centred stick
+   *                     before a held one counts as a poke
+   *
+   * Neither the wait nor the flip steps the plant (stepTurtleFrozen keeps
+   * the clocks), so the flip lands exactly where the craft lay, every time.
+   */
+
+  /* A touch pad's thumb never rests on zero; past this it is a push. */
+  const TOUCH_PUSH = 0.08;
+
+  function anyArrowDown() {
+    const k = input.keys;
+    return k.has('ArrowUp') || k.has('ArrowDown') || k.has('ArrowLeft') || k.has('ArrowRight');
   }
 
-  function dumpTurtleIterm() {
+  /* The crash flag edge clears Betaflight's I-term. A PID left wound up
+   * against the ground or a wall throws the craft the moment it has the
+   * motors back, so every hand over between shell and controller dumps it. */
+  function clearIterm() {
     sim.e.sim_set_crashflip(1);
     sim.e.sim_set_crashflip(0);
   }
 
-  function turtleSupportY(wx, wy, wz) {
-    /* Terrain when the hull is on it or within the clearance halo, so a
-     * halo entry seats on the grass instead of freezing on a sliver of
-     * air. An obstacle rest (car roof, kerb-height box, deck the height
-     * query cannot see) keeps its own height: the street below is not
-     * its support, and seating a low-obstacle turtle on the terrain
-     * would bury the hull inside the collider it rests on. */
-    const hy = view.height(wx, wz, wy - SURFACE_BIAS);
-    if (lastGroundHits > 0 || (!turtleOnSupport && wy - hy < turtleClearance())) {
-      return hy;
+  /* Whether the pilot is still holding a stick off centre, for recover. */
+  function stickOffCentre(roll, pitch) {
+    if (anyArrowDown()) {
+      return true;
     }
-    return wy - REST_HEIGHT;
+    if (input.isTouchPrimary() && (Math.abs(roll) > TOUCH_PUSH || Math.abs(pitch) > TOUCH_PUSH)) {
+      return true;
+    }
+    return roll * roll + pitch * pitch >= TURTLE_STICK_MIN * TURTLE_STICK_MIN;
   }
 
+  /*
+   * The height the craft rests at while turned over. The terrain, when the
+   * plant is touching it or the hull hangs within the clearance halo above
+   * it; otherwise the craft is on something the height field cannot see (a
+   * car roof, a deck, a box), and it keeps the height it lies at, or it
+   * would be buried in the thing holding it up.
+   */
+  function turtleRestY(wx, wy, wz) {
+    const terrain = view.height(wx, wz, wy - SURFACE_BIAS);
+    const onTerrain = lastGroundHits > 0
+      || (!turtleOnSupport && wy - terrain < turtleClearance());
+    return onTerrain ? terrain : wy - REST_HEIGHT;
+  }
+
+  /* Off ends the turtle wherever it is. A latched turtle hands recover to
+   * whatever stick is held at that moment. On starts the wait. */
   function setCrashflip(on) {
     if (on) {
       beginTurtleWait();
@@ -9490,447 +9523,366 @@ export async function boot({
     turtleFlip.active = false;
     turtleResumeGate = false;
     if (crashflipOn) {
-      const ch = input.channels;
-      turtleRecover = turtleStickHeld(ch.roll, ch.pitch);
+      turtleRecover = stickOffCentre(input.channels.roll, input.channels.pitch);
     }
     crashflipOn = false;
     sim.e.sim_set_crashflip(0);
   }
 
+  /* -1 hands every motor back to the mixer. */
   function setTurtleParkMotors(on) {
-    const next = Boolean(on);
-    if (next === turtleParkMotors) {
+    if (Boolean(on) === turtleParkMotors) {
       return;
     }
-    turtleParkMotors = next;
-    sim.motorOverride(-1, next ? 0 : -1);
+    turtleParkMotors = Boolean(on);
+    sim.motorOverride(-1, turtleParkMotors ? 0 : -1);
   }
 
-  const turtleRcOut = [0, 0];
+  /*
+   * Roll and pitch as the turtle reads them, in one pair reused on every
+   * call: this runs inside the RC loop, per RC frame. While turned over a
+   * key or a touch push is a full deflection, so an arrow tap or a timid
+   * thumb is as good a poke as a radio stick at its stop. Otherwise the
+   * sticks pass through untouched. Right beats left and down beats up when
+   * both are held.
+   */
+  const turtleStick = [0, 0];
+  function pushAxis(v, plus, minus) {
+    if (input.keys.has(plus)) {
+      return 1;
+    }
+    if (input.keys.has(minus)) {
+      return -1;
+    }
+    if (input.isTouchPrimary() && Math.abs(v) > TOUCH_PUSH) {
+      return v > 0 ? 1 : -1;
+    }
+    return v;
+  }
   function turtleAxes(roll, pitch) {
-    /* Keyboard analogMag ramps. A held arrow while waiting is a poke,
-     * same as a radio stick at the stop. Touch gets the same once the
-     * pad has moved, so a timid thumb still turtles. */
-    if (turtleWait || turtleFlip.active) {
-      if (input.keys.has('ArrowRight')) {
-        roll = 1;
-      } else if (input.keys.has('ArrowLeft')) {
-        roll = -1;
-      } else if (input.isTouchPrimary() && roll > 0.08) {
-        roll = 1;
-      } else if (input.isTouchPrimary() && roll < -0.08) {
-        roll = -1;
-      }
-      if (input.keys.has('ArrowDown')) {
-        pitch = 1;
-      } else if (input.keys.has('ArrowUp')) {
-        pitch = -1;
-      } else if (input.isTouchPrimary() && pitch > 0.08) {
-        pitch = 1;
-      } else if (input.isTouchPrimary() && pitch < -0.08) {
-        pitch = -1;
-      }
-    }
-    turtleRcOut[0] = roll;
-    turtleRcOut[1] = pitch;
-    return turtleRcOut;
+    const over = turtleWait || turtleFlip.active;
+    turtleStick[0] = over ? pushAxis(roll, 'ArrowRight', 'ArrowLeft') : roll;
+    turtleStick[1] = over ? pushAxis(pitch, 'ArrowDown', 'ArrowUp') : pitch;
+    return turtleStick;
   }
 
+  /* True while recover still owns the stick; a centred stick releases it
+   * here, and for good. */
   function turtleHoldStick(roll, pitch) {
-    if (!turtleRecover) {
-      return false;
-    }
-    if (!turtleStickHeld(roll, pitch)) {
+    if (turtleRecover && !stickOffCentre(roll, pitch)) {
       turtleRecover = false;
-      return false;
     }
-    return true;
+    return turtleRecover;
   }
 
+  /* The roll and pitch the controller is handed for one RC frame. */
   function applyTurtleRc(roll, pitch) {
-    const ax = turtleAxes(roll, pitch);
-    if (turtleHoldStick(ax[0], ax[1])) {
-      turtleRcOut[0] = 0;
-      turtleRcOut[1] = 0;
+    const pair = turtleAxes(roll, pitch);
+    if (turtleHoldStick(pair[0], pair[1])) {
+      pair[0] = 0;
+      pair[1] = 0;
     }
-    return turtleRcOut;
+    return pair;
+  }
+
+  /* How far the newest stick sample is pushed, as the turtle reads it. */
+  function turtlePush() {
+    const newest = rcPending.length ? rcPending[rcPending.length - 1] : input.channels;
+    const pair = turtleAxes(newest.roll, newest.pitch);
+    return Math.sqrt(pair[0] * pair[0] + pair[1] * pair[1]);
   }
 
   /*
-   * REAL CRASHFLIP, HELD, at any attitude.
+   * BETAFLIGHT'S OWN CRASHFLIP ON A HELD T, at any attitude.
    *
-   * Betaflight's flip-over-after-crash is compiled in and the ABI has
-   * driven it since the plant learned about the ground, but the pilot has
-   * never been able to reach it: setCrashflip(true) starts the SCRIPTED
-   * turtle instead, and that only latches from a genuine inverted rest
-   * (shouldEnterTurtle wants upz past -0.35, under 1 m/s and under
-   * TURTLE_RATE). Wedged on its side, or winding itself up against a
-   * wall, the craft satisfies none of those, so the one escape the pilot
-   * had was closed exactly where it was needed. That is the second half
-   * of the owner's "i can't turtle out nor can i right it".
+   * The scripted turtle only takes a craft at rest on its back. One wedged
+   * on its side or grinding against a wall is neither, and the owner's
+   * report was that it could be neither turtled out nor righted. A real
+   * quad's answer is the crashflip switch: the mixer (mixer.c) spins the
+   * motors on the high side, steered by pitch and roll, and the pilot walks
+   * it out. That is what T is, held. It picks no attitude and plays no
+   * animation, and in the air it is as useless as on a real quad.
    *
-   * So this is the real thing, on a held key: the mixer path from
-   * mixer.c, driven by the pitch and roll sticks, spinning the high
-   * motors to walk the machine out of wherever it is. It is not a
-   * scripted animation and it does not choose an attitude for you; it is
-   * the same control a pilot has on a real quad, and like the real one it
-   * does nothing useful in the air.
-   *
-   * The scripted turtle keeps the ground it already holds: while a wait
-   * or a flip is running it owns crashflipOn, and this stays out.
+   * It stays out of the scripted turtle's way (that one owns crashflipOn),
+   * off a perch, off a launch stand, under a frozen pose and in a crash
+   * hold.
    */
+  function manualFlipBarred() {
+    return turtleWait || turtleFlip.active || landed || launchStaging || poseLock || crashed;
+  }
+
   function setManualFlip(on) {
-    if (on === manualFlip) {
+    if (on === manualFlip || (on && manualFlipBarred())) {
       return;
     }
+    manualFlip = on;
     if (on) {
-      if (turtleWait || turtleFlip.active || landed || launchStaging || poseLock || crashed) {
-        return;
-      }
-      manualFlip = true;
-      /* I-term is dumped on both edges for the reason the scripted path
-       * dumps it: a PID wound up against a wall yanks the craft the
-       * moment the mixer hands control back. */
-      dumpTurtleIterm();
+      clearIterm();
       sim.e.sim_set_crashflip(1);
-      return;
+    } else {
+      sim.e.sim_set_crashflip(0);
+      clearIterm();
     }
-    manualFlip = false;
-    sim.e.sim_set_crashflip(0);
-    dumpTurtleIterm();
   }
 
-  /* Polled rather than edge-triggered so the key behaves as a hold, and so
-   * that letting go during a pause or a menu cannot leave the mixer
-   * latched. */
+  /* Read every frame rather than on key events, so T is a hold and a
+   * release lost behind a menu or a pause still lets the mixer go. */
   function pollManualFlip() {
-    const want = mode === 'flight'
-      && ui.screen === 'flight'
-      && !turtleWait
-      && !turtleFlip.active
-      && !landed
-      && !launchStaging
-      && !poseLock
-      && !crashed
-      && input.keys.has('KeyT');
-    setManualFlip(want);
-  }
-
-  function turtleStickMag() {
-    const smp = rcPending.length ? rcPending[rcPending.length - 1] : null;
-    const roll = smp ? smp.roll : input.channels.roll;
-    const pitch = smp ? smp.pitch : input.channels.pitch;
-    const ax = turtleAxes(roll, pitch);
-    return Math.sqrt(ax[0] * ax[0] + ax[1] * ax[1]);
+    const flying = mode === 'flight' && ui.screen === 'flight';
+    setManualFlip(flying && !manualFlipBarred() && input.keys.has('KeyT'));
   }
 
   /*
-   * WHAT A HIT IS NOW, instead of a line of text.
+   * A HIT, FELT. The owner took the "you hit something" banners out ("the
+   * sound should be enough as well as the feeling of impact"), so the hit
+   * is carried by three things scaled from the same number the solver
+   * used: the sound, a kick of the FPV picture (the camera is bolted to the
+   * frame a hit throws), and for anything but the ground the props, which
+   * lose part of their speed to the strike and cost a beat of thrust.
    *
-   * The banners are gone on the owner's instruction: "remove all the words
-   * on screen that tell me i've hit something, the sound should be enough
-   * as well as the feeling of impact." That puts the whole message on the
-   * sound and the camera, so both have to carry it, and neither did.
-   *
-   * The sound was a two-way switch, 'crash' over 18 m/s and 'clip' under
-   * it, with everything below 4 m/s silent. As the only channel left that
-   * is a poor instrument: a gate brush and a wall at speed picked one of
-   * two samples. It is continuous now, from the same number the physics
-   * used, so a hard hit sounds hard.
-   *
-   * The camera did nothing at all. There was no impact kick anywhere in
-   * the shell: makeLensShake reads rotor speed and nothing else. A real
-   * hit throws the whole airframe, and the FPV camera is bolted to it, so
-   * the picture moves. That is `impactKick`, decayed per frame and added
-   * to the lens shake where it already lands on the camera.
-   *
-   * And the blades: a spinning 5 inch that meets a wall does not carry
-   * its rotor speed through the contact. sim_prop_strike takes it out, so
-   * a wall tap costs a beat of thrust and the pilot feels the sag while
-   * the motors spin back up. That is a physics consequence rather than an
-   * effect, which is why it is here and not in the renderer.
-   *
-   * `scale` is metres per second: for an obstacle it is the impulse the
-   * solver actually applied, for the ground it is the arrival speed.
+   * `scale` is m/s: the impulse the obstacle pass applied, or the speed the
+   * craft met the ground at.
    */
-  const IMPACT_FULL = 12.0;     /* m/s of impulse that reads as a full hit */
-  const IMPACT_KICK_RAD = 0.075;
-  const IMPACT_DECAY_HZ = 9;
-  const IMPACT_PROP_MAX = 0.28; /* most of the rotor speed a hit can take */
+  const HIT_FULL_MS = 12.0;     /* this much reads as the hardest hit */
+  const HIT_KICK_RAD = 0.075;   /* camera kick at a full hit */
+  const HIT_KICK_HZ = 9;        /* how fast the kick dies away */
+  const HIT_PROP_LOSS = 0.28;   /* share of rotor speed a full hit takes */
+  const HIT_LOUD = 0.45;        /* above: the impact sound, below: a clip */
+  const HIT_RUMBLE = 0.25;      /* above: the pad rumbles */
   const impactKick = { x: 0, y: 0, z: 0 };
-  let impactSeed = 0;
+  /* Two bits that walk on every hit, so two hits in a row throw the
+   * picture different ways: bit 0 signs x, bit 1 signs y, both sign z. */
+  let kickSigns = 0;
+
+  /* A hit that is no hit: overlap left over from a respawn or a recover,
+   * a launch stand's constraint, and a takeoff leaving the pad. */
+  function hitIsSilent(kind, now) {
+    if ((landed && now < clipGraceUntil) || now < recoverGraceUntil) {
+      return true;
+    }
+    if (launchStaging) {
+      return true;
+    }
+    /* The pad keeps touching the plant for a few milliseconds after the
+     * perch lifts, and closes fast enough to read as a hit. Only the ground
+     * is muted: a gate clipped off the line is still heard. takingOff is
+     * cleared in the frame that calls this, so the wall clock window is
+     * what covers that frame. */
+    return kind === 'ground' && (takingOff || now < takeoffUntil);
+  }
 
   function feelImpact(scale, kind) {
-    if (!(scale > 0)) {
+    if (!(scale > 0) || hitIsSilent(kind, performance.now())) {
       return;
     }
-    const nowHit = performance.now();
-    /*
-     * Just respawned, or just recovered: whatever the hull is overlapping is
-     * left over from being put there, whether it is the grass, a stand, a
-     * pole or a wing it was seated inside. Nothing sounds.
-     *
-     * The spawn half is gated on `landed`, matching the one the clip watch
-     * already uses, because leftover overlap is a property of SITTING in
-     * something. Ungated it swallowed half a second of genuine impacts on
-     * every restart, which on a short course is a real gate hit gone quiet.
-     * The departure itself is covered below, by kind and on a clock.
-     */
-    if ((nowHit < clipGraceUntil && landed) || nowHit < recoverGraceUntil) {
-      return;
-    }
-    /*
-     * On a stand the ground plane is switched off and the module holds the
-     * pose, so any impulse at all is the constraint and not a contact.
-     */
-    if (launchStaging) {
-      return;
-    }
-    /*
-     * LEAVING THE GROUND IS STILL GROUND CONTACT, and only ground contact.
-     * The plant is touching the pad for tens of milliseconds after the
-     * perch lifts and the departure closes faster than GRAZE_SPEED_MAX on
-     * those frames: that is a takeoff, not a crash. The window is on the
-     * wall clock as well as on the flag because the flag is cleared in the
-     * same frame as the branch that calls this, thirty lines earlier.
-     *
-     * A GATE IS NOT EXEMPT. 8ebd6b8 muted every kind here, so a pilot who
-     * punched off the line and put a wing through the first gate heard
-     * nothing. The pad is a height field deck, not a collider: the bang
-     * this mutes has always been kind 'ground', so that is all it mutes.
-     */
-    if (kind === 'ground' && (takingOff || nowHit < takeoffUntil)) {
-      return;
-    }
-    let u = scale / IMPACT_FULL;
-    if (u > 1) {
-      u = 1;
-    }
-    /*
-     * THE SOUND OF THE HIT: what it hit and how hard. A light touch is the
-     * graze cue, a race's penalty; a real hit is the engine's impact, at
-     * the surface's own hardness (sim_material_info: concrete 1, grass
-     * 0.05) and the momentum the hit took, the craft's mass times the
-     * closing speed. The ground's material is the one the plant was handed
-     * for this spot; an obstacle's is its kind's (crashworld.js
-     * kindMaterial).
-     */
+    const u = Math.min(1, scale / HIT_FULL_MS);
+    /* Loud hits are the engine's impact at the surface's hardness
+     * (sim_material_info) and the momentum, grams times closing speed;
+     * light ones the graze cue. The ground's material is the one handed to
+     * the plant for this spot, an obstacle's its kind's (crashworld.js). */
     const material = kind === 'ground' ? groundMaterialNow : kindMaterial(kind);
     const hardness = materialHardness[material] ?? 0.5;
-    if (u > 0.45) {
+    if (u > HIT_LOUD) {
       audio.impact((airframeById(runAirframe).grams / 1000) * scale, hardness, scale);
     } else {
       audio.event('clip', null, u);
     }
-    /* A kick about all three camera axes. The sign walks so two hits in a
-     * row do not throw the picture the same way; it is a render effect and
-     * touches nothing the plant reads. */
-    impactSeed = (impactSeed + 1) & 3;
-    const s0 = (impactSeed & 1) ? 1 : -1;
-    const s1 = (impactSeed & 2) ? 1 : -1;
-    const a = IMPACT_KICK_RAD * u;
-    impactKick.x += a * s0;
-    impactKick.y += a * 0.7 * s1;
-    impactKick.z += a * 0.8 * s0 * s1;
-    /* Blades only: the ground already has its own contact model and a
-     * belly landing does not spin the props down. */
+    kickSigns = (kickSigns + 1) & 3;
+    const sx = kickSigns & 1 ? 1 : -1;
+    const sy = kickSigns & 2 ? 1 : -1;
+    const kick = HIT_KICK_RAD * u;
+    impactKick.x += kick * sx;
+    impactKick.y += kick * 0.7 * sy;
+    impactKick.z += kick * 0.8 * sx * sy;
+    /* The ground has its own contact model, and a belly landing does not
+     * slow the props. */
     if (kind !== 'ground' && typeof sim.e.sim_prop_strike === 'function') {
-      sim.e.sim_prop_strike(IMPACT_PROP_MAX * u);
+      sim.e.sim_prop_strike(HIT_PROP_LOSS * u);
       audio.propStrike(u, hardness);
       stateCurr = readState();
     }
-    if (u > 0.25) {
+    if (u > HIT_RUMBLE) {
       padRumble(u);
     }
   }
 
-  /* Gamepad haptics, where the browser has them. Guarded to the point of
-   * paranoia: vibrationActuator is not in every engine, the shapes differ,
-   * and a rejected promise here would take the frame loop with it. */
+  /*
+   * The gamepad's rumble, where the browser has one. vibrationActuator is
+   * missing in some engines and shaped differently in others, and this is
+   * called from inside the frame loop, so a throw or a rejected promise
+   * here is dropped on purpose: a pad that cannot rumble must not stop the
+   * flight.
+   */
   function padRumble(u) {
     try {
-      const pad = input.firstGamepad();
-      const act = pad && pad.vibrationActuator;
-      if (!act || typeof act.playEffect !== 'function') {
+      const actuator = input.firstGamepad()?.vibrationActuator;
+      if (typeof actuator?.playEffect !== 'function') {
         return;
       }
-      const p = act.playEffect('dual-rumble', {
+      const effect = actuator.playEffect('dual-rumble', {
         startDelay: 0,
         duration: Math.round(60 + 140 * u),
         weakMagnitude: Math.min(1, 0.3 + 0.7 * u),
         strongMagnitude: Math.min(1, u),
       });
-      if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+      if (typeof effect?.catch === 'function') {
+        effect.catch(() => {});
       }
-    } catch (err) {
-      void err;
+    } catch {
+      /* Dropped on purpose, see above. */
     }
   }
 
   function decayImpactKick(dtMs) {
-    const k = Math.exp(-(dtMs > 0 ? dtMs : 0) / 1000 * 2 * Math.PI * IMPACT_DECAY_HZ);
-    impactKick.x *= k;
-    impactKick.y *= k;
-    impactKick.z *= k;
+    const dt = dtMs > 0 ? dtMs : 0;
+    const keep = Math.exp(-dt / 1000 * 2 * Math.PI * HIT_KICK_HZ);
+    impactKick.x *= keep;
+    impactKick.y *= keep;
+    impactKick.z *= keep;
   }
 
   function turtleInContact() {
-    return lastGroundHits > 0 || turtleOnSupport;
+    return turtleOnSupport || lastGroundHits > 0;
   }
 
-  function turtleCueSource() {
+  /* The banner's words, by what the pilot flies with: the wait's how-to,
+   * then recover's let-go. Mouse flight is flown on the keys' cue. */
+  const TURTLE_CUES = {
+    touch: ['main.turtle_mode_right_pad_pitch_or', 'main.let_go_of_the_right_pad'],
+    radio: ['main.turtle_mode_right_stick_pitch_or', 'main.centre_the_right_stick_then_fly'],
+    keys: ['main.turtle_mode_arrow_keys_pitch_or', 'main.let_go_of_the_arrows_then'],
+  };
+  function turtleCue() {
     if (input.isTouchPrimary()) {
-      return 'touch';
+      return TURTLE_CUES.touch;
     }
-    /* Every key works in mouse flight, and the keys' cue names them. */
-    if (input.isMousePrimary()) {
-      return 'keys';
+    if (input.isMousePrimary() || input.isKeyboardPrimary() || !input.firstGamepad()) {
+      return TURTLE_CUES.keys;
     }
-    if (input.isKeyboardPrimary()) {
-      return 'keys';
-    }
-    if (input.firstGamepad()) {
-      return 'radio';
-    }
-    return 'keys';
+    return TURTLE_CUES.radio;
   }
 
   function turtleBannerText() {
     if (turtleFlip.active) {
       return 'TURTLE MODE';
     }
-    if (turtleRecover && !turtleWait && !turtleFlip.active) {
-      const src = turtleCueSource();
-      if (src === 'touch') {
-        return str('main.let_go_of_the_right_pad');
-      }
-      if (src === 'radio') {
-        return str('main.centre_the_right_stick_then_fly');
-      }
-      return str('main.let_go_of_the_arrows_then');
-    }
-    const src = turtleCueSource();
-    if (src === 'touch') {
-      return str('main.turtle_mode_right_pad_pitch_or');
-    }
-    if (src === 'radio') {
-      return str('main.turtle_mode_right_stick_pitch_or');
-    }
-    return str('main.turtle_mode_arrow_keys_pitch_or');
+    const letGo = turtleRecover && !turtleWait;
+    return str(turtleCue()[letGo ? 1 : 0]);
   }
 
+  function clearanceAt(p) {
+    return p.y - view.height(p.x, p.z, p.y - SURFACE_BIAS);
+  }
+
+  /*
+   * Whether the craft is resting on something, for the turtle to take it.
+   * The plant's own ground contacts first; an inverted craft with none may
+   * be lying on an obstacle the plant cannot see (a roof, a train), which
+   * counts when the collider under it faces up.
+   */
   function pollTurtleSupport() {
     if (!stateCurr || launchStaging) {
       turtleOnSupport = false;
       return;
     }
     poseFromState(stateCurr, pProbe);
-    lastClearance = pProbe.y - view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
+    lastClearance = clearanceAt(pProbe);
     raiseGroundFromState(stateCurr);
     lastGroundHits = sim.e.sim_ground_contacts();
     turtleOnSupport = lastGroundHits > 0;
-    if (turtleOnSupport || !view.colliders || plantUpZ(stateCurr) >= TURTLE_INVERT_UPZ) {
+    const upright = plantUpZ(stateCurr) >= TURTLE_INVERT_UPZ;
+    if (turtleOnSupport || upright || !view.colliders) {
       return;
     }
     simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qCollide);
     qCollide.premultiply(qSpawn);
-    const k = view.colliders.hit(
+    const found = view.colliders.hit(
       pProbe.x, pProbe.y, pProbe.z,
       pProbe.x, pProbe.y, pProbe.z,
       vHalfFrame,
       qCollide.x, qCollide.y, qCollide.z, qCollide.w,
       craftVerticalOffset(),
     );
-    if (k >= 0 && view.colliders.hitNy > 0.5) {
-      turtleOnSupport = true;
-    }
+    turtleOnSupport = found >= 0 && view.colliders.hitNy > 0.5;
   }
 
   function isTurtleParked() {
     return turtleWait || turtleFlip.active;
   }
 
+  /* The OSD's attitude and speed, kept current while the plant is not
+   * stepped: plantUpZ is already clamped, so acos takes it as it is. */
   function noteTurtleState(st) {
     lastUpz = plantUpZ(st);
-    const uClamp = lastUpz > 1 ? 1 : lastUpz < -1 ? -1 : lastUpz;
-    lastTiltDeg = (Math.acos(uClamp) * 180) / Math.PI;
-    speedNow = Math.sqrt(st[4] * st[4] + st[5] * st[5] + st[6] * st[6]);
-    return st;
+    lastTiltDeg = (Math.acos(lastUpz) * 180) / Math.PI;
+    speedNow = plantSpeed(st);
   }
 
-  function plantSpeed(st) {
-    return Math.sqrt(st[4] * st[4] + st[5] * st[5] + st[6] * st[6]);
-  }
-
-  function applyTurtleFlipPose(u) {
-    const e = turtleFlipEase(u);
-    turtleSlerpQuat(
-      turtleFlip.qw0, turtleFlip.qx0, turtleFlip.qy0, turtleFlip.qz0,
-      turtleFlip.qw1, turtleFlip.qx1, turtleFlip.qy1, turtleFlip.qz1,
-      e, turtleQ,
-    );
-    const lift = turtleFlipLift(u);
-    worldPosToSim(
-      turtleFlip.wx,
-      turtleFlip.surfaceY + REST_HEIGHT + lift,
-      turtleFlip.wz,
-      pSim,
-    );
-    const code = sim.e.sim_set_pose(
-      pSim.x, pSim.y, pSim.z,
-      turtleQ[0], turtleQ[1], turtleQ[2], turtleQ[3],
-    );
+  /* Puts the plant at a world point and attitude, at rest, and takes that
+   * as the current and previous state. */
+  function seatPlant(wx, wy, wz, qw, qx, qy, qz) {
+    worldPosToSim(wx, wy, wz, pSim);
+    const code = sim.e.sim_set_pose(pSim.x, pSim.y, pSim.z, qw, qx, qy, qz);
     if (code !== SIM_OK) {
       throw new Error(`sim_set_pose: ${simErrorName(code)}`);
     }
     sim.rest();
     stateCurr = readState();
     statePrev = stateCurr;
-    return noteTurtleState(stateCurr);
+    noteTurtleState(stateCurr);
+  }
+
+  /* The flip at u in [0, 1]: eased from the inverted attitude to the
+   * upright one about the spot it lay on, lifted clear in between. */
+  function seatFlipAt(u) {
+    const f = turtleFlip;
+    turtleSlerpQuat(f.qw0, f.qx0, f.qy0, f.qz0, f.qw1, f.qx1, f.qy1, f.qz1, turtleFlipEase(u), turtleQ);
+    const y = f.surfaceY + REST_HEIGHT + turtleFlipLift(u);
+    seatPlant(f.wx, y, f.wz, turtleQ[0], turtleQ[1], turtleQ[2], turtleQ[3]);
+  }
+
+  function flightCue(name) {
+    if (mode === 'flight' && typeof audio.event === 'function') {
+      audio.event(name);
+    }
   }
 
   function beginTurtleFlip() {
     if (!stateCurr || turtleFlip.active) {
       return;
     }
-    const st = stateCurr;
-    const q1 = uprightPlantQuat(st[7], st[8], st[9], st[10]);
-    poseFromState(st, pProbe);
+    const from = stateCurr;
+    const upright = uprightPlantQuat(from[7], from[8], from[9], from[10]);
+    poseFromState(from, pProbe);
     turtleWait = false;
-    turtleFlip.active = true;
-    turtleFlip.simMs0 = simTimeMs;
-    turtleFlip.qw0 = st[7];
-    turtleFlip.qx0 = st[8];
-    turtleFlip.qy0 = st[9];
-    turtleFlip.qz0 = st[10];
-    turtleFlip.qw1 = q1[0];
-    turtleFlip.qx1 = q1[1];
-    turtleFlip.qy1 = q1[2];
-    turtleFlip.qz1 = q1[3];
-    turtleFlip.wx = pProbe.x;
-    turtleFlip.wz = pProbe.z;
-    turtleFlip.surfaceY = turtleSupportY(pProbe.x, pProbe.y, pProbe.z);
+    Object.assign(turtleFlip, {
+      active: true,
+      simMs0: simTimeMs,
+      qw0: from[7], qx0: from[8], qy0: from[9], qz0: from[10],
+      qw1: upright[0], qx1: upright[1], qy1: upright[2], qz1: upright[3],
+      wx: pProbe.x,
+      wz: pProbe.z,
+      surfaceY: turtleRestY(pProbe.x, pProbe.y, pProbe.z),
+    });
     crashflipOn = true;
     turtleRecover = false;
     takingOff = false;
     landed = false;
-    dumpTurtleIterm();
+    clearIterm();
     setTurtleParkMotors(true);
-    applyTurtleFlipPose(0);
-    if (mode === 'flight' && typeof audio.event === 'function') {
-      audio.event('clip');
-    }
+    seatFlipAt(0);
+    flightCue('clip');
   }
 
+  /* Upright and perched on the spot, motors still parked. A stick still
+   * held (or a resume still waiting for a centred one) goes to recover. */
   function finishTurtleFlip() {
-    applyTurtleFlipPose(1);
+    seatFlipAt(1);
     turtleWait = false;
     turtleFlip.active = false;
     crashflipOn = false;
-    dumpTurtleIterm();
-    const ch = input.channels;
-    turtleRecover = turtleStickHeld(ch.roll, ch.pitch) || turtleResumeGate;
+    clearIterm();
+    turtleRecover = stickOffCentre(input.channels.roll, input.channels.pitch) || turtleResumeGate;
     turtleResumeGate = false;
     landed = true;
     takingOff = false;
@@ -9940,14 +9892,18 @@ export async function boot({
     setTurtleParkMotors(true);
     adoptSimClock();
     acc = 0;
-    noteTurtleState(stateCurr);
-    if (mode === 'flight' && typeof audio.event === 'function') {
-      audio.event('land');
-    }
+    flightCue('land');
   }
 
+  /*
+   * Parks the craft on its back where it lies: off any launch stand, the
+   * launch switch dropped, the stick queue emptied, the plant seated at
+   * rest height and the motors held. A stick already past the poke gate
+   * flips it at once, unless `hold` (the capture hook's way to photograph
+   * the wait).
+   */
   function beginTurtleWait(hold) {
-    if (!stateCurr || poseLock || turtleWait || turtleFlip.active) {
+    if (!stateCurr || poseLock || isTurtleParked()) {
       return;
     }
     if (launchStaging) {
@@ -9959,46 +9915,33 @@ export async function boot({
     turtleWait = true;
     crashflipOn = true;
     turtleRecover = false;
+    turtleResumeGate = false;
     takingOff = false;
     landed = false;
     flownThisRun = true;
     introMs = -1;
     parkedLift = PARKED_LIFT;
-    turtleResumeGate = false;
-    dumpTurtleIterm();
+    clearIterm();
     rcPending.length = 0;
-    poseFromState(stateCurr, pProbe);
-    const hy = turtleSupportY(pProbe.x, pProbe.y, pProbe.z);
-    worldPosToSim(pProbe.x, hy + REST_HEIGHT, pProbe.z, pSim);
-    {
-      const st = stateCurr;
-      const code = sim.e.sim_set_pose(
-        pSim.x, pSim.y, pSim.z, st[7], st[8], st[9], st[10],
-      );
-      if (code !== SIM_OK) {
-        throw new Error(`sim_set_pose: ${simErrorName(code)}`);
-      }
-    }
-    sim.rest();
-    stateCurr = readState();
-    statePrev = stateCurr;
-    noteTurtleState(stateCurr);
+    const lying = stateCurr;
+    poseFromState(lying, pProbe);
+    const y = turtleRestY(pProbe.x, pProbe.y, pProbe.z) + REST_HEIGHT;
+    seatPlant(pProbe.x, y, pProbe.z, lying[7], lying[8], lying[9], lying[10]);
     setTurtleParkMotors(true);
-    /* A crash with the stick already over the poke gate flips immediately.
-     * The capture hook passes hold so it can photograph the wait. */
-    if (!hold && turtleStickMag() >= TURTLE_STICK_MIN) {
+    if (!hold && turtlePush() >= TURTLE_STICK_MIN) {
       beginTurtleFlip();
     }
   }
 
+  /*
+   * Starts the wait when the craft has come to rest on its back
+   * (shouldEnterTurtle). An aircraft that lands under a parachute lies on
+   * its back by design and a flying wing cannot be turned over by its
+   * motors, so a chute airframe never turtles. A craft knocked off a launch
+   * stand onto its back leaves the stand first.
+   */
   function tryEnterTurtle(st, inContact) {
-    if (!st || turtleWait || turtleFlip.active || poseLock) {
-      return;
-    }
-    /* An aircraft that comes home under a parachute lands on its back on
-     * purpose, and a flying wing cannot turtle itself over: it lies there
-     * until L launches it again or R puts it back on the rail. */
-    if (airframeById(runAirframe).chute) {
+    if (!st || isTurtleParked() || poseLock || airframeById(runAirframe).chute) {
       return;
     }
     if (launchStaging) {
@@ -10007,42 +9950,35 @@ export async function boot({
       }
       endLaunchStaging(false);
     }
-    if (shouldEnterTurtle(
-      plantUpZ(st),
-      plantSpeed(st),
-      plantRateMag(st),
-      inContact,
-      lastClearance,
-      false,
-    )) {
+    const resting = shouldEnterTurtle(plantUpZ(st), plantSpeed(st), plantRateMag(st), inContact, lastClearance, false);
+    if (resting) {
       beginTurtleWait();
     }
   }
 
+  /* After a resume the touch overlay comes back a frame late, and until it
+   * does the stick reads as centred though the thumb has not moved. */
+  function touchStillHidden() {
+    return Boolean(touch) && typeof touch.active === 'function' && !input.firstGamepad() && !touch.active();
+  }
+
+  /*
+   * A frame of the turtle in place of a plant step. Time still passes on
+   * the sim clock (the trick recogniser is told how much), the stick is
+   * read for a poke, the flip is played on that clock, and a waiting craft
+   * is held where it lies.
+   */
   function stepTurtleFrozen(dt) {
     acc += dt;
-    let steps = Math.floor(acc / MS_PER_STEP);
+    const steps = Math.floor(acc / MS_PER_STEP);
     acc -= steps * MS_PER_STEP;
     simTimeMs += steps * MS_PER_STEP;
-    /* Upside down waiting to be turtled over is time passing, and the
-     * recogniser has to agree with the sim clock about how much. See
-     * TrickDetector.idle. */
     trickDetector.idle(steps * MS_PER_STEP);
     adoptSimClock();
-    if (turtleResumeGate) {
-      /* Touch overlay is hidden on pause, so poll falls through to
-       * keyboard zeros for the first flight frame after Resume. That is
-       * not a recentre. isTouchPrimary already requires the overlay, so
-       * wait on the overlay itself. */
-      const waitingForTouch = Boolean(touch)
-        && typeof touch.active === 'function'
-        && !input.firstGamepad()
-        && !touch.active();
-      if (!waitingForTouch && turtleStickMag() < TURTLE_STICK_MIN) {
-        turtleResumeGate = false;
-      }
+    if (turtleResumeGate && !touchStillHidden() && turtlePush() < TURTLE_STICK_MIN) {
+      turtleResumeGate = false;
     }
-    if (!turtleResumeGate && turtleWait && turtleStickMag() >= TURTLE_STICK_MIN) {
+    if (turtleWait && !turtleResumeGate && turtlePush() >= TURTLE_STICK_MIN) {
       beginTurtleFlip();
     }
     if (turtleFlip.active) {
@@ -10050,19 +9986,21 @@ export async function boot({
       if (u >= 1) {
         finishTurtleFlip();
       } else {
-        applyTurtleFlipPose(u < 0 ? 0 : u);
+        seatFlipAt(u < 0 ? 0 : u);
       }
-    } else if (turtleWait) {
-      /* Frozen on whatever we sat on, grass or a car roof. Lost-contact
-       * abort used terrain height and dropped object turtles after 80 ms.
-       * A moving train is out of scope: they stay until they poke. */
-      sim.rest();
-      stateCurr = readState();
-      statePrev = stateCurr;
-      noteTurtleState(stateCurr);
-      poseFromState(stateCurr, pProbe);
-      lastClearance = pProbe.y - view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
+      return;
     }
+    if (!turtleWait) {
+      return;
+    }
+    /* Held on whatever it lies on, grass or a roof. A support that moves
+     * away (a train) is not followed: the craft waits for its poke. */
+    sim.rest();
+    stateCurr = readState();
+    statePrev = stateCurr;
+    noteTurtleState(stateCurr);
+    poseFromState(stateCurr, pProbe);
+    lastClearance = clearanceAt(pProbe);
   }
 
   function readState() {
