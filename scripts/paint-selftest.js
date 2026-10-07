@@ -34,7 +34,9 @@
 import {
   CODE_MAX, CODE_PREFIX, DECAL_KINDS, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
 } from '../configs/paint.js';
-import { normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
+import { LIVERIES, normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
+import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 
 let failed = 0;
 let passed = 0;
@@ -139,6 +141,23 @@ console.log('4. the decal kinds');
   check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('cub1400', { decals: [d] }).decals.length === 1));
   const text = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].text);
   check('only the number and the words read the right way round when mirrored', same(text, ['num', 'text']));
+}
+
+console.log('5. every region has a name');
+{
+  /* The Colours tab names each region (livery.region.<id>) and throws on a
+   * missing one, which left the F-16's tab empty. */
+  const missing = [];
+  for (const l of Object.values(LIVERIES)) {
+    for (const r of l.regions) {
+      for (const [lang, table] of [['en', en], ['es', es]]) {
+        if (!table[`livery.region.${r.id}`]) {
+          missing.push(`${lang}:${r.id}`);
+        }
+      }
+    }
+  }
+  check(`every paint region is named in en and es${missing.length ? `, missing ${missing.join(' ')}` : ''}`, missing.length === 0);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
