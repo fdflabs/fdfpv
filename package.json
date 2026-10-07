@@ -41,6 +41,7 @@
     "keys:golden": "node scripts/keys-golden.js",
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
     "lint:input": "node scripts/input-check.js",
+    "uiwire:check": "node scripts/uiwire-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "panels:golden": "node scripts/panels-golden.js",
