@@ -138,6 +138,9 @@ jobs:
       - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
+      # The ghost and live frame wire formats (src/share/ghostdata.js), bit
+      # for bit against a pinned transcript.
+      - run: npm run ghostdata:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
