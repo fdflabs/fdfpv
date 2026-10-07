@@ -1,138 +1,115 @@
 /*
- * stats.js: what this browser tells the board about a session, and what it
- * refuses to tell it.
+ * stats.js: the only thing in the simulator that reports usage to the
+ * board, and the rules that keep that report anonymous.
  *
- * WHAT THE BOARD'S STATISTICS PAGE IS, FROM THIS END. It counts sessions,
- * laps, countries and returning pilots. Everything it holds is a COUNTER: a
- * total per UTC day, and a total per day per dimension. There is no row at
- * the far end that describes one browser, and this file is the reason there
- * cannot be, because it is the only thing that sends anything.
+ * The board's statistics page holds counters and nothing else: a total per
+ * UTC day, and per day per dimension (aircraft, map, input, surface,
+ * country). No row there can describe one browser, because nothing this
+ * module sends could fill one. It sends three kinds of event:
  *
- * THREE EVENTS AND NOTHING ELSE.
+ *   visit    at most once per browser per UTC day, shared by the
+ *            simulator, the builder and the board: which page, and
+ *            whether this browser has been counted on an earlier day.
+ *   session  once per page load, when the aircraft first leaves the stand:
+ *            aircraft, map, input.
+ *   flush    every FLUSH_MS while a session runs, and when the page goes:
+ *            laps, flight seconds and crashes since the previous flush,
+ *            plus a per-tab handle.
  *
- *   visit    once per browser per UTC day, across the simulator, the
- *            builder and the board. Carries which page, and a BOOLEAN
- *            saying whether this browser has been here before.
- *   session  once per page load, the first time the quad leaves the stand.
- *            Carries the aircraft, the map and how the pilot is flying.
- *   flush    once a minute while a session is open, and again the moment
- *            the page goes away. Carries laps, flight seconds and crashes
- *            since the last one, and a random per tab handle.
+ * Never sent: addresses, user agents, screen sizes, referrers, pilot names,
+ * track ids, tunes, lap times or any timestamp. The board stamps the day
+ * from its own clock. The tab handle is minted at page load, only lets the
+ * board count tabs flying right now (it keeps it in memory for minutes),
+ * and dies with the tab.
  *
- * WHAT IS NOT IN ANY OF THEM, and has nowhere to go if somebody adds it
- * later: an address, a user agent, a screen size, a referrer, a pilot name,
- * a track id, a tune, a lap time, or a timestamp of any kind. The board
- * stamps its own UTC day and never reads a clock from here, because a
- * browser's clock is wrong often enough to put laps in tomorrow.
+ * Kept in this browser and never sent: the first and the latest day it was
+ * counted, a sponsor slug from a poster link (for SOURCE_DAYS), and the
+ * pilot's opt out. Only what they imply leaves.
  *
- * THE TAB HANDLE IS THE ONE UNIQUE STRING, and it is deliberately useless.
- * It is made fresh at page load, it answers exactly one question ("how many
- * are flying right now"), the board holds it in memory for three minutes,
- * and no table at either end ever sees it. Reloading makes a new one.
+ * KEEP IN STEP WITH public/stats.js in the board's repository, which
+ * cannot be imported from here. Where the two pages share an origin they
+ * share this storage key on purpose, so opting out on one opts out on the
+ * other.
  *
- * WHAT THIS BROWSER REMEMBERS, in one key, and none of it is ever sent: the
- * day it was first counted, the last day it was counted, a sponsor slug for
- * thirty days, and whether the pilot has switched counting off. What is sent
- * is the ANSWER those produce.
+ * Off the physics path: counters come from race state the render loop
+ * already has, and every send is fire and forget, so a board that is down
+ * costs a flying pilot nothing.
  *
- * THIS MIRRORS public/stats.js IN THE BOARD'S REPOSITORY, the same
- * arrangement NAME_RE has: two repositories, so it cannot be imported.
- * The storage key is shared on purpose, because under one domain the three
- * pages share one origin and therefore one local storage, so a pilot who
- * switches counting off on the board has switched it off here. Change both
- * copies, or the promise stops being kept in one of them.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * NOTHING HERE TOUCHES THE PHYSICS PATH. The counters are read off race
- * state the render loop already computed, the handle comes from
- * crypto.randomUUID, and every send is a beacon that cannot block a frame.
- * A board that is down, asleep or blocked costs this file nothing, because
- * it never reads a reply.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { boardOrigin } from './board.js';
 
-const KEY = 'webfpv.stats.v1';
-/* How long a sponsor click is remembered. Long enough that somebody who
- * arrives from a poster and comes back at the weekend is still that
- * sponsor's arrival; short enough that it is not a standing label. */
-const SOURCE_DAYS = 30;
-/* MIRRORS SOURCE_RE in the board's src/sponsors.js, which is the copy that
- * decides. A slug this accepts and that does not names nothing, and the
- * board folds it into `other` rather than refusing the event. */
-const SOURCE_RE = /^[a-z0-9-]{2,32}$/;
+const MEMORY_KEY = 'webfpv.stats.v1';
 
-/* One flush a minute. It is also the heartbeat that answers "flying now",
- * so it is sent even when nothing happened in the minute. */
+/* A poster arrival who comes back at the weekend is still that poster's;
+ * after a month it stops being a label. */
+const SOURCE_DAYS = 30;
+
+/* The slug shape the board's src/sponsors.js accepts. That copy decides:
+ * a slug that passes here but names no sponsor is counted as `other`. */
+const SLUG = /^[a-z0-9-]{2,32}$/;
+
+/* Also the "flying now" heartbeat, so a flush goes out every minute even
+ * when the minute held nothing. */
 export const FLUSH_MS = 60_000;
 
-/*
- * The caps the board will accept in one flush, mirrored here so this end
- * never sends something the far end must refuse. A minute cannot hold
- * thirty laps or ninety seconds of flying; anything past them is a clock
- * that jumped or a bug at this end, and the right answer is to send the cap
- * and carry on rather than to send a number nobody will take.
- */
-const FLUSH_LAPS_MAX = 30;
-const FLUSH_FLIGHT_S_MAX = 90;
-const FLUSH_CRASHES_MAX = 60;
+/* The most one flush may carry, matching what the board accepts. A minute
+ * cannot hold more; a bigger number is a jumped clock or a bug here, and
+ * sending the cap beats sending something the board refuses. */
+const PER_FLUSH = { laps: 30, flightS: 90, crashes: 60 };
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+const DAY_MS = 86_400_000;
+
+const utcDay = () => new Date().toISOString().slice(0, 10);
+
+/* Whole days from one YYYY-MM-DD to another; unreadable dates are
+ * infinitely far apart, so a mangled day never keeps a slug alive. */
+function dayGap(from, to) {
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / DAY_MS) : Infinity;
 }
 
-function daysBetween(a, b) {
-  const from = Date.parse(`${a}T00:00:00Z`);
-  const to = Date.parse(`${b}T00:00:00Z`);
-  if (!Number.isFinite(from) || !Number.isFinite(to)) {
-    return Infinity;
-  }
-  return Math.round((to - from) / 86_400_000);
-}
-
-function readState() {
+/* What this browser remembers, always as a plain object. Storage that is
+ * refused or holds junk reads as empty: such a browser is counted as new
+ * each day, and the board's page says that rather than guessing. */
+function recall() {
+  let memory = null;
   try {
-    const raw = localStorage.getItem(KEY);
-    const held = raw ? JSON.parse(raw) : null;
-    return held && typeof held === 'object' && !Array.isArray(held) ? held : {};
+    memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || 'null');
   } catch (e) {
-    /* Private mode, or a blob that is not JSON. A browser that cannot
-     * remember is counted as new every day, and the board's page says so
-     * rather than correcting for it. */
     return {};
   }
+  const usable = memory !== null && typeof memory === 'object' && !Array.isArray(memory);
+  return usable ? memory : {};
 }
 
-function writeState(next) {
+function remember(memory) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
     return true;
   } catch (e) {
     return false;
   }
 }
 
-/*
- * GLOBAL PRIVACY CONTROL. A browser that sets this has asked in the only
- * machine readable way there is, and the right answer is to send nothing at
- * all rather than to send something and hope the far end drops it. The
- * board checks the header as well, for the browsers that send it without
- * exposing the property.
- */
+/* Global Privacy Control is a request to send nothing, so nothing is sent.
+ * The board also honours the header for browsers that send it without the
+ * property. */
 export function privacyRefused() {
   try {
     return navigator.globalPrivacyControl === true;
@@ -142,13 +119,13 @@ export function privacyRefused() {
 }
 
 export function optedOut() {
-  return readState().optOut === true;
+  return recall().optOut === true;
 }
 
 export function setOptedOut(on) {
-  const next = readState();
-  next.optOut = Boolean(on);
-  return writeState(next);
+  const memory = recall();
+  memory.optOut = Boolean(on);
+  return remember(memory);
 }
 
 export function counting() {
@@ -156,17 +133,13 @@ export function counting() {
 }
 
 /*
- * Take a sponsor slug out of the address, put it away, and take every utm_
- * parameter OUT of the address bar.
- *
- * The strip is not tidiness. A simulator URL is copied and shared constantly,
- * because it is how a track travels: ?map=custom&share=trk-1a2b3c4d is the
- * whole link between the board and this page. A pilot who sends a friend the
- * link they are looking at should not be attributing their friend to a poster
- * they never saw. Everything the shell actually reads, map, share, board and
- * craft, is left exactly as it was.
- *
- * Last click wins. Called once, early, before anything else reads the query.
+ * Keep a poster's utm_source slug, and take every utm_ parameter out of
+ * the address bar. Links are how tracks travel (?share=trk-...), and a
+ * pilot passing on the link they are looking at must not pass on the
+ * poster attribution with it. The slug is kept even with counting off:
+ * it stays in this browser, and if counting comes back on the poster is
+ * still the honest answer. The latest poster wins. Call once, before
+ * anything else reads the query.
  */
 export function captureSource(loc = window.location, hist = window.history) {
   let url;
@@ -175,302 +148,278 @@ export function captureSource(loc = window.location, hist = window.history) {
   } catch (e) {
     return null;
   }
-  const raw = url.searchParams.get('utm_source');
-  let slug = null;
-  if (raw != null) {
-    const clean = String(raw).trim().toLowerCase();
-    if (SOURCE_RE.test(clean)) {
-      slug = clean;
-    }
-  }
-  /* Stored even when counting is off, and that is not a contradiction: what
-   * is stored is in this browser and goes nowhere. If the pilot switches
-   * counting back on, the poster they walked past is still the true answer.
-   * Nothing is SENT while the switch is off, which is the promise. */
+  const given = url.searchParams.get('utm_source');
+  const candidate = given === null ? '' : String(given).trim().toLowerCase();
+  const slug = SLUG.test(candidate) ? candidate : null;
   if (slug) {
-    const next = readState();
-    next.source = { slug, day: today() };
-    writeState(next);
+    const memory = recall();
+    memory.source = { slug, day: utcDay() };
+    remember(memory);
   }
-  let stripped = false;
-  for (const key of [...url.searchParams.keys()]) {
-    if (key.toLowerCase().startsWith('utm_')) {
-      url.searchParams.delete(key);
-      stripped = true;
-    }
+  const tracking = [...url.searchParams.keys()].filter((key) => key.toLowerCase().startsWith('utm_'));
+  if (tracking.length === 0) {
+    return slug;
   }
-  if (stripped && hist && typeof hist.replaceState === 'function') {
+  for (const key of tracking) {
+    url.searchParams.delete(key);
+  }
+  if (hist && typeof hist.replaceState === 'function') {
     try {
       hist.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     } catch (e) {
-      /* A sandboxed frame. The parameter stays in the bar, nothing else
-       * changes, and the slug is already put away. */
+      /* A sandboxed frame keeps the parameters in its bar; the slug is
+       * already kept, and nothing else depends on the bar. */
     }
   }
   return slug;
 }
 
 export function heldSource() {
-  const held = readState().source;
-  if (!held || !SOURCE_RE.test(String(held.slug || ''))) {
+  const source = recall().source;
+  if (!source || !SLUG.test(String(source.slug || ''))) {
     return null;
   }
-  return daysBetween(String(held.day || ''), today()) <= SOURCE_DAYS ? held.slug : null;
+  return dayGap(String(source.day || ''), utcDay()) <= SOURCE_DAYS ? source.slug : null;
 }
 
 /*
- * Mark this browser as counted today and say whether it had been here
- * before. Null when it has already been counted today, which is what makes
- * a visit once per browser per day across all three pages rather than once
- * per page load.
+ * Count this browser for today. Resolves to { returning } the first time
+ * on a given UTC day and null after that, which is what makes a visit
+ * once per browser per day across all three pages.
  */
 export function markVisit() {
-  const held = readState();
-  const day = today();
-  if (held.lastVisitDay === day) {
+  const memory = recall();
+  const day = utcDay();
+  if (memory.lastVisitDay === day) {
     return null;
   }
-  const returning = Boolean(held.firstDay) && held.firstDay !== day;
-  held.firstDay = held.firstDay || day;
-  held.lastVisitDay = day;
-  writeState(held);
+  const returning = Boolean(memory.firstDay) && memory.firstDay !== day;
+  if (!memory.firstDay) {
+    memory.firstDay = day;
+  }
+  memory.lastVisitDay = day;
+  remember(memory);
   return { returning };
 }
 
+const withoutTrailingSlash = (origin) => String(origin || '').replace(/\/+$/, '');
+
 export function eventsUrl(origin = boardOrigin()) {
-  return `${String(origin || '').replace(/\/+$/, '')}/api/stats/events`;
+  return `${withoutTrailingSlash(origin)}/api/stats/events`;
 }
 
 /*
- * Post one event, and never wait for the answer.
- *
- * A beacon, so the last flush survives the page being closed, which is
- * exactly when it is sent. text/plain because a beacon cannot set a header
- * and a simple request needs no preflight; the board never reads a content
- * type. Every failure is swallowed: a board that is down must cost a pilot
- * who is flying precisely nothing.
+ * Fire one event and forget it. A beacon first, because the last flush is
+ * sent as the page closes and only a beacon survives that; it is
+ * text/plain because a beacon cannot set headers and a simple request
+ * needs no preflight (the board ignores the content type). fetch with
+ * keepalive where there is no beacon. Every failure ends here: a board
+ * that is down must cost the pilot nothing.
  */
 export function sendEvent(payload, url = eventsUrl()) {
   if (!counting()) {
     return false;
   }
-  let body;
+  const body = eventBody(payload);
+  return body !== null && transmit(url, body);
+}
+
+/* The wire form of one event, or null for a payload JSON cannot write.
+ * The held slug goes last so a payload cannot overwrite it. */
+function eventBody(payload) {
   try {
-    body = JSON.stringify({ v: 1, ...payload, source: heldSource() });
+    return JSON.stringify({ v: 1, ...payload, source: heldSource() });
   } catch (e) {
-    return false;
-  }
-  try {
-    if (navigator.sendBeacon) {
-      return navigator.sendBeacon(url, new Blob([body], { type: 'text/plain;charset=UTF-8' }));
-    }
-  } catch (e) {
-    /* Fall through to fetch. */
-  }
-  try {
-    fetch(url, {
-      method: 'POST', body, keepalive: true, headers: { 'content-type': 'text/plain' },
-    }).catch(() => {});
-    return true;
-  } catch (e) {
-    return false;
+    return null;
   }
 }
 
-/*
- * One visit, from whichever page called. Captures a sponsor slug on the way
- * past, whether or not anything is sent. Silent about everything.
- */
+function transmit(url, body) {
+  try {
+    const beacon = navigator.sendBeacon;
+    if (beacon) {
+      const blob = new Blob([body], { type: 'text/plain;charset=UTF-8' });
+      return beacon.call(navigator, url, blob);
+    }
+  } catch (e) {
+    /* A beacon that throws: try fetch below. */
+  }
+  const init = {
+    method: 'POST',
+    body,
+    keepalive: true,
+    headers: { 'content-type': 'text/plain' },
+  };
+  try {
+    fetch(url, init).catch(() => {});
+  } catch (e) {
+    return false;
+  }
+  return true;
+}
+
+/* The visit event for one page. The poster slug is taken whether or not
+ * anything is sent. */
 export function pingVisit(surface, url = eventsUrl()) {
   captureSource();
   if (!counting()) {
     return false;
   }
   const visit = markVisit();
-  if (!visit) {
-    return false;
-  }
-  return sendEvent({ kind: 'visit', surface, returning: visit.returning }, url);
+  return visit ? sendEvent({ kind: 'visit', surface, returning: visit.returning }, url) : false;
 }
 
-function newTab() {
+/* The per-tab handle. Not a secret: it only has to fit the board's
+ * TAB_HANDLE shape and not collide with the other tabs flying right now. */
+function mintTabHandle() {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
     }
   } catch (e) {
-    /* An old browser, or an insecure origin. */
+    /* An insecure origin or an old browser: make one up below. */
   }
-  /* Not a security value. It answers one question for three minutes and is
-   * never stored, so all it has to be is unlikely to collide with the other
-   * tabs flying at the same moment. */
-  return `t${Math.random().toString(36).slice(2, 12)}${Date.now().toString(36).slice(-6)}`;
+  const noise = Math.floor(Math.random() * 2 ** 48).toString(36).padStart(10, '0');
+  return `tab-${noise}-${(Date.now() % 1e9).toString(36)}`;
 }
 
-function bounded(value, max) {
-  return Math.max(0, Math.min(max, Math.round(value)));
+const clampCount = (value, cap) => Math.max(0, Math.min(cap, Math.round(value)));
+
+/* The three words a session or flush carries. Read through `describe`
+ * because the shell knows the aircraft, map and input and this module
+ * must not import the shell. */
+const UNSAID = { craft: '', map: 'custom', input: 'keyboard' };
+
+function readFacts(describe) {
+  try {
+    const said = typeof describe === 'function' ? describe() : null;
+    const fact = (name) => String((said && said[name]) || UNSAID[name]);
+    return { craft: fact('craft'), map: fact('map'), input: fact('input') };
+  } catch (e) {
+    return { ...UNSAID };
+  }
 }
 
 /*
- * The flight counter.
- *
- * `describe()` is handed in rather than read, because this module must not
- * import the shell: main.js knows which aircraft is seated, which map is
- * built and how the pilot is flying, and none of those is this file's
- * business beyond passing three words along.
- *
- * Everything it tracks is a DELTA since the last flush. Nothing accumulates
- * across a flush, so a tab that is killed loses at most the last minute and
- * a tab that lives for an hour sends sixty small numbers rather than one
- * growing one.
+ * The flight counter for one page. Everything it holds is a delta since
+ * the previous flush, so a killed tab loses at most a minute and an hour
+ * of flying is sixty small numbers rather than one growing total.
  */
 export function createFlightStats({ describe, url = eventsUrl() } = {}) {
-  const tab = newTab();
-  let started = false;
-  let laps = 0;
-  let lapsSeen = null;
-  let crashes = 0;
-  let flightMs = 0;
-  let lastTick = 0;
-  let nextFlush = 0;
-  let stopped = false;
+  const tab = mintTabHandle();
+  const since = { laps: 0, crashes: 0, flightMs: 0 };
+  let live = false;
+  let ended = false;
+  let lapsLastSeen = null;
+  let previousWall = 0;
+  let flushDue = 0;
 
-  const facts = () => {
-    try {
-      const d = (typeof describe === 'function' ? describe() : null) || {};
-      return {
-        craft: String(d.craft || ''),
-        map: String(d.map || 'custom'),
-        input: String(d.input || 'keyboard'),
-      };
-    } catch (e) {
-      return { craft: '', map: 'custom', input: 'keyboard' };
+  /* Sent even for an empty minute (it is the heartbeat), never before the
+   * session starts. The deltas are cleared whether or not the send went:
+   * holding them would make the next flush carry two minutes, more than
+   * the board takes, so one lost minute is the cheaper failure. Partial
+   * seconds carry over. */
+  const flush = () => {
+    if (!live || ended) {
+      return;
     }
-  };
-
-  /*
-   * A flush is sent even when the minute held nothing, because it is also
-   * the heartbeat behind "how many are flying now" and a pilot hovering on
-   * the line between laps is still flying. Nothing is sent before the
-   * session has started, which is what keeps a page nobody flew silent.
-   */
-  function flush() {
-    if (!started || stopped) {
-      return false;
-    }
-    const seconds = Math.floor(flightMs / 1000);
-    const f = facts();
-    const sent = sendEvent({
+    const wholeSeconds = Math.floor(since.flightMs / 1000);
+    const { craft, map } = readFacts(describe);
+    sendEvent({
       kind: 'flush',
       tab,
-      craft: f.craft,
-      map: f.map,
-      laps: bounded(laps, FLUSH_LAPS_MAX),
-      flightS: bounded(seconds, FLUSH_FLIGHT_S_MAX),
-      crashes: bounded(crashes, FLUSH_CRASHES_MAX),
+      craft,
+      map,
+      laps: clampCount(since.laps, PER_FLUSH.laps),
+      flightS: clampCount(wholeSeconds, PER_FLUSH.flightS),
+      crashes: clampCount(since.crashes, PER_FLUSH.crashes),
     }, url);
-    /* Cleared whether or not the send reported success. A beacon that was
-     * refused is a minute nobody counted, and holding the numbers to retry
-     * would mean the NEXT flush carries two minutes of laps, which the
-     * board would refuse as more than a minute can hold. One lost minute
-     * beats a stuck counter. */
-    laps = 0;
-    crashes = 0;
-    flightMs -= seconds * 1000;
-    return sent;
-  }
+    since.laps = 0;
+    since.crashes = 0;
+    since.flightMs -= wholeSeconds * 1000;
+  };
+
+  const countLaps = (laps) => {
+    if (lapsLastSeen !== null && laps > lapsLastSeen) {
+      since.laps += laps - lapsLastSeen;
+    }
+    /* A drop is a reset, a new course or a map swap: start again from
+     * there rather than count backwards. */
+    lapsLastSeen = laps;
+  };
 
   return {
     tab,
 
-    /*
-     * Once a frame. `state` is read off what the render loop already has:
-     * whether this run has left the ground, whether the quad is in the air
-     * right now, and how many laps the race has recorded.
-     */
+    /* Once a frame, with what the render loop has: whether the run has
+     * left the ground (`started`), whether the aircraft is airborne
+     * (`flying`), and the race's lap count. */
     tick(nowWall, state) {
-      if (stopped) {
+      if (ended) {
         return;
       }
       const wall = Number(nowWall) || 0;
-      const was = lastTick;
-      lastTick = wall;
-
-      if (state && state.started && !started) {
-        started = true;
-        nextFlush = wall + FLUSH_MS;
-        const f = facts();
+      const lastWall = previousWall;
+      previousWall = wall;
+      if (!live && state && state.started) {
+        live = true;
+        flushDue = wall + FLUSH_MS;
+        const { craft, map, input } = readFacts(describe);
         sendEvent({
-          kind: 'session', craft: f.craft, map: f.map, input: f.input,
+          kind: 'session', craft, map, input,
         }, url);
       }
-      if (!started) {
+      if (!live) {
         return;
       }
-      /*
-       * Flight seconds, off the wall clock and only while the quad is
-       * actually in the air. Bounded by a sane frame gap, because a tab
-       * that was hidden for an hour comes back with one enormous delta and
-       * the pilot was not flying for any of it.
-       */
-      if (state && state.flying && was > 0 && wall > was) {
-        flightMs += Math.min(wall - was, 1000);
+      /* Airborne wall time, with any one gap capped at a second: a tab
+       * hidden for an hour wakes with one huge delta nobody flew. */
+      if (state && state.flying && lastWall > 0 && wall > lastWall) {
+        since.flightMs += Math.min(wall - lastWall, 1000);
       }
       if (state && Number.isFinite(state.laps)) {
-        if (lapsSeen == null) {
-          lapsSeen = state.laps;
-        } else if (state.laps > lapsSeen) {
-          laps += state.laps - lapsSeen;
-          lapsSeen = state.laps;
-        } else if (state.laps < lapsSeen) {
-          /* A reset, a new course or a map swap. The count starts again
-           * rather than going negative. */
-          lapsSeen = state.laps;
-        }
+        countLaps(state.laps);
       }
-      if (wall >= nextFlush) {
-        nextFlush = wall + FLUSH_MS;
+      if (wall >= flushDue) {
+        flushDue = wall + FLUSH_MS;
         flush();
       }
     },
 
-    /* A crash, from the one place the shell declares one. */
+    /* The shell declares a crash in one place, and calls this from it. */
     noteCrash() {
-      if (started && !stopped) {
-        crashes += 1;
+      if (live && !ended) {
+        since.crashes += 1;
       }
     },
 
-    /* The page is going away. This is the flush that matters, and the
-     * reason every send is a beacon. */
+    /* The page is closing: the flush every send is a beacon for. */
     leaving() {
       flush();
     },
 
-    /* For the harness, and for a reset that should not be counted. */
+    /* For the harness, and for a reset that should not count. */
     stop() {
-      stopped = true;
+      ended = true;
     },
   };
 }
 
 /*
- * Every pilot's flight time added up: the board's all time sum of the
- * flight seconds the flushes above carried, from the statistics page's
- * own GET /api/stats (allTime.flightS). A sum over days, with no row for
- * any one pilot. Null when there is no board, it does not answer, or its
- * answer has no such number, and the screen then shows nothing rather
- * than a number it made up.
+ * Everyone's flight time together: allTime.flightS from the board's own
+ * GET /api/stats, a sum over days with no row for any pilot. Null when
+ * there is no board, it does not answer in time, or the number is not
+ * there, so the screen shows nothing rather than an invented figure.
  */
 export async function boardFlightSeconds(origin = boardOrigin()) {
   try {
-    const res = await fetch(`${String(origin || '').replace(/\/+$/, '')}/api/stats`, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(`${withoutTrailingSlash(origin)}/api/stats`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) {
       return null;
     }
-    const got = await res.json();
-    const s = got && got.allTime ? got.allTime.flightS : null;
-    return Number.isFinite(s) && s >= 0 ? s : null;
+    const body = await res.json();
+    const total = body && body.allTime ? body.allTime.flightS : null;
+    return Number.isFinite(total) && total >= 0 ? total : null;
   } catch (e) {
     return null;
   }

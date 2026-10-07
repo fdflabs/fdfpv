@@ -76,7 +76,6 @@ src/share/orbit.html
 src/share/orbit.js
 src/share/pilot.js
 src/share/session.js
-src/share/stats.js
 src/share/summary.js
 src/share/windows.js
 src/trackbuilder/faces.js
