@@ -60,6 +60,7 @@
     "contact:golden": "node scripts/contact-golden.js",
     "lock:check": "node scripts/lock-check.js",
     "probe:golden": "node scripts/probe-golden.js",
+    "loop:golden": "node scripts/loop-golden.js",
     "lint:memory": "node scripts/memory-check.js",
     "catalog-rules:selftest": "node scripts/catalog-rules-selftest.js",
     "lint:fc": "node scripts/fc-trace.js",
