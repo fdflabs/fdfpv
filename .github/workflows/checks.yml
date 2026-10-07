@@ -37,6 +37,7 @@ jobs:
       - run: npm run ways:golden
       - run: npm run format:golden
       - run: npm run widgets:golden
+      - run: npm run trickslist:golden
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check

@@ -130,9 +130,6 @@ import {
 import {
   boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
-import { PATTERNS } from '../game/trickdetect.js';
-import { PROVEN } from '../game/proven.js';
-import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
@@ -222,6 +219,7 @@ import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js'
 import {
   btn, el, hintWithKeys, keyHowtoRows, makeGimbal, makePadCard, makeWeightSlider, placeNub, placeSticks, thrNote, wordmark,
 } from './widgets.js';
+import { scoreableTricks, trickStatus } from './trickslist.js';
 /* scripts/modes-selftest.js reads the table from here, and the HUDs and
  * main.js read the clock formats. */
 export { WAYS, formatRunClock, formatTime };
@@ -463,104 +461,7 @@ function accountPageRows() {
   ];
 }
 
-/*
- * THE LIST IS THE CATALOGUE'S, NOT A WRITTEN ONE.
- *
- * One row per PATTERN the recogniser matches, so nothing can be advertised
- * that the game will not score and nothing scoreable can be left out. The
- * building blocks (a bare quarter roll and its family) are deliberately
- * skipped: they are what a trick is MADE of and the workbook prices them as
- * consolation rather than as things to go and fly, and a list opening with
- * eleven fragments buries the tricks underneath them.
- */
-const BLOCK_NAME = /^(1\/4|1\/2|3\/4|1) (Flip|Roll|Yaw)/;
-
-function scoreableTricks() {
-  const seen = new Set();
-  const out = [];
-  for (const pat of PATTERNS) {
-    if (seen.has(pat.name) || BLOCK_NAME.test(pat.name)) {
-      continue;
-    }
-    const t = trickByName(pat.name);
-    if (!t || t.points == null) {
-      continue;
-    }
-    /*
-     * ONLY WHAT IS KNOWN TO SCORE.
-     *
-     * The list showed all sixty four patterns that carry a name and a price,
-     * which promises a pilot sixty four tricks the town will pay for. It
-     * will not. Some of them the recogniser has never once named, and a
-     * trick you cannot land is worse than one that is missing: the pilot
-     * flies it, gets nothing, and concludes the scoring is broken rather
-     * than that the trick was never really there.
-     *
-     * So the gate is evidence. src/game/proven.js is written by the sweep,
-     * which flies every pattern from its own steps and records what came
-     * back, and a trick earns its place here by having been scored at least
-     * once. That also means the list REPAIRS ITSELF: teach the rig to fly a
-     * wall and the wall tricks reappear on the next generation, with no
-     * hand maintained list to fall out of date.
-     *
-     * The cost is that a trick the rig cannot fly is hidden even though a
-     * pilot may well be able to score it, which is the right way round. A
-     * missing trick is a pleasant surprise when it scores. A listed one
-     * that never pays is a broken promise.
-     */
-    const ev = PROVEN[pat.name];
-    if (!ev || ev.landed <= 0) {
-      continue;
-    }
-    seen.add(pat.name);
-    out.push({
-      name: pat.name,
-      points: t.points,
-      category: t.category || str('bugs.other'),
-      difficulty: t.difficulty || '',
-      steps: pat.steps,
-      /* How reliably the sweep landed it. See trickStatus. */
-      proven: ev,
-    });
-  }
-  /* Grouped the way the workbook groups them, and cheapest first inside a
-   * group, so the list reads as a ladder rather than as an index. */
-  out.sort((a, b) => (a.category === b.category
-    ? a.points - b.points
-    : a.category.localeCompare(b.category)));
-  return out;
-}
-
-/*
- * How reliably it scores, in a sentence, for a trick that is already known
- * to score at all: scoreableTricks does not list one that is not.
- *
- * The distinction still earns its place because "scores every time" and
- * "scores when it is flown cleanly" are different promises, and a pilot who
- * has just missed one twice deserves to know which they were sold.
- */
-function trickStatus(t) {
-  if (t.proven.landed >= t.proven.runs) {
-    return {
-      tag: str('ui.reliable'),
-      line: str('ui.scored_on_all_test_flights_across', { runs: t.proven.runs })
-        + str('ui.angles_and_three_degrees_of_overshoot'),
-    };
-  }
-  return {
-    tag: str('ui.fussy'),
-    line: str('ui.scored_on_of_test_flights_so', { landed: t.proven.landed, runs: t.proven.runs })
-      + str('ui.it_wants_flying_cleanly_to_register'),
-  };
-}
-
-/* The number the Trick list rows carried as their value. Nothing calls it
- * while those rows are withdrawn; it is two lines and it comes back with
- * them, so it stays rather than being rewritten later from memory. */
-function countScoreableTricks() {
-  return scoreableTricks().length;
-}
-
+/* A menu plus a side column for its note, so the note cannot resize the rows. */
 function wrapMenu() {
   const stage = el('div', 'menu-stage');
   const menu = el('div', 'menu');
