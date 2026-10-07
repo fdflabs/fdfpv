@@ -86,7 +86,7 @@ import { mergeCampaign } from '../game/campaign.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import {
-  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS, PACKS_MAX,
 } from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
@@ -104,6 +104,7 @@ export const SYNCED_SECTIONS = {
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
+  packs: 'keyed',
   voiceReplayAck: 'flag',
   flightTime: 'devices',
 };
@@ -133,6 +134,8 @@ const ENTRY_SHAPES = {
   builds: (key, b) => BUILD_ID_RE.test(key) && isRecord(b) && (b.id === undefined || b.id === key)
     && typeof b.name === 'string' && b.name.length >= 1 && b.name.length <= 40
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
+  /* configs/wear.js holds the fields; the server holds the shape. */
+  packs: (key, p) => /^[a-z0-9_-]{1,48}$/.test(key) && isRecord(p) && typeof p.spec === 'string' && p.spec.length <= 12,
 };
 
 /*
@@ -167,7 +170,7 @@ export function currentBuild(b) {
  */
 export function blobRefusal(raw) {
   const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
-  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES };
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES, packs: PACKS_MAX };
   for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
     const value = data[section];
     if (value === undefined) {

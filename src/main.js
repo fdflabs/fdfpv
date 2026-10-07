@@ -211,6 +211,8 @@ import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wearRecordOf, wornPowerBlock, wornQuadBlocks } from '../configs/wear.js';
+import { learnPartTable } from './ui/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
@@ -6469,6 +6471,11 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  window.__wear = () => ({
+    sortie: sortie ? { airframe: sortie.airframe, packId: sortie.packId, fullS: sortie.fullS, flew: sortie.lastTs >= 0 } : null,
+    seated: wornSeated,
+    delta: ui.wearDelta ?? null,
+  });
   /* For scripts/replay-world.js: a room message handed to the war as the
    * room's socket hands it (the check scripts a war's hits and struck
    * lines on a real room's match), what the map shows now (each target
@@ -9595,6 +9602,86 @@ export async function boot({
    * first and seats what the new choice has, or a prop put back to stock
    * would stay seated.
    */
+  /*
+   * CAREER AND WAR WEAR (configs/wear.js, docs/PARTS-WEAR.md). A sortie
+   * is one run of a campaign mission or a war room: at its seat the
+   * charger turns packs around, a charged pack is picked, and the plant
+   * is seated on that pack's and the airframe's wear; when it ends (a
+   * reset, or leaving for the results) what it did is accrued. Every
+   * other flight seats exactly the blocks it always has. `sortie` is
+   * { airframe, packId, kinds, wear, fullS, lastTs } while one flies,
+   * else null; `ui.wearDelta` is the last sortie's delta, for the
+   * debrief. The wear record is the parts entry's (settings.parts[id]
+   * .wear), by the module's part table, whose kinds say which parts are
+   * the motors and props.
+   */
+  let sortie = null;
+  /* The worn blocks last seated, as plain arrays, for the checks. */
+  let wornSeated = null;
+  const FULL_THROTTLE = 0.95;
+  function realismNow() {
+    return realismFlight({ mission: Boolean(roomOps.room() && roomOps.mission()), war: roomWar.on() });
+  }
+  function sortieSeat(airframeId, choice) {
+    if (!realismNow()) {
+      sortie = null;
+      return null;
+    }
+    if (sortie && sortie.airframe === airframeId) {
+      /* Seated again mid sortie (a refit, a settings pass): the same pack
+       * and wear; only endSortie ends it. */
+      return { wear: sortie.wear, pack: sortie.packId ? ui.settings.packs[sortie.packId] : null };
+    }
+    /* Another airframe seated mid sortie ends the one flying. */
+    endSortie();
+    const table = damage.table();
+    learnPartTable(airframeId, table);
+    const kinds = table.map((t) => t.kind);
+    const got = startSortie(ui.settings, airframeId, choice);
+    ui.settings.packs = got.packs;
+    ui.persistSettings();
+    const wear = propulsionHealth(got.record, kinds);
+    sortie = { airframe: airframeId, packId: got.packId, kinds, wear, fullS: 0, lastTs: -1 };
+    return { wear, pack: got.packId ? got.packs[got.packId] : null };
+  }
+  /* Seconds at full throttle, from the sticks the plant is fed. */
+  function sortieSticks(ts, throttle) {
+    if (sortie.lastTs >= 0 && throttle >= FULL_THROTTLE && ts > sortie.lastTs) {
+      sortie.fullS += ts - sortie.lastTs;
+    }
+    sortie.lastTs = ts;
+  }
+  /* What the sortie did, accrued, before the plant forgets it. True when
+   * there was one that flew, so the next run seats afresh. */
+  function endSortie() {
+    if (!sortie || sortie.lastTs < 0) {
+      return false;
+    }
+    const af = airframeById(sortie.airframe);
+    const p = readPower();
+    const choice = powerChoice(af.id, ui.settings.power);
+    const option = POWER[af.id] ? powerOption(af.id, choice.option) : null;
+    const flight = {
+      airframe: af.id,
+      kinds: sortie.kinds,
+      packId: sortie.packId,
+      drawnC: p ? p.chargeC : 0,
+      capacityC: p ? p.capacityC : 0,
+      minCellV: p ? p.cellOcv : 0,
+      lvcV: option && option.kind === 'electric' ? option.lvcV : 0,
+      fullThrottleS: sortie.fullS,
+      impacts: runDamage ? impactsFrom(damage.parts(), sortie.kinds.length) : [],
+    };
+    const entry = partsEntry(ui.settings.parts, af.id);
+    const got = accrue(ui.settings.packs, wearRecordOf(ui.settings, af.id), flight);
+    ui.settings.packs = got.packs;
+    ui.settings.parts = normaliseParts({ ...ui.settings.parts, [af.id]: { ...entry, wear: got.record } });
+    ui.wearDelta = got.delta;
+    ui.persistSettings();
+    sortie = null;
+    return true;
+  }
+
   function applyPower(s) {
     const af = airframeById(runAirframe);
     /* What the engine is heard as: the same choice the plant is built
@@ -9606,12 +9693,18 @@ export async function boot({
       if (cleared !== SIM_OK) {
         throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(cleared)}`);
       }
-      const motors = motorsBlock(af.id, choice);
+      const worn = sortieSeat(af.id, choice);
+      const blocks = worn
+        ? wornQuadBlocks(af.id, choice, motorsBlock(af.id, choice), propPackBlock(af.id, choice), worn.wear, worn.pack)
+        : { motors: motorsBlock(af.id, choice), propPack: propPackBlock(af.id, choice) };
+      const plain = (b) => (b ? Array.from(b) : null);
+      wornSeated = worn ? { motors: plain(blocks.motors), propPack: plain(blocks.propPack) } : null;
+      const motors = blocks.motors;
       const code = motors ? sim.setMotors(motors) : SIM_OK;
       if (code !== SIM_OK) {
         throw new Error(`sim_set_motors refused ${choice.option} on ${af.id}: ${simErrorName(code)}`);
       }
-      const propPack = propPackBlock(af.id, choice);
+      const propPack = blocks.propPack;
       const packed = propPack ? sim.setPropPack(propPack) : SIM_OK;
       if (packed !== SIM_OK) {
         throw new Error(`sim_set_prop_pack refused ${choice.prop} and ${choice.pack} on ${af.id}: ${simErrorName(packed)}`);
@@ -9639,7 +9732,10 @@ export async function boot({
      * option's own block, or the table's, exactly as it was. */
     const parts = partsEntry(s.parts, af.id);
     const own = powerParams(af.id, option, pack);
-    const block = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const fitted = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const worn = sortieSeat(af.id, { option, pack });
+    const block = worn ? wornPowerBlock(af.id, { option, pack }, fitted, worn.wear, worn.pack) : fitted;
+    wornSeated = worn && block ? { power: Array.from(block) } : null;
     const code = block ? sim.setPower(block) : sim.clearPower();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_power refused ${option}/${pack} on ${af.id}: ${simErrorName(code)}`);
@@ -11097,6 +11193,15 @@ export async function boot({
      * moved CG at rest. */
     if (af.combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
       applyCombat(af);
+    }
+    /* A sortie that flew is accrued and the next one seated on its own
+     * pack; a flight that left career or war for a casual one goes back
+     * to fresh blocks. */
+    const wasSortie = sortie !== null;
+    if (endSortie() || (wasSortie && !realismNow()) || (!wasSortie && realismNow())) {
+      applyPower(ui.settings);
+      applyTuning(ui.settings);
+      applyParts(ui.settings);
     }
     sim.reset();
     plantStarts += 1;
@@ -12856,6 +12961,7 @@ export async function boot({
    * turtle, or mid flip) is set on its wheels first, or the next run would
    * start with its motors still parked. */
   function leaveFlightForResults() {
+    endSortie();
     mode = 'results';
     if (isTurtleParked()) {
       if (!turtleFlip.active) {
@@ -15588,6 +15694,9 @@ export async function boot({
       lastTs = ts;
       const ax = applyTurtleRc(rc.roll, rc.pitch);
       traceInput(ts, ax[0], ax[1], rc.yaw, rc.throttle);
+      if (sortie) {
+        sortieSticks(ts, rc.throttle);
+      }
       return sim.input(ts, ax[0], ax[1], rc.yaw, rc.throttle) === SIM_OK;
     };
     if (rcLink.isPerfect()) {
