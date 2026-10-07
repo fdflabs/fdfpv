@@ -1203,11 +1203,11 @@
        */
 
       /*
-       * The flight-controller screen, restored. Configurator 10.10
-       * (firmware 4.5.1 era): #ffbb00 header, #4d4d4d body, dark left
-       * tabs. Homage: our layout, system fonts, no Vue, no MSP, no
-       * iframe, and no CLI paste anywhere. Every other menu wears PDCS;
-       * this screen alone wears the yellow.
+       * FLIGHT CONTROLLER. The one screen that wears the Betaflight
+       * Configurator's colours (the 10.10 look: amber header, grey body,
+       * dark tab rail) instead of PDCS, drawn with our own layout and
+       * system fonts. Its palette lives on the screen so every part below
+       * reads it from there.
        */
       .screen-fc {
         --bf-accent: #ffbb00;
@@ -1219,111 +1219,106 @@
         --bf-text: #ffffff;
         --bf-muted: #c5c5c5;
         --bf-grey: #9c9c9c;
-        align-items: stretch;
-        justify-content: flex-start;
-        padding: 0;
-        background: var(--bf-bg);
-        color: var(--bf-text);
         font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--bf-text); background: var(--bf-bg);
+        padding: 0; align-items: stretch; justify-content: flex-start;
       }
-      .fc-head {
-        flex: 0 0 auto;
-        background: var(--bf-accent);
-        color: var(--bf-ink);
-        padding: 8px 14px 7px;
-        pointer-events: auto;
+      .fc-exit[hidden], .fc-pages[hidden], .fc-attitude[hidden] { display: none !important; }
+
+      /* Header, exit strip and status line: fixed strips around the body. */
+      .fc-head, .fc-exit, .fc-status { flex: 0 0 auto; pointer-events: auto; }
+      .fc-head { padding: 8px 14px 7px; color: var(--bf-ink); background: var(--bf-accent); }
+      .fc-status {
+        padding: 5px 14px; color: var(--bf-ink); background: var(--bf-accent);
+        font-size: 11px; font-weight: 650; letter-spacing: 0.04em;
       }
-      .fc-brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-      .fc-wordmark { font-size: 22px; font-weight: 800; letter-spacing: 0.14em; line-height: 1; }
-      .fc-fw, .fc-conn {
-        font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      }
+      .fc-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+      .fc-wordmark { font-size: 22px; line-height: 1; font-weight: 800; letter-spacing: 0.14em; }
+      .fc-fw, .fc-conn, .fc-dirty { text-transform: uppercase; }
+      .fc-fw, .fc-conn { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
       .fc-dirty {
         margin-left: auto; color: var(--bf-ink);
-        font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
       }
       .fc-dirty:empty { display: none; }
-      .fc-homage { margin: 4px 0 0; max-width: 86em; color: #3a3208; font-size: 11px; line-height: 1.4; }
-      .fc-homage a { color: var(--bf-ink); font-weight: 700; pointer-events: auto; }
+      .fc-homage { max-width: 86em; margin: 4px 0 0; font-size: 11px; line-height: 1.4; color: #3a3208; }
+      .fc-homage a { pointer-events: auto; font-weight: 700; color: var(--bf-ink); }
+
       .fc-exit {
-        flex: 0 0 auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        padding: 8px 14px; background: #2a2a2a; border-bottom: 1px solid #1a1a1a;
-        pointer-events: auto;
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+        padding: 8px 14px; background: #2a2a2a; border-bottom: 1px solid var(--bf-ink);
       }
-      .fc-exit[hidden] { display: none !important; }
-      .fc-exit-btn {
-        border: 0; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 800;
-        letter-spacing: 0.02em; padding: 8px 14px; cursor: pointer;
-      }
-      .fc-exit-save { background: var(--bf-accent); color: var(--bf-ink); }
-      .fc-exit-save:hover, .fc-exit-save:focus-visible { background: #ffd24d; outline: none; }
+      /* The strip's buttons, the tab rail and the page strip are bare
+         buttons in the page's face. */
+      .fc-exit-btn, .fc-tab, .fc-page { font: inherit; font-size: 13px; border: 0; cursor: pointer; }
+      .fc-tab, .fc-page { background: transparent; }
+      .fc-exit-btn { padding: 8px 14px; border-radius: 4px; font-weight: 800; letter-spacing: 0.02em; }
+      .fc-exit-save { color: var(--bf-ink); background: var(--bf-accent); }
       .fc-exit-save[hidden] { display: none; }
-      .fc-exit-leave { background: #5c5c5c; color: #fff; }
-      .fc-exit-leave:hover, .fc-exit-leave:focus-visible { background: #6e6e6e; outline: none; }
+      .fc-exit-leave { color: var(--bf-text); background: #5c5c5c; }
+      .fc-exit-save:hover, .fc-exit-save:focus-visible { outline: none; background: #ffd24d; }
+      .fc-exit-leave:hover, .fc-exit-leave:focus-visible { outline: none; background: #6e6e6e; }
       .fc-exit-hint {
-        margin-left: auto; display: flex; align-items: center; gap: 8px;
-        color: var(--bf-muted); font-size: 13px; font-weight: 650;
+        display: flex; align-items: center; gap: 8px; margin-left: auto;
+        font-size: 13px; font-weight: 650; color: var(--bf-muted);
       }
       .fc-exit-hint kbd {
-        display: inline-block; min-width: 1.6em; padding: 2px 6px; border-radius: 3px;
-        background: #1a1a1a; color: var(--bf-accent);
-        font: 700 12px/1.2 ui-monospace, "Cascadia Mono", monospace;
-        text-align: center; box-shadow: 0 1px 0 #000;
+        display: inline-block; min-width: 1.6em; padding: 2px 6px;
+        font: 700 12px/1.2 ui-monospace, "Cascadia Mono", monospace; text-align: center;
+        color: var(--bf-accent); background: var(--bf-ink);
+        border-radius: 3px; box-shadow: 0 1px 0 #000;
       }
-      .fc-body { display: flex; gap: 0; flex: 1 1 auto; min-height: 0; width: 100%; pointer-events: auto; }
+
+      .fc-body { display: flex; flex: 1 1 auto; gap: 0; width: 100%; min-height: 0; pointer-events: auto; }
+      .fc-tabs, .screen-fc .menu-scroll { scrollbar-color: var(--bf-accent) #2e2e2e; }
       .fc-tabs {
-        flex: 0 0 12.5em; overflow-y: auto; background: var(--bf-header); padding: 8px 0;
-        pointer-events: auto; scrollbar-width: thin; scrollbar-color: #ffbb00 #2e2e2e;
+        flex: 0 0 12.5em; padding: 8px 0; overflow-y: auto;
+        background: var(--bf-header); pointer-events: auto; scrollbar-width: thin;
       }
       .fc-tab {
-        display: block; width: 100%; text-align: left; border: 0; background: transparent;
-        color: var(--bf-text); font: inherit; font-size: 13px; padding: 7px 12px 7px 14px;
-        cursor: pointer; border-left: 3px solid transparent;
+        display: block; width: 100%; padding: 7px 12px 7px 14px; text-align: left;
+        color: var(--bf-text); border-left: 3px solid transparent;
       }
       .fc-tab:hover { background: rgba(255, 187, 0, 0.08); }
       .fc-tab.on {
+        font-weight: 650; color: var(--bf-accent);
         background: var(--bf-panel); border-left-color: var(--bf-accent);
-        color: var(--bf-accent); font-weight: 650;
       }
       .fc-tab.grey { color: var(--bf-grey); }
       .fc-tab.grey.on { color: var(--bf-muted); border-left-color: var(--bf-grey); }
+
       .fc-work {
-        flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
-        min-height: 0; background: var(--bf-panel); overflow: auto;
+        display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0;
+        overflow: auto; background: var(--bf-panel);
       }
       .fc-pages {
-        display: flex; gap: 0; flex: 0 0 auto; position: sticky; top: 0; z-index: 2;
+        position: sticky; top: 0; z-index: 2; display: flex; flex: 0 0 auto; gap: 0;
         background: var(--bf-header); border-bottom: 1px solid #2a2a2a;
       }
-      .fc-pages[hidden] { display: none !important; }
       .fc-page {
-        border: 0; background: transparent; color: var(--bf-muted); font: inherit;
-        font-size: 13px; font-weight: 650; letter-spacing: 0.03em;
-        padding: 8px 12px; cursor: pointer; border-bottom: 3px solid transparent;
+        padding: 8px 12px; font-weight: 650; letter-spacing: 0.03em;
+        color: var(--bf-muted); border-bottom: 3px solid transparent;
       }
-      .fc-page.on { color: var(--bf-accent); border-bottom-color: var(--bf-accent); background: var(--bf-panel); }
+      .fc-page.on { color: var(--bf-accent); background: var(--bf-panel); border-bottom-color: var(--bf-accent); }
+
+      /* The shared menu, laid out as the configurator's work area: rows on
+         the left, the help as a side panel. */
       .screen-fc .menu-stage {
-        display: grid;
-        grid-template-columns: 1fr minmax(14em, 22em);
-        align-items: stretch;
-        flex: 1 1 0;
-        min-height: 0;
-        width: 100%;
-        margin-top: 0;
+        display: grid; grid-template-columns: 1fr minmax(14em, 22em); align-items: stretch;
+        flex: 1 1 0; width: 100%; min-height: 0; margin-top: 0;
       }
       .screen-fc .menu-stage .menu {
-        grid-column: 1; background: var(--bf-box); border-top: 0; border-radius: 0;
-        box-shadow: none; min-width: 0; width: 100%; height: 100%; margin-top: 0;
-        /* A little air at the top. The header strip above overlaps the
-         * first row by about ten pixels, which never showed while the first
-         * row was a Tab picker under a page strip and does show the moment
-         * a confirm panel puts a real row against the ceiling. */
-        padding: 6px 0 12px;
+        grid-column: 1; width: 100%; min-width: 0; height: 100%;
+        /* 6 px at the top because the page strip overlaps the first row
+           by about that much, which shows once a confirm panel puts a
+           real row there. */
+        margin-top: 0; padding: 6px 0 12px;
+        background: var(--bf-box); border-top: 0; border-radius: 0; box-shadow: none;
       }
-      .screen-fc .menu-scroll { max-height: none; height: 100%; scrollbar-color: #ffbb00 #2e2e2e; }
+      .screen-fc .menu-scroll { height: 100%; max-height: none; }
       .screen-fc .menu-help {
-        grid-column: 2; color: var(--bf-muted); border-left: 1px solid #2a2a2a;
-        background: var(--bf-header); padding: 12px 14px; max-width: none;
+        grid-column: 2; max-width: none; padding: 12px 14px;
+        color: var(--bf-muted); background: var(--bf-header); border-left: 1px solid #2a2a2a;
       }
       .screen-fc .row { gap: 10px; padding: 7px 16px 7px 18px; font-size: 13px; color: var(--bf-text); }
       .screen-fc .row.on {
@@ -1331,52 +1326,38 @@
         background: linear-gradient(90deg, rgba(255, 187, 0, 0.16), rgba(255, 187, 0, 0) 48%);
       }
       .screen-fc .row-label { font-family: inherit; font-size: 13px; }
-      .screen-fc .row-value {
-        max-width: none; overflow: visible; text-overflow: clip; color: var(--bf-accent);
-      }
-      .screen-fc .row-grey { color: var(--bf-grey); }
-      .screen-fc .row-grey .row-value { color: var(--bf-grey); }
+      .screen-fc .row-value { max-width: none; overflow: visible; text-overflow: clip; color: var(--bf-accent); }
+      .screen-fc .row-grey, .screen-fc .row-grey .row-value { color: var(--bf-grey); }
       .screen-fc .row-gated .row-value { color: var(--bf-accent); }
       .screen-fc .fc-section {
-        color: var(--bf-accent); font-size: 11px; font-weight: 800;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        border-bottom: 1px solid #555; margin-top: 8px; pointer-events: none;
+        margin-top: 8px; pointer-events: none; border-bottom: 1px solid #555;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--bf-accent);
       }
-      /*
-       * PINNED. Save was a row inside the scrolling list, so after typing a
-       * value into the last live field of the PID Profile page a pilot had
-       * to arrow back up 96 rows to reach it. The bar is built into the
-       * list so it keeps its place in the cursor order, and sticky is what
-       * keeps it on screen without moving it out of that order.
-       */
+      /* Save and its neighbours stay in the row order (the cursor walks
+         them like rows) but stick to the top of the scroll, so a long PID
+         page never leaves them a hundred rows away. */
       .screen-fc .fc-bar {
-        display: flex; gap: 8px; padding: 10px 12px 6px; flex-wrap: wrap;
         position: sticky; top: 0; z-index: 2;
-        background: var(--bf-panel);
-        box-shadow: 0 6px 10px -6px rgba(0, 0, 0, 0.55);
+        display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px 6px;
+        background: var(--bf-panel); box-shadow: 0 6px 10px -6px rgba(0, 0, 0, 0.55);
       }
       .screen-fc .fc-btn {
-        background: var(--bf-accent); color: var(--bf-ink); font-weight: 700; margin: 0;
-        border-radius: 3px; border-left: 0; flex: 1 1 6em; justify-content: center;
-        padding: 8px 10px;
+        flex: 1 1 6em; justify-content: center; margin: 0; padding: 8px 10px;
+        font-weight: 700; color: var(--bf-ink); background: var(--bf-accent);
+        border-left: 0; border-radius: 3px;
       }
-      .screen-fc .fc-btn .row-label { color: var(--bf-ink); font-weight: 700; }
-      .screen-fc .fc-btn.on { background: #ffd24d; color: var(--bf-ink); border-left: 0; }
-      .fc-status {
-        flex: 0 0 auto; background: var(--bf-accent); color: var(--bf-ink);
-        font-size: 11px; font-weight: 650; letter-spacing: 0.04em; padding: 5px 14px;
-        pointer-events: auto;
-      }
+      .screen-fc .fc-btn .row-label { font-weight: 700; color: var(--bf-ink); }
+      .screen-fc .fc-btn.on { color: var(--bf-ink); background: #ffd24d; border-left: 0; }
       .fc-attitude {
-        display: block; margin: 12px 16px; width: 220px; height: 220px;
-        background: #2e2e2e; border: 1px solid #6b6b6b; pointer-events: none;
+        display: block; width: 220px; height: 220px; margin: 12px 16px;
+        pointer-events: none; background: #2e2e2e; border: 1px solid #6b6b6b;
       }
-      .fc-attitude[hidden] { display: none !important; }
       @media (max-width: 900px) {
+        .fc-wordmark { font-size: 16px; }
+        .fc-tabs { flex: 0 0 8.5em; }
         .screen-fc .menu-stage { grid-template-columns: minmax(0, 1fr); }
         .screen-fc .menu-help { grid-column: auto; max-width: none; border-left: none; }
-        .fc-tabs { flex: 0 0 8.5em; }
-        .fc-wordmark { font-size: 16px; }
       }
       .screen-maps {
         justify-content: flex-start;
