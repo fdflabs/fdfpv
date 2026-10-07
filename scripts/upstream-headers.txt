@@ -59,7 +59,6 @@ src/share/orbit.html
 src/share/orbit.js
 src/share/session.js
 src/share/stats.js
-src/share/summary.js
 src/trackbuilder/index.html
 src/ui/accountui.js
 src/ui/credits.js
