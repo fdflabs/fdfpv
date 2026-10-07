@@ -4140,6 +4140,7 @@
       .hangar-spec .hangar-stat-label { font-size: 10px; }
       .hangar-spec .hangar-stat-value { font-size: 15px; }
       .hangar-spec .hangar-stat-delta { display: none; }
+      .hangar-spec .hangar-stat-delta.better, .hangar-spec .hangar-stat-delta.worse { display: block; }
       .hangar-stage { position: relative; min-height: 0; cursor: grab; }
       /* Flip, in the stage's lower corner, clear of the spec sheet. */
       .hangar-flip {
@@ -4268,6 +4269,7 @@
         background: linear-gradient(90deg, #ffb43c, var(--amber));
       }
       .hangar-stat-delta { min-height: 12px; font: 700 12px/1 var(--ui-font); color: var(--mint); }
+      .hangar-stat-delta.worse { color: var(--amber); }
       /* The Parts tab (src/ui/hangar-parts.js): an add-on is a toggle with a
        * light in its corner, a broken part a row with its repair. */
       .parts-toggle { position: relative; padding-right: 30px; }
