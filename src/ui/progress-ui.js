@@ -31,7 +31,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RunWatch, awardChallenge, awardLap, awardMedal, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -250,12 +250,15 @@ export class Progress {
     this.watch.touch(kind);
   }
 
-  /* A lap closed on `course`, { key, kind }. */
-  lap(course) {
+  /* A lap closed on `course`, { key, kind }; `medal` is the one the lap
+   * reached on a course with medals (src/game/medals.js), or null. */
+  lap(course, medal = null) {
     const events = awardLap(this.state, course);
+    const won = medal ? awardMedal(this.state, course.key, medal) : [];
     const done = this.watch.lap();
     this.save();
     this.show(events);
+    this.show(won);
     this.award(done);
   }
 
@@ -279,10 +282,20 @@ export class Progress {
   show(events) {
     const xp = events.find((e) => e.type === 'xp');
     const ch = events.find((e) => e.type === 'challenge');
+    const medal = events.find((e) => e.type === 'medal');
     const levels = events.filter((e) => e.type === 'level');
     const up = levels.length ? levels[levels.length - 1].level : 0;
     const info = levelInfo(this.state.xp);
-    if (ch) {
+    if (medal) {
+      this.toast({
+        cls: `medal medal-${medal.medal}${up ? ' level' : ''}`,
+        icon: '\u25CF',
+        kicker: str('progress.toast_medal'),
+        title: str(`medal.${medal.medal}`),
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (ch) {
       this.toast({
         cls: `challenge${up ? ' level' : ''}`,
         icon: '\u2713',

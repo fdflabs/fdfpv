@@ -280,6 +280,8 @@ jobs:
       - run: npm run stab:chop
       - run: npm run power:check
       - run: npm run progress:selftest
+      # Medals on built courses (src/game/medals.js): times, award, merge.
+      - run: npm run medals:selftest
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest

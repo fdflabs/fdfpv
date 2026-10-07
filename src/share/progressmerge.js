@@ -27,7 +27,8 @@
  *
  *   progress   XP is the higher of the two; courses flown, challenges
  *              done and the rest are flags, and a flag set on either side
- *              is set; Unlock all is on if either turned it on.
+ *              is set; medals per course the better of the two; Unlock
+ *              all is on if either turned it on.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
  *   keyed      one entry per plane (or per tune, or per build), the newer
@@ -83,6 +84,7 @@
  */
 
 import { mergeCampaign } from '../game/campaign.js';
+import { betterMedal } from '../game/medals.js';
 import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import {
@@ -258,6 +260,13 @@ function mergeProgress(a, b) {
   out.xp = Math.max(Number.isFinite(a.xp) ? a.xp : 0, Number.isFinite(b.xp) ? b.xp : 0);
   for (const k of FLAG_MAPS) {
     out[k] = { ...(isRecord(b[k]) ? b[k] : {}), ...(isRecord(a[k]) ? a[k] : {}) };
+  }
+  out.medals = {};
+  for (const k of new Set([...Object.keys(isRecord(a.medals) ? a.medals : {}), ...Object.keys(isRecord(b.medals) ? b.medals : {})])) {
+    const best = betterMedal(a.medals?.[k], b.medals?.[k]);
+    if (best) {
+      out.medals[k] = best;
+    }
   }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
   return out;

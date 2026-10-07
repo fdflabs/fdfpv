@@ -60,6 +60,7 @@ import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 import { DECAL_KIND_IDS, FINISHES } from '../../configs/paint.js';
+import { MEDAL_STEPS, newSteps } from './medals.js';
 
 const { POWER } = powerConfig;
 const { liveryKey, schemesFor } = liveryConfig;
@@ -73,6 +74,10 @@ const LEVEL_TAIL = 800;
  * time a lap closes on a course. */
 export const LAP_XP = { casual: 50, built: 40, map: 40 };
 export const FIRST_LAP_XP = 40;
+/* Each medal step on a course pays once, the first time it is reached, on
+ * the first lap's scale: a gold straight away is all three. The amount is
+ * the progression lane's to tune (docs/FLIGHTCLUB-PROGRESSION.md). */
+export const MEDAL_XP = 40;
 
 /* The planes a new pilot has, and the level each other one opens at.
  * Float planes go with their land plane. Quads are never locked, and nor
@@ -178,7 +183,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll };
+  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, medals: {}, unlockAll };
 }
 
 function isRecord(o) {
@@ -193,6 +198,20 @@ function flags(o, max) {
   for (const [k, v] of Object.entries(o).slice(0, max)) {
     if (typeof k === 'string' && k.length <= 120 && v === true) {
       out[k] = true;
+    }
+  }
+  return out;
+}
+
+/* A course key to the best medal reached on it, unknown medals dropped. */
+export function medalMap(o) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, 2000)) {
+    if (k.length <= 120 && MEDAL_STEPS.includes(v)) {
+      out[k] = v;
     }
   }
   return out;
@@ -217,6 +236,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     challenges: flags(stored.challenges, 200),
     seen: flags(stored.seen, 2000),
     casual: flags(stored.casual, 500),
+    medals: medalMap(stored.medals),
     unlockAll: typeof stored.unlockAll === 'boolean' ? stored.unlockAll : existing,
   };
 }
@@ -404,6 +424,20 @@ export function awardLap(progress, course) {
     progress.courses[course.key] = true;
   }
   return addXp(progress, base + (first ? FIRST_LAP_XP : 0), { kind: 'lap', course, first: Boolean(first) });
+}
+
+/*
+ * A lap that reached `medal` on the course `key`: the medal kept if it
+ * is better than the one held, and MEDAL_XP for each step newly reached.
+ * The same medal again, or a lower one, pays nothing.
+ */
+export function awardMedal(progress, key, medal) {
+  const steps = newSteps(progress.medals[key] ?? null, medal);
+  if (!key || !steps.length) {
+    return [];
+  }
+  progress.medals[key] = medal;
+  return [{ type: 'medal', key, medal }, ...addXp(progress, MEDAL_XP * steps.length, { kind: 'medal', key, medal })];
 }
 
 /* A challenge done: its XP once, and nothing the second time. */
