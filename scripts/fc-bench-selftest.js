@@ -7,7 +7,9 @@
  * The session is driven over tests/fixtures/fc-bench-dump.txt, the text
  * moduleDump returned from dist/sim.wasm booted on the default tune with
  * RATE_DEFAULTS, which is exactly what main.js opens the bench with. It is
- * a copy so that a WASM rebuild does not move the digest.
+ * a copy so that a WASM rebuild does not move the digest. Regenerate it
+ * with --regen-dump, which boots dist/sim.wasm the same way and rewrites
+ * the fixture; the digest then needs re-recording in the same commit.
  *
  * The contract is wider than the exports. ui.js, main.js and shell-check.js
  * read and assign session fields directly (snapshot, draft, runActive,
@@ -39,7 +41,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,7 +52,22 @@ import { TUNES } from '../configs/registry.js';
 import { transcript } from './lib/transcript.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const DUMP = readFileSync(join(root, 'tests/fixtures/fc-bench-dump.txt'), 'utf8');
+const DUMP_PATH = join(root, 'tests/fixtures/fc-bench-dump.txt');
+
+if (process.argv.includes('--regen-dump')) {
+  const { composeConfig, moduleDump, RATES_KEEP } = await import('../src/fc/dump.js');
+  const { RATE_DEFAULTS } = await import('../configs/rates.js');
+  const { loadSim, SIM_OK } = await import('../tests/lib/simmod.js');
+  const sim = await loadSim(readFileSync(join(root, 'dist/sim.wasm')));
+  const tune = readFileSync(join(root, 'configs/betaflight-default.diff'), 'utf8');
+  const code = sim.init(composeConfig(tune, RATE_DEFAULTS, RATES_KEEP));
+  if (code !== SIM_OK) throw new Error(`sim_init returned ${code}`);
+  writeFileSync(DUMP_PATH, moduleDump(sim));
+  console.log(`wrote ${DUMP_PATH}`);
+  process.exit(0);
+}
+
+const DUMP = readFileSync(DUMP_PATH, 'utf8');
 const t = transcript();
 
 // Rows reach ui.js as plain objects read by name, so key order and closure
