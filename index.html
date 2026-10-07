@@ -134,16 +134,10 @@
         --slate: #9db3c8;
         --deep: #141c16;
         /*
-         * THE FRAME'S TWO BARS, as tokens rather than as numbers typed into
-         * seventeen places.
-         *
-         * Every scroller cap in this sheet is a hand tuned vh, and seven of
-         * them say in their own comments which window they were measured
-         * against. Adding a status bar and a command bar without telling
-         * those caps about it puts the Rates screen 52 px under its own bar
-         * at 1280x720, measured. So the caps subtract these, and a screen
-         * that hides a bar sets its own value to zero rather than fighting
-         * the cap.
+         * The status bar and the command bar. Every scroller height in
+         * the sheet subtracts these, so a cap tuned for a window stays
+         * right with the bars up, and a screen that drops a bar zeroes its
+         * own value instead of overriding each cap.
          */
         --bar-top: 36px;
         --bar-bot: 44px;
