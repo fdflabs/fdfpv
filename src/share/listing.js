@@ -496,15 +496,16 @@ export async function publishCurrentCourse({ doc, author, origin, courseName }) 
     if (!e || !e.conflict) {
       throw e;
     }
-    const copy = forkDocument(working, {
+    const fork = forkDocument(working, {
       name: working.name,
       board,
       sourceId: working.id,
       sourceName: working.name,
       sourceAuthor: '',
     });
-    const plain = toPlain(copy);
+    const plain = toPlain(fork.copy);
     const posted = await trySend(plain);
+    fork.commit();
     rememberPublish(plain, posted, board, author);
     writeAutosave(plain);
     return { posted, doc: plain, forked: true };
