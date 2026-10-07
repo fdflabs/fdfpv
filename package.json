@@ -31,6 +31,7 @@
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "fc-catalog:selftest": "node scripts/fc-catalog-selftest.js",
     "lint:shell": "node scripts/shell-check.js",
+    "ui:golden": "node scripts/ui-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
