@@ -321,7 +321,6 @@
     "audio:latch": "node scripts/audio-nan-latch.js",
     "world:live": "node scripts/world-audio-live.js",
     "voice:check": "python3 tools/voice/check.py",
-    "test:edge": "node edge/selftest.js",
     "test:tracks": "node tracks-api/selftest.js && node tracks-api/accounts-selftest.js",
     "cloud:selftest": "node scripts/cloud-selftest.js",
     "domain:selftest": "node scripts/domain-selftest.js",

@@ -178,7 +178,6 @@ jobs:
       # The war audio against its script, credits and manifest: python3's
       # standard library only, no GPU and no model download.
       - run: npm run voice:check
-      - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest
       # The game's own domain: which servers the page picks, the probe's

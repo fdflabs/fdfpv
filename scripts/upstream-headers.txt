@@ -4,8 +4,6 @@ configs/pids.js
 configs/ratepresets.js
 configs/rates.js
 configs/registry.js
-edge/router.js
-edge/selftest.js
 icon.svg
 index.html
 render.yaml
