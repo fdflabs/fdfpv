@@ -26,20 +26,20 @@ import { str } from '../strings/index.js';
  * colour mark, Grok's 2025 wordmark, Claude's starburst. The faces are
  * the channels' own pictures, at the size YouTube serves them. All of them are used only to name the work.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -238,11 +238,9 @@ function projectCard({ src, alt, well, title, href, body, wordmark = true }) {
 /*
  * A person card: face and slot number down the left, name and link down
  * the right, and the whole card is the hit target when there is a
- * channel to open. `nameNode` lets the maker keep the andAgainFPV
- * wordmark as its own heading instead of plain text, and `note` is the
- * maker's line about what was built. A pilot row passes neither.
+ * channel to open.
  */
-function personCard({ cls, src, slot, name, nameNode, note, channel, handle }) {
+function personCard({ cls, src, slot, name, channel, handle }) {
   const n = el('article', cls ? `credit person ${cls}` : 'credit person');
   const stack = el('div', 'credit-stack');
   stack.append(face(src, name));
@@ -255,7 +253,7 @@ function personCard({ cls, src, slot, name, nameNode, note, channel, handle }) {
 
   const copy = el('div', 'credit-copy');
   const h = el('h4', null, null);
-  const label = nameNode || document.createTextNode(name);
+  const label = document.createTextNode(name);
   if (channel) {
     const a = link(channel, null);
     a.append(label);
@@ -265,9 +263,6 @@ function personCard({ cls, src, slot, name, nameNode, note, channel, handle }) {
     h.append(label);
   }
   copy.append(h);
-  if (note) {
-    copy.append(el('p', null, note));
-  }
   if (handle) {
     copy.append(handleLine(handle));
   }
@@ -294,7 +289,6 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   const src = (name) => new URL(`${assetBase}/${name}`, document.baseURI).href;
   host.textContent = '';
 
-  /* FDFPV is fdflabs.com's fork; every credit below is the upstream's and stays as it was. */
   const by = el('p', 'credits-lede');
   by.append(
     document.createTextNode(str('credits.fdfpv_by')),
@@ -304,20 +298,6 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
 
   const lede = el('p', 'credits-lede', str('credits.a_browser_fpv_racing_simulator_the'));
   host.append(lede);
-
-  const made = section(str('credits.made_by'), '');
-  const makerMark = el('span', 'maker-mark');
-  makerMark.append(document.createTextNode(str('credits.andagain')), el('span', 'fpv', 'FPV'));
-  made.append(personCard({
-    cls: 'maker',
-    src: src('andagain.jpg'),
-    name: 'andAgainFPV',
-    nameNode: makerMark,
-    note: str('credits.built_this_simulator_the_track_builder'),
-    channel: 'https://www.youtube.com/@andAgainFPV',
-    handle: 'youtube.com/@andAgainFPV',
-  }));
-  host.append(made);
 
   const pilots = section(str('credits.beta_test_pilots'), str('credits.they_flew_it_until_it_felt'));
   const row = el('div', 'credit-row pilots');

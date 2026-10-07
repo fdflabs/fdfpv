@@ -610,7 +610,7 @@ Enforced only for Itaipu's views (`BUDGET`, scripts/itaipu-views.js 211,
 local) and the damage shots; verify compares a round trip with its own
 boot, not an absolute. Nothing for the menu, the Alps or the valley, no
 AI count or texture memory line. **Done:** one budget table in
-docs/ARCHITECTURE.md (menu, each world, war at full load: calls,
+a new docs/BUDGETS.md (menu, each world, war at full load: calls,
 triangles, texture MB, attackers, peers), each row held by a local check
 that fails over it. Size M. Phase 29.
 
@@ -824,7 +824,7 @@ one; the owner's machines and the Pocket first. Size S. Phase 30.
 second at 1080p on a five year old mid range laptop (budget.js 4,
 ITAIPU-PLAN.md 570), and the pacer holds it (pace.js). No minimum
 playable or recommended machine is written. **Done:** the three lines in
-docs/ARCHITECTURE.md beside item 46's budgets: minimum 30 (the pacer's
+docs/BUDGETS.md beside item 46's budgets: minimum 30 (the pacer's
 floor), target 60, recommended the reference laptop named. Size S. Phase
 29.
 

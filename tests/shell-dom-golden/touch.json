@@ -948,7 +948,7 @@
         ],
         "on": [
          [
-          33,
+          32,
           "click"
          ]
         ]
@@ -994,7 +994,7 @@
         ],
         "on": [
          [
-          32,
+          31,
           "click"
          ]
         ],
@@ -2195,194 +2195,7 @@
         ],
         "kids": [
          {
-          "t": "A browser FPV racing simulator. The track language comes from Track Draw. The rest is one pilot and the people who flew it until it felt right."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Made by"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "article",
-          "attrs": [
-           [
-            "class",
-            "credit person maker is-link"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "div",
-            "attrs": [
-             [
-              "class",
-              "credit-stack"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "span",
-              "attrs": [
-               [
-                "aria-hidden",
-                "true"
-               ],
-               [
-                "class",
-                "credit-face"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "img",
-                "attrs": [
-                 [
-                  "alt",
-                  ""
-                 ],
-                 [
-                  "decoding",
-                  "async"
-                 ],
-                 [
-                  "height",
-                  "240"
-                 ],
-                 [
-                  "loading",
-                  "lazy"
-                 ],
-                 [
-                  "src",
-                  "<origin>/assets/credits/andagain.jpg"
-                 ],
-                 [
-                  "width",
-                  "240"
-                 ]
-                ],
-                "on": [
-                 [
-                  13,
-                  "error"
-                 ]
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "div",
-            "attrs": [
-             [
-              "class",
-              "credit-copy"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "h4",
-              "kids": [
-               {
-                "tag": "a",
-                "attrs": [
-                 [
-                  "href",
-                  "https://www.youtube.com/@andAgainFPV"
-                 ],
-                 [
-                  "rel",
-                  "noopener noreferrer"
-                 ],
-                 [
-                  "target",
-                  "_blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "maker-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "andAgain"
-                   },
-                   {
-                    "tag": "span",
-                    "attrs": [
-                     [
-                      "class",
-                      "fpv"
-                     ]
-                    ],
-                    "kids": [
-                     {
-                      "t": "FPV"
-                     }
-                    ]
-                   }
-                  ]
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "p",
-              "kids": [
-               {
-                "t": "Built this simulator, the track builder, and the public board. Orchestrated a horde of Grok and Claude along the way."
-               }
-              ]
-             },
-             {
-              "tag": "span",
-              "attrs": [
-               [
-                "class",
-                "credit-handle"
-               ]
-              ],
-              "kids": [
-               {
-                "t": "youtube.com/@andAgainFPV"
-               }
-              ]
-             }
-            ]
-           }
-          ]
+          "t": "A browser FPV racing simulator. The track language comes from Track Draw."
          }
         ]
        },
@@ -2492,7 +2305,7 @@
                   ],
                   "on": [
                    [
-                    14,
+                    13,
                     "error"
                    ]
                   ]
@@ -2722,7 +2535,7 @@
                   ],
                   "on": [
                    [
-                    15,
+                    14,
                     "error"
                    ]
                   ]
@@ -2864,7 +2677,7 @@
                   ],
                   "on": [
                    [
-                    16,
+                    15,
                     "error"
                    ]
                   ]
@@ -5492,7 +5305,7 @@
         ],
         "on": [
          [
-          17,
+          16,
           "click"
          ]
         ],
@@ -5516,7 +5329,7 @@
         ],
         "on": [
          [
-          18,
+          17,
           "click"
          ]
         ],
@@ -5913,7 +5726,7 @@
         ],
         "on": [
          [
-          19,
+          18,
           "click"
          ]
         ],
@@ -5941,7 +5754,7 @@
         ],
         "on": [
          [
-          20,
+          19,
           "click"
          ]
         ],
@@ -5969,7 +5782,7 @@
         ],
         "on": [
          [
-          21,
+          20,
           "click"
          ]
         ],
@@ -5997,7 +5810,7 @@
         ],
         "on": [
          [
-          22,
+          21,
           "click"
          ]
         ],
@@ -6025,7 +5838,7 @@
         ],
         "on": [
          [
-          23,
+          22,
           "click"
          ]
         ],
@@ -6053,7 +5866,7 @@
         ],
         "on": [
          [
-          24,
+          23,
           "click"
          ]
         ],
@@ -6201,7 +6014,7 @@
         ],
         "on": [
          [
-          25,
+          24,
           "click"
          ]
         ],
@@ -6225,7 +6038,7 @@
         ],
         "on": [
          [
-          26,
+          25,
           "click"
          ]
         ],
@@ -6249,7 +6062,7 @@
         ],
         "on": [
          [
-          27,
+          26,
           "click"
          ]
         ],
@@ -6676,7 +6489,7 @@
     ],
     "on": [
      [
-      28,
+      27,
       "click"
      ]
     ],
@@ -6708,7 +6521,7 @@
     ],
     "on": [
      [
-      29,
+      28,
       "click"
      ]
     ],
@@ -6740,7 +6553,7 @@
     ],
     "on": [
      [
-      30,
+      29,
       "click"
      ]
     ],
@@ -6776,7 +6589,7 @@
     ],
     "on": [
      [
-      31,
+      30,
       "click"
      ]
     ]
@@ -6837,11 +6650,11 @@
       ],
       "on": [
        [
-        34,
+        33,
         "mousedown"
        ],
        [
-        38,
+        37,
         "click"
        ]
       ],
@@ -6877,11 +6690,11 @@
       ],
       "on": [
        [
-        36,
+        35,
         "mousedown"
        ],
        [
-        37,
+        36,
         "click"
        ]
       ]
@@ -6908,11 +6721,11 @@
       ],
       "on": [
        [
-        35,
+        34,
         "mousedown"
        ],
        [
-        39,
+        38,
         "click"
        ]
       ],
@@ -6967,11 +6780,11 @@
     ],
     "on": [
      [
-      57,
+      56,
       "click"
      ],
      [
-      58,
+      57,
       "keydown"
      ]
     ],
@@ -7034,7 +6847,7 @@
             ],
             "on": [
              [
-              40,
+              39,
               "click"
              ]
             ],
@@ -7062,7 +6875,7 @@
             ],
             "on": [
              [
-              41,
+              40,
               "click"
              ]
             ],
@@ -7090,7 +6903,7 @@
             ],
             "on": [
              [
-              42,
+              41,
               "click"
              ]
             ],
@@ -7118,7 +6931,7 @@
             ],
             "on": [
              [
-              43,
+              42,
               "click"
              ]
             ],
@@ -7146,23 +6959,23 @@
         ],
         "on": [
          [
-          46,
+          45,
           "pointerdown"
          ],
          [
-          47,
+          46,
           "pointermove"
          ],
          [
-          48,
+          47,
           "pointerup"
          ],
          [
-          49,
+          48,
           "pointercancel"
          ],
          [
-          50,
+          49,
           "wheel"
          ]
         ],
@@ -7185,7 +6998,7 @@
           ],
           "on": [
            [
-            44,
+            43,
             "click"
            ]
           ],
@@ -7213,7 +7026,7 @@
           ],
           "on": [
            [
-            45,
+            44,
             "click"
            ]
           ],
@@ -7309,7 +7122,7 @@
             ],
             "on": [
              [
-              51,
+              50,
               "click"
              ]
             ],
@@ -7348,7 +7161,7 @@
             ],
             "on": [
              [
-              52,
+              51,
               "click"
              ]
             ],
@@ -7376,7 +7189,7 @@
             ],
             "on": [
              [
-              53,
+              52,
               "click"
              ]
             ],
@@ -7449,7 +7262,7 @@
             ],
             "on": [
              [
-              54,
+              53,
               "click"
              ]
             ],
@@ -7473,7 +7286,7 @@
             ],
             "on": [
              [
-              56,
+              55,
               "click"
              ]
             ],
@@ -7497,7 +7310,7 @@
             ],
             "on": [
              [
-              55,
+              54,
               "click"
              ]
             ],
@@ -7546,11 +7359,11 @@
     ],
     "on": [
      [
-      77,
+      76,
       "click"
      ],
      [
-      78,
+      77,
       "keydown"
      ]
     ],
@@ -7565,7 +7378,7 @@
       ],
       "on": [
        [
-        76,
+        75,
         "focusin"
        ]
       ],
@@ -7647,23 +7460,23 @@
           ],
           "on": [
            [
-            65,
+            64,
             "pointerdown"
            ],
            [
-            66,
+            65,
             "wheel"
            ],
            [
-            67,
+            66,
             "pointermove"
            ],
            [
-            68,
+            67,
             "pointerup"
            ],
            [
-            69,
+            68,
             "pointercancel"
            ]
           ],
@@ -7736,7 +7549,7 @@
             ],
             "on": [
              [
-              59,
+              58,
               "click"
              ]
             ],
@@ -7768,7 +7581,7 @@
             ],
             "on": [
              [
-              60,
+              59,
               "click"
              ]
             ],
@@ -7800,7 +7613,7 @@
             ],
             "on": [
              [
-              61,
+              60,
               "click"
              ]
             ],
@@ -7832,7 +7645,7 @@
             ],
             "on": [
              [
-              62,
+              61,
               "click"
              ]
             ],
@@ -7864,7 +7677,7 @@
             ],
             "on": [
              [
-              63,
+              62,
               "click"
              ]
             ],
@@ -7896,7 +7709,7 @@
             ],
             "on": [
              [
-              64,
+              63,
               "click"
              ]
             ],
@@ -7918,7 +7731,7 @@
           ],
           "on": [
            [
-            70,
+            69,
             "pointerleave"
            ]
           ]
@@ -7970,7 +7783,7 @@
             ],
             "on": [
              [
-              71,
+              70,
               "click"
              ]
             ],
@@ -8007,7 +7820,7 @@
               ],
               "on": [
                [
-                74,
+                73,
                 "click"
                ]
               ],
@@ -8035,7 +7848,7 @@
               ],
               "on": [
                [
-                72,
+                71,
                 "click"
                ]
               ],
@@ -8063,7 +7876,7 @@
               ],
               "on": [
                [
-                73,
+                72,
                 "click"
                ]
               ],
@@ -8120,7 +7933,7 @@
         "value": "#000000",
         "on": [
          [
-          75,
+          74,
           "input"
          ]
         ]
@@ -9097,7 +8910,7 @@
         ],
         "on": [
          [
-          33,
+          32,
           "click"
          ]
         ]
@@ -9143,7 +8956,7 @@
         ],
         "on": [
          [
-          32,
+          31,
           "click"
          ]
         ],
@@ -10344,194 +10157,7 @@
         ],
         "kids": [
          {
-          "t": "A browser FPV racing simulator. The track language comes from Track Draw. The rest is one pilot and the people who flew it until it felt right."
-         }
-        ]
-       },
-       {
-        "tag": "section",
-        "attrs": [
-         [
-          "class",
-          "credit-block"
-         ]
-        ],
-        "kids": [
-         {
-          "tag": "div",
-          "attrs": [
-           [
-            "class",
-            "credit-kicker"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "span",
-            "kids": [
-             {
-              "t": "Made by"
-             }
-            ]
-           }
-          ]
-         },
-         {
-          "tag": "article",
-          "attrs": [
-           [
-            "class",
-            "credit person maker is-link"
-           ]
-          ],
-          "kids": [
-           {
-            "tag": "div",
-            "attrs": [
-             [
-              "class",
-              "credit-stack"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "span",
-              "attrs": [
-               [
-                "aria-hidden",
-                "true"
-               ],
-               [
-                "class",
-                "credit-face"
-               ]
-              ],
-              "kids": [
-               {
-                "tag": "img",
-                "attrs": [
-                 [
-                  "alt",
-                  ""
-                 ],
-                 [
-                  "decoding",
-                  "async"
-                 ],
-                 [
-                  "height",
-                  "240"
-                 ],
-                 [
-                  "loading",
-                  "lazy"
-                 ],
-                 [
-                  "src",
-                  "<origin>/assets/credits/andagain.jpg"
-                 ],
-                 [
-                  "width",
-                  "240"
-                 ]
-                ],
-                "on": [
-                 [
-                  13,
-                  "error"
-                 ]
-                ]
-               }
-              ]
-             }
-            ]
-           },
-           {
-            "tag": "div",
-            "attrs": [
-             [
-              "class",
-              "credit-copy"
-             ]
-            ],
-            "kids": [
-             {
-              "tag": "h4",
-              "kids": [
-               {
-                "tag": "a",
-                "attrs": [
-                 [
-                  "href",
-                  "https://www.youtube.com/@andAgainFPV"
-                 ],
-                 [
-                  "rel",
-                  "noopener noreferrer"
-                 ],
-                 [
-                  "target",
-                  "_blank"
-                 ]
-                ],
-                "kids": [
-                 {
-                  "tag": "span",
-                  "attrs": [
-                   [
-                    "class",
-                    "maker-mark"
-                   ]
-                  ],
-                  "kids": [
-                   {
-                    "t": "andAgain"
-                   },
-                   {
-                    "tag": "span",
-                    "attrs": [
-                     [
-                      "class",
-                      "fpv"
-                     ]
-                    ],
-                    "kids": [
-                     {
-                      "t": "FPV"
-                     }
-                    ]
-                   }
-                  ]
-                 }
-                ]
-               }
-              ]
-             },
-             {
-              "tag": "p",
-              "kids": [
-               {
-                "t": "Built this simulator, the track builder, and the public board. Orchestrated a horde of Grok and Claude along the way."
-               }
-              ]
-             },
-             {
-              "tag": "span",
-              "attrs": [
-               [
-                "class",
-                "credit-handle"
-               ]
-              ],
-              "kids": [
-               {
-                "t": "youtube.com/@andAgainFPV"
-               }
-              ]
-             }
-            ]
-           }
-          ]
+          "t": "A browser FPV racing simulator. The track language comes from Track Draw."
          }
         ]
        },
@@ -10641,7 +10267,7 @@
                   ],
                   "on": [
                    [
-                    14,
+                    13,
                     "error"
                    ]
                   ]
@@ -10871,7 +10497,7 @@
                   ],
                   "on": [
                    [
-                    15,
+                    14,
                     "error"
                    ]
                   ]
@@ -11013,7 +10639,7 @@
                   ],
                   "on": [
                    [
-                    16,
+                    15,
                     "error"
                    ]
                   ]
@@ -13641,7 +13267,7 @@
         ],
         "on": [
          [
-          17,
+          16,
           "click"
          ]
         ],
@@ -13665,7 +13291,7 @@
         ],
         "on": [
          [
-          18,
+          17,
           "click"
          ]
         ],
@@ -14062,7 +13688,7 @@
         ],
         "on": [
          [
-          19,
+          18,
           "click"
          ]
         ],
@@ -14090,7 +13716,7 @@
         ],
         "on": [
          [
-          20,
+          19,
           "click"
          ]
         ],
@@ -14118,7 +13744,7 @@
         ],
         "on": [
          [
-          21,
+          20,
           "click"
          ]
         ],
@@ -14146,7 +13772,7 @@
         ],
         "on": [
          [
-          22,
+          21,
           "click"
          ]
         ],
@@ -14174,7 +13800,7 @@
         ],
         "on": [
          [
-          23,
+          22,
           "click"
          ]
         ],
@@ -14202,7 +13828,7 @@
         ],
         "on": [
          [
-          24,
+          23,
           "click"
          ]
         ],
@@ -14350,7 +13976,7 @@
         ],
         "on": [
          [
-          25,
+          24,
           "click"
          ]
         ],
@@ -14374,7 +14000,7 @@
         ],
         "on": [
          [
-          26,
+          25,
           "click"
          ]
         ],
@@ -14398,7 +14024,7 @@
         ],
         "on": [
          [
-          27,
+          26,
           "click"
          ]
         ],
@@ -14825,7 +14451,7 @@
     ],
     "on": [
      [
-      28,
+      27,
       "click"
      ]
     ],
@@ -14857,7 +14483,7 @@
     ],
     "on": [
      [
-      29,
+      28,
       "click"
      ]
     ],
@@ -14889,7 +14515,7 @@
     ],
     "on": [
      [
-      30,
+      29,
       "click"
      ]
     ],
@@ -14925,7 +14551,7 @@
     ],
     "on": [
      [
-      31,
+      30,
       "click"
      ]
     ]
@@ -14986,11 +14612,11 @@
       ],
       "on": [
        [
-        34,
+        33,
         "mousedown"
        ],
        [
-        38,
+        37,
         "click"
        ]
       ],
@@ -15026,11 +14652,11 @@
       ],
       "on": [
        [
-        36,
+        35,
         "mousedown"
        ],
        [
-        37,
+        36,
         "click"
        ]
       ]
@@ -15057,11 +14683,11 @@
       ],
       "on": [
        [
-        35,
+        34,
         "mousedown"
        ],
        [
-        39,
+        38,
         "click"
        ]
       ],
@@ -15116,11 +14742,11 @@
     ],
     "on": [
      [
-      57,
+      56,
       "click"
      ],
      [
-      58,
+      57,
       "keydown"
      ]
     ],
@@ -15183,7 +14809,7 @@
             ],
             "on": [
              [
-              40,
+              39,
               "click"
              ]
             ],
@@ -15211,7 +14837,7 @@
             ],
             "on": [
              [
-              41,
+              40,
               "click"
              ]
             ],
@@ -15239,7 +14865,7 @@
             ],
             "on": [
              [
-              42,
+              41,
               "click"
              ]
             ],
@@ -15267,7 +14893,7 @@
             ],
             "on": [
              [
-              43,
+              42,
               "click"
              ]
             ],
@@ -15295,23 +14921,23 @@
         ],
         "on": [
          [
-          46,
+          45,
           "pointerdown"
          ],
          [
-          47,
+          46,
           "pointermove"
          ],
          [
-          48,
+          47,
           "pointerup"
          ],
          [
-          49,
+          48,
           "pointercancel"
          ],
          [
-          50,
+          49,
           "wheel"
          ]
         ],
@@ -15334,7 +14960,7 @@
           ],
           "on": [
            [
-            44,
+            43,
             "click"
            ]
           ],
@@ -15362,7 +14988,7 @@
           ],
           "on": [
            [
-            45,
+            44,
             "click"
            ]
           ],
@@ -15458,7 +15084,7 @@
             ],
             "on": [
              [
-              51,
+              50,
               "click"
              ]
             ],
@@ -15497,7 +15123,7 @@
             ],
             "on": [
              [
-              52,
+              51,
               "click"
              ]
             ],
@@ -15525,7 +15151,7 @@
             ],
             "on": [
              [
-              53,
+              52,
               "click"
              ]
             ],
@@ -15598,7 +15224,7 @@
             ],
             "on": [
              [
-              54,
+              53,
               "click"
              ]
             ],
@@ -15622,7 +15248,7 @@
             ],
             "on": [
              [
-              56,
+              55,
               "click"
              ]
             ],
@@ -15646,7 +15272,7 @@
             ],
             "on": [
              [
-              55,
+              54,
               "click"
              ]
             ],
@@ -15695,11 +15321,11 @@
     ],
     "on": [
      [
-      77,
+      76,
       "click"
      ],
      [
-      78,
+      77,
       "keydown"
      ]
     ],
@@ -15714,7 +15340,7 @@
       ],
       "on": [
        [
-        76,
+        75,
         "focusin"
        ]
       ],
@@ -15796,23 +15422,23 @@
           ],
           "on": [
            [
-            65,
+            64,
             "pointerdown"
            ],
            [
-            66,
+            65,
             "wheel"
            ],
            [
-            67,
+            66,
             "pointermove"
            ],
            [
-            68,
+            67,
             "pointerup"
            ],
            [
-            69,
+            68,
             "pointercancel"
            ]
           ],
@@ -15885,7 +15511,7 @@
             ],
             "on": [
              [
-              59,
+              58,
               "click"
              ]
             ],
@@ -15917,7 +15543,7 @@
             ],
             "on": [
              [
-              60,
+              59,
               "click"
              ]
             ],
@@ -15949,7 +15575,7 @@
             ],
             "on": [
              [
-              61,
+              60,
               "click"
              ]
             ],
@@ -15981,7 +15607,7 @@
             ],
             "on": [
              [
-              62,
+              61,
               "click"
              ]
             ],
@@ -16013,7 +15639,7 @@
             ],
             "on": [
              [
-              63,
+              62,
               "click"
              ]
             ],
@@ -16045,7 +15671,7 @@
             ],
             "on": [
              [
-              64,
+              63,
               "click"
              ]
             ],
@@ -16067,7 +15693,7 @@
           ],
           "on": [
            [
-            70,
+            69,
             "pointerleave"
            ]
           ]
@@ -16119,7 +15745,7 @@
             ],
             "on": [
              [
-              71,
+              70,
               "click"
              ]
             ],
@@ -16156,7 +15782,7 @@
               ],
               "on": [
                [
-                74,
+                73,
                 "click"
                ]
               ],
@@ -16184,7 +15810,7 @@
               ],
               "on": [
                [
-                72,
+                71,
                 "click"
                ]
               ],
@@ -16212,7 +15838,7 @@
               ],
               "on": [
                [
-                73,
+                72,
                 "click"
                ]
               ],
@@ -16269,7 +15895,7 @@
         "value": "#000000",
         "on": [
          [
-          75,
+          74,
           "input"
          ]
         ]

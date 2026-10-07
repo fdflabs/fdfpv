@@ -5,7 +5,7 @@
 # with npm run build:wasm.
 #
 # dist/sim.wasm is committed and must rebuild byte identical from the same
-# sources and toolchain (emsdk 6.0.10, docs/PLAN.md), so every flag, every
+# sources and toolchain (emsdk 6.0.10), so every flag, every
 # file and the order of the files below is data. The determinism flags are
 # load-bearing: no fast math, no FP contraction, no relaxed SIMD.
 #
