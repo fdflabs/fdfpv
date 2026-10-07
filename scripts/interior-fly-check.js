@@ -180,6 +180,16 @@ try {
   const next = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.status().started : null');
   check('and the cue\'s second line after it, in turn', Array.isArray(next) && next.indexOf('int1-s1-proceed') > next.indexOf('int1-s1-clean'), JSON.stringify(next));
   await shot('interior-stage2-radio.png');
+  /* The discovery window's fixed hour (M1 audit item 10): said as the
+   * take only on that heading, else the search line and the hour off this
+   * page's nose. Either way the cue is heard, and through the page's own
+   * pose and camera (guide.js bearingSaid). */
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', op: 'cue', cues: [{ at: 0, stage: 'M1_CP_AIRBORNE', heard: 'all', radio: ['int1-s3-bearing'] }] }), true)`);
+  await page.until("(() => { const s = window.__audio.warRadio.status().started; return s.includes('int1-s3-bearing') || s.some((x) => /^int-g-clock-/.test(x)); })()", 20000).catch(() => {});
+  const bearing = await page.evaluate('window.__audio.warRadio.status().started');
+  const hour = bearing.find((x) => /^int-g-clock-/.test(x));
+  check('a fixed hour is said as the take on its heading, else the search line and the computed hour',
+    (bearing.includes('int1-s3-bearing') && !hour) || (!bearing.includes('int1-s3-bearing') && bearing.includes('int-g-search') && hour !== 'int-g-clock-11'), JSON.stringify(bearing));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

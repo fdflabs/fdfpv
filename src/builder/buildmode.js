@@ -1994,6 +1994,7 @@ export function createBuildMode(host) {
     aim.travel = target.axes.travel;
     aim.centre.set(target.centre.x, target.centre.y, target.centre.z);
     aim.clearH = target.aperture.clearH;
+    aim.virtual = Boolean(target.virtual);
     aim.sceneIndex = i;
     aim.active = true;
     sideNow();
@@ -2020,7 +2021,12 @@ export function createBuildMode(host) {
 
   /* The race gates with the meshes the race lights, as the view's course. */
   function courseFrom(gates) {
-    return gates.map((g) => ({ ...g, ...dressable(meshes.get(g.elementId), 0), aperture: g.aperture, cue: '' }));
+    /* dressable's virtual is the build screen's (no marker is a race target
+     * there); a raced flag or cone keeps raceGateOf's, so the shell hides
+     * the in-frame bracket for it as it does on the map's own courses. */
+    return gates.map((g) => ({
+      ...g, ...dressable(meshes.get(g.elementId), 0), aperture: g.aperture, cue: '', virtual: Boolean(g.virtual),
+    }));
   }
 
   /*

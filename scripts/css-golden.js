@@ -8,34 +8,41 @@
  *
  * A stylesheet's behaviour is the computed style it gives every element.
  * For each configuration (a stored profile, a window size, touch or not)
- * and each menu screen, every rendered element under <html> is recorded as
- * a hash of its full computed style and of its ::before and ::after. The
- * record is the hash per element path, so a rule that moves, merges or is
- * rephrased changes nothing, and one wrong pixel in one rule shows on the
- * path it hit. The full styles of the paths that differ are written to
- * TMPDIR when a comparison fails.
+ * and each menu screen, every rendered element is hashed: its full
+ * computed style (property names sorted, because Chromium lists custom
+ * properties in a different order on each load), its ::before and ::after,
+ * and its declared transition and animation. A rule that moves, merges or
+ * is rephrased changes nothing; one wrong value anywhere changes a hash.
+ * The committed record is one digest per state; every run writes the
+ * per-element form to CSS_GOLDEN_DETAIL (default $TMPDIR/css-golden-detail),
+ * so two runs (old and new stylesheet, different folders) can be diffed to
+ * find the element. CSS_GOLDEN_FULL=<screen> also writes that screen's full
+ * styles.
  *
- * What a plain screen walk does not reach is driven on purpose: a row and
- * a card under the mouse (:hover), the cursor's row focused (:focus,
- * :focus-visible, :focus-within), a drop-down open, and the root state
- * classes the shell toggles in flight (the OSD, the bars, the war and ops
- * HUDs) applied one at a time. Animations and transitions are paused at
- * a fixed frame before every snapshot, through the Web Animations API: a
- * finite one at its end, an endless one at its start, so a bar mid sweep
- * is the same bar every run and the animated values are pinned there.
+ * Interactions: on the gate (first@desk), the racer's desk and the phone,
+ * every :hover, :focus, :focus-visible and :focus-within rule whose element
+ * is on the screen is driven on its first visible match, the mouse moved
+ * onto it or the keyboard focus put in it, and the part of the page around
+ * it recorded. An open drop-down and the #ui flight state classes are
+ * recorded too.
+ *
+ * Determinism: motion is switched off by an injected sheet before each
+ * snapshot (the declared motion is read first, with it out), the world
+ * cards' reels never start, and a screen's snapshot is retaken until two
+ * in a row agree, because the shell's frame loop keeps writing under the
+ * menus. Checked by a record and three compares at load 22 to 35 with no
+ * difference.
  *
  * Media queries are proven covered, not assumed: every @media condition in
  * the sheet must hold in at least one configuration and fail in at least
- * one, or the run fails, so a breakpoint nobody's window crosses cannot
- * hide a wrong rule. Reduced motion is emulated for one configuration.
+ * one, or the run fails. Reduced motion is emulated for one configuration.
+ * The conditions' text is part of the record as well.
  *
  * What computed style cannot see is pinned by its CSSOM text instead:
- * ::placeholder, the range input's track and thumb, @font-face, and the
- * world cards' reels, which are kept from starting because what they draw
- * depends on how fast the walk went. The
- * custom property the scripts read back, --ui-font (src/ui/peermarks.js),
- * is recorded on :root; the rest of the tokens are the sheet's own
- * business and a rewrite may rename them.
+ * ::placeholder, the range input's track and thumb, @font-face, @keyframes
+ * and the world cards' reel rules. The custom property the scripts read
+ * back, --ui-font (src/ui/peermarks.js), is recorded on :root; the other
+ * tokens are the sheet's own business and a rewrite may rename them.
  *
  * Any difference is a stylesheet change: the answer is to fix the rule, or
  * to re-record on purpose with the reason in the commit.
@@ -56,6 +63,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -64,7 +72,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const OUT = join(root, 'tests', 'css-golden');
+const OUT = process.env.CSS_GOLDEN_OUT || join(root, 'tests', 'css-golden');
 const RECORD = process.argv.includes('--record');
 const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
@@ -88,14 +96,14 @@ const WINDOWS = {
 };
 
 const CONFIGS = [
-  { name: 'first@desk', profile: 'first', window: 'desk' },
+  { name: 'first@desk', profile: 'first', window: 'desk', states: true },
   { name: 'first@phone', profile: 'first', window: 'phone' },
   { name: 'race@desk', profile: 'race', window: 'desk', states: true },
   { name: 'race@tall', profile: 'race', window: 'tall' },
   { name: 'race@laptop', profile: 'race', window: 'laptop' },
   { name: 'race@narrow', profile: 'race', window: 'narrow' },
   { name: 'race@short', profile: 'race', window: 'short' },
-  { name: 'race@phone', profile: 'race', window: 'phone' },
+  { name: 'race@phone', profile: 'race', window: 'phone', states: true },
   { name: 'race@phoneWide', profile: 'race', window: 'phoneWide' },
   { name: 'race@still', profile: 'race', window: 'desk', reducedMotion: true },
 ];
@@ -106,24 +114,33 @@ const CONFIGS = [
 const ROOT_STATES = ['fpv-osd-on', 'bar-shown', 'compact', 'avx-on', 'war-on', 'ops-on', 'mine', 'is-minimal', 'hangar-open', 'carousel-open'];
 
 /*
- * Every running animation and transition put in a state that does not
- * depend on how long the walk took: a finite one is finished (a transition
- * on an inherited colour, still running on a loaded machine, otherwise
- * changes every element under it), an endless one is paused at its start.
- * Prepended to each in-page snapshot as a function declaration.
+ * Motion off before every snapshot: an injected sheet sets every
+ * transition and animation to none, so no value depends on how far a
+ * transition or a keyframe had got when the snapshot ran (finishing them
+ * was tried and still drifted under load). What that hides, the declared
+ * transition-* and animation-* longhands, is recorded on its own from the
+ * page without the sheet (MOTION), and the @keyframes bodies by their text
+ * (SHEET).
  */
+const STILL_ID = 'css-golden-still';
 const SETTLE = `function settle() {
-  for (const a of document.getAnimations()) {
-    const t = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null;
-    try {
-      if (t && Number.isFinite(t.endTime)) { a.finish(); } else { a.pause(); a.currentTime = 0; }
-    } catch (e) { a.pause(); a.currentTime = 0; }
+  if (!document.getElementById('${STILL_ID}')) {
+    const st = document.createElement('style');
+    st.id = '${STILL_ID}';
+    st.textContent = '*, *::before, *::after { transition: none !important; animation: none !important; }';
+    document.head.append(st);
   }
+  document.body.offsetHeight;
+}
+function unsettle() {
+  const st = document.getElementById('${STILL_ID}');
+  if (st) { st.remove(); }
 }`;
+
 
 /* The snapshot, evaluated in the page. Returns { path: [self, before, after] }
  * for every rendered element, each a hash of the full computed style. */
-const SNAPSHOT = `(() => {
+const SNAP = (rootExpr) => `(() => {
   ${SETTLE}
   const hash = (s) => {
     let a = 0x811c9dc5, b = 0x01000193 ^ 0x5bd1e995;
@@ -143,8 +160,10 @@ const SNAPSHOT = `(() => {
       const p = cs[i];
       parts.push(p + ':' + cs.getPropertyValue(p));
     }
-    /* The check's server picks a port each run, and a url() is absolute. */
-    return parts.join(';').split(location.origin).join('<origin>');
+    /* Sorted: Chromium lists custom properties in an order that changes
+     * from one page load to the next. The check's server picks a port each
+     * run, and a url() is absolute. */
+    return parts.sort().join(';').split(location.origin).join('<origin>');
   };
   const pathOf = (el) => {
     const bits = [];
@@ -161,17 +180,44 @@ const SNAPSHOT = `(() => {
     }
     return bits.join('>');
   };
+  /* The declared motion first, with the motion-off sheet out: these
+   * longhands are what the sheet says, not where a transition has got to. */
+  const MOTION = /^(transition|animation)-/;
+  const motionOf = (el, pseudo) => {
+    const cs = getComputedStyle(el, pseudo);
+    if (pseudo && cs.content === 'none') { return ''; }
+    const parts = [];
+    for (let i = 0; i < cs.length; i += 1) {
+      if (MOTION.test(cs[i])) { parts.push(cs[i] + ':' + cs.getPropertyValue(cs[i])); }
+    }
+    return parts.sort().join(';');
+  };
+  unsettle();
+  const motion = new Map();
+  const walkMotion = (el) => {
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { return; }
+    if (el !== top && el.getClientRects().length === 0) { return; }
+    motion.set(el, motionOf(el, null) + '|' + motionOf(el, '::before') + '|' + motionOf(el, '::after'));
+    for (const c of el.children) { walkMotion(c); }
+  };
+  const top = ${rootExpr};
+  walkMotion(top);
   settle();
   const out = {};
   const walk = (el) => {
     if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { return; }
     if (el !== document.documentElement && el.getClientRects().length === 0) { return; }
-    out[pathOf(el)] = [hash(styleText(el, null)), hash(styleText(el, '::before')), hash(styleText(el, '::after'))];
+    out[pathOf(el)] = [hash(styleText(el, null)), hash(styleText(el, '::before')), hash(styleText(el, '::after')), hash(motion.get(el) || '')];
     for (const c of el.children) { walk(c); }
   };
-  walk(document.documentElement);
+  walk(top);
   return out;
 })()`;
+const SNAPSHOT = SNAP('document.documentElement');
+/* Only the part of the page an interaction can restyle: the target's
+ * parent and everything under it (a :hover rule reaches the element, its
+ * children and its later siblings). */
+const SNAP_TARGET = SNAP('(window.__cssTarget.parentElement || window.__cssTarget)');
 
 /* The same walk, keeping the full text of the paths listed, for the
  * failure dump. */
@@ -213,14 +259,14 @@ const FULL = (paths) => `(() => {
 /* The sheet's own facts: its @media conditions, the rules computed style
  * cannot reach, @font-face, and --ui-font. */
 const SHEET = `(() => {
-  const sheet = Array.from(document.styleSheets).find((s) => s.ownerNode && s.ownerNode.tagName === 'STYLE');
+  const sheet = Array.from(document.styleSheets).find((s) => s.ownerNode && s.ownerNode.tagName === 'STYLE' && s.ownerNode.id !== '${STILL_ID}');
   const media = [];
   const unseen = [];
   const faces = [];
   const walk = (rules) => {
     for (const r of rules) {
       if (r.media) { media.push(r.media.mediaText); walk(r.cssRules); continue; }
-      if (r.type === CSSRule.FONT_FACE_RULE) { faces.push(r.cssText); continue; }
+      if (r.type === CSSRule.FONT_FACE_RULE || r.type === CSSRule.KEYFRAMES_RULE) { faces.push(r.cssText); continue; }
       if (r.selectorText && /::(placeholder|-webkit-slider|selection|marker|backdrop)|map-reel/.test(r.selectorText)) { unseen.push(r.cssText); }
       if (r.cssRules && !r.media) { walk(r.cssRules); }
     }
@@ -246,18 +292,89 @@ function seedFor(p) {
   return lines;
 }
 
-async function hover(page, selector) {
-  const at = await page.evaluate(`(() => {
-    const n = document.querySelector(${JSON.stringify(selector)});
-    if (!n) { return null; }
-    const r = n.getBoundingClientRect();
-    return r.width && r.height ? [r.left + r.width / 2, r.top + r.height / 2] : null;
-  })()`);
-  if (!at) {
-    return false;
+/* The interactive rules' targets on the screen shown: for each rule whose
+ * selector holds :hover, :focus, :focus-visible or :focus-within, the
+ * selector with those removed, and its first visible match. Kept on window
+ * (__cssTargets) for the steps that drive them one at a time. */
+const TARGETS = `(() => {
+  const sheet = Array.from(document.styleSheets).find((s) => s.ownerNode && s.ownerNode.tagName === 'STYLE' && s.ownerNode.id !== '${STILL_ID}');
+  const PSEUDO = /:(hover|focus-visible|focus-within|focus|active)\\b/g;
+  const wanted = new Map();
+  const walk = (rules) => {
+    for (const r of rules) {
+      if (r.cssRules && !r.selectorText) { if (!r.media || matchMedia(r.media.mediaText).matches) { walk(r.cssRules); } continue; }
+      if (!r.selectorText) { continue; }
+      for (const part of r.selectorText.split(',')) {
+        const m = part.match(PSEUDO);
+        if (!m) { continue; }
+        const kind = m.some((x) => x === ':hover') ? 'hover' : m.some((x) => x === ':focus-within') ? 'focus-within' : 'focus';
+        /* The element the pseudo-class sits on: the compound before it. */
+        const at = part.search(PSEUDO);
+        const base = part.slice(0, at).replace(PSEUDO, '').trim();
+        if (!base || /::/.test(base)) { continue; }
+        wanted.set(kind + '|' + base, { kind, base });
+      }
+    }
+  };
+  walk(sheet.cssRules);
+  const seen = new Set();
+  const out = [];
+  window.__cssTargets = [];
+  for (const { kind, base } of [...wanted.values()].sort((a, b) => (a.kind + a.base < b.kind + b.base ? -1 : 1))) {
+    let list;
+    try { list = document.querySelectorAll(base); } catch (e) { continue; }
+    const el = Array.from(list).find((n) => {
+      const r = n.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth && getComputedStyle(n).visibility !== 'hidden';
+    });
+    if (!el || seen.has(kind + '|' + base)) { continue; }
+    seen.add(kind + '|' + base);
+    window.__cssTargets.push(el);
+    out.push({ i: window.__cssTargets.length - 1, kind, base });
   }
+  return out;
+})()`;
+
+/* Focus the target, or for :focus-within the first focusable thing in it,
+ * the way a keyboard does (focus-visible on). A target nothing in can take
+ * focus is skipped rather than given a tabindex, which would change it. */
+const FOCUS_TARGET = `(() => {
+  const el = window.__cssTarget;
+  const inner = el.matches('a, button, input, select, textarea, [tabindex]') ? el : el.querySelector('a, button, input, select, textarea, [tabindex]');
+  if (!inner) { return false; }
+  const f = inner;
+  f.focus({ focusVisible: true, preventScroll: true });
+  return document.activeElement === f;
+})()`;
+
+/*
+ * A snapshot taken until two in a row agree. The shell's frame loop keeps
+ * running under the menus (main.js), and on some screens it writes the
+ * flight banner and the canvas a frame or two after show() returns: the pad
+ * pick screen on a phone did, one run in three.
+ */
+async function steady(page, expr) {
+  let last = JSON.stringify(await page.evaluate(expr));
+  for (let i = 0; i < 8; i += 1) {
+    await page.sleep(120);
+    const now = JSON.stringify(await page.evaluate(expr));
+    if (now === last) {
+      return JSON.parse(now);
+    }
+    last = now;
+  }
+  throw new Error('the page did not settle in 8 snapshots');
+}
+
+async function hoverTarget(page) {
+  const at = await page.evaluate(`(() => {
+    const r = window.__cssTarget.getBoundingClientRect();
+    const x = Math.min(Math.max(r.left + r.width / 2, 1), innerWidth - 1);
+    const y = Math.min(Math.max(r.top + r.height / 2, 1), innerHeight - 1);
+    return [x, y];
+  })()`);
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at[0], y: at[1] }, page.sessionId);
-  await page.sleep(50);
+  await page.sleep(30);
   return true;
 }
 
@@ -290,10 +407,17 @@ async function record(cfg) {
     await page.evaluate("(() => { const ui = window.__ui; ui.armReels = () => {}; ui.startReels = () => {}; if (ui.stopReels) { ui.stopReels(); } clearTimeout(ui.reelRestart); ui.reelRestart = null; return true; })()");
     got['@sheet'] = await page.evaluate(SHEET);
     const names = await page.evaluate('Object.keys(window.__ui.screens).sort()');
+    /* One throwaway pass over the first screen: on a phone the first
+     * screen shown after boot still had the boot screen's layout settling
+     * under it (216 paths of calibrate differed between record and compare,
+     * every other screen matched). */
+    await page.evaluate(`(() => { window.__ui.show(${JSON.stringify('title')}); window.__ui.show(${JSON.stringify(names[0])}); return true; })()`);
+    await page.sleep(300);
+    await page.evaluate(SNAPSHOT);
     for (const name of names) {
       await page.evaluate(`(() => { window.__ui.show(${JSON.stringify(name)}); return true; })()`);
       await page.sleep(50);
-      got[name] = await page.evaluate(SNAPSHOT);
+      got[name] = await steady(page, SNAPSHOT);
       if (process.env.CSS_GOLDEN_FULL === name) {
         /* Every rendered path's full styles, for finding what moved
          * between two runs: CSS_GOLDEN_FULL=<screen> node scripts/css-golden.js --record <config>. */
@@ -303,15 +427,25 @@ async function record(cfg) {
       if (!cfg.states) {
         continue;
       }
-      /* The cursor's row focused, then under the mouse. */
-      const focused = await page.evaluate(`(() => { const ui = window.__ui; const r = ui.screens[${JSON.stringify(name)}].querySelector('.row.on, .gate-card.on'); if (!r) { return false; } r.focus(); return document.activeElement === r; })()`);
-      if (focused) {
-        got[`${name}:focus`] = await page.evaluate(SNAPSHOT);
-      }
-      for (const sel of ['.row.on', '.gate-card.on', '.gate-link', '.chip', '.bug-chip']) {
-        if (await hover(page, `#ui .screen:not([hidden]) ${sel}, #ui > ${sel}`)) {
-          got[`${name}:hover${sel}`] = await page.evaluate(SNAPSHOT);
+      /* Every :hover and :focus rule in the sheet that has an element on
+       * this screen: its first visible match is hovered, or focused, and the
+       * part of the page around it recorded. */
+      const targets = await page.evaluate(TARGETS);
+      for (const t of targets) {
+        await page.evaluate(`(() => { window.__cssTarget = window.__cssTargets[${t.i}]; return true; })()`);
+        if (t.kind === 'hover') {
+          if (!(await hoverTarget(page))) {
+            continue;
+          }
+          got[`${name}:hover:${t.base}`] = await page.evaluate(SNAP_TARGET);
           await unhover(page);
+        } else {
+          const ok = await page.evaluate(FOCUS_TARGET);
+          if (!ok) {
+            continue;
+          }
+          got[`${name}:${t.kind}:${t.base}`] = await page.evaluate(SNAP_TARGET);
+          await page.evaluate('(() => { if (document.activeElement) { document.activeElement.blur(); } return true; })()');
         }
       }
       /* A drop-down open on the first row that has one. */
@@ -336,7 +470,7 @@ async function record(cfg) {
       for (const cls of ROOT_STATES) {
         await page.evaluate(`(() => { document.getElementById('ui').classList.add(${JSON.stringify(cls)}); return true; })()`);
         await page.sleep(50);
-        got[`paused+${cls}`] = await page.evaluate(SNAPSHOT);
+        got[`paused+${cls}`] = await steady(page, SNAPSHOT);
         await page.evaluate(`(() => { document.getElementById('ui').classList.remove(${JSON.stringify(cls)}); return true; })()`);
       }
     }
@@ -347,29 +481,27 @@ async function record(cfg) {
   }
 }
 
-function compare(want, got) {
-  const diffs = {};
-  for (const state of new Set([...Object.keys(want), ...Object.keys(got)])) {
-    if (state === '@sheet') {
-      if (JSON.stringify(want[state]) !== JSON.stringify(got[state])) {
-        diffs[state] = ['*'];
-      }
-      continue;
-    }
-    const a = want[state] || {};
-    const b = got[state] || {};
-    const paths = [];
-    for (const path of new Set([...Object.keys(a), ...Object.keys(b)])) {
-      if (JSON.stringify(a[path]) !== JSON.stringify(b[path])) {
-        paths.push(path);
-      }
-    }
-    if (paths.length) {
-      diffs[state] = paths;
+/* What is committed: per state one digest of every path's hashes, so the
+ * record stays small (the per-path form is about 10 MB). The per-path form
+ * of every run is written to DETAIL; to see which elements moved, run the
+ * check once on the old stylesheet and once on the new with different
+ * CSS_GOLDEN_DETAIL folders and compare the two files. */
+function digest(state) {
+  const text = JSON.stringify(Object.keys(state).sort().map((k) => [k, state[k]]));
+  return createHash('sha256').update(text).digest('hex').slice(0, 24);
+}
+
+function condense(got) {
+  const out = { '@sheet': got['@sheet'], states: {} };
+  for (const k of Object.keys(got).sort()) {
+    if (!k.startsWith('@')) {
+      out.states[k] = digest(got[k]);
     }
   }
-  return diffs;
+  return out;
 }
+
+const DETAIL = process.env.CSS_GOLDEN_DETAIL || join(process.env.TMPDIR || '/tmp', 'css-golden-detail');
 
 let failed = 0;
 const seen = {};
@@ -383,9 +515,11 @@ for (const cfg of CONFIGS) {
       seen[m] = seen[m] || { on: 0, off: 0 };
       seen[m][on ? 'on' : 'off'] += 1;
     }
+    await mkdir(DETAIL, { recursive: true });
+    await writeFile(join(DETAIL, `${cfg.name}.json`), `${JSON.stringify(got, null, 1)}\n`);
     const file = join(OUT, `${cfg.name}.json`);
-    const text = `${JSON.stringify(got, null, 0)}\n`;
-    const states = Object.keys(got).filter((k) => !k.startsWith('@')).length;
+    const mine = condense(got);
+    const states = Object.keys(mine.states).length;
     const paths = Object.values(got).reduce((n, v) => n + (v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v).length : 0), 0);
     /* Printed, never recorded: the padPickResult fault in main.js (#575)
      * comes and goes between runs and is not the stylesheet's. */
@@ -395,7 +529,7 @@ for (const cfg of CONFIGS) {
     }
     if (RECORD) {
       await mkdir(OUT, { recursive: true });
-      await writeFile(file, text);
+      await writeFile(file, `${JSON.stringify(mine, null, 1)}\n`);
       console.log(`  wrote ${cfg.name}: ${states} states, ${paths} paths`);
       continue;
     }
@@ -405,25 +539,22 @@ for (const cfg of CONFIGS) {
       continue;
     }
     const want = JSON.parse(await readFile(file, 'utf8'));
-    const diffs = compare(want, got);
-    const names = Object.keys(diffs);
+    const names = [];
+    if (JSON.stringify(want['@sheet']) !== JSON.stringify(mine['@sheet'])) {
+      names.push('@sheet');
+    }
+    for (const k of new Set([...Object.keys(want.states), ...Object.keys(mine.states)])) {
+      if (want.states[k] !== mine.states[k]) {
+        names.push(k);
+      }
+    }
     if (!names.length) {
       console.log(`  pass  ${cfg.name}: ${states} states, ${paths} paths identical`);
       continue;
     }
     failed += 1;
-    const n = names.reduce((s, k) => s + diffs[k].length, 0);
-    console.log(`  FAIL  ${cfg.name}: ${n} path(s) differ in ${names.length} state(s): ${names.slice(0, 6).map((k) => `${k} (${diffs[k].slice(0, 2).join(', ')}${diffs[k].length > 2 ? ', ...' : ''})`).join('; ')}`);
-    /* The full styles of the first differing state's paths, for the diff. */
-    const first = names.find((k) => !k.startsWith('@'));
-    if (first) {
-      const screen = first.split(/[:+]/)[0];
-      await page.evaluate(`(() => { window.__ui.show(${JSON.stringify(screen)}); return true; })()`);
-      const full = await page.evaluate(FULL(diffs[first].slice(0, 40)));
-      const dump = join(process.env.TMPDIR || '/tmp', `css-golden-${cfg.name}.json`);
-      await writeFile(dump, `${JSON.stringify({ state: first, got: full, wantHashes: Object.fromEntries(diffs[first].map((p) => [p, want[first] && want[first][p]])) }, null, 1)}\n`);
-      console.log(`        full styles of ${Math.min(40, diffs[first].length)} path(s) in ${dump} (state ${first}, re-shown as ${screen})`);
-    }
+    console.log(`  FAIL  ${cfg.name}: ${names.length} state(s) differ: ${names.slice(0, 8).join(', ')}${names.length > 8 ? ', ...' : ''}`);
+    console.log(`        this run per path: ${join(DETAIL, `${cfg.name}.json`)}`);
   } finally {
     await page.close();
   }

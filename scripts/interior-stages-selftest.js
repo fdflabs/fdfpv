@@ -83,10 +83,13 @@ import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
 import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
+import { ALT_POINTS, CONCEAL_POINTS, ROUTES } from '../src/share/interior/routes.js';
+import EN from '../src/strings/en.js';
+import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
-  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
+  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, bearingSaid, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
 } from '../src/share/ops/guide.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -181,6 +184,32 @@ console.log('data');
     return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
   });
   check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
+  /* The hard threshold's line names a side of last contact (east for the
+   * cañada, north for the path crossing): the alternate must lie on that
+   * side of everywhere the pair can be lost before its second gap, or
+   * Vega's voice and the search ring disagree (the M1 audit, item 8). */
+  const ops = (p) => threePosToDoc(p[0], 0, p[1], {});
+  const side = { 'int1-s4-hard': (a, p) => a.x > p.x, 'int1-s4-hard-b': (a, p) => a.y > p.y };
+  const hard = stagesOf(M).flatMap((st) => st.cues ?? []).find((c) => c.when?.lost && c.search?.id === 'pair-alt');
+  const wrong = M.dials.conceal.filter((d) => {
+    const alt = ops(ROUTES[`conceal-${d}-alt-a`].pts[ALT_POINTS.reacquire]);
+    const walk = ROUTES[`conceal-${d}-a`].pts.slice(0, CONCEAL_POINTS.gap2).map(ops);
+    return !walk.every((p) => side[resolve(hard.radio, { conceal: d })](alt, p));
+  });
+  check('for every concealment route, the hard threshold\'s line names the side its alternate is on', hard && !wrong.length, wrong.join());
+  /* The script's UI language (M1 audit item 12): every card a cue shows
+   * is in both string tables, MISSION RULE stands in every stage, the
+   * script's two line cards are both lines, and a new primary objective
+   * (stages 2, 4 and 5, RETURN TO BASE) says so. */
+  const cueCards = stagesOf(M).flatMap((st) => (st.cues ?? []).flatMap((c) => [c.card ?? []].flat()));
+  check('every card a cue shows is in the English and Spanish tables', cueCards.length > 0 && cueCards.every((k) => EN[k] && ES[k]), cueCards.filter((k) => !EN[k] || !ES[k]).join());
+  check('MISSION RULE in every stage', stagesOf(M).every((st) => (st.objectives ?? []).some((o) => o.tier === 'rule')));
+  const shows = (pred, card) => stagesOf(M).flatMap((st) => st.cues ?? []).some((c) => pred(c) && [c.card].flat().join() === card);
+  check('SEARCH AREA ADDED, UNIDENTIFIED MOVEMENT; INTELLIGENCE UPDATED, POSSIBLE ARMED PERSONNEL',
+    shows((c) => c.search?.id === 'pair-search', 'card.search_area,card.unidentified_movement') && shows((c) => c.classify?.to === 'poi', 'card.intelligence_updated,card.possible_armed'));
+  const opens = (id) => stagesOf(M).find((st) => st.id === id).cues.some((c) => c.at === 0 && !c.when && c.card === 'card.primary_updated');
+  check('PRIMARY OBJECTIVE UPDATED when stages 2, 4 and 5 open and with RETURN TO BASE',
+    ['M1_CP_AIRBORNE', 'M1_CP_CONTACT_FOUND', 'M1_CP_CAMP_FOUND'].every(opens) && shows((c) => c.choose?.name === 'dispersal', 'card.primary_updated'));
 }
 
 console.log('the gate');
@@ -700,6 +729,16 @@ console.log('guide: when a nudge is due, and what it says');
   check('the clock bearing off the nose: ahead 12, right 3, behind 6, left 9', clockOf([0, 0], [0, 100], 0) === 12 && clockOf([0, 0], [100, 0], 0) === 3
     && clockOf([0, 0], [0, -100], 0) === 6 && clockOf([0, 0], [-100, 0], 0) === 9 && clockOf([0, 0], [100, 0], Math.PI / 2) === 12);
   check('the distance band', distLine(400) === 'int-g-dist-500' && distLine(1200) === 'int-g-dist-1k' && distLine(2200) === 'int-g-dist-2k' && distLine(9000) === 'int-g-dist-far');
+  {
+    /* The discovery window's fixed "Eleven o'clock" (M1 audit item 10). */
+    const at = M.bearings['int1-s3-bearing'].at;
+    const said = (heading) => bearingSaid(M.bearings, ['int1-s3-hold', 'int1-s3-bearing'], [at[0] + 500, at[1] - 866], heading).join();
+    const hold = M.stages.find((st) => st.id === 'M1_CP_BRAVO_COMPLETE').cues.find((c) => c.search?.id === 'pair-search');
+    check('the fixed bearing is for the place its cue searches', hold && [hold.radio].flat().includes('int1-s3-bearing') && hold.search.at.join() === at.join());
+    check('"Eleven o\'clock from your nose" only when it is: else the search line and the computed hour',
+      said(0) === 'int1-s3-hold,int1-s3-bearing' && said(-Math.PI / 2) === 'int1-s3-hold,int-g-search,int-g-clock-2'
+      && bearingSaid(M.bearings, 'int1-s2-alpha', [0, 0], 0).join() === 'int1-s2-alpha', `${said(0)} | ${said(-Math.PI / 2)}`);
+  }
   check('a nudge: what, the clock, how far; a climb is "keep climbing"', nudgeOf({ kind: 'item', at: [1000, 0] }, [0, 0], 0).join() === 'int-g-next,int-g-clock-3,int-g-dist-1k'
     && nudgeOf({ kind: 'climb', at: null }, [0, 0], 0).join() === 'int-g-climb' && nudgeOf(null, [0, 0], 0, 'int1-g-alpha').join() === 'int1-g-alpha');
 }
@@ -844,6 +883,45 @@ console.log('low tracking before the camp: the camp only hears what flies over i
   e.fly(e.clock + 3000);
   check('stage 5 opens on "No low pass. Record everything.", no dispersal and no "They heard you."', heard(e, 0, 'int1-s5-record') && !heard(e, 0, 'int1-s5-early')
     && !heard(e, 0, 'int1-s5-moving') && !e.r.ops.match.choices?.dispersal);
+}
+
+/* ------------------------------------------------- the opening missed */
+
+console.log('the opening missed: the long objects still told at the camp edge, or the stage moves on');
+for (const back of [true, false]) {
+  /* Followed to the narrow opening, then the camera off the pair until
+   * it stands at the camp edge (M1 audit item 9: the beat was skipped).
+   * Lost there, it is moved to its alternate once (the hard threshold)
+   * and walks that through the opening unseen. */
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  const reached = (point) => () => e.r.ops.match.contacts.find((k) => k.id === 'pair-a').reached[point] != null;
+  until(e, reached('opening'), 1800000, 'the pair at the opening');
+  const keep = c.aim;
+  c.aim = null;
+  until(e, reached('camp-edge'), 900000, 'the pair at the camp edge');
+  const hards = contact(e, 'pair-a').hards;
+  const atEdge = e.clock;
+  e.fly(e.clock + 1000);
+  if (back) {
+    check('unseen through the opening: at the camp edge, still stage 4 and no "Armed."', e.view(0).stage?.id === 'M1_CP_CONTACT_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && contact(e, 'pair-a').cls !== 'poi' && hards === 1, `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls} hards ${hards}`);
+    c.aim = keep;
+    follow(e, c, 0, { orbit: 150 });
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    check('seen at the edge: armed, possible, PERSON OF INTEREST, then stage 5', heard(e, 0, 'int1-s4-know') && contact(e, 'pair-a').cls === 'poi'
+      && e.view(0).stage?.id === 'M1_CP_CAMP_FOUND', `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls}`);
+  } else {
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    const held = (e.clock - atEdge) / 1000;
+    check('never seen: stage 5 after the hold at the edge, without the beat', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && held >= 29 && held <= 32, `${e.view(0).stage?.id} held ${held} s`);
+  }
 }
 
 /* ---------------------------------------------------- the camp gone */
