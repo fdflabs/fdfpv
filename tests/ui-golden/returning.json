@@ -1,7 +1,7 @@
 {
  "@boot": {
   "state": {
-   "firstRun": true,
+   "firstRun": false,
    "screen": "title"
   }
  },
