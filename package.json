@@ -309,6 +309,7 @@
     "power:check": "node scripts/power-check.js",
     "power:derive": "node scripts/power-derive.js",
     "motors:check": "node scripts/motors-check.js",
+    "wear:selftest": "node scripts/wear-selftest.js",
     "motors:estimates": "node scripts/motors-check.js --estimates",
     "hangar:motors": "node scripts/garage-motors-check.js",
     "prop:curves": "node scripts/prop-curves.js",
