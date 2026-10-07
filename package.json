@@ -340,6 +340,7 @@
     "lint:board": "node scripts/board-check.js",
     "board:live": "node scripts/board-live-check.js",
     "board:selftest": "node scripts/board-selftest.js",
+    "oldkeys:selftest": "node scripts/oldkeys-selftest.js",
     "lint:attract": "node scripts/attract-check.js",
     "trick:sweep": "node scripts/trick-sweep.js",
     "trick:proven": "node scripts/trick-sweep.js --all --write",
