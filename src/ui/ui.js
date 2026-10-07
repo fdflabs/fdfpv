@@ -311,6 +311,9 @@ export {
   AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats, seatAirframe,
 };
 
+/* How long the air hint card stays up untouched before it closes itself. */
+const AIR_HINT_MS = 10000;
+
 /* Step through a list with wraparound. Every value row on every screen
  * moves through this, so a left arrow at the start of a list lands on its
  * end rather than doing nothing. */
@@ -2438,6 +2441,7 @@ export class Ui {
      * localStorage flag is consulted, so a pilot who dismissed it and then
      * paused and resumed does not get it again on the way back into flight. */
     this.airHintDone = false;
+    this.airHintTimer = 0;
     this.ptrX = null;
     this.ptrY = null;
     this.build();
@@ -10770,6 +10774,11 @@ export class Ui {
      */
     if (!this.airHintDone && air.hint.hidden && ready && !airHintSeen()) {
       air.hint.hidden = false;
+      /* Owner, 2026-10-06: the card closes itself after ten seconds, and
+       * that counts as read, so it is shown once ever whichever way it
+       * goes. A card the pilot never touched mid flight must not come back
+       * on every flight until they find the button. */
+      this.airHintTimer = setTimeout(() => this.dismissAirHint(), AIR_HINT_MS);
     }
   }
 
@@ -10779,6 +10788,7 @@ export class Ui {
       return;
     }
     this.airHintDone = true;
+    clearTimeout(this.airHintTimer);
     air.hint.hidden = true;
     markAirHintSeen();
   }
