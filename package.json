@@ -101,6 +101,7 @@
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
     "collide:golden": "node scripts/collide-golden.js",
+    "collide-state:selftest": "node scripts/collide-state-selftest.js",
     "crash:core": "node scripts/crash-core-selftest.js",
     "crash:handoff": "node scripts/solid-handoff-check.js",
     "crash:identity": "node scripts/crash-identity.js",
