@@ -271,6 +271,8 @@ export class Progress {
     }
     const total = w.lesson.steps.length;
     if (w.passed) {
+      this.state.lessons[w.lesson.id] = Date.now();
+      this.save();
       this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
       this.lesson = null;
       return;

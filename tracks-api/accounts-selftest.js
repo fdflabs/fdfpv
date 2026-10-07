@@ -165,7 +165,7 @@ console.log('the progress merge');
   const here = {
     v: 1,
     data: {
-      progress: { v: 1, xp: 300, courses: { a: true }, challenges: { c1: true }, seen: {}, casual: {}, unlockAll: false },
+      progress: { v: 1, xp: 300, courses: { a: true }, challenges: { c1: true }, seen: {}, casual: {}, lessons: { first_land: 5000, race_lap: 2000 }, unlockAll: false },
       liverySaves: { cub1400: [{ name: 'Red', entry: { scheme: 1 } }, { name: 'Blue', entry: { scheme: 2 } }] },
       tuning: { cub1400: { cg: 1 }, kadet1981: { cg: 2 } },
       livery: { cub1400: { scheme: 'mine' } },
@@ -176,7 +176,7 @@ console.log('the progress merge');
   const there = {
     v: 1,
     data: {
-      progress: { v: 1, xp: 900, courses: { b: true }, challenges: {}, seen: { s: true }, casual: {}, unlockAll: true },
+      progress: { v: 1, xp: 900, courses: { b: true }, challenges: {}, seen: { s: true }, casual: {}, lessons: { first_land: 3000, race_ghost: 'x' }, unlockAll: true },
       liverySaves: { cub1400: [{ name: 'Blue', entry: { scheme: 9 } }, { name: 'Green', entry: {} }], zagi1219: [{ name: 'Z', entry: {} }] },
       tuning: { cub1400: { cg: 9 }, kadet1981: { cg: 8 } },
       rates: { type: 'actual', v: 'there' },
@@ -187,6 +187,7 @@ console.log('the progress merge');
   check('the higher XP wins', m.data.progress.xp === 900);
   check('courses, challenges and seen are the union', m.data.progress.courses.a && m.data.progress.courses.b && m.data.progress.challenges.c1 && m.data.progress.seen.s);
   check('Unlock all on either side is on', m.data.progress.unlockAll === true);
+  check('lessons passed are the union, each at its earlier time', JSON.stringify(m.data.progress.lessons) === JSON.stringify({ first_land: 3000, race_lap: 2000 }), JSON.stringify(m.data.progress.lessons));
   check('saved liveries are the union, one per name, the incoming first',
     JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2
     && m.data.liverySaves.zagi1219.length === 1);

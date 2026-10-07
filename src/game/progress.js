@@ -178,7 +178,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll };
+  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, lessons: {}, unlockAll };
 }
 
 function isRecord(o) {
@@ -193,6 +193,22 @@ function flags(o, max) {
   for (const [k, v] of Object.entries(o).slice(0, max)) {
     if (typeof k === 'string' && k.length <= 120 && v === true) {
       out[k] = true;
+    }
+  }
+  return out;
+}
+
+/* The lessons passed (src/game/training.js), lesson id to when, ms since
+ * the epoch: a field a profile from before the lessons does not have, so
+ * absent is none passed. */
+function times(o, max) {
+  const out = {};
+  if (!isRecord(o)) {
+    return out;
+  }
+  for (const [k, v] of Object.entries(o).slice(0, max)) {
+    if (k.length <= 120 && Number.isFinite(v) && v > 0) {
+      out[k] = Math.floor(v);
     }
   }
   return out;
@@ -217,6 +233,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     challenges: flags(stored.challenges, 200),
     seen: flags(stored.seen, 2000),
     casual: flags(stored.casual, 500),
+    lessons: times(stored.lessons, 200),
     unlockAll: typeof stored.unlockAll === 'boolean' ? stored.unlockAll : existing,
   };
 }

@@ -6880,7 +6880,7 @@ export async function boot({
    */
   const trainingScreen = createTrainingScreen({
     ui,
-    passed: () => false,
+    passed: (id) => Boolean(ui.settings.progress.lessons[id]),
     fly: (lesson) => {
       const s = ui.settings;
       const craft = lesson.airframe || s.airframe;

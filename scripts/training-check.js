@@ -10,7 +10,9 @@
  * Stabilised on the valley, says the lesson in a toast and holds its
  * judge. In flight, put in the air by the dev hook, the judge reads the
  * craft's heading every frame (the turn steps count it). Pressing another
- * card ends the lesson. No page error. Pictures in outdir.
+ * card ends the lesson. A lap lesson's pass is stored with its time and
+ * the page says Passed, also after a reload. No page error. Pictures in
+ * outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -130,10 +132,45 @@ try {
   await page.evaluate("window.__ui.pickForWay('way-race-5inch'); true");
   await page.sleep(500);
   check('another card ends the lesson', await page.evaluate('window.__ui.progress.lesson === null'));
+  /* That card's aircraft picker, closed as a pilot backs out of it. */
+  await page.tap('Escape');
+  await page.until('!window.__ui.carousel.isOpen', 10000).catch(() => {});
+
+  /* A PASS IS KEPT: A lap lesson flown from the page, its lap closed
+   * through Progress as the race step closes one, then the page again, and
+   * again after a reload: Passed, from the synced progress. */
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-lesson="race_lap"] .campaign-play');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'race_lap'", 15000).catch(() => {});
+  await page.evaluate("(window.__ui.progress.lap({ key: null, kind: 'map' }, { ms: 30000, ghostMs: null }), true)");
+  const stored = await page.evaluate('window.__ui.settings.progress.lessons');
+  check('the lap passes the lesson and the pass is stored with its time', Number.isFinite(stored.race_lap) && stored.race_lap > 1.7e12, JSON.stringify(stored));
+  check('and the toast says so', (await page.evaluate("window.__ui.progress.log.map((t) => t.kicker + ': ' + t.title)")).includes('Lesson passed: A lap'));
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  const tag = () => page.evaluate("(() => { const n = document.querySelector('[data-lesson=\"race_lap\"]'); return n ? [n.dataset.state, (n.querySelector('.campaign-tag') || {}).textContent || ''] : null; })()");
+  const before = await tag();
+  check('the page marks it Passed', before && before[0] === 'passed' && before[1] === 'Passed', JSON.stringify(before));
+  await shot(page, 'passed');
+  await page.evaluate('(location.reload(), true)');
+  await page.sleep(1000);
+  await page.until('!!window.__shellReady && !!window.__training', 300000);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000).catch(() => {});
+  const after = await tag();
+  check('and still after a reload', after && after[0] === 'passed', JSON.stringify(after));
 } catch (e) {
   check(`the run finished`, false, e.stack || String(e));
 }
-check('no page error', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
+/* Track mode asks the leaderboard, which a check page has none of: a
+ * refused connection is that, counted apart as scripts/crash-shots.js does. */
+const errs = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
+check(`no page error (plus ${page.errors.length - errs.length} refused connections to an absent local board)`, errs.length === 0, errs.slice(0, 3).join(' | '));
 await page.close();
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
