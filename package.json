@@ -37,6 +37,7 @@
     "format:golden": "node scripts/format-golden.js",
     "widgets:golden": "node scripts/widgets-golden.js",
     "trickslist:golden": "node scripts/trickslist-golden.js",
+    "keys:golden": "node scripts/keys-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
