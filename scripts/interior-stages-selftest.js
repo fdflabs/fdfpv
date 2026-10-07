@@ -812,10 +812,19 @@ function campGone(seed = undefined) {
   };
 }
 
-console.log('the camp gone first: nobody goes back into it');
+console.log('the camp gone first: the way home shown at once, nobody goes back into it');
 {
   const { e, c, opened, gone } = campGone();
   check('nothing documented: the dispersal on the timer, 480 s after stage 5 opened', gone - opened === 480000, `${gone - opened}`);
+  e.fly(e.clock + 1000);
+  {
+    const g = guideOf(e, c);
+    const pad = M.points['pista-cero'].at;
+    check('the dispersal: RETURN TO BASE shown, the guide home to Pista Cero with its brief, documentation not blocking it',
+      e.view(0).cards.some((x) => x.id === 'rtb' && x.state === 'active') && g.focus?.card.id === 'rtb' && g.target?.kind === 'home'
+      && g.target.at[0] === pad[0] && g.target.at[1] === pad[1] && briefOf(g.focus, 'isr') === 'int1-g-rtb',
+      JSON.stringify({ cards: e.view(0).cards.map((x) => `${x.id}:${x.state}`), focus: g.focus?.card.id, target: g.target }));
+  }
   /* Past every delayed way out, then the three captures that cue the
    * tarp's mover (M1_08): on its way out, it must stay on it. */
   e.fly(e.clock + 30000);
@@ -832,6 +841,11 @@ console.log('the camp gone first: nobody goes back into it');
     JSON.stringify(pair.map((x) => [x.id, x.route, x.alt])));
   until(e, () => camp().every((x) => x.state === 'vanished'), 900000, 'the whole camp gone');
   check('the whole camp gone into the forest', camp().every((x) => x.state === 'vanished'));
+  e.fly(e.clock + 1000);
+  const doc = e.view(0).cards.find((x) => x.id === 'document');
+  check('its people gone before they were captured: DOCUMENT THE SITE missed, not left open', doc?.state === 'failed', JSON.stringify(doc));
+  home(e, c);
+  check('home: won, landed', e.view(0).state === 'won' && e.view(0).why === 'landed', `${e.view(0).state} ${e.view(0).why}`);
 }
 
 /* ------------------------------------------------------------ light */

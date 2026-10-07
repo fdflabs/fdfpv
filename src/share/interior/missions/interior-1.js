@@ -388,9 +388,17 @@ export default {
     {
       id: 'M1_CP_CAMP_FOUND',
       title: 'ops.interior.m1.s5',
+      /* RETURN TO BASE comes with the dispersal (the script's M1_09), not
+       * after the documentation: a camp gone early (its timer, an alert)
+       * takes PERSONNEL with it. Listed first, so it is the guide's
+       * focus once shown; documentation goes on beside it, and is missed
+       * once the camp's people have all gone. */
       objectives: [
         {
-          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 }, guide: 'int1-g-camp',
+          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', show: GONE, done: { landed: 'pista-cero', roles: ['isr'] }, guide: 'int1-g-rtb',
+        },
+        {
+          id: 'document', text: 'ops.interior.m1.obj.document', tier: 'primary', done: { captured: { set: 'camp' }, n: 5 }, fail: { vanished: 'camp' }, guide: 'int1-g-camp',
         },
         {
           id: 'lookout', text: 'ops.interior.m1.obj.lookout', tier: 'optional', done: { captured: 'lookout' },
@@ -403,9 +411,6 @@ export default {
         },
         {
           id: 'distant', text: 'ops.interior.m1.obj.distant', tier: 'optional', done: { vanished: 'camp', watched: true },
-        },
-        {
-          id: 'rtb', text: 'ops.interior.m1.obj.rtb', tier: 'primary', after: 'document', done: { landed: 'pista-cero', roles: ['isr'] }, guide: 'int1-g-rtb',
         },
       ],
       cues: [
