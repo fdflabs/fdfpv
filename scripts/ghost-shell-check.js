@@ -27,8 +27,9 @@
  * and lap 3 chases it, so the results say the run beat the ghost.
  * The record key keeps its storage format.
  *
- * es: the same chase in Spanish: the armed lap's label and the previous
- * lap's tag.
+ * es: the same chase in Spanish. The session best's tag says "Mejor", not
+ * "Ultimo": the label used to be chosen by comparing the lap's label with
+ * the English words, which src/game/ghost.js writes translated.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -345,6 +346,9 @@ async function spanish(track) {
     const g1 = await ghost(page);
     const lap1 = Math.round(s1.laps[0]);
     say(g1.armed && g1.armedLabel === text('es', 'ghost.session_best'), `lap 2 arms the best: "${g1.armedLabel}"`);
+    const tagBest = `${text('es', 'main.best')}  ${formatTime(lap1)}`;
+    const shown = await tagBecomes(page, tagBest);
+    say(shown === tagBest, `the tag reads "${tagBest}": got "${shown}"`);
     await page.evaluate("window.__ghostPick('previous')");
     const tagLast = `${text('es', 'main.last')}  ${formatTime(lap1)}`;
     say(await tagBecomes(page, tagLast) === tagLast, `and the previous lap's reads "${tagLast}"`);

@@ -7955,34 +7955,59 @@ export async function boot({
     roomTagAction(action);
     return true;
   };
-  const ghostSample = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
-  let ghostLap = null; /* the lap being chased, armed at each lap start */
-  let ghostChased = null; /* the lap the last FINISHED lap was chased against */
-  let ghostChoice = 'best'; /* off, best, previous, or board:tm-xxxxxxxx */
-  let ghostBoardTimes = null; /* this course's posted times, for the picker */
-  let ghostBoardLap = null; /* the downloaded board ghost, decoded once */
-  let ghostBoardBusy = false;
-  let ghostGap = null; /* { deltaMs, final, untilWall } for the OSD */
-  /* The ?ghost= a board chase link arrived with, parsed at boot above,
-   * armed once the course's times are fetched. */
+  /*
+   * THE GHOST CHASE. src/game/ghost.js records and samples laps; this is the
+   * shell's half: what is chased, what the menu row offers, the gap at each
+   * gate and the record key. The names below that other parts of boot()
+   * read or write (the harness hooks, frameBody, the reset, the rig swap)
+   * are that code's contract: ghostLap, ghostChased, ghostGap, ghostChoice,
+   * ghostBoardTimes, ghostBoardLap, ghostQueryId and ghostPrev's fields.
+   *
+   * ghostChoice is 'off', 'best', 'previous' or `board:<time id>`.
+   * ghostLap is the lap flown against now and ghostChased the one the last
+   * closed lap was flown against: the line re-arms the first before the
+   * results read the second. ghostGap is { deltaMs, final, untilWall }.
+   */
+  /* A chase fades in this long off the line and out this long past the
+   * ghost's own finish, and shows faintly across a recorded crash. */
+  const CHASE_FADE_MS = 400;
+  const CHASE_CUT_PRESENCE = 0.15;
+  /* How long the OSD keeps a gate's gap lit, wall clock. */
+  const GAP_SHOWN_MS = 2800;
+  /* The menu row lists this many board rivals; the board page has the rest. */
+  const BOARD_RIVALS = 5;
+  const SESSION_MODES = ['off', 'best', 'previous'];
+  let ghostChoice = storedGhostChoice();
+  let ghostLap = null;
+  let ghostChased = null;
+  let ghostGap = null;
+  let ghostBoardTimes = null;
+  let ghostBoardLap = null;
+  /* A ?ghost= chase link waits here until the course's board times are in. */
   let ghostQueryId = wantGhostId;
-  /* The previous frame's pose, so a lap start can seed the recorder with
-   * the frame BEFORE the crossing and the t = 0 keyframe is interpolated
-   * across the line rather than held from the frame after it. */
+  /* frameBody writes the frame's pose here after the race step, so the next
+   * lap start can put a keyframe from before the line into the recording. */
   const ghostPrev = { valid: false, simMs: 0, x: 0, y: 0, z: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
+  /* The board time being fetched and the course it was asked for, or null. */
+  let boardFetch = null;
+  /* Scratch for GhostLap.sample, reused every frame. */
+  const chasePose = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, cut: false };
 
-  function normalizeGhostChoice(raw) {
-    return raw === 'off' || raw === 'previous' ? raw : 'best';
+  /* Only the session modes persist. A board pick names one time on one
+   * course, so a fresh course starts from the pilot's session mode. */
+  function storedGhostChoice() {
+    return SESSION_MODES.includes(ui.settings.ghost) ? ui.settings.ghost : 'best';
   }
-  ghostChoice = normalizeGhostChoice(ui.settings.ghost);
 
-  /* Ghosts are course-shaped, not tune-shaped: any config's lap can pace
-   * any other. The book is keyed accordingly. */
+  /* The session book is keyed by course, not by tune: a lap on any config
+   * paces any other. A seated track is its own course, with a plane's laps
+   * kept apart from a quad's; a world flown free is keyed by the world. */
   function ghostCourseKey() {
-    /* A seated track is keyed by the track; a world flown free is keyed by
-     * the world. */
-    const course = loadedCourseKey(view);
-    return course ? `custom:${course}${lapCraft() ? '#wing' : ''}` : view.id;
+    const track = loadedCourseKey(view);
+    if (!track) {
+      return view.id;
+    }
+    return lapCraft() ? `custom:${track}#wing` : `custom:${track}`;
   }
 
   /*
@@ -8000,174 +8025,173 @@ export async function boot({
     return seated ? lapCraftOf(seated.document, runAirframe) : '';
   }
 
-  function ghostLabelFor(lap) {
-    if (lap.source === 'board') {
-      return `${lap.name || str('main.rival')}  ${formatTime(lap.durationMs)}`;
-    }
-    return `${lap.label === 'Session best' ? str('main.best') : str('main.last')}  ${formatTime(lap.durationMs)}`;
+  /* The book's lap for a session mode on the current course, or null. */
+  function sessionLap(choice) {
+    const course = ghostCourseKey();
+    return choice === 'previous' ? ghostBook.previous(course) : ghostBook.best(course);
   }
 
-  /* What the current choice resolves to right now, or null. Session slots
-   * fill in as laps are flown, so a choice can be ahead of its data: Best
-   * with no lap yet simply flies no ghost until there is one. */
-  function resolveGhost() {
-    /* No ghost on a built track's TEST flight: the track changes under it
-     * between runs, so its lap is of a track that may no longer exist. A
-     * published map track (build.racing) is a course like any other, and
-     * chases and records exactly as the field does. */
-    if (race.freestyle || ghostChoice === 'off' || (build && build.testing)) {
+  /* No chase while freestyling, nor on a builder's TEST flight, whose track
+   * may change before its lap could be flown again. A published map track
+   * (build.racing) races like any other course. */
+  function chaseAllowed() {
+    return !race.freestyle && !(build && build.testing);
+  }
+
+  /*
+   * The rig's name tag. GhostBook labels its laps in the page's locale,
+   * and the locale is fixed for a page's life (a change reloads), so the
+   * best is told apart by its label in that same locale. Asking the book
+   * which lap is its best instead would mislabel a best that has just been
+   * beaten but is still the one armed.
+   */
+  function ghostLabelFor(lap) {
+    let who = lap.name || str('main.rival');
+    if (lap.source !== 'board') {
+      who = lap.label === str('ghost.session_best') ? str('main.best') : str('main.last');
+    }
+    return str('main.text', { name: who, formatTime: formatTime(lap.durationMs) });
+  }
+
+  /* What the choice points at now, or null. A session mode can be ahead of
+   * its data (Best before any lap is closed) and then simply chases nothing
+   * until a lap exists. A board choice is armed only once its lap is here. */
+  function chosenLap() {
+    if (!chaseAllowed() || ghostChoice === 'off') {
       return null;
     }
-    if (ghostChoice.startsWith('board:')) {
-      return ghostBoardLap && `board:${ghostBoardLap.timeId}` === ghostChoice ? ghostBoardLap : null;
+    if (!ghostChoice.startsWith('board:')) {
+      return sessionLap(ghostChoice);
     }
-    const key = ghostCourseKey();
-    return ghostChoice === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
+    const loaded = ghostBoardLap ? `board:${ghostBoardLap.timeId}` : '';
+    return loaded === ghostChoice ? ghostBoardLap : null;
   }
 
   function armGhost() {
-    ghostLap = resolveGhost();
+    ghostLap = chosenLap();
     if (ghostLap) {
       ghostRig.setLabel(ghostLabelFor(ghostLap));
     }
   }
 
-  /*
-   * The Ghost menu row, rebuilt whenever the data behind it moves. The row
-   * itself lives in ui.js; this is the one place that knows what can be
-   * chased, so it owns the labels, the availability notes and the cycle
-   * order: off, session best, previous lap, then every board time that
-   * carries a recording.
-   */
-  function ghostRowChoices() {
-    const list = [
+  /* The Ghost row's options, in the order its arrows step through them. */
+  function ghostOptions() {
+    const rivals = (ghostBoardTimes || []).map((time) => ({
+      id: `board:${time.id}`,
+      label: str('main.text', { name: time.name, formatTime: formatTime(time.lapMs) }),
+    }));
+    return [
       { id: 'off', label: 'Off' },
       { id: 'best', label: str('main.your_best_this_session') },
       { id: 'previous', label: str('main.your_previous_lap') },
+      ...rivals,
     ];
-    for (const t of ghostBoardTimes || []) {
-      list.push({ id: `board:${t.id}`, label: str('main.text', { name: t.name, formatTime: formatTime(t.lapMs) }) });
-    }
-    return list;
   }
 
-  function ghostRowNote() {
+  /* The row's note: what the current choice will fly, or why nothing. */
+  function ghostRowNoteText() {
     if (ghostChoice === 'off') {
       return str('main.nobody_to_chase_laps_still_record');
     }
     if (ghostChoice.startsWith('board:')) {
-      if (ghostBoardBusy) {
+      if (boardFetch) {
         return str('main.fetching_that_lap_from_the_board');
       }
-      return ghostBoardLap
-        ? str('main.a_recorded_lap_from_the_public')
-        : str('main.that_lap_could_not_be_fetched');
+      return str(ghostBoardLap ? 'main.a_recorded_lap_from_the_public' : 'main.that_lap_could_not_be_fetched');
     }
-    const key = ghostCourseKey();
-    const have = ghostChoice === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
-    if (!have) {
-      return str('main.no_lap_on_record_this_session');
-    }
-    return str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(have.durationMs) });
+    const lap = sessionLap(ghostChoice);
+    return lap
+      ? str('main.a_translucent_pacer_flying_that_lap', { formatTime: formatTime(lap.durationMs) })
+      : str('main.no_lap_on_record_this_session');
   }
 
+  /* ui.js draws the row; the shell is what knows its contents, so it pushes
+   * them again whenever they change. A board choice not in the list (a
+   * harness-loaded lap) shows as the session best's entry. */
   function syncGhostRow() {
     if (race.freestyle) {
       ui.setGhostRow(null);
       return;
     }
-    const choices = ghostRowChoices();
-    const current = choices.find((c) => c.id === ghostChoice) || choices[1];
-    ui.setGhostRow({
-      value: current.label,
-      note: ghostRowNote(),
-      cycle: (dir) => pickGhostByStep(dir),
-    });
+    const options = ghostOptions();
+    const shown = options.find((o) => o.id === ghostChoice) || options[1];
+    ui.setGhostRow({ value: shown.label, note: ghostRowNoteText(), cycle: stepGhost });
   }
 
-  function pickGhostByStep(dir) {
-    const choices = ghostRowChoices();
-    const at = Math.max(0, choices.findIndex((c) => c.id === ghostChoice));
-    const next = choices[(at + (dir < 0 ? -1 : 1) + choices.length) % choices.length];
-    pickGhost(next.id);
+  /* The row's arrows: the next option either way round, read when pressed
+   * since the list grows as board times arrive. */
+  function stepGhost(dir) {
+    const options = ghostOptions();
+    const at = Math.max(0, options.findIndex((o) => o.id === ghostChoice));
+    const step = dir < 0 ? options.length - 1 : 1;
+    pickGhost(options[(at + step) % options.length].id);
   }
 
   function pickGhost(id) {
     ghostChoice = id;
-    if (id === 'off' || id === 'best' || id === 'previous') {
+    if (SESSION_MODES.includes(id)) {
       ui.settings.ghost = id;
       ui.persistSettings();
-      armGhost();
-      syncGhostRow();
+    } else if (!ghostBoardLap || `board:${ghostBoardLap.timeId}` !== id) {
+      /* A board lap is fetched once and kept decoded for the course. */
+      fetchBoardLap(id.slice('board:'.length));
       return;
     }
-    /* A board pick fetches the recording once and keeps it decoded. */
-    const timeId = id.slice('board:'.length);
-    if (ghostBoardLap && ghostBoardLap.timeId === timeId) {
-      armGhost();
-      syncGhostRow();
-      return;
+    armGhost();
+    syncGhostRow();
+  }
+
+  /* The course's board listing when it is a shared course, else null. */
+  function ghostListing() {
+    let listing = null;
+    try {
+      listing = inspectCourse();
+    } catch (e) {
+      return null;
     }
-    loadBoardGhost(timeId);
+    return listing && listing.shareId ? listing : null;
   }
 
-  function adoptBoardGhost(payload, timeId) {
-    const lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), {
-      label: str('main.board_lap'),
-      name: payload.name || '',
-      source: 'board',
-    });
-    lap.timeId = timeId;
-    ghostBoardLap = lap;
-    return lap;
-  }
-
-  function loadBoardGhost(timeId) {
+  /* Downloads one board time's recording and arms it, unless the pilot has
+   * moved to another course while it was on the way. */
+  async function fetchBoardLap(timeId) {
     const listing = ghostListing();
     if (!listing) {
       return;
     }
-    const key = ghostCourseKey();
-    ghostBoardBusy = true;
+    const ask = { timeId, course: ghostCourseKey() };
+    boardFetch = ask;
     syncGhostRow();
-    (async () => {
-      try {
-        const payload = await fetchGhost(listing.shareId, timeId, listing.board);
-        if (ghostCourseKey() !== key) {
-          return; /* The course changed under the fetch. */
-        }
-        adoptBoardGhost(payload, timeId);
-        armGhost();
-      } catch (e) {
-        if (ghostCourseKey() !== key) {
-          return;
-        }
-        ghostBoardLap = null;
-        notice = { text: str('main.could_not_fetch_that_ghost', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
-      } finally {
-        if (ghostCourseKey() === key) {
-          ghostBoardBusy = false;
-          syncGhostRow();
-        }
-      }
-    })();
-  }
-
-  function ghostListing() {
+    let lap = null;
+    let failure = null;
     try {
-      const listing = inspectCourse();
-      return listing && listing.shareId ? listing : null;
+      const payload = await fetchGhost(listing.shareId, timeId, listing.board);
+      lap = new GhostLap(decodeGhost(ghostFromBase64(payload.ghost)), { label: str('main.board_lap'), name: payload.name || '', source: 'board' });
+      lap.timeId = timeId;
     } catch (e) {
-      return null;
+      failure = e;
     }
+    if (ghostCourseKey() !== ask.course) {
+      return;
+    }
+    if (boardFetch === ask) {
+      boardFetch = null;
+    }
+    if (failure) {
+      ghostBoardLap = null;
+      notice = { text: str('main.could_not_fetch_that_ghost', { v1: failure.message ?? failure }), untilMs: performance.now() + 3600 };
+    } else {
+      ghostBoardLap = lap;
+      armGhost();
+    }
+    syncGhostRow();
   }
 
   /*
-   * A course just became current: forget the last course's board data,
-   * re-arm the persisted choice, and go looking for what the board holds.
-   * The times fetch is a nicety with the same standing as the course list:
-   * a board that is down means a picker with the two session modes and
-   * nothing else, never a broken menu.
+   * A new course: drop everything tied to the old one, restore the pilot's
+   * session mode, and ask the board for this course's recorded rivals. The
+   * board is optional here, as it is for the course list: when it cannot be
+   * reached the row offers the session modes and nothing breaks.
    */
   function ghostCourseChanged() {
     ghostRecorder.abort();
@@ -8176,233 +8200,184 @@ export async function boot({
     ghostGap = null;
     ghostBoardTimes = null;
     ghostBoardLap = null;
-    ghostBoardBusy = false;
+    boardFetch = null;
     ghostPrev.valid = false;
     ghostRig.setPresence(0);
-    ghostChoice = normalizeGhostChoice(ui.settings.ghost);
+    ghostChoice = storedGhostChoice();
     syncGhostRow();
     livePeersClear();
     syncLive();
     const listing = ghostListing();
-    if (!listing || race.freestyle) {
+    if (listing && !race.freestyle) {
+      listBoardRivals(listing, ghostCourseKey());
+    }
+  }
+
+  async function listBoardRivals(listing, course) {
+    let times;
+    try {
+      times = await fetchTrackTimes(listing.shareId, listing.board);
+    } catch (e) {
       return;
     }
-    const key = ghostCourseKey();
-    (async () => {
-      try {
-        const times = await fetchTrackTimes(listing.shareId, listing.board);
-        if (ghostCourseKey() !== key) {
-          return;
-        }
-        /* The five fastest recorded laps are plenty of rivals for one
-         * menu row; the full table lives on the board page. On a map track
-         * they are the seated aircraft's board's: the quads' laps for a
-         * quad, the planes' for a plane. */
-        const plane = Boolean(lapCraft());
-        ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, 5);
-        syncGhostRow();
-        if (ghostQueryId) {
-          const wanted = ghostQueryId;
-          ghostQueryId = '';
-          if (times.some((t) => t.id === wanted && t.hasGhost)) {
-            ghostChoice = `board:${wanted}`;
-            loadBoardGhost(wanted);
-          }
-        }
-      } catch (e) {
-        /* No board today. The session modes still work. */
-      }
-    })();
+    if (ghostCourseKey() !== course) {
+      return;
+    }
+    /* On a map track the seated aircraft's board: a quad's laps for a quad,
+     * a plane's for a plane. Only times that carry a recording can be
+     * chased. */
+    const plane = Boolean(lapCraft());
+    ghostBoardTimes = times.filter((t) => t.hasGhost && t.id && Boolean(t.craft) === plane).slice(0, BOARD_RIVALS);
+    syncGhostRow();
+    const linked = ghostQueryId;
+    ghostQueryId = '';
+    if (linked && times.some((t) => t.id === linked && t.hasGhost)) {
+      ghostChoice = `board:${linked}`;
+      fetchBoardLap(linked);
+    }
+  }
+
+  /* One recorder keyframe: a lap time and the craft's pose as drawn. */
+  function recordPose(lapMs, at, q) {
+    ghostRecorder.push(lapMs, at.x, at.y, at.z, q.x, q.y, q.z, q.w);
   }
 
   /*
-   * Per frame, after the race has scored the travel. Records the running
-   * lap, closes the recording at the line, arms the next chase, and reads
-   * the gap at each gate. lapStartBefore and lapsBefore are the race's
-   * state from before this frame's update, which is how a lap boundary is
-   * seen without the race having to announce one.
+   * Called every frame after the race has scored the frame's travel, with
+   * the race's lap start and lap count from BEFORE that update: a change in
+   * either is how a lap boundary shows up here.
+   *
+   * Order matters at a boundary. The gap is read first, against the lap
+   * that was armed while it was flown (re-arming first would compare a new
+   * best with itself). Then the finished lap is closed, with this frame's
+   * pose (just past the line, on the old lap's clock) as its last keyframe
+   * so the stored tail runs through the line at speed. Then the next lap's
+   * recording opens with the previous frame's pose (just before the line)
+   * so its first keyframe straddles t = 0.
    */
   function ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passedAny) {
-    /* The test flight's exception, for resolveGhost's reason. */
-    if (race.freestyle || (build && build.testing)) {
+    if (!chaseAllowed()) {
       return;
     }
-    const lapDone = race.laps.length > lapsBefore;
-    /*
-     * The gap, read at the gate just crossed, BEFORE any re-arm below:
-     * your split against the split of the ghost you were actually chasing
-     * this lap. Reading it after the re-arm compared a finishing lap with
-     * itself, which is a proud zero every time it sets a best.
-     */
+    const closed = race.laps.length > lapsBefore;
     if (passedAny && ghostLap && lapStartBefore != null) {
-      let mine = null;
-      let theirs = null;
-      if (lapDone) {
-        mine = race.lastLapMs;
-        theirs = ghostLap.durationMs;
-      } else if (race.splits.length) {
-        const k = race.splits.length - 1;
-        mine = race.splits[k];
-        theirs = ghostLap.splitMs(k);
-      }
-      if (mine != null && theirs != null) {
-        ghostGap = { deltaMs: mine - theirs, final: lapDone, untilWall: nowWall + 2800 };
-      }
+      noteGap(closed, nowWall);
     }
-    if (lapDone) {
-      /* Close the finished lap. Its own clock ran up to lastLapMs; this
-       * frame's pose sits just past the line on that clock, and feeding it
-       * before finishing is what lets the stored tail cross the line at
-       * speed instead of freezing on it. */
-      const tOld = (simNow - race.lapStartMs) + race.lastLapMs;
-      ghostRecorder.push(tOld, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w);
-      const lapRecord = ghostRecorder.finish(race.lastLapMs, race.lastSplits);
-      ghostBook.keep(ghostCourseKey(), lapRecord);
-      /* Who this lap was flown against, for the results line. The re-arm
-       * below may replace ghostLap with the lap just recorded. */
+    if (closed) {
+      recordPose(simNow - race.lapStartMs + race.lastLapMs, pCurr, qPrev);
+      ghostBook.keep(ghostCourseKey(), ghostRecorder.finish(race.lastLapMs, race.lastSplits));
       ghostChased = ghostLap;
       syncGhostRow();
     }
-    if (race.lapStartMs != null && race.lapStartMs !== lapStartBefore) {
-      /* A lap just began, at the crossing this frame contains. */
+    if (race.lapStartMs == null) {
+      return;
+    }
+    const opened = race.lapStartMs !== lapStartBefore;
+    if (opened) {
       ghostRecorder.begin();
       if (ghostPrev.valid) {
-        ghostRecorder.push(
-          ghostPrev.simMs - race.lapStartMs,
-          ghostPrev.x, ghostPrev.y, ghostPrev.z,
-          ghostPrev.qx, ghostPrev.qy, ghostPrev.qz, ghostPrev.qw,
-        );
+        ghostRecorder.push(ghostPrev.simMs - race.lapStartMs, ghostPrev.x, ghostPrev.y, ghostPrev.z, ghostPrev.qx, ghostPrev.qy, ghostPrev.qz, ghostPrev.qw);
       }
-      ghostRecorder.push(
-        simNow - race.lapStartMs,
-        pCurr.x, pCurr.y, pCurr.z,
-        qPrev.x, qPrev.y, qPrev.z, qPrev.w,
-      );
+    }
+    recordPose(simNow - race.lapStartMs, pCurr, qPrev);
+    if (opened) {
       armGhost();
-    } else if (race.lapStartMs != null) {
-      ghostRecorder.push(
-        simNow - race.lapStartMs,
-        pCurr.x, pCurr.y, pCurr.z,
-        qPrev.x, qPrev.y, qPrev.z, qPrev.w,
-      );
     }
   }
 
-  /* The chase itself: pose the rig at the ghost's own lap time, fade it in
-   * off the line, out past its finish, and down across a recorded crash
-   * recovery. Runs every frame; zero presence parks the whole group. */
+  /* The gap at the gate just passed: the lap time against the ghost's at
+   * the line, else the newest split against the ghost's same split. */
+  function noteGap(closed, nowWall) {
+    const k = race.splits.length - 1;
+    const mine = closed ? race.lastLapMs : (k >= 0 ? race.splits[k] : null);
+    const theirs = closed ? ghostLap.durationMs : (k >= 0 ? ghostLap.splitMs(k) : null);
+    if (mine == null || theirs == null) {
+      return;
+    }
+    ghostGap = { deltaMs: mine - theirs, final: closed, untilWall: nowWall + GAP_SHOWN_MS };
+  }
+
+  /* Poses the rig at the ghost's own lap time every frame it can be seen;
+   * otherwise parks it (zero presence hides the whole group). */
   function ghostFrame(simNow) {
-    const running = ghostLap && !race.freestyle && race.lapStartMs != null
-      && (mode === 'flight' || mode === 'paused');
-    if (!running) {
+    const flying = mode === 'flight' || mode === 'paused';
+    if (!ghostLap || race.freestyle || race.lapStartMs == null || !flying) {
       ghostRig.setPresence(0);
       return;
     }
     const t = simNow - race.lapStartMs;
-    const tail = ghostLap.durationMs - t;
-    let presence = 1;
-    if (t < 400) {
-      presence = t / 400;
+    ghostLap.sample(t, chasePose);
+    const past = t - ghostLap.durationMs;
+    let presence = past > 0 ? Math.max(0, 1 - past / CHASE_FADE_MS) : Math.min(1, t / CHASE_FADE_MS);
+    if (chasePose.cut) {
+      presence = Math.min(presence, CHASE_CUT_PRESENCE);
     }
-    if (tail < 0) {
-      presence = Math.max(0, 1 + tail / 400);
-    }
-    if (ghostSampleInto(t)) {
-      presence = Math.min(presence, 0.15);
-    }
-    ghostRig.group.position.set(ghostSample.px, ghostSample.py, ghostSample.pz);
-    ghostRig.group.quaternion.set(ghostSample.qx, ghostSample.qy, ghostSample.qz, ghostSample.qw);
+    ghostRig.group.position.set(chasePose.px, chasePose.py, chasePose.pz);
+    ghostRig.group.quaternion.set(chasePose.qx, chasePose.qy, chasePose.qz, chasePose.qw);
     ghostRig.setPresence(presence);
-    /* The rig is session lived and the scene is not: whichever scene holds
-     * the hero craft holds the ghost, checked here rather than at the swap
-     * so no load path can strand it in a disposed world. */
-    if (presence > 0 && shell.quad.parent && ghostRig.group.parent !== shell.quad.parent) {
-      shell.quad.parent.add(ghostRig.group);
+    /* The rig outlives scenes. It follows the hero craft into whichever
+     * scene holds it, here rather than at a swap, so no load path can leave
+     * it in a disposed world. */
+    const scene = shell.quad.parent;
+    if (presence > 0 && scene && ghostRig.group.parent !== scene) {
+      scene.add(ghostRig.group);
     }
   }
 
-  function ghostSampleInto(t) {
-    ghostLap.sample(t, ghostSample);
-    return ghostSample.cut;
-  }
-
-  /* One sentence for the results screen when a ghost was being chased:
-   * whether the run's best lap beat it, and by how much. ghostChased, not
-   * ghostLap: by the time results show, the finish line has re-armed the
-   * chase, and a run that just set a best would be compared with itself. */
+  /* The results line about the ghost the last lap was flown against, or
+   * null: level within 10 ms, else who was ahead and by how much. */
   function ghostResultNote() {
-    if (!ghostChased) {
-      return null;
-    }
-    const best = race.bestLapMs();
+    const best = ghostChased ? race.bestLapMs() : null;
     if (best == null) {
       return null;
     }
+    const theirs = ghostChased.durationMs;
     const who = ghostChased.source === 'board'
-      ? (ghostChased.name || str('main.the_board_lap'))
+      ? ghostChased.name || str('main.the_board_lap')
       : ghostChased.label.toLowerCase();
-    const d = best - ghostChased.durationMs;
-    if (Math.abs(d) < 10) {
-      return str('main.level_with_the_ghost_at', { who, formatTime: formatTime(ghostChased.durationMs) });
+    const vars = { who, formatTime: formatTime(theirs) };
+    const margin = best - theirs;
+    if (Math.abs(margin) < 10) {
+      return str('main.level_with_the_ghost_at', vars);
     }
-    if (d < 0) {
-      return str('main.you_beat_the_ghost_at_by', { who, formatTime: formatTime(ghostChased.durationMs), v3: (Math.abs(d) / 1000).toFixed(2) });
-    }
-    return str('main.the_ghost_at_stayed_ahead', { who, formatTime: formatTime(ghostChased.durationMs), v3: (d / 1000).toFixed(2) });
+    const v3 = (Math.abs(margin) / 1000).toFixed(2);
+    return str(margin < 0 ? 'main.you_beat_the_ghost_at_by' : 'main.the_ghost_at_stayed_ahead', { ...vars, v3 });
   }
 
-  /* The recording of a finished lap whose time is being uploaded, as wire
-   * base64, or null when this session holds no recording of that exact
-   * lap. Previous is checked before best: the two can share a duration,
-   * and then either encoding is the same lap. */
+  /* The wire base64 of this session's recording of a lap being posted, or
+   * null when the session holds none of that time. The previous lap is
+   * tried first; when it ties the best they are the same lap anyway. */
   function ghostForUpload(lapMs) {
-    const key = ghostCourseKey();
-    for (const lap of [ghostBook.previous(key), ghostBook.best(key)]) {
-      if (lap && Math.round(lap.durationMs) === Math.round(lapMs)) {
-        return ghostToBase64(encodeGhost(lap));
-      }
-    }
-    return null;
+    const want = Math.round(lapMs);
+    const lap = [sessionLap('previous'), sessionLap('best')].find((l) => l && Math.round(l.durationMs) === want);
+    return lap ? ghostToBase64(encodeGhost(lap)) : null;
   }
 
-  /* Best laps are only comparable on the same config, pack voltage and
-   * flight style: an arcade lap is flown on a different aircraft and
-   * must not sit in an expert record. Expert keeps the bare key so every
-   * record set before the style existed stays exactly where it was. */
+  /*
+   * The localStorage key a best lap is kept under, which is a storage
+   * format: changing any part of it hides every pilot's bests. A record is
+   * only comparable on the same machine, so the key names the config text
+   * (a 32 bit djb2 variant, xor form), the pack voltage, the flight style
+   * (arcade only; expert has no suffix), the airframe and the gravity
+   * multiple. The empty suffixes are the oldest records' (expert, gravity
+   * exactly 1.0), which keep their keys even where nothing can reach them
+   * now, like the five inch's.
+   */
   function recordKey() {
-    let h = 5381;
-    for (let i = 0; i < configText.length; i += 1) {
-      h = ((h * 33) ^ configText.charCodeAt(i)) >>> 0;
+    let hash = 5381;
+    for (let at = 0; at < configText.length; at += 1) {
+      hash = (Math.imul(hash, 33) ^ configText.charCodeAt(at)) >>> 0;
     }
-    const style = runStyle === 'arcade' ? '.arcade' : '';
-    /*
-     * The AIRFRAME is in the key, and it has to be: two aircraft's laps on
-     * the same track are not the same record, and the config hash above
-     * cannot tell two plants on one tune file apart. The EMPTY suffix was
-     * the five inch's, so every record set before the airframe joined the
-     * key stayed where it was; the five inch was removed on 2026-10-03 and
-     * its records stay under that key, untouched and unread, as the
-     * orphaned keys below do.
-     */
-    const craft = `.${runAirframe}`;
-    /*
-     * AND THE WEIGHT, on exactly the rule above it, keyed on the multiple of
-     * g the plant is holding rather than on the slider, so the key names the
-     * machine and not the menu. A lap at a different weight is a lap on a
-     * quad that hovers, climbs and drops differently, and filing it beside
-     * another would make the record meaningless.
-     *
-     * THE EMPTY SUFFIX IS THE 1.0 MACHINE AND STAYS THAT WAY. Every record
-     * set before the slider existed was flown at exactly 1.0, and the shell's
-     * normal is now 1.62, so the normal carries `.g162` and those old records
-     * stay under the bare key, untouched and unreachable, because nothing on
-     * the new band lands on 1.000 exactly: the floaty end is 0.972. That is
-     * the append-only rule applied to a pilot's own bests. The `.grav` and
-     * `.air` suffixes that came before were each live for under two hours on
-     * a slider with a different meaning and are orphaned the same way.
-     */
-    const gravPart = runGravityScale === 1 ? '' : `.g${Math.round(runGravityScale * 100)}`;
-    return `webfpv.best.${h.toString(16)}.${runVoltage.toFixed(2)}${style}${craft}${gravPart}`;
+    const parts = [
+      'webfpv.best',
+      hash.toString(16),
+      runVoltage.toFixed(2) + (runStyle === 'arcade' ? '.arcade' : ''),
+      runAirframe,
+    ];
+    if (runGravityScale !== 1) {
+      parts.push(`g${Math.round(runGravityScale * 100)}`);
+    }
+    return parts.join('.');
   }
 
   let mode = 'title'; /* title, flight, paused, results, replay */
