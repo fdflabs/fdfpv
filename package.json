@@ -76,6 +76,7 @@
     "gen:hangarcard": "node scripts/hangarcard.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "flightlog:selftest": "node scripts/flightlog-selftest.js",
+    "ghostdata:selftest": "node scripts/ghostdata-selftest.js",
     "ghost:golden": "node scripts/ghost-golden.js",
     "board:post": "node scripts/board-post-check.js",
     "contact:selftest": "node scripts/contact-selftest.js",
