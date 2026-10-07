@@ -5088,7 +5088,7 @@
     "current": "whitehot",
     "id": "pilot:thermal-palette",
     "label": "Thermal palette",
-    "note": "How the thermal camera in white hot colours its picture: white hot, ironbow or rainbow, as a real camera offers them. Black hot stays its own camera mode (J). The . (period) key changes it in flight.",
+    "note": "How the thermal camera in white hot colours its picture: white hot, ironbow, rainbow or arctic (cold blue, hot orange), as a real camera offers them. Black hot stays its own camera mode (J). The . (period) key changes it in flight.",
     "options": [
      {
       "label": "white hot",
@@ -5101,6 +5101,10 @@
      {
       "label": "rainbow",
       "value": "rainbow"
+     },
+     {
+      "label": "arctic",
+      "value": "arctic"
      }
     ],
     "value": "white hot"
@@ -5318,7 +5322,7 @@
    },
    {
     "cls": "row",
-    "text": "Thermal palettewhite hotironbowrainbow"
+    "text": "Thermal palettewhite hot"
    },
    {
     "cls": "row",
@@ -5790,11 +5794,7 @@
      ],
      [
       "onUiSound",
-      "adjust"
-     ],
-     [
-      "onSettings",
-      "object"
+      "select"
      ]
     ]
    },
