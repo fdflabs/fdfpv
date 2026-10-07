@@ -94,6 +94,7 @@
     "crash:identity": "node scripts/crash-identity.js",
     "boost:check": "node scripts/boost-check.js",
     "wreck:check": "node scripts/wreck-control-check.js",
+    "turtle:check": "node scripts/turtle-check.js",
     "crash:feel": "node scripts/crash-feel.js",
     "crash:stand-fault": "node scripts/stand-fault-check.js",
     "score:selftest": "node scripts/score-selftest.js",
