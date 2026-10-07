@@ -86,8 +86,8 @@ function reset({ profile = undefined, extra = {}, touch = 0, ua = agent.userAgen
   agent.maxTouchPoints = touch;
   agent.userAgent = ua;
 }
-/* A profile that makes loadSettings throw is recorded as the throw: the
- * old code throws on a stored JSON null, and that is behaviour too. */
+/* A profile that makes loadSettings throw is recorded as the throw, so a
+ * profile that stops the page booting shows in the record. */
 function loaded(opts) {
   reset(opts);
   let s;
@@ -122,6 +122,8 @@ const CASES = {
   'no-profile': undefined,
   'not-json': '{oops',
   'json-null': 'null',
+  'json-number': '5',
+  'json-string': '"abc"',
   'json-array': '[1,2,3]',
   'touch-device': { opts: { touch: 5 } },
   'steam-deck': { opts: { ua: 'Mozilla/5.0 (X11; Linux x86_64) Steam Deck' } },
@@ -255,7 +257,7 @@ if (bad.length) {
     const a = want.full[k];
     const b = got.full[k];
     const keys = a && b && typeof a === 'object' ? Object.keys({ ...a, ...b }).filter((x) => JSON.stringify(a[x]) !== JSON.stringify(b[x])) : [];
-    console.log(`  ${k}: ${keys.length ? `differs in ${keys.join(', ')}` : `${JSON.stringify(a).slice(0, 200)} vs ${JSON.stringify(b).slice(0, 200)}`}`);
+    console.log(`  ${k}: ${keys.length ? `differs in ${keys.join(', ')}` : `${String(JSON.stringify(a)).slice(0, 200)} vs ${String(JSON.stringify(b)).slice(0, 200)}`}`);
   }
   process.exit(1);
 }
