@@ -494,104 +494,101 @@ export function uprightPlantQuat(qw, qx, qy, qz) {
 
 /* ------------------------------------------------------------- clip watch */
 
-/* The watch is the caller's object and its fields are its state. */
+/*
+ * The watch is the caller's object and its fields are its state; main.js
+ * holds one per flight and collide:golden reads the fields in this order.
+ */
+const IDLE_WATCH = Object.freeze({
+  insideMs: 0, stuckMs: 0, buriedMs: 0, ax: 0, ay: 0, az: 0, haveAnchor: false,
+  thrashMs: 0, tx: 0, ty: 0, tz: 0, haveThrash: false,
+});
+
 export function resetClipWatch(watch) {
-  watch.insideMs = 0;
-  watch.stuckMs = 0;
-  watch.buriedMs = 0;
-  watch.ax = 0;
-  watch.ay = 0;
-  watch.az = 0;
-  watch.haveAnchor = false;
-  watch.thrashMs = 0;
-  watch.tx = 0;
-  watch.ty = 0;
-  watch.tz = 0;
-  watch.haveThrash = false;
-  return watch;
+  return Object.assign(watch, IDLE_WATCH);
 }
 
 export function makeClipWatch() {
   return resetClipWatch({});
 }
 
-const travelFrom = (s, x, y, z) => {
-  const dx = s.x - x;
-  const dy = s.y - y;
-  const dz = s.z - z;
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-};
+/*
+ * Stuck and thrash are the same test on different fields: while a
+ * condition holds, time it from where it started; once it has held for
+ * long enough, the craft is caught if it is still near that spot, and
+ * otherwise the timing starts over from where it is now.
+ */
+const LINGER_STUCK = { ms: 'stuckMs', armed: 'haveAnchor', x: 'ax', y: 'ay', z: 'az', limitMs: STUCK_UNRESOLVED_MS, reach: STUCK_TRAVEL_MAX };
+const LINGER_THRASH = { ms: 'thrashMs', armed: 'haveThrash', x: 'tx', y: 'ty', z: 'tz', limitMs: THRASH_MS, reach: THRASH_TRAVEL };
+
+function startLinger(watch, l, at) {
+  watch[l.x] = at.x;
+  watch[l.y] = at.y;
+  watch[l.z] = at.z;
+  watch[l.ms] = 0;
+}
+
+function timeLinger(watch, l, at, dt, holds) {
+  if (!holds) {
+    watch[l.armed] = false;
+    watch[l.ms] = 0;
+    return;
+  }
+  if (!watch[l.armed]) {
+    startLinger(watch, l, at);
+    watch[l.armed] = true;
+  }
+  watch[l.ms] += dt;
+}
+
+function lingered(watch, l, at) {
+  if (!watch[l.armed] || watch[l.ms] < l.limitMs) {
+    return false;
+  }
+  /* The sqrt stays: comparing squares instead moves the exact-limit cases. */
+  const ex = at.x - watch[l.x];
+  const ey = at.y - watch[l.y];
+  const ez = at.z - watch[l.z];
+  if (Math.sqrt(ex * ex + ey * ey + ez * ez) < l.reach) {
+    return true;
+  }
+  startLinger(watch, l, at);
+  return false;
+}
 
 /*
  * One frame of the watch for a craft that has got where it should not be:
  * its centre inside a solid, stuck unresolved in one place, buried, or
- * thrashing against a contact without getting anywhere.
+ * thrashing against a contact without getting anywhere. Every timer is
+ * advanced before any verdict, except a deep centre, which is immediate;
+ * verdicts rank inside, stuck, buried, thrash.
  */
 export function clipWatchTick(watch, sample, dtMs) {
   if (sample.launchStaging || sample.hold || sample.poseLock || sample.spawnGrace) {
     resetClipWatch(watch);
     return null;
   }
-  const dt = dtMs > 0 ? dtMs : 0;
   const depth = sample.interiorDepth;
   if (depth >= CLIP_DEEP) {
     return 'inside';
   }
-  watch.insideMs = depth > CLIP_CENTER_EPS ? watch.insideMs + dt : 0;
-  const soft = Boolean(sample.landed || sample.turtle);
-  if (!soft && sample.unresolved && !sample.roofContact && depth > CLIP_CENTER_EPS) {
-    if (!watch.haveAnchor) {
-      watch.ax = sample.x;
-      watch.ay = sample.y;
-      watch.az = sample.z;
-      watch.haveAnchor = true;
-      watch.stuckMs = 0;
-    }
-    watch.stuckMs += dt;
-  } else {
-    watch.haveAnchor = false;
-    watch.stuckMs = 0;
-  }
-  watch.buriedMs = !soft && sample.buriedDepth >= BURIED_DEPTH ? watch.buriedMs + dt : 0;
+  const dt = dtMs > 0 ? dtMs : 0;
+  const resting = Boolean(sample.landed || sample.turtle);
+  const centreIn = depth > CLIP_CENTER_EPS;
+  watch.insideMs = centreIn ? watch.insideMs + dt : 0;
+  timeLinger(watch, LINGER_STUCK, sample, dt, !resting && sample.unresolved && !sample.roofContact && centreIn);
+  watch.buriedMs = !resting && sample.buriedDepth >= BURIED_DEPTH ? watch.buriedMs + dt : 0;
   if (watch.insideMs >= CLIP_CONFIRM_MS) {
     return 'inside';
   }
-  if (watch.haveAnchor && watch.stuckMs >= STUCK_UNRESOLVED_MS) {
-    if (travelFrom(sample, watch.ax, watch.ay, watch.az) < STUCK_TRAVEL_MAX) {
-      return 'stuck';
-    }
-    watch.ax = sample.x;
-    watch.ay = sample.y;
-    watch.az = sample.z;
-    watch.stuckMs = 0;
+  if (lingered(watch, LINGER_STUCK, sample)) {
+    return 'stuck';
   }
   if (watch.buriedMs >= BURIED_CONFIRM_MS) {
     return 'buried';
   }
-  const pushing = sample.rateMag >= THRASH_RATE || sample.throttle >= THRASH_THROTTLE;
-  if (!soft && !sample.takingOff && Boolean(sample.contact) && pushing) {
-    if (!watch.haveThrash) {
-      watch.tx = sample.x;
-      watch.ty = sample.y;
-      watch.tz = sample.z;
-      watch.haveThrash = true;
-      watch.thrashMs = 0;
-    }
-    watch.thrashMs += dt;
-    if (watch.thrashMs >= THRASH_MS) {
-      if (travelFrom(sample, watch.tx, watch.ty, watch.tz) < THRASH_TRAVEL) {
-        return 'thrash';
-      }
-      watch.tx = sample.x;
-      watch.ty = sample.y;
-      watch.tz = sample.z;
-      watch.thrashMs = 0;
-    }
-  } else {
-    watch.haveThrash = false;
-    watch.thrashMs = 0;
-  }
-  return null;
+  const straining = sample.rateMag >= THRASH_RATE || sample.throttle >= THRASH_THROTTLE;
+  timeLinger(watch, LINGER_THRASH, sample, dt, !resting && !sample.takingOff && Boolean(sample.contact) && straining);
+  return lingered(watch, LINGER_THRASH, sample) ? 'thrash' : null;
 }
 
 /* ---------------------------------------------------------------- Colliders */

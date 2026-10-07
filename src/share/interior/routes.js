@@ -86,11 +86,13 @@ export const CONCEAL_POINTS = {
   'forest-edge': 0, gap1: 2, 'path-crossing': 4, clearing: 6, gap2: 7, opening: 8, 'camp-edge': 10,
 };
 /* Each route's alternate reacquisition point (the HARD_THRESHOLD move,
- * MISSIONS.md M1): west and east from the cañada, mid from the path
- * crossing to the west of the routes; each its own route from there. */
+ * MISSIONS.md M1): west and east from the cañada, mid from a second path
+ * crossing north of its clearing (places.js picada-norte), so Vega's
+ * "the path crossing north of last contact" points where the search
+ * ring is; each its own route from there. */
 const ALT = {
   west: [[9.065, 9.11], [8.97, 9.17], [8.86, 9.22], [8.76, 9.29], OPEN_A, OPEN_B, CAMP_EDGE],
-  mid: [[8.45, 8.955], [8.5, 9.06], [8.6, 9.17], [8.62, 9.27], OPEN_A, OPEN_B, CAMP_EDGE],
+  mid: [[8.8, 9.235], [8.77, 9.245], [8.74, 9.255], [8.69, 9.27], OPEN_A, OPEN_B, CAMP_EDGE],
   east: [[9.075, 9.24], [8.95, 9.25], [8.83, 9.24], [8.76, 9.29], OPEN_A, OPEN_B, CAMP_EDGE],
 };
 export const ALT_POINTS = { reacquire: 0, opening: 4, 'camp-edge': 6 };

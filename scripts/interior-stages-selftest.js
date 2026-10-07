@@ -83,6 +83,7 @@ import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
 import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
+import { ALT_POINTS, CONCEAL_POINTS, ROUTES } from '../src/share/interior/routes.js';
 import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
@@ -183,6 +184,19 @@ console.log('data');
     return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
   });
   check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
+  /* The hard threshold's line names a side of last contact (east for the
+   * cañada, north for the path crossing): the alternate must lie on that
+   * side of everywhere the pair can be lost before its second gap, or
+   * Vega's voice and the search ring disagree (the M1 audit, item 8). */
+  const ops = (p) => threePosToDoc(p[0], 0, p[1], {});
+  const side = { 'int1-s4-hard': (a, p) => a.x > p.x, 'int1-s4-hard-b': (a, p) => a.y > p.y };
+  const hard = stagesOf(M).flatMap((st) => st.cues ?? []).find((c) => c.when?.lost && c.search?.id === 'pair-alt');
+  const wrong = M.dials.conceal.filter((d) => {
+    const alt = ops(ROUTES[`conceal-${d}-alt-a`].pts[ALT_POINTS.reacquire]);
+    const walk = ROUTES[`conceal-${d}-a`].pts.slice(0, CONCEAL_POINTS.gap2).map(ops);
+    return !walk.every((p) => side[resolve(hard.radio, { conceal: d })](alt, p));
+  });
+  check('for every concealment route, the hard threshold\'s line names the side its alternate is on', hard && !wrong.length, wrong.join());
   /* The script's UI language (M1 audit item 12): every card a cue shows
    * is in both string tables, MISSION RULE stands in every stage, the
    * script's two line cards are both lines, and a new primary objective
@@ -869,6 +883,45 @@ console.log('low tracking before the camp: the camp only hears what flies over i
   e.fly(e.clock + 3000);
   check('stage 5 opens on "No low pass. Record everything.", no dispersal and no "They heard you."', heard(e, 0, 'int1-s5-record') && !heard(e, 0, 'int1-s5-early')
     && !heard(e, 0, 'int1-s5-moving') && !e.r.ops.match.choices?.dispersal);
+}
+
+/* ------------------------------------------------- the opening missed */
+
+console.log('the opening missed: the long objects still told at the camp edge, or the stage moves on');
+for (const back of [true, false]) {
+  /* Followed to the narrow opening, then the camera off the pair until
+   * it stands at the camp edge (M1 audit item 9: the beat was skipped).
+   * Lost there, it is moved to its alternate once (the hard threshold)
+   * and walks that through the opening unseen. */
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  const reached = (point) => () => e.r.ops.match.contacts.find((k) => k.id === 'pair-a').reached[point] != null;
+  until(e, reached('opening'), 1800000, 'the pair at the opening');
+  const keep = c.aim;
+  c.aim = null;
+  until(e, reached('camp-edge'), 900000, 'the pair at the camp edge');
+  const hards = contact(e, 'pair-a').hards;
+  const atEdge = e.clock;
+  e.fly(e.clock + 1000);
+  if (back) {
+    check('unseen through the opening: at the camp edge, still stage 4 and no "Armed."', e.view(0).stage?.id === 'M1_CP_CONTACT_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && contact(e, 'pair-a').cls !== 'poi' && hards === 1, `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls} hards ${hards}`);
+    c.aim = keep;
+    follow(e, c, 0, { orbit: 150 });
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    check('seen at the edge: armed, possible, PERSON OF INTEREST, then stage 5', heard(e, 0, 'int1-s4-know') && contact(e, 'pair-a').cls === 'poi'
+      && e.view(0).stage?.id === 'M1_CP_CAMP_FOUND', `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls}`);
+  } else {
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    const held = (e.clock - atEdge) / 1000;
+    check('never seen: stage 5 after the hold at the edge, without the beat', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && held >= 29 && held <= 32, `${e.view(0).stage?.id} held ${held} s`);
+  }
 }
 
 /* ---------------------------------------------------- the camp gone */

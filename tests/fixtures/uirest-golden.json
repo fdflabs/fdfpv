@@ -1,0 +1,5958 @@
+{
+ "en": {
+  "bylines": [
+   "",
+   "",
+   "",
+   "by ann",
+   "by dee",
+   "by dee",
+   "by ann",
+   ""
+  ],
+  "worlds": {
+   "track": null,
+   "alps": "alps",
+   "swiss2": "swiss2",
+   "itaipu": "itaipu",
+   "interior": null,
+   "nope": null,
+   "": null,
+   "undefined": null
+  },
+  "seats": {
+   "empty": {
+    "listing": null,
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "nogates": {
+    "listing": {
+     "kind": "community",
+     "gates": 0,
+     "name": "Seat"
+    },
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "waypoints": {
+    "listing": {
+     "kind": "community",
+     "gates": 0,
+     "name": "Seat"
+    },
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "gates": {
+    "listing": {
+     "kind": "community",
+     "gates": 2,
+     "name": "Seat"
+    },
+    "race": {
+     "track": true,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": true
+    }
+   },
+   "local": {
+    "listing": {
+     "kind": "local",
+     "gates": 3,
+     "name": "Seat"
+    },
+    "race": {
+     "track": true,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": true
+    }
+   }
+  },
+  "trouble": {
+   "100000": "Your radio has no buttons this browser can see",
+   "100001": "This browser is guessing your stick order",
+   "100010": "This browser is guessing your stick order",
+   "100011": "This browser is guessing your stick order",
+   "100100": "Your radio has no buttons this browser can see",
+   "100101": null,
+   "100110": null,
+   "100111": null,
+   "101000": "Your radio has no buttons this browser can see",
+   "101001": "This browser cannot see your yaw stick",
+   "101010": "This browser cannot see your yaw stick",
+   "101011": "This browser cannot see your yaw stick",
+   "101100": "Your radio has no buttons this browser can see",
+   "101101": null,
+   "101110": null,
+   "101111": null,
+   "110000": "Your radio has no buttons this browser can see",
+   "110001": "This browser cannot see your yaw stick",
+   "110010": "This browser cannot see your yaw stick",
+   "110011": "This browser cannot see your yaw stick",
+   "110100": "Your radio has no buttons this browser can see",
+   "110101": null,
+   "110110": null,
+   "110111": null,
+   "111000": "Your radio has no buttons this browser can see",
+   "111001": "This browser cannot see your yaw stick",
+   "111010": "This browser cannot see your yaw stick",
+   "111011": "This browser cannot see your yaw stick",
+   "111100": "Your radio has no buttons this browser can see",
+   "111101": null,
+   "111110": null,
+   "111111": null,
+   "none": null,
+   "nocount": null,
+   "keyboard": null,
+   "000000": "Your radio has no buttons this browser can see",
+   "000001": "This browser is guessing your stick order",
+   "000010": "This browser is guessing your stick order",
+   "000011": "This browser is guessing your stick order",
+   "000100": "Your radio has no buttons this browser can see",
+   "000101": null,
+   "000110": null,
+   "000111": null,
+   "001000": "Your radio has no buttons this browser can see",
+   "001001": null,
+   "001010": null,
+   "001011": null,
+   "001100": "Your radio has no buttons this browser can see",
+   "001101": null,
+   "001110": null,
+   "001111": null,
+   "010000": "Your radio has no buttons this browser can see",
+   "010001": null,
+   "010010": null,
+   "010011": null,
+   "010100": "Your radio has no buttons this browser can see",
+   "010101": null,
+   "010110": null,
+   "010111": null,
+   "011000": "Your radio has no buttons this browser can see",
+   "011001": null,
+   "011010": null,
+   "011011": null,
+   "011100": "Your radio has no buttons this browser can see",
+   "011101": null,
+   "011110": null,
+   "011111": null,
+   "notes": {
+    "{\"buttons\":false,\"hasSelect\":false}": {
+     "label": "Your radio has no buttons this browser can see",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "Every switch on it is arriving as an axis, so nothing on it can press Enter yet. Hold any stick away from centre for about a second and that counts as one press, which is enough to get in here and fix it properly. Calibrating ends by asking you to throw the switch you want as Enter, and after that it works like a button."
+    },
+    "{\"buttons\":true}": {
+     "label": "This browser is guessing your stick order",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "The axis it thinks is your throttle is sitting at the middle, and a real throttle rests at one end because it has no centring spring. So the guess is probably wrong, and a wrong guess means taking off at half power on a stick that springs back. Calibrating takes about a minute and fixes it for good."
+    },
+    "{\"buttons\":true,\"guessNoYaw\":true,\"mapUsable\":true}": {
+     "label": "This browser cannot see your yaw stick",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "The axis it guessed was yaw has not moved once, while a stick it does not know about has been swept end to end. That is a radio reporting its channels in some order other than the one being guessed, and the part of it you have lost is yaw. Calibrating takes about a minute and tells this page which axis is which."
+    }
+   }
+  },
+  "craft": {
+   "seat": {
+    "view": {
+     "label": "Aircraft",
+     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Changing it loads that machine's tune, its pack and its camera, and moves the track builder to the field that machine flies. Your own rates are kept unless they are still the stock ones.",
+     "value": "Ten inch",
+     "current": "10inch",
+     "options": [
+      {
+       "value": "7inch",
+       "label": "Seven inch"
+      },
+      {
+       "value": "10inch",
+       "label": "Ten inch"
+      },
+      {
+       "value": "interceptor",
+       "label": "Interceptor"
+      },
+      {
+       "value": "sky1800",
+       "label": "Skyhunter"
+      },
+      {
+       "value": "cub1400",
+       "label": "Piper Cub"
+      },
+      {
+       "value": "radian2000",
+       "label": "Radian"
+      },
+      {
+       "value": "bramor2300",
+       "label": "Bramor C4EYE"
+      },
+      {
+       "value": "slowstick1180",
+       "label": "Slow Stick"
+      },
+      {
+       "value": "timber1500",
+       "label": "Turbo Timber"
+      },
+      {
+       "value": "timber1500f",
+       "label": "Turbo Timber, floats"
+      },
+      {
+       "value": "cub1400f",
+       "label": "Piper Cub, floats"
+      },
+      {
+       "value": "bombshell1118",
+       "label": "Buzzard Bombshell"
+      },
+      {
+       "value": "kadet1981",
+       "label": "Kadet Senior"
+      },
+      {
+       "value": "uglystik1567",
+       "label": "Ugly Stik"
+      },
+      {
+       "value": "tigermoth1803",
+       "label": "Tiger Moth"
+      },
+      {
+       "value": "p51d1450",
+       "label": "P-51D Mustang"
+      },
+      {
+       "value": "f16878",
+       "label": "F-16 Falcon"
+      },
+      {
+       "value": "zagi1219",
+       "label": "Zagi HP"
+      },
+      {
+       "value": "nrj1490",
+       "label": "NRJ DLG"
+      },
+      {
+       "value": "striker2500",
+       "label": "Striker"
+      }
+     ],
+     "pick": "[fn]",
+     "adjust": "[fn]",
+     "pickOnly": true
+    },
+    "picked": null,
+    "swaps": [],
+    "after": {
+     "airframe": "interceptor",
+     "rates": null,
+     "tuneFor": {},
+     "tune": "betaflight-interceptor",
+     "packVoltage": 4.2,
+     "cameraFov": 95,
+     "cameraAngle": 45
+    },
+    "keys": [
+     "label",
+     "note",
+     "value",
+     "current",
+     "options",
+     "pick",
+     "adjust",
+     "pickOnly"
+    ]
+   },
+   "swap": {
+    "view": {
+     "label": "Aircraft",
+     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Changing it loads that machine's tune, its pack and its camera, and moves the track builder to the field that machine flies. Your own rates are kept unless they are still the stock ones. It takes over where you are: same place, same heading.",
+     "value": "Ten inch",
+     "current": "10inch",
+     "options": [
+      {
+       "value": "7inch",
+       "label": "Seven inch"
+      },
+      {
+       "value": "10inch",
+       "label": "Ten inch"
+      },
+      {
+       "value": "interceptor",
+       "label": "Interceptor"
+      },
+      {
+       "value": "sky1800",
+       "label": "Skyhunter"
+      },
+      {
+       "value": "cub1400",
+       "label": "Piper Cub"
+      },
+      {
+       "value": "radian2000",
+       "label": "Radian"
+      },
+      {
+       "value": "bramor2300",
+       "label": "Bramor C4EYE"
+      },
+      {
+       "value": "slowstick1180",
+       "label": "Slow Stick"
+      },
+      {
+       "value": "timber1500",
+       "label": "Turbo Timber"
+      },
+      {
+       "value": "timber1500f",
+       "label": "Turbo Timber, floats"
+      },
+      {
+       "value": "cub1400f",
+       "label": "Piper Cub, floats"
+      },
+      {
+       "value": "bombshell1118",
+       "label": "Buzzard Bombshell"
+      },
+      {
+       "value": "kadet1981",
+       "label": "Kadet Senior"
+      },
+      {
+       "value": "uglystik1567",
+       "label": "Ugly Stik"
+      },
+      {
+       "value": "tigermoth1803",
+       "label": "Tiger Moth"
+      },
+      {
+       "value": "p51d1450",
+       "label": "P-51D Mustang"
+      },
+      {
+       "value": "f16878",
+       "label": "F-16 Falcon"
+      },
+      {
+       "value": "zagi1219",
+       "label": "Zagi HP"
+      },
+      {
+       "value": "nrj1490",
+       "label": "NRJ DLG"
+      },
+      {
+       "value": "striker2500",
+       "label": "Striker"
+      }
+     ],
+     "pick": "[fn]",
+     "adjust": "[fn]",
+     "pickOnly": true
+    },
+    "picked": null,
+    "swaps": [
+     [
+      "interceptor"
+     ]
+    ],
+    "after": {
+     "airframe": "7inch",
+     "rates": null
+    },
+    "keys": [
+     "label",
+     "note",
+     "value",
+     "current",
+     "options",
+     "pick",
+     "adjust",
+     "pickOnly"
+    ]
+   }
+  },
+  "drawn": {
+   "7inch:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "7inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "7inch:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "7inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "7inch:unfitted": null,
+   "10inch:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "10inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "10inch:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "10inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "10inch:unfitted": null,
+   "interceptor:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "interceptor",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "interceptor:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "interceptor",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "interceptor:unfitted": null,
+   "sky1800:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "sky1800",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "sky1800:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "sky1800",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "sky1800:unfitted": null,
+   "cub1400:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "cub1400",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "cub1400:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "cub1400",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "cub1400:unfitted": null,
+   "radian2000:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "radian2000",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "radian2000:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "radian2000",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "radian2000:unfitted": null,
+   "bramor2300:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "bramor2300",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "bramor2300:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "bramor2300",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "bramor2300:unfitted": null,
+   "slowstick1180:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "slowstick1180",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "slowstick1180:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "slowstick1180",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "slowstick1180:unfitted": null,
+   "timber1500:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "timber1500",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "timber1500:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "timber1500",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "timber1500:unfitted": null,
+   "timber1500f:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755,
+       "floats": 15855850
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500f",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": null
+   },
+   "timber1500f:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755,
+       "floats": 15855850
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500f",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": null
+   },
+   "timber1500f:unfitted": null,
+   "cub1400f:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962,
+       "floats": 15921644
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400f",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": null
+   },
+   "cub1400f:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962,
+       "floats": 15921644
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400f",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": null
+   },
+   "cub1400f:unfitted": null,
+   "bombshell1118:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "bombshell1118",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "bombshell1118:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "bombshell1118",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "bombshell1118:unfitted": null,
+   "kadet1981:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "kadet1981",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "kadet1981:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "kadet1981",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "kadet1981:unfitted": null,
+   "uglystik1567:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "uglystik1567",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "uglystik1567:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "uglystik1567",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "uglystik1567:unfitted": null,
+   "tigermoth1803:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "tigermoth1803",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "tigermoth1803:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "tigermoth1803",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "tigermoth1803:unfitted": null,
+   "p51d1450:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "p51d1450",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "p51d1450:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "p51d1450",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "p51d1450:unfitted": null,
+   "f16878:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "f16878",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "f16878:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "f16878",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "f16878:unfitted": null,
+   "zagi1219:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "zagi1219",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "zagi1219:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "zagi1219",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "zagi1219:unfitted": null,
+   "nrj1490:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "nrj1490",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "nrj1490:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nrj1490",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nrj1490:unfitted": null,
+   "striker2500:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "striker2500",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "striker2500:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "striker2500",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "striker2500:unfitted": null
+  },
+  "methods": {
+   "play": {
+    "log": [
+     [
+      "onAction",
+      "play",
+      null
+     ]
+    ],
+    "map": "track",
+    "mode": "race",
+    "returnTo": "title",
+    "stored": "track"
+   },
+   "playQuiet": {
+    "log": [],
+    "map": "track",
+    "mode": "race",
+    "returnTo": "title"
+   },
+   "howto": {
+    "radio": {
+     "source": "radio",
+     "log": [
+      [
+       "renderHowto",
+       "radio"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "launch": {
+     "source": "launch",
+     "log": [
+      [
+       "renderHowto",
+       "launch"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "touch": {
+     "source": "touch",
+     "log": [
+      [
+       "renderHowto",
+       "touch"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "mouse": {
+     "source": "mouse",
+     "log": [
+      [
+       "renderHowto",
+       "mouse"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "keyboard": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "gamepad": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "undefined": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    }
+   },
+   "howtoQuiet": {
+    "source": "radio",
+    "log": [
+     [
+      "renderHowto",
+      "radio"
+     ]
+    ]
+   },
+   "titleStop": {
+    "false:null:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:null:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:null:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:null:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:race:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:freestyle:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:null:all": {
+     "at": 4,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:nohubs": {
+     "at": 1,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:nofirst": {
+     "at": 3,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:race:all": {
+     "at": 4,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:nohubs": {
+     "at": 1,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:nofirst": {
+     "at": 3,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:freestyle:all": {
+     "at": 6,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:nohubs": {
+     "at": 3,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:nofirst": {
+     "at": 5,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    }
+   },
+   "menuScroll": {
+    "noScreens": null,
+    "noHost": null,
+    "both": "node.menu-scroll",
+    "menuOnly": "node.menu",
+    "neither": null
+   },
+   "adjust": {
+    "0:-1": [],
+    "0:1": [],
+    "1:-1": [
+     [
+      "adjust b",
+      -1
+     ],
+     [
+      "writeSettings"
+     ]
+    ],
+    "1:1": [
+     [
+      "adjust b",
+      1
+     ],
+     [
+      "writeSettings"
+     ]
+    ],
+    "2:-1": [],
+    "2:1": []
+   }
+  }
+ },
+ "es": {
+  "bylines": [
+   "",
+   "",
+   "",
+   "por ann",
+   "por dee",
+   "por dee",
+   "por ann",
+   ""
+  ],
+  "worlds": {
+   "track": null,
+   "alps": "alps",
+   "swiss2": "swiss2",
+   "itaipu": "itaipu",
+   "interior": null,
+   "nope": null,
+   "": null,
+   "undefined": null
+  },
+  "seats": {
+   "empty": {
+    "listing": null,
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "nogates": {
+    "listing": {
+     "kind": "community",
+     "gates": 0,
+     "name": "Seat"
+    },
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "waypoints": {
+    "listing": {
+     "kind": "community",
+     "gates": 0,
+     "name": "Seat"
+    },
+    "race": {
+     "track": false,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": false
+    }
+   },
+   "gates": {
+    "listing": {
+     "kind": "community",
+     "gates": 2,
+     "name": "Seat"
+    },
+    "race": {
+     "track": true,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": true
+    }
+   },
+   "local": {
+    "listing": {
+     "kind": "local",
+     "gates": 3,
+     "name": "Seat"
+    },
+    "race": {
+     "track": true,
+     "alps": false,
+     "swiss2": false,
+     "itaipu": false,
+     "interior": false,
+     "nope": true
+    }
+   }
+  },
+  "trouble": {
+   "100000": "Tu radio no tiene botones que este navegador pueda ver",
+   "100001": "Este navegador está adivinando el orden de tus sticks",
+   "100010": "Este navegador está adivinando el orden de tus sticks",
+   "100011": "Este navegador está adivinando el orden de tus sticks",
+   "100100": "Tu radio no tiene botones que este navegador pueda ver",
+   "100101": null,
+   "100110": null,
+   "100111": null,
+   "101000": "Tu radio no tiene botones que este navegador pueda ver",
+   "101001": "Este navegador no puede ver tu stick de yaw",
+   "101010": "Este navegador no puede ver tu stick de yaw",
+   "101011": "Este navegador no puede ver tu stick de yaw",
+   "101100": "Tu radio no tiene botones que este navegador pueda ver",
+   "101101": null,
+   "101110": null,
+   "101111": null,
+   "110000": "Tu radio no tiene botones que este navegador pueda ver",
+   "110001": "Este navegador no puede ver tu stick de yaw",
+   "110010": "Este navegador no puede ver tu stick de yaw",
+   "110011": "Este navegador no puede ver tu stick de yaw",
+   "110100": "Tu radio no tiene botones que este navegador pueda ver",
+   "110101": null,
+   "110110": null,
+   "110111": null,
+   "111000": "Tu radio no tiene botones que este navegador pueda ver",
+   "111001": "Este navegador no puede ver tu stick de yaw",
+   "111010": "Este navegador no puede ver tu stick de yaw",
+   "111011": "Este navegador no puede ver tu stick de yaw",
+   "111100": "Tu radio no tiene botones que este navegador pueda ver",
+   "111101": null,
+   "111110": null,
+   "111111": null,
+   "none": null,
+   "nocount": null,
+   "keyboard": null,
+   "000000": "Tu radio no tiene botones que este navegador pueda ver",
+   "000001": "Este navegador está adivinando el orden de tus sticks",
+   "000010": "Este navegador está adivinando el orden de tus sticks",
+   "000011": "Este navegador está adivinando el orden de tus sticks",
+   "000100": "Tu radio no tiene botones que este navegador pueda ver",
+   "000101": null,
+   "000110": null,
+   "000111": null,
+   "001000": "Tu radio no tiene botones que este navegador pueda ver",
+   "001001": null,
+   "001010": null,
+   "001011": null,
+   "001100": "Tu radio no tiene botones que este navegador pueda ver",
+   "001101": null,
+   "001110": null,
+   "001111": null,
+   "010000": "Tu radio no tiene botones que este navegador pueda ver",
+   "010001": null,
+   "010010": null,
+   "010011": null,
+   "010100": "Tu radio no tiene botones que este navegador pueda ver",
+   "010101": null,
+   "010110": null,
+   "010111": null,
+   "011000": "Tu radio no tiene botones que este navegador pueda ver",
+   "011001": null,
+   "011010": null,
+   "011011": null,
+   "011100": "Tu radio no tiene botones que este navegador pueda ver",
+   "011101": null,
+   "011110": null,
+   "011111": null,
+   "notes": {
+    "{\"buttons\":false,\"hasSelect\":false}": {
+     "label": "Tu radio no tiene botones que este navegador pueda ver",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "Cada interruptor suyo está llegando como un eje, así que nada en él puede pulsar Enter todavía. Mantén cualquier stick fuera del centro por un segundo más o menos y eso cuenta como una pulsación, que es suficiente para entrar aquí y arreglarlo bien. Calibrar termina pidiéndote que muevas el switch que quieras como Enter, y después funciona como un botón."
+    },
+    "{\"buttons\":true}": {
+     "label": "Este navegador está adivinando el orden de tus sticks",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "El eje que cree que es tu throttle está quieto en el medio, y un throttle de verdad descansa en un extremo porque no tiene resorte de centrado. Así que la suposición es probablemente equivocado, y una suposición errada significa despegar a media potencia en un stick que vuelve al centro por resorte. Calibrar toma más o menos un minuto y lo arregla para siempre."
+    },
+    "{\"buttons\":true,\"guessNoYaw\":true,\"mapUsable\":true}": {
+     "label": "Este navegador no puede ver tu stick de yaw",
+     "action": "calibrate",
+     "rowClass": "row-warn",
+     "note": "El eje que supuso que era yaw no se ha movido ni una vez, mientras que un stick que no conoce se ha recorrido de extremo a extremo. Eso es una radio reportando sus canales en algún orden distinto del que se está adivinando, y la parte que ya tienes perdido es yaw. Calibrar toma alrededor de un minuto y le dice a esta página qué eje es cuál."
+    }
+   }
+  },
+  "craft": {
+   "seat": {
+    "view": {
+     "label": "Aeronave",
+     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "value": "Ten inch",
+     "current": "10inch",
+     "options": [
+      {
+       "value": "7inch",
+       "label": "Seven inch"
+      },
+      {
+       "value": "10inch",
+       "label": "Ten inch"
+      },
+      {
+       "value": "interceptor",
+       "label": "Interceptor"
+      },
+      {
+       "value": "sky1800",
+       "label": "Skyhunter"
+      },
+      {
+       "value": "cub1400",
+       "label": "Piper Cub"
+      },
+      {
+       "value": "radian2000",
+       "label": "Radian"
+      },
+      {
+       "value": "bramor2300",
+       "label": "Bramor C4EYE"
+      },
+      {
+       "value": "slowstick1180",
+       "label": "Slow Stick"
+      },
+      {
+       "value": "timber1500",
+       "label": "Turbo Timber"
+      },
+      {
+       "value": "timber1500f",
+       "label": "Turbo Timber, floats"
+      },
+      {
+       "value": "cub1400f",
+       "label": "Piper Cub, floats"
+      },
+      {
+       "value": "bombshell1118",
+       "label": "Buzzard Bombshell"
+      },
+      {
+       "value": "kadet1981",
+       "label": "Kadet Senior"
+      },
+      {
+       "value": "uglystik1567",
+       "label": "Ugly Stik"
+      },
+      {
+       "value": "tigermoth1803",
+       "label": "Tiger Moth"
+      },
+      {
+       "value": "p51d1450",
+       "label": "P-51D Mustang"
+      },
+      {
+       "value": "f16878",
+       "label": "F-16 Falcon"
+      },
+      {
+       "value": "zagi1219",
+       "label": "Zagi HP"
+      },
+      {
+       "value": "nrj1490",
+       "label": "NRJ DLG"
+      },
+      {
+       "value": "striker2500",
+       "label": "Striker"
+      }
+     ],
+     "pick": "[fn]",
+     "adjust": "[fn]",
+     "pickOnly": true
+    },
+    "picked": null,
+    "swaps": [],
+    "after": {
+     "airframe": "interceptor",
+     "rates": null,
+     "tuneFor": {},
+     "tune": "betaflight-interceptor",
+     "packVoltage": 4.2,
+     "cameraFov": 95,
+     "cameraAngle": 45
+    },
+    "keys": [
+     "label",
+     "note",
+     "value",
+     "current",
+     "options",
+     "pick",
+     "adjust",
+     "pickOnly"
+    ]
+   },
+   "swap": {
+    "view": {
+     "label": "Aeronave",
+     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
+     "value": "Ten inch",
+     "current": "10inch",
+     "options": [
+      {
+       "value": "7inch",
+       "label": "Seven inch"
+      },
+      {
+       "value": "10inch",
+       "label": "Ten inch"
+      },
+      {
+       "value": "interceptor",
+       "label": "Interceptor"
+      },
+      {
+       "value": "sky1800",
+       "label": "Skyhunter"
+      },
+      {
+       "value": "cub1400",
+       "label": "Piper Cub"
+      },
+      {
+       "value": "radian2000",
+       "label": "Radian"
+      },
+      {
+       "value": "bramor2300",
+       "label": "Bramor C4EYE"
+      },
+      {
+       "value": "slowstick1180",
+       "label": "Slow Stick"
+      },
+      {
+       "value": "timber1500",
+       "label": "Turbo Timber"
+      },
+      {
+       "value": "timber1500f",
+       "label": "Turbo Timber, floats"
+      },
+      {
+       "value": "cub1400f",
+       "label": "Piper Cub, floats"
+      },
+      {
+       "value": "bombshell1118",
+       "label": "Buzzard Bombshell"
+      },
+      {
+       "value": "kadet1981",
+       "label": "Kadet Senior"
+      },
+      {
+       "value": "uglystik1567",
+       "label": "Ugly Stik"
+      },
+      {
+       "value": "tigermoth1803",
+       "label": "Tiger Moth"
+      },
+      {
+       "value": "p51d1450",
+       "label": "P-51D Mustang"
+      },
+      {
+       "value": "f16878",
+       "label": "F-16 Falcon"
+      },
+      {
+       "value": "zagi1219",
+       "label": "Zagi HP"
+      },
+      {
+       "value": "nrj1490",
+       "label": "NRJ DLG"
+      },
+      {
+       "value": "striker2500",
+       "label": "Striker"
+      }
+     ],
+     "pick": "[fn]",
+     "adjust": "[fn]",
+     "pickOnly": true
+    },
+    "picked": null,
+    "swaps": [
+     [
+      "interceptor"
+     ]
+    ],
+    "after": {
+     "airframe": "7inch",
+     "rates": null
+    },
+    "keys": [
+     "label",
+     "note",
+     "value",
+     "current",
+     "options",
+     "pick",
+     "adjust",
+     "pickOnly"
+    ]
+   }
+  },
+  "drawn": {
+   "7inch:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "7inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "7inch:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "7inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "7inch:unfitted": null,
+   "10inch:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "10inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "10inch:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "10inch",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "tape": 6119480,
+       "pack": 1579291,
+       "payload": 5067056,
+       "cage": 3817258,
+       "legs": 1579291,
+       "props": 2303271
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "10inch:unfitted": null,
+   "interceptor:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "interceptor",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "interceptor:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "interceptor",
+     "look": {
+      "colours": {
+       "frame": 1776927,
+       "arms": 1776927,
+       "top": 1776927,
+       "armour": 2763563,
+       "pack": 1579291,
+       "payload": 5067056,
+       "legs": 1579291
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "interceptor:unfitted": null,
+   "sky1800:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "sky1800",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "sky1800:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "sky1800",
+     "look": {
+      "colours": {
+       "wing": 13951726,
+       "tail": 13951726,
+       "pod": 13951726
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "sky1800",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "sky1800:unfitted": null,
+   "cub1400:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "cub1400",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "cub1400:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "cub1400",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "cub1400:unfitted": null,
+   "radian2000:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "radian2000",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "radian2000:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "radian2000",
+     "look": {
+      "colours": {
+       "wing": 15856108,
+       "fuselage": 15856108,
+       "tail": 15856108,
+       "tips": 13576742,
+       "canopy": 1777959
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "radian2000",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "radian2000:unfitted": null,
+   "bramor2300:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "bramor2300",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "bramor2300:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "bramor2300",
+     "look": {
+      "colours": {
+       "airframe": 11122113
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bramor2300",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "bramor2300:unfitted": null,
+   "slowstick1180:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "slowstick1180",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "slowstick1180:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "slowstick1180",
+     "look": {
+      "colours": {
+       "wing": 15024170,
+       "tail": 15024170,
+       "tape": 16052714
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "slowstick1180",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "slowstick1180:unfitted": null,
+   "timber1500:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "timber1500",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "timber1500:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "timber1500",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "timber1500:unfitted": null,
+   "timber1500f:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755,
+       "floats": 15855850
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500f",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": null
+   },
+   "timber1500f:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15855850,
+       "fuselage": 15855850,
+       "tail": 15855850,
+       "trim": 13969183,
+       "stripe": 1513755,
+       "floats": 15855850
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "timber1500f",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": null
+   },
+   "timber1500f:unfitted": null,
+   "cub1400f:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962,
+       "floats": 15921644
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400f",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": null
+   },
+   "cub1400f:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15777322,
+       "fuselage": 15777322,
+       "tail": 15777322,
+       "trim": 1447962,
+       "floats": 15921644
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "cub1400f",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": null
+   },
+   "cub1400f:unfitted": null,
+   "bombshell1118:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "bombshell1118",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "bombshell1118:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "bombshell1118",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 1513242,
+       "tail": 1513242,
+       "swoop": 13112858
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "bombshell1118",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "bombshell1118:unfitted": null,
+   "kadet1981:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "kadet1981",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "kadet1981:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "kadet1981",
+     "look": {
+      "colours": {
+       "wing": 16767770,
+       "wing_trim": 14029332,
+       "fuselage": 14029332,
+       "fuse_trim": 16767770
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "kadet1981",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "kadet1981:unfitted": null,
+   "uglystik1567:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "uglystik1567",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "uglystik1567:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "uglystik1567",
+     "look": {
+      "colours": {
+       "wing": 13112858,
+       "fuselage": 13112858,
+       "tail": 13112858,
+       "panels": 15921126,
+       "crosses": 1315862
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "uglystik1567",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "uglystik1567:unfitted": null,
+   "tigermoth1803:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "tigermoth1803",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "tigermoth1803:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "tigermoth1803",
+     "look": {
+      "colours": {
+       "wing": 16101916,
+       "fuselage": 16101916,
+       "tail": 16101916,
+       "cowl": 1513498,
+       "bands": 16101916,
+       "trim": 1513498
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "tigermoth1803",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "tigermoth1803:unfitted": null,
+   "p51d1450:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "p51d1450",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "p51d1450:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "p51d1450",
+     "look": {
+      "colours": {
+       "wing": 13291733,
+       "fuselage": 13291733,
+       "tail": 13291733,
+       "trim": 13112858,
+       "stripe": 1513755
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "p51d1450",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "p51d1450:unfitted": null,
+   "f16878:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "f16878",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "f16878:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "f16878",
+     "look": {
+      "colours": {
+       "dark": 5067607,
+       "medium": 8357772,
+       "light": 11120820,
+       "canopy": 9073728
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "f16878",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "f16878:unfitted": null,
+   "zagi1219:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "zagi1219",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "zagi1219:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "zagi1219",
+     "look": {
+      "colours": {
+       "wing": 15750686,
+       "trim": 15750686,
+       "winglets": 1513755,
+       "canopy": 3422268
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": {
+      "id": "zagi1219",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "zagi1219:unfitted": null,
+   "nrj1490:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "nrj1490",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "nrj1490:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nrj1490",
+     "look": {
+      "colours": {
+       "wing": 2829617,
+       "stripe": 15218063,
+       "band": 3781606,
+       "cone": 3840729,
+       "tail": 1710877
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nrj1490:unfitted": null,
+   "striker2500:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    },
+    "card": {
+     "key": "striker2500",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": null
+    }
+   },
+   "striker2500:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "striker2500",
+     "look": {
+      "colours": {
+       "fuselage": 10925766,
+       "wing": 10925766,
+       "fins": 10925766,
+       "nose_cap": 12109524,
+       "nose_band": 2500650,
+       "engine": 10133670
+      },
+      "finishes": {},
+      "decals": [],
+      "wear": 0
+     },
+     "fit": null,
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "striker2500:unfitted": null
+  },
+  "methods": {
+   "play": {
+    "log": [
+     [
+      "onAction",
+      "play",
+      null
+     ]
+    ],
+    "map": "track",
+    "mode": "race",
+    "returnTo": "title",
+    "stored": "track"
+   },
+   "playQuiet": {
+    "log": [],
+    "map": "track",
+    "mode": "race",
+    "returnTo": "title"
+   },
+   "howto": {
+    "radio": {
+     "source": "radio",
+     "log": [
+      [
+       "renderHowto",
+       "radio"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "launch": {
+     "source": "launch",
+     "log": [
+      [
+       "renderHowto",
+       "launch"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "touch": {
+     "source": "touch",
+     "log": [
+      [
+       "renderHowto",
+       "touch"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "mouse": {
+     "source": "mouse",
+     "log": [
+      [
+       "renderHowto",
+       "mouse"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "keyboard": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "gamepad": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    },
+    "undefined": {
+     "source": "keyboard",
+     "log": [
+      [
+       "renderHowto",
+       "keyboard"
+      ],
+      [
+       "sound",
+       "adjust"
+      ]
+     ]
+    }
+   },
+   "howtoQuiet": {
+    "source": "radio",
+    "log": [
+     [
+      "renderHowto",
+      "radio"
+     ]
+    ]
+   },
+   "titleStop": {
+    "false:null:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:null:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:null:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:null:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:null:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:null:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:race:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "false:club:freestyle:all": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       12
+      ]
+     ]
+    },
+    "false:club:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "false:club:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "false:club:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:null:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:null:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:null:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:race:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:race:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:race:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:null:freestyle:all": {
+     "at": 1,
+     "action": "hub-club",
+     "log": []
+    },
+    "true:null:freestyle:nohubs": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       9
+      ]
+     ]
+    },
+    "true:null:freestyle:nofirst": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       11
+      ]
+     ]
+    },
+    "true:null:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:null:all": {
+     "at": 4,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:nohubs": {
+     "at": 1,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:nofirst": {
+     "at": 3,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:null:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:race:all": {
+     "at": 4,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:nohubs": {
+     "at": 1,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:nofirst": {
+     "at": 3,
+     "action": "way-race-5inch",
+     "log": []
+    },
+    "true:club:race:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    },
+    "true:club:freestyle:all": {
+     "at": 6,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:nohubs": {
+     "at": 3,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:nofirst": {
+     "at": 5,
+     "action": "way-friends",
+     "log": []
+    },
+    "true:club:freestyle:empty": {
+     "at": 99,
+     "action": null,
+     "log": [
+      [
+       "firstStop",
+       0
+      ]
+     ]
+    }
+   },
+   "menuScroll": {
+    "noScreens": null,
+    "noHost": null,
+    "both": "node.menu-scroll",
+    "menuOnly": "node.menu",
+    "neither": null
+   },
+   "adjust": {
+    "0:-1": [],
+    "0:1": [],
+    "1:-1": [
+     [
+      "adjust b",
+      -1
+     ],
+     [
+      "writeSettings"
+     ]
+    ],
+    "1:1": [
+     [
+      "adjust b",
+      1
+     ],
+     [
+      "writeSettings"
+     ]
+    ],
+    "2:-1": [],
+    "2:1": []
+   }
+  }
+ }
+}
