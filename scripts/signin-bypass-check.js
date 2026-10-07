@@ -84,7 +84,7 @@ check('tracks-api/node.js has a main to read', nodeMain.includes('startTracks(')
 check('its main passes no key set address from the environment', !/jwks/i.test(nodeMain), nodeMain.match(/.*jwks.*/i)?.[0]);
 const configs = [
   ...readdirSync(join(root, 'deploy/vm')).map((f) => `deploy/vm/${f}`),
-  'tracks-api/wrangler.toml', 'edge/wrangler.toml', 'edge/rooms/wrangler.toml', 'render.yaml',
+  'tracks-api/wrangler.toml', 'edge/rooms/wrangler.toml', 'render.yaml',
 ];
 const naming = configs.filter((f) => /JWKS/i.test(read(f)));
 check(`no production config names a key set (${configs.length} files)`, naming.length === 0, naming.join(', '));

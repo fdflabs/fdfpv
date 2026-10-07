@@ -5130,7 +5130,7 @@
     "current": "whitehot",
     "id": "pilot:paleta-t-rmica",
     "label": "Paleta térmica",
-    "note": "Cómo colorea su imagen la cámara térmica en blanco caliente: blanco caliente, ironbow o arcoíris, como las ofrece una cámara real. Negro caliente sigue siendo un modo de cámara aparte (J). La tecla . (punto) la cambia en vuelo.",
+    "note": "Cómo colorea su imagen la cámara térmica en blanco caliente: blanco caliente, ironbow, arcoíris o ártico (frío azul, calor naranja), como las ofrece una cámara real. Negro caliente sigue siendo un modo de cámara aparte (J). La tecla . (punto) la cambia en vuelo.",
     "options": [
      {
       "label": "blanco caliente",
@@ -5143,6 +5143,10 @@
      {
       "label": "arcoíris",
       "value": "rainbow"
+     },
+     {
+      "label": "ártico",
+      "value": "arctic"
      }
     ],
     "value": "blanco caliente"
