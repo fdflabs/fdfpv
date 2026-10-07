@@ -3666,7 +3666,7 @@ export default {
   "training.lesson.first_unaided": "The same, unaided",
   "training.lesson.first_unaided_note": "Take off, both circles and a landing in Acro: the gyro holds the plane where you leave it and no longer levels it.",
   "training.lesson.race_lap": "A lap",
-  "training.lesson.race_lap_note": "Fly one lap of any course, every gate in order.",
+  "training.lesson.race_lap_note": "Fly one lap of any track, every gate in order.",
   "training.lesson.race_clean": "A clean lap",
   "training.lesson.race_clean_note": "One lap without touching a gate, a banner, a pylon or a hoop.",
   "training.lesson.race_ghost": "Beat your ghost",
