@@ -7746,3 +7746,11 @@ Object.assign(Ui.prototype, overlayMethods, resultsMethods);
 
 import { keyMethods } from './keys.js';
 Object.assign(Ui.prototype, keyMethods);
+
+/* slot: screen items */
+
+/* slot: menu render and navigation */
+
+/* slot: actions */
+
+/* slot: session rows, music dock and howto */
