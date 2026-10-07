@@ -83,10 +83,12 @@ import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
 import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
+import EN from '../src/strings/en.js';
+import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
-  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
+  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, bearingSaid, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
 } from '../src/share/ops/guide.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -181,6 +183,19 @@ console.log('data');
     return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
   });
   check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
+  /* The script's UI language (M1 audit item 12): every card a cue shows
+   * is in both string tables, MISSION RULE stands in every stage, the
+   * script's two line cards are both lines, and a new primary objective
+   * (stages 2, 4 and 5, RETURN TO BASE) says so. */
+  const cueCards = stagesOf(M).flatMap((st) => (st.cues ?? []).flatMap((c) => [c.card ?? []].flat()));
+  check('every card a cue shows is in the English and Spanish tables', cueCards.length > 0 && cueCards.every((k) => EN[k] && ES[k]), cueCards.filter((k) => !EN[k] || !ES[k]).join());
+  check('MISSION RULE in every stage', stagesOf(M).every((st) => (st.objectives ?? []).some((o) => o.tier === 'rule')));
+  const shows = (pred, card) => stagesOf(M).flatMap((st) => st.cues ?? []).some((c) => pred(c) && [c.card].flat().join() === card);
+  check('SEARCH AREA ADDED, UNIDENTIFIED MOVEMENT; INTELLIGENCE UPDATED, POSSIBLE ARMED PERSONNEL',
+    shows((c) => c.search?.id === 'pair-search', 'card.search_area,card.unidentified_movement') && shows((c) => c.classify?.to === 'poi', 'card.intelligence_updated,card.possible_armed'));
+  const opens = (id) => stagesOf(M).find((st) => st.id === id).cues.some((c) => c.at === 0 && !c.when && c.card === 'card.primary_updated');
+  check('PRIMARY OBJECTIVE UPDATED when stages 2, 4 and 5 open and with RETURN TO BASE',
+    ['M1_CP_AIRBORNE', 'M1_CP_CONTACT_FOUND', 'M1_CP_CAMP_FOUND'].every(opens) && shows((c) => c.choose?.name === 'dispersal', 'card.primary_updated'));
 }
 
 console.log('the gate');
@@ -700,6 +715,16 @@ console.log('guide: when a nudge is due, and what it says');
   check('the clock bearing off the nose: ahead 12, right 3, behind 6, left 9', clockOf([0, 0], [0, 100], 0) === 12 && clockOf([0, 0], [100, 0], 0) === 3
     && clockOf([0, 0], [0, -100], 0) === 6 && clockOf([0, 0], [-100, 0], 0) === 9 && clockOf([0, 0], [100, 0], Math.PI / 2) === 12);
   check('the distance band', distLine(400) === 'int-g-dist-500' && distLine(1200) === 'int-g-dist-1k' && distLine(2200) === 'int-g-dist-2k' && distLine(9000) === 'int-g-dist-far');
+  {
+    /* The discovery window's fixed "Eleven o'clock" (M1 audit item 10). */
+    const at = M.bearings['int1-s3-bearing'].at;
+    const said = (heading) => bearingSaid(M.bearings, ['int1-s3-hold', 'int1-s3-bearing'], [at[0] + 500, at[1] - 866], heading).join();
+    const hold = M.stages.find((st) => st.id === 'M1_CP_BRAVO_COMPLETE').cues.find((c) => c.search?.id === 'pair-search');
+    check('the fixed bearing is for the place its cue searches', hold && [hold.radio].flat().includes('int1-s3-bearing') && hold.search.at.join() === at.join());
+    check('"Eleven o\'clock from your nose" only when it is: else the search line and the computed hour',
+      said(0) === 'int1-s3-hold,int1-s3-bearing' && said(-Math.PI / 2) === 'int1-s3-hold,int-g-search,int-g-clock-2'
+      && bearingSaid(M.bearings, 'int1-s2-alpha', [0, 0], 0).join() === 'int1-s2-alpha', `${said(0)} | ${said(-Math.PI / 2)}`);
+  }
   check('a nudge: what, the clock, how far; a climb is "keep climbing"', nudgeOf({ kind: 'item', at: [1000, 0] }, [0, 0], 0).join() === 'int-g-next,int-g-clock-3,int-g-dist-1k'
     && nudgeOf({ kind: 'climb', at: null }, [0, 0], 0).join() === 'int-g-climb' && nudgeOf(null, [0, 0], 0, 'int1-g-alpha').join() === 'int1-g-alpha');
 }

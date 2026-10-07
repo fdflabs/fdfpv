@@ -3499,6 +3499,8 @@ export default {
   "card.classification_updated": "CLASIFICACIÓN DE CONTACTO ACTUALIZADA",
   "card.intelligence_updated": "INTELIGENCIA ACTUALIZADA",
   "card.search_area": "ÁREA DE BÚSQUEDA AGREGADA",
+  "card.unidentified_movement": "MOVIMIENTO NO IDENTIFICADO",
+  "card.possible_armed": "POSIBLE PERSONAL ARMADO",
   "card.last_known": "ÚLTIMA POSICIÓN CONOCIDA",
   "card.archive_searching": "BUSCANDO COINCIDENCIA EN EL ARCHIVO...",
   "ops.class.unknown": "DESCONOCIDO",

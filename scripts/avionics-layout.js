@@ -600,7 +600,9 @@ check('avionicshud.js keeps warmarkers.js\'s radar geometry',
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-avx-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 1 is in development (held since 2026-10-07), which
+ * only a check's own server starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 try {
   const rooms = `http://127.0.0.1:${server.port}`;
   /* --owner: the owner's scene alone, for its pictures. */
