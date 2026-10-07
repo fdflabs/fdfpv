@@ -3034,357 +3034,207 @@
       .pad-card.is-live .pad-card-status { color: var(--amber); }
       .pad-card.is-on .pad-card-status { color: var(--mint); }
       .pad-actions { flex-wrap: wrap; justify-content: center; }
+      /*
+       * One column under 860 px. .screen already reserves both bars in its
+       * padding, so the stage is held to that box and the LIST is what
+       * gives way: it shrinks and scrolls (min-height: 0 is what lets a
+       * flex child shrink at all), down to a floor of about three rows so
+       * a tall body above it (How to fly, the curve on Rates) cannot
+       * squeeze it to nothing. The note keeps its height up to a third.
+       */
       @media (max-width: 860px) {
         .menu-stage {
           display: flex; flex-direction: column; align-items: stretch;
           position: relative;
-          width: 100%;
-          max-width: 540px;
-          /*
-           * THE STAGE FITS ITS BOX, so the help column survives a phone.
-           *
-           * Measured at 390 by 844: the airframe took 372 px, the list took
-           * 434, and the help ran from 853 to 926, which is to say entirely
-           * below a window 844 tall. The one column everybody praises about
-           * this product, the plain English explanation beside the row, was
-           * not on screen at all on a phone, and the command bar was drawn
-           * over the bottom of the list.
-           *
-           * .screen is a centred flex column whose padding already reserves
-           * both bars, so the fix is to stop the stage growing past that
-           * box: cap it, let the LIST be the part that shrinks, and let the
-           * help keep its natural height. min-height: 0 is the half that
-           * makes a flex child actually shrink rather than overflow.
-           */
-          max-height: 100%;
-          min-height: 0;
-          /*
-           * The stage is not squeezed by a SIBLING. max-height still caps
-           * it against the box, which is the fix above; this stops How to
-           * fly's body, which is the tall thing on that screen, from
-           * shrinking the stage to nothing. It went to zero height and took
-           * the Back row with it, and the row was the only one there.
-           * The screen scrolls, so the body keeps everything it needs.
-           */
+          /* Not shrunk by a sibling either: How to fly's body once took the
+             stage, and its only row, down to zero. The screen scrolls. */
           flex: 0 0 auto;
+          width: 100%; max-width: 540px;
+          min-height: 0; max-height: 100%;
         }
         .menu {
-          min-width: 0; width: 100%;
-          /*
-           * A FLOOR, or the list disappears entirely.
-           *
-           * `min-height: 0` is what lets a flex child shrink past its
-           * content, and it shrinks all the way: on How to fly the body
-           * took the box and left the menu 22 px, one third of one row, so
-           * Back could not be scrolled to. Same on Rates in landscape,
-           * where the curve took it.
-           *
-           * Three rows' worth is the floor. The screen scrolls now, so
-           * whatever does not fit above the list is still reachable, which
-           * is the trade: the LIST is the thing you came for and it is the
-           * thing that keeps its space.
-           */
-          flex: 1 1 auto; min-height: min(200px, 100%);
-          max-height: none; overflow-y: auto;
+          flex: 1 1 auto;
+          width: 100%; min-width: 0;
+          min-height: min(200px, 100%); max-height: none; overflow-y: auto;
         }
         .menu-help {
-          max-width: none; margin-top: 10px;
-          padding: 8px 16px 0; border-left: none;
-          /* Never squeezed to nothing, and never more than a third of the
-           * stage: a note is sometimes four lines and the list is what the
-           * pilot came for. */
-          flex: 0 0 auto; max-height: 33%; overflow-y: auto;
+          flex: 0 0 auto;
+          max-width: none; max-height: 33%; overflow-y: auto;
+          margin-top: 10px; padding: 8px 16px 0; border-left: none;
         }
         .menu-help:empty { padding: 8px 16px 0; }
-        /*
-         * The airframe stops being a square as wide as the phone. At 390 px
-         * a 1:1 frame is 344 px tall, 44 percent of the window, above a
-         * six row list. It is a nice thing to look at and it is not what
-         * the screen is for.
-         */
-        .craft-showcase { flex: 0 0 auto; width: min(100%, 340px); align-self: center; }
+        /* A square airframe as wide as a phone is nearly half the window;
+           a short band leaves the list room. */
+        .craft-showcase {
+          flex: 0 0 auto; align-self: center; justify-self: center;
+          width: min(420px, 88vw); margin: 0 auto 6px;
+        }
         .craft-showcase-frame { aspect-ratio: auto; height: clamp(110px, 21vh, 210px); }
         .craft-showcase-cap { padding-bottom: 8px; }
-        .screen-title {
-          padding: 2.6vh 4.5vw 2vh;
-          background:
-            linear-gradient(180deg, rgba(10, 13, 14, 0.70) 0%, rgba(10, 13, 14, 0.18) 16%, rgba(10, 13, 14, 0.04) 38%, rgba(10, 13, 14, 0.12) 58%, rgba(10, 13, 14, 0.84) 100%);
-        }
-        .title-copy {
-          width: 100%;
-        }
-        .screen-title .lockup-box {
-          width: clamp(235px, 76vw, 386px);
-        }
-        .screen-title.is-gate .brand { display: block; }
-        .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
-        .screen-title .keep-note { display: none; }
-        /* The storage note above goes at this width. The beta notice does
-           not: a phone hits the same bugs a desktop does, and it is one
-           line where that note was four. */
-        .screen-title .beta-note { gap: 8px; margin-top: 10px; font-size: 12.5px; }
-        .screen-title .brand-best {
-          margin-top: 8px;
-          padding: 5px 10px;
-          font-size: 12px;
-        }
-        .screen-title .title-foot {
-          flex-direction: column;
-          align-items: stretch;
-          gap: 8px;
-        }
-        .screen-title .menu-stage {
-          display: block;
-          position: static;
-          width: 100%;
-        }
-        .screen-title .menu-scroll {
-          max-height: min(calc(32vh - var(--bars)), 14em);
-        }
-        .screen-title .menu-help {
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 100%;
-          width: auto;
-          max-width: none;
-          text-align: left;
-          border: none;
-          padding: 0 4px 10px;
-        }
-        /* A phone gets one column, so a card lies on its side: the picture
-           on the left at a fixed share of the width, the words to the right
-           of it. Two upright cards stacked would be taller than the window
-           and this screen does not scroll. */
-        /* And the gate puts the command bar back into the bottom padding.
-           Under 860 px the title stops reserving it, which is survivable
-           for a menu that scrolls and is not for a block pinned to the
-           bottom of the column: the last 52 px would be under the bar. */
-        .screen-title.is-gate { padding-bottom: calc(2vh + var(--bar-bot)); }
-        .screen-title.is-gate .title-copy { width: 100%; }
-        .screen-title.is-gate .title-top { flex-direction: column; align-items: stretch; gap: 10px; }
-        .screen-title.is-gate .gate-rooms:not([hidden]) { flex: 0 0 auto; margin: 0; padding: 8px 10px 9px; gap: 6px; }
-        .gate-room { padding: 4px 8px; }
-        .gate-room-name { font-size: 13.5px; }
-        .gate-room-value { font-size: 11px; }
-        .gate-rooms-buttons .gate-room { padding: 5px 8px; }
-        /* The rooms one under another, each a line: name, then its load.
-           Three side by side were 92 px each at 390, which cut every name
-           and every "Join, empty, 4 min left" in it. */
-        .gate-rooms-list { flex-direction: column; gap: 4px; }
-        .gate-rooms-list .gate-room {
-          flex: 0 0 auto; flex-direction: row; align-items: baseline;
-          justify-content: space-between; gap: 0 10px;
-          /* A long name and what its pilots are doing ("Join · Free flight
-             · 1 in lobby", 2026-10-02) do not share a line on a phone: the
-             value goes under the name, which keeps the width it needs. Side
-             by side, the name was squeezed to five lines. */
-          flex-wrap: wrap;
-        }
-        .gate-rooms-list .gate-room-value { flex: 0 0 auto; text-align: right; margin-left: auto; }
-        .screen-title.is-gate .gate-cards {
-          flex-direction: column;
-          gap: 10px;
-        }
-        /* flex: 0 0 auto, because the base rule's `flex: 1 1 0` is a basis
-           on the MAIN axis and the stack has just turned that axis
-           vertical: left as it was, each card starts from a zero height and
-           collapses to the two pixels of its own border. */
-        .gate-card { flex: 0 0 auto; flex-direction: row; align-items: stretch; }
-        .gate-card-art { flex: 0 0 38%; width: 38%; height: auto; min-height: 96px; }
-        .gate-card-art { border-bottom: 0; border-right: 1px solid var(--pdcs-line-soft); }
-        .gate-card-body {
-          flex: 1 1 auto;
-          gap: 5px;
-          padding: 10px 13px 11px;
-          justify-content: center;
-        }
-        /* Three lines here. Free Flight's sentence ran to twenty in this
-           column, which put its tags and every card under it below the
-           window of an upright phone, and this screen does not scroll. */
-        .gate-card-blurb {
-          font-size: 12.5px; line-height: 1.5;
-          -webkit-line-clamp: 3;
-          line-clamp: 3;
-        }
-        /* The art is a third of the card's width here, so the mark comes
-           down with it. Same box on all three, as ever. */
-        .gate-card-mark { width: 42px; height: 42px; left: 7px; bottom: 6px; }
-        /* FIVE CARDS ON AN UPRIGHT PHONE, stacked as ever, because a column
-           is what the arrows and a thumb both walk, and a sideways scroller
-           would hide three of the five answers. They fit by losing the
-           sentence: the name, the picture and the tags carry the choice,
-           the same trade the landscape rule below already makes, and the
-           whole sentence is on any wider screen. 360 by 640 is the floor. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 7px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb { display: none; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 15px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
-        /* The plate is too small for an index beside the drawing. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before { display: none; }
-        /* FIVE TO SEVEN: tighter type again, because six at the old five
-           card size ran 4 px under the command bar at 360 by 640, and the
-           five of 2026-10-02 (no Fly with friends) under the rooms panel
-           ran 62 px under it there, the combat card's tags on two lines. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 5px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
-        /* FIVE TO SEVEN (five since Fly with friends left the title on
-           2026-10-02), with Defend the Paraná: one tag line and a shorter
-           picture, because seven at the six card size ran 81 px under the
-           command bar at 360 by 640, their tags wrapping to two lines
-           (scripts/campaign-check.js). The first tag is the card's own.
-           The picture is laid over its box rather than sizing it, or its
-           own aspect holds every card at 70 px whatever the rule says. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 56px; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
-        .screen-maps .menu-stage {
-          display: block;
-          position: relative;
-          width: 100%;
-          max-width: 540px;
-        }
-        .screen-maps .menu { grid-column: auto; }
         .howto-body { gap: 18px; }
         .howto-keys { min-width: 0; }
-        .screen-maps .menu-help {
-          position: absolute;
-          left: 0; right: 0;
-          bottom: calc(100% + 8px);
-          margin: 0;
-          padding: 0 8px 8px;
-          border-left: none;
+
+        .screen-title {
+          padding: 2.6vh 4.5vw 2vh;
+          background: linear-gradient(180deg, rgba(10, 13, 14, 0.70) 0%, rgba(10, 13, 14, 0.18) 16%, rgba(10, 13, 14, 0.04) 38%, rgba(10, 13, 14, 0.12) 58%, rgba(10, 13, 14, 0.84) 100%);
         }
-        /* My tracks has its card strip and its notes right above the list,
-           so a line hung above the list lands on them. It goes under. */
+        /* The gate's cards are pinned to the column's foot, so the command
+           bar's height goes back into the padding this width dropped. */
+        .screen-title.is-gate { padding-bottom: calc(2vh + var(--bar-bot)); }
+        .title-copy { width: 100%; }
+        .screen-title .lockup-box { width: clamp(235px, 76vw, 386px); }
+        .screen-title.is-gate .brand { display: block; }
+        .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
+        /* The storage note goes; the beta notice stays, a phone has the
+           same bugs and it is one line. */
+        .screen-title .keep-note { display: none; }
+        .screen-title .beta-note { gap: 8px; margin-top: 10px; font-size: 12.5px; }
+        .screen-title .brand-best { margin-top: 8px; padding: 5px 10px; font-size: 12px; }
+        .screen-title .title-foot { flex-direction: column; align-items: stretch; gap: 8px; }
+        .screen-title .menu-stage { display: block; position: static; width: 100%; }
+        .screen-title .menu-scroll { max-height: min(calc(32vh - var(--bars)), 14em); }
+        /* The note hangs above the list rather than pushing it down. */
+        .screen-title .menu-help {
+          position: absolute; left: 0; right: 0; bottom: 100%;
+          width: auto; max-width: none; padding: 0 4px 10px;
+          border: none; text-align: left;
+        }
+        .screen-title.is-gate .title-copy { width: 100%; }
+        .screen-title.is-gate .title-top { flex-direction: column; align-items: stretch; gap: 10px; }
+
+        /* Rooms: one per line, name then load, wrapping the load under a
+           long name rather than squeezing the name to five lines. */
+        .screen-title.is-gate .gate-rooms:not([hidden]) { flex: 0 0 auto; gap: 6px; margin: 0; padding: 8px 10px 9px; }
+        .gate-room { padding: 4px 8px; }
+        .gate-rooms-buttons .gate-room { padding: 5px 8px; }
+        .gate-room-name { font-size: 13.5px; }
+        .gate-room-value { font-size: 11px; }
+        .gate-rooms-list { flex-direction: column; gap: 4px; }
+        .gate-rooms-list .gate-room {
+          flex: 0 0 auto; flex-flow: row wrap; align-items: baseline;
+          justify-content: space-between; gap: 0 10px;
+        }
+        .gate-rooms-list .gate-room-value { flex: 0 0 auto; margin-left: auto; text-align: right; }
+
+        /* Mode cards stacked, each on its side: picture left at a fixed
+           share, words right. This screen does not scroll. */
+        .screen-title.is-gate .gate-cards { flex-direction: column; gap: 10px; }
+        /* The base flex: 1 1 0 is a basis on what is now the vertical
+           axis, and would collapse each card to its border. */
+        .gate-card { flex: 0 0 auto; flex-direction: row; align-items: stretch; }
+        .gate-card-art {
+          flex: 0 0 38%; width: 38%; height: auto; min-height: 96px;
+          border-bottom: 0; border-right: 1px solid var(--pdcs-line-soft);
+        }
+        .gate-card-body { flex: 1 1 auto; justify-content: center; gap: 5px; padding: 10px 13px 11px; }
+        .gate-card-blurb {
+          font-size: 12.5px; line-height: 1.5;
+          -webkit-line-clamp: 3; line-clamp: 3;
+        }
+        .gate-card-mark { left: 7px; bottom: 6px; width: 42px; height: 42px; }
+        /* Three to seven cards on an upright phone (360 by 640 is the
+           floor) fit by dropping the sentence and all tags but the card's
+           own; name, picture and that tag carry the choice. The picture is
+           laid over its box so its aspect cannot hold the card tall. */
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb,
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before,
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 56px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { left: 5px; bottom: 5px; width: 34px; height: 34px; }
+
+        .screen-maps .menu-stage { display: block; position: relative; width: 100%; max-width: 540px; }
+        .screen-maps .menu { grid-column: auto; }
+        .screen-maps .menu-help { position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); margin: 0; padding: 0 8px 8px; border-left: none; }
+        /* My tracks has its cards and notes just above the list; its note
+           goes under the list instead. */
         .screen-courses .menu-help { position: static; padding: 8px 8px 0; }
-        .craft-showcase {
-          width: min(420px, 88vw);
-          align-self: center;
-          justify-self: center;
-          margin: 0 auto 6px;
-        }
       }
-      /* AN UPRIGHT PHONE UNDER 700 PX with the rooms panel over six or seven cards:
-         at 360 by 640 the panel took the 120 px the cards had to spare
-         and more, so the cards' pictures come down a size, the panel
-         sits tighter and the name, four lines since the rename, comes down
-         a size too (scripts/mode-cards-check.js). */
+      /* An upright phone 700 px tall or less, rooms panel open over four,
+         six or seven cards: everything on the gate comes down a step, and
+         the Beta sentence goes (its tag stays), or the last card ends up
+         under the command bar at 360 by 640. */
       @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
+        .screen-title.is-gate .title-top { gap: 6px; }
+        .screen-title .lockup-box { width: clamp(207px, 65.5vw, 331px); }
+        .screen-title.is-gate .beta-note span:not(.beta-tag) { display: none; }
+        .screen-title.is-gate .gate-rooms:not([hidden]) { gap: 5px; padding: 6px 8px 7px; }
+        .gate-room { padding: 3px 7px; }
+        .gate-rooms-buttons .gate-room { padding: 4px 7px; }
+        .gate-rooms-list { gap: 2px; }
+        .gate-rooms-list .gate-room { padding: 1px 7px; }
+        .gate-rooms-list .gate-room-name { font-size: 13px; line-height: 1.2; }
         .screen-title.is-gate .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) { gap: 4px; }
         .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
         .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
         .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
-        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
-        .screen-title.is-gate .title-top { gap: 6px; }
-        .screen-title .lockup-box { width: clamp(207px, 65.5vw, 331px); }
-        .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
-        .gate-room { padding: 3px 7px; }
-        .gate-rooms-buttons .gate-room { padding: 4px 7px; }
-        /* The stacked rooms a line each with no air between them: three of
-           them at the size above put the last card 21 px under the command
-           bar at 360 by 640. */
-        .gate-rooms-list { gap: 2px; }
-        .gate-rooms-list .gate-room { padding: 1px 7px; }
-        .gate-rooms-list .gate-room-name { font-size: 13px; line-height: 1.2; }
-        /* And the Beta sentence goes, the tag stays, the trade the rule for
-           a sideways phone already makes: with a 32 letter room name on two
-           lines the cards still ran 13 px under the command bar. */
-        .screen-title.is-gate .beta-note span:not(.beta-tag) { display: none; }
+        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-mark { bottom: 3px; width: 28px; height: 28px; }
       }
+      /*
+       * A phone on its side, or any window under 520 px tall. It matches
+       * the 860 px rule too and comes after it, which is how it undoes the
+       * stacking: in that height only cards side by side fit, so they go
+       * back to a row and lose their sentence to keep the name.
+       */
       @media (max-height: 520px) {
-        .screen-title {
-          padding: 1.6vh 3.5vw 1.4vh;
-        }
+        .screen-title { padding: 1.6vh 3.5vw 1.4vh; }
+        .screen-title.is-gate { padding-bottom: calc(1.4vh + var(--bar-bot)); }
         .screen-title .brand-sub,
         .screen-title .brand-best,
-        .screen-title .keep-note {
-          display: none;
-        }
-        /* Under 520 px of height the menu barely fits, so the sentence
-           goes and the tag stays: the word is the part that has to
-           survive, and it costs one line. */
-        .screen-title .beta-note { margin-top: 8px; }
+        .screen-title .keep-note,
         .screen-title .beta-note span:not(.beta-tag) { display: none; }
-        /* The name on three lines rather than four, and the Beta tag, all
-           that is left of that line here, beside it: stacked, the lockup
-           took the height the gate's cards and the menu's rows need at 844
-           by 390. Whatever else the brand shows runs full width under both. */
-        .screen-title .lockup-box {
-          width: clamp(193px, 62vh, 304px);
-        }
+        /* Lockup on three lines with the Beta tag beside it; whatever else
+           the brand holds runs full width beneath. */
+        .screen-title .lockup-box { width: clamp(193px, 62vh, 304px); }
         .screen-title .lockup-name > span { display: inline; }
         .screen-title .brand,
         .screen-title.is-gate .brand {
           display: grid; grid-template-columns: auto minmax(0, 16rem);
-          justify-content: start; column-gap: 18px; align-items: end;
+          justify-content: start; align-items: end; column-gap: 18px;
         }
+        .screen-title .brand > :not(.lockup-box, .beta-note) { grid-column: 1 / -1; }
+        .screen-title .beta-note { margin-top: 8px; }
         .screen-title .brand .beta-note,
         .screen-title.is-gate .brand .beta-note { margin: 0 0 0.2em; }
-        .screen-title .brand > :not(.lockup-box, .beta-note) { grid-column: 1 / -1; }
-        .screen-title .menu-scroll {
-          max-height: min(calc(52vh - var(--bars)), 11em);
-        }
-        .screen-title .row {
-          padding: 7px 18px 7px 22px;
-          font-size: 15px;
-        }
-        .screen-title.is-gate { padding-bottom: calc(1.4vh + var(--bar-bot)); }
-        /* The rooms panel on a phone on its side is one line under the
-           brand: its count, the rooms, and its two buttons. Three lines
-           of it put the cards under the command bar at 844 by 390. It
-           stops short of the music dock, which reaches down to it. */
+        .screen-title .menu-scroll { max-height: min(calc(52vh - var(--bars)), 11em); }
+        .screen-title .row { padding: 7px 18px 7px 22px; font-size: 15px; }
+        /* Rooms: one line under the brand, count and buttons first, the
+           rooms on their own full width line beneath, and clear of the
+           music dock on the right. */
         .screen-title.is-gate .gate-rooms:not([hidden]) {
-          flex-direction: row; flex-wrap: wrap; align-items: stretch; padding: 5px 8px; gap: 5px 6px;
-          margin: 0 190px 0 0;
+          flex-flow: row wrap; align-items: stretch; gap: 5px 6px;
+          margin: 0 190px 0 0; padding: 5px 8px;
         }
         .gate-rooms-head { flex: 1 1 0; align-items: center; min-width: 0; }
         .gate-rooms-count { font-size: 11.5px; line-height: 1.15; }
         .gate-rooms-buttons { flex: 0 0 auto; }
         .gate-rooms-buttons .gate-room { flex: 0 0 auto; justify-content: center; }
-        /* The rooms on a line of their own under the count and the two
-           buttons, the panel's whole width between them. Sharing one line
-           with both left each room 60 px at 844 by 390, which cut every
-           name to four letters. */
         .gate-rooms-list { order: 3; flex: 1 1 100%; flex-direction: row; gap: 6px; }
         .gate-rooms-list .gate-room { flex: 1 1 0; flex-direction: column; align-items: stretch; gap: 0; }
         .gate-rooms-list .gate-room-value { text-align: left; }
-        /* A landscape phone is 390 px tall and matches the width rule above
-           as well, so this undoes the stacking: side by side is the only way
-           two cards fit in that height, and the sentence goes so that the
-           name and the three words under it survive. This block is later in
-           the sheet than that one, which is what makes it win. */
-        .screen-title.is-gate .gate-cards {
-          flex-direction: row;
-          gap: 10px;
-        }
-        /* Back to a row, so back to sharing the width evenly: the stacked
-           block above turned this off. */
+        .screen-title.is-gate .gate-cards { flex-direction: row; gap: 10px; }
         .gate-card { flex: 1 1 0; flex-direction: column; }
-        .gate-card-art {
-          flex: 0 0 auto; width: 100%;
-          height: clamp(70px, 24vh, 120px); min-height: 0;
+        .gate-card-art,
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art {
+          flex: 0 0 auto; width: 100%; min-height: 0;
         }
-        .gate-card-art { border-right: 0; border-bottom: 1px solid var(--pdcs-line-soft); }
-        .gate-card-body { padding: 8px 12px 10px; gap: 4px; }
+        .gate-card-art {
+          height: clamp(70px, 24vh, 120px);
+          border-right: 0; border-bottom: 1px solid var(--pdcs-line-soft);
+        }
+        /* The upright phone's count rules outrank this block's, so the
+           picture and the name are restated at their specificity. */
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { height: clamp(60px, 20vh, 110px); }
+        .gate-card-body { gap: 4px; padding: 8px 12px 10px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { padding: 7px 10px 8px; }
         .gate-card-blurb { display: none; }
         .gate-card-name { font-size: clamp(14px, 3.6vh, 18px); }
-        .gate-card-mark { width: 38px; height: 38px; left: 6px; bottom: 5px; }
-        /* Five in a row on a phone on its side: the upright phone's five
-           card rules above are more specific than this block's, so the
-           picture is put back across the card here, and the names come
-           down a size so two words fit a fifth of the width. */
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art {
-          flex: 0 0 auto; width: 100%;
-          height: clamp(60px, 20vh, 110px); min-height: 0;
-        }
-        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { padding: 7px 10px 8px; }
         .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: clamp(12px, 3.3vh, 16px); }
+        .gate-card-mark { left: 6px; bottom: 5px; width: 38px; height: 38px; }
       }
 
       /* The map screen. One card per world, each playing a short flight
