@@ -32,6 +32,7 @@ scripts/gatecards.js
 scripts/icons.js
 scripts/itaipu-check.js
 scripts/memory-check.js
+scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
 scripts/og.js
