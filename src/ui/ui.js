@@ -12900,3 +12900,19 @@ export class Ui {
     this.padPrev = now;
   }
 }
+
+/*
+ * Ui methods kept in modules of their own. Each module exports a plain
+ * object of methods, installed on the prototype here so every caller
+ * still writes ui.method(). One line per module, a blank line between,
+ * so modules split in parallel merge without touching each other's line.
+ */
+/* slot: dialogs */
+
+/* slot: menu controls */
+
+/* slot: cards and reels */
+
+/* slot: flight overlay and results */
+
+/* slot: spare */
