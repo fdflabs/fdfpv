@@ -10,8 +10,6 @@ index.html
 render.yaml
 scripts/attract-check.js
 scripts/board-check.js
-scripts/build-selftest.js
-scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
 scripts/gatecards.js
@@ -53,9 +51,7 @@ tests/lib/blackbox.js
 tests/lib/browser.js
 tests/lib/checks.js
 tests/lib/page.js
-tests/lib/recfile.js
 tests/lib/replay.js
 tests/lib/server.js
 tests/lib/simmod.js
-tests/lib/table.js
 tests/verify.js
