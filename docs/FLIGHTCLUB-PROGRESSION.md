@@ -33,22 +33,23 @@ best.
 **Data.** A new synced section `records`, kind `best`:
 `{ [recordKey]: lapMs }`, the key exactly as main.js `recordKey` builds it
 (`webfpv.best.<course hash>.<volts>[.arcade].<airframe>[.g<n>]`), the value a
-whole number of ms, 1 to 3,600,000. Merge: per key the LOWER of the two
-values wins; a key on one side only is kept. At most 2000 keys: a merge
-past that keeps the 2000 lowest key names in sorted order, so two servers
-agree on what is dropped; the page keeps its own local record either way.
+whole number of ms, 1 to 3,600,000. Merge: per key the LOWER lap wins; a key
+on one side only is kept; stamps play no part. At most 1000 keys (about
+55 kB of the 512 kB blob): past that a merge keeps the first 1000 key names
+in sorted order, so every side drops the same ones.
 
-**Migration.** On first load after this ships, every `webfpv.best.*` key in
-localStorage is copied into `records` once (a versioned marker,
-`fdfpv.records.v1`), the old keys left in place so an older build still
-reads them. race.js reads the merged section first and localStorage second.
+**Storage and migration.** race.js keeps localStorage as its working store
+and is unchanged. src/share/records.js reads every `webfpv.best.*` key into
+the synced view at each sync and writes back only laps better than the
+local one. Sending them all every time is also the migration: records from
+before go up with the first sync, no marker needed.
 
 **Does not:** post anything to the board, change what a lap pays, or rank
 the pilot against anyone.
 
-**Check:** `progress:selftest` cases: lower wins, a key on one side is kept,
-a malformed value is dropped, the cap holds; a seeded-localStorage case that
-proves the migration carries every old key once and only once.
+**Check:** `records:selftest` (seeded old keys go up; lower wins; one side
+kept; malformed dropped; cap; write back only better; idempotent) and
+`account:browser` (a lap set on one computer arrives on the second).
 
 ## 2. Medals on built courses
 
