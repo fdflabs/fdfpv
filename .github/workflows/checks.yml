@@ -183,6 +183,9 @@ jobs:
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
+      # The share seat, edit keys, binds and lap bookkeeping kept in this
+      # browser (src/share/session.js), against a pinned transcript.
+      - run: npm run session:selftest
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
