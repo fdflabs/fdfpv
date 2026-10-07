@@ -54,5 +54,4 @@ tests/lib/page.js
 tests/lib/replay.js
 tests/lib/server.js
 tests/lib/simmod.js
-tests/lib/table.js
 tests/verify.js
