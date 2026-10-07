@@ -29,7 +29,7 @@
 
 import { seeded, transcript } from './lib/transcript.js';
 
-const PINNED = 'a886dca93bc934a7e4d78896f09d2213f258c1e5d8cfee7ba24a4f09b5e2a719';
+const PINNED = '545b0c475ba03089a1c86c9370b07c543aaefe6a7f72b0188a9db69b87033757';
 
 class Storage {
   constructor() {

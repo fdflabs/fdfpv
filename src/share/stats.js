@@ -28,8 +28,8 @@
  *
  * KEEP IN STEP WITH public/stats.js in the board's repository, which
  * cannot be imported from here. Where the two pages share an origin they
- * share this storage key on purpose, so opting out on one opts out on the
- * other.
+ * share the stored memory on purpose (src/share/sharedkeys.js), so opting
+ * out on one opts out on the other.
  *
  * Off the physics path: counters come from race state the render loop
  * already has, and every send is fire and forget, so a board that is down
@@ -52,8 +52,7 @@
  */
 
 import { boardOrigin } from './board.js';
-
-const MEMORY_KEY = 'webfpv.stats.v1';
+import { STATS_KEY, readSharedKey, writeSharedKey } from './sharedkeys.js';
 
 /* A poster arrival who comes back at the weekend is still that poster's;
  * after a month it stops being a label. */
@@ -90,7 +89,7 @@ function dayGap(from, to) {
 function recall() {
   let memory = null;
   try {
-    memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || 'null');
+    memory = JSON.parse(readSharedKey(STATS_KEY) || 'null');
   } catch (e) {
     return {};
   }
@@ -100,7 +99,7 @@ function recall() {
 
 function remember(memory) {
   try {
-    localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    writeSharedKey(STATS_KEY, JSON.stringify(memory));
     return true;
   } catch (e) {
     return false;
