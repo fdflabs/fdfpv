@@ -32,6 +32,7 @@
     "fc-catalog:selftest": "node scripts/fc-catalog-selftest.js",
     "lint:shell": "node scripts/shell-check.js",
     "ui:golden": "node scripts/ui-golden.js",
+    "css:golden": "node scripts/css-golden.js",
     "settings:golden": "node scripts/settings-golden.js",
     "rows:golden": "node scripts/rows-golden.js",
     "ways:golden": "node scripts/ways-golden.js",
