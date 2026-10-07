@@ -30,7 +30,6 @@ scripts/quality-check.js
 scripts/responsive-check.js
 scripts/run-bash.js
 scripts/serve.js
-scripts/shell-check.js
 scripts/shots.js
 src/game/airframehull.js
 src/game/verify.js

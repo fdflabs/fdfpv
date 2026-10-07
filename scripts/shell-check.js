@@ -1,508 +1,320 @@
 /*
- * shell-check.js: the first check that can see the menu shell.
+ * shell-check.js: every menu screen of the real shell, walked in headless
+ * Chromium through window.__ui.
  *
- * WHY THIS EXISTS. Nothing in tests/ or scripts/ loaded index.html. Check 13
- * loads tests/browser/harness.html, which is 43 lines and does not import
- * the shell, and the only reference to src/ui/ui.js anywhere in either
- * directory was one SETTINGS_KEY import in shots.js. So a rewrite of ui.js
- * could break Escape on four screens, strand the cursor on the flight
- * controller list, and leave `npm run verify` reporting exactly what it
- * reported before. Every regression would have been found by a pilot.
- *
- * It is a cheap lint, not part of `npm run verify`, because verify builds
- * the WASM module and this has nothing to say about the flight model. Same
- * shape as lint:fc, lint:presets and lint:catalog: run it on a shell change
- * and it answers in about a minute.
- *
- * WHAT IT ASSERTS, per screen:
- *
- *   reach   every item where isStop() is true is reachable from the first
- *           stop by SOME key: repeated ArrowDown, or Home then PageDown.
- *           Arrows alone is the wrong test, because arrows deliberately
- *           step over the 542 firmware keys this build does not implement.
- *           Reachable by some key is the property that actually matters.
- *   help    every stop that carries a note can be reached, because the help
- *           column is items[cursor].note and a row the cursor cannot hold
- *           is a row whose explanation is gone. On the flight controller
- *           that is 542 sentences, which is why the arrows skip them
- *           instead of the list dropping them.
- *   escape  Escape from the screen lands on a screen that exists.
- *   fit     the menu's scrollHeight minus its clientHeight, recorded as a
- *           budget rather than asserted at zero.
- *
- * THE BUDGETS ARE A BASELINE, NOT A TARGET. The title menu already overflows
- * on a short window and the project forbids moving a threshold to make a
- * check pass, so the recorded numbers are today's overflow. The check fails
- * when a screen gets WORSE than its baseline, and prints a note when one
- * gets better so the baseline can be re-recorded deliberately.
- *
- * Usage:
- *   node scripts/shell-check.js               check against the baseline
- *   node scripts/shell-check.js --record      rewrite the baseline
+ *   node scripts/shell-check.js                 check at 1600x900
+ *   node scripts/shell-check.js --record        write today's fit into the baseline, then check
  *   node scripts/shell-check.js --w=1280 --h=720
  *
- * This file is part of WebFPVSimulator.
+ * For each screen it asks: can the arrows, page keys and edge jumps reach
+ * every row that takes the cursor, so a row's help can be read; does
+ * Escape land on a screen that exists; and does the list fit the window no
+ * worse than tests/shell-baseline.json says it did. The baseline only
+ * counts at the window it was recorded at. Every row must carry an id that
+ * is present, unique and the same across two rebuilds. Then a set of
+ * behaviour rows, each a promise the shell made to a pilot (focus memory,
+ * the tuning path, the firmware bench, the radio banner and select hold,
+ * the gate cards), is exercised and judged.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { openPage } from '../tests/lib/page.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const BASELINE = join(root, 'tests', 'shell-baseline.json');
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const BASELINE_PATH = join(ROOT, 'tests', 'shell-baseline.json');
 
-/*
- * THE PILOT'S LIBRARY, as My tracks will find it.
- *
- * Real documents rather than hand written ones: two tracks built in the
- * Swiss valley with the builder's own functions (tests/lib/maptrack.js),
- * which is what the library holds after somebody builds and saves them. A
- * fabricated shape would pass this check and tell us nothing about the
- * documents the list actually meets.
- *
- * Two, so that seating one can be told from listing them.
- */
+const SCREENS = [
+  'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc', 'paused',
+  'results', 'howto', 'tricks', 'credits',
+];
+const FC_TABS = ['setup', 'configuration', 'pid', 'receiver', 'motors'];
+
+/* Owned by src/trackbuilder/storage.js and src/share/session.js, neither of
+ * which exports its key. */
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
-const LIBRARY_SEED = [0, 1].map((i) => ({
+const IMPORT_KEY = 'webfpv.share.import.v1';
+
+const LIBRARY_DOCS = [0, 1].map((i) => ({
   ...mapTrackDocument({ id: `trk-5e1f00${i}0`, name: `Ring ${i + 1} (mine)` }),
-  /* Newest first is the list's order, so these are dated apart to make it
-   * an order rather than whatever the object happened to enumerate in. */
   modifiedUtc: `2026-0${i + 1}-01T00:00:00.000Z`,
 }));
-const LIBRARY = Object.fromEntries(LIBRARY_SEED.map((d) => [d.id, d]));
+const LIBRARY = Object.fromEntries(LIBRARY_DOCS.map((doc) => [doc.id, doc]));
 
-/*
- * The screens this walks. `flight` is excluded because it has no menu at
- * all, and calibrate and padpick are excluded because their items() returns
- * nothing and their state machine is driven by a stick rather than a cursor.
- * Everything else in this.screens is here.
- */
-const SCREENS = [
-  'title', 'courses', 'freestyle', 'quad', 'pilot', 'launch', 'rates', 'pids', 'fc',
-  /* tricks was missing from this list until bug-f105cf4a, and that is how a
-   * screen whose list sat entirely below the fold shipped: nothing walked
-   * it. Its items() returns a row per trick, so it belongs here with the
-   * rest. It stays here now that the menu rows opening it have been
-   * withdrawn until the scoring is settled: the screen is still built and
-   * still correct, and dropping the check the day the door closed is how
-   * the three faults in that ticket would quietly come back when it
-   * reopens. show() reaches it whether or not a row does. */
-  'paused', 'results', 'howto', 'tricks', 'credits',
-];
+const BASELINE_NOTE = "Today's overflow, in CSS pixels, at the window below. Not a target: a screen may already overflow. The check fails when a screen gets worse than this.";
 
-/*
- * Walk one screen inside the page and report what the cursor can reach.
- *
- * This runs in the browser because the answer depends on the live item
- * list, which is rebuilt on every keypress and reads stored settings, the
- * loaded track and the board. Reimplementing that in Node would be checking
- * a copy of the shell rather than the shell.
- */
-/*
- * Every walk below starts PAST the gate.
- *
- * A fresh load opens on it: two cards, and the menu these checks are about
- * is behind them. BOTH halves are answered here, the mode and the aircraft,
- * because the gate is up while either is open. They are set rather than
- * pressed, because act() would also navigate to a picker when there is
- * nothing seated, and each walk drives its own navigation. The first run
- * flag goes with them, so the primary row is Fly rather than the guided
- * First flight. The gate itself is checked in BEHAVIOUR, through act(),
- * which is the way a pilot answers it.
- */
-const PAST_GATE = "ui.firstRun = false; ui.craftGate = false; if (!ui.mode) { ui.mode = 'race'; }";
-
-const WALK = `(() => {
-  const ui = window.__ui;
-  ${PAST_GATE}
-  const out = {};
-  const screens = ${JSON.stringify(SCREENS)};
-  for (const name of screens) {
-    try {
-      ui.show(name);
-      /* The firmware bench travels its 542 unimplemented keys only when the
-       * pilot asks. Turn that on here, because the property under test is
-       * that every row CAN be reached, not that the default walks them. */
-      if (name === 'fc' && ui.fc) { ui.fc.walkAll = true; }
-      /*
-       * ON ARRIVAL, BEFORE ANYTHING WALKS. This measurement has to be
-       * taken here and not with the others at the bottom, and the first
-       * version of it was taken at the bottom and was green for the wrong
-       * reason: the walk below ends with jumpEdge(1), whose syncCursor
-       * scrolls the last row into view, so by then every screen has been
-       * scrolled to fit and none of them hangs off anything. What a pilot
-       * meets is the screen as it opens.
-       */
-      const arrival = (() => {
-        const sc = ui.root.querySelector(
-          '.screen-' + name + ' .menu-scroll, .screen-' + name + ' .menu'
-        );
-        if (!sc) { return { belowFold: 0, rowsSeen: 0 }; }
-        const r = sc.getBoundingClientRect();
-        const seenRows = Array.from(
-          ui.root.querySelectorAll('.screen-' + name + ' .menu .row')
-        ).filter((n) => {
-          const b = n.getBoundingClientRect();
-          return b.top >= 0 && b.bottom <= window.innerHeight
-            && b.top >= r.top - 1 && b.bottom <= r.bottom + 1;
-        }).length;
-        return {
-          belowFold: Math.max(0, Math.round(r.bottom - window.innerHeight)),
-          rowsSeen: seenRows,
-        };
-      })();
-      const items = ui.items();
-      const stops = [];
-      for (let i = 0; i < items.length; i += 1) {
-        if (ui.isStop(items[i])) { stops.push(i); }
-      }
-      if (!stops.length) {
-        out[name] = {
-          stops: 0, arrow: 0, reached: 0, unreachable: [], notesLost: 0, overflow: 0,
-        };
-        continue;
-      }
-
-      /* Walk with the same calls the keys use, so the check cannot pass
-       * against a walk the pilot does not get. */
-      const seen = new Set();
-
-      ui.setCursor(ui.firstStop(items));
-      seen.add(ui.cursor);
-      let arrow = 1;
-      for (let step = 0; step < items.length * 2; step += 1) {
-        const before = ui.cursor;
-        ui.move(1);
-        if (ui.cursor === before || seen.has(ui.cursor)) { break; }
-        seen.add(ui.cursor);
-        arrow += 1;
-      }
-
-      /* Then Home and PageDown, which land on the rows the arrows skip. */
-      ui.jumpEdge(-1);
-      seen.add(ui.cursor);
-      for (let step = 0; step < items.length + 4; step += 1) {
-        const before = ui.cursor;
-        ui.pageMove(1);
-        seen.add(ui.cursor);
-        if (ui.cursor === before) { break; }
-      }
-      ui.jumpEdge(1);
-      seen.add(ui.cursor);
-
-      /* And measure the default travel, which is the number the change
-       * exists to reduce. */
-      let arrowDefault = arrow;
-      if (name === 'fc' && ui.fc) {
-        ui.fc.walkAll = false;
-        const fresh = ui.items();
-        ui.setCursor(ui.firstStop(fresh));
-        const walked = new Set([ui.cursor]);
-        for (let step = 0; step < fresh.length * 2; step += 1) {
-          const before = ui.cursor;
-          ui.move(1);
-          if (ui.cursor === before || walked.has(ui.cursor)) { break; }
-          walked.add(ui.cursor);
-        }
-        arrowDefault = walked.size;
-        ui.fc.walkAll = true;
-      }
-
-      const unreachable = stops.filter((i) => !seen.has(i));
-      const notesLost = unreachable.filter((i) => items[i] && items[i].note).length;
-
-      const scroller = ui.root.querySelector(
-        '.screen-' + name + ' .menu-scroll, .screen-' + name + ' .menu'
-      );
-      const overflow = scroller
-        ? Math.max(0, Math.round(scroller.scrollHeight - scroller.clientHeight))
-        : 0;
-      /*
-       * HOW FAR THE LIST HANGS OFF THE BOTTOM OF THE WINDOW, which is a
-       * different question from overflow above and the one that was not
-       * being asked.
-       *
-       * overflow measures the scroller against ITSELF: how much taller its
-       * contents are than its own box. A scroller can be perfectly healthy
-       * by that measure and be somewhere the pilot cannot see or reach. The
-       * trick list was: forty three rows, an internal scroller that worked,
-       * and its box starting 867 pixels down a 919 pixel window, so not one
-       * row was on screen and the page does not scroll to reach it.
-       *
-       *   bug-f105cf4a, Fernando: "solo sale un truco y no puedo bajar con
-       *   la ruedita del raton"
-       *
-       * Recorded as a budget rather than asserted at zero, for the same
-       * reason the overflow is: measured across every screen, several
-       * already hang off the bottom at 1280 by 720, and moving the product
-       * to make a new check go green is the wrong way round. The check
-       * fails when a screen gets WORSE than it is today.
-       */
-      out[name] = {
-        stops: stops.length,
-        arrow: arrowDefault,
-        reached: seen.size,
-        unreachable: unreachable
-          .map((i) => (items[i] && items[i].label) || ('index ' + i))
-          .slice(0, 8),
-        notesLost,
-        overflow,
-        belowFold: arrival.belowFold,
-        rowsSeen: arrival.rowsSeen,
-      };
-    } catch (e) {
-      out[name] = { error: String(e && e.message ? e.message : e) };
+function parseArgs(argv) {
+  const opts = { w: 1600, h: 900, record: false };
+  for (const arg of argv) {
+    const m = /^--([^=]+)(?:=(.*))?$/.exec(arg);
+    if (!m) {
+      continue;
+    }
+    const [, name, value] = m;
+    if (value === undefined) {
+      opts[name] = true;
+    } else {
+      opts[name] = /^\d+$/.test(value) ? Number(value) : value;
     }
   }
-  return JSON.stringify(out);
-})()`;
+  return opts;
+}
 
-/*
- * The firmware bench, tab by tab. The headline defect was measured on the
- * Configuration tab: 141 arrow stops and 3 things you can change. This is
- * the assertion that the fix actually reached it, and that nothing became
- * unreachable in the process.
- */
-const FC_TABS = `(() => {
-  const ui = window.__ui;
-  const out = {};
-  ui.show('fc');
-  for (const id of ['setup', 'configuration', 'pid', 'receiver', 'motors']) {
-    try {
-      ui.fc.setTab(id);
+/* ------------------------------------------------------------------
+ * Page side. These functions are never called in Node: their source is
+ * shipped into the page, so they may only use what the page has. */
 
-      ui.fc.walkAll = false;
-      let items = ui.items();
-      ui.setCursor(ui.firstStop(items));
-      const walked = new Set([ui.cursor]);
-      for (let step = 0; step < items.length * 2; step += 1) {
-        const before = ui.cursor;
-        ui.move(1);
-        if (ui.cursor === before || walked.has(ui.cursor)) { break; }
-        walked.add(ui.cursor);
-      }
-
-      ui.fc.walkAll = true;
-      items = ui.items();
-      let stops = 0;
-      for (let i = 0; i < items.length; i += 1) {
-        if (ui.isStop(items[i])) { stops += 1; }
-      }
-      ui.setCursor(ui.firstStop(items));
-      const all = new Set([ui.cursor]);
-      for (let step = 0; step < items.length * 2; step += 1) {
-        const before = ui.cursor;
-        ui.move(1);
-        if (ui.cursor === before || all.has(ui.cursor)) { break; }
-        all.add(ui.cursor);
-      }
-
-      out[id] = { stops, arrowDefault: walked.size, arrowAll: all.size };
-    } catch (e) {
-      out[id] = { error: String(e && e.message ? e.message : e) };
-    }
-  }
-  ui.fc.walkAll = false;
-  ui.fc.setTab('setup');
-  return JSON.stringify(out);
-})()`;
-
-/*
- * STABLE IDS. Focus memory, and everything that comes after it, is built on
- * the claim that a row can be named across two rebuilds of the list. Three
- * things have to hold for that to be worth anything, and none of them is
- * visible from the walk:
- *
- *   every row HAS one, or the rows without are invisible to focus memory;
- *   they are UNIQUE within a screen, or a restore lands on the wrong row;
- *   they are STABLE across a rebuild that changed nothing, or every id is
- *   a fresh one and the memory never hits.
- *
- * The third is the one a derived id can quietly fail: items() runs the
- * whole builder again on every render, so an id that came from anything
- * that moves, an index, a counter, a value, would differ between two calls
- * a microsecond apart with the pilot having touched nothing.
- */
-const IDS = `(() => {
-  const ui = window.__ui;
-  ${PAST_GATE}
-  const out = {};
-  for (const name of ${JSON.stringify(SCREENS)}) {
-    try {
-      ui.show(name);
-      const first = ui.items();
-      const second = ui.items();
-      const ids = first.map((it) => (it ? it.id : null));
-      const missing = [];
-      for (let i = 0; i < first.length; i += 1) {
-        if (!ids[i]) { missing.push(first[i] && first[i].label ? first[i].label : 'row ' + i); }
-      }
-      const seen = new Map();
-      const dupes = [];
-      for (const id of ids) {
-        if (!id) { continue; }
-        if (seen.has(id)) { dupes.push(id); } else { seen.set(id, 1); }
-      }
-      const unstable = [];
-      for (let i = 0; i < Math.min(first.length, second.length); i += 1) {
-        const a = first[i] ? first[i].id : null;
-        const b = second[i] ? second[i].id : null;
-        if (a !== b) { unstable.push(a + ' -> ' + b); }
-      }
-      out[name] = {
-        rows: first.length,
-        missing,
-        dupes,
-        unstable,
-        lengthChanged: first.length !== second.length,
-      };
-    } catch (e) {
-      out[name] = { error: String(e && e.message ? e.message : e) };
-    }
-  }
-  return JSON.stringify(out);
-})()`;
-
-/*
- * Behaviours the walk cannot see, each asserted against the thing it is
- * meant to prevent rather than against its own implementation.
- */
-const BEHAVIOUR = `(() => {
-  const ui = window.__ui;
-  const out = {};
-
-  /* Focus memory. Settings, move down a few rows, leave, come back: the
-   * cursor belongs on the row it was on, not on row 0 of 30. */
+function caught(fn) {
   try {
+    return fn();
+  } catch (e) {
+    return { error: (e && e.message) || String(e) };
+  }
+}
+
+function pastGate(ui) {
+  ui.firstRun = false;
+  ui.craftGate = false;
+  if (!ui.mode) {
+    ui.mode = 'race';
+  }
+}
+
+/* Down arrow from the first stop until the cursor sticks or comes round
+ * again. The set holds every index the cursor rested on, start included. */
+function arrowWalk(ui, items) {
+  ui.setCursor(ui.firstStop(items));
+  const seen = new Set([ui.cursor]);
+  for (let n = 0; n < items.length * 2; n += 1) {
+    const prev = ui.cursor;
+    ui.move(1);
+    if (ui.cursor === prev || seen.has(ui.cursor)) {
+      break;
+    }
+    seen.add(ui.cursor);
+  }
+  return seen;
+}
+
+function scrollerOf(ui, name) {
+  return ui.root.querySelector(`.screen-${name} .menu-scroll, .screen-${name} .menu`);
+}
+
+function walkScreen(ui, name) {
+  ui.show(name);
+  const fc = name === 'fc' && ui.fc ? ui.fc : null;
+  if (fc) {
+    fc.walkAll = true;
+  }
+
+  /* Measured on arrival, before any key has scrolled the list. */
+  let belowFold = 0;
+  let rowsSeen = 0;
+  const box = scrollerOf(ui, name);
+  if (box) {
+    const r = box.getBoundingClientRect();
+    belowFold = Math.max(0, Math.round(r.bottom - innerHeight));
+    rowsSeen = [...document.querySelectorAll(`.screen-${name} .menu .row`)].filter((row) => {
+      const b = row.getBoundingClientRect();
+      return b.top >= 0 && b.bottom <= innerHeight && b.top >= r.top - 1 && b.bottom <= r.bottom + 1;
+    }).length;
+  }
+
+  const items = ui.items();
+  const stops = items.map((it, i) => (ui.isStop(it) ? i : -1)).filter((i) => i >= 0);
+  if (stops.length === 0) {
+    return { stops: 0, arrow: 0, reached: 0, unreachable: [], notesLost: 0, overflow: 0 };
+  }
+
+  const reached = arrowWalk(ui, items);
+  let arrow = reached.size;
+  ui.jumpEdge(-1);
+  reached.add(ui.cursor);
+  for (let n = 0; n < items.length + 4; n += 1) {
+    const prev = ui.cursor;
+    ui.pageMove(1);
+    reached.add(ui.cursor);
+    if (ui.cursor === prev) {
+      break;
+    }
+  }
+  ui.jumpEdge(1);
+  reached.add(ui.cursor);
+
+  /* The bench walks every key for reach, but a pilot's arrows only stop on
+   * the default rows, so its travel is counted with walkAll off. */
+  if (fc) {
+    fc.walkAll = false;
+    arrow = arrowWalk(ui, ui.items()).size;
+    fc.walkAll = true;
+  }
+
+  const lost = stops.filter((i) => !reached.has(i));
+  const after = scrollerOf(ui, name);
+  return {
+    stops: stops.length,
+    arrow,
+    reached: reached.size,
+    unreachable: lost.slice(0, 8).map((i) => items[i].label || `index ${i}`),
+    notesLost: lost.filter((i) => items[i].note).length,
+    overflow: after ? Math.max(0, Math.round(after.scrollHeight - after.clientHeight)) : 0,
+    belowFold,
+    rowsSeen,
+  };
+}
+
+function walkProbe(ui, { screens }) {
+  pastGate(ui);
+  return Object.fromEntries(screens.map((name) => [name, caught(() => walkScreen(ui, name))]));
+}
+
+function escapeProbe(ui, { screens }) {
+  pastGate(ui);
+  const known = new Set([...Object.keys(ui.screens), 'flight']);
+  return Object.fromEntries(screens.map((name) => [name, caught(() => {
+    ui.show(name);
+    ui.back();
+    return { to: ui.screen, known: known.has(ui.screen) };
+  })]));
+}
+
+function fcTabsProbe(ui, { tabs }) {
+  ui.show('fc');
+  const fc = ui.fc;
+  const out = {};
+  for (const id of tabs) {
+    out[id] = caught(() => {
+      fc.setTab(id);
+      fc.walkAll = false;
+      const arrowDefault = arrowWalk(ui, ui.items()).size;
+      fc.walkAll = true;
+      const all = ui.items();
+      const stops = all.filter((it) => ui.isStop(it)).length;
+      const arrowAll = arrowWalk(ui, all).size;
+      return { stops, arrowDefault, arrowAll };
+    });
+  }
+  fc.walkAll = false;
+  fc.setTab('setup');
+  return out;
+}
+
+function idsProbe(ui, { screens }) {
+  pastGate(ui);
+  return Object.fromEntries(screens.map((name) => [name, caught(() => {
+    ui.show(name);
+    const first = ui.items();
+    const second = ui.items();
+    const seen = new Set();
+    const missing = [];
+    const dupes = [];
+    first.forEach((row, i) => {
+      if (!row.id) {
+        missing.push(row.label || `row ${i}`);
+        return;
+      }
+      if (seen.has(row.id)) {
+        dupes.push(row.id);
+      }
+      seen.add(row.id);
+    });
+    const unstable = [];
+    for (let i = 0; i < Math.min(first.length, second.length); i += 1) {
+      const a = first[i] ? first[i].id : null;
+      const b = second[i] ? second[i].id : null;
+      if (a !== b) {
+        unstable.push(`${a} -> ${b}`);
+      }
+    }
+    return {
+      missing, dupes, unstable, lengthChanged: first.length !== second.length, rows: first.length,
+    };
+  })]));
+}
+
+function behaviourProbe(ui, { screens, tabs, importKey }) {
+  const out = {};
+  const items = () => ui.items();
+  const indexOf = (pred) => items().findIndex(pred);
+  const labels = (rows) => rows.map((r) => r.label);
+  const stopItems = () => items().filter((it) => ui.isStop(it));
+  const isRow = (el) => el.classList.contains('row');
+  const bumpRoll = (fc) => fc.setValue('p_roll', String(Number(fc.cliValue('p_roll') || 0) + 3));
+
+  out.focusMemory = caught(() => {
     ui.show('pilot');
-    ui.move(1); ui.move(1); ui.move(1);
-    const want = ui.items()[ui.cursor].label;
+    ui.move(1);
+    ui.move(1);
+    ui.move(1);
+    const want = items()[ui.cursor].label;
     ui.show('rates');
     ui.show('pilot');
-    const got = ui.items()[ui.cursor].label;
-    out.focusMemory = { want, got, ok: want === got };
-  } catch (e) {
-    out.focusMemory = { error: String(e && e.message ? e.message : e) };
-  }
+    const got = items()[ui.cursor].label;
+    return { want, got, ok: want === got };
+  });
 
-  /*
-   * THE TRICK FILM FOLLOWS THE CURSOR.
-   *
-   * renderTricks paints the name, the points, the how-to and the animation
-   * for the row the cursor is on, and it is only called from renderMenu. A
-   * cursor move deliberately does not rebuild the menu, so walking the list
-   * moved the highlight and left the panel showing the first trick for
-   * ever: bug-f105cf4a, "cuando selecciono otro truco no sale solo se ve el
-   * primer truco". Asserted on the NAME the panel shows, which is what the
-   * pilot reads, rather than on which function was called.
-   */
-  try {
+  out.trickFilm = caught(() => {
     ui.show('tricks');
-    ui.setCursor(ui.firstStop(ui.items()));
+    ui.setCursor(ui.firstStop(items()));
     const first = ui.trickName.textContent;
     ui.move(1);
     const second = ui.trickName.textContent;
     ui.move(1);
     const third = ui.trickName.textContent;
-    out.trickFilm = {
-      first, second, third,
-      rows: ui.items().length,
-      ok: Boolean(first) && first !== second && second !== third,
+    return {
+      first, second, third, rows: items().length, ok: Boolean(first) && first !== second && second !== third,
     };
-  } catch (e) {
-    out.trickFilm = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /* A screen never visited still opens on its first stop rather than
-   * throwing or landing on a heading. */
-  try {
+  out.freshOpen = caught(() => {
     ui.cursorMemory = {};
     ui.show('pilot');
-    const it = ui.items()[ui.cursor];
-    out.freshOpen = { label: it && it.label, ok: ui.isStop(it) };
-  } catch (e) {
-    out.freshOpen = { error: String(e && e.message ? e.message : e) };
-  }
+    const it = items()[ui.cursor];
+    return { label: it && it.label, ok: ui.isStop(it) };
+  });
 
-  /*
-   * ENTER MUST NOT CHANGE A LONG VALUE LIST.
-   *
-   * This is the bug the row grammar exists to make unrepresentable: driving
-   * the shipped build, one Enter one row below where it was meant changed
-   * the flight tune from Betaflight default to Karate race 6S, with nothing
-   * confirming it and nothing announcing it. select() called adjust(1) on
-   * any row that had an adjust.
-   *
-   * Asserted on the value, not on the code path: press Enter on the row and
-   * the tune must be the tune it was.
-   */
-  try {
-    /*
-     * THE CHECK FOLLOWS THE CONTROL, it does not follow the room.
-     *
-     * The tune picker was on Quad, then Quad's Tune row became the door to
-     * the PIDs room and the picker went in with it. What is asserted here is
-     * a property of the picker, that Enter opens it rather than stepping it,
-     * so this points at wherever the picker is. Repointing it at some other
-     * long list because this one moved would have been a different check
-     * wearing this one's name.
-     */
+  out.enterOnList = caught(() => {
     ui.show('pids');
-    const i = ui.items().findIndex((it) => it && it.id === 'pids:tune');
+    const i = indexOf((r) => r.id === 'pids:tune');
     ui.setCursor(i);
-    const before = ui.items()[i].value;
+    const row = items()[i];
+    const before = row && row.value;
     ui.select();
-    const after = ui.items()[i].value;
-    out.enterOnList = {
-      found: i >= 0,
-      before,
-      after,
-      unchanged: before === after,
-      opened: Boolean(ui.dropEl),
+    const rebuilt = items()[i];
+    const after = rebuilt && rebuilt.value;
+    const result = {
+      found: i >= 0, before, after, unchanged: before === after, opened: Boolean(ui.dropEl),
     };
     ui.closeDrop();
-  } catch (e) {
-    out.enterOnList = { error: String(e && e.message ? e.message : e) };
-  }
+    return result;
+  });
 
-  /*
-   * THE ONE PATH THAT TUNES THE QUAD, walked end to end and back out again.
-   *
-   * Quad, Tune, Every setting, back, back. The last step used to land on the
-   * TITLE: show() dropped pidsFrom on the way from the PIDs room to the
-   * bench, so the room forgot it had been opened from Quad while the pilot
-   * was one door deeper, and Escape threw them out of the machine. Nothing
-   * saw it, because every check here walked one room at a time and the bug
-   * only exists two rooms in.
-   *
-   * Asserted on where the pilot LANDS at each step, not on the pointers,
-   * because a pointer is the mechanism and the landing is the promise.
-   */
-  try {
+  out.tuningPath = caught(() => {
     ui.returnTo = 'title';
     ui.show('quad');
     const step = (label) => {
-      const items = ui.items();
-      const i = items.findIndex((it) => it && it.label === label);
-      if (i < 0) { return 'no such row: ' + label; }
+      const i = indexOf((r) => r.label === label);
+      if (i < 0) {
+        return `no such row: ${label}`;
+      }
       ui.setCursor(i);
       ui.select();
       return ui.screen;
@@ -513,337 +325,221 @@ const BEHAVIOUR = `(() => {
     const backToPids = ui.screen;
     ui.back();
     const backToQuad = ui.screen;
-    out.tuningPath = { toPids, toBench, backToPids, backToQuad };
-  } catch (e) {
-    out.tuningPath = { error: String(e && e.message ? e.message : e) };
-  }
+    return {
+      toPids, toBench, backToPids, backToQuad,
+    };
+  });
 
-  /*
-   * ONE LABEL, ONE DESTINATION.
-   *
-   * Tune appears on four screens. It may be the picker itself, which lives
-   * in exactly one room, or a door into that room. What it must never be is
-   * a door somewhere ELSE: that is what it was on Freestyle, which opened
-   * Quad, so a pilot who had learned Tune on Quad pressed Tune here and got
-   * a screen with another Tune row on it to press again. One label teaching
-   * two things is the whole failure this records.
-   */
-  try {
-    const dests = {};
-    for (const name of ${JSON.stringify(SCREENS)}) {
+  out.tuneRows = caught(() => {
+    const kinds = {};
+    for (const name of screens) {
       ui.returnTo = 'title';
       ui.show(name);
-      for (const it of ui.items()) {
-        if (!it || it.label !== 'Tune') { continue; }
-        const d = it.options ? 'picker' : (it.action || 'dead');
-        if (!dests[d]) { dests[d] = []; }
-        dests[d].push(name);
+      for (const row of items()) {
+        if (row.label !== 'Tune') {
+          continue;
+        }
+        const kind = row.options ? 'picker' : (row.action || 'dead');
+        (kinds[kind] = kinds[kind] || []).push(name);
       }
     }
-    out.tuneRows = dests;
-  } catch (e) {
-    out.tuneRows = { error: String(e && e.message ? e.message : e) };
-  }
+    return kinds;
+  });
 
-  /*
-   * A SWITCH IS A SWITCH: Enter flips it, and Enter again puts it back.
-   * Left sets it off and Right sets it on, rather than both cycling, which
-   * is what a two item popup's adjust used to do.
-   */
-  try {
+  out.switchRow = caught(() => {
     ui.show('pilot');
-    /* By ID, not by label. Pilot carries a Sound HEADING and a Sound
-     * SWITCH, and looking up the label found the heading, which is the
-     * exact collision stable ids were added to remove. */
-    const i = ui.items().findIndex((it) => it && it.id === 'pilot:sound');
+    /* By id: Pilot also has a Sound heading. */
+    const i = indexOf((r) => r.id === 'pilot:sound');
     ui.setCursor(i);
-    const start = ui.items()[i].on;
+    const on = () => items()[i].on;
+    const row = items()[i];
+    const start = on();
     ui.select();
-    const flipped = ui.items()[i].on;
+    const flipped = on();
     ui.select();
-    const back = ui.items()[i].on;
+    const back = on();
     ui.adjust(-1);
-    const off = ui.items()[i].on;
+    const off = on();
     ui.adjust(-1);
-    const stillOff = ui.items()[i].on;
+    const stillOff = on();
     ui.adjust(1);
-    const on = ui.items()[i].on;
-    /* Put it back the way it was found. */
+    const onAgain = on();
     ui.adjust(start ? 1 : -1);
-    out.switchRow = {
+    return {
       found: i >= 0,
-      isSwitch: Boolean(ui.items()[i] && ui.items()[i].sw),
+      isSwitch: Boolean(row.sw),
       flips: flipped === !start,
       flipsBack: back === start,
       leftIsOff: off === false && stillOff === false,
-      rightIsOn: on === true,
-      noPopup: !(ui.items()[i] && ui.items()[i].options),
+      rightIsOn: onAgain === true,
+      noPopup: !row.options,
     };
-  } catch (e) {
-    out.switchRow = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * NO TWO ITEM POPUP SURVIVES ANYWHERE. The complaint was not about one
-   * row, it was that every on and off in the product opened a menu to
-   * answer a yes or no, so the assertion sweeps every screen rather than
-   * naming the rows that used to do it.
-   */
-  try {
+  out.noTinyPopups = caught(() => {
     const offenders = [];
-    for (const name of ${JSON.stringify(SCREENS)}) {
+    for (const name of screens) {
       ui.show(name);
-      for (const it of ui.items()) {
-        /* The renderer's OWN predicate, so this cannot drift from what is
-         * actually drawn. A two option row that fits on the row is a
-         * segment strip and is the fix; a two option row that does not is
-         * still a menu opened to answer yes or no. */
-        if (it && it.options && it.options.length === 2 && !ui.fitsAsSegments(it)) {
-          offenders.push(name + ':' + it.label);
+      for (const row of items()) {
+        if (row.options && row.options.length === 2 && !ui.fitsAsSegments(row)) {
+          offenders.push(`${name}:${row.label}`);
         }
       }
     }
-    out.noTinyPopups = { offenders };
-  } catch (e) {
-    out.noTinyPopups = { error: String(e && e.message ? e.message : e) };
-  }
+    return { offenders };
+  });
 
-  /*
-   * ONE FOCUS AUTHORITY.
-   *
-   * Xbox Accessibility Guideline 112: exactly one element is focused,
-   * always, and focus is application state rather than a CSS pseudo-class.
-   * The shell painted a cursor bar with a class while document.activeElement
-   * was somewhere else entirely, which is two authorities that agree only by
-   * not being asked. Asserted three ways.
-   */
-  try {
+  out.focusAuthority = caught(() => {
     ui.show('pilot');
-    ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
-    /* Put focus in the menu, the way Tab would. */
-    const first = ui.menuRows.find((r) => r.classList.contains('row'));
-    if (first) { first.focus(); }
+    ui.setCursor(ui.firstStop(items(), ui.rowOffset));
+    ui.menuRows.find(isRow).focus();
     ui.move(1);
     ui.move(1);
-    const painted = ui.menuRows.filter((r) => r.classList.contains('on')).length;
-    const at = ui.menuRows[ui.cursor - ui.rowOffset];
-    const focusFollows = at === document.activeElement;
-    /* Exactly one row is Tab reachable, and it is that one. */
-    const tabbable = ui.menuRows.filter((r) => r.classList.contains('row') && r.tabIndex === 0);
-    const selected = ui.menuRows.filter((r) => r.getAttribute('aria-selected') === 'true');
-
-    /*
-     * And focus arriving from OUTSIDE the shell moves the cursor: a screen
-     * reader or a Tab press lands on a row, and the cursor has to be there
-     * too or the next arrow press jumps somewhere else.
-     */
-    const rows = ui.menuRows.filter((r) => r.classList.contains('row'));
-    const target = rows[rows.length - 1];
-    let cursorFollowedFocus = false;
-    if (target) {
-      target.focus();
-      cursorFollowedFocus = ui.menuRows[ui.cursor - ui.rowOffset] === target;
+    const rows = ui.menuRows;
+    const painted = rows.filter((el) => el.classList.contains('on')).length;
+    const focusFollows = rows[ui.cursor - ui.rowOffset] === document.activeElement;
+    const tabbable = rows.filter((el) => isRow(el) && el.tabIndex === 0).length;
+    const selected = rows.filter((el) => el.getAttribute('aria-selected') === 'true').length;
+    const last = rows.filter(isRow).pop();
+    if (last) {
+      last.focus();
     }
-    if (document.activeElement && document.activeElement.blur) {
+    const cursorFollowedFocus = last ? ui.menuRows[ui.cursor - ui.rowOffset] === last : false;
+    if (document.activeElement) {
       document.activeElement.blur();
     }
-    out.focusAuthority = {
-      painted,
-      focusFollows,
-      tabbable: tabbable.length,
-      selected: selected.length,
-      cursorFollowedFocus,
+    return {
+      painted, focusFollows, tabbable, selected, cursorFollowedFocus,
     };
-  } catch (e) {
-    out.focusAuthority = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * THE CURSOR BELONGS TO A ROW, NOT AN INDEX.
-   *
-   * A filter that removes rows above the cursor slides everything up under
-   * it, so an index-based cursor stays at 27 and is now pointing at a
-   * different key. The bench has four filters, so this is the screen that
-   * proves it: land on a key, turn on show-only-modified, and the cursor
-   * must still be on a row rather than at the same number.
-   */
-  try {
+  out.stickyCursor = caught(() => {
     ui.show('fc');
-    const wasTab = ui.fc.tab;
-    ui.fc.setTab('pid');
-    ui.fc.discard();
-    ui.fc.setValue('p_roll', String(Number(ui.fc.cliValue('p_roll') || 0) + 3));
+    const fc = ui.fc;
+    const tab = fc.tab;
+    fc.setTab('pid');
+    fc.discard();
+    bumpRoll(fc);
     ui.renderMenu();
-    const i = ui.items().findIndex((it) => it && it.key === 'p_roll');
-    ui.setCursor(i);
-    const before = ui.items()[ui.cursor].key;
+    const keyAtCursor = () => {
+      const row = items()[ui.cursor];
+      return row ? row.key : null;
+    };
+    ui.setCursor(indexOf((r) => r.key === 'p_roll'));
+    const before = keyAtCursor();
     const beforeIndex = ui.cursor;
-    /* The filter drops every row above it. */
-    ui.fc.onlyModified = true;
+    fc.onlyModified = true;
     ui.renderMenu();
-    const after = ui.items()[ui.cursor] ? ui.items()[ui.cursor].key : null;
+    const after = keyAtCursor();
     const movedIndex = ui.cursor !== beforeIndex;
-    ui.fc.onlyModified = false;
-    ui.fc.discard();
-    ui.fc.setTab(wasTab);
+    fc.onlyModified = false;
+    fc.discard();
+    fc.setTab(tab);
     ui.renderMenu();
-    out.stickyCursor = {
+    return {
       before, after, sameRow: before === after, movedIndex,
     };
-  } catch (e) {
-    out.stickyCursor = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * THE BENCH CAN BE SEARCHED, AND THE HELP SAYS SOMETHING.
-   *
-   * 696 keys across 23 flat tabs with no grouping and no cross-tab search
-   * is a memory test: a pilot who has read a guide naming a key has to know
-   * which tab Betaflight files it under before they can find it. And
-   * fieldNote() ended in a bare return of field.key, so the help column beside 115
-   * typed rows read the key name back at somebody looking at a row labelled
-   * with that key name.
-   */
-  try {
+  out.benchSearch = caught(() => {
     ui.show('fc');
-    const startTab = ui.fc.tab;
-    ui.fc.search = 'failsafe_procedure';
-    let rows = ui.items();
-    const exact = rows.find((it) => it && it.key === 'failsafe_procedure');
-    const foundAcrossTabs = Boolean(exact) && ui.fc.tab === startTab;
+    const fc = ui.fc;
+    const startTab = fc.tab;
+    const keyed = (rows) => rows.filter((r) => r.key && r.key !== 'fc-search');
 
-    /* Ranking: an exact hit and a prefix hit must beat a substring. */
-    ui.fc.search = 'd_min';
-    rows = ui.items();
-    const keys = rows.filter((it) => it && it.key && it.key !== 'fc-search').map((it) => it.key);
-    const firstIsPrefix = Boolean(keys.length) && keys[0].startsWith('d_min');
+    fc.search = 'failsafe_procedure';
+    const foundAcrossTabs = items().some((r) => r.key === 'failsafe_procedure') && fc.tab === startTab;
 
-    /* The cap has to be honest: a search that matches more than it shows
-     * must say so, or a pilot concludes the key is not there. */
-    ui.fc.search = '_';
-    rows = ui.items();
-    const moreLine = rows.find((it) => it && /more not shown/.test(String(it.label || '')));
-    const shown = rows.filter((it) => it && it.key && it.key !== 'fc-search').length;
+    fc.search = 'd_min';
+    const keys = keyed(items()).map((r) => r.key);
+    const firstIsPrefix = keys.length > 0 && keys[0].startsWith('d_min');
 
-    /* A miss says so rather than showing an empty list. */
-    ui.fc.search = 'zzzz_not_a_key';
-    rows = ui.items();
-    const missLine = rows.find((it) => it && /No key contains/.test(String(it.label || '')));
+    fc.search = '_';
+    const wide = items();
+    const moreLine = wide.some((r) => /more not shown/.test(r.label));
+    const shown = keyed(wide).length;
 
-    /*
-     * Leaving the field with Down must take the FOCUS into the results, not
-     * only the painted bar. The first cut blurred the field and let focus
-     * fall to the body, so the cursor walked the results with nothing
-     * focused: a screen reader followed none of it and Tab restarted from
-     * the top of the page.
-     */
-    ui.fc.search = 'gyro';
+    fc.search = 'zzzz_not_a_key';
+    const missLine = items().some((r) => /No key contains/.test(r.label));
+
+    fc.search = 'gyro';
     ui.renderMenu();
-    ui.setCursor(ui.firstStop(ui.items(), ui.rowOffset));
+    ui.setCursor(ui.firstStop(items(), ui.rowOffset));
     ui.focusCursorRow();
-    const fieldRow = ui.menuRows[ui.cursor - ui.rowOffset];
-    const input = fieldRow && fieldRow.querySelector('.row-textfield');
+    const rowEl = ui.menuRows[ui.cursor - ui.rowOffset];
+    const field = rowEl && rowEl.querySelector('.row-textfield');
     let focusLeftTheField = false;
-    if (input) {
-      input.focus();
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-      focusLeftTheField = document.activeElement
-        === ui.menuRows[ui.cursor - ui.rowOffset]
-        && document.activeElement !== input;
+    if (field) {
+      field.focus();
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+      const active = document.activeElement;
+      focusLeftTheField = active === ui.menuRows[ui.cursor - ui.rowOffset] && active !== field;
     }
 
-    ui.fc.search = null;
-    ui.items();
-    out.benchSearch = {
+    fc.search = null;
+    items();
+    return {
       focusLeftTheField,
       foundAcrossTabs,
       firstIsPrefix,
-      capped: Boolean(moreLine) && shown <= 60,
+      capped: moreLine && shown <= 60,
       shown,
-      saysMiss: Boolean(missLine),
-      tabRestored: ui.fc.tab === startTab,
+      saysMiss: missLine,
+      tabRestored: fc.tab === startTab,
     };
-  } catch (e) {
-    out.benchSearch = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * NO HELP TEXT REPEATS ITS OWN ROW LABEL. Swept over every typed row on
-   * every tab rather than spot checked, because the defect was a fallthrough
-   * that covered 115 of them at once.
-   */
-  try {
-    const offenders = [];
-    let checked = 0;
+  out.benchHelp = caught(() => {
     ui.show('fc');
-    const startTab = ui.fc.tab;
-    ui.fc.walkAll = true;
-    for (const tab of ['setup', 'configuration', 'pid', 'receiver', 'motors']) {
-      ui.fc.setTab(tab);
-      for (const it of ui.items()) {
-        if (!it || !it.key || it.key === 'fc-search') { continue; }
+    const fc = ui.fc;
+    const tab = fc.tab;
+    fc.walkAll = true;
+    let checked = 0;
+    const offenders = [];
+    for (const t of tabs) {
+      fc.setTab(t);
+      for (const row of items()) {
+        if (!row.key || row.key === 'fc-search') {
+          continue;
+        }
         checked += 1;
-        const note = String(it.note || '').trim();
-        if (!note || note === it.key || note === it.label) {
-          offenders.push(tab + ':' + it.key);
+        const note = String(row.note || '').trim();
+        if (!note || note === row.key || note === row.label) {
+          offenders.push(`${t}:${row.key}`);
         }
       }
     }
-    ui.fc.walkAll = false;
-    ui.fc.setTab(startTab);
-    out.benchHelp = { checked, offenders };
-  } catch (e) {
-    out.benchHelp = { error: String(e && e.message ? e.message : e) };
-  }
+    fc.walkAll = false;
+    fc.setTab(tab);
+    return { checked, offenders };
+  });
 
-  /*
-   * SHOW ONLY WHAT I CHANGED. A pilot ten minutes into an edit had no way
-   * to see what Save is about to write except by walking every tab.
-   */
-  try {
+  out.benchModified = caught(() => {
     ui.show('fc');
-    const wasTab = ui.fc.tab;
-    ui.fc.setTab('pid');
-    const before = ui.fc.modifiedKeys().size;
-    ui.fc.setValue('p_roll', String(Number(ui.fc.cliValue('p_roll') || 0) + 3));
-    const after = ui.fc.modifiedKeys().size;
-    ui.fc.onlyModified = true;
-    const rows = ui.items().filter((it) => it && it.key && it.key !== 'fc-search');
+    const fc = ui.fc;
+    const tab = fc.tab;
+    fc.setTab('pid');
+    const before = fc.modifiedKeys().size;
+    bumpRoll(fc);
+    const after = fc.modifiedKeys().size;
+    fc.onlyModified = true;
+    const rows = items().filter((r) => r.key && r.key !== 'fc-search');
     const onlyTheOne = rows.length === 1 && rows[0].key === 'p_roll';
-    ui.fc.onlyModified = false;
-    ui.fc.discard();
-    const cleaned = ui.fc.modifiedKeys().size;
-    /* Put the bench back on the tab it was found on. Leaving it elsewhere
-     * changes how many rows the id sweep below counts, which made the
-     * reported total move between runs for no product reason. */
-    ui.fc.setTab(wasTab);
-    out.benchModified = {
+    fc.onlyModified = false;
+    fc.discard();
+    const cleaned = fc.modifiedKeys().size;
+    fc.setTab(tab);
+    return {
       startedClean: before === 0,
       sawTheEdit: after === 1,
       onlyTheOne,
       rows: rows.length,
       discardClears: cleaned === 0,
     };
-  } catch (e) {
-    out.benchModified = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * THE LIST DOES NOT MOVE UNDER THE POINTER.
-   *
-   * Reported as "the menu is a bit laggy throughout, following the mouse",
-   * and it was not slow code. setCursor called syncCursor with scrolling
-   * ON, so hovering a row scrolled that row into view. The row is already
-   * in view, by definition, and near the ends of a scroller a nearest
-   * block scroll still shifts the list a few pixels, sliding a
-   * DIFFERENT row under a stationary pointer, which fires another mousemove
-   * and moves the cursor again.
-   *
-   * Measured by sweeping the pointer down the rows and summing every
-   * scrollTop change: 750 px of travel on the Pilot room before the fix.
-   */
-  try {
-    const out2 = {};
+  out.hoverScroll = caught(() => {
+    const jumps = {};
     for (const name of ['pilot', 'fc']) {
       ui.show(name);
       const host = ui.menuRows[0].parentElement;
@@ -851,49 +547,33 @@ const BEHAVIOUR = `(() => {
       let jump = 0;
       let last = host.scrollTop;
       let x = 0;
-      const rows = ui.menuRows.filter((r) => r.classList.contains('row'));
-      for (const r of rows.slice(0, 25)) {
-        const b = r.getBoundingClientRect();
-        if (b.height === 0) { continue; }
+      for (const row of ui.menuRows.filter(isRow).slice(0, 25)) {
+        const b = row.getBoundingClientRect();
+        if (b.height === 0) {
+          continue;
+        }
         for (let k = 0; k < 3; k += 1) {
+          /* The shell ignores a pointer that did not move, so x must change. */
           x += 1;
-          /* The clientX has to CHANGE or pointerMoved rejects the event as
-           * a rebuilt row appearing under a still pointer, which is a real
-           * guard and would make this check measure nothing. */
-          r.dispatchEvent(new MouseEvent('mousemove', {
-            bubbles: true,
-            clientX: 200 + (x % 3),
-            clientY: Math.round(b.top + (b.height / 2)),
+          row.dispatchEvent(new MouseEvent('mousemove', {
+            bubbles: true, clientX: 200 + (x % 3), clientY: Math.round(b.top + b.height / 2),
           }));
           jump += Math.abs(host.scrollTop - last);
           last = host.scrollTop;
         }
       }
-      out2[name] = jump;
+      jumps[name] = jump;
     }
     ui.show('title');
-    out.hoverScroll = out2;
-  } catch (e) {
-    out.hoverScroll = { error: String(e && e.message ? e.message : e) };
-  }
+    return jumps;
+  });
 
-  /*
-   * A DOOR IS NOT A ONE WAY DOOR.
-   *
-   * The Race and Freestyle rooms and the launch card all carry a Tune row
-   * that is a door into Quad, and act() set returnTo to 'title' from
-   * anywhere that was not paused. So a pilot who changed a tune from the
-   * Freestyle room and pressed Back landed on the title instead of the room
-   * they were standing in. Reported exactly that way.
-   *
-   * Asserted on the trip, not on the pointer: walk in through the door,
-   * press Back, and check where you are.
-   */
-  try {
-    const trips = {};
+  out.roomReturn = caught(() => {
     const go = (id) => {
-      const i = ui.items().findIndex((it) => it && it.id === id);
-      if (i < 0) { return false; }
+      const i = indexOf((r) => r.id === id);
+      if (i < 0) {
+        return false;
+      }
       ui.setCursor(i);
       ui.select();
       return true;
@@ -904,134 +584,93 @@ const BEHAVIOUR = `(() => {
       ui.returnTo = null;
       ui.show(room);
     };
-
+    const result = {};
     for (const room of ['freestyle', 'launch', 'pilot']) {
       reset(room);
-      trips[room] = go(room + ':a-quad')
-        ? (() => { const at = ui.screen; ui.back(); return { at, back: ui.screen }; })()
-        : { missing: true };
+      if (!go(`${room}:a-quad`)) {
+        result[room] = { missing: true };
+        continue;
+      }
+      const at = ui.screen;
+      ui.back();
+      result[room] = { at, back: ui.screen };
     }
-
-    /* Two hops. Quad's Rates row is a signpost into Pilot's screen, so the
-     * way back out is Quad and then the room Quad was opened from. */
     reset('freestyle');
     go('freestyle:a-quad');
     go('quad:a-rates');
     const deep = [ui.screen];
-    ui.back(); deep.push(ui.screen);
-    ui.back(); deep.push(ui.screen);
-    trips.deep = deep;
-
-    /* A paused run still wins. returnTo is the pause chain and losing it
-     * strands a flight. */
+    ui.back();
+    deep.push(ui.screen);
+    ui.back();
+    deep.push(ui.screen);
+    result.deep = deep;
     ui.show('title');
     ui.returnTo = 'paused';
     ui.roomFrom = 'freestyle';
     ui.show('quad');
     ui.back();
-    trips.paused = ui.screen;
-
+    result.paused = ui.screen;
     ui.returnTo = null;
     ui.roomFrom = null;
     ui.show('title');
-    out.roomReturn = trips;
-  } catch (e) {
-    out.roomReturn = { error: String(e && e.message ? e.message : e) };
-  }
+    return result;
+  });
 
-  /*
-   * THE LAUNCH CARD IS FOR A MEASURED RUN, and only for one.
-   *
-   * Freestyle has no clock, no lap, no ghost and no board, so a card asking
-   * what the run counts as would be ceremony in front of a flight that
-   * counts as nothing. Fly must go straight to the air there, and must stop
-   * at the card when there is a time to be set.
-   */
-  try {
+  out.launchGate = caught(() => {
     const seen = [];
-    const tryFly = (map) => {
-      const before = ui.settings.map;
-      const heldMode = ui.mode;
-      ui.settings.map = map;
-      /* The seat and the mode are one state now: a pilot sitting in a
-       * gateless world got there by answering Freestyle, and Fly checks
-       * that they agree before it launches anything. */
+    for (const m of window.__maps().filter((map) => map.mode === 'freestyle')) {
+      const savedMap = ui.settings.map;
+      const savedMode = ui.mode;
+      ui.settings.map = m.id;
       ui.mode = 'freestyle';
       ui.show('title');
-      /* onAction is what launches. Stub it so the check does not start a
-       * run it would then have to get out of. */
-      const realAction = ui.onAction;
+      const onAction = ui.onAction;
       let launched = false;
-      ui.onAction = (a) => { if (a === 'fly') { launched = true; } };
+      ui.onAction = (action) => {
+        if (action === 'fly') {
+          launched = true;
+        }
+      };
       try {
         ui.act('fly');
       } finally {
-        ui.onAction = realAction;
+        ui.onAction = onAction;
       }
       const landed = ui.screen;
-      ui.settings.map = before;
-      ui.mode = heldMode;
+      ui.settings.map = savedMap;
+      ui.mode = savedMode;
       ui.show('title');
-      return { map, landed, launched };
-    };
-    /* A dressed world is freestyle by MAPS[].mode and must fly straight.
-     * Every one the registry has, so a world added or retired needs no
-     * edit here: this named the town until the town was retired. */
-    for (const m of window.__maps().filter((x) => x.mode === 'freestyle')) {
-      seen.push(tryFly(m.id));
+      seen.push({ map: m.id, landed, launched });
     }
-    out.launchGate = { seen };
-  } catch (e) {
-    out.launchGate = { error: String(e && e.message ? e.message : e) };
-  }
+    return { seen };
+  });
 
-  /*
-   * ONE ROOM PER THING.
-   *
-   * Tune, PIDs and Rates were built once and spread onto four screens, so
-   * "where do I change my rates" had four correct answers with different
-   * surrounding context. This asserts the fix on the shipped lists rather
-   * than on the intent: an EDITABLE copy, one that changes the value in
-   * place, may exist on at most one screen. A DOOR, a navigation row that
-   * opens the room where the real one lives, may exist anywhere, because a
-   * signpost is not a second answer.
-   *
-   * Tune is allowed two: its room, and the pause menu, where "does this
-   * feel wrong" is the question being asked and the row is the answer.
-   *
-   * A ROOM IS REACHED BY THE ACTION THAT OPENS IT, not by a row that shares
-   * its name. Quad's Tune and PIDs rows are one row now, labelled Tune and
-   * opening the PIDs room, so no row anywhere is labelled PIDs and a check
-   * that counted that label would have read the room as unreachable while a
-   * pilot was walking into it. The opens map counts the actions instead.
-   */
-  try {
+  out.oneHome = caught(() => {
+    const thing = new Map([['Tune', 'tune'], ['PIDs', 'pids'], ['Rates', 'rates']]);
     const homes = { tune: [], pids: [], rates: [] };
     const doors = { tune: [], pids: [], rates: [] };
     const opens = { pids: [], rates: [] };
-    const which = (it) => {
-      if (!it || !it.label) { return null; }
-      if (it.label === 'Tune') { return 'tune'; }
-      if (it.label === 'PIDs') { return 'pids'; }
-      if (it.label === 'Rates') { return 'rates'; }
-      return null;
-    };
-    for (const name of ${JSON.stringify(SCREENS)}) {
+    for (const name of screens) {
       ui.show(name);
-      for (const it of ui.items()) {
-        if (it && it.action === 'pids') { opens.pids.push(name); }
-        if (it && it.action === 'rates') { opens.rates.push(name); }
-        const k = which(it);
-        if (!k) { continue; }
-        /* Editable means it changes the value where it stands. */
-        if (it.options || it.sw || it.num || it.step) {
+      for (const row of items()) {
+        if (row.action === 'pids') {
+          opens.pids.push(name);
+        }
+        if (row.action === 'rates') {
+          opens.rates.push(name);
+        }
+        const k = thing.get(row.label);
+        if (!k) {
+          continue;
+        }
+        if (row.options || row.sw || row.num || row.step) {
           homes[k].push(name);
-        } else if (it.action) {
+        } else if (row.action) {
           doors[k].push(name);
         }
       }
     }
-    out.oneHome = {
+    return {
       tune: homes.tune,
       pids: homes.pids,
       rates: homes.rates,
@@ -1041,87 +680,49 @@ const BEHAVIOUR = `(() => {
       pidsOpens: opens.pids,
       ratesOpens: opens.rates,
     };
-  } catch (e) {
-    out.oneHome = { error: String(e && e.message ? e.message : e) };
-  }
+  });
 
-  /*
-   * THE MID-RUN WARNING CANNOT BE LOST BY ROUTE.
-   *
-   * Changing a tune, a PID or a rate during a run puts the quad back on the
-   * start line, and only the pause menu's own copies said so. Pause reached
-   * Settings by a route that showed the same rows without it, so whether a
-   * pilot was told depended on which of four doors they came through. The
-   * warning belongs to the ROOM being entered from a paused run, not to one
-   * screen's copy of a row.
-   */
-  try {
-    const warn = 'back on the start line';
+  out.midRun = caught(() => {
+    const warns = (row) => String(row.note).includes('back on the start line');
     const scan = (screen, returnTo) => {
       ui.returnTo = returnTo;
       ui.show(screen);
-      /*
-       * RATES ARE NOT IN THIS SET ANY MORE, and that is the assertion rather
-       * than an omission. A rate change no longer re-seats the run: main.js
-       * puts the craft back where it stood instead of resetting, so a Rates
-       * row carrying this warning would be promising something that does not
-       * happen. Counted separately below so the claim is tested both ways,
-       * and a Rates row that grows the sentence back fails.
-       */
-      const all = ui.items();
-      const rows = all.filter((it) => it && (it.label === 'Tune' || it.label === 'PIDs'));
-      const rates = all.filter((it) => it && it.label === 'Rates');
+      const all = items();
+      const rows = all.filter((r) => r.label === 'Tune' || r.label === 'PIDs');
+      const rates = all.filter((r) => r.label === 'Rates');
       return {
         rows: rows.length,
-        warned: rows.filter((it) => String(it.note || '').includes(warn)).length,
+        warned: rows.filter(warns).length,
         ratesRows: rates.length,
-        ratesWarned: rates.filter((it) => String(it.note || '').includes(warn)).length,
+        ratesWarned: rates.filter(warns).length,
       };
     };
-    const quadPaused = scan('quad', 'paused');
-    const pilotPaused = scan('pilot', 'paused');
-    const quadTitle = scan('quad', 'title');
-    const pilotTitle = scan('pilot', 'title');
+    const result = {
+      quadPaused: scan('quad', 'paused'),
+      pilotPaused: scan('pilot', 'paused'),
+      quadTitle: scan('quad', 'title'),
+      pilotTitle: scan('pilot', 'title'),
+    };
     ui.returnTo = 'title';
     ui.show('title');
-    out.midRun = {
-      quadPaused, pilotPaused, quadTitle, pilotTitle,
-    };
-  } catch (e) {
-    out.midRun = { error: String(e && e.message ? e.message : e) };
-  }
+    return result;
+  });
 
-  /*
-   * THE RADIO DEAD ENDS. A pad whose switches arrive as axes reports no
-   * buttons, so padMenuButtons answers a permanent no and the cursor walks
-   * a list nothing can be selected from. The screens cannot be driven by a
-   * real radio here, headless Chromium has no gamepad, so both halves are
-   * exercised directly: the shell with a synthetic padSummary, and the
-   * input layer with a synthetic gamepad.
-   */
-  try {
+  /* One try for both halves, so a throw anywhere leaves padSelect absent. */
+  const pad = caught(() => {
     const input = window.__input;
-    const before = ui.padInfo;
-    /*
-     * The title has two states and only the second has rows: the gate, then
-     * the menu. This block is about a warning ROW, so both halves of the
-     * gate are answered for the length of it and put back afterwards.
-     * Without this every case here read a gate card and reported no banner.
-     */
-    const heldCraftGate = ui.craftGate;
-    const heldMode = ui.mode;
+    const saved = { padInfo: ui.padInfo, craftGate: ui.craftGate, mode: ui.mode };
     ui.craftGate = false;
     ui.mode = ui.mode || 'race';
     const rowAt0 = (info) => {
       ui.setPadInfo(info);
-      /* The sweep above ends on credits, which pins #credits, and show()
-       * maps a request for the title back onto a pinned screen. Without
-       * this the whole block silently measured the credits screen. */
-      if (window.location.hash) {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+      /* The earlier sweep left #credits pinned, and show() would map the
+       * title onto it. */
+      if (location.hash) {
+        history.replaceState(null, '', location.pathname + location.search);
       }
       ui.show('title');
-      const first = ui.items()[0];
+      const first = items()[0];
       return {
         onTitle: ui.screen === 'title',
         label: first ? first.label : null,
@@ -1129,113 +730,82 @@ const BEHAVIOUR = `(() => {
         cls: first ? first.rowClass : null,
       };
     };
-
-    const noButtons = rowAt0({
+    const radio = {
       count: 1, using: 'Joystick 1, TX16S', buttons: 0, hasSelect: false, calibrated: false,
-    });
-    const uncal = rowAt0({
-      count: 1, using: 'Joystick 1, TX16S', buttons: 12, hasSelect: false, calibrated: false,
-    });
-    const fine = rowAt0({
-      count: 1, using: 'Joystick 1, TX16S', buttons: 12, hasSelect: false, calibrated: true,
-    });
+    };
+    const noButtons = rowAt0(radio);
+    const uncal = rowAt0({ ...radio, buttons: 12 });
+    const fine = rowAt0({ ...radio, buttons: 12, calibrated: true });
     const keyboard = rowAt0({ count: 0, using: 'Keyboard' });
-    ui.setPadInfo(before);
-    ui.craftGate = heldCraftGate;
-    ui.mode = heldMode;
+    ui.setPadInfo(saved.padInfo);
+    ui.craftGate = saved.craftGate;
+    ui.mode = saved.mode;
     ui.show('title');
 
-    out.padBanner = {
-      /* onTitle on every one of them, so a redirect can never fake a pass
-       * by measuring a screen with no warning row on it. */
-      onTitle: [noButtons, uncal, fine, keyboard].every((r) => r && r.onTitle),
-      noButtons: Boolean(noButtons.onTitle && noButtons.cls === 'row-warn' && noButtons.action === 'calibrate'),
-      uncalibrated: Boolean(uncal.onTitle && uncal.cls === 'row-warn' && uncal.action === 'calibrate'),
-      /*
-       * The two cases must say DIFFERENT things. Both are a warning row
-       * pointing at calibration, so a check that only looked at the class
-       * and the action passed while the no-buttons branch was deleted and
-       * the uncalibrated one answered for both. A pilot whose radio reports
-       * no buttons needs to be told about the hold gesture; "not calibrated
-       * yet" does not tell them how to press the row that fixes it.
-       */
+    const warnsToCalibrate = (c) => c.onTitle && c.cls === 'row-warn' && c.action === 'calibrate';
+    const padBanner = {
+      onTitle: [noButtons, uncal, fine, keyboard].every((c) => c.onTitle),
+      noButtons: warnsToCalibrate(noButtons),
+      uncalibrated: warnsToCalibrate(uncal),
       distinct: Boolean(noButtons.label && uncal.label && noButtons.label !== uncal.label),
-      namesTheCause: Boolean(noButtons.label && /button/i.test(noButtons.label)),
-      /* A working radio and a keyboard must NOT get a warning row: a banner
-       * that is always there is a banner nobody reads. */
-      quietWhenFine: !(fine && fine.cls === 'row-warn'),
-      quietOnKeyboard: !(keyboard && keyboard.cls === 'row-warn'),
+      namesTheCause: /button/i.test(noButtons.label),
+      quietWhenFine: fine.cls !== 'row-warn',
+      quietOnKeyboard: keyboard.cls !== 'row-warn',
     };
 
-    /*
-     * The input half. A pad with no buttons must still be able to press
-     * something, or the banner is advice a pilot cannot take.
-     */
-    const fakePad = { index: 0, id: 'fake', axes: [0, 0, 0, 0], buttons: [] };
-    const realFirst = input.firstGamepad;
-    input.firstGamepad = () => fakePad;
+    const fake = {
+      index: 0, id: 'fake', axes: [0, 0, 0, 0], buttons: [],
+    };
+    const firstGamepad = input.firstGamepad;
+    input.firstGamepad = () => fake;
     const savedMap = input.map;
     const savedRest = input.navRest;
+    let padSelect;
     try {
       input.map = { ...savedMap, select: null };
       input.navRest = [0, 0, 0, 0];
       input.holdMs = 0;
       input.holdFired = false;
       input.holdAt = 0;
+      const press = () => input.padMenuButtons().select;
 
-      /* Centred: nothing. */
-      const atRest = input.padMenuButtons().select;
+      const atRest = press();
 
-      /*
-       * Held past the threshold: one press, and only one.
-       *
-       * holdSelect reads its own clock, so the bank is set up relative to
-       * performance.now() rather than to an invented timestamp. Each call
-       * below adds one clamped tick of at most 100 ms.
-       */
-      const now = () => performance.now();
-      fakePad.axes = [0, 0, 0, 0.9];
-
-      /* 100 ms banked, one tick short of nothing: well under the hold. */
+      fake.axes = [0, 0, 0, 0.9];
       input.holdMs = 0;
       input.holdFired = false;
-      input.holdAt = now() - 100;
-      const early = input.padMenuButtons().select;
+      input.holdAt = performance.now() - 100;
+      const early = press();
 
-      /* 650 ms banked plus a 100 ms tick clears the 700 ms hold. */
+      /* 650 ms banked plus a tick of at most 100 clears the 700 ms hold. */
       input.holdMs = 650;
       input.holdFired = false;
-      input.holdAt = now() - 100;
-      const fired = input.padMenuButtons().select;
+      input.holdAt = performance.now() - 100;
+      const fired = press();
 
-      /* Still held. The latch must not let it press again. */
-      input.holdAt = now() - 100;
-      const again = input.padMenuButtons().select;
+      input.holdAt = performance.now() - 100;
+      const again = press();
 
-      /* Released and held again: it presses once more, or a radio gets one
-       * press per page load. */
-      fakePad.axes = [0, 0, 0, 0];
-      input.holdAt = now();
-      input.padMenuButtons();
-      fakePad.axes = [0, 0, 0, 0.9];
+      fake.axes = [0, 0, 0, 0];
+      input.holdAt = performance.now();
+      press();
+      fake.axes = [0, 0, 0, 0.9];
       input.holdMs = 650;
-      input.holdAt = now() - 100;
-      const rearmed = input.padMenuButtons().select;
+      input.holdAt = performance.now() - 100;
+      const rearmed = press();
 
-      /* An assigned menu switch behaves like a button: level, edge latched
-       * by the caller, and no hold needed. */
       input.map = {
         ...savedMap,
         select: {
           axis: 3, center: 0, pos: 1, neg: -1,
         },
       };
-      fakePad.axes = [0, 0, 0, 0.9];
-      const switchOn = input.padMenuButtons().select;
-      fakePad.axes = [0, 0, 0, 0];
-      const switchOff = input.padMenuButtons().select;
+      fake.axes = [0, 0, 0, 0.9];
+      const switchOn = press();
+      fake.axes = [0, 0, 0, 0];
+      const switchOff = press();
 
-      out.padSelect = {
+      padSelect = {
         quietAtRest: atRest === false,
         notBeforeTheHold: early === false,
         firesOnHold: fired === true,
@@ -1245,115 +815,81 @@ const BEHAVIOUR = `(() => {
         assignedSwitchOff: switchOff === false,
       };
     } finally {
-      input.firstGamepad = realFirst;
+      input.firstGamepad = firstGamepad;
       input.map = savedMap;
       input.navRest = savedRest;
     }
-  } catch (e) {
-    out.padBanner = { error: String(e && e.message ? e.message : e) };
+    return { padBanner, padSelect };
+  });
+  if (pad.error) {
+    out.padBanner = pad;
+  } else {
+    out.padBanner = pad.padBanner;
+    out.padSelect = pad.padSelect;
   }
 
-  /* Escape on the firmware bench with unsaved edits must not discard.
-   * Dirty the draft through the same setter the rows use. */
-  try {
+  out.discardGuard = caught(() => {
     ui.show('fc');
-    const before = ui.fc.dirty();
-    ui.fc.setValue('p_roll', String(Number(ui.fc.cliValue('p_roll') || 0) + 3));
-    const dirty = ui.fc.dirty();
+    const fc = ui.fc;
+    const before = fc.dirty();
+    bumpRoll(fc);
+    const dirty = fc.dirty();
     ui.back();
-    out.discardGuard = {
+    const result = {
       wasClean: before === false,
       dirty,
       stayed: ui.screen === 'fc',
-      panel: ui.fc.confirm === 'leave',
-      stillDirty: ui.fc.dirty(),
+      panel: fc.confirm === 'leave',
+      stillDirty: fc.dirty(),
     };
-    /* Put it back the way it was found. */
-    ui.fc.confirm = null;
-    ui.fc.discard();
+    fc.confirm = null;
+    fc.discard();
     ui.show('title');
-  } catch (e) {
-    out.discardGuard = { error: String(e && e.message ? e.message : e) };
-  }
+    return result;
+  });
 
-  /*
-   * THE GATE IS ONE SCREEN, TWO CARDS, AND ONE PRESS.
-   *
-   * A visit opens on what to fly: racing (five inch or whoop) or free flight.
-   * Answering any of them seats an aircraft AND a mode and lands on the menu
-   * behind, and the menu names a track or a map and never a mode. It used to
-   * be two screens in a row, the second of which was skipped on the whoop,
-   * so a pilot pressed twice and what the second press asked depended on
-   * what the first one answered. Four things would quietly come back: a Race
-   * row and a Freestyle row on the front page, the cards turning back into
-   * plain rows, the aircraft question sliding back under Quad where a pilot
-   * had to already know it was there, or the one gate splitting into two.
-   *
-   * EVERY CARD CARRIES A PHOTOGRAPH AND A DRAWING. The photograph is the
-   * place, which is the thing a sentence is worst at. The drawing is the
-   * aircraft in plan, and all three are drawn in one viewBox, so the whoop's
-   * mark is a fifth of the width of the five inch's: that is the one fact
-   * three cropped photographs cannot carry. So the detector counts both, and
-   * a card missing either is the failure.
-   *
-   * Answered through act(), which is what a keypress calls, so the seat has
-   * to follow the answer as well as the flag.
-   */
-  try {
-    const held = ui.mode;
-    const heldFirst = ui.firstRun;
-    const heldCraft = ui.craftGate;
-    const cardsOf = () => [...ui.root.querySelectorAll('.screen-title .gate-card')].map((c) => ({
-      shot: c.querySelector('.gate-card-shot')
-        ? c.querySelector('.gate-card-shot').getAttribute('src') : null,
-      drawn: Boolean(c.querySelector('.gate-card-mark svg')),
-      wide: c.getBoundingClientRect().width > 0,
-    }));
+  /* One try for both, so a throw anywhere leaves mine absent. */
+  const gate = caught(() => {
+    const saved = { mode: ui.mode, firstRun: ui.firstRun, craftGate: ui.craftGate };
+    const cards = () => [...document.querySelectorAll('.screen-title .gate-card')].map((card) => {
+      const shot = card.querySelector('.gate-card-shot');
+      return {
+        shot: shot ? shot.getAttribute('src') : null,
+        drawn: Boolean(card.querySelector('.gate-card-mark svg')),
+        wide: card.getBoundingClientRect().width > 0,
+      };
+    });
+    const pictured = (list) => list.every((c) => c.shot && c.drawn);
+
     ui.firstRun = false;
-    /* The root, with neither half answered. */
     ui.craftGate = true;
     ui.mode = null;
     ui.hub = null;
     ui.show('title');
     ui.renderMenu();
-    /* Home: the hubs (src/ui/ui.js HUBS). With no rooms server the war's
-     * Operations has nothing to open and is left out. */
-    const homeItems = ui.items().filter((it) => ui.isStop(it));
-    const home = homeItems.map((it) => it.label);
-    const homeCards = cardsOf();
-    /* Flight Club holds the two ways in a pilot has with no rooms server. */
+    const homeItems = stopItems();
+    const home = labels(homeItems);
+    const homeCards = cards();
+
     ui.openHub('club');
-    const gateItems = ui.items().filter((it) => ui.isStop(it));
-    const gate = gateItems.map((it) => it.label);
-    const cards = cardsOf();
-    /*
-     * THE GATE WITH THE MODE ALREADY ANSWERED, which is the case that
-     * shipped broken once and which a probe that always nulls the mode
-     * cannot see. A link that names the track reads as race, and
-     * renderMenu once dressed the screen from the mode alone rather than
-     * from onGate(), so the cards were built and then left invisible by
-     * CSS with the menu's own copy showing behind them and no way to fly.
-     */
+    const gateItems = stopItems();
+    const gateLabels = labels(gateItems);
+    const clubCards = cards();
+
     ui.mode = 'race';
     ui.show('title');
     ui.renderMenu();
+    const titleEl = document.querySelector('.screen-title');
     const modeSetGate = {
-      isGate: ui.root.querySelector('.screen-title').classList.contains('is-gate'),
-      cards: cardsOf(),
-      keepNote: [...ui.root.querySelectorAll('.screen-title .keep-note')]
+      isGate: Boolean(titleEl && titleEl.classList.contains('is-gate')),
+      cards: cards(),
+      keepNote: [...document.querySelectorAll('.screen-title .keep-note')]
         .filter((n) => n.getBoundingClientRect().height > 0).length,
     };
+
     ui.craftGate = true;
     ui.mode = null;
     ui.show('title');
-
-    /*
-     * ONE PRESS, AND IT LANDS ON MY TRACKS. The Track mode card is pressed
-     * for real with a quad seated that is not the card's own default (the
-     * 7 inch; it was the whoop until the whoop was removed), and it has to
-     * leave the gate, keep that quad, set race, and open My tracks: Track
-     * mode is the list of tracks, whatever quad or plane is flying it.
-     */
     ui.settings.airframe = '7inch';
     ui.act('way-race-5inch');
     const whoop = {
@@ -1361,804 +897,591 @@ const BEHAVIOUR = `(() => {
       mode: ui.mode,
       screen: ui.screen,
       gate: ui.onGate(),
-      menu: ui.items().filter((it) => ui.isStop(it)).map((it) => it.label),
-      cards: ui.items().filter((it) => it.card).length,
+      menu: labels(stopItems()),
+      cards: items().filter((r) => r.card).length,
     };
-    /*
-     * MY TRACKS LISTS THE PILOT'S OWN, out of this browser's library, and
-     * seating one puts it in the share seat as the pilot's own: marked
-     * local, so it is on no board and takes no time. The library was seeded
-     * before the page loaded. No comment here may contain a backtick: this
-     * body is a template literal.
-     */
+
     ui.show('courses');
-    const localCards = ui.items().filter((it) => it.course && it.course.kind === 'local');
-    const picked = localCards[0] ? localCards[0].course.track : null;
+    const isLocal = (r) => r.course && r.course.kind === 'local';
+    const localCards = items().filter(isLocal);
+    const picked = (localCards[0] && localCards[0].course.track) || null;
     const seatedOk = picked ? ui.seatLocal(picked.id) : false;
-    const readKey = (k) => {
-      try {
-        return JSON.parse(localStorage.getItem(k) || 'null');
-      } catch (e) {
-        return null;
-      }
-    };
-    const seat = readKey('webfpv.share.import.v1');
+    let seat = null;
+    try {
+      seat = JSON.parse(localStorage.getItem(importKey));
+    } catch (e) {
+      /* An unreadable seat is judged the same as no seat. */
+      seat = null;
+    }
     const mine = {
       count: localCards.length,
-      names: localCards.map((it) => it.label),
+      names: labels(localCards),
       pickedId: picked ? picked.id : null,
       seatedOk,
       seat: seat ? { id: seat.id, local: seat.local, map: seat.document && seat.document.map } : null,
-      listedAfter: ui.items().filter((it) => it.course && it.course.kind === 'local').length,
+      listedAfter: items().filter(isLocal).length,
     };
+
     ui.show('title');
-    /* And Escape from the menu is the gate, one level, on the whoop as on
-     * anything else. It used to be two levels on one aircraft and one on
-     * the other, which is the thing that made Escape unpredictable. */
     ui.back();
-    const backFromWhoop = ui.items().filter((it) => ui.isStop(it)).map((it) => it.label);
-    /*
-     * Track mode is pressed for real with a plane seated too, and the plane
-     * stays: every plane that fits a track's gates races it. Freestyle is
-     * only set, because answering it can seat a world, and seating a world
-     * hands main.js a swap: a world is thousands of meshes and this
-     * check has nothing to say about it. What act() does on the way is the
-     * same code either way.
-     */
+    const backFromWhoop = labels(stopItems());
+
     ui.settings.airframe = 'bramor2300';
     ui.act('way-race-5inch');
     const landed = ui.screen;
     const planeCraft = ui.settings.airframe;
     ui.show('title');
-    const race = ui.items().map((it) => it.label);
+    const race = labels(items());
     ui.mode = 'freestyle';
-    const free = ui.items().map((it) => it.label);
-    ui.mode = held;
-    ui.firstRun = heldFirst;
-    ui.craftGate = heldCraft;
+    const free = labels(items());
+    ui.mode = saved.mode;
+    ui.firstRun = saved.firstRun;
+    ui.craftGate = saved.craftGate;
     ui.show('title');
-    out.mine = mine;
-    out.modeGate = {
-      gate,
-      cards,
+
+    const modeGate = {
+      gate: gateLabels,
+      cards: clubCards,
       backFromWhoop,
       whoop,
-      /* Two cards, every one of them with a photograph AND a plan
-       * drawing, and not a row among them: the whole point of the screen is
-       * that it is not a menu. Every racing quad is behind the first and
-       * every fixed wing behind the second; the owner retired the five
-       * inch's Freestyle card on 2026-09-25. */
       home,
       homeCards,
-      asksHubs: home.join() === 'Flight Club,Hangar' && homeItems.every((it) => it.card)
-        && homeCards.length === 2 && homeCards.every((c) => c.shot && c.drawn),
-      asksWays: gate.length === 2 && gate.join() === 'Track Day,Free Flight'
-        && gateItems.filter((it) => !it.card).length === 0,
-      asCards: cards.length === 2 && cards.every((c) => c.shot && c.drawn),
+      asksHubs: home.join(',') === 'Flight Club,Hangar' && homeItems.every((it) => it.card)
+        && homeCards.length === 2 && pictured(homeCards),
+      asksWays: gateLabels.length === 2 && gateLabels.join(',') === 'Track Day,Free Flight'
+        && !gateItems.some((it) => !it.card),
+      asCards: clubCards.length === 2 && pictured(clubCards),
       modeSetGate,
-      /* Every card, laid out and visible, and the menu's own copy off the
-       * screen, when the mode is answered and the aircraft is not. */
       gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      /* One press: the 7 inch stays seated, the mode is race, the gate is
-       * gone, My tracks is up, and no Freestyle row turned up on it. */
       onePress: whoop.craft === '7inch' && whoop.mode === 'race' && whoop.screen === 'courses'
         && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
-      escapeToGate: backFromWhoop.join() === gate.join(),
-      /* Answering it opens My tracks, with a plane seated as with a quad,
-       * and the plane stays seated: it races the tracks it fits. */
+      escapeToGate: backFromWhoop.join(',') === gateLabels.join(','),
       answered: landed === 'courses',
       landed,
       planeCraft,
       race,
       free,
       raceNamesTrack: race.includes('Track') && !race.includes('Race') && !race.includes('Freestyle'),
-      /*
-       * "The world", and it used to be "The town" and before that "Map".
-       *
-       * What this assertion is FOR is unchanged: after the gate has been
-       * answered, the title carries one row for the PLACE and does not ask
-       * the mode question a second time. The label moved because the room
-       * behind it stopped being a map picker. There is one freestyle world,
-       * the gate seats it directly now, and a row reading "Map" pointing at
-       * a room with no maps in it is the same mismatch this check exists to
-       * catch, just spelled differently. See the WAYS branch of act() and
-       * the freestyle branch of items() in src/ui/ui.js.
-       */
       freeNamesMap: free.includes('The world') && !free.includes('Race') && !free.includes('Freestyle'),
     };
-  } catch (e) {
-    out.modeGate = { error: String(e && e.message ? e.message : e) };
+    return { mine, modeGate };
+  });
+  if (gate.error) {
+    out.modeGate = gate;
+  } else {
+    out.mine = gate.mine;
+    out.modeGate = gate.modeGate;
   }
 
-  return JSON.stringify(out);
-})()`;
+  return out;
+}
 
-/*
- * Escape from every screen has to land somewhere real. back() has eight
- * branches and a four variable return chain, which is exactly the shape
- * that strands a pilot when one of them is edited.
- */
-const ESCAPE = `(() => {
-  const ui = window.__ui;
-  ${PAST_GATE}
-  const known = new Set(Object.keys(ui.screens).concat(['flight']));
-  const out = {};
-  for (const name of ${JSON.stringify(SCREENS)}) {
-    try {
-      ui.show(name);
-      ui.back();
-      out[name] = { to: ui.screen, known: known.has(ui.screen) };
-    } catch (e) {
-      out[name] = { error: String(e && e.message ? e.message : e) };
-    }
-  }
-  return JSON.stringify(out);
-})()`;
+/* The helpers every probe may call, declared ahead of it in the page. */
+const PAGE_HELPERS = [caught, pastGate, arrowWalk, scrollerOf, walkScreen].join('\n');
 
-function parseArgs(argv) {
-  const opts = { w: 1600, h: 900, record: false };
-  for (const a of argv) {
-    const m = a.match(/^--([a-z]+)(?:=(.*))?$/);
-    if (!m) {
+async function runProbe(page, probe, args) {
+  const source = `(() => {
+    ${PAGE_HELPERS}
+    return JSON.stringify((${probe})(window.__ui, ${JSON.stringify(args)}));
+  })()`;
+  return JSON.parse(await page.evaluate(source));
+}
+
+/* ------------------------------------------------------------------
+ * Node side: verdicts. */
+
+const problem = (r) => (r && r.error) || 'no result';
+const broken = (r) => !r || r.error;
+
+function judgeScreens({ walk, escape }, baseline, opts, fail, note, table) {
+  const scored = baseline && baseline.window.w === opts.w && baseline.window.h === opts.h;
+  for (const name of SCREENS) {
+    const w = walk[name];
+    const e = escape[name];
+    if (broken(w)) {
+      fail(`${name}: walk failed: ${problem(w)}`);
       continue;
     }
-    if (m[1] === 'record') {
-      opts.record = true;
-    } else if (m[2] !== undefined) {
-      opts[m[1]] = /^\d+$/.test(m[2]) ? Number(m[2]) : m[2];
+    if (w.unreachable.length) {
+      fail(`${name}: ${w.unreachable.length} stop(s) unreachable by any key: ${w.unreachable.join(', ')}`);
+    }
+    if (w.notesLost > 0) {
+      fail(`${name}: ${w.notesLost} unreachable row(s) carry a note, so their help can never be shown`);
+    }
+    if (broken(e)) {
+      fail(`${name}: Escape failed: ${problem(e)}`);
+    } else if (!e.known) {
+      fail(`${name}: Escape landed on unknown screen "${e.to}"`);
+    }
+    if (scored) {
+      const saved = baseline.screens[name] || {};
+      const base = saved.overflow;
+      if (base !== undefined) {
+        if (w.overflow > base) {
+          fail(`${name}: overflow grew from ${base} to ${w.overflow} px`);
+        } else if (w.overflow < base) {
+          note(`${name}: overflow improved from ${base} to ${w.overflow} px, re-record the baseline`);
+        }
+      }
+      const foldBase = saved.belowFold;
+      if (foldBase !== undefined) {
+        if (w.belowFold > foldBase) {
+          fail(`${name}: the list hangs ${w.belowFold} px off the bottom of the window, was ${foldBase} px (${w.rowsSeen} of ${w.stops} rows visible)`);
+        } else if (w.belowFold < foldBase) {
+          note(`${name}: below the fold improved from ${foldBase} to ${w.belowFold} px, re-record the baseline`);
+        }
+      }
+    }
+    const n4 = (v) => String(v).padStart(4);
+    table.push(`  ${name.padEnd(10)} stops ${n4(w.stops)}  arrow ${n4(w.arrow)}  reached ${n4(w.reached)}  overflow ${n4(w.overflow)} px  below ${n4(w.belowFold)} px  seen ${String(w.rowsSeen).padStart(3)}  escape -> ${(e && e.to) || '?'}`);
+  }
+}
+
+function judgeIds(ids, fail, note) {
+  let total = 0;
+  for (const name of SCREENS) {
+    const r = ids[name];
+    if (broken(r)) {
+      fail(`ids on ${name}: ${problem(r)}`);
+      continue;
+    }
+    total += r.rows;
+    if (r.missing.length) {
+      fail(`ids on ${name}: ${r.missing.length} row(s) carry no id: ${r.missing.slice(0, 4).join(', ')}`);
+    }
+    if (r.dupes.length) {
+      fail(`ids on ${name}: ${r.dupes.length} duplicate id(s): ${r.dupes.slice(0, 4).join(', ')}`);
+    }
+    if (r.lengthChanged) {
+      fail(`ids on ${name}: two calls to items() returned different lengths`);
+    }
+    if (r.unstable.length) {
+      fail(`ids on ${name}: ${r.unstable.length} id(s) changed between two rebuilds: ${r.unstable.slice(0, 4).join(', ')}`);
     }
   }
-  return opts;
+  note(`ids: ${total} rows across ${SCREENS.length} screens, all named, unique and stable`);
+}
+
+const TUNING_STEPS = [
+  ['toPids', 'pids', "Quad's Tune row did not open the PIDs room"],
+  ['toBench', 'fc', 'Every setting did not open the bench'],
+  ['backToPids', 'pids', 'leaving the bench did not come back to the PIDs room'],
+  ['backToQuad', 'quad', 'leaving the PIDs room did not come back to Quad'],
+];
+
+const or = (list, empty) => list.join(', ') || empty;
+
+/*
+ * The behaviour rows in the order they are reported: the probe key, the
+ * prefix a missing or failed block is reported under, and the judge. A
+ * row with a null prefix judges an absent result itself.
+ */
+const BEHAVIOUR = [
+  ['focusMemory', 'focus memory', (r, fail) => {
+    if (!r.ok) {
+      fail(`focus memory: left Settings on "${r.want}", came back on "${r.got}"`);
+    }
+  }],
+  ['trickFilm', 'trick film', (r, fail, note) => {
+    if (!r.ok) {
+      fail(`trick film: the panel does not follow the cursor. Across three rows it showed "${r.first}", "${r.second}", "${r.third}"`);
+    } else {
+      note(`trick film: follows the cursor across ${r.rows} tricks`);
+    }
+  }],
+  ['freshOpen', null, (r, fail) => {
+    if (!r || r.error || !r.ok) {
+      fail(`fresh open: ${(r && r.error) || 'did not land on a stop'}`);
+    }
+  }],
+  ['enterOnList', 'Enter on a list', (r, fail) => {
+    if (!r.found) {
+      fail('Enter on a list: the Tune row was not found, so nothing was exercised');
+    }
+    if (!r.unchanged) {
+      fail(`Enter on a list: Enter changed the tune from "${r.before}" to "${r.after}"`);
+    }
+    if (!r.opened) {
+      fail('Enter on a list: Enter did not open the picker either, so the row is dead');
+    }
+  }],
+  ['tuningPath', 'tuning path', (r, fail) => {
+    for (const [key, want, said] of TUNING_STEPS) {
+      if (r[key] !== want) {
+        fail(`tuning path: ${said} (landed on "${r[key]}", wanted "${want}")`);
+      }
+    }
+  }],
+  ['tuneRows', 'tune rows', (r, fail, note) => {
+    const picker = r.picker || [];
+    const doors = r.pids || [];
+    if (picker.length !== 1) {
+      fail(`tune rows: the picker is on ${picker.length} screens (${picker.join(', ')}), wanted exactly one`);
+    }
+    const stray = Object.keys(r).filter((k) => k !== 'picker' && k !== 'pids').sort();
+    if (stray.length) {
+      fail(`tune rows: a row labelled Tune goes somewhere other than the PIDs room: ${stray.map((k) => `${k} on ${r[k].join(', ')}`).join('; ')}`);
+    }
+    note(`tune rows: picker on ${picker.join(', ')}, doors on ${doors.join(', ')}`);
+  }],
+  ['switchRow', 'switch row', (r, fail) => {
+    const checks = [
+      [r.found, 'the Sound row was not found, so nothing was exercised'],
+      [r.isSwitch, 'Sound is not a switch'],
+      [r.flips, 'Enter did not flip it'],
+      [r.flipsBack, 'Enter again did not put it back'],
+      [r.leftIsOff, 'Left does not set it off, it cycles'],
+      [r.rightIsOn, 'Right does not set it on'],
+      [r.noPopup, 'it would still open a popup'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`switch row: ${said}`);
+      }
+    }
+  }],
+  ['mine', null, (r, fail) => {
+    if (!r) {
+      fail('My tracks: the library seat probe returned nothing');
+      return;
+    }
+    const n = LIBRARY_DOCS.length;
+    if (r.count !== n) {
+      fail(`My tracks lists ${r.count} of the pilot's own ${n} saved track(s): ${or(r.names, 'none')}`);
+    }
+    if (!r.pickedId || !(r.pickedId in LIBRARY)) {
+      fail(`My tracks offered ${r.pickedId || 'no'} saved track, which the seeded library does not carry`);
+    }
+    if (!r.seatedOk || !r.seat || r.seat.id !== r.pickedId || r.seat.local !== true) {
+      fail(`choosing a saved track seated ${JSON.stringify(r.seat)}, not ${r.pickedId} as the pilot's own`);
+    }
+    if (r.listedAfter !== n) {
+      fail(`with one saved track seated My tracks lists ${r.listedAfter}, not ${n}`);
+    }
+  }],
+  ['modeGate', 'the gate', (r, fail) => {
+    const m = r.modeSetGate;
+    const w = r.whoop;
+    const checks = [
+      [r.asksHubs, `home opens on ${or(r.home, 'nothing')} drawn as ${JSON.stringify(r.homeCards)}, not on Flight Club and the Hangar, each with a picture and a plan`],
+      [r.asksWays, `Flight Club opens on ${or(r.gate, 'nothing')}, not on the two ways in`],
+      [r.asCards, `the gate: ${r.cards.length} card(s) drawn as ${JSON.stringify(r.cards)}, so a card is a row again or has lost its picture or its plan`],
+      [r.gateWithMode, `the gate: with the mode already answered it drew ${m.cards.length} card(s), ${m.cards.filter((c) => c.wide).length} of them visible, is-gate ${m.isGate}, ${m.keepNote} menu note(s) still showing`],
+      [r.onePress, `the gate: Track mode with the whoop seated left ${w.craft} in ${w.mode} on ${w.screen}, gate ${w.gate}, and landed on ${or(w.menu, 'nothing')}`],
+      [r.escapeToGate, `the gate: Escape from the menu reached ${or(r.backFromWhoop, 'nothing')}, not the three cards`],
+      [r.answered, `the gate: answering Track mode with a plane seated stayed on ${r.landed}, not My tracks`],
+      [r.planeCraft === 'bramor2300', `the gate: Track mode with a plane seated seated ${r.planeCraft}, and a plane that fits a track races it`],
+      [r.raceNamesTrack, `the title in Race names ${r.race.join(', ')}, which is not a Track row without a mode beside it`],
+      [r.freeNamesMap, `the title in Freestyle names ${r.free.join(', ')}, which is not a The world row without a mode beside it`],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(said);
+      }
+    }
+  }],
+  ['noTinyPopups', 'two item popups', (r, fail) => {
+    if (r.offenders.length) {
+      fail(`two item popups: ${r.offenders.length} row(s) still open a menu to answer yes or no: ${r.offenders.slice(0, 5).join(', ')}`);
+    }
+  }],
+  ['focusAuthority', 'focus authority', (r, fail) => {
+    const checks = [
+      [r.painted === 1, `${r.painted} rows look selected, not 1`],
+      [r.focusFollows, 'the browser focus is not on the row the cursor is on'],
+      [r.tabbable === 1, `${r.tabbable} rows are Tab reachable, not 1`],
+      [r.selected === 1, `${r.selected} rows report aria-selected, not 1`],
+      [r.cursorFollowedFocus, 'focus arriving from Tab or a screen reader does not move the cursor'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`focus authority: ${said}`);
+      }
+    }
+  }],
+  ['stickyCursor', 'sticky cursor', (r, fail) => {
+    if (!r.movedIndex) {
+      fail('sticky cursor: the filter did not change the row index, so nothing was exercised');
+    }
+    if (!r.sameRow) {
+      fail(`sticky cursor: a filter moved the cursor from "${r.before}" to "${r.after}"`);
+    }
+  }],
+  ['benchSearch', 'bench search', (r, fail) => {
+    const checks = [
+      [r.foundAcrossTabs, 'failsafe_procedure is not findable without knowing its tab'],
+      [r.firstIsPrefix, 'a prefix hit does not rank above a substring hit'],
+      [r.capped, `a search matching more than it shows does not say so (${r.shown} rows)`],
+      [r.saysMiss, 'a search that matches nothing shows an empty list rather than saying so'],
+      [r.tabRestored, 'leaving search moved the pilot to a different tab'],
+      [r.focusLeftTheField, 'Down out of the search field leaves the focus behind, on nothing'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`bench search: ${said}`);
+      }
+    }
+  }],
+  ['benchHelp', 'bench help', (r, fail, note) => {
+    if (r.offenders.length) {
+      fail(`bench help: ${r.offenders.length} of ${r.checked} row(s) have help that is empty or just the key name: ${r.offenders.slice(0, 5).join(', ')}`);
+    } else {
+      note(`bench help: ${r.checked} rows across 5 tabs, none repeating its own label`);
+    }
+  }],
+  ['benchModified', 'bench modified', (r, fail) => {
+    const checks = [
+      [r.startedClean, 'the draft was already dirty, so nothing was exercised'],
+      [r.sawTheEdit, 'an edited key is not reported as modified'],
+      [r.onlyTheOne, `show-only-modified listed ${r.rows} rows for one edit`],
+      [r.discardClears, 'discarding the draft leaves keys reported as modified'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`bench modified: ${said}`);
+      }
+    }
+  }],
+  ['hoverScroll', 'hover scroll', (r, fail) => {
+    for (const [name, px] of Object.entries(r)) {
+      if (px > 0) {
+        fail(`hover scroll: the ${name} list moved ${px}px under the pointer during a sweep`);
+      }
+    }
+  }],
+  ['roomReturn', 'room return', (r, fail) => {
+    for (const room of ['freestyle', 'launch', 'pilot']) {
+      const it = r[room];
+      if (!it || it.missing) {
+        fail(`room return: ${room} has no door into Quad, so nothing was exercised`);
+        continue;
+      }
+      if (it.at !== 'quad') {
+        fail(`room return: the Quad door on ${room} opened "${it.at}"`);
+      }
+      if (it.back !== room) {
+        fail(`room return: Back from Quad opened from ${room} landed on "${it.back}"`);
+      }
+    }
+    const deep = (r.deep || []).join(' -> ');
+    if (deep !== 'rates -> quad -> freestyle') {
+      fail(`room return: freestyle to quad to rates and back twice went "${deep}"`);
+    }
+    if (r.paused !== 'paused') {
+      fail(`room return: a paused run lost its pause chain, Back landed on "${r.paused}"`);
+    }
+  }],
+  ['launchGate', 'launch gate', (r, fail) => {
+    for (const s of r.seen) {
+      if (s.landed === 'launch') {
+        fail(`launch gate: Fly on the freestyle world "${s.map}" stopped at the launch card`);
+      }
+      if (!s.launched) {
+        fail(`launch gate: Fly on the freestyle world "${s.map}" did not launch at all`);
+      }
+    }
+  }],
+  ['oneHome', 'one room per thing', (r, fail) => {
+    const editable = (label, list) => `one room per thing: ${label} is editable on ${list.length} screens: ${list.join(', ')}`;
+    if (r.tune.length > 2) {
+      fail(editable('Tune', r.tune));
+    }
+    if (r.pids.length > 1) {
+      fail(editable('PIDs', r.pids));
+    }
+    if (r.rates.length > 1) {
+      fail(editable('Rates', r.rates));
+    }
+    if (r.tune.length === 0) {
+      fail('one room per thing: Tune cannot be changed anywhere');
+    }
+    if (r.pids.length === 0 && r.pidsOpens.length === 0) {
+      fail('one room per thing: PIDs is not reachable from anywhere');
+    }
+    if (r.ratesOpens.length === 0) {
+      fail('one room per thing: Rates is not reachable from anywhere');
+    }
+  }],
+  ['midRun', 'mid-run warning', (r, fail) => {
+    const paused = [['Quad', r.quadPaused], ['Pilot', r.pilotPaused]];
+    const atTitle = [['Quad', r.quadTitle], ['Pilot', r.pilotTitle]];
+    if (r.quadPaused.rows === 0) {
+      fail('mid-run warning: Quad entered from a paused run has no tuning row to warn about');
+    }
+    for (const [name, s] of paused) {
+      if (s.warned < s.rows) {
+        fail(`mid-run warning: ${name} entered from a paused run warns on ${s.warned} of ${s.rows} tuning rows`);
+      }
+    }
+    for (const [name, s] of [...paused, ...atTitle]) {
+      if (s.ratesWarned > 0) {
+        fail(`mid-run warning: ${name} warns that changing rates restarts the run, which it no longer does`);
+      }
+    }
+    for (const [name, s] of atTitle) {
+      if (s.warned > 0) {
+        fail(`mid-run warning: ${name} warns about a run that is not happening`);
+      }
+    }
+  }],
+  ['padBanner', 'radio banner', (r, fail) => {
+    const checks = [
+      [r.onTitle, 'one of the cases did not land on the title, so it measured nothing'],
+      [r.noButtons, 'a pad reporting no buttons gets no warning row on the title'],
+      [r.uncalibrated, 'an uncalibrated pad gets no warning row on the title'],
+      [r.distinct, 'the no-buttons and uncalibrated cases say the same thing'],
+      [r.namesTheCause, 'the no-buttons row does not mention buttons'],
+      [r.quietWhenFine, 'a working, calibrated pad is warned at anyway'],
+      [r.quietOnKeyboard, 'a keyboard-only visitor is warned about a radio'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`radio banner: ${said}`);
+      }
+    }
+  }],
+  ['padSelect', 'radio select', (r, fail) => {
+    const checks = [
+      [r.quietAtRest, 'a pad at rest presses something'],
+      [r.notBeforeTheHold, 'a brief stick excursion presses, so the cursor cannot move'],
+      [r.firesOnHold, 'holding a stick never presses, so the pad has no Enter at all'],
+      [r.oncePerHold, 'a held stick presses repeatedly rather than once'],
+      [r.rearmsAfterRelease, 'releasing and holding again does not press, so a radio gets one press per page load'],
+      [r.assignedSwitchOn, 'an assigned menu switch does not press'],
+      [r.assignedSwitchOff, 'an assigned menu switch presses while it is off'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`radio select: ${said}`);
+      }
+    }
+  }],
+  ['discardGuard', 'discard guard', (r, fail) => {
+    const checks = [
+      [r.dirty, 'the draft did not become dirty, so the guard was not exercised'],
+      [r.stayed, 'Escape left the firmware bench with unsaved edits'],
+      [r.panel, 'Escape did not raise the leave panel'],
+      [r.stillDirty, 'the draft was discarded without an answer'],
+    ];
+    for (const [ok, said] of checks) {
+      if (!ok) {
+        fail(`discard guard: ${said}`);
+      }
+    }
+  }],
+];
+
+function judgeBehaviour(behaviour, fail, note) {
+  for (const [key, prefix, judge] of BEHAVIOUR) {
+    const r = behaviour[key];
+    if (prefix && broken(r)) {
+      fail(`${prefix}: ${problem(r)}`);
+      continue;
+    }
+    judge(r, fail, note);
+  }
+}
+
+function judgeFcTabs(fcTabs, fail, lines) {
+  for (const [id, t] of Object.entries(fcTabs)) {
+    if (t.error) {
+      fail(`fc tab ${id}: ${t.error}`);
+      continue;
+    }
+    lines.push(`  ${id.padEnd(14)} stops ${String(t.stops).padStart(4)}  arrows stop on ${String(t.arrowDefault).padStart(4)}  (${t.stops - t.arrowDefault} skipped)`);
+    if (t.arrowAll < t.stops) {
+      fail(`fc tab ${id}: walk-every-key reaches ${t.arrowAll} of ${t.stops} stops`);
+    }
+    if (t.arrowDefault > t.stops) {
+      fail(`fc tab ${id}: default travel ${t.arrowDefault} exceeds ${t.stops} stops`);
+    }
+  }
+}
+
+/* The board is a separate service the product must work without, so a
+ * refused fetch is a note, not a failure. */
+function judgeConsole(errors, fail, note) {
+  const offline = errors.filter((m) => /net::ERR_|Failed to load resource/.test(m));
+  if (offline.length) {
+    note(`${offline.length} network fetch(es) refused, the board is not running here`);
+  }
+  for (const m of errors) {
+    if (!offline.includes(m)) {
+      fail(`console: ${m}`);
+    }
+  }
+}
+
+function recordBaseline(walk, opts) {
+  const screens = Object.fromEntries(SCREENS.map((name) => {
+    const w = walk[name] || {};
+    return [name, { overflow: w.overflow || 0, belowFold: w.belowFold || 0 }];
+  }));
+  const file = { note: BASELINE_NOTE, window: { w: opts.w, h: opts.h }, screens };
+  writeFileSync(BASELINE_PATH, `${JSON.stringify(file, null, 2)}\n`);
+  console.log(`recorded baseline at ${opts.w}x${opts.h}: ${BASELINE_PATH}`);
 }
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const page = await openPage({
-    root,
-    width: opts.w,
-    height: opts.h,
-    /* Pin the graphics preset for the same reason the window is pinned: a
-     * measurement taken at two different presets reports a regression that
-     * is only a setting. And skip the first run split, because this check
-     * is about the returning pilot's twelve rows. */
-    seed: [`try {
-      const k = ${JSON.stringify(SETTINGS_KEY)};
-      const s = JSON.parse(localStorage.getItem(k) || '{}');
-      s.graphics = 'low';
-      s.graphicsAuto = false;
-      localStorage.setItem(k, JSON.stringify(s));
-    } catch (e) { /* Storage refused. The run still boots. */ }`,
-    /* A pilot who has saved two tracks, because My tracks lists the
-     * library now and an empty one would let the whole half of the screen
-     * be missing without a word. Seeded through the same key the builder
-     * writes rather than through a hook, so what is checked is what a
-     * pilot's browser actually holds. */
-    `try {
-      localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify(LIBRARY))});
-    } catch (e) { /* Storage refused. The room then lists none, and says so. */ }`],
-  });
+  const baseline = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')) : null;
 
-  let failures = [];
-  const notes = [];
+  const settingsSeed = `try {
+    const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}');
+    s.graphics = 'low';
+    s.graphicsAuto = false;
+    localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
+  } catch (e) { /* storage refused: the run goes on with defaults */ }`;
+  const librarySeed = `try {
+    localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify(LIBRARY))});
+  } catch (e) { /* storage refused: My tracks will say so */ }`;
+
+  const page = await openPage({
+    root: ROOT, width: opts.w, height: opts.h, seed: [settingsSeed, librarySeed],
+  });
+  const results = {};
   try {
     await page.until('window.__shellReady === true', 90000);
     await page.until('!!window.__ui', 10000);
-
-    const walk = JSON.parse(await page.evaluate(WALK));
-    const escape = JSON.parse(await page.evaluate(ESCAPE));
-    const fcTabs = JSON.parse(await page.evaluate(FC_TABS));
-    const behaviour = JSON.parse(await page.evaluate(BEHAVIOUR));
-    const ids = JSON.parse(await page.evaluate(IDS));
-    /* Leave the shell where it started, so a failing run does not also
-     * leave a half torn down screen behind it. */
+    results.walk = await runProbe(page, walkProbe, { screens: SCREENS });
+    results.escape = await runProbe(page, escapeProbe, { screens: SCREENS });
+    results.fcTabs = await runProbe(page, fcTabsProbe, { tabs: FC_TABS });
+    results.behaviour = await runProbe(page, behaviourProbe, {
+      screens: SCREENS, tabs: FC_TABS, importKey: IMPORT_KEY,
+    });
+    results.ids = await runProbe(page, idsProbe, { screens: SCREENS });
     await page.evaluate('window.__ui.show("title")');
-
-    const baseline = existsSync(BASELINE)
-      ? JSON.parse(await readFile(BASELINE, 'utf8'))
-      : null;
-
-    if (opts.record) {
-      const record = {};
-      for (const name of SCREENS) {
-        record[name] = {
-          overflow: walk[name] ? walk[name].overflow ?? 0 : 0,
-          belowFold: walk[name] ? walk[name].belowFold ?? 0 : 0,
-        };
-      }
-      await writeFile(
-        BASELINE,
-        `${JSON.stringify({
-          note: 'Today\'s overflow, in CSS pixels, at the window below. Not a target: a screen may already overflow. The check fails when a screen gets worse than this.',
-          window: { w: opts.w, h: opts.h },
-          screens: record,
-        }, null, 2)}\n`,
-      );
-      console.log(`recorded baseline at ${opts.w}x${opts.h}: ${BASELINE}`);
-    }
-
-    const rows = [];
-    for (const name of SCREENS) {
-      const w = walk[name];
-      const e = escape[name];
-      if (!w || w.error) {
-        failures.push(`${name}: walk failed: ${w ? w.error : 'no result'}`);
-        continue;
-      }
-      if (w.unreachable.length) {
-        failures.push(
-          `${name}: ${w.unreachable.length} stop(s) unreachable by any key: ${w.unreachable.join(', ')}`,
-        );
-      }
-      if (w.notesLost) {
-        failures.push(
-          `${name}: ${w.notesLost} unreachable row(s) carry a note, so their help can never be shown`,
-        );
-      }
-      if (!e || e.error) {
-        failures.push(`${name}: Escape failed: ${e ? e.error : 'no result'}`);
-      } else if (!e.known) {
-        failures.push(`${name}: Escape landed on unknown screen "${e.to}"`);
-      }
-
-      const sameWindow = baseline && baseline.window.w === opts.w && baseline.window.h === opts.h;
-      const base = sameWindow ? (baseline.screens[name] || {}).overflow : undefined;
-      if (base !== undefined && w.overflow > base) {
-        failures.push(`${name}: overflow grew from ${base} to ${w.overflow} px`);
-      } else if (base !== undefined && w.overflow < base) {
-        notes.push(`${name}: overflow improved from ${base} to ${w.overflow} px, re-record the baseline`);
-      }
-      /* Undefined on a baseline recorded before this measurement existed,
-       * which is skipped rather than treated as zero: a missing record is
-       * not evidence that a screen used to fit. */
-      const foldBase = sameWindow ? (baseline.screens[name] || {}).belowFold : undefined;
-      if (foldBase !== undefined && w.belowFold > foldBase) {
-        failures.push(
-          `${name}: the list hangs ${w.belowFold} px off the bottom of the window, was ${foldBase} px`
-          + ` (${w.rowsSeen} of ${w.stops} rows visible)`,
-        );
-      } else if (foldBase !== undefined && w.belowFold < foldBase) {
-        notes.push(`${name}: below the fold improved from ${foldBase} to ${w.belowFold} px, re-record the baseline`);
-      }
-
-      rows.push(
-        `  ${name.padEnd(10)} stops ${String(w.stops).padStart(4)}` +
-        `  arrow ${String(w.arrow).padStart(4)}` +
-        `  reached ${String(w.reached).padStart(4)}` +
-        `  overflow ${String(w.overflow).padStart(4)} px` +
-        `  below ${String(w.belowFold).padStart(4)} px` +
-        `  seen ${String(w.rowsSeen).padStart(3)}` +
-        `  escape -> ${e && e.to ? e.to : '?'}`,
-      );
-    }
-
-    let idRows = 0;
-    for (const name of SCREENS) {
-      const r = ids[name];
-      if (!r || r.error) {
-        failures.push(`ids on ${name}: ${r ? r.error : 'no result'}`);
-        continue;
-      }
-      idRows += r.rows;
-      if (r.missing.length) {
-        failures.push(
-          `ids on ${name}: ${r.missing.length} row(s) carry no id: ${r.missing.slice(0, 4).join(', ')}`,
-        );
-      }
-      if (r.dupes.length) {
-        failures.push(
-          `ids on ${name}: ${r.dupes.length} duplicate id(s): ${r.dupes.slice(0, 4).join(', ')}`,
-        );
-      }
-      if (r.lengthChanged) {
-        failures.push(`ids on ${name}: two calls to items() returned different lengths`);
-      }
-      if (r.unstable.length) {
-        failures.push(
-          `ids on ${name}: ${r.unstable.length} id(s) changed between two rebuilds: ${r.unstable.slice(0, 4).join(', ')}`,
-        );
-      }
-    }
-    notes.push(`ids: ${idRows} rows across ${SCREENS.length} screens, all named, unique and stable`);
-
-    const b = behaviour;
-    if (!b.focusMemory || b.focusMemory.error) {
-      failures.push(`focus memory: ${b.focusMemory ? b.focusMemory.error : 'no result'}`);
-    } else if (!b.focusMemory.ok) {
-      failures.push(
-        `focus memory: left Settings on "${b.focusMemory.want}", came back on "${b.focusMemory.got}"`,
-      );
-    }
-    if (!b.trickFilm || b.trickFilm.error) {
-      failures.push(`trick film: ${b.trickFilm ? b.trickFilm.error : 'no result'}`);
-    } else if (!b.trickFilm.ok) {
-      failures.push(
-        'trick film: the panel does not follow the cursor. Across three rows it showed '
-        + `"${b.trickFilm.first}", "${b.trickFilm.second}", "${b.trickFilm.third}"`,
-      );
-    } else {
-      notes.push(`trick film: follows the cursor across ${b.trickFilm.rows} tricks`);
-    }
-    if (!b.freshOpen || b.freshOpen.error || !b.freshOpen.ok) {
-      failures.push(`fresh open: ${b.freshOpen && b.freshOpen.error ? b.freshOpen.error : 'did not land on a stop'}`);
-    }
-    if (!b.enterOnList || b.enterOnList.error) {
-      failures.push(`Enter on a list: ${b.enterOnList ? b.enterOnList.error : 'no result'}`);
-    } else {
-      const e2 = b.enterOnList;
-      if (!e2.found) {
-        failures.push('Enter on a list: the Tune row was not found, so nothing was exercised');
-      }
-      if (!e2.unchanged) {
-        failures.push(
-          `Enter on a list: Enter changed the tune from "${e2.before}" to "${e2.after}"`,
-        );
-      }
-      if (!e2.opened) {
-        failures.push('Enter on a list: Enter did not open the picker either, so the row is dead');
-      }
-    }
-
-    if (!b.tuningPath || b.tuningPath.error) {
-      failures.push(`tuning path: ${b.tuningPath ? b.tuningPath.error : 'no result'}`);
-    } else {
-      const tp = b.tuningPath;
-      const want = { toPids: 'pids', toBench: 'fc', backToPids: 'pids', backToQuad: 'quad' };
-      const said = {
-        toPids: 'Quad\'s Tune row did not open the PIDs room',
-        toBench: 'Every setting did not open the bench',
-        backToPids: 'leaving the bench did not come back to the PIDs room',
-        backToQuad: 'leaving the PIDs room did not come back to Quad',
-      };
-      for (const k of Object.keys(want)) {
-        if (tp[k] !== want[k]) {
-          failures.push(`tuning path: ${said[k]} (landed on "${tp[k]}", wanted "${want[k]}")`);
-        }
-      }
-    }
-
-    if (!b.tuneRows || b.tuneRows.error) {
-      failures.push(`tune rows: ${b.tuneRows ? b.tuneRows.error : 'no result'}`);
-    } else {
-      const tr = b.tuneRows;
-      const kinds = Object.keys(tr).sort();
-      if (!tr.picker || tr.picker.length !== 1) {
-        failures.push(
-          `tune rows: the picker is on ${tr.picker ? tr.picker.length : 0} screens (${(tr.picker || []).join(', ')}), wanted exactly one`,
-        );
-      }
-      const stray = kinds.filter((k) => k !== 'picker' && k !== 'pids');
-      if (stray.length) {
-        failures.push(
-          `tune rows: a row labelled Tune goes somewhere other than the PIDs room: ${
-            stray.map((k) => `${k} on ${tr[k].join(', ')}`).join('; ')}`,
-        );
-      }
-      notes.push(`tune rows: picker on ${(tr.picker || []).join(', ')}, doors on ${(tr.pids || []).join(', ')}`);
-    }
-
-    if (!b.switchRow || b.switchRow.error) {
-      failures.push(`switch row: ${b.switchRow ? b.switchRow.error : 'no result'}`);
-    } else {
-      const sw = b.switchRow;
-      if (!sw.found) {
-        failures.push('switch row: the Sound row was not found, so nothing was exercised');
-      }
-      if (!sw.isSwitch) {
-        failures.push('switch row: Sound is not a switch');
-      }
-      if (sw.options) {
-        failures.push('switch row: Sound still carries an option list');
-      }
-      if (!sw.flips) {
-        failures.push('switch row: Enter did not flip it');
-      }
-      if (!sw.flipsBack) {
-        failures.push('switch row: Enter again did not put it back');
-      }
-      if (!sw.leftIsOff) {
-        failures.push('switch row: Left does not set it off, it cycles');
-      }
-      if (!sw.rightIsOn) {
-        failures.push('switch row: Right does not set it on');
-      }
-      if (!sw.noPopup) {
-        failures.push('switch row: it would still open a popup');
-      }
-    }
-
-    const st = b.mine;
-    if (!st) {
-      failures.push('My tracks: the library seat probe returned nothing');
-    } else {
-      if (st.count !== LIBRARY_SEED.length) {
-        failures.push(`My tracks lists ${st.count} of the pilot's own ${LIBRARY_SEED.length} saved track(s): ${(st.names || []).join(', ') || 'none'}`);
-      }
-      if (!st.pickedId || !LIBRARY_SEED.some((d) => d.id === st.pickedId)) {
-        failures.push(`My tracks offered ${st.pickedId || 'no'} saved track, which the seeded library does not carry`);
-      }
-      /* SEATED AS THE PILOT'S OWN: in the share seat, marked local, so it is
-       * flown the way a board track is and posts nothing to any board. */
-      if (!st.seatedOk || !st.seat || st.seat.id !== st.pickedId || st.seat.local !== true) {
-        failures.push(`choosing a saved track seated ${JSON.stringify(st.seat)}, not ${st.pickedId} as the pilot's own`);
-      }
-      /* It stays on the list as its own card, marked as the one seated. */
-      if (st.listedAfter !== LIBRARY_SEED.length) {
-        failures.push(`with one saved track seated My tracks lists ${st.listedAfter}, not ${LIBRARY_SEED.length}`);
-      }
-    }
-    if (!b.modeGate || b.modeGate.error) {
-      failures.push(`the gate: ${b.modeGate ? b.modeGate.error : 'no result'}`);
-    } else {
-      const g = b.modeGate;
-      if (!g.asksHubs) {
-        failures.push(`home opens on ${g.home.join(', ') || 'nothing'} drawn as ${JSON.stringify(g.homeCards)}, not on Flight Club and the Hangar, each with a picture and a plan`);
-      }
-      if (!g.asksWays) {
-        failures.push(`Flight Club opens on ${g.gate.join(', ') || 'nothing'}, not on the two ways in`);
-      }
-      if (!g.asCards) {
-        failures.push(
-          `the gate: ${g.cards.length} card(s) drawn as ${JSON.stringify(g.cards)}, so a card is a row again or has lost its picture or its plan`,
-        );
-      }
-      if (!g.gateWithMode) {
-        failures.push(`the gate: with the mode already answered it drew ${g.modeSetGate.cards.length} card(s), ${g.modeSetGate.cards.filter((c) => c.wide).length} of them visible, is-gate ${g.modeSetGate.isGate}, ${g.modeSetGate.keepNote} menu note(s) still showing`);
-      }
-      if (!g.onePress) {
-        failures.push(`the gate: Track mode with the whoop seated left ${g.whoop.craft} in ${g.whoop.mode} on ${g.whoop.screen}, gate ${g.whoop.gate}, and landed on ${g.whoop.menu.join(', ') || 'nothing'}`);
-      }
-      if (!g.escapeToGate) {
-        failures.push(`the gate: Escape from the menu reached ${g.backFromWhoop.join(', ') || 'nothing'}, not the three cards`);
-      }
-      if (!g.answered) {
-        failures.push(`the gate: answering Track mode with a plane seated stayed on ${g.landed}, not My tracks`);
-      }
-      if (g.planeCraft !== 'bramor2300') {
-        failures.push(`the gate: Track mode with a plane seated seated ${g.planeCraft}, and a plane that fits a track races it`);
-      }
-      if (!g.raceNamesTrack) {
-        failures.push(`the title in Race names ${g.race.join(', ')}, which is not a Track row without a mode beside it`);
-      }
-      if (!g.freeNamesMap) {
-        failures.push(`the title in Freestyle names ${g.free.join(', ')}, which is not a The world row without a mode beside it`);
-      }
-    }
-
-    if (!b.noTinyPopups || b.noTinyPopups.error) {
-      failures.push(`two item popups: ${b.noTinyPopups ? b.noTinyPopups.error : 'no result'}`);
-    } else if (b.noTinyPopups.offenders.length) {
-      failures.push(
-        `two item popups: ${b.noTinyPopups.offenders.length} row(s) still open a menu to answer`
-        + ` yes or no: ${b.noTinyPopups.offenders.slice(0, 5).join(', ')}`,
-      );
-    }
-
-    if (!b.focusAuthority || b.focusAuthority.error) {
-      failures.push(`focus authority: ${b.focusAuthority ? b.focusAuthority.error : 'no result'}`);
-    } else {
-      const fa = b.focusAuthority;
-      if (fa.painted !== 1) {
-        failures.push(`focus authority: ${fa.painted} rows look selected, not 1`);
-      }
-      if (!fa.focusFollows) {
-        failures.push('focus authority: the browser focus is not on the row the cursor is on');
-      }
-      if (fa.tabbable !== 1) {
-        failures.push(`focus authority: ${fa.tabbable} rows are Tab reachable, not 1`);
-      }
-      if (fa.selected !== 1) {
-        failures.push(`focus authority: ${fa.selected} rows report aria-selected, not 1`);
-      }
-      if (!fa.cursorFollowedFocus) {
-        failures.push('focus authority: focus arriving from Tab or a screen reader does not move the cursor');
-      }
-    }
-
-    if (!b.stickyCursor || b.stickyCursor.error) {
-      failures.push(`sticky cursor: ${b.stickyCursor ? b.stickyCursor.error : 'no result'}`);
-    } else {
-      const sc = b.stickyCursor;
-      if (!sc.movedIndex) {
-        failures.push('sticky cursor: the filter did not change the row index, so nothing was exercised');
-      }
-      if (!sc.sameRow) {
-        failures.push(
-          `sticky cursor: a filter moved the cursor from "${sc.before}" to "${sc.after}"`,
-        );
-      }
-    }
-
-    if (!b.benchSearch || b.benchSearch.error) {
-      failures.push(`bench search: ${b.benchSearch ? b.benchSearch.error : 'no result'}`);
-    } else {
-      const bs = b.benchSearch;
-      if (!bs.foundAcrossTabs) {
-        failures.push('bench search: failsafe_procedure is not findable without knowing its tab');
-      }
-      if (!bs.firstIsPrefix) {
-        failures.push('bench search: a prefix hit does not rank above a substring hit');
-      }
-      if (!bs.capped) {
-        failures.push(`bench search: a search matching more than it shows does not say so (${bs.shown} rows)`);
-      }
-      if (!bs.saysMiss) {
-        failures.push('bench search: a search that matches nothing shows an empty list rather than saying so');
-      }
-      if (!bs.tabRestored) {
-        failures.push('bench search: leaving search moved the pilot to a different tab');
-      }
-      if (!bs.focusLeftTheField) {
-        failures.push('bench search: Down out of the search field leaves the focus behind, on nothing');
-      }
-    }
-
-    if (!b.benchHelp || b.benchHelp.error) {
-      failures.push(`bench help: ${b.benchHelp ? b.benchHelp.error : 'no result'}`);
-    } else if (b.benchHelp.offenders.length) {
-      failures.push(
-        `bench help: ${b.benchHelp.offenders.length} of ${b.benchHelp.checked} row(s) have help that is`
-        + ` empty or just the key name: ${b.benchHelp.offenders.slice(0, 5).join(', ')}`,
-      );
-    } else {
-      notes.push(`bench help: ${b.benchHelp.checked} rows across 5 tabs, none repeating its own label`);
-    }
-
-    if (!b.benchModified || b.benchModified.error) {
-      failures.push(`bench modified: ${b.benchModified ? b.benchModified.error : 'no result'}`);
-    } else {
-      const bm = b.benchModified;
-      if (!bm.startedClean) {
-        failures.push('bench modified: the draft was already dirty, so nothing was exercised');
-      }
-      if (!bm.sawTheEdit) {
-        failures.push('bench modified: an edited key is not reported as modified');
-      }
-      if (!bm.onlyTheOne) {
-        failures.push(`bench modified: show-only-modified listed ${bm.rows} rows for one edit`);
-      }
-      if (!bm.discardClears) {
-        failures.push('bench modified: discarding the draft leaves keys reported as modified');
-      }
-    }
-
-    if (!b.hoverScroll || b.hoverScroll.error) {
-      failures.push(`hover scroll: ${b.hoverScroll ? b.hoverScroll.error : 'no result'}`);
-    } else {
-      for (const [name, px] of Object.entries(b.hoverScroll)) {
-        if (px > 0) {
-          failures.push(`hover scroll: the ${name} list moved ${px}px under the pointer during a sweep`);
-        }
-      }
-    }
-
-    if (!b.roomReturn || b.roomReturn.error) {
-      failures.push(`room return: ${b.roomReturn ? b.roomReturn.error : 'no result'}`);
-    } else {
-      const rr = b.roomReturn;
-      for (const room of ['freestyle', 'launch', 'pilot']) {
-        const t = rr[room];
-        if (!t || t.missing) {
-          failures.push(`room return: ${room} has no door into Quad, so nothing was exercised`);
-          continue;
-        }
-        if (t.at !== 'quad') {
-          failures.push(`room return: the Quad door on ${room} opened "${t.at}"`);
-        }
-        if (t.back !== room) {
-          failures.push(`room return: Back from Quad opened from ${room} landed on "${t.back}"`);
-        }
-      }
-      const d = rr.deep || [];
-      if (d.join(' -> ') !== 'rates -> quad -> freestyle') {
-        failures.push(`room return: freestyle to quad to rates and back twice went "${d.join(' -> ')}"`);
-      }
-      if (rr.paused !== 'paused') {
-        failures.push(`room return: a paused run lost its pause chain, Back landed on "${rr.paused}"`);
-      }
-    }
-
-    if (!b.launchGate || b.launchGate.error) {
-      failures.push(`launch gate: ${b.launchGate ? b.launchGate.error : 'no result'}`);
-    } else {
-      for (const r of b.launchGate.seen) {
-        if (r.landed === 'launch') {
-          failures.push(`launch gate: Fly on the freestyle world "${r.map}" stopped at the launch card`);
-        }
-        if (!r.launched) {
-          failures.push(`launch gate: Fly on the freestyle world "${r.map}" did not launch at all`);
-        }
-      }
-    }
-
-    if (!b.oneHome || b.oneHome.error) {
-      failures.push(`one room per thing: ${b.oneHome ? b.oneHome.error : 'no result'}`);
-    } else {
-      const oh = b.oneHome;
-      /* Tune is allowed its room and the pause menu, and nowhere else. */
-      if (oh.tune.length > 2) {
-        failures.push(`one room per thing: Tune is editable on ${oh.tune.length} screens: ${oh.tune.join(', ')}`);
-      }
-      if (oh.pids.length > 1) {
-        failures.push(`one room per thing: PIDs is editable on ${oh.pids.length} screens: ${oh.pids.join(', ')}`);
-      }
-      if (oh.rates.length > 1) {
-        failures.push(`one room per thing: Rates is editable on ${oh.rates.length} screens: ${oh.rates.join(', ')}`);
-      }
-      /* And each still has to exist SOMEWHERE, or the split deleted it. */
-      if (!oh.tune.length) {
-        failures.push('one room per thing: Tune cannot be changed anywhere');
-      }
-      if (!oh.pids.length && !oh.pidsOpens.length) {
-        failures.push('one room per thing: PIDs is not reachable from anywhere');
-      }
-      if (!oh.ratesOpens.length) {
-        failures.push('one room per thing: Rates is not reachable from anywhere');
-      }
-    }
-
-    if (!b.midRun || b.midRun.error) {
-      failures.push(`mid-run warning: ${b.midRun ? b.midRun.error : 'no result'}`);
-    } else {
-      const mr = b.midRun;
-      /*
-       * Quad must HAVE such a row, because its Tune row restarts the run and
-       * a room that lost it would be a room that lost the warning with it.
-       * Pilot need not: its only tuning row is Rates, and rates stopped
-       * restarting the run, so an empty set there is the correct answer
-       * rather than a missing check. Whatever rows either room does have,
-       * all of them warn.
-       */
-      if (!mr.quadPaused.rows) {
-        failures.push('mid-run warning: Quad entered from a paused run has no tuning row to warn about');
-      }
-      for (const [name, r] of [['Quad', mr.quadPaused], ['Pilot', mr.pilotPaused]]) {
-        if (r.warned < r.rows) {
-          failures.push(
-            `mid-run warning: ${name} entered from a paused run warns on ${r.warned} of ${r.rows} tuning rows`,
-          );
-        }
-      }
-      /* And a Rates row never carries it, from anywhere, because rates do
-       * not do the thing it warns about. */
-      for (const [name, r] of [['Quad', mr.quadPaused], ['Pilot', mr.pilotPaused],
-        ['Quad', mr.quadTitle], ['Pilot', mr.pilotTitle]]) {
-        if (r.ratesWarned) {
-          failures.push(
-            `mid-run warning: ${name} warns that changing rates restarts the run, which it no longer does`,
-          );
-        }
-      }
-      /* And it is NOT shown from the title, where it is not true and would
-       * be the kind of always-on warning nobody reads. */
-      for (const [name, r] of [['Quad', mr.quadTitle], ['Pilot', mr.pilotTitle]]) {
-        if (r.warned) {
-          failures.push(`mid-run warning: ${name} warns about a run that is not happening`);
-        }
-      }
-    }
-
-    if (!b.padBanner || b.padBanner.error) {
-      failures.push(`radio banner: ${b.padBanner ? b.padBanner.error : 'no result'}`);
-    } else {
-      const pb = b.padBanner;
-      if (!pb.onTitle) {
-        failures.push('radio banner: one of the cases did not land on the title, so it measured nothing');
-      }
-      if (!pb.noButtons) {
-        failures.push('radio banner: a pad reporting no buttons gets no warning row on the title');
-      }
-      if (!pb.uncalibrated) {
-        failures.push('radio banner: an uncalibrated pad gets no warning row on the title');
-      }
-      if (!pb.distinct) {
-        failures.push('radio banner: the no-buttons and uncalibrated cases say the same thing');
-      }
-      if (!pb.namesTheCause) {
-        failures.push('radio banner: the no-buttons row does not mention buttons');
-      }
-      if (!pb.quietWhenFine) {
-        failures.push('radio banner: a working, calibrated pad is warned at anyway');
-      }
-      if (!pb.quietOnKeyboard) {
-        failures.push('radio banner: a keyboard-only visitor is warned about a radio');
-      }
-    }
-
-    if (!b.padSelect || b.padSelect.error) {
-      failures.push(`radio select: ${b.padSelect ? b.padSelect.error : 'no result'}`);
-    } else {
-      const ps = b.padSelect;
-      if (!ps.quietAtRest) {
-        failures.push('radio select: a pad at rest presses something');
-      }
-      if (!ps.notBeforeTheHold) {
-        failures.push('radio select: a brief stick excursion presses, so the cursor cannot move');
-      }
-      if (!ps.firesOnHold) {
-        failures.push('radio select: holding a stick never presses, so the pad has no Enter at all');
-      }
-      if (!ps.oncePerHold) {
-        failures.push('radio select: a held stick presses repeatedly rather than once');
-      }
-      if (!ps.rearmsAfterRelease) {
-        failures.push('radio select: releasing and holding again does not press, so a radio gets one press per page load');
-      }
-      if (!ps.assignedSwitchOn) {
-        failures.push('radio select: an assigned menu switch does not press');
-      }
-      if (!ps.assignedSwitchOff) {
-        failures.push('radio select: an assigned menu switch presses while it is off');
-      }
-    }
-
-    if (!b.discardGuard || b.discardGuard.error) {
-      failures.push(`discard guard: ${b.discardGuard ? b.discardGuard.error : 'no result'}`);
-    } else {
-      const d = b.discardGuard;
-      if (!d.dirty) {
-        failures.push('discard guard: the draft did not become dirty, so the guard was not exercised');
-      }
-      if (!d.stayed) {
-        failures.push('discard guard: Escape left the firmware bench with unsaved edits');
-      }
-      if (!d.panel) {
-        failures.push('discard guard: Escape did not raise the leave panel');
-      }
-      if (!d.stillDirty) {
-        failures.push('discard guard: the draft was discarded without an answer');
-      }
-    }
-
-    console.log(`shell check at ${opts.w}x${opts.h}`);
-    console.log(rows.join('\n'));
-
-    console.log('\n  firmware bench, arrow travel per tab');
-    for (const [id, t] of Object.entries(fcTabs)) {
-      if (t.error) {
-        failures.push(`fc tab ${id}: ${t.error}`);
-        continue;
-      }
-      /* Walking every key must reach every key. This is the property the
-       * skip mechanism has to preserve and the one a naive fix breaks. */
-      if (t.arrowAll < t.stops) {
-        failures.push(
-          `fc tab ${id}: walk-every-key reaches ${t.arrowAll} of ${t.stops} stops`,
-        );
-      }
-      if (t.arrowDefault > t.stops) {
-        failures.push(`fc tab ${id}: default travel ${t.arrowDefault} exceeds ${t.stops} stops`);
-      }
-      const saved = t.stops - t.arrowDefault;
-      console.log(
-        `  ${id.padEnd(14)} stops ${String(t.stops).padStart(4)}` +
-        `  arrows stop on ${String(t.arrowDefault).padStart(4)}` +
-        `  (${saved} skipped)`,
-      );
-    }
-
-    /*
-     * The console has to be clean too: a shell that throws on a screen
-     * transition is a regression whether or not the cursor still moves.
-     *
-     * A failed network fetch is NOT that. The board is a separate service on
-     * a separate origin and the product is required to work without it, so a
-     * refused connection here is the offline path being exercised rather
-     * than a defect. It is printed, so a run that is quietly missing the
-     * board still says so, and it does not fail the check.
-     */
-    const offline = page.errors.filter((m) => /net::ERR_|Failed to load resource/.test(m));
-    const real = page.errors.filter((m) => !/net::ERR_|Failed to load resource/.test(m));
-    if (offline.length) {
-      notes.push(`${offline.length} network fetch(es) refused, the board is not running here`);
-    }
-    if (real.length) {
-      failures = failures.concat(real.map((m) => `console: ${m}`));
-    }
   } finally {
     await page.close();
   }
 
+  if (opts.record) {
+    recordBaseline(results.walk, opts);
+  }
+
+  const failures = [];
+  const notes = [];
+  const table = [];
+  const fcLines = [];
+  const fail = (m) => failures.push(m);
+  const note = (m) => notes.push(m);
+
+  judgeScreens(results, baseline, opts, fail, note, table);
+  judgeIds(results.ids, fail, note);
+  judgeBehaviour(results.behaviour, fail, note);
+  judgeFcTabs(results.fcTabs, fail, fcLines);
+  judgeConsole(page.errors, fail, note);
+
+  console.log(`shell check at ${opts.w}x${opts.h}`);
+  for (const line of table) {
+    console.log(line);
+  }
+  console.log('');
+  console.log('  firmware bench, arrow travel per tab');
+  for (const line of fcLines) {
+    console.log(line);
+  }
   for (const n of notes) {
     console.log(`note: ${n}`);
   }
@@ -2168,12 +1491,12 @@ async function main() {
       console.error(`  ${f}`);
     }
     process.exitCode = 1;
-    return;
+  } else {
+    console.log('\nPASS');
   }
-  console.log('\nPASS');
 }
 
 main().catch((e) => {
-  console.error(e && e.stack ? e.stack : e);
+  console.error((e && e.stack) || e);
   process.exitCode = 1;
 });
