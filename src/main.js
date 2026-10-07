@@ -18563,7 +18563,6 @@ export async function boot({
    * screen carries and the board refuses, so no capture can post a score.
    */
   window.__score = () => score.summary();
-  window.__trickDetector = () => trickDetector;
   window.__scoreTrick = (name, execution) => {
     score.tick(simTimeMs);
     const landedTrick = score.land({
