@@ -1359,16 +1359,6 @@
         .screen-fc .menu-stage { grid-template-columns: minmax(0, 1fr); }
         .screen-fc .menu-help { grid-column: auto; max-width: none; border-left: none; }
       }
-      .screen-maps {
-        justify-content: flex-start;
-        padding-top: 7vh;
-      }
-      .screen h1:not(.lockup) {
-        margin: 0; font-size: clamp(44px, 8vw, 104px); font-weight: 800;
-        letter-spacing: 0.08em; padding-left: 0.02em; color: var(--cream);
-        line-height: 0.92;
-        text-shadow: 3px 3px 0 rgba(10, 13, 14, 0.82), 0 10px 28px rgba(0, 0, 0, 0.32);
-      }
       /*
        * THE NAME, as the owner's key art sets it: PARAGUAYAN thin and spaced
        * over a rule, DRONE COMBAT huge, bold and condensed on two lines,
@@ -1535,7 +1525,7 @@
       .lockup-box .lockup-name > span { display: inline; }
       .lockup-box .lockup-name::before, .lockup-box .lockup-name::after {
         content: attr(data-text) / "";
-        position: absolute; left: 0; top: 0;
+        position: absolute; inset: 0 auto auto 0;
       }
       .lockup-box .lockup-name::before { transform: translateY(-0.04em); color: rgba(255, 255, 255, 0.85); }
       .lockup-box .lockup-name::after {
@@ -1566,143 +1556,102 @@
         .screen-title .lockup-over::after { display: none; }
         .screen-title .lockup-box { margin-top: 48px; }
       }
-      /* A page names itself the way the boot screen names a stage: spaced
-         capitals in the monospace, not a display face. */
+      /*
+       * PAGE HEADINGS. A plain h1 (the title's is the lockup, above) is a
+       * heavy display line with a hard offset shadow; a page's h2 is set
+       * like a boot stage, spaced capitals; an h3 is a small caption. The
+       * map picker hangs its h2 on the left with a short sakura rule.
+       */
+      .screen h1:not(.lockup) {
+        margin: 0; padding-left: 0.02em;
+        font-size: clamp(44px, 8vw, 104px); line-height: 0.92; font-weight: 800; letter-spacing: 0.08em;
+        color: var(--cream);
+        text-shadow: 3px 3px 0 rgba(10, 13, 14, 0.82), 0 10px 28px rgba(0, 0, 0, 0.32);
+      }
+      .screen h2, .screen h3 { font-weight: 500; text-transform: uppercase; }
       .screen h2 {
-        margin: 0 0 18px; font-size: clamp(18px, 1.9vw, 26px); font-weight: 500;
-        letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream);
+        margin: 0 0 18px; font-size: clamp(18px, 1.9vw, 26px); letter-spacing: 0.2em; color: var(--cream);
       }
-      .screen-maps h2 {
-        align-self: flex-start;
-        margin-bottom: 8px;
-      }
-      .screen-maps h2::after {
-        content: "";
-        display: block;
-        width: 36px; height: 2px;
-        background: var(--sakura);
-        margin-top: 10px;
-      }
-      .screen h3 {
-        margin: 0 0 10px; font-size: 12px; font-weight: 500; color: var(--slate);
-        letter-spacing: 0.16em; text-transform: uppercase;
-      }
-      .brand { text-align: center; margin-bottom: 34px; }
-      .screen-title .brand {
-        text-align: left;
-        margin-bottom: 0;
-        max-width: 36em;
-      }
+      .screen h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.16em; color: var(--slate); }
+      .screen-maps { justify-content: flex-start; padding-top: 7vh; }
+      .screen-maps h2 { align-self: flex-start; margin-bottom: 8px; }
+      .screen-maps h2::after, .brand-sub::before { content: ""; width: 36px; height: 2px; background: var(--sakura); }
+      .screen-maps h2::after { display: block; margin-top: 10px; }
+
+      /*
+       * THE BRAND BLOCK under the name: the subtitle after its sakura
+       * dash, the pilot's record in a chip, the beta notice and the note
+       * about where progress is kept. Centred on a page, flush left on the
+       * title.
+       */
+      .brand { margin-bottom: 34px; text-align: center; }
+      .screen-title .brand { max-width: 36em; margin-bottom: 0; text-align: left; }
       .brand-sub {
-        display: flex; align-items: center; gap: 12px;
-        margin-top: 12px; font-size: clamp(13px, 1.4vw, 16px); color: #d7dddd;
-        letter-spacing: 0.28em; text-transform: uppercase;
+        display: flex; align-items: center; gap: 12px; margin-top: 12px;
+        font-size: clamp(13px, 1.4vw, 16px); letter-spacing: 0.28em; text-transform: uppercase; color: #d7dddd;
       }
-      .brand-sub:empty, .brand-best:empty { display: none; }
-      .brand-sub::before {
-        content: "";
-        width: 36px; height: 2px; flex: 0 0 auto;
-        background: var(--sakura);
-      }
+      .brand-sub::before { flex: 0 0 auto; }
       .brand-best {
-        display: inline-flex; align-items: center; gap: 8px;
-        margin-top: 16px; padding: 7px 14px; border-radius: 0;
-        font-size: 14px; color: var(--cream); letter-spacing: 0.05em;
-        background: rgba(10, 13, 14, 0.62);
+        display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 7px 14px;
+        font-size: 14px; letter-spacing: 0.05em; color: var(--cream);
+        background: rgba(10, 13, 14, 0.62); border-radius: 0;
         box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.45);
       }
-      .brand-best-time { color: var(--mint); font-weight: 650; }
-      /* The beta notice. Blue, the instrument's own colour, as the owner's
-         lockup sets the tag (2 October), and it keeps the same left edge as
-         everything else in the brand block so it reads as part of the title
-         rather than as a bolted on toast. */
-      .beta-note {
-        display: flex; align-items: baseline; gap: 10px;
-        max-width: 34em; margin: 14px 0 0;
-        font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em;
-        color: rgba(215, 221, 221, 0.78);
-      }
+      .brand-sub:empty, .brand-best:empty { display: none; }
+      .brand-best-time { font-weight: 650; color: var(--mint); }
+      .beta-note, .keep-note { max-width: 34em; margin: 14px 0 0; font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em; }
+      /* The beta line belongs to the title, so it keeps the brand's left
+         edge, and its tag is the instrument blue in brackets. */
+      .beta-note { display: flex; align-items: baseline; gap: 10px; color: rgba(215, 221, 221, 0.78); }
+      .keep-note { color: rgba(215, 221, 221, 0.72); }
       .beta-tag {
         flex: 0 0 auto;
-        font-family: var(--pdcs-mono);
-        font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
+        font-family: var(--pdcs-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
         text-transform: uppercase; color: var(--pdcs-blue);
       }
       .beta-tag::before { content: "[ "; color: var(--pdcs-blue-dim); }
       .beta-tag::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .screen-title .beta-note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
-      .keep-note {
-        max-width: 34em; margin: 14px 0 0; color: rgba(215, 221, 221, 0.72);
-        font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em;
-      }
-      /* First run swaps the storage warning, which is a returning pilot's
-         problem, for the one sentence that gets somebody airborne. */
-      /* :not(.first-note) because the first note IS a keep-note, so the
-         plain .keep-note hide below would match it at the same specificity
-         and, being later, win. */
+      .screen-title .beta-note, .screen-title .keep-note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
+      .screen-title .keep-note { margin-left: 0; margin-right: auto; }
+      .screen-title .brand-sub { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75); }
+
+      /*
+       * WHICH NOTES SHOW. A first visit trades the storage note and the
+       * record for the one line that gets somebody flying (the first note
+       * is itself a keep-note, hence the :not). The gate shows none of the
+       * seat's details, only the beta line, and it must come after the
+       * first visit rule: on a first visit's gate the first note goes too.
+       */
       .first-note { display: none; }
       .screen-title.is-first .first-note { display: block; }
       .screen-title.is-first .keep-note:not(.first-note),
-      .screen-title.is-first .brand-best { display: none; }
-      /* The gate. Everything about a seat comes off the screen, because
-         the pilot has not said yet whether they are flying it, and
-         everything about the product comes off too: the gate is one
-         question and the three cards under it are the whole answer. The
-         Beta line stays, because a pilot about to meet a bug should be told
-         before the lap and not after it. */
+      .screen-title.is-first .brand-best,
       .screen-title.is-gate .keep-note,
       .screen-title.is-gate .brand-sub,
       .screen-title.is-gate .brand-best { display: none; }
+
       /*
-       * THE GATE'S TWO CARDS.
-       *
-       * The first screen asks one question and these are the answer, so
-       * they are the only thing on it that is not the wordmark. They are a
-       * third child of `.title-copy` and `display: none` in every other
-       * state, which is what keeps the two child `space-between` contract
-       * the menu states depend on: a hidden flex child does not lay out.
-       *
-       * The pictures are assets/gate/*.jpg, frames of this renderer written
-       * by scripts/gatecards.js. Regenerate them, do not edit them.
-       *
-       * `.screen` is pointer-events: none and every clickable thing on it
-       * opts back in, so these do too.
+       * THE GATE. Its cards (and its rooms panel, below) exist in every
+       * title state but lay out only on the gate, so the other states keep
+       * the column's two children and its space-between. On the gate the
+       * copy column takes the full width and the cards take the menu's
+       * place at its foot: margin-top auto only uses free space, so a
+       * short window loses the gap, never the cards. The pictures come
+       * from scripts/gatecards.js; regenerate, never edit. The screen is
+       * pointer-events none, so the cards opt back in.
        */
       .gate-cards { display: none; }
-      /* The menu column is 36em of the window; the gate is the page, so it
-         takes the whole content width back: a capped column left six cards
-         huddled in the left two thirds of a wide screen. */
-      .screen-title.is-gate .title-copy {
-        width: 100%;
-        justify-content: flex-start;
-      }
+      .screen-title.is-gate .title-copy { width: 100%; justify-content: flex-start; }
       .screen-title.is-gate .gate-cards {
-        display: flex;
-        align-items: stretch;
-        gap: clamp(12px, 1.6vw, 24px);
-        width: 100%;
-        /* Pushed to the bottom of the column, which is where the menu is
-           on every other state of this screen: answering the gate then
-           swaps one block for another in the same place instead of moving
-           the page. Auto only ever takes free space, so on a short window
-           the gap closes to nothing rather than pushing the cards off. */
-        margin: auto 0 0;
-        pointer-events: auto;
+        display: flex; align-items: stretch; gap: clamp(12px, 1.6vw, 24px);
+        width: 100%; margin: auto 0 0; pointer-events: auto;
       }
-      /* An empty menu still paints its plate and its sakura top line, so
-         a title screen with no rows shows a bar that means nothing. The
-         gate is where that normally happens, because it has no rows unless
-         a radio is in trouble, and this rule used to be scoped to it. That
-         scope is what turned a wrong is-gate into the empty front page the
-         owner reported: the cards were hidden by their own rule and this
-         one did not fire, so a bare strip was the whole menu. Unscoped, an
-         empty menu is invisible in EVERY title state, whatever answered
-         which question, and the class of bug is ugly rather than fatal. */
-      .screen-title .menu:empty { display: none; }
-      /* The foot keeps its own auto margin in every other state, where it
-         is what pins the menu to the bottom. Here the cards are that block,
-         so the foot gives the space up rather than splitting it. */
       .screen-title.is-gate .title-foot { margin-top: 0; }
+      /* A menu with no rows would still paint its frame and top rule. This
+         holds in every title state, not only the gate's: scoped to the
+         gate, a wrongly set state once left a bare strip as the whole
+         front page. */
+      .screen-title .menu:empty { display: none; }
       /*
        * THE GATE'S ROOMS PANEL, beside the wordmark (src/ui/ui.js
        * renderTitleRooms). The brand and it share .title-top, which is a
@@ -1806,150 +1755,97 @@
         .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
       }
       /*
-       * A CARD IS A PANEL ON THE GROUND, the boot screen's visual area over
-       * its label: a hairline frame, an index, the mode's picture as a
-       * survey plate (the boot screen's map treatment: no colour, darkened,
-       * under a fine grid) with its line drawing over it, the name in the
-       * monospace, a line of what it is, and its tags in brackets. The
-       * cursor's card takes a full strength frame and a green index; no
-       * lift, no glow.
+       * A GATE CARD is a framed panel on the ground: a survey plate (the
+       * mode's picture greyed and darkened under a fine grid, its number in
+       * the corner and its plan drawing over it), then the name in the
+       * names' face, a gloss of three lines at most and its tags in
+       * brackets. The cursor's card gets a full frame in its accent and a
+       * rule along its top, drawn as an outline and a layer because the
+       * plate would cover an inset shadow. No lift, no glow.
        */
       .gate-cards { counter-reset: gate-card; }
+      .gate-card, .gate-card-body { display: flex; flex-direction: column; }
       .gate-card {
-        flex: 1 1 0;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        cursor: pointer;
-        overflow: hidden;
+        position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; cursor: pointer;
         counter-increment: gate-card;
-        background: var(--pdcs-panel);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+        background: var(--pdcs-panel); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         transition: box-shadow 0.14s ease;
       }
-      /* The cursor's card: a full blue frame and a heavier rule along its top,
-         the others left calm. */
-      .gate-card { position: relative; }
-      /* Over the plate, which would cover an inset shadow: the frame is an
-         outline and the rule a layer of its own. */
       .gate-card.on { outline: 1px solid var(--card-accent, var(--pdcs-blue-strong)); outline-offset: -1px; }
       .gate-card.on::after {
-        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
-        background: var(--card-accent, var(--pdcs-blue-strong)); pointer-events: none;
+        content: ""; position: absolute; inset: 0 0 auto; z-index: 2; height: 2px;
+        pointer-events: none; background: var(--card-accent, var(--pdcs-blue-strong));
       }
-      /*
-       * THE HUBS (src/ui/ui.js HUBS). Each hub card wears its hub's accent,
-       * and inside a hub every card does (decided 2026-10-02: one accent per
-       * hub over the same ground). Operations keeps the blue the cards
-       * always had.
-       */
+      /* After .on, so a keyboard focus shows its own ring on the cursor's card. */
+      .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
+      /* One accent per hub (src/ui/ui.js HUBS): its card on home, and every
+         card inside it. Operations keeps the default blue. */
       .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
       .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
-      /* A hub card's activities: each a press straight into its lobby. */
+      /* A hub card's activities, each a press straight into its lobby. */
       .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
       .gate-link {
+        padding: 5px 8px; pointer-events: auto; cursor: pointer;
         font: 600 12px/1.2 var(--type-mono); letter-spacing: 0.1em; text-transform: uppercase;
-        color: var(--pdcs-text); background: transparent; cursor: pointer;
-        padding: 5px 8px; border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
-        pointer-events: auto;
+        color: var(--pdcs-text); background: transparent;
+        border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
       }
       .gate-link:hover, .gate-link:focus-visible {
-        color: var(--pdcs-bg); background: var(--card-accent, var(--pdcs-blue-strong));
-        border-color: var(--card-accent, var(--pdcs-blue-strong)); outline: none;
+        outline: none; color: var(--pdcs-bg);
+        background: var(--card-accent, var(--pdcs-blue-strong)); border-color: var(--card-accent, var(--pdcs-blue-strong));
       }
-      .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
+
       .gate-card-art {
-        position: relative;
-        width: 100%;
-        /* Taller as the window is: the plates take the height a tall
-           window has to spare, and give it back below 720. */
+        position: relative; overflow: hidden; width: 100%;
+        /* The plates grow into the height a tall window can spare and give
+           it back below 720. */
         height: clamp(120px, calc(62vh - 300px), 400px);
-        background: var(--pdcs-plate);
-        border-bottom: 1px solid var(--pdcs-line-soft);
-        overflow: hidden;
+        background: var(--pdcs-plate); border-bottom: 1px solid var(--pdcs-line-soft);
       }
       .gate-card-shot {
-        width: 100%; height: 100%;
-        display: block; object-fit: cover;
-        filter: grayscale(1) contrast(1.1) brightness(0.7);
-        /* Its light over the plate's blue: a duotone, still mostly grey. */
-        mix-blend-mode: luminosity;
-        opacity: 0.5;
-        transition: opacity 0.14s ease;
+        display: block; width: 100%; height: 100%; object-fit: cover;
+        /* Luminosity over the plate's blue: a faint duotone, mostly grey. */
+        filter: grayscale(1) contrast(1.1) brightness(0.7); mix-blend-mode: luminosity;
+        opacity: 0.5; transition: opacity 0.14s ease;
       }
       .gate-card.on .gate-card-shot { opacity: 0.68; }
       .gate-card-art::after {
-        content: "";
-        position: absolute; inset: 0;
-        background: var(--pdcs-fine-grid);
-        background-size: 25px 25px;
+        content: ""; position: absolute; inset: 0;
+        background: var(--pdcs-fine-grid); background-size: 25px 25px;
       }
-      /* The index, in the plate's corner like the boot screen's step. */
       .gate-card-art::before {
         content: "[ " counter(gate-card, decimal-leading-zero) " ]";
         position: absolute; left: 10px; top: 8px; z-index: 1;
         font-size: 10.5px; letter-spacing: 0.16em; color: var(--slate);
       }
       .gate-card.on .gate-card-art::before { color: var(--pdcs-blue-strong); }
-      .gate-card-mark { z-index: 1; }
-      .gate-card-body {
-        display: flex; flex-direction: column; gap: 7px;
-        padding: 12px 16px 15px;
-      }
-      .gate-card-name {
-        font-family: var(--type-name); font-synthesis: none;
-        color: var(--cream);
-        font-size: clamp(15px, 1.3vw, 20px);
-        font-weight: 500;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        line-height: 1.2;
-      }
-      .gate-card.on .gate-card-name { color: var(--pdcs-bright); }
-      /* Three lines at most: the name and the tags are the answer, the
-         line is its gloss. */
-      .gate-card-blurb {
-        margin: 0;
-        color: var(--slate);
-        font-size: 13px; line-height: 1.5;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        overflow: hidden;
-      }
-      /* What each mode actually gives you, in three words each, as status
-         tags in brackets. */
-      .gate-card-facts {
-        display: flex; flex-wrap: wrap; gap: 4px 12px;
-        margin-top: 2px;
-        font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
-        color: var(--slate);
-      }
-      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
-      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
-      /*
-       * The plan drawing over the corner of each picture, one box size on
-       * every card. See craftSvg in src/ui/ui.js.
-       */
+      /* The plan drawing (craftSvg in src/ui/ui.js), one box size on every card. */
       .gate-card-mark {
-        position: absolute;
-        left: 10px; bottom: 8px;
-        width: clamp(52px, 5.2vw, 76px);
-        height: clamp(52px, 5.2vw, 76px);
+        position: absolute; left: 10px; bottom: 8px; z-index: 1;
         display: grid; place-items: center;
+        width: clamp(52px, 5.2vw, 76px); height: clamp(52px, 5.2vw, 76px);
         pointer-events: none;
       }
       .craft-plan { width: 100%; height: 100%; color: var(--cream); }
 
-      .screen-title .brand-sub {
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
+      .gate-card-body { gap: 7px; padding: 12px 16px 15px; }
+      .gate-card-name {
+        font-family: var(--type-name); font-synthesis: none;
+        font-size: clamp(15px, 1.3vw, 20px); line-height: 1.2; font-weight: 500;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--cream);
       }
-      .screen-title .keep-note {
-        margin-left: 0;
-        margin-right: auto;
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+      .gate-card.on .gate-card-name { color: var(--pdcs-bright); }
+      .gate-card-blurb {
+        margin: 0; overflow: hidden;
+        font-size: 13px; line-height: 1.5; color: var(--slate);
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3;
       }
+      .gate-card-facts {
+        display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px;
+        font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--slate);
+      }
+      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
+      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
 
       /* The menu is a fixed-width centre column. Help text lives in the
          right column so a long note cannot grow the list and shove the
