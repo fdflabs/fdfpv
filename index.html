@@ -259,281 +259,190 @@
         --hub-hangar: #a9b4bb;
         --hub-accent: var(--hub-ops);
       }
-      /* overscroll-behavior is for phones: a drag that starts on the world
-         must not become a pull-to-refresh mid-flight. */
-      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--deep); overscroll-behavior: none; }
-      #view {
-        display: block; position: fixed; inset: 0;
-        width: 100%; height: 100%;
+      /* The page is the canvas and never scrolls, and on a phone a drag
+         that begins on the world must not turn into a pull-to-refresh. */
+      html, body {
+        width: 100%; height: 100%; margin: 0; overflow: hidden;
+        overscroll-behavior: none; background: var(--deep);
       }
+      #view { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
       #ui {
         position: fixed; inset: 0; pointer-events: none; user-select: none;
-        font-family: var(--ui-font); color: var(--cream);
-        font-variant-numeric: tabular-nums;
+        color: var(--cream); font-family: var(--ui-font); font-variant-numeric: tabular-nums;
       }
 
-      /* Flight display. Thin warm type over a dark edge, the way an OSD
-         reads over any background. */
-      .osd { position: absolute; inset: 0; }
+      /* THE FLIGHT DISPLAY. Pale type over a dark shadow reads on sky,
+         grass and tarmac alike, which is how a video OSD stays legible. */
+      .osd, .score-hud { position: absolute; inset: 0; }
+      .score-hud { pointer-events: none; }
       .osd.dim { opacity: 0.4; }
-      .osd-top {
-        position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
-        text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-      }
-      /* A war has no lap and no run: its clock is the war HUD's. */
-      #ui.war-on .osd-top { display: none; }
-      .osd-timer { font-size: 46px; font-weight: 600; letter-spacing: 0.02em; line-height: 1; }
-      .osd-timer.waiting { color: #b9c9d8; }
-      .osd-label {
+      .osd-ghost.is-off, .osd-launch.is-off, .room-race.is-off,
+      .score-hud.is-off, .score-combo.is-off { display: none; }
+      .osd-top, .osd-corner, .score-total { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
+      .osd-label, .room-race-title, .score-label {
+        margin-bottom: 2px; color: var(--slate);
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 2px;
       }
+      .score-label { margin-bottom: 1px; }
+
+      /* The clock block, top centre. A war has no lap to time: the war HUD
+         keeps its clock. */
+      .osd-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; }
+      #ui.war-on .osd-top { display: none; }
+      .osd-timer { font-size: 46px; font-weight: 600; line-height: 1; letter-spacing: 0.02em; }
+      .osd-timer.waiting { color: #b9c9d8; }
+      /* A freestyle run's last ten seconds. Amber and not red: nothing has
+         gone wrong, the run is ending, and this is when a pilot decides on
+         one more big line. */
+      .osd-timer.is-late { color: var(--amber); }
       .osd-value { font-size: 20px; font-weight: 600; }
-      .osd-sub { font-size: 13px; color: var(--slate); margin-top: 1px; margin-bottom: 8px; }
-      .osd-gate { font-size: 15px; color: var(--amber); margin-top: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .osd-best { font-size: 14px; color: var(--slate); margin-top: 3px; }
-      /* The gap to the ghost, lit for a moment after each gate. Mint when
-         the pilot is ahead of it, amber when it is ahead, the same reading
-         the rest of this overlay teaches: mint is the good news. */
-      .osd-ghost { font-size: 15px; font-weight: 600; margin-top: 4px; letter-spacing: 0.04em; }
-      .osd-ghost.is-off { display: none; }
+      .osd-sub, .osd-best { color: var(--slate); }
+      .osd-sub { margin: 1px 0 8px; font-size: 13px; }
+      .osd-best { margin-top: 3px; font-size: 14px; }
+      .osd-gate, .osd-mode { color: var(--amber); text-transform: uppercase; }
+      .osd-gate { margin-top: 6px; font-size: 15px; letter-spacing: 0.08em; }
+      .osd-mode { letter-spacing: 0.14em; }
+      /* The split to the ghost, shown briefly after each gate. Mint is the
+         good news everywhere on this overlay, so mint means ahead. */
+      .osd-ghost { margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
       .osd-ghost.ahead { color: var(--mint); }
       .osd-ghost.behind { color: var(--amber); }
-      .osd-corner {
-        position: absolute; bottom: 20px; width: 190px;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 15px;
-      }
+
+      /* The pack and flight blocks in the two lower corners. */
+      .osd-corner { position: absolute; bottom: 20px; width: 190px; font-size: 15px; }
       .osd-left { left: 22px; }
       .osd-right { right: 22px; text-align: right; }
-      .osd-mode { letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
+      .bar, .score-combo-bar { overflow: hidden; background: rgba(12, 22, 34, 0.65); }
+      .bar {
+        height: 5px; margin-top: 7px; border-radius: 3px;
+        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.35);
+      }
+      .bar-fill { width: 0%; height: 100%; background: var(--mint); transition: width 0.12s linear; }
+      .bar-fill.warm { background: var(--amber); }
+      .osd-hits { margin-top: 10px; margin-bottom: 0; }
+
+      /* The launch call sits high, where the eye already is, and blinks
+         while armed. */
       .osd-launch {
-        position: absolute; left: 50%; top: 16%;
-        transform: translate(-50%, 0);
+        position: absolute; top: 16%; left: 50%; transform: translate(-50%, 0);
+        pointer-events: none; color: var(--amber);
         font-size: clamp(28px, 4.2vw, 46px); font-weight: 700;
         letter-spacing: 0.18em; text-transform: uppercase;
-        color: var(--amber);
         text-shadow: 0 3px 14px rgba(0, 0, 0, 0.92);
-        pointer-events: none;
       }
-      .osd-launch.is-off { display: none; }
       .osd-launch.is-hot { animation: launch-blink 0.32s step-end infinite; }
-      .osd-launch.is-go {
-        color: #8dffb0;
-        letter-spacing: 0.32em;
-        font-size: clamp(40px, 6vw, 64px);
-      }
+      .osd-launch.is-go { color: #8dffb0; font-size: clamp(40px, 6vw, 64px); letter-spacing: 0.32em; }
       @keyframes launch-blink {
         50% { opacity: 0.2; }
       }
 
-      /* FREESTYLE SCORE, down the left. See src/ui/scorehud.js for why it
-         is here and not anywhere else: the top centre, both bottom corners
-         and the bottom centre are already spoken for by the flight OSD.
-         Everything that moves is a keyframe on a node that removes itself,
-         so this costs no frame time when nothing has happened. */
-      .score-hud { position: absolute; inset: 0; pointer-events: none; }
-      .score-hud.is-off { display: none; }
-      /* A ROOM'S RACE, down the left under the link readout (src/ui/
-         roomhud.js): the right has the flight buttons and the throttle, the
-         top centre the lap clock, and the left column's other tenant, the
-         freestyle score, is never up in a race. */
+      /* A ROOM'S STANDINGS (src/ui/roomhud.js), in the left column under
+         the link readout. The column's other user, the freestyle score, is
+         never up during a race. */
       .room-race {
-        position: absolute; left: 16px; top: calc(var(--bar-top) + 96px);
-        min-width: 180px; max-width: 42vw; pointer-events: none;
-        padding: 6px 10px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
+        position: absolute; top: calc(var(--bar-top) + 96px); left: 16px;
+        min-width: 180px; max-width: 42vw; padding: 6px 10px; border-radius: 4px;
+        pointer-events: none; background: rgba(16, 22, 17, 0.62);
         font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
       }
-      .room-race.is-off { display: none; }
-      .room-race-title {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 2px;
-      }
-      /* A state of this pilot's in the match, a tag under the title (Catch
-         the Ace's chase boost). */
+      /* A tag for something only this pilot has right now, such as Catch
+         the Ace's chase boost. */
       .room-race-chip {
         display: inline-block; margin: 1px 0 3px; padding: 0 6px; border-radius: 3px;
-        font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #1b1405; background: var(--amber);
+        background: var(--amber); color: #1b1405;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
       }
       .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
       .room-race-row.is-me { color: var(--amber); }
       .room-race-place { width: 1.2em; text-align: right; }
       .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
       .room-race-value { font-variant-numeric: tabular-nums; }
-      /* Clear of the music dock, which moves to the top left corner on the
-         flight screen (.music-dock.on-flight) and is 30 px tall at 16 px.
-         --bar-top is zero in flight, so this offset is measured from the
-         top of the window there and from under the bar everywhere else. */
-      .score-total {
-        position: absolute; left: 22px; top: calc(var(--bar-top) + 58px);
-        text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-      }
-      .score-label {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 1px;
-      }
-      /* The scorer admits what it is, beside the word it qualifies. Amber
-         is the instrument colour this overlay and the menus both use for a
-         reading about the state of the machine rather than about the
-         flying, and it is a shade smaller and a shade dimmer than the label
-         so it reads as a footnote and never competes with the number.
-         See the comment on totalBox in src/ui/scorehud.js. */
-      .score-beta {
-        margin-left: 6px; font-size: 9px; letter-spacing: 0.1em;
-        color: var(--amber); opacity: 0.8;
-      }
-      /* A HARD OUTLINE, NOT A GLOW. Every other readout on this overlay
-         uses a soft drop shadow, and a soft shadow works because the world
-         behind the OSD is mostly sky or grass. The score sits over the
-         town: cream on a pale road at midday, which measured as unreadable
-         in the first capture. Four one pixel offsets give the glyph an
-         edge whatever is behind it, and the blur underneath keeps it from
-         looking stencilled. */
+
+      /* THE FREESTYLE SCORE (src/ui/scorehud.js) owns the left column,
+         the one stretch of frame the OSD leaves free. It is drawn the way
+         the cel shaded town is: flat fills, hard edges, no blur that is not
+         under an ink line. Everything that moves is a keyframe on a node
+         that deletes itself when done, so an idle score asks for no frames
+         from a page running a 1 kHz simulation. */
+
+      /* The running total clears the music dock (30 px tall in the top left
+         corner during flight, where --bar-top is zero). */
+      .score-total { position: absolute; top: calc(var(--bar-top) + 58px); left: 22px; }
+      /* The in-development note: amber because it is about the scorer, not
+         the flying, and smaller and dimmer than the label it footnotes. */
+      .score-beta { margin-left: 6px; color: var(--amber); opacity: 0.8; font-size: 9px; letter-spacing: 0.1em; }
+      /* Score type crosses pale roads at midday, where a soft shadow
+         vanishes. Four one pixel offsets ink a hard edge round each glyph;
+         the blur beneath keeps it from looking stencilled. */
       .score-cut {
         text-shadow:
-          -1px -1px 0 rgba(8, 12, 9, 0.92),  1px -1px 0 rgba(8, 12, 9, 0.92),
-          -1px  1px 0 rgba(8, 12, 9, 0.92),  1px  1px 0 rgba(8, 12, 9, 0.92),
+          -1px -1px 0 rgba(8, 12, 9, 0.92), 1px -1px 0 rgba(8, 12, 9, 0.92),
+          -1px 1px 0 rgba(8, 12, 9, 0.92), 1px 1px 0 rgba(8, 12, 9, 0.92),
           0 2px 10px rgba(0, 0, 0, 0.9);
       }
       .score-value {
-        font-size: clamp(26px, 3.4vw, 40px); font-weight: 700;
-        line-height: 1; letter-spacing: 0.01em; color: var(--cream);
+        color: var(--cream); font-size: clamp(26px, 3.4vw, 40px); font-weight: 700;
+        line-height: 1; letter-spacing: 0.01em;
       }
-      /* THE LAST TEN SECONDS of a freestyle run, on the OSD's own clock.
-         Amber rather than red because nothing has gone wrong: the run is
-         ending, and this is the window a pilot spends deciding whether to
-         try the big line. It is the only thing on the flight overlay that
-         changes colour without something having happened. */
-      .osd-timer.is-late { color: var(--amber); }
-      /* The name stack sits directly ON TOP OF the combo line and grows
-         UPWARD, which is the Tony Hawk arrangement and not a stylistic
-         choice: the newest trick has to be adjacent to the number it just
-         changed, or the eye has to cross half the screen to connect them.
-         The stack is anchored by its BOTTOM edge and laid out top down, so
-         the newest name is appended last and lands nearest the combo line,
-         and the older ones are pushed up and out. No JS: the container
-         simply grows upward as rows arrive. */
+
+      /* Trick names stack upward from just above the combo, newest lowest,
+         so the latest trick always sits beside the number it changed. The
+         stack is pinned by its bottom edge and grows up with no script. */
       .score-names {
         position: absolute; left: 22px; bottom: calc(24vh + 62px);
+        display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
         width: min(46vw, 340px);
-        display: flex; flex-direction: column;
-        align-items: flex-start; gap: 2px;
       }
+      /* Each row is the box its ray burst centres on. */
       .score-name {
-        display: flex; align-items: baseline; gap: 8px;
+        position: relative; display: flex; align-items: baseline; gap: 8px;
+        color: var(--cream); white-space: nowrap;
         font-size: clamp(15px, 1.85vw, 21px); font-weight: 700;
         letter-spacing: 0.06em; text-transform: uppercase;
-        color: var(--cream);
-        white-space: nowrap;
       }
+      .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
       .score-name.is-sloppy { color: var(--amber); }
       .score-name.is-bump { color: var(--sakura); }
-      .score-name-points { font-size: 0.8em; color: var(--cream); opacity: 0.7; font-weight: 500; }
-      .score-name-tag {
-        font-size: 0.62em; letter-spacing: 0.14em; color: var(--slate);
-        opacity: 0.85;
+      /* The burst goes behind the words by paint order among positioned
+         siblings. A negative z-index would sink the whole row under the
+         world canvas. */
+      .score-name > span { position: relative; }
+      /* The points land a beat after the name, so the eye reads the trick
+         first and the number second. */
+      .score-name-points {
+        color: var(--cream); opacity: 0.7; font-size: 0.8em; font-weight: 500;
+        animation: score-pop 620ms cubic-bezier(0.1, 1.5, 0.4, 1) 90ms backwards;
       }
+      .score-name-tag { color: var(--slate); opacity: 0.85; font-size: 0.62em; letter-spacing: 0.14em; }
       @keyframes score-name-in {
         0%   { opacity: 0; transform: translateX(-14px); }
         7%   { opacity: 1; transform: translateX(0); }
         75%  { opacity: 1; }
         100% { opacity: 0; transform: translateY(-10px); }
       }
-      /* The live combo. Under the names, and it is the number the pilot is
-         gambling: it reads big on purpose. */
-      .score-combo {
-        position: absolute; left: 22px; bottom: 24vh;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      @keyframes score-name-slam {
+        0%   { opacity: 0; transform: translateX(-42px) skewX(-16deg) scale(1.38); }
+        9%   { opacity: 1; transform: translateX(3px) skewX(4deg) scale(0.96); }
+        15%  { transform: translateX(0) skewX(0) scale(1); }
+        76%  { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateY(-14px); }
       }
-      .score-combo.is-off { display: none; }
-      .score-combo-line {
-        display: flex; align-items: baseline; gap: 6px;
-        font-size: clamp(22px, 2.8vw, 34px); font-weight: 700; line-height: 1;
-        color: var(--amber);
+      @keyframes score-pop {
+        0%   { transform: scale(2.1); opacity: 0; }
+        30%  { opacity: 1; }
+        100% { transform: scale(1); opacity: 0.7; }
       }
-      .score-combo-mult { font-size: 0.82em; color: var(--mint); }
-      .score-combo-bar {
-        margin-top: 6px; height: 4px; width: clamp(90px, 12vw, 150px);
-        border-radius: 2px; background: rgba(12, 22, 34, 0.65);
-        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.3);
-        overflow: hidden;
-      }
-      .score-combo-fill {
-        height: 100%; width: 100%; background: var(--amber);
-        transform-origin: left center; transform: scaleX(1);
-      }
-      /* Banked or bailed. Centre screen for one beat, because it is the one
-         moment worth looking away from the quad for. */
-      .score-verdict {
-        position: absolute; left: 50%; top: 38%;
-        transform: translate(-50%, -50%);
-        font-size: clamp(30px, 4.6vw, 54px); font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        opacity: 0;
-      }
-      .score-verdict.is-bank { color: var(--mint); }
-      /* A saturated sakura rather than the token. --sakura is the brand's
-         blossom pink and it is a pale one by design; over a lit road it
-         read as decoration rather than as a loss. Same hue, enough
-         saturation to mean something. */
-      .score-verdict.is-bail { color: #ff7d96; }
-      @keyframes score-verdict {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
-        14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
-        24%  { transform: translate(-50%, -50%) scale(1); }
-        70%  { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -74%) scale(1); }
-      }
-      /* Phones fly with the touch sticks up and a much shorter screen, so
-         the combo climbs out of their way and the stack keeps two rows. */
-      @media (max-height: 560px) {
-        .score-combo { bottom: 34vh; }
-        .score-names { bottom: calc(34vh + 52px); }
-      }
-      /* ------------------------------------------------------------------
-         THE ANIME LAYER.
-
-         The town is cel shaded and the score was not: flat type fading in
-         and out over a world drawn with hard ink lines. This is the same
-         readout wearing the same clothes as the place it sits in.
-
-         CEL SHADING IS A RULE, not a mood. Flat colour, hard edges, no
-         blur, no soft glow, no gradient that is not a stack of hard stops.
-         Every ray fan below is a repeating-conic-gradient whose stops sit
-         on top of each other, so it renders as solid wedges rather than as
-         a smear, which is exactly what an ink burst is.
-
-         AND IT STILL ASKS FOR NO FRAMES. Every moving thing here is a
-         keyframe on a node that removes itself when the animation ends, the
-         rule scorehud.js opens with. A rAF driven overlay competing with a
-         1 kHz simulation is how a smooth sim gets a stutter nobody can find.
-         ------------------------------------------------------------------ */
-
-      /* The ray fan behind a trick name. Sixteen hard wedges in a ring,
-         punched hollow in the middle so the type stays readable through it,
-         and drawn TWICE: an ink fan and, inside it, the colour. Cel shading
-         is a fill with a line round it, and over a pale sky the line is the
-         half that makes the fill visible at all.
-
-         The row is the thing it belongs to, so the row is what it is
-         positioned against: the first version resolved against the whole
-         overlay and threw its rays into empty sky halfway up the screen. */
-      .score-name { position: relative; }
-      /* The rays go behind the type by DOM ORDER, not by a negative
-         z-index. z-index -1 on the burst took the whole row down with it,
-         behind the world canvas, and the trick name vanished: a positioned
-         child asking to paint below its parent's box asks to paint below
-         everything the parent sits on. Positioning the spans instead puts
-         them in the same group as the burst, where the one appended last
-         wins, which is exactly what is wanted. */
-      .score-name > span { position: relative; }
+      /* An ink burst: sixteen hard wedges in a hollow ring, an ink fan with
+         the colour fan inside it, because over pale sky the dark line is
+         what makes the fill visible. Stacked conic stops give solid
+         wedges, not a smear. */
       .score-burst {
-        position: absolute; left: -34px; top: 50%;
+        position: absolute; top: 50%; left: -34px;
         width: 200px; height: 200px; margin-top: -100px;
-        pointer-events: none;
+        pointer-events: none; opacity: 0;
         background: repeating-conic-gradient(#0b1116 0deg 8.4deg, transparent 8.4deg 22.5deg);
         -webkit-mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
         mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
-        opacity: 0;
         animation: score-burst 480ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
       }
       .score-burst::before {
@@ -548,29 +457,15 @@
         100% { opacity: 0; transform: scale(1.25) rotate(5deg); }
       }
 
-      /* The name slams in. Overshoot, a touch of shear, and a hard stop:
-         an anime title card lands, it does not arrive. */
-      .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
-      @keyframes score-name-slam {
-        0%   { opacity: 0; transform: translateX(-42px) skewX(-16deg) scale(1.38); }
-        9%   { opacity: 1; transform: translateX(3px) skewX(4deg) scale(0.96); }
-        15%  { transform: translateX(0) skewX(0) scale(1); }
-        76%  { opacity: 1; transform: translateX(0); }
-        100% { opacity: 0; transform: translateY(-14px); }
+      /* The live combo is the stake, so it is big, and it gets louder by
+         tier: colour first, a throb from tier three, and a badge. */
+      .score-combo { position: absolute; left: 22px; bottom: 24vh; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+      .score-combo-line {
+        display: flex; align-items: baseline; gap: 6px;
+        color: var(--amber); font-size: clamp(22px, 2.8vw, 34px); font-weight: 700; line-height: 1;
+        transition: color 140ms linear;
       }
-      /* The points on a name pop a beat after the name, so the eye reads
-         the trick and then the number rather than both at once. */
-      .score-name-points { animation: score-pop 620ms cubic-bezier(0.1, 1.5, 0.4, 1) 90ms backwards; }
-      @keyframes score-pop {
-        0%   { transform: scale(2.1); opacity: 0; }
-        30%  { opacity: 1; }
-        100% { transform: scale(1); opacity: 0.7; }
-      }
-
-      /* THE COMBO TIER. The number is the thing at risk, so as the chain
-         grows it gets louder in three ways at once: colour, weight and a
-         chevron that only appears when there is something to lose. */
-      .score-combo-line { transition: color 140ms linear; }
+      .score-combo-mult { color: var(--mint); font-size: 0.82em; }
       .score-combo.tier-2 .score-combo-line { color: var(--amber); }
       .score-combo.tier-3 .score-combo-line { color: #ffc46b; }
       .score-combo.tier-4 .score-combo-line { color: #ff9f5a; }
@@ -582,48 +477,57 @@
         from { transform: scale(1); }
         to   { transform: scale(1.045); }
       }
-      /* The tier badge: an English word for what it is and a Japanese one
-         for where it is. The town is a Japanese one and reads its own
-         signage; this is the score speaking the same language. */
+      /* The badge names the tier in English and in the town's Japanese. It
+         is a solid chip of the tier's own colour (currentColor) with the
+         words cut out of it in ink. */
       .score-tier {
         display: inline-flex; align-items: baseline; gap: 6px;
         margin-left: 10px; padding: 2px 8px;
+        background: currentColor; box-shadow: 0 0 0 2px rgba(8, 12, 9, 0.9);
         font-size: 0.44em; font-weight: 700; letter-spacing: 0.18em;
         text-transform: uppercase; white-space: nowrap;
-        /* INHERITS the tier's colour and paints itself with it, so the
-           badge is a solid chip of whatever the number has just become and
-           the words are punched out of it. Setting a colour here instead
-           was dark ink on a dark chip and read as a black bar. */
-        background: currentColor;
-        box-shadow: 0 0 0 2px rgba(8, 12, 9, 0.9);
         animation: score-tier-in 420ms cubic-bezier(0.1, 1.4, 0.4, 1);
       }
       .score-tier > span { color: #0b1116; }
-      .score-tier .score-tier-jp { letter-spacing: 0.05em; opacity: 0.72; }
+      .score-tier .score-tier-jp { opacity: 0.72; letter-spacing: 0.05em; }
       @keyframes score-tier-in {
         0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
         60%  { transform: scale(1.12) rotate(2deg); opacity: 1; }
         100% { transform: scale(1) rotate(0); }
       }
+      /* The chain's timer, drained by script through a scaleX. */
+      .score-combo-bar {
+        width: clamp(90px, 12vw, 150px); height: 4px; margin-top: 6px; border-radius: 2px;
+        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.3);
+      }
+      .score-combo-fill {
+        width: 100%; height: 100%; background: var(--amber);
+        transform-origin: left center; transform: scaleX(1);
+      }
 
-      /* BANKED. A hard ring, not a bloom: one 3 px stroke expanding once.
-         Cel shading has no falloff, so neither does this. */
-      .score-ring {
-        position: absolute; left: 50%; top: 38%;
-        width: 90px; height: 90px; margin: -45px 0 0 -45px;
-        border: 3px solid var(--mint); border-radius: 50%;
-        opacity: 0; pointer-events: none;
-        animation: score-ring 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      /* Banked or bailed, centre frame for one beat: the one moment worth
+         looking away from the quad for. A bank lands with overshoot, a bail
+         shakes, and one or two hard rings go out from it. */
+      .score-verdict, .score-ring { position: absolute; top: 38%; left: 50%; opacity: 0; }
+      .score-verdict {
+        transform: translate(-50%, -50%);
+        font-size: clamp(30px, 4.6vw, 54px); font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
       }
-      .score-ring.is-bail { border-color: #ff7d96; }
-      .score-ring.is-late { animation-delay: 110ms; }
-      @keyframes score-ring {
-        0%   { opacity: 0.9; transform: scale(0.35); border-width: 5px; }
-        100% { opacity: 0; transform: scale(3.4); border-width: 1px; }
+      .score-verdict.is-bank {
+        color: var(--mint);
+        animation: score-verdict-bank 1.15s cubic-bezier(0.1, 1.3, 0.3, 1) forwards;
       }
-      /* The verdict itself lands harder than it used to, and a bail SHAKES:
-         losing a chain should feel like a hit, not like a fade. */
-      .score-verdict.is-bank { animation: score-verdict-bank 1.15s cubic-bezier(0.1, 1.3, 0.3, 1) forwards; }
+      /* The token sakura is a pale blossom and read as decoration over a
+         lit road; a loss needs the same hue saturated. */
+      .score-verdict.is-bail { color: #ff7d96; animation: score-verdict-bail 1.15s ease-out forwards; }
+      @keyframes score-verdict {
+        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
+        14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+        24%  { transform: translate(-50%, -50%) scale(1); }
+        70%  { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -74%) scale(1); }
+      }
       @keyframes score-verdict-bank {
         0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-5deg); }
         12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22) rotate(2deg); }
@@ -631,7 +535,6 @@
         68%  { opacity: 1; }
         100% { opacity: 0; transform: translate(-50%, -96%) scale(1); }
       }
-      .score-verdict.is-bail { animation: score-verdict-bail 1.15s ease-out forwards; }
       @keyframes score-verdict-bail {
         0%   { opacity: 0; transform: translate(-50%, -50%) scale(1.5) skewX(-14deg); }
         8%   { opacity: 1; transform: translate(-52%, -50%) scale(1) skewX(0); }
@@ -641,19 +544,28 @@
         70%  { opacity: 1; }
         100% { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
       }
+      .score-ring {
+        width: 90px; height: 90px; margin: -45px 0 0 -45px;
+        border: 3px solid var(--mint); border-radius: 50%; pointer-events: none;
+        animation: score-ring 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+      .score-ring.is-bail { border-color: #ff7d96; }
+      .score-ring.is-late { animation-delay: 110ms; }
+      @keyframes score-ring {
+        0%   { opacity: 0.9; transform: scale(0.35); border-width: 5px; }
+        100% { opacity: 0; transform: scale(3.4); border-width: 1px; }
+      }
 
-      /* SPEED LINES down both edges, and ONLY while a chain is worth
-         something. Two flat strips of hard vertical stripes, so the frame
-         gets busier exactly as the pilot has more to lose. Nothing here
-         reads a value: it is a class the combo tier already computes. */
+      /* Speed lines down both edges from tier three, busier as the chain is
+         worth more. They read the tier class the combo already sets. */
       .score-lines {
         position: absolute; inset: 0; pointer-events: none; opacity: 0;
-        transition: opacity 220ms linear;
         background:
-          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) left  / 11vw 100% no-repeat,
+          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) left / 11vw 100% no-repeat,
           repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) right / 11vw 100% no-repeat;
         -webkit-mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
         mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
+        transition: opacity 220ms linear;
       }
       .score-hud.tier-3 .score-lines { opacity: 0.16; }
       .score-hud.tier-4 .score-lines { opacity: 0.24; }
@@ -663,28 +575,23 @@
         to   { transform: translateX(6px); }
       }
 
+      /* A short phone screen has the thumb sticks up, so the combo climbs
+         clear of them and the name stack keeps two rows. */
+      @media (max-height: 560px) {
+        .score-combo { bottom: 34vh; }
+        .score-names { bottom: calc(34vh + 52px); }
+      }
+      /* Reduced motion keeps every colour, badge and number and drops only
+         the movement. */
       @media (prefers-reduced-motion: reduce) {
-        /* NOTHING THAT CARRIES MEANING IS HIDDEN. The tier colour, the
-           badge and the score all stay; what goes is the movement, which is
-           the same contract the rest of this overlay keeps. */
         .score-hud .score-name, .score-verdict.is-bank, .score-verdict.is-bail,
         .score-name-points, .score-tier { animation-duration: 0.01s; }
         .score-burst, .score-ring { display: none; }
         .score-combo.tier-3 .score-combo-line,
         .score-combo.tier-4 .score-combo-line,
-        .score-combo.tier-5 .score-combo-line { animation: none; }
+        .score-combo.tier-5 .score-combo-line,
         .score-hud.tier-5 .score-lines { animation: none; }
       }
-
-      .bar {
-        height: 5px; margin-top: 7px; border-radius: 3px;
-        background: rgba(12, 22, 34, 0.65);
-        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.35);
-        overflow: hidden;
-      }
-      .bar-fill { height: 100%; width: 0%; background: var(--mint); transition: width 0.12s linear; }
-      .bar-fill.warm { background: var(--amber); }
-      .osd-hits { margin-top: 10px; margin-bottom: 0; }
 
 
       /* Keyboard stick ghost. Two Mode 2 gimbals: left is yaw and
