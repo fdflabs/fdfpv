@@ -37,6 +37,7 @@
     "ways:golden": "node scripts/ways-golden.js",
     "format:golden": "node scripts/format-golden.js",
     "widgets:golden": "node scripts/widgets-golden.js",
+    "dialogs:golden": "node scripts/dialogs-golden.js",
     "trickslist:golden": "node scripts/trickslist-golden.js",
     "keys:golden": "node scripts/keys-golden.js",
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
