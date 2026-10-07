@@ -28,20 +28,20 @@
  *   (bug-a0b44950: both used to be left out of the list, so the save read
  *   as one that never happened, for the pilot and for everybody else).
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { readFileSync } from 'node:fs';
@@ -57,7 +57,7 @@ import { FIRST_AIRFRAME, SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { startTracks } from '../tracks-api/node.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const LIBRARY_KEY = 'webfpv.trackbuilder.library.v1';
 const ONLINE_KEY = 'webfpv.trackbuilder.online.v1';
 const SHOTS = process.env.SHOTS || '';
@@ -328,11 +328,9 @@ async function planePilot(origin, server, firstId) {
     }
     if (own) {
       await page.evaluate(`(() => {
-        const k = ${JSON.stringify(SETTINGS_KEY)};
-        const s = JSON.parse(localStorage.getItem(k) || '{}');
-        delete s.airframe;
-        delete s.airframeAsked;
-        localStorage.setItem(k, JSON.stringify(s));
+        const settingsKey = ${JSON.stringify(SETTINGS_KEY)};
+        const { airframe, airframeAsked, ...rest } = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+        localStorage.setItem(settingsKey, JSON.stringify(rest));
         return true;
       })()`);
       await page.cdp.send('Page.reload', {}, page.sessionId);
