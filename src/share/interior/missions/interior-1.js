@@ -233,8 +233,12 @@ export default {
     opening: { at: ALONG('opening'), r: 25 },
     'camp-edge': { at: ALONG('camp-edge'), r: 25 },
   },
+  /* The camp's alertness is stage 5's (MISSIONS.md M1): the pair's
+   * route and the Charlie corridor are inside its reach, and a pilot
+   * low over them before the camp is found must not have it already
+   * dispersing when stage 5 opens. */
   sites: [{
-    id: 'camp', at: P2(CAMP_AT), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
+    id: 'camp', stage: 'M1_CP_CAMP_FOUND', at: P2(CAMP_AT), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
   }],
   dials: {
     conceal: ['west', 'mid', 'east'],

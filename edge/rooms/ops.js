@@ -790,6 +790,10 @@ export class RoomOps {
     }
     dirty ||= changed.length > 0;
     for (const site of mission.sites ?? []) {
+      /* A site with a `stage` hears nothing before that stage opens. */
+      if (site.stage && !(m.stage && m.stage.idx >= stagesOf(mission).findIndex((x) => x.id === site.stage))) {
+        continue;
+      }
       const st = m.sites[site.id];
       const was = st.value;
       if (stepSite(site, st, g, GRID_MS, pilots.filter((q) => q.airborne).map((q) => q.p)).length || (st.value === 0) !== (was === 0)) {

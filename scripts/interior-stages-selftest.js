@@ -37,6 +37,8 @@
  *              item still to capture, the corridor, the pair as told, the
  *              camp, home), the guide's line per role, never a contact the
  *              room has not told; and when a nudge is due
+ *   low        the pair followed under 300 m near the camp: the camp's
+ *              alertness still nothing when stage 5 opens
  *   camp gone  the camp dispersing on its timer before anything is
  *              documented: nobody walks back into it, the pair keeps its
  *              way out, the mark still opens
@@ -160,6 +162,7 @@ console.log('data');
   const tos = stagesOf(M).flatMap((st) => (st.cues ?? []).flatMap((c) => [c.classify ?? []].flat().map((k) => k.to)));
   check('every class it classifies to is the campaign\'s', tos.length > 0 && tos.every((x) => M.classes.includes(x)), tos.join());
   check('every site it names exists', [...named(/"alert":"([^"]+)"/g)].every((x) => M.sites.some((s) => s.id === x)));
+  check('every site\'s stage is one of its stages', M.sites.every((s) => !s.stage || stagesOf(M).some((st) => st.id === s.stage)));
   check('three stars, the script\'s optionals', M.stars.map((s) => s.id).join() === 'symbol,camp,eyes');
   check('no faction reaches a view: the contacts carry it in data only', M.contacts.every((c) => typeof c.faction === 'string'));
   check('the debrief\'s required items are the mission\'s', M.debrief.required.length > 0 && M.debrief.required.every((id) => M.items.some((x) => x.id === id))
@@ -404,8 +407,8 @@ function anomaly(e, c, i = 0, { wait = true } = {}) {
  * it for up to 87.5 s at some points of the circle (48 phases of the
  * circle over the three routes at the Bramor's 25 m/s; the 57.6 to
  * 58.1 s of round #467 was one phase), so a pilot who only circles can
- * be moved to the alternate. */
-function follow(e, c, i = 0, { orbit = 0 } = {}) {
+ * be moved to the alternate. `alt` metres over Pista Cero's ground. */
+function follow(e, c, i = 0, { orbit = 0, alt = 600 } = {}) {
   const site = M.sites[0];
   const soft = M.contacts.find((x) => x.id === 'pair-a').track.soft * 1000;
   let lostAt = null;
@@ -428,7 +431,7 @@ function follow(e, c, i = 0, { orbit = 0 } = {}) {
       x = site.at[0] + ((x - site.at[0]) * (site.r + 60)) / d;
       y = site.at[1] + ((y - site.at[1]) * (site.r + 60)) / d;
     }
-    return [x, y, M.z0 + 600];
+    return [x, y, M.z0 + alt];
   };
   c.target = where;
   c.aim = aimAt(e, W, 'pair-a', 0.06, 16 / 9, i);
@@ -787,6 +790,34 @@ console.log('squad: five pilots, the trackers, a low pass, the whole camp');
   home(e, c);
   const v = e.view(0);
   check('won, with the whole camp\'s star', v.state === 'won' && v.result.starIds.includes('camp') && v.result.flags.M1_CAMP_FULLY_DOCUMENTED === true, JSON.stringify(v.result));
+}
+
+/* ------------------------------------------------------ low tracking */
+
+console.log('low tracking before the camp: the camp only hears what flies over it once it is found');
+{
+  /* The pair followed at 250 m, under the camp's 300 m and inside its
+   * 1500 m reach for much of the way (MISSIONS.md M1 stage 5: the
+   * camp's alertness is the camp stage's). */
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  follow(e, c, 0, { alt: 250 });
+  let most = 0;
+  until(e, () => {
+    most = Math.max(most, e.view(0).sites.camp.value);
+    return stageIs(e, 'M1_CP_CAMP_FOUND')();
+  }, 1800000, 'stage 5 after a low follow');
+  check('followed low through stages 3 and 4: the camp never stirred before it was found', most === 0 && e.view(0).sites.camp.level === 'calm', `${most} ${e.view(0).sites.camp.level}`);
+  c.target = STANDOFF;
+  c.aim = null;
+  e.fly(e.clock + 3000);
+  check('stage 5 opens on "No low pass. Record everything.", no dispersal and no "They heard you."', heard(e, 0, 'int1-s5-record') && !heard(e, 0, 'int1-s5-early')
+    && !heard(e, 0, 'int1-s5-moving') && !e.r.ops.match.choices?.dispersal);
 }
 
 /* ---------------------------------------------------- the camp gone */
