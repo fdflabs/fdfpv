@@ -7,7 +7,7 @@ index 0b2ad4c..cff5fae 100644
  #endif
  #endif // USE_PINIO
 +
-+// WebFPVSimulator: rotor speed is known exactly, so the features that need
++// FDFPV: rotor speed is known exactly, so the features that need
 +// DShot telemetry on hardware can run here without it. Additive and gated on
 +// a define this target alone sets, so no real target is affected.
 +//
