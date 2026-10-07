@@ -19377,12 +19377,10 @@ export async function boot({
     };
   };
   /*
-   * The PAINT's answer to "is this point on the side the gate is flown
-   * from", straight out of the renderer, so a check can hold it against
-   * race.js's own scoring frame at a grid of points instead of trusting
-   * that two files agree. A dive gate wearing red on the way in was
-   * exactly this disagreement, found by a pilot and not by a check.
-   * Harness only.
+   * Which side of its gate a point is on, as the renderer colours it. The
+   * scorer in race.js decides the same thing in its own frame, and a check
+   * sweeps a grid comparing the two: they once disagreed, and a pilot met a
+   * dive gate lit red on the correct approach before any check did.
    */
   window.__aimProbe = (x, y, z) => (view.approachSide ? view.approachSide(x, y, z) : null);
   /*
@@ -19475,8 +19473,8 @@ export async function boot({
       span250mmPx: Number.isFinite(span) ? span : null,
     };
   };
-  /* Which world is loaded, what it cost, and what is solid in it. Harness
-   * only; nothing in the shell reads these. */
+  /* The world probes: the seated map, what loading it cost, and what in it
+   * is solid. The shell itself calls none of them. */
   /* The seated map's ground at (x, z), from above everything, so a check
    * can prove what a craft would meet anywhere, not only under itself.
    * Harness only. */
@@ -19619,8 +19617,9 @@ export async function boot({
   /* The live scene graph, which tests/lib/checks.js walks to measure the
    * reference objects against the sizes this project claims. */
   window.__mapScene = () => view.scene;
-  /* The three.js namespace, so a measurement in the page can build a Box3
-   * without importing a second copy of the library. Harness only. */
+  /* THREE itself, for page side measurements (a Box3, a Vector3) that would
+   * otherwise load a second three.js whose classes this scene's objects are
+   * not instances of. */
   window.__three = THREE;
   /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
@@ -19643,9 +19642,9 @@ export async function boot({
       view.cover(x, z, y - SURFACE_BIAS);
     }
   };
-  /* The active map's contact surface, exactly as the ground sweep queries it.
-   * `fromY` is what makes a deck climbable from above and transparent from
-   * below, so a capture can assert that rather than describe it. */
+  /* The ground the contact pass would meet at (x, z) for a craft at height
+   * fromY. Asked from above a deck it answers the deck, from below it the
+   * floor beneath, which is the property a capture wants to assert. */
   window.__surface = (x, z, fromY) => view.height(x, z, fromY);
   /* The ground's material name at a point, the one the crash model uses. */
   window.__surfaceMaterial = (x, z, y) => {
@@ -19984,22 +19983,12 @@ export async function boot({
 }
 
 /*
- * There is no boot() call here, and there has not been a working one for a
- * long time.
- *
- * This file used to end with `boot().catch(...)`, called with no argument.
- * boot() destructures its argument, so that threw a TypeError on every
- * single load, and the catch appended a banner reading "The simulator could
- * not start." to #ui. Nobody ever saw it, because boot.js calls
- * main.boot({...}) a moment later and Ui.build() clears #ui before the next
- * paint. A load that failed every time and was hidden by the timing of an
- * unrelated line is worse than one that fails visibly: any change to how the
- * Ui handles its root would have put a false failure banner on the front
- * page.
- *
- * boot.js owns the entry point. It passes the loading screen, the boot
- * timestamp and the map id, and it routes a rejection to loading.fail(),
- * which is the screen that can actually say what went wrong and what to do
- * about it.
+ * Importing this module starts nothing; do not add a boot() call down here.
+ * src/boot.js is the one entry point: it loads the strings, imports this
+ * file, calls boot() with the loading screen, the page's start time and the
+ * map to seat, and hands any rejection to loading.fail(), the only screen
+ * able to tell the pilot what broke. A second call from here would run
+ * without those arguments and fail on every load, and whatever it printed
+ * would race the real boot for the page.
  */
 
