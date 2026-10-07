@@ -1,0 +1,21 @@
+<!--
+  The stick ghosts and the air slider (src/ui/widgets.js makeGimbal, makeWeightSlider) as setStickOverlay, setAirSlider and paintAir in src/ui/overlay.js leave them.
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="osd" style=""><div class="osd-sticks"><div class="osd-gimbal"><div class="osd-gimbal-plate"><div class="osd-cross-x"></div><div class="osd-cross-y"></div><div class="osd-nub" style="left: 60%; top: 30%;"></div></div><div class="osd-gimbal-cap">Yaw, throttle</div></div><div class="osd-air"><div class="osd-air-hint" hidden=""><p class="osd-air-hint-title">Weight</p><p class="osd-air-hint-body">Drag this if the aircraft feels floaty or too heavy. Right makes it heavier, so it drops when you chop the throttle and stops hanging at the top of a jump. Left makes it lighter and it floats. Hover moves up and down the stick with it, which is most of what you will feel.</p><button class="osd-air-hint-btn" type="button">Got it</button></div><div class="osd-air-row"><span class="osd-air-end">Floaty</span><input type="range" class="row-range osd-air-range" min="60" max="140" step="5" aria-label="Weight, how heavy the quad feels" tabindex="-1"><span class="osd-air-end">Sinky</span></div><div class="osd-air-cap">Weight 150%</div></div><div class="osd-gimbal"><div class="osd-gimbal-plate"><div class="osd-cross-x"></div><div class="osd-cross-y"></div><div class="osd-nub" style="left: 75%; top: 35%;"></div></div><div class="osd-gimbal-cap">Roll, pitch</div></div></div></div>

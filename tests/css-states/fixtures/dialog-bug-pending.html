@@ -1,0 +1,21 @@
+<!--
+  The dialog overlay (src/ui/dialogs.js askForm, askConfirm, askBugReport with its shot tray from src/ui/bugshots.js, askFeelReport).
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="name-dialog" aria-modal="true" role="dialog"><div class="name-dialog-box bug"><h2>Report a bug</h2><p class="lede">Title and what happened are enough. The map, graphics, GPU and browser go with the ticket so you do not have to type those.</p><button class="name-dialog-door" type="button">Just here to say how it flies? Give flight feel feedback instead.</button><p class="name-dialog-label">Kind</p><select class="name-dialog-input"><option value="crash">Crash or freeze</option><option value="blocking">Cannot play</option><option value="wrong">Wrong behaviour</option><option value="visual">Looks wrong</option><option value="feel">Flight feel</option><option value="other">Other</option></select><p class="name-dialog-label">Title</p><input class="name-dialog-input" type="text" maxlength="120" placeholder="Short, specific" autocomplete="off"><p class="name-dialog-label">What happened</p><textarea class="name-dialog-input name-dialog-area" maxlength="4000" rows="4" placeholder="What you saw, heard, or could not do."></textarea><p class="name-dialog-label">What you expected (optional)</p><textarea class="name-dialog-input name-dialog-area" maxlength="2000" rows="2"></textarea><p class="name-dialog-label">How to reproduce (optional)</p><textarea class="name-dialog-input name-dialog-area" maxlength="2000" rows="2"></textarea><p class="name-dialog-label">Screenshots (optional)</p><div class="shot-tray"><div class="shot-drop over" tabindex="0" role="button"><span class="shot-drop-text">Click here and press Ctrl+V to paste a screenshot, or drop one on this form.</span><button class="shot-pick" type="button">Choose a file</button></div><input type="file" accept="image/*" multiple="" hidden=""><div class="shot-chips"><span class="shot-chip pending"><img class="shot-thumb" alt=""><span class="shot-label">[Image 1]</span><button class="shot-x" type="button" title="Remove image 1" aria-label="Remove image 1">×</button></span></div><p class="shot-err"></p></div><p class="name-dialog-label">Your name (optional)</p><input class="name-dialog-input" type="text" maxlength="24" autocomplete="nickname" placeholder="Leave blank to stay Anonymous"><p class="name-dialog-err"></p><div class="name-dialog-row"><button class="name-dialog-btn on" type="button">Send</button><button class="name-dialog-btn" type="button">Cancel</button></div></div></div>

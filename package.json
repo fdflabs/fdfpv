@@ -35,6 +35,8 @@
     "lint:shell": "node scripts/shell-check.js",
     "ui:golden": "node scripts/ui-golden.js",
     "css:golden": "node scripts/css-golden.js",
+    "css:states": "node scripts/css-states-golden.js",
+    "css:states:capture": "node scripts/css-states-capture.js",
     "ui:domgolden": "node scripts/shell-dom-golden.js",
     "settings:golden": "node scripts/settings-golden.js",
     "rows:golden": "node scripts/rows-golden.js",
