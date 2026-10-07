@@ -119,6 +119,7 @@
     "collide:golden": "node scripts/collide-golden.js",
     "collide-state:selftest": "node scripts/collide-state-selftest.js",
     "crash:core": "node scripts/crash-core-selftest.js",
+    "damage:selftest": "node scripts/damage-selftest.js",
     "crash:handoff": "node scripts/solid-handoff-check.js",
     "crash:identity": "node scripts/crash-identity.js",
     "boost:check": "node scripts/boost-check.js",

@@ -42,7 +42,7 @@ the plant's damage flags (configs/parts.js `DAMAGE_FLAGS`):
 | `operational` | no damage flag |
 
 `damagedPart(flags)` names the worst impairing flag for the OSD word, in a
-fixed order (camera lost, arm bent, antenna lost, prop chipped, ...).
+fixed order, worst first (battery, wing, tail, arm, motor, prop, camera, ...).
 
 The shell's `crashSummary()` (the dev hook the checks read) gains
 `condition`. The debrief lane reads the same function on the run's final
