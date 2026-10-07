@@ -86,7 +86,7 @@ import { CAMP_PROPS } from '../src/share/interior/places.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
-  NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
+  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
 } from '../src/share/ops/guide.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -665,15 +665,38 @@ console.log('guide: when a nudge is due, and what it says');
   const n = createNudger();
   n.progress('a', 0);
   n.spoke(0);
-  check(`no nudge before ${NUDGE_IDLE_MS / 1000} s of no progress`, !n.due(NUDGE_IDLE_MS - 1, false) && n.due(NUDGE_IDLE_MS, false));
+  check(`no nudge before ${NUDGE_IDLE_MS / 1000} s of no progress`, !n.due(NUDGE_IDLE_MS - 1) && n.due(NUDGE_IDLE_MS));
   n.nudged(NUDGE_IDLE_MS);
-  check('the next waits longer while nothing changes', !n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS, false) && n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS * 1.5, false));
+  check('the next waits longer while nothing changes', !n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS) && n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS * 1.5));
   n.progress('b', 50000);
-  check('progress resets the idle clock and the gap', !n.due(60000, false) && n.due(70000, false));
-  const far = createNudger();
-  far.progress('a', 0);
-  far.spoke(0);
-  check('far from the objective: due once the gap has passed, progress or not', far.due(NUDGE_GAP_MS, true) && !far.due(NUDGE_GAP_MS - 1, true));
+  check('progress resets the idle clock and the gap', !n.due(60000) && n.due(70000));
+  /* On the way: 2.4 km out, straight at it at 20 m/s, nothing else
+   * changing. Every CLOSE_M nearer is progress, so nothing is said until
+   * the pilot stops closing. */
+  const leg = createNudger();
+  leg.progress('a', 0, 2400);
+  leg.spoke(0);
+  const saidOnTheWay = [];
+  let t = 0;
+  for (; t <= 120000; t += 250) {
+    leg.progress('a', t, 2400 - (20 * t) / 1000);
+    if (leg.due(t)) {
+      saidOnTheWay.push(t);
+      leg.nudged(t);
+    }
+  }
+  check('closing on the objective is progress: no nudge on a two minute leg straight at it', saidOnTheWay.length === 0, JSON.stringify(saidOnTheWay));
+  for (; t <= 120000 + NUDGE_IDLE_MS; t += 250) {
+    leg.progress('a', t, 0);
+  }
+  check(`then holding there, a nudge after ${NUDGE_IDLE_MS / 1000} s`, leg.due(t));
+  const drift = createNudger();
+  drift.progress('a', 0, 2000);
+  drift.spoke(0);
+  for (let u = 0; u <= NUDGE_IDLE_MS; u += 250) {
+    drift.progress('a', u, 2000 + (10 * u) / 1000);
+  }
+  check(`flying away is not progress: due after ${NUDGE_IDLE_MS / 1000} s (CLOSE_M ${CLOSE_M} m)`, drift.due(NUDGE_IDLE_MS));
   check('the clock bearing off the nose: ahead 12, right 3, behind 6, left 9', clockOf([0, 0], [0, 100], 0) === 12 && clockOf([0, 0], [100, 0], 0) === 3
     && clockOf([0, 0], [0, -100], 0) === 6 && clockOf([0, 0], [-100, 0], 0) === 9 && clockOf([0, 0], [100, 0], Math.PI / 2) === 12);
   check('the distance band', distLine(400) === 'int-g-dist-500' && distLine(1200) === 'int-g-dist-1k' && distLine(2200) === 'int-g-dist-2k' && distLine(9000) === 'int-g-dist-far');
