@@ -1,29 +1,28 @@
 <!doctype html>
 <!--
-  index.html: where the track builder's page was, forwarding to Track mode.
+  index.html: the old track builder address, now a forward to Track mode.
 
-  Tracks are built inside the simulator now, in the world they are raced
-  in, so the separate builder page is gone. The board still links here:
-  Build a track, and a card's remix link with ?share= and ?board=. Those
-  links are deployed, so this address forwards them to the simulator's
-  Track mode rather than to a 404, carrying the track, the board and the
-  language. A track drawn for the old race field is refused there, with
-  the reason.
+  The builder lives inside the simulator, in the world each track is raced
+  in. The board's deployed links still point here (Build a track, and a
+  card's remix link carrying ?share= and ?board=), so this page sends them
+  on to Track mode with the track, the board and the language intact. A
+  track drawn for the retired race field is refused there, with a reason.
+  The meta refresh covers a browser with scripts off, without the extras.
 
-  This file is part of WebFPVSimulator.
+  This file is part of the Paraguayan Drone Combat Simulator.
 
-  WebFPVSimulator is free software: you can redistribute it and/or modify
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or (at
   your option) any later version.
 
-  WebFPVSimulator is distributed in the hope that it will be useful, but
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY, without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
   General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
 -->
 <html lang="en">
   <head>
@@ -32,14 +31,17 @@
     <link rel="icon" href="../../favicon.ico" sizes="any" />
     <meta http-equiv="refresh" content="0; url=../../index.html?map=track" />
     <script>
-      const from = new URLSearchParams(window.location.search);
-      const to = new URLSearchParams({ map: 'track' });
-      for (const key of ['share', 'board', 'lang']) {
-        if (from.get(key)) {
-          to.set(key, from.get(key));
+      (() => {
+        const incoming = new URLSearchParams(window.location.search);
+        const carried = [['map', 'track']];
+        for (const name of ['share', 'board', 'lang']) {
+          const value = incoming.get(name);
+          if (value) {
+            carried.push([name, value]);
+          }
         }
-      }
-      window.location.replace(`../../index.html?${to}`);
+        window.location.replace(`../../index.html?${new URLSearchParams(carried)}`);
+      })();
     </script>
   </head>
 </html>

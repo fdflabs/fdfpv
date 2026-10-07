@@ -69,8 +69,12 @@ const FAR_HALF_MAX = 2500;
 const FAR_NORMAL_BIAS = 0.6;
 /* The air's extinction as a share of Itaipu's morning's (round 1A: at
  * 0.55 the survey views were washed grey; the reference aerials show the
- * fields' colour and the tracks five kilometres off). */
-const AIR_THIN = 0.2;
+ * fields' colour and the tracks five kilometres off). Round 6 raised it
+ * from 0.2, at which the land at 20 km was as clear as at 5 and the
+ * horizon a hard line: with the haze blue (LIGHT) the veil reads as
+ * air, the far land going bluish and lighter before it goes, as the
+ * aerials' does. */
+const AIR_THIN = 0.3;
 
 /*
  * THE LIGHT BY THE SUN'S HEIGHT: rows by the sine of its elevation, each
@@ -96,7 +100,11 @@ const AIR_THIN = 0.2;
  *
  * The 22 degree row's haze is a little under round 1A's lightness (0.42
  * against 0.47; that round's survey views gained from the haze's being
- * lighter than round 0's), and its shade is lit at 0.8 of the sky where
+ * lighter than round 0's). Round 6 turned it from a neutral grey to a
+ * blue grey at the same luminance: the neutral haze, warmed by the
+ * grade's middle tones, printed the sky and the horizon beige, and the
+ * far land faded into that beige as fog; the reference aerials' far
+ * land goes bluish and lighter, into a pale blue horizon. Its shade is lit at 0.8 of the sky where
  * Itaipu's is at 0.55: round 2's light printed the camp's shaded clearing
  * (low-camp) at sRGB (9, 17, 25), this table with the bounce at (21, 19,
  * 20), still darker than the mock's (56, 46, 38).
@@ -119,10 +127,10 @@ const LIGHT = [
     sin: 0.174, sun: C(1.0, 0.5, 0.2), irradiance: 2.9, zenith: C(0.02, 0.07, 0.24), haze: C(0.42, 0.32, 0.24), mie: 1.5, env: 1, exposure: 1.3, key: 0.08, contrast: 0.78, grade: 1,
   },
   {
-    sin: 0.375, sun: C(1.0, 0.62, 0.32), irradiance: 3.4, zenith: C(0.028, 0.1, 0.32), haze: C(0.41, 0.42, 0.44), mie: 2.2, env: 0.8, exposure: 1.15, key: 0.085, contrast: 0.75, grade: 1,
+    sin: 0.375, sun: C(1.0, 0.62, 0.32), irradiance: 3.4, zenith: C(0.028, 0.1, 0.32), haze: C(0.37, 0.425, 0.5), mie: 2.2, env: 0.8, exposure: 1.15, key: 0.085, contrast: 0.75, grade: 1,
   },
   {
-    sin: 0.643, sun: C(1.0, 0.9, 0.76), irradiance: 3.4, zenith: C(0.035, 0.15, 0.43), haze: C(0.45, 0.47, 0.5), mie: 0.5, env: 0.55, exposure: 1.15, key: 0.125, contrast: 0.85, grade: 0,
+    sin: 0.643, sun: C(1.0, 0.9, 0.76), irradiance: 3.4, zenith: C(0.035, 0.15, 0.43), haze: C(0.39, 0.46, 0.56), mie: 0.5, env: 0.55, exposure: 1.15, key: 0.125, contrast: 0.85, grade: 0,
   },
 ];
 /* The light the sunlit ground and crowns throw back, a hemisphere light
@@ -159,7 +167,11 @@ function lightAt(sinEl, out) {
  * uGrade. A warm sun alone leaves the lit crowns olive after AgX, which
  * takes saturation out as a value climbs; the mocks' lit leaves and earth
  * are a saturated gold. Warming the highlights as well printed the sky
- * and the cloud cream. One full screen pass, a texture read and a few
+ * and the cloud cream, and warming the middle tones warmed the horizon
+ * band and the far haze too (a survey view's sky sits at lightness 0.5),
+ * so the warmth leaves a pixel alone where blue leads red: the sky, the
+ * haze and the water's sheen keep the air's colour, the lit earth and
+ * crowns take the gold. One full screen pass, a texture read and a few
  * multiplies.
  */
 const GRADE = {
@@ -182,7 +194,8 @@ const GRADE = {
       vec3 c = texture2D(tDiffuse, vUv).rgb;
       float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
       float mid = smoothstep(0.12, 0.45, l) * (1.0 - smoothstep(0.55, 0.9, l));
-      vec3 tone = mix(vec3(0.97, 1.0, 1.03), vec3(1.06, 1.0, 0.86), mid);
+      float warm = mid * (1.0 - smoothstep(0.0, 0.05, c.b - c.r));
+      vec3 tone = mix(vec3(0.97, 1.0, 1.03), vec3(1.06, 1.0, 0.86), warm);
       vec3 g = mix(vec3(l), c, 1.0 + 0.12 * uGrade) * mix(vec3(1.0), tone, uGrade);
       gl_FragColor = vec4(clamp(g, 0.0, 1.0), 1.0);
     }

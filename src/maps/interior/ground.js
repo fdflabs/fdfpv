@@ -103,6 +103,23 @@ float inRows(float s, float p, float fp) {
   float fade = 1.0 - smoothstep(0.2 * p, 0.55 * p, fp);
   return fade > 0.0 ? sin(s * 6.2831853 / p) * fade : 0.0;
 }
+/* The same rows as the planter leaves them: their line bent a little by
+ * a slow noise, and coming and going over a few metres where the earth
+ * is cloddy or the crop has closed, so no field is a perfect ruled
+ * sheet (round 5's zooms were). */
+float inRowsWorn(float s, float p, float fp, vec2 w) {
+  float bent = s + (inTex(w, 6.0, 0.23).r - 0.5) * p * 1.6;
+  float keep = smoothstep(0.25, 0.7, inFbm(w + 97.0, 3.5));
+  return inRows(bent, p, fp) * (0.2 + 0.8 * keep) * 0.7;
+}
+/* The ground at a zoom's scale, between the clumps at a metre and the
+ * patches at tens of metres: worn bare patches, clods and the damp's
+ * darker hollows at 2 to 8 m, as a ratio round 1, fully there under a
+ * metre a pixel and faded, never gone, by 8 m. */
+float inMottle(vec2 w, float fp) {
+  float n = inFbm(w + 31.0, 7.0);
+  return 1.0 + (n - 0.5) * 0.7 * (1.0 - 0.6 * smoothstep(1.0, 8.0, fp));
+}
 /* How much of a pixel of footprint fp a band of half width hw centred
  * at distance 0 covers, at distance d from its centre line. */
 float inBand(float d, float hw, float fp) {
@@ -126,6 +143,8 @@ struct InField {
   float end;    /* the hash of the nearer end edge */
   float wide;   /* the strip's width */
   vec2 centre;  /* the field's middle, world xz */
+  float tu;     /* metres across to the field's own track along it */
+  float track;  /* whether the field has a track, 0 or 1 */
 };
 
 InField inFarm(vec2 w) {
@@ -194,6 +213,8 @@ InField inFarm(vec2 w) {
   f.side = inHash(bid * 7.0 + vec2(col + (fu < 0.5 ? 0.0 : spanU), 9.5));
   f.end = inHash(bid * 7.0 + vec2(col, row + (fv < 0.5 ? 0.0 : spanV)) + 0.5);
   f.wide = W * spanU;
+  f.tu = (fu - (0.2 + 0.6 * inHash(f.id + 83.0))) * W * spanU;
+  f.track = inHash(f.id + 89.0) < 0.35 ? 1.0 : 0.0;
   vec2 cuv = vec2((col + 0.5 * spanU) * W, (row + 0.5 * spanV) * L - inHash(vec2(col, 1.5) + bid * 13.0) * L) - inHash(bid + 5.0) * 977.0;
   f.centre = nu * cuv.x + nv * cuv.y;
   return f;
@@ -220,8 +241,8 @@ const vec3 IN_TRAIL = vec3(0.17, 0.115, 0.075);
  * neither at that scale, so each field was one flat colour at range.
  */
 float inPatches(InField f, vec2 w) {
-  float k = 0.12 + 0.2 * inHash(f.id + 41.0);
-  float n = inFbm(w + f.id * 3.7, 150.0) * 0.65 + inFbm(w, 55.0) * 0.35;
+  float k = 0.16 + 0.24 * inHash(f.id + 41.0);
+  float n = inFbm(w + f.id * 3.7, 150.0) * 0.5 + inFbm(w, 55.0) * 0.3 + inFbm(w + 53.0, 20.0) * 0.2;
   return 1.0 + (n - 0.5) * 2.0 * k;
 }
 
@@ -239,6 +260,16 @@ float inTerraces(InField f, vec2 w) {
   return line * (1.0 - smoothstep(0.08, 0.3, dq));
 }
 
+/* The farm's own track across a field, along it from gate to gate,
+ * packed pale by the pickup and the tractor, in a field now and then:
+ * the lines the reference aerials show crossing their fields. */
+vec3 inFieldTrack(vec3 col, InField f, float fp) {
+  if (f.track < 0.5) { return col; }
+  float d = f.tu + (inTex(vec2(f.uv.y, 1.0), 40.0, 0.33).g - 0.5) * 4.0;
+  col = mix(col, IN_DUST * 1.0, inBand(d, 3.5, fp) * 0.45);
+  return mix(col, IN_DUST * 1.2, inBand(d, 1.6, fp) * 0.85);
+}
+
 /* Cropland: what the field is this week of the dry season's end, and the
  * rows across it. */
 vec3 inCrop(InField f, vec2 w, float fp) {
@@ -247,7 +278,7 @@ vec3 inCrop(InField f, vec2 w, float fp) {
   bool head = f.ev < 14.0;
   float s = head ? f.uv.y : f.uv.x;
   float pass = inRows(s, 11.0, fp);
-  float rows = inRows(s, 0.76, fp);
+  float rows = inRowsWorn(s, 0.76, fp, w);
   float swath = inRows(s + inHash(f.id + 8.0) * 30.0, 30.0, fp) * smoothstep(0.3, 0.7, inFbm(w + 211.0, 70.0));
   float moist = inFbm(w, 31.0);
   vec3 col;
@@ -274,8 +305,9 @@ vec3 inCrop(InField f, vec2 w, float fp) {
     vec3 dry = vec3(0.13, 0.112, 0.068);
     col = mix(green, dry, inHash(f.id + 4.0)) * (0.9 + 0.15 * moist) * (1.0 + 0.06 * pass + 0.12 * rows + 0.05 * swath);
   }
-  col *= inPatches(f, w);
+  col *= inPatches(f, w) * inMottle(w, fp);
   col = mix(col, IN_EARTH * 0.85, inTerraces(f, w) * 0.45);
+  col = inFieldTrack(col, f, fp);
   return col;
 }
 
@@ -288,7 +320,16 @@ vec3 inPasture(InField f, vec2 w, float fp) {
   float big = inFbm(w, 47.0);
   vec3 col = mix(green, straw, clamp(h * 1.1 - 0.15 + (big - 0.5) * 1.1, 0.0, 1.0));
   col *= 0.88 + 0.24 * inTex(w, 3.1, 0.41).b;
-  col *= inPatches(f, w);
+  col *= inPatches(f, w) * inMottle(w, fp);
+  /* Tufts and scrub: the tussocks the cattle leave, darker and greener,
+   * a metre or two across, and the bare trodden earth between where the
+   * grazing is hard; both fade as a pixel grows past them. */
+  float tuft = smoothstep(0.55, 0.75, inTex(w, 1.6, 0.67).r * 0.7 + inTex(w, 0.6, 0.13).g * 0.3);
+  float fine = 1.0 - smoothstep(0.8, 4.0, fp);
+  col = mix(col, green * 0.8, tuft * 0.5 * fine);
+  float bare = smoothstep(0.62, 0.8, inFbm(w + 7.0, 4.0)) * smoothstep(0.3, 0.8, h);
+  col = mix(col, IN_TRAIL * 0.9, bare * 0.6 * (1.0 - 0.5 * smoothstep(2.0, 10.0, fp)));
+  col = inFieldTrack(col, f, fp);
   /* Tracks: contour lines of a slow noise, a metre wide. */
   float n = inTex(w, 70.0, 0.27).r * 0.65 + inTex(w, 23.0, 0.83).g * 0.35;
   float grad = max(fwidth(n) / max(fp, 0.01), 2e-4);
@@ -327,6 +368,27 @@ vec3 inForest(vec2 w, float fp) {
   return mix(col, vec3(0.055, 0.07, 0.026) * (0.85 + 0.3 * patchy), smoothstep(6.0, 20.0, fp));
 }
 
+/* A yard: earth trodden bare round the house and the gate, the grass
+ * worn to patches between, the paths across it packed paler, a scrap of
+ * litter now and then. Round 5's yards were one flat colour. */
+vec3 inYard(vec2 w, float fp) {
+  vec3 earth = ${v3(CLASS[LAND.built].col)};
+  vec3 grass = vec3(0.075, 0.088, 0.04);
+  float worn = inFbm(w + 13.0, 5.0) * 0.6 + inFbm(w, 1.4) * 0.4;
+  vec3 col = mix(grass, earth, smoothstep(0.35, 0.6, worn));
+  col *= 0.86 + 0.28 * inTex(w, 2.2, 0.49).b;
+  float n = inTex(w, 9.0, 0.37).r;
+  float grad = max(fwidth(n) / max(fp, 0.01), 2e-4);
+  float path = inBand((n - 0.5) / grad, 0.6, fp);
+  col = mix(col, IN_DUST * 1.05, path * 0.6);
+  vec2 lc = floor(w / 2.5);
+  if (inHash(lc + 43.0) > 0.93) {
+    vec2 lp = (lc + 0.2 + 0.6 * vec2(inHash(lc + 1.0), inHash(lc + 4.0))) * 2.5;
+    col = mix(col, vec3(0.2, 0.19, 0.17), inBand(length(w - lp), 0.2, fp) * 0.7);
+  }
+  return col * inMottle(w, fp);
+}
+
 bool inIsFarm(uint k) {
   return k == ${LAND.crop}u || k == ${LAND.pasture}u;
 }
@@ -334,6 +396,7 @@ vec3 inClass(uint k, vec3 farm, vec2 w, float fp) {
   if (inIsFarm(k)) { return farm; }
   if (k == ${LAND.forest}u) { return inForest(w, fp); }
   if (k == ${LAND.burned}u) { return ${v3(CLASS[LAND.burned].col)} * (0.7 + 0.6 * inFbm(w, 6.0)); }
+  if (k == ${LAND.built}u) { return inYard(w, fp); }
   ${CLASS.map((c, k) => `if (k == ${k}u) { return ${v3(c.col)}; }`).join('\n  ')}
   return vec3(0.08);
 }
@@ -384,7 +447,12 @@ vec3 inEdge(vec3 col, float d, vec2 n, float h, float fp, float isField, inout f
     col = mix(col, IN_DUST * 1.15, inBand(d, 3.0, fp));
     col = mix(col, IN_EARTH * 1.1, inBand(abs(d) - 1.0, 0.3, fp) * 0.6);
   } else {
-    col = mix(col, vec3(0.06, 0.075, 0.032), inBand(d, 1.2, fp) * 0.6);
+    /* A fence's strip of uncut grass: at a survey's footprint inBand
+     * still covers a whole pixel, which ruled every field with a dark
+     * line, so past a couple of metres a pixel it fades to a faint
+     * tonal edge. */
+    float far = 1.0 - 0.75 * smoothstep(1.5, 6.0, fp);
+    col = mix(col, vec3(0.06, 0.075, 0.032), inBand(d, 1.2, fp) * 0.6 * far);
   }
   return col;
 }
