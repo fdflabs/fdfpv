@@ -7668,7 +7668,7 @@
    "__gateTiers().gates[3].ring": "s:#ffd45c",
    "__gateTiers().gates[3].sceneIndex": "n:3",
    "__gateTiers().gates[3].tier": "s:dark",
-   "__gateTiers().gates[3].virtual": "b:false",
+   "__gateTiers().gates[3].virtual": "b:true",
    "__gateTiers().gates[3].wrong": "null",
    "__gateTiers().next": "n:0",
    "__ghost().armed": "b:false",
