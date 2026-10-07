@@ -16128,6 +16128,7 @@ export async function boot({
     prevWall = nowWall;
     roomPoseMap = null;
     fps = fps * 0.95 + (dt > 0 ? 1000 / dt : 0) * 0.05;
+    let frameSteps = 0;
 
     /*
      * The site's counters, once a frame, reading state this loop already
@@ -16566,6 +16567,7 @@ export async function boot({
         if (!faulted) {
           simStepIdx += steps;
         }
+        frameSteps = steps;
         /* The pilot's flight time: the steps the plant just took, if they
          * were flight (src/share/flighttime.js stepsAreFlight). */
         flightClockFlew = stepsAreFlight({
@@ -16933,7 +16935,7 @@ export async function boot({
        * the watch is a duration, and while it counted frame deltas a
        * stutter aged it as fast as real time did: a machine that dropped
        * to 8 fps could confirm a 180 ms clip in two frames of a craft that
-       * had barely moved. simStepMs is the milliseconds the plant
+       * had barely moved. frameSteps is the milliseconds the plant
        * actually advanced, which is what those thresholds meant all along.
        * On a perch or a turtle the plant is frozen but the lap clock still
        * runs, and simTimeMs advances with it, so this stays honest there
