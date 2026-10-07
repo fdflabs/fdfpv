@@ -269,11 +269,15 @@ function readKey(key) {
   }
 }
 
+/* Whether the profile was stored: a caller that reads it back can skip
+ * that when the write was refused. */
 export function saveSettings(s) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    return true;
   } catch (e) {
     /* Not kept; the next visit loads the defaults. */
+    return false;
   }
 }
 
