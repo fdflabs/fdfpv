@@ -13649,11 +13649,6 @@ export async function boot({
     }
   }
 
-  /* The banner's line for a moment: ms of wall time, then the HUD's own
-   * messages again. */
-  const flashNotice = (text, ms) => {
-    notice = { text, untilMs: performance.now() + ms };
-  };
   ui.onFcOpen = (page) => {
     /* Off the ground in a flight, paused or not, the FC screen offers a
      * restart with its Save (src/ui/fc.js runActive). */
