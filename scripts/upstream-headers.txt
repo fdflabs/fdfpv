@@ -10,8 +10,6 @@ index.html
 render.yaml
 scripts/attract-check.js
 scripts/board-check.js
-scripts/build-selftest.js
-scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
 scripts/gatecards.js
