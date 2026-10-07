@@ -14033,11 +14033,11 @@ export async function boot({
   };
 
   function leavePadPick() {
-    const dest = padPickReturn || 'title';
+    const dest = padPickReturn;
     if (dest === 'paused') {
       mode = 'paused';
     }
-    ui.show(dest === 'flight' ? 'paused' : dest);
+    ui.show(dest);
     const sum = input.padSummary();
     ui.setPadInfo(sum);
     /* Read only: input.js owns the result now (a getter over the roster,
@@ -14070,8 +14070,6 @@ export async function boot({
     if (mode === 'flight' || ui.screen === 'flight') {
       mode = 'paused';
       padPickReturn = 'paused';
-    } else if (ui.screen === 'padpick') {
-      padPickReturn = 'title';
     } else {
       padPickReturn = ui.screen || 'title';
     }
