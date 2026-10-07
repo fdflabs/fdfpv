@@ -13683,6 +13683,11 @@ export async function boot({
     }
   }
 
+  /* The banner's line for a moment: ms of wall time, then the HUD's own
+   * messages again. */
+  const flashNotice = (text, ms) => {
+    notice = { text, untilMs: performance.now() + ms };
+  };
   function isRunActive() {
     return (mode === 'flight' || mode === 'paused') && !landed;
   }
@@ -14024,33 +14029,42 @@ export async function boot({
       }
     });
   };
-  /* Menu clicks. The key handler has already woken the audio context by
-   * the time the menu moves, so the first keypress is audible too. */
+  /* The menu's own clicks and ticks. The audio module ships on its own
+   * schedule, so a build without ui() stays silent rather than throwing. */
   ui.onUiSound = (kind) => {
     if (typeof audio.ui === 'function') {
       audio.ui(kind);
     }
   };
 
+  /*
+   * THE JOYSTICK PICKER (src/input/padpick.js) as a screen. It remembers
+   * where the pilot came from and puts them back there; a run that was in
+   * the air comes back paused rather than live, because the device under
+   * the pilot's thumbs may have just changed.
+   */
+  const PICK_OUTCOME = new Map([
+    ['accepted', (summary) => [str('main.flying_with', { using: summary.using }), 2800]],
+    ['skipped', () => [str('main.keyboard_sticks_choose_joystick_in_settings'), 3200]],
+  ]);
   function leavePadPick() {
-    const dest = padPickReturn;
-    if (dest === 'paused') {
+    if (padPickReturn === 'paused') {
       mode = 'paused';
     }
-    ui.show(dest);
-    const sum = input.padSummary();
-    ui.setPadInfo(sum);
-    /* Read only: input.js owns the result now (a getter over the roster,
-     * cleared when the next pick starts), and writing it throws. */
-    const result = input.padPickResult;
-    if (result === 'accepted') {
-      notice = { text: str('main.flying_with', { using: sum.using }), untilMs: performance.now() + 2800 };
-    } else if (result === 'skipped') {
-      notice = { text: str('main.keyboard_sticks_choose_joystick_in_settings'), untilMs: performance.now() + 3200 };
+    ui.show(padPickReturn);
+    const summary = input.padSummary();
+    ui.setPadInfo(summary);
+    /* Read only: the roster owns the outcome and clears it when the next
+     * pick starts. */
+    const outcome = PICK_OUTCOME.get(input.padPickResult);
+    if (outcome) {
+      flashNotice(...outcome(summary));
     }
   }
 
   function openPadPick(reason) {
+    /* A name being typed owns the keyboard; input.js holds the pick until
+     * the dialog closes and the frame loop asks again. */
     if (ui.nameDialog && !ui.nameDialog.hidden) {
       input.requestPadPick(reason);
       return;
@@ -14059,35 +14073,33 @@ export async function boot({
       return;
     }
     if (!input.startPadPick(reason)) {
+      /* Only a pilot who chose the row is told. The picks the roster
+       * queues by itself, at boot or on a hotplug, stay quiet. */
       if (reason === 'menu') {
-        notice = { text: str('main.no_radio_or_gamepad_found_plug'), untilMs: performance.now() + 3200 };
+        flashNotice(str('main.no_radio_or_gamepad_found_plug'), 3200);
       }
       return;
     }
     if (ui.screen === 'calibrate') {
       input.cancelCalibration();
     }
-    if (mode === 'flight' || ui.screen === 'flight') {
+    const fromRun = mode === 'flight' || ui.screen === 'flight';
+    if (fromRun) {
       mode = 'paused';
-      padPickReturn = 'paused';
-    } else {
-      padPickReturn = ui.screen || 'title';
     }
+    padPickReturn = fromRun ? 'paused' : ui.screen || 'title';
     ui.show('padpick');
   }
 
   /*
-   * A ghost armed from the in-game standings screen.
-   *
-   * It parks the time id exactly where a ?ghost= chase link parks it, so
-   * one code path arms both: the lap is downloaded when the seated track's
-   * times are read, which the seat change is about to trigger anyway.
+   * A standings row's ghost is armed the way a ?ghost= link arms one: the
+   * time id waits in ghostQueryId, and the lap downloads when the seated
+   * track's times are read, which the seat change does next anyway.
    */
   ui.onStandingsGhost = (track, time) => {
-    if (!time || !time.id) {
-      return;
+    if (time && time.id) {
+      ghostQueryId = time.id;
     }
-    ghostQueryId = time.id;
   };
 
   /* The optional Google sign-in's dialogs and progress sync
@@ -14102,6 +14114,243 @@ export async function boot({
   /* One sync now, resolving to whether it changed anything here, for
    * scripts/account-browser-check.js, which cannot wait out the minute. */
   window.__accountSync = () => accountUi.sync();
+  /*
+   * Fly and Restart start a run the same way once the loaded config is the
+   * current one: a tune still being fetched would sim_init underneath a run
+   * whose clock had already started.
+   */
+  function startRun(action) {
+    /* A room race this pilot has finished is over for them: flying on
+     * is flying alone. */
+    if (roomRun() && roomRace.done()) {
+      roomRaceRunId = null;
+    }
+    whenConfigReady(() => {
+      reset();
+      mode = 'flight';
+      /* Fly from the title: reset() ran with the title still up, where it
+       * parks the craft rather than air start it, so a published map
+       * track whose start gate hangs in the air started on the ground
+       * under it. A restart from the pause menu has already had its air
+       * start, and its countdown is running. */
+      const sp = runSpawn();
+      if (sp && sp.air && !(airHoldMs > 0)) {
+        airStart(sp.air.y);
+      }
+      ui.show('flight');
+      /*
+       * The pad shot plays on Fly only, where the pilot first sees the
+       * aircraft. A restart skips it, through the menu as through R, since
+       * a racer restarts many times an hour and a phone has only the menu.
+       * A war skips it too: its film was the introduction, and the shot's
+       * radii are a quad's, so round a Striker it sat inside the fuselage
+       * for the first four seconds of the countdown.
+       */
+      introMs = action === 'restart' || roomWar.on() ? -1 : 0;
+    });
+  }
+
+  function resumeRun() {
+    whenConfigReady(() => {
+      /* Back into a turtle wait or a flip, the sticks must recentre
+       * before they count, or a stick still held from before the pause
+       * starts a flip the moment the run resumes. */
+      if (turtleWait || turtleFlip.active) {
+        turtleResumeGate = true;
+      }
+      mode = 'flight';
+      ui.show('flight');
+    });
+  }
+
+  function quitToTitle() {
+    /* A builder session ends with the run: its test course comes off the
+     * view, and the world goes back to following the seat. A seated
+     * track's race (build.racing) is the seat's and stays. */
+    if (build && build.active && !build.racing) {
+      build.exit(false);
+    }
+    buildWorld = null;
+    roomRaceRetire();
+    mode = 'title';
+    /* Not while a world swap is in flight: the old world is already
+     * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
+     * swap resets the run on the world it brings. Leave goes to the title
+     * at once now, so a Leave during a swap reached this. */
+    if (!swapInFlight) {
+      reset();
+    }
+    /* Now, not on the next frame: a choice made on the title before a
+     * frame has run must meet the world as the seat has it. */
+    if (worldHold) {
+      releaseWorldHold();
+    }
+  }
+
+  const sayNoRadio = () => flashNotice(str('main.no_radio_or_gamepad_found_plug_2'), 3200);
+
+  /* The calibrate screen's rows. Its frame loop branch blanks the banner
+   * every frame, so the wizard's own steps say nothing here: the gimbals
+   * moving under the pilot's sticks are the answer. */
+  const CALIBRATE_ACTIONS = [
+    ['calibrate', () => {
+      if (!input.firstGamepad()) {
+        sayNoRadio();
+        return;
+      }
+      input.startCalibration();
+      ui.show('calibrate');
+    }],
+    /* The check step alone, against the saved mapping, refused the same
+     * way when nothing is plugged in: a mapping with no radio behind it
+     * has nothing to show. */
+    ['calibrate-check', () => {
+      if (!input.startCalibrationCheck()) {
+        sayNoRadio();
+        return;
+      }
+      ui.show('calibrate');
+    }],
+    ['calibrate-cancel', () => {
+      input.cancelCalibration();
+      ui.show('pilot');
+    }],
+    ['calibrate-reverse', () => input.reverseMovingChannel()],
+    /* Settings owns the stick mode (ui.cycleStickMode writes it and
+     * applySettings fans it out to every gimbal and the keyboard). */
+    ['calibrate-stick-mode', () => ui.cycleStickMode()],
+    ['calibrate-zero-throttle', () => input.zeroThrottleHere()],
+    ['calibrate-skip', () => input.skipCalibrationSelect()],
+    ['calibrate-save', () => {
+      if (!input.acceptCalibration()) {
+        return;
+      }
+      ui.show('pilot');
+      /* What storage did, not that the wizard ended: a private window or
+       * a full quota keeps the mapping for this page only (saveMap). */
+      const kept = input.calResult !== 'saved-unstored';
+      flashNotice(str(kept ? 'main.stick_mapping_saved' : 'main.mapping_live_gone_on_reload'), kept ? 2800 : 5200);
+      input.calResult = null;
+    }],
+  ];
+
+  const PAD_PICK_ACTIONS = [
+    ['choosepad', () => openPadPick('menu')],
+    ['padpick-yes', () => {
+      if (input.acceptPadPick()) {
+        leavePadPick();
+      }
+    }],
+    ['padpick-no', () => input.rejectPadPick()],
+    ['padpick-skip', () => {
+      input.skipPadPick();
+      leavePadPick();
+    }],
+    ['padpick-cancel', () => {
+      input.cancelPadPick();
+      leavePadPick();
+    }],
+  ];
+
+  function saveFlightLog() {
+    if (flightLog.count < 2) {
+      flashNotice(str('main.nothing_recorded_yet_turn_the_flight'), 3600);
+      return;
+    }
+    const rows = flightLog.count;
+    const secs = flightLog.seconds.toFixed(1);
+    downloadText(flightLogName(ui.settings.map), flightLog.csv());
+    flashNotice(str('main.flight_log_saved_rows_over_s', { rows, secs }), 3600);
+  }
+
+  async function renamePilot() {
+    const name = await ui.askName({
+      title: str('ui.your_name'),
+      detail: str('ui.posted_times_and_published_tracks_carry'),
+    });
+    if (!name) {
+      return;
+    }
+    /* The name is already kept here; this only carries it to the boards
+     * the pilot has posted on, and says so when one took it. */
+    try {
+      const sync = await syncOwnedIdentity();
+      if (Array.isArray(sync.results) && sync.results.some((r) => r.ok)) {
+        flashNotice(str('main.name_on_the_board_is_now', { name }), 3200);
+      }
+    } catch (e) {
+      flashNotice(str('main.name_saved_here_the_board_could', { v1: e.message ?? e }), 3600);
+    }
+  }
+
+  async function exportPilotKey() {
+    const text = await identity.exportText();
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (e) {
+    }
+    if (copied) {
+      notice = { text: str('main.pilot_key_copied_paste_it_into'), untilMs: performance.now() + 5200 };
+      return;
+    }
+    await ui.askForm({
+      title: str('main.your_pilot_key'),
+      detail: str('main.copy_this_line_paste_it_into'),
+      confirmLabel: str('main.done'),
+      fields: [{ key: 'key', label: '', value: text, maxLength: 4000, placeholder: '', save: (v) => v }],
+    });
+  }
+
+  async function importPilotKey() {
+    const values = await ui.askForm({
+      title: str('ui.import_pilot_key'),
+      detail: str('main.paste_the_line_that_pilot_key'),
+      confirmLabel: str('main.import'),
+      fields: [{ key: 'key', label: '', value: '', maxLength: 4000, placeholder: str('ui.pilot_key'), save: (v) => v }],
+    });
+    if (!values || !values.key) {
+      return;
+    }
+    try {
+      await identity.importText(values.key);
+      notice = { text: str('main.pilot_key_imported_times_you_post'), untilMs: performance.now() + 3600 };
+    } catch (e) {
+      notice = { text: str('main.that_key_was_not_imported', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
+    }
+  }
+
+  /*
+   * What each menu action does once ui.onAction's gates (account, sign in,
+   * Play, the title's world, a spectator) have let it through, keyed by the
+   * name ui.js sends. A name not here only carried its settings. The async
+   * ones are fired and not awaited: ui.act does not wait on a dialog.
+   */
+  const MENU_ACTIONS = new Map([
+    ['fly', startRun],
+    ['restart', startRun],
+    ['resume', resumeRun],
+    ['pause', () => {
+      mode = 'paused';
+    }],
+    ['title', quitToTitle],
+    ...CALIBRATE_ACTIONS,
+    ...PAD_PICK_ACTIONS,
+    ['downloadflightlog', saveFlightLog],
+    ['setname', () => {
+      renamePilot();
+    }],
+    ['exportkey', () => {
+      exportPilotKey();
+    }],
+    ['importkey', () => {
+      importPilotKey();
+    }],
+    ['posttime', () => submitBoardTime()],
+    ['postrun', () => submitFreestyleRun()],
+  ]);
+
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
@@ -14160,267 +14409,46 @@ export async function boot({
     if (action === 'restart' && warSpectating()) {
       return;
     }
-    if (action === 'fly' || action === 'restart') {
-      /* A room race this pilot has finished is over for them: flying on
-       * is flying alone. */
-      if (roomRun() && roomRace.done()) {
-        roomRaceRunId = null;
-      }
-      /* A tune fetch in flight would sim_init under a run whose lastTs had
-       * already started climbing. Wait until the load is the current one. */
-      whenConfigReady(() => {
-        reset();
-        mode = 'flight';
-        /* Fly from the title: reset() ran with the title still up, where it
-         * parks the craft rather than air start it, so a published map
-         * track whose start gate hangs in the air started on the ground
-         * under it. A restart from the pause menu has already had its air
-         * start, and its countdown is running. */
-        const sp = runSpawn();
-        if (sp && sp.air && !(airHoldMs > 0)) {
-          airStart(sp.air.y);
-        }
-        ui.show('flight');
-        /*
-         * THE PAD SHOT IS AN INTRODUCTION, AND A RESTART IS NOT A FIRST
-         * MEETING.
-         *
-         * R already restarts without it: input.onKey calls reset() and
-         * leaves introMs at -1. Restart run from the pause menu played the
-         * whole orbit, approach and zoom, so the same intention cost four
-         * seconds through the menu and nothing through the key, and the
-         * menu is the only one of the two a phone has. A racer restarts
-         * dozens of times an hour.
-         *
-         * `fly` keeps the shot: that one IS the first meeting, and it is
-         * where the pilot sees the aircraft they are about to be inside of.
-         * Except in a war: its film was the introduction, and the shot's
-         * radii are a quad's, so round a Striker it sat inside the
-         * fuselage for the first four seconds of the countdown.
-         */
-        introMs = action === 'restart' || roomWar.on() ? -1 : 0;
-      });
-      return;
-    }
-    if (action === 'resume') {
-      whenConfigReady(() => {
-        if (turtleWait || turtleFlip.active) {
-          turtleResumeGate = true;
-        }
-        mode = 'flight';
-        ui.show('flight');
-      });
-      return;
-    }
-    if (action === 'pause') {
-      mode = 'paused';
-    } else if (action === 'title') {
-      /* A builder session ends with the run: its test course comes off the
-       * view, and the world goes back to following the seat. A seated
-       * track's race (build.racing) is the seat's and stays. */
-      if (build && build.active && !build.racing) {
-        build.exit(false);
-      }
-      buildWorld = null;
-      roomRaceRetire();
-      mode = 'title';
-      /* Not while a world swap is in flight: the old world is already
-       * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
-       * swap resets the run on the world it brings. Leave goes to the title
-       * at once now, so a Leave during a swap reached this. */
-      if (!swapInFlight) {
-        reset();
-      }
-      /* Now, not on the next frame: a choice made on the title before a
-       * frame has run must meet the world as the seat has it. */
-      if (worldHold) {
-        releaseWorldHold();
-      }
-    } else if (action === 'calibrate') {
-      if (input.firstGamepad()) {
-        input.startCalibration();
-        ui.show('calibrate');
-      } else {
-        notice = { text: str('main.no_radio_or_gamepad_found_plug_2'), untilMs: performance.now() + 3200 };
-      }
-    } else if (action === 'calibrate-check') {
-      /* The check step on its own, against the mapping already saved. Same
-       * door as calibrate above, and the same answer when there is nothing
-       * plugged in, because a mapping with no radio behind it is nothing to
-       * look at. See startCalibrationCheck in input.js. */
-      if (input.startCalibrationCheck()) {
-        ui.show('calibrate');
-      } else {
-        notice = { text: str('main.no_radio_or_gamepad_found_plug_2'), untilMs: performance.now() + 3200 };
-      }
-    } else if (action === 'calibrate-cancel') {
-      input.cancelCalibration();
-      ui.show('pilot');
-    } else if (action === 'calibrate-reverse') {
-      /* No notice, for the reason on calibrate-zero-throttle below: the
-       * calibrate branch of the frame loop blanks the banner every frame.
-       * The feedback is the gimbal they are watching turning round under
-       * the stick they are holding, which is the point of doing it here. */
-      input.reverseMovingChannel();
-    } else if (action === 'calibrate-stick-mode') {
-      /* Settings owns the mode and writeSettings pushes it through
-       * applySettings, so the keyboard, the thumb sticks and every drawn
-       * gimbal follow in one place. See cycleStickMode in ui.js. */
-      ui.cycleStickMode();
-    } else if (action === 'calibrate-zero-throttle') {
-      /* No notice. The calibrate branch of the frame loop blanks the banner
-       * every frame, so one set here was never seen; the feedback is the
-       * gimbal dropping to zero and the hint changing under it, which is
-       * what the pilot is looking at anyway. */
-      input.zeroThrottleHere();
-    } else if (action === 'calibrate-skip') {
-      input.skipCalibrationSelect();
-    } else if (action === 'calibrate-save') {
-      if (input.acceptCalibration()) {
-        ui.show('pilot');
-        /*
-         * The notice is decided by what localStorage actually did, not by
-         * the fact that the wizard finished. See saveMap in input.js: a
-         * browser in private mode, or one out of quota, throws, and this
-         * used to print "saved" over the top of it.
-         */
-        notice = input.calResult === 'saved-unstored'
-          ? {
-            text: str('main.mapping_live_gone_on_reload'),
-            untilMs: performance.now() + 5200,
-          }
-          : { text: str('main.stick_mapping_saved'), untilMs: performance.now() + 2800 };
-        input.calResult = null;
-      }
-    } else if (action === 'choosepad') {
-      openPadPick('menu');
-    } else if (action === 'padpick-yes') {
-      if (input.acceptPadPick()) {
-        leavePadPick();
-      }
-    } else if (action === 'padpick-no') {
-      input.rejectPadPick();
-    } else if (action === 'padpick-skip') {
-      input.skipPadPick();
-      leavePadPick();
-    } else if (action === 'padpick-cancel') {
-      input.cancelPadPick();
-      leavePadPick();
-    } else if (action === 'downloadflightlog') {
-      if (flightLog.count < 2) {
-        notice = {
-          text: str('main.nothing_recorded_yet_turn_the_flight'),
-          untilMs: performance.now() + 3600,
-        };
-      } else {
-        const rows = flightLog.count;
-        const secs = flightLog.seconds;
-        downloadText(flightLogName(ui.settings.map), flightLog.csv());
-        notice = {
-          text: str('main.flight_log_saved_rows_over_s', { rows, secs: secs.toFixed(1) }),
-          untilMs: performance.now() + 3600,
-        };
-      }
-    } else if (action === 'setname') {
-      (async () => {
-        const name = await ui.askName({
-          title: str('ui.your_name'),
-          detail: str('ui.posted_times_and_published_tracks_carry'),
-        });
-        if (!name) {
-          return;
-        }
-        try {
-          const result = await syncOwnedIdentity();
-          const updated = Array.isArray(result.results) && result.results.some((r) => r.ok);
-          if (updated) {
-            notice = { text: str('main.name_on_the_board_is_now', { name }), untilMs: performance.now() + 3200 };
-          }
-        } catch (e) {
-          notice = { text: str('main.name_saved_here_the_board_could', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
-        }
-      })();
-    } else if (action === 'exportkey') {
-      (async () => {
-        const text = await identity.exportText();
-        let copied = false;
-        try {
-          await navigator.clipboard.writeText(text);
-          copied = true;
-        } catch (e) {
-        }
-        if (copied) {
-          notice = { text: str('main.pilot_key_copied_paste_it_into'), untilMs: performance.now() + 5200 };
-          return;
-        }
-        await ui.askForm({
-          title: str('main.your_pilot_key'),
-          detail: str('main.copy_this_line_paste_it_into'),
-          confirmLabel: str('main.done'),
-          fields: [{ key: 'key', label: '', value: text, maxLength: 4000, placeholder: '', save: (v) => v }],
-        });
-      })();
-    } else if (action === 'importkey') {
-      (async () => {
-        const values = await ui.askForm({
-          title: str('ui.import_pilot_key'),
-          detail: str('main.paste_the_line_that_pilot_key'),
-          confirmLabel: str('main.import'),
-          fields: [{ key: 'key', label: '', value: '', maxLength: 4000, placeholder: str('ui.pilot_key'), save: (v) => v }],
-        });
-        if (!values || !values.key) {
-          return;
-        }
-        try {
-          await identity.importText(values.key);
-          notice = { text: str('main.pilot_key_imported_times_you_post'), untilMs: performance.now() + 3600 };
-        } catch (e) {
-          notice = { text: str('main.that_key_was_not_imported', { v1: e.message ?? e }), untilMs: performance.now() + 3600 };
-        }
-      })();
-    } else if (action === 'posttime') {
-      submitBoardTime();
-    } else if (action === 'postrun') {
-      submitFreestyleRun();
+    const run = MENU_ACTIONS.get(action);
+    if (run) {
+      run(action);
     }
   };
 
   /*
-   * Menu intent from a radio. When the sticks have been calibrated the
-   * mapped channels drive the cursor, which lets roll adjust a value. When
-   * they have not, any axis at all moves the cursor, because the way to
-   * calibrate is a menu item and a wrong axis guess would otherwise lock
-   * the player out of it. Settings ignores this: the sticks pose the
-   * airframe there, and the cursor is mouse and keyboard only.
+   * The menu cursor from a radio or a pad, handed to ui.pollPad every frame
+   * (Settings ignores it: there the sticks pose the aircraft). A mapping
+   * input.js trusts, the wizard's or a guess whose throttle sits parked the
+   * way a real radio's does (noteThrottleParked), steers with pitch and
+   * roll, so roll can step a value. Anything else moves the cursor up and
+   * down off whichever axis moves, because the wizard that would fix the
+   * mapping is itself a menu row and has to stay reachable.
    */
   function padNav() {
-    const btn = input.padMenuButtons();
-    /*
-     * mapUsable rather than map.stored. A pilot who never opened the wizard
-     * because their radio was already in AETR order got up and down only,
-     * which is half a menu, and a red row on the front page telling them so.
-     * input.js can tell a real radio's parked throttle from a wrong guess,
-     * so a guess that is behaving like a radio drives the cursor the same
-     * way a wizard mapping does. See noteThrottleParked.
-     */
-    if (input.mapUsable()) {
-      const c = input.channels;
-      return {
-        up: c.pitch > NAV_DEFLECT,
-        down: c.pitch < -NAV_DEFLECT,
-        right: c.roll > NAV_DEFLECT,
-        left: c.roll < -NAV_DEFLECT,
-        select: btn.select,
-        back: btn.back,
-        alt: input.padAltButton(),
-        floats: input.padFloatsButton(),
-        look: input.padLookStick(),
-      };
-    }
-    const raw = input.navRaw();
-    return {
-      up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton(), floats: input.padFloatsButton(), look: input.padLookStick(),
+    const buttons = input.padMenuButtons();
+    const intent = {
+      up: false,
+      down: false,
+      right: false,
+      left: false,
+      select: buttons.select,
+      back: buttons.back,
+      alt: input.padAltButton(),
+      floats: input.padFloatsButton(),
+      look: input.padLookStick(),
     };
+    if (input.mapUsable()) {
+      const { pitch, roll } = input.channels;
+      intent.up = pitch > NAV_DEFLECT;
+      intent.down = pitch < -NAV_DEFLECT;
+      intent.right = roll > NAV_DEFLECT;
+      intent.left = roll < -NAV_DEFLECT;
+    } else {
+      const raw = input.navRaw();
+      intent.up = raw.up;
+      intent.down = raw.down;
+    }
+    return intent;
   }
 
   /* Any real key or pointer press is the user gesture browsers require
@@ -14650,6 +14678,44 @@ export async function boot({
   const PALETTE_KEY = 'Period';
   const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY', PALETTE_KEY]);
   const BALL_KEYS = new Set(['KeyU', 'Space', 'KeyJ', 'KeyK', PALETTE_KEY]);
+  /*
+   * X: the pilot's own way out of a stuck state the thrash watch cannot
+   * name, recovered the way the watch recovers (clear air near here,
+   * upright, the run untouched). Refused on the ground and while the
+   * launch is staged, so it is never a free reposition between laps.
+   */
+  function unstickInPlace() {
+    /* A wreck may be respawned in place whether or not it came to rest
+     * upright: its lap is already over, so this is the pilot choosing to
+     * fly on from here rather than from the pad. */
+    if ((landed && !wrecked) || launchStaging || poseLock || crashed) {
+      return;
+    }
+    setManualFlip(false);
+    setCrashflip(false);
+    turtleRecover = false;
+    finishClipCrash();
+  }
+
+  /* L on a quad: launch control, which Settings must have on and which
+   * only arms from the pad or a staged start. */
+  function toggleLaunchControl() {
+    if (!ui.settings.launchControl) {
+      flashNotice(str('main.launch_control_is_off_turn_it'), 3200);
+      return;
+    }
+    if (!landed && !launchStaging) {
+      flashNotice(str('main.launch_control_is_for_the_start'), 2800);
+      return;
+    }
+    applyLaunchSwitch(!lcArmed);
+    if (lcArmed) {
+      flashNotice(str('main.launch_control_throttle_idle_pitch_forward'), 2200);
+    } else {
+      flashNotice(str('main.launch_control_off'), 1600);
+    }
+  }
+
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -14673,30 +14739,12 @@ export async function boot({
     if (repeat) {
       return;
     }
-    /* Flight only keys. */
     if (code === 'KeyR') {
       reset();
       return;
     }
-    /*
-     * The pilot's own unstick. The thrash watch catches the states we
-     * could name, and it needs 700 ms to be sure; this is the backstop for
-     * whatever it did not name, at the cost of one keystroke. Same
-     * recovery: clear air near where you are, upright, run untouched. It
-     * refuses on the ground so it cannot be used as a free reposition
-     * between laps.
-     */
     if (code === 'KeyX' && ui.screen === 'flight' && mode === 'flight') {
-      /* A wreck may be respawned in place whether or not it came to rest
-       * upright: its lap is already over, so this is the pilot choosing to
-       * fly on from here rather than from the pad. */
-      if ((landed && !wrecked) || launchStaging || poseLock || crashed) {
-        return;
-      }
-      setManualFlip(false);
-      setCrashflip(false);
-      turtleRecover = false;
-      finishClipCrash();
+      unstickInPlace();
       return;
     }
     function cycleThermalPalette() {
@@ -14826,29 +14874,7 @@ export async function boot({
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight') {
-      if (!ui.settings.launchControl) {
-        notice = {
-          text: str('main.launch_control_is_off_turn_it'),
-          untilMs: performance.now() + 3200,
-        };
-        return;
-      }
-      if (!landed && !launchStaging) {
-        notice = {
-          text: str('main.launch_control_is_for_the_start'),
-          untilMs: performance.now() + 2800,
-        };
-        return;
-      }
-      applyLaunchSwitch(!lcArmed);
-      if (lcArmed) {
-        notice = {
-          text: str('main.launch_control_throttle_idle_pitch_forward'),
-          untilMs: performance.now() + 2200,
-        };
-      } else {
-        notice = { text: str('main.launch_control_off'), untilMs: performance.now() + 1600 };
-      }
+      toggleLaunchControl();
       return;
     }
   };
