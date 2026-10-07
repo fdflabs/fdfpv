@@ -15,6 +15,12 @@
  * the mp3 fallback 3.1 MB; music.js picks by canPlayType and falls back on
  * a load error.
  *
+ * Both crates are EMPTY since 2026-10-06. The sixteen records that were
+ * here arrived with the upstream on 2026-08-19 with no recorded licence,
+ * so they came out of the game until licensed records replace them
+ * (NOTICE). An empty crate, an unknown id and a removed id are one case:
+ * no record, so no bed, and every reader below says so with null.
+ *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
  * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
@@ -53,38 +59,14 @@ export const MUSIC_REV = 1;
  */
 export const MUSIC_REF_LUFS = -17.2;
 
-const FLIGHT_CRATE = [
-  ['tarmac-pulse', -13.0],
-  ['neon-horizon', -17.2],
-  ['pace-shift-skyline', -13.5],
-  ['fractal-current', -16.5],
-  ['subway-rattle', -14.4],
-  ['shroom-spiral', -14.0],
-  ['barnstorm-break', -15.6],
-  ['bluegrass-circuit', -14.0],
-  ['celtic-riser', -13.3],
-  ['driving-tension', -14.3],
-  ['gritty-breakbeats', -13.5],
-  ['hypnotic-acid-loop', -13.4],
-  ['prop-wash', -13.8],
-  ['ground-effect', -13.7],
-];
+const FLIGHT_CRATE = [];
 
-/* Two takes from one sitting, made to sit behind a menu. They are not
- * quiet files (mid crate, as measured); how quiet the menu plays is the
- * menu bus's decision in music.js, made once, never baked into a file. */
-const MENU_CRATE = [
-  ['neon-gate', -14.2],
-  ['neon-gate-take-2', -13.6],
-];
+const MENU_CRATE = [];
 
-/* 'neon-gate-take-2' reads back as 'Neon Gate Take 2'. */
+/* 'night-run-take-2' would read back as 'Night Run Take 2'. */
 const titleOf = (id) => id.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 
-function records(crate, label) {
-  if (crate.length === 0) {
-    throw new Error(`tracks: ${label} crate is empty`);
-  }
+function records(crate) {
   return crate.map(([id, lufs]) => {
     if (!Number.isFinite(lufs) || lufs > 0) {
       throw new Error(`tracks: ${id} has no measured loudness`);
@@ -93,8 +75,8 @@ function records(crate, label) {
   });
 }
 
-export const TRACKS = records(FLIGHT_CRATE, 'flight');
-export const MENU_TRACKS = records(MENU_CRATE, 'menu');
+export const TRACKS = records(FLIGHT_CRATE);
+export const MENU_TRACKS = records(MENU_CRATE);
 
 /* An id is half a URL and a file name both crates write: a duplicate would
  * make one record overwrite another at encode time, and anything but a
@@ -119,23 +101,11 @@ export function trackGain(t) {
   return Math.min(1, Math.pow(10, decibelsDown / 20));
 }
 
-/* A flight record by id; an unknown id plays the first. */
+/* A flight record by id, or null: an unknown id is no record, never some
+ * other record, so a replay naming a removed record plays no bed rather
+ * than somebody else's. */
 export function trackById(id) {
-  return TRACKS.find((t) => t.id === id) ?? TRACKS[0];
-}
-
-/* Random picks are fine here: this is the jukebox, not the plant. A
- * flight visit starts on a random record; the menu bed re-rolls on every
- * return, since a menu visit is half a minute and the same intro each time
- * would wear, and music.js resumes each menu record where it stopped. */
-const anyOf = (crate) => crate[Math.floor(Math.random() * crate.length)];
-
-export function pickTrack() {
-  return anyOf(TRACKS);
-}
-
-export function pickMenuTrack() {
-  return anyOf(MENU_TRACKS);
+  return TRACKS.find((t) => t.id === id) ?? null;
 }
 
 /* The Music track setting's choices: rotation, then the flight crate. The

@@ -35,7 +35,7 @@
  */
 
 import { COMBAT_BUS, INTRO_BUS, warMusicUrl } from './warradio.js';
-import { TRACKS, trackGain, trackUrl } from './tracks.js';
+import { trackById, trackGain, trackUrl } from './tracks.js';
 
 /* A bed this far from where the clip says it was is moved, seconds. */
 export const SEEK_S = 0.3;
@@ -110,9 +110,10 @@ export class ReplayBeds {
     if (war) {
       url = warMusicUrl(war.id, this.radio.ext);
       level = war.id === 'intro' ? INTRO_BUS : COMBAT_BUS;
-    } else if (music) {
+    } else if (music && trackById(music.id)) {
+      /* A record no longer in the crate is no bed, not some other record. */
       url = trackUrl(music.id, this.musicExt);
-      level = trackGain(TRACKS.find((t) => t.id === music.id) || TRACKS[0]);
+      level = trackGain(trackById(music.id));
     }
     if (url !== this.url) {
       if (!url) {
