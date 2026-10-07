@@ -871,6 +871,45 @@ console.log('low tracking before the camp: the camp only hears what flies over i
     && !heard(e, 0, 'int1-s5-moving') && !e.r.ops.match.choices?.dispersal);
 }
 
+/* ------------------------------------------------- the opening missed */
+
+console.log('the opening missed: the long objects still told at the camp edge, or the stage moves on');
+for (const back of [true, false]) {
+  /* Followed to the narrow opening, then the camera off the pair until
+   * it stands at the camp edge (M1 audit item 9: the beat was skipped).
+   * Lost there, it is moved to its alternate once (the hard threshold)
+   * and walks that through the opening unseen. */
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  const reached = (point) => () => e.r.ops.match.contacts.find((k) => k.id === 'pair-a').reached[point] != null;
+  until(e, reached('opening'), 1800000, 'the pair at the opening');
+  const keep = c.aim;
+  c.aim = null;
+  until(e, reached('camp-edge'), 900000, 'the pair at the camp edge');
+  const hards = contact(e, 'pair-a').hards;
+  const atEdge = e.clock;
+  e.fly(e.clock + 1000);
+  if (back) {
+    check('unseen through the opening: at the camp edge, still stage 4 and no "Armed."', e.view(0).stage?.id === 'M1_CP_CONTACT_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && contact(e, 'pair-a').cls !== 'poi' && hards === 1, `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls} hards ${hards}`);
+    c.aim = keep;
+    follow(e, c, 0, { orbit: 150 });
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    check('seen at the edge: armed, possible, PERSON OF INTEREST, then stage 5', heard(e, 0, 'int1-s4-know') && contact(e, 'pair-a').cls === 'poi'
+      && e.view(0).stage?.id === 'M1_CP_CAMP_FOUND', `${e.view(0).stage?.id} ${contact(e, 'pair-a').cls}`);
+  } else {
+    until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 120000, 'stage 5');
+    const held = (e.clock - atEdge) / 1000;
+    check('never seen: stage 5 after the hold at the edge, without the beat', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND' && !heard(e, 0, 'int1-s4-armed')
+      && held >= 29 && held <= 32, `${e.view(0).stage?.id} held ${held} s`);
+  }
+}
+
 /* ---------------------------------------------------- the camp gone */
 
 /* Stage 5 with nothing documented: the camp disperses on its 8 min
