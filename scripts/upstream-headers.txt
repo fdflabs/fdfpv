@@ -30,8 +30,6 @@ src/native/sim_internal.h
 src/share/board.js
 src/trackbuilder/index.html
 src/ui/credits.js
-src/ui/pidspanel.js
-src/ui/ratespanel.js
 src/ui/scorehud.js
 src/ui/ui.js
 src/ui/update.js

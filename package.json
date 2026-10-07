@@ -43,6 +43,7 @@
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
+    "panels:golden": "node scripts/panels-golden.js",
     "lint:boot": "node scripts/boot-check.js",
     "boot:entry": "node scripts/boot-entry-check.js",
     "contact:golden": "node scripts/contact-golden.js",
