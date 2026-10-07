@@ -35,6 +35,7 @@
     "rows:golden": "node scripts/rows-golden.js",
     "ways:golden": "node scripts/ways-golden.js",
     "format:golden": "node scripts/format-golden.js",
+    "widgets:golden": "node scripts/widgets-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",

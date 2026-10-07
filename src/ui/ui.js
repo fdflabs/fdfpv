@@ -49,7 +49,7 @@ import {
   CAL_STEPS, MOUSE_SENS, MOUSE_EXPOS, MOUSE_CENTRES,
 } from '../input/input.js';
 import {
-  STICK_MODES, DEFAULT_STICK_MODE, normaliseStickMode, stickChannels, stickCaption,
+  STICK_MODES, normaliseStickMode, stickCaption,
 } from '../input/stickmode.js';
 import { LINK_PRESETS } from '../input/link.js';
 
@@ -219,6 +219,9 @@ import {
   WAYS, GATE_WAYS, HUBS, OPEN_ACTIONS, hubWays, hubOfAction, seatedWay, wayFilter, boardCraft, craftSvg, reticleSvg,
 } from './ways.js';
 import { formatDay, formatDelta, formatRunClock, formatTime } from './format.js';
+import {
+  btn, el, hintWithKeys, keyHowtoRows, makeGimbal, makePadCard, makeWeightSlider, placeNub, placeSticks, thrNote, wordmark,
+} from './widgets.js';
 /* scripts/modes-selftest.js reads the table from here, and the HUDs and
  * main.js read the clock formats. */
 export { WAYS, formatRunClock, formatTime };
@@ -375,146 +378,6 @@ function drawnFit(key, id, fit) {
   };
 }
 
-function makeGimbal(caption) {
-  const box = el('div', 'osd-gimbal');
-  const plate = el('div', 'osd-gimbal-plate');
-  plate.append(el('div', 'osd-cross-x'), el('div', 'osd-cross-y'));
-  const nub = el('div', 'osd-nub');
-  plate.append(nub);
-  /* The caption is kept because it is not a constant any more: it names the
-   * channels this pilot's stick mode put on this plate. See setStickMode. */
-  const cap = el('div', 'osd-gimbal-cap', caption);
-  box.append(plate, cap);
-  return { box, nub, cap };
-}
-
-/*
- * THE GRAVITY SLIDER, drawn. Built here rather than inline in build() because
- * it is four elements and a hint card, and build() is already the longest
- * thing in this file.
- *
- * THE CLASS NAMES STILL SAY AIR AND THEY STAY THAT WAY. This control scaled
- * the drag set for one afternoon before the pilot flew it and named the axis
- * they actually meant, and renaming .osd-air to .osd-grav is exactly the move
- * the .corner-chip note further down this file was written in blood about:
- * fdfpv.example serves index.html at max-age=0 and this script at max-age=14400,
- * so for four hours a returning browser pairs the NEW stylesheet with the OLD
- * script. Renamed classes leave that script writing elements no rule matches,
- * which drops an unstyled slider and an unpositioned hint card into the
- * middle of a race. A class name is the contract across that seam. The label
- * a pilot reads is not, so that is what changed.
- *
- * The control is a native input[type=range] wearing .row-range, exactly the
- * one the Rates and PIDs screens use, so drag, touch, and arrow keys on a
- * focused track are the browser's problem in all three places. What differs
- * from those screens is WHEN it commits: there it is on release, because each
- * one re-inits the module and a re-init per drag pixel would stutter. This
- * one calls sim_set_gravity, which is a single store into the plant, so it
- * commits live on 'input' and the pilot feels the weight arrive under the
- * craft mid drag. That is the entire point of putting it here.
- */
-function makeWeightSlider({ min, max, step, value, label }) {
-  const box = el('div', 'osd-air is-off');
-
-  const hint = el('div', 'osd-air-hint');
-  hint.hidden = true;
-  hint.append(el('p', 'osd-air-hint-title', str('ui.weight')));
-  hint.append(el(
-    'p',
-    'osd-air-hint-body',
-    str('ui.drag_this_if_the_quad_feels')
-    + str('ui.so_it_drops_when_you_chop')
-    + str('ui.of_a_jump_left_makes_it')
-    + str('ui.down_the_stick_with_it_which'),
-  ));
-  const dismiss = btn('osd-air-hint-btn', str('ui.got_it'));
-  hint.append(dismiss);
-
-  const row = el('div', 'osd-air-row');
-  const range = document.createElement('input');
-  range.type = 'range';
-  range.className = 'row-range osd-air-range';
-  range.min = String(min);
-  range.max = String(max);
-  range.step = String(step);
-  range.value = String(value);
-  range.setAttribute('aria-label', label);
-  row.append(el('span', 'osd-air-end', str('ui.floaty')), range, el('span', 'osd-air-end', str('ui.sinky')));
-
-  const cap = el('div', 'osd-air-cap', '');
-  box.append(hint, row, cap);
-  return { box, range, cap, hint, dismiss };
-}
-
-function makePadCard() {
-  const card = el('div', 'pad-card');
-  const title = el('div', 'pad-card-title', '');
-  const art = el('div', 'pad-card-art');
-  const left = makeGimbal('');
-  const right = makeGimbal('');
-  art.append(left.box, right.box);
-  const name = el('div', 'pad-card-name', '');
-  const status = el('div', 'pad-card-status', '');
-  card.append(title, art, name, status);
-  return { card, title, name, status, left, right };
-}
-
-function placeNub(nub, x, y) {
-  nub.style.left = `${50 + x * 50}%`;
-  nub.style.top = `${50 - y * 50}%`;
-}
-
-/*
- * Both gimbal plates from a channel set. The clamp, the throttle rescale
- * from 0..1 to -1..1 and the pitch negate were written out twice, in the
- * flight overlay and in the calibration screen, which is two places to get
- * the pitch sign wrong in.
- */
-/*
- * The two sentences the touch page carried on FIXED THUMBS: the collective
- * stays where it is left, the springy one comes back. They follow the
- * throttle now rather than the side, because in Mode 1 the throttle is the
- * right thumb and the old text told that pilot the opposite.
- */
-function thrNote(mode, side) {
-  const map = stickChannels(mode)[side];
-  return map.vert === 'throttle'
-    ? str('ui.throttle_stays_where_you_leave_it')
-    : str('ui.forward_is_nose_down_fly_forward');
-}
-
-/*
- * What each key pair does, named for the channel this mode put on it. The
- * four rows used to be constants, which is what a Mode 1 pilot on a keyboard
- * was reading when the arrows turned out to be throttle.
- */
-function keyHowtoRows(mode) {
-  const c = stickChannels(mode);
-  const say = {
-    throttle: str('ui.throttle_tap_for_a_nudge_hold'),
-    pitch: str('ui.pitch_forward_is_stick_forward_nose'),
-    yaw: str('ui.yaw_left_and_right_on_the'),
-    roll: 'Roll.',
-  };
-  return [
-    [str('ui.w_and_s'), say[c.left.vert]],
-    [str('ui.a_and_d'), say[c.left.horiz]],
-    [str('ui.up_and_down'), say[c.right.vert]],
-    [str('ui.left_and_right'), say[c.right.horiz]],
-  ];
-}
-
-function placeSticks(left, right, ch, mode = DEFAULT_STICK_MODE) {
-  const clamp = (v) => Math.max(-1, Math.min(1, v));
-  const layout = stickChannels(mode);
-  for (const side of ['left', 'right']) {
-    const map = layout[side];
-    const stick = side === 'left' ? left : right;
-    const vert = map.vert === 'throttle' ? ch.throttle * 2 - 1 : -ch.pitch;
-    placeNub(stick.nub, clamp(ch[map.horiz]), clamp(vert));
-  }
-}
-
 /* The Pilot screen's rows for a signed in pilot (src/ui/accountui.js
  * handles their actions). */
 function accountRows(account) {
@@ -599,70 +462,6 @@ function accountPageRows() {
     { label: str('account.terms'), action: 'accountterms', note: str('account.terms_note') },
   ];
 }
-
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
-    n.textContent = text;
-  }
-  return n;
-}
-
-function btn(cls, text) {
-  const n = el('button', cls, text);
-  n.type = 'button';
-  return n;
-}
-
-function hintWithKeys(keys, text) {
-  const n = el('div', 'hint');
-  const ks = el('span', 'hint-keys');
-  for (const k of keys) {
-    ks.append(el('kbd', null, k));
-  }
-  n.append(ks, el('span', 'hint-copy', text));
-  return n;
-}
-
-/* The name as the owner's lockup sets it (index.html .lockup-box), which
- * the share card clones too (scripts/og.js, the whole box). English in
- * every locale, because it is the mark and not a sentence. The spaces keep
- * the heading's text the name.
- *
- * Self contained: the box is a size container and the lockup fills its
- * width, so a screen places it by giving the box a width and nothing else
- * (the title's is .screen-title .lockup-box). */
-function wordmark() {
-  const box = el('div', 'lockup-box');
-  const h = el('h1', 'wordmark lockup');
-  const slash = el('span', 'lockup-slash');
-  slash.setAttribute('aria-hidden', 'true');
-  const name = el('span', 'lockup-name');
-  /* The bevel draws the name twice more behind itself, from this. */
-  name.dataset.text = 'Drone Combat';
-  name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
-  /* The flag as the boot screen draws it, horizontal bands; the box
-   * shows it and hides the slash, on the title and the share card alike. */
-  const flag = el('span', 'py-flag');
-  flag.setAttribute('aria-hidden', 'true');
-  flag.append(el('span'), el('span'), el('span'));
-  const over = el('span', 'lockup-over');
-  over.append(flag, 'Paraguayan');
-  h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
-  box.append(h);
-  return box;
-}
-
-/*
- * First-time thumbnail wait. Recording a clip takes several seconds
- * (a valley, longer). A blank card looks like a stall, so the card says
- * "loading" over it. Cached visits never see it.
- */
-
-/* A menu plus a side column for its note, so the note cannot resize the rows. */
 
 /*
  * THE LIST IS THE CATALOGUE'S, NOT A WRITTEN ONE.
