@@ -33,20 +33,20 @@
  * Like the picker, THIS FILE IS THE CHOICE AND NOT THE PICTURE: nothing
  * here imports three.js, because scripts import src/ui/ui.js in Node.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { airframeById } from '../../configs/airframes.js';
@@ -59,6 +59,7 @@ import { flightTotals } from '../share/flighttime.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
+import { el, padLevels } from './dom.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
@@ -142,17 +143,8 @@ const COUNT_MS = 520;
 /* The fewest ms between two cursor sounds from the pointer passing over
  * swatches, so a sweep across a row is a ripple and not a buzz. */
 const HOVER_SOUND_MS = 70;
-
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
-    n.textContent = text;
-  }
-  return n;
-}
+/* What pollPad edge triggers on; the right stick's look is read as a level. */
+const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt'];
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -1376,15 +1368,7 @@ export class Hangar {
    * edge triggered, the first poll only learning what is held
    * (Carousel.pollPad). X, alt, turns the tabs. */
   pollPad(nav) {
-    const now = {
-      up: Boolean(nav.up),
-      down: Boolean(nav.down),
-      left: Boolean(nav.left),
-      right: Boolean(nav.right),
-      select: Boolean(nav.select),
-      back: Boolean(nav.back),
-      alt: Boolean(nav.alt),
-    };
+    const now = padLevels(nav, PAD_KEYS);
     const prev = this.padPrev;
     this.padPrev = now;
     if (!prev) {

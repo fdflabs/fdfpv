@@ -38,20 +38,20 @@
  * The shell hands in a `host` of getters and a few actions (src/main.js,
  * where it is made); nothing here reaches into the shell otherwise.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import * as THREE from 'three';
@@ -687,8 +687,11 @@ export function createCrashCam(host) {
 
   function metaNow() {
     const af = host.airframe();
-    const box = new THREE.Box3().setFromObject(shell.quad);
-    const size = box.isEmpty() ? 0.5 : box.getSize(new THREE.Vector3()).length();
+    /* The craft's bounding diagonal, which the replay stores as its size;
+     * 0.5 m when nothing is drawn yet. */
+    const bounds = new THREE.Box3();
+    bounds.expandByObject(shell.quad);
+    const size = bounds.isEmpty() ? 0.5 : bounds.min.distanceTo(bounds.max);
     const table = host.partTable().map((p) => ({
       kind: p.kind, kindName: p.kindName, parent: p.parent, material: p.material,
       cg: p.cg.slice(), boxMin: p.boxMin.slice(), boxMax: p.boxMax.slice(),

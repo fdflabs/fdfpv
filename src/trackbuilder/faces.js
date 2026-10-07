@@ -1,131 +1,123 @@
 /*
- * faces.js: which way each element faces, and which side of a marker the
- * quad goes.
+ * faces.js: which way each opening is flown and which side of each marker
+ * the quad passes, derived from the course so an author rarely sets either.
  *
- * This is the core of the tool, so the rules are written out rather than
- * inferred from the code.
+ * The rules are schema.md's "Faces and pass sides: what the tool derives":
+ * after every edit each sequence entry the author has not fixed by hand is
+ * re-derived from the straight line between its neighbours in the flying
+ * order. An opening flown once is turned to face along the line; one flown
+ * more than once, or one the author has turned, keeps its heading and only
+ * the entry sign is chosen; a marker goes on the outside of the turn.
  *
- * ENTRY FACE. Every aperture has a normal, fixed by the element's yaw and
- * pitch. A sequence entry carries `entry`, either +1 or -1, and the DIRECTION
- * OF TRAVEL through that opening is entry multiplied by the normal. So
- * entry = +1 means the quad flies along the normal and therefore enters the
- * opening from the face the normal points AWAY from. entry = 0 means nobody
- * has decided yet, and the results panel says so.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * PASS SIDE. A flag or a cone has no opening. `passSide` says which side of
- * the MARKER the QUAD passes on, in the frame of the direction of travel.
- * "left" means the quad is to the left of the marker, so the racing line is
- * pushed to marker + clearance * left. "right" is the mirror.
- *
- * AUTO DEFAULTING. The user should almost never have to set either. When an
- * element is placed, or when a neighbour moves, or when the sequence is
- * reordered, every entry that the user has NOT touched is re-derived from the
- * straight line between the previous and the next sequenced element:
- *
- *   an aperture element referenced ONCE in the sequence is rotated so its
- *   normal lies along that line, and its entry becomes +1;
- *   an aperture element referenced MORE THAN ONCE is not rotated, because
- *   rotating it for position 5 would break position 9, and only its entry
- *   sign is chosen from which way through it the line goes;
- *   a marker is put on the outside of the turn, which is the side a pilot
- *   actually flies.
- *
- * Touching a face by hand sets `overridden` on the sequence entry and
- * rotating an element by hand sets `yawOverridden` on the element. Either
- * flag stops the re-derivation dead for that item and the inspector says so.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { KIND } from './elements.js';
 import {
   elementById, kindOf, entryAnchor, elementNormal, startPadsOf, sequenceRefCount,
 } from './model.js';
-import { apertureFrame, cross, dot, leftOf, normalize, scale, sub, yawVector, wrapAngle } from './geometry.js';
+import { cross, dot, leftOf, length, normalize, scale, sub, wrapAngle, yawVector } from './geometry.js';
 
-/*
- * A flag parked on a gate stile has neighbours along the PVC, so the chain
- * through it runs along the header and the virtual square would stand at 90
- * degrees to the opening. When the pole is beside an aperture, travel is
- * that aperture's, not the chain.
- */
-const BESIDE_GATE_M = 3.0;
-const BESIDE_ALONG_N_M = 1.2;
+/* A marker standing beside an opening is parked on its frame: a flag on a
+ * gate's stile. Its pass is square to that opening, not to the chain, which
+ * would run along the header. Beside means within STILE_REACH of the
+ * opening's foot on the plan, no more than STILE_DEPTH in front or behind
+ * its face, and out to the side by at least STILE_INNER of its half width,
+ * so a pole in the middle of the hole does not count. Metres. */
+const STILE_DEPTH = 1.2;
+const STILE_INNER = 0.45;
+const STILE_REACH = 3.0;
 
-export function nearbyApertureTravel(doc, el) {
-  if (!el || (el.type !== 'flag' && el.type !== 'cone')) {
-    return null;
-  }
+/* Closer than this to the opening's foot and the marker is standing in the
+ * opening, not on a stile, whatever the width says. Metres. */
+const ON_THE_FOOT = 0.15;
+
+/* The width a stile test assumes for an opening whose clear width is zero or
+ * unreadable: the standard 60 inch gate. Without it a zero width makes every
+ * marker near the foot count as beside the frame. Metres. */
+const ASSUMED_CLEAR_W = 1.524;
+
+/* The sign of the opening's decided pass nearest the marker's first pass in
+ * the flying order, the earlier one on a tie; for a marker not yet flown,
+ * its first decided pass; +1 when it has none. */
+function signNear(doc, openingId, markerId) {
+  const at = doc.sequence.findIndex((s) => s.elementId === markerId);
   let best = null;
-  for (const gate of doc.elements) {
-    if (kindOf(gate) !== KIND.APERTURE || gate.type === 'diveGate') {
-      continue;
-    }
-    const dx = el.position.x - gate.position.x;
-    const dy = el.position.y - gate.position.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist > BESIDE_GATE_M || dist < 0.15) {
-      continue;
-    }
-    const frame = apertureFrame(gate.yaw, 0);
-    const alongN = dx * frame.normal.x + dy * frame.normal.y;
-    const alongW = dx * frame.widthAxis.x + dy * frame.widthAxis.y;
-    const half = (gate.dims?.clearW || 1.524) / 2;
-    if (Math.abs(alongN) > BESIDE_ALONG_N_M || Math.abs(alongW) < half * 0.45) {
-      continue;
-    }
-    if (!best || dist < best.dist) {
-      best = { gate, dist };
-    }
-  }
-  if (!best) {
-    return null;
-  }
-  const n = elementNormal(best.gate);
-  const sign = sequenceEntryNear(doc, el, best.gate);
-  return { x: n.x * sign, y: n.y * sign, z: n.z * sign };
-}
-
-function sequenceEntryNear(doc, marker, gate) {
-  const flagAt = doc.sequence.findIndex((s) => s.elementId === marker.id);
-  let best = null;
+  let gap = Infinity;
   doc.sequence.forEach((s, i) => {
-    if (s.elementId !== gate.id || s.entry === 0) {
+    if (s.elementId !== openingId || !s.entry) {
       return;
     }
-    const d = flagAt < 0 ? i : Math.abs(i - flagAt);
-    if (!best || d < best.d) {
-      best = { entry: s.entry, d };
+    const d = Math.abs(i - at);
+    if (d < gap) {
+      best = s;
+      gap = d;
     }
   });
-  return best ? best.entry : 1;
+  return best && best.entry < 0 ? -1 : 1;
 }
 
-/*
- * The anchor chain the directions are read off: the start pads, then every
- * sequence entry's raw anchor, then the start pads again to close the lap.
- * Marker anchors are the marker itself and not the offset knot, because the
- * offset depends on the direction and the direction must not depend on the
- * offset.
- */
+/* What can be parked on a frame, and what has a frame to park on: a flag
+ * or a cone beside any opening but a dive gate's, which lies flat. */
+const PARKABLE = ['flag', 'cone'];
+
+/* The travel through the opening a marker is parked beside, or null when it
+ * stands clear of every opening. The nearest one wins; the first wins a tie. */
+export function nearbyApertureTravel(doc, el) {
+  if (!el || !PARKABLE.includes(el.type)) {
+    return null;
+  }
+  let best = null;
+  let bestDistance = Infinity;
+  for (const other of doc.elements) {
+    if (kindOf(other) !== KIND.APERTURE || other.type === 'diveGate') {
+      continue;
+    }
+    const offset = { x: el.position.x - other.position.x, y: el.position.y - other.position.y, z: 0 };
+    const facing = yawVector(other.yaw);
+    const depth = Math.abs(dot(offset, facing));
+    /* The plain perpendicular, not leftOf's renormalised one, and hypot,
+     * because the stored tracks were decided with exactly these: a last
+     * place difference flips a marker standing on a limit. */
+    const across = Math.abs(dot(offset, { x: -facing.y, y: facing.x, z: 0 }));
+    const half = (other.dims?.clearW || ASSUMED_CLEAR_W) / 2;
+    const distance = Math.hypot(offset.x, offset.y);
+    if (distance > STILE_REACH || distance < ON_THE_FOOT) {
+      continue;
+    }
+    if (depth > STILE_DEPTH || across < STILE_INNER * half) {
+      continue;
+    }
+    if (distance < bestDistance) {
+      best = other;
+      bestDistance = distance;
+    }
+  }
+  return best ? scale(elementNormal(best), signNear(doc, best.id, el.id)) : null;
+}
+
+/* The points the directions are read off: the start pads, each entry's
+ * anchor (a marker's own position, never its offset knot, since the offset
+ * depends on the direction), and the pads again to close the lap. */
 export function anchorChain(doc) {
-  const start = startPadsOf(doc);
   const chain = [];
-  if (start) {
-    chain.push({ pos: { ...start.position }, seq: null });
+  const pads = startPadsOf(doc);
+  const padLink = () => ({ pos: { ...pads.position }, seq: null });
+  if (pads) {
+    chain.push(padLink());
   }
   for (const s of doc.sequence) {
     const pos = entryAnchor(doc, s);
@@ -133,234 +125,190 @@ export function anchorChain(doc) {
       chain.push({ pos, seq: s });
     }
   }
-  if (start && chain.length > 1) {
-    chain.push({ pos: { ...start.position }, seq: null });
+  if (pads && chain.length > 1) {
+    chain.push(padLink());
   }
   return chain;
 }
 
-/*
- * Direction of travel at each link of the chain. Interior links look one
- * step either side; the ends look at their one neighbour. A chain of length
- * one has no direction at all and reports null, which every caller treats as
- * "leave whatever is there alone".
- */
-function chainDirections(chain) {
-  const n = chain.length;
-  const out = new Array(n).fill(null);
-  if (n < 2) {
-    return out;
+/* Direction of travel at link i: next minus previous inside the chain, the
+ * single neighbour at its ends. Null for a chain of one, or where the
+ * neighbours coincide. */
+function travelAt(chain, i) {
+  if (chain.length < 2) {
+    return null;
   }
-  for (let i = 0; i < n; i += 1) {
-    const a = chain[Math.max(0, i - 1)].pos;
-    const b = chain[Math.min(n - 1, i + 1)].pos;
-    const d = sub(b, a);
-    out[i] = (Math.abs(d.x) + Math.abs(d.y) + Math.abs(d.z)) > 1e-9 ? normalize(d) : null;
-  }
-  return out;
+  const before = chain[Math.max(0, i - 1)].pos;
+  const after = chain[Math.min(chain.length - 1, i + 1)].pos;
+  const span = sub(after, before);
+  return length(span) <= 1e-9 ? null : normalize(span);
 }
 
-/*
- * Is the quad going UP or DOWN through this link? Returns +1, -1, or a small
- * number when it genuinely cannot tell.
- *
- * IT IS THE DEPARTURE THAT DECIDES, NOT THE CHORD ACROSS THE ELEMENT. A dive
- * gate sits 3 m above the gate before it AND 3 m above the gate after it, so
- * the chord from one neighbour to the other is level and says nothing, while
- * the obvious truth is that you leave the thing going down. Reading the
- * chord instead, which is what this did first, put the dive gate's tangent
- * pointing at the sky between two knots at the same height and left a 1.8 m
- * radius hook in the line straight afterwards.
- *
- * So: the drop to the next knot, and only if that is flat, the drop from the
- * previous one, and only if the whole neighbourhood is flat, down, because a
- * dive gate is for diving through.
- */
-const LEVEL = 0.2;
+/* Below this the two legs into and out of a marker are one straight line
+ * (square metres: the cross product of the raw legs), and its side is left
+ * as it is. */
+const STRAIGHT = 1e-6;
 
-function verticalSense(chain, i) {
-  const here = chain[i].pos;
-  if (i + 1 < chain.length) {
-    const d = chain[i + 1].pos.z - here.z;
-    if (Math.abs(d) > LEVEL) {
-      return d;
-    }
+/* Which side of the turn at link i is the outside, as a pass side. */
+function outsideOf(chain, i) {
+  if (i === 0 || i === chain.length - 1) {
+    return null;
   }
-  if (i > 0) {
-    const d = here.z - chain[i - 1].pos.z;
-    if (Math.abs(d) > LEVEL) {
-      return d;
-    }
+  const into = sub(chain[i].pos, chain[i - 1].pos);
+  const out = sub(chain[i + 1].pos, chain[i].pos);
+  const turn = cross(into, out).z;
+  if (Math.abs(turn) <= STRAIGHT) {
+    return null;
+  }
+  return turn > 0 ? 'right' : 'left';
+}
+
+/* An opening counts as tilted once its normal leaves the horizontal by more
+ * than this (the sine of about three degrees); below it, it is flown as an
+ * upright gate. */
+const TILTED = 0.05;
+
+/* A climb or drop smaller than this between two knots, in metres, says
+ * nothing about which way the line is going. */
+const LEVEL_BAND = 0.2;
+
+/* A dot product this close to zero cannot tell the two faces apart. */
+const SQUARE_ON = 1e-6;
+
+/*
+ * Is the line going up (+1) or down (-1) through link i? The departure
+ * decides: the drop to the next knot, else the drop from the previous one,
+ * else down, because a dive gate between two knots at its own height is
+ * there to be dived through. Reading the chord across the element instead
+ * would call that level and point the dive gate at the sky.
+ */
+function verticalSense(chain, i) {
+  const here = chain[i].pos.z;
+  const next = chain[i + 1]?.pos.z;
+  if (next !== undefined && Math.abs(next - here) > LEVEL_BAND) {
+    return next > here ? 1 : -1;
+  }
+  const prev = chain[i - 1]?.pos.z;
+  if (prev !== undefined && Math.abs(here - prev) > LEVEL_BAND) {
+    return here > prev ? 1 : -1;
   }
   return -1;
 }
 
+/* The entry sign for a structure that keeps its heading: the way the line
+ * goes through it. When the line runs square across its face that says
+ * nothing, so a sign already chosen stands, and an undecided one is the
+ * sign that flies it downward. */
+function signThrough(el, travel, current) {
+  const normal = elementNormal(el);
+  const along = dot(normal, travel);
+  if (Math.abs(along) < SQUARE_ON) {
+    if (current) {
+      return current;
+    }
+    return normal.z < 0 ? 1 : -1;
+  }
+  return along < 0 ? -1 : 1;
+}
+
+/* The heading that sends an opening's face along the travel on the plan,
+ * entered with `sign`. */
+function headingFor(travel, sign) {
+  const heading = Math.atan2(travel.y, travel.x);
+  return sign < 0 ? wrapAngle(heading + Math.PI) : heading;
+}
+
+/* The sign for an opening flown once. Upright, it is entered from the front.
+ * Tilted, the tilt fixes the vertical part of the normal, so the sign comes
+ * from whether the line climbs or drops through it, and the heading follows
+ * to agree on the plan; choosing the heading first would turn every angled
+ * dive gate into a launch gate. */
+function signAlong(el, chain, i) {
+  const rise = elementNormal(el).z;
+  if (Math.abs(rise) <= TILTED) {
+    return 1;
+  }
+  return verticalSense(chain, i) * (rise < 0 ? -1 : 1);
+}
+
 /*
- * Re-derive every face and pass side the user has not overridden. Mutates
- * the document in place and returns it, because it runs after every edit and
- * cloning the track on every mouse move would be the tool's slowest thing.
+ * Re-derive every face and pass side the author has not set. An opening
+ * flown once whose heading the author has not fixed is still turned to meet
+ * the line when its entry is the author's: the turn then honours that entry.
+ * Edits the document in place, because it runs after every edit, and
+ * returns it.
  */
 export function applyAutoFaces(doc) {
   const chain = anchorChain(doc);
-  const dirs = chainDirections(chain);
-
-  for (let i = 0; i < chain.length; i += 1) {
-    const link = chain[i];
-    const seq = link.seq;
-    if (!seq) {
-      continue;
-    }
-    const el = elementById(doc, seq.elementId);
+  chain.forEach((link, i) => {
+    const s = link.seq;
+    const el = s && elementById(doc, s.elementId);
     if (!el) {
-      continue;
+      return;
     }
-    const dir = dirs[i];
     const kind = kindOf(el);
-
-    if (kind === KIND.APERTURE) {
-      if (!dir) {
-        /* No neighbours to point at. Leave the element where it is and give
-         * the entry a sign so the line still has a direction to follow. */
-        if (!seq.overridden && seq.entry === 0) {
-          seq.entry = 1;
-        }
-        continue;
+    const travel = travelAt(chain, i);
+    if (!travel) {
+      /* Nothing to read a direction off: everything stays as it is, except
+       * that an undecided opening is given its front. */
+      if (kind === KIND.APERTURE && !s.overridden && s.entry === 0) {
+        s.entry = 1;
       }
-      const single = sequenceRefCount(doc, el.id) === 1;
-      const canRotate = single && !el.yawOverridden;
-
-      if (!canRotate) {
-        /* The heading is fixed, either because the user set it or because
-         * the structure is flown more than once and rotating it for one pass
-         * would break the other. All that is left to choose is the sign. */
-        if (!seq.overridden) {
-          const n = elementNormal(el);
-          const along = dot(n, dir);
-          if (Math.abs(along) > 1e-6) {
-            seq.entry = along >= 0 ? 1 : -1;
-          } else if (seq.entry === 0) {
-            seq.entry = n.z >= 0 ? -1 : 1;
-          }
-        }
-        continue;
-      }
-
-      /*
-       * THE TILTED CASE IS WHY THIS IS NOT ONE LINE.
-       *
-       * The tilt fixes the vertical part of the normal and nothing else can
-       * change it: sin(pitch) is what it is. So the sign is decided FIRST,
-       * from whether the course is climbing or descending here, and the
-       * heading is decided SECOND, to make the horizontal part of the
-       * tangent agree with the horizontal part of the travel.
-       *
-       * Doing it the other way round, heading first from the ground track
-       * and then the sign from the dot product, is what a naive version
-       * does, and it turns every angled dive gate into a launch gate: the
-       * heading lines up with the travel, the dot product comes out positive
-       * because of it, and the quad is sent UP through a gate that leans
-       * down the hill. Tilting a dive gate off flat has to keep it a dive
-       * gate, so this rotates the structure a half turn instead.
-       *
-       * A vertical gate has sin(pitch) of zero, falls into the last branch,
-       * and behaves exactly as it always did: entry +1, facing along the
-       * course.
-       */
-      const sp = Math.sin(el.pitch);
-      const tilted = Math.abs(sp) > 0.05;
-      let entry = seq.entry;
-      if (!seq.overridden) {
-        if (tilted) {
-          entry = (verticalSense(chain, i) * sp) >= 0 ? 1 : -1;
-        } else {
-          entry = 1;
-        }
-        seq.entry = entry;
-      }
-      const base = Math.atan2(dir.y, dir.x);
-      el.yaw = wrapAngle((entry >= 0 ? base : base + Math.PI));
-      continue;
+      return;
     }
-
-    if (kind === KIND.MARKER) {
-      if (seq.overridden) {
-        continue;
+    if (kind === KIND.MARKER && !s.overridden) {
+      const side = outsideOf(chain, i);
+      if (side) {
+        s.passSide = side;
       }
-      const inDir = i > 0 ? sub(link.pos, chain[i - 1].pos) : null;
-      const outDir = i < chain.length - 1 ? sub(chain[i + 1].pos, link.pos) : null;
-      if (!inDir || !outDir) {
-        continue;
-      }
-      const turn = cross(inDir, outDir).z;
-      /* A left turn puts the marker on the inside, which is the pilot's
-       * left, so the quad goes past it on the marker's right. A straight run
-       * has no outside and keeps whatever side it already had. */
-      if (Math.abs(turn) > 1e-6) {
-        seq.passSide = turn > 0 ? 'right' : 'left';
-      }
+      return;
     }
-  }
+    if (kind !== KIND.APERTURE) {
+      return;
+    }
+    const turnable = sequenceRefCount(doc, el.id) === 1 && !el.yawOverridden;
+    if (turnable) {
+      const sign = s.overridden ? s.entry : signAlong(el, chain, i);
+      el.yaw = headingFor(travel, sign);
+      s.entry = sign;
+    } else if (!s.overridden) {
+      s.entry = signThrough(el, travel, s.entry);
+    }
+  });
   return doc;
 }
 
-
-/* Exported for the 2D view, which draws a chevron on the side of a marker
- * the quad passes, and for path.js, which offsets the knot there. */
+/* Tilt one element's openings; true when it exists. */
 export function setPitch(doc, elementId, pitch) {
   const el = elementById(doc, elementId);
   if (!el) {
     return false;
   }
-  /* Clamped rather than wrapped. Past a quarter turn the normal has flipped
-   * to point at the ground, which is the entry sign's job to say, not the
-   * tilt's, and letting the tilt wrap gives two spellings of one gate. */
   el.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
   return true;
 }
 
+/* +1 for a pass on the left of a marker, -1 on the right. */
 export function passOffsetSign(passSide) {
   return passSide === 'right' ? -1 : 1;
 }
 
 /*
- * WHICH WAY OFF THE MARKER THE PASS IS, as a unit vector in the plan.
- *
- * The owner's report: "the rotational thing in the track builder should
- * allow the gate to move around the flag completely as the user wants,
- * currently it doesn't." It did not, and the reason is worth stating
- * because it was not a bug in the handle. A marker's square was ALWAYS
- * square to the direction of travel, on one of exactly two sides, so the
- * only thing the rotation handle could reach was the flag's own mesh: the
- * pole turned, the sail swung round with it, and the green square did not
- * move a degree. There was nothing between "left" and "right".
- *
- * So the marker's OWN YAW is the offset direction once the author has
- * turned it by hand. yawOverridden is already the flag setYaw raises and
- * the flag "Re-derive" clears, and it already means exactly this
- * everywhere else: the author has decided, stop deriving. A turned flag
- * therefore puts its square wherever the handle points, all the way round,
- * and an untouched one keeps the automatic rule, which is the outside of
- * the turn and the thing an author should almost never have to set.
- *
- * IT IS PER ELEMENT, NOT PER PASS, and that is the same trade an aperture
- * makes: a structure flown twice has one frame, and turning the frame
- * turns both passes together. Steering one pass of a shared marker on its
- * own is what Flip side is for.
- *
- * `travel` is the local direction of travel, needed only for the automatic
- * case. The vector comes back in the plan, z zero, because a marker has no
- * vertical face and a z component here is what sends a Hermite between two
- * ground markers underground.
+ * The level unit vector from a marker to its pass. A marker the author has
+ * turned by hand (yawOverridden) points it with its own heading, all the way
+ * round; otherwise it is the left or right of the local travel, which is the
+ * outside of the turn when the faces are derived.
  */
 export function markerPassDir(el, seq, travel) {
-  if (el && el.yawOverridden) {
-    const d = yawVector(el.yaw);
-    return { x: d.x, y: d.y, z: 0 };
+  if (el.yawOverridden) {
+    return yawVector(el.yaw);
   }
-  const flat = normalize({ x: travel?.x ?? 1, y: travel?.y ?? 0, z: 0 }, { x: 1, y: 0, z: 0 });
+  const flat = normalize({ x: travel?.x ?? 0, y: travel?.y ?? 0, z: 0 });
   return scale(leftOf(flat), passOffsetSign(seq?.passSide));
 }
 
+/* The direction an element faces: an opening's normal, anything else its
+ * heading on the plan. */
 export function faceAxis(el) {
   return kindOf(el) === KIND.APERTURE ? elementNormal(el) : yawVector(el.yaw);
 }

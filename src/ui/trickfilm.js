@@ -1,328 +1,368 @@
-import { str } from '../strings/index.js';
 /*
- * trickfilm.js: a moving picture of a trick, drawn from the trick's own
- * definition.
+ * trickfilm.js: the little animated picture beside each row of the trick
+ * list, and the sentence under it, both worked out from the trick's steps.
  *
- * THE RULE THIS FILE EXISTS TO KEEP: A FILM COMPUTES, IT DOES NOT ILLUSTRATE.
+ * The steps are the recogniser's own PATTERNS (src/game/trickdetect.js), so
+ * the picture and the sentence describe the shape the scorer will accept and
+ * nothing else. There is no hand drawn animation to drift out of step with
+ * the catalogue: edit a pattern and its film follows. A film that looks wrong
+ * is a pattern that is wrong, which makes this screen a review of the
+ * catalogue as well as a lesson.
  *
- * Every frame here is derived from the PATTERN the recogniser actually
- * matches. Nothing is drawn from memory and nothing is hand animated, so a
- * film cannot show a pilot one thing while the scorer wants another. Change a
- * pattern and its picture changes with it. If a film looks wrong, the pattern
- * is wrong, and that is the point: this is a second pair of eyes on the
- * catalogue as much as it is a teaching aid.
+ * The camera is placed where the trick's turn is visible. A turn reads only
+ * when its axis points at the viewer: a roll from behind, a flip from the
+ * side, a yaw from above. A lap round a rail sits in the plane across the
+ * rail (side on) and a lap round a post sits flat (from above). A lap
+ * outranks a rotation when choosing, since the lap is the larger shape.
  *
- * WHICH WAY THE CAMERA FACES is decided by the trick, not by taste. A
- * rotation is only legible from the one direction its axis points AT you:
+ * The look is the town's: flat fills, a hard ink outline, two bands of sky
+ * and no gradients or glow.
  *
- *   roll  turns about the nose, so it reads from BEHIND
- *   pitch turns about the wing, so it reads from the SIDE
- *   yaw   turns about the up axis, so it reads from ABOVE
+ * The player owns one canvas and at most one pending animation frame, and it
+ * runs only while the trick list is up; ui.js calls stop() on the way out.
+ * With prefers-reduced-motion it never animates and lays its key frames out
+ * side by side instead, so the shape is still readable.
  *
- * A lap around a rail is flown in the plane across the rail, which is the
- * side view; a lap around a post is flown in the horizontal plane, which is
- * the view from above. When a trick has both, the lap wins, because the lap
- * is the bigger shape and the rotation inside it still reads.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * CEL SHADED, like the town it teaches. Flat colour, hard two pixel ink, no
- * blur and no soft glow. The sky is two flat bands rather than a wash,
- * because a gradient is the one thing a cel shaded frame does not have.
- *
- * PERFORMANCE. One canvas, one requestAnimationFrame, and it only runs while
- * the screen showing it is up: stop() cancels the frame and nothing here
- * holds a timer that outlives the screen. Nothing is allocated in the draw
- * loop. Under prefers-reduced-motion the film does not animate at all and
- * draws its key frames side by side instead, so the shape of the trick is
- * still there to be read.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const TURN = Math.PI * 2;
+import { str } from '../strings/index.js';
 
-/* The town's palette, and the only colours this file knows. */
-const INK = '#0b1116';
-const CREAM = '#f3ead4';
-const SAKURA = '#e8a8b8';
-const AMBER = '#ffd45c';
-const MINT = '#7dffb4';
-const SLATE = '#9db3c8';
-const SKY_HIGH = '#8fb6d8';
-const SKY_LOW = '#e9c3ac';
-const GRASS = '#6f8f63';
-const CONCRETE = '#b9b3a8';
+const FULL = 2 * Math.PI;
 
-/* How long one pass of a film lasts, and the beat it holds on afterwards so
- * the eye can land before it starts again. */
-const SEG_MS = 1500;
-const HOLD_MS = 700;
+const PAINT = {
+  ink: '#0b1116',
+  faintInk: 'rgba(11,17,22,0.16)',
+  sky: '#8fb6d8',
+  haze: '#e9c3ac',
+  grass: '#6f8f63',
+  concrete: '#b9b3a8',
+  rail: '#ffd45c',
+  nose: '#e8a8b8',
+  flash: '#7dffb4',
+  prop: '#f3ead4',
+  propBellyUp: '#9db3c8',
+  body: '#3b4a57',
+  bodyBellyUp: '#5d6b7a',
+};
 
+/* Milliseconds per turn of film, and the pause at the end of each pass so
+ * the finished shape can be taken in before it loops. */
+const MS_PER_TURN = 1500;
+const END_PAUSE_MS = 700;
+
+/* Read once, at load, in whatever language is current then. */
 export const VIEW_LABEL = {
   side: str('trickfilm.seen_from_the_side'),
   above: str('trickfilm.seen_from_above'),
   behind: str('trickfilm.seen_from_behind'),
 };
 
-/* ------------------------------------------------------------------ *
- * Reading a pattern
- * ------------------------------------------------------------------ */
+const isLap = (step) => step.path !== undefined;
+const firstLap = (steps) => steps.find(isLap) || null;
 
-function lapStep(steps) {
-  return steps.find((s) => s.path !== undefined) || null;
-}
-
-/*
- * The camera. The lap decides it when there is one, because the lap is the
- * biggest thing in the picture and a rotation inside it still reads from any
- * angle; otherwise the rotation's own axis decides, because a roll seen from
- * the side is a craft that does not appear to move at all.
- */
 export function viewFor(steps) {
-  const lap = lapStep(steps);
+  const lap = firstLap(steps);
   if (lap) {
     return lap.path === 'pole' ? 'above' : 'side';
   }
-  const axes = steps.map((s) => s.axis).filter(Boolean);
-  if (axes.includes('yaw') && !axes.includes('pitch')) {
-    return 'above';
-  }
-  if (axes.includes('roll') && !axes.includes('pitch')) {
-    return 'behind';
-  }
+  const uses = (axis) => steps.some((s) => s.axis === axis);
+  if (uses('pitch')) return 'side';
+  if (uses('yaw')) return 'above';
+  if (uses('roll')) return 'behind';
   return 'side';
 }
 
-/* Turns as the workbook says them: a count, not an angle. */
-function turnWords(n) {
-  const t = Math.abs(n);
-  if (t === 0.25) { return str('trickfilm.a_quarter_turn'); }
-  if (t === 0.5) { return str('trickfilm.a_half_turn'); }
-  if (t === 0.75) { return str('trickfilm.three_quarters_of_a_turn'); }
-  if (t === 1) { return str('trickfilm.a_whole_turn'); }
-  if (t === 2) { return str('trickfilm.two_whole_turns'); }
-  return `${t} turns`;
+/* ------------------------------------------------------------------ *
+ * The sentence
+ * ------------------------------------------------------------------ */
+
+/* The workbook counts turns, it does not quote angles. */
+const COUNT_KEY = new Map([
+  [0.25, 'trickfilm.a_quarter_turn'],
+  [0.5, 'trickfilm.a_half_turn'],
+  [0.75, 'trickfilm.three_quarters_of_a_turn'],
+  [1, 'trickfilm.a_whole_turn'],
+  [2, 'trickfilm.two_whole_turns'],
+]);
+
+function countWords(n) {
+  const size = Math.abs(n);
+  const key = COUNT_KEY.get(size);
+  return key ? str(key) : `${size} turns`;
 }
 
-const AXIS_WORD = { roll: 'roll', pitch: 'flip', yaw: 'yaw spin' };
+const AXIS_NAME = { roll: 'roll', pitch: 'flip', yaw: 'yaw spin' };
 
-/*
- * WHAT TO DO, in a sentence, and built from the same steps the film is. A
- * pilot reading this and a pilot watching the film are being told the same
- * thing by the same data, which is the only way they cannot disagree.
- */
-export function describeSteps(steps) {
-  const parts = [];
-  for (const s of steps) {
-    if (s.path !== undefined) {
-      const thing = s.path === 'pole' ? str('trickfilm.a_post') : str('trickfilm.a_rail');
-      let lap;
-      if (s.turnsAtLeast !== undefined) {
-        lap = str('trickfilm.or_more_around', { turnWords: turnWords(s.turnsAtLeast), thing });
-      } else if (s.turns === 0.5) {
-        lap = str('trickfilm.half_a_lap_around', { thing });
-      } else if (s.turns === 1) {
-        lap = str('trickfilm.a_whole_lap_around', { thing });
-      } else {
-        lap = `${turnWords(s.turns)} around ${thing}`;
-      }
-      if (s.from === 'under') { lap += str('trickfilm.entered_from_underneath'); }
-      if (s.from === 'over') { lap += str('trickfilm.entered_from_over_the_top'); }
-      if (s.inverted === true) { lap += str('trickfilm.flown_belly_up'); }
-      if (s.track === true) { lap += str('trickfilm.with_the_post_held_on_the'); }
-      const rot = [];
-      if (s.rot) {
-        for (const key of Object.keys(s.rot)) {
-          if (s.rot[key] === 0) { continue; }
-          rot.push(str('trickfilm.of', { turnWords: turnWords(s.rot[key]), v2: AXIS_WORD[key] }));
-        }
-      }
-      if (rot.length) { lap += str('trickfilm.carrying', { v1: rot.join(' and ') }); }
-      parts.push(lap);
-      continue;
-    }
-    let r = str('trickfilm.of', { turnWords: turnWords(s.turns), v2: AXIS_WORD[s.axis] || s.axis || 'rotation' });
-    if (s.oppTo !== undefined) { r += str('trickfilm.back_the_other_way'); }
-    if (s.sameAs !== undefined) { r += str('trickfilm.the_same_way_again'); }
-    if (s.stallMs) { r += str('trickfilm.after_a_pause'); }
-    if (s.tap) { r += str('trickfilm.touching_the_object_as_you_go'); }
-    if (s.inverted === true) { r += str('trickfilm.upside_down'); }
-    parts.push(r);
+/* Qualifiers appended after the main clause, in the order they are read. */
+const LAP_QUALIFIERS = [
+  [(s) => s.from === 'under', 'trickfilm.entered_from_underneath'],
+  [(s) => s.from === 'over', 'trickfilm.entered_from_over_the_top'],
+  [(s) => s.inverted === true, 'trickfilm.flown_belly_up'],
+  [(s) => s.track === true, 'trickfilm.with_the_post_held_on_the'],
+];
+const SPIN_QUALIFIERS = [
+  [(s) => s.oppTo !== undefined, 'trickfilm.back_the_other_way'],
+  [(s) => s.sameAs !== undefined, 'trickfilm.the_same_way_again'],
+  [(s) => Boolean(s.stallMs), 'trickfilm.after_a_pause'],
+  [(s) => Boolean(s.tap), 'trickfilm.touching_the_object_as_you_go'],
+  [(s) => s.inverted === true, 'trickfilm.upside_down'],
+];
+
+const qualify = (step, table) => table
+  .filter(([applies]) => applies(step))
+  .map(([, key]) => str(key))
+  .join('');
+
+function lapClause(step) {
+  const thing = str(step.path === 'pole' ? 'trickfilm.a_post' : 'trickfilm.a_rail');
+  let size;
+  if (step.turnsAtLeast !== undefined) {
+    size = str('trickfilm.or_more_around', { turnWords: countWords(step.turnsAtLeast), thing });
+  } else if (step.turns === 0.5) {
+    size = str('trickfilm.half_a_lap_around', { thing });
+  } else if (step.turns === 1) {
+    size = str('trickfilm.a_whole_lap_around', { thing });
+  } else {
+    size = `${countWords(step.turns)} around ${thing}`;
   }
-  if (!parts.length) { return ''; }
-  const line = parts.join(str('trickfilm.then'));
-  return `${line.charAt(0).toUpperCase()}${line.slice(1)}.`;
+  /* rot is the rotation flown on top of the lap; a zero entry is the
+   * pattern saying "none of this", not something to mention. */
+  const extras = Object.entries(step.rot || {})
+    .filter(([, n]) => n !== 0)
+    .map(([axis, n]) => str('trickfilm.of', { turnWords: countWords(n), v2: AXIS_NAME[axis] }));
+  const carrying = extras.length ? str('trickfilm.carrying', { v1: extras.join(' and ') }) : '';
+  return size + qualify(step, LAP_QUALIFIERS) + carrying;
+}
+
+function spinClause(step) {
+  const axis = AXIS_NAME[step.axis] || step.axis || 'rotation';
+  return str('trickfilm.of', { turnWords: countWords(step.turns), v2: axis }) + qualify(step, SPIN_QUALIFIERS);
+}
+
+/* Built from the same steps as the film, so the words and the picture
+ * cannot tell the pilot different things. */
+export function describeSteps(steps) {
+  if (!steps.length) return '';
+  const said = steps.map((s) => (isLap(s) ? lapClause(s) : spinClause(s))).join(str('trickfilm.then'));
+  return `${said[0].toUpperCase()}${said.slice(1)}.`;
+}
+
+/* ------------------------------------------------------------------ *
+ * The motion
+ *
+ * Film space puts the obstacle at the origin, +y up, and is about 2.6 units
+ * wide. A pose is { x, y, spin, squash, inv }: spin is the glyph's angle on
+ * the screen, squash its foreshortening for a turn whose axis lies across
+ * the screen, inv whether the craft is belly up (drawn in its darker paint).
+ * ------------------------------------------------------------------ */
+
+const LOOP_RADIUS = 0.62;
+/* Where the craft enters a trick. Behind it, the craft is flying away from
+ * the camera and hardly moves across the frame. */
+const ENTRY = { x: -1.15 };
+const AFTER_LAP = { side: { x: -0.95, y: 0.15 }, above: { x: -0.95, y: 0.15 }, behind: { x: -0.32, y: 0.15 } };
+const RUN = { side: 1.9, above: 1.9, behind: 0.62 };
+/* The axis a camera looks along, so a turn about it draws as a turn. */
+const FACING_AXIS = { side: 'pitch', above: 'yaw', behind: 'roll' };
+
+/*
+ * A lap: the craft goes clockwise round the loop's centre. The start is the
+ * bottom of the circle entered from under a rail, the top entered from over
+ * it, and the near side of a post. Held on the obstacle (track) the nose
+ * points inward the whole way; otherwise it follows the path, plus whatever
+ * the pilot flips on top of the loop's own one turn per lap.
+ */
+function lapSegment(step, view) {
+  const laps = step.turnsAtLeast !== undefined ? step.turnsAtLeast : (step.turns ?? 1);
+  const start = step.path !== 'pole' && step.from === 'over' ? -Math.PI / 2 : Math.PI / 2;
+  const flipTurns = view === 'side' && step.rot && step.rot.pitch !== undefined ? step.rot.pitch : laps;
+  return {
+    kind: 'lap',
+    ms: MS_PER_TURN * Math.max(0.85, laps),
+    start,
+    startCos: Math.cos(start),
+    startSin: Math.sin(start),
+    sweep: -FULL * laps,
+    held: step.track === true,
+    added: FULL * (laps - flipTurns),
+  };
+}
+
+function lapPose(seg, u) {
+  const a = seg.start + seg.sweep * u;
+  const c = Math.cos(a);
+  const sn = Math.sin(a);
+  if (seg.held) {
+    return { x: c * LOOP_RADIUS, y: sn * LOOP_RADIUS, spin: Math.PI - a, squash: 1, inv: false };
+  }
+  return {
+    x: c * LOOP_RADIUS,
+    y: sn * LOOP_RADIUS,
+    spin: Math.atan2(c, sn) + seg.added * u,
+    squash: 1,
+    /* Belly up over the half of the loop facing away from where it began,
+     * which is the far side of a powerloop. */
+    inv: c * seg.startCos + sn * seg.startSin < 0,
+  };
 }
 
 /*
- * A film: a list of segments, each of which knows where the craft is and
- * which way up it is at any point through itself.
- *
- * Position is in film space, a box roughly 2.6 wide by 2 tall with the
- * obstacle at the origin. `spin` is the craft's angle IN THE PICTURE, so a
- * rotation whose axis points out of the screen turns the glyph and one whose
- * axis lies in the screen does not, which is exactly why the camera is
- * chosen the way it is.
+ * A rotation flown while travelling (or on the spot, for a stall). If the
+ * camera looks along its axis the glyph turns; if not it narrows and widens,
+ * which is how such a turn looks from there.
  */
+function spinSegment(step, view, from) {
+  const turns = step.turns ?? 1;
+  const to = { x: from.x + (step.stallMs ? 0 : RUN[view]), y: from.y };
+  return {
+    kind: 'rot',
+    ms: MS_PER_TURN * Math.max(0.7, Math.abs(turns)),
+    tap: Boolean(step.tap),
+    from,
+    to,
+    facing: FACING_AXIS[view] === step.axis,
+    angle: (step.oppTo !== undefined ? -FULL : FULL) * turns,
+    roll: FULL * turns,
+  };
+}
+
+function spinPose(seg, u) {
+  const x = seg.from.x + (seg.to.x - seg.from.x) * u;
+  const y = seg.from.y + (seg.to.y - seg.from.y) * u;
+  if (seg.facing) {
+    const angle = seg.angle * u;
+    /* A remainder, not a modulo: turned the other way it stays negative and
+     * never reads as belly up, and the record holds it to that. */
+    return { x, y, spin: angle, squash: 1, inv: Math.abs((angle % FULL) - Math.PI) < Math.PI / 2 };
+  }
+  const across = Math.cos(seg.roll * u);
+  return { x, y, spin: 0, squash: across, inv: across < 0 };
+}
+
+const POSE = { lap: lapPose, rot: spinPose };
+
 export function filmFor(steps) {
   const view = viewFor(steps);
-  const lap = lapStep(steps);
+  const lap = firstLap(steps);
   const segs = [];
-  /* Where the craft is when the trick starts, so the run in and the run out
-   * are drawn from and to somewhere rather than appearing. */
-  let carry = { x: -1.15, y: lap ? 0.62 : 0 };
-
-  for (const s of steps) {
-    if (s.path !== undefined) {
-      const turns = s.turnsAtLeast !== undefined ? s.turnsAtLeast : (s.turns ?? 1);
-      const R = 0.62;
-      /* Under the rail is the bottom of the circle, over it is the top. A
-       * post has no over and under, so an orbit starts at the near side. */
-      const ph0 = s.path === 'pole'
-        ? Math.PI * 0.5
-        : (s.from === 'over' ? -Math.PI / 2 : Math.PI / 2);
-      /* A lap is flown one way round, and which way is the way that leaves
-       * the craft travelling on afterwards. */
-      const dir = -1;
-      /*
-       * WHERE THE NOSE POINTS IS THE TRICK, on a lap.
-       *
-       * An Orbit is a circle flown with the object HELD ON THE SCREEN, and
-       * an ordinary coordinated turn that happens to go round twice is not
-       * one; the recogniser tells them apart with TRACK_DOT and the film has
-       * to show the difference or it is teaching the wrong thing. So a lap
-       * the pattern marks `track` points the nose at the middle, and every
-       * other lap points it along the path.
-       *
-       * Beyond that, `extra` is the rotation the PILOT added on top of the
-       * loop's own turn, which is exactly what a lap's rot means: holding a
-       * circle already turns the craft once per lap, so a Powerloop asking
-       * for one flip is asking for the loop and nothing more.
-       */
-      const track = s.track === true;
-      const bodyTurns = s.rot && s.rot.pitch !== undefined && view === 'side'
-        ? s.rot.pitch
-        : turns;
-      const extra = (bodyTurns - turns) * dir;
-      segs.push({
-        kind: 'lap',
-        ms: SEG_MS * Math.max(0.85, turns),
-        at(u) {
-          const ph = ph0 + dir * TURN * turns * u;
-          const tangent = Math.atan2(-Math.cos(ph) * dir, -Math.sin(ph) * dir);
-          return {
-            x: Math.cos(ph) * R,
-            y: Math.sin(ph) * R,
-            spin: track ? Math.PI - ph : tangent + TURN * extra * u,
-            /* Belly up wherever the craft's top points away from the middle
-             * of the loop, which across a powerloop is its far half. */
-            inv: !track && Math.cos(ph) * Math.cos(ph0) + Math.sin(ph) * Math.sin(ph0) < 0,
-          };
-        },
-      });
-      carry = null;
-      continue;
+  let at = { x: ENTRY.x, y: lap ? LOOP_RADIUS : 0 };
+  for (const step of steps) {
+    if (isLap(step)) {
+      segs.push(lapSegment(step, view));
+      at = null;
+    } else {
+      const seg = spinSegment(step, view, at || AFTER_LAP[view]);
+      segs.push(seg);
+      at = seg.to;
     }
-    /* A rotation is flown going somewhere: a craft that rotates on the spot
-     * is a stall trick and the pattern says so with stallMs. */
-    /*
-     * FROM BEHIND, the craft is flying AWAY, so it barely crosses the frame:
-     * a roll drawn scudding sideways contradicts the caption saying you are
-     * stood behind it. From the side and from above it travels, because
-     * from those angles it does.
-     */
-    const still = Boolean(s.stallMs);
-    const from = carry || { x: view === 'behind' ? -0.32 : -0.95, y: 0.15 };
-    const travel = still ? 0 : (view === 'behind' ? 0.62 : 1.9);
-    const to = { x: from.x + travel, y: from.y };
-    const inPlane = (view === 'behind' && s.axis === 'roll')
-      || (view === 'side' && s.axis === 'pitch')
-      || (view === 'above' && s.axis === 'yaw');
-    const dir = s.oppTo !== undefined ? -1 : 1;
-    segs.push({
-      kind: 'rot',
-      ms: SEG_MS * Math.max(0.7, Math.abs(s.turns ?? 1)),
-      tap: Boolean(s.tap),
-      at(u) {
-        return {
-          x: from.x + (to.x - from.x) * u,
-          y: from.y + (to.y - from.y) * u,
-          spin: inPlane ? dir * TURN * (s.turns ?? 1) * u : 0,
-          /* Out of plane it cannot be drawn as a turn, so it is drawn as the
-           * craft narrowing and widening, which is what a roll looks like
-           * from the side and is honest about being a foreshortening. */
-          squash: inPlane ? 1 : Math.cos(TURN * (s.turns ?? 1) * u),
-          inv: inPlane
-            ? Math.abs(((dir * TURN * (s.turns ?? 1) * u) % TURN) - Math.PI) < Math.PI * 0.5
-            : Math.cos(TURN * (s.turns ?? 1) * u) < 0,
-        };
-      },
-    });
-    carry = to;
   }
-
-  const totalMs = segs.reduce((a, b) => a + b.ms, 0) + HOLD_MS;
+  const playMs = segs.reduce((sum, seg) => sum + seg.ms, 0);
+  let obstacle = null;
+  if (lap) {
+    obstacle = lap.path;
+  } else if (steps.some((s) => s.tap)) {
+    obstacle = 'wall';
+  }
   return {
     view,
     steps,
     segs,
-    totalMs: totalMs || 1,
-    obstacle: lap ? lap.path : (steps.some((s) => s.tap) ? 'wall' : null),
+    /* A step with a turn count that is not a number would make the loop
+     * length NaN; one millisecond keeps the player's modulo defined. */
+    totalMs: (playMs + END_PAUSE_MS) || 1,
+    obstacle,
     caption: describeSteps(steps),
   };
 }
 
-/* Where the craft is at t milliseconds into the film. */
-function sample(film, t) {
-  let acc = 0;
+/* Quadratic ease in and out: nobody flies a trick at constant rate. */
+const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u));
+
+/* The pose t ms in, with the segment it came from and the eased progress
+ * through it. Past the end it holds the final pose. */
+function poseAt(film, t) {
+  let begins = 0;
   for (const seg of film.segs) {
-    if (t < acc + seg.ms) {
-      const u = (t - acc) / seg.ms;
-      /* Eased, because a pilot does not step through a trick linearly and a
-       * linear film reads as a machine rather than as flying. */
-      const e = u < 0.5 ? 2 * u * u : 1 - ((-2 * u + 2) ** 2) / 2;
-      return { ...seg.at(e), seg, u: e };
+    const ends = begins + seg.ms;
+    if (t < ends) {
+      const u = ease((t - begins) / seg.ms);
+      return { ...POSE[seg.kind](seg, u), seg, u };
     }
-    acc += seg.ms;
+    begins = ends;
   }
-  const last = film.segs[film.segs.length - 1];
-  return last ? { ...last.at(1), seg: last, u: 1 } : { x: 0, y: 0, spin: 0 };
+  const last = film.segs.at(-1);
+  if (!last) return { x: 0, y: 0, spin: 0, squash: 1, inv: false, seg: null, u: 0 };
+  return { ...POSE[last.kind](last, 1), seg: last, u: 1 };
 }
 
 /* ------------------------------------------------------------------ *
- * Drawing
+ * The picture
  * ------------------------------------------------------------------ */
 
-function ink(ctx, w) {
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = w;
+function inkStyle(ctx, width) {
+  ctx.strokeStyle = PAINT.ink;
+  ctx.lineWidth = width;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 }
 
-/* The world behind the trick: two flat sky bands and a ground, or, seen from
- * above, the ground alone. No gradient: this is a cel shaded town. */
-function horizonOf(view, H) {
-  return view === 'above' ? H : Math.round(H * 0.78);
+/* A filled shape with the town's outline round it. */
+function cel(ctx, fill, inkWidth, trace) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  trace();
+  ctx.fill();
+  inkStyle(ctx, inkWidth);
+  ctx.stroke();
 }
 
-function drawWorld(ctx, film, W, H) {
-  if (film.view === 'above') {
-    ctx.fillStyle = GRASS;
+function celBox(ctx, fill, inkWidth, x, y, w, h) {
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+  inkStyle(ctx, inkWidth);
+  ctx.strokeRect(x, y, w, h);
+}
+
+function polygon(ctx, points, r) {
+  points.forEach(([px, py], i) => (i ? ctx.lineTo(px * r, py * r) : ctx.moveTo(px * r, py * r)));
+  ctx.closePath();
+}
+
+/* Where film space lands on a W by H frame. The scale lets a loop of radius
+ * 0.62 fill the frame with a small margin. */
+function frameFor(view, W, H) {
+  const ground = view === 'above' ? H : Math.round(H * 0.78);
+  return {
+    scale: Math.min(W / 2.5, H / 2.05),
+    cx: W * 0.5,
+    cy: view === 'above' ? H * 0.5 : H * 0.44,
+    ground,
+  };
+}
+
+const onScreen = (f, x, y) => ({ x: f.cx + x * f.scale, y: f.cy - y * f.scale });
+
+function paintBackdrop(ctx, view, W, H, ground) {
+  if (view === 'above') {
+    /* Grass with faint survey lines, no sky. Only width and colour are set
+     * here: the join and cap are whatever the context last had. */
+    ctx.fillStyle = PAINT.grass;
     ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(11,17,22,0.16)';
+    ctx.strokeStyle = PAINT.faintInk;
     ctx.lineWidth = 1;
     for (let x = 0; x < W; x += 34) {
       ctx.beginPath();
@@ -332,170 +372,117 @@ function drawWorld(ctx, film, W, H) {
     }
     return;
   }
-  const hz = horizonOf(film.view, H);
-  ctx.fillStyle = SKY_HIGH;
-  ctx.fillRect(0, 0, W, Math.round(hz * 0.62));
-  ctx.fillStyle = SKY_LOW;
-  ctx.fillRect(0, Math.round(hz * 0.62), W, hz - Math.round(hz * 0.62));
-  ctx.fillStyle = GRASS;
-  ctx.fillRect(0, hz, W, H - hz);
-  ink(ctx, 2);
+  const bandEdge = Math.round(ground * 0.62);
+  ctx.fillStyle = PAINT.sky;
+  ctx.fillRect(0, 0, W, bandEdge);
+  ctx.fillStyle = PAINT.haze;
+  ctx.fillRect(0, bandEdge, W, ground - bandEdge);
+  ctx.fillStyle = PAINT.grass;
+  ctx.fillRect(0, ground, W, H - ground);
+  inkStyle(ctx, 2);
   ctx.beginPath();
-  ctx.moveTo(0, hz + 1);
-  ctx.lineTo(W, hz + 1);
+  ctx.moveTo(0, ground + 1);
+  ctx.lineTo(W, ground + 1);
   ctx.stroke();
 }
 
-/* The thing being flown around, in the training park's own materials: a
- * concrete rail banded yellow and black, a concrete post, a slab of wall. */
-function drawObstacle(ctx, film, cx, cy, s, ground) {
-  if (!film.obstacle) { return; }
-  if (film.obstacle === 'bar') {
-    /* End on, because the side view looks along the rail. */
-    ctx.fillStyle = AMBER;
+/* The training park's obstacles: a yellow rail seen end on, a concrete post
+ * seen from above, a concrete wall standing on the grass with its pink
+ * target band at flying height. */
+const OBSTACLE = {
+  bar(ctx, f) {
+    cel(ctx, PAINT.rail, 2.5, () => ctx.arc(f.cx, f.cy, f.scale * 0.1, 0, FULL));
+    ctx.fillStyle = PAINT.ink;
     ctx.beginPath();
-    ctx.arc(cx, cy, s * 0.1, 0, TURN);
+    ctx.arc(f.cx, f.cy, f.scale * 0.036, 0, FULL);
     ctx.fill();
-    ink(ctx, 2.5);
-    ctx.stroke();
-    ctx.fillStyle = INK;
-    ctx.beginPath();
-    ctx.arc(cx, cy, s * 0.036, 0, TURN);
-    ctx.fill();
-    return;
-  }
-  if (film.obstacle === 'pole') {
-    ctx.fillStyle = CONCRETE;
-    ctx.beginPath();
-    ctx.arc(cx, cy, s * 0.11, 0, TURN);
-    ctx.fill();
-    ink(ctx, 2.5);
-    ctx.stroke();
-    return;
-  }
-  /*
-   * A wall STANDS ON THE GROUND. Drawn from a fixed height either side of
-   * the middle it floated: its top was off the frame and its base ran down
-   * through the horizon into the grass, which is a slab hanging in the air
-   * rather than the training park's wall.
-   */
-  const x = cx + s * 1.02;
-  const w = s * 0.26;
-  const base = ground;
-  const top = Math.max(4, cy - s * 0.85);
-  ctx.fillStyle = CONCRETE;
-  ctx.fillRect(x, top, w, base - top);
-  ink(ctx, 2.5);
-  ctx.strokeRect(x, top, w, base - top);
-  /* The target band, at the height the park paints one. */
-  ctx.fillStyle = SAKURA;
-  ctx.fillRect(x, cy - s * 0.06, w, s * 0.12);
-  ink(ctx, 2);
-  ctx.strokeRect(x, cy - s * 0.06, w, s * 0.12);
-}
+  },
+  pole(ctx, f) {
+    cel(ctx, PAINT.concrete, 2.5, () => ctx.arc(f.cx, f.cy, f.scale * 0.11, 0, FULL));
+  },
+  wall(ctx, f) {
+    const left = f.cx + f.scale * 1.02;
+    const width = f.scale * 0.26;
+    const top = Math.max(4, f.cy - f.scale * 0.85);
+    celBox(ctx, PAINT.concrete, 2.5, left, top, width, f.ground - top);
+    celBox(ctx, PAINT.nose, 2, left, f.cy - f.scale * 0.06, width, f.scale * 0.12);
+  },
+};
 
-/*
- * The aircraft: a flat body, four props and a nose chevron, with a hard ink
- * line round all of it. Small enough to read at a glance and asymmetric
- * enough that its ROTATION is unambiguous, which a circle would not be.
- */
-function drawQuad(ctx, x, y, spin, scale, squash, alpha, inv) {
+/* The craft, in units of its size r: four props, a body, and a pink nose
+ * that makes its heading unmistakable. */
+const PROP_CORNERS = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+const BODY = [[-0.5, -0.42], [0.5, -0.42], [0.62, 0], [0.5, 0.42], [-0.5, 0.42]];
+const NOSE = [[0.18, -0.26], [0.86, 0], [0.18, 0.26]];
+
+function paintCraft(ctx, at, pose, r, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(x, y);
-  ctx.rotate(spin);
-  const sx = Math.max(0.22, Math.abs(squash == null ? 1 : squash));
-  ctx.scale(1, sx);
-  const r = scale;
-  /* Arms and props. */
-  ctx.fillStyle = inv ? SLATE : CREAM;
-  for (const [ax, ay] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+  ctx.translate(at.x, at.y);
+  ctx.rotate(pose.spin);
+  /* Never squashed to a line: at its thinnest it is still a craft. */
+  ctx.scale(1, Math.max(0.22, Math.abs(pose.squash ?? 1)));
+  const reach = r * 0.62;
+  ctx.fillStyle = pose.inv ? PAINT.propBellyUp : PAINT.prop;
+  for (const [sx, sy] of PROP_CORNERS) {
     ctx.beginPath();
-    ctx.arc(ax * r * 0.62, ay * r * 0.62, r * 0.3, 0, TURN);
+    ctx.arc(sx * reach, sy * reach, r * 0.3, 0, FULL);
     ctx.fill();
-    ink(ctx, 2);
+    inkStyle(ctx, 2);
     ctx.stroke();
   }
-  /* Body. */
-  ctx.fillStyle = inv ? '#5d6b7a' : '#3b4a57';
-  ctx.beginPath();
-  ctx.moveTo(-r * 0.5, -r * 0.42);
-  ctx.lineTo(r * 0.5, -r * 0.42);
-  ctx.lineTo(r * 0.62, 0);
-  ctx.lineTo(r * 0.5, r * 0.42);
-  ctx.lineTo(-r * 0.5, r * 0.42);
-  ctx.closePath();
-  ctx.fill();
-  ink(ctx, 2);
-  ctx.stroke();
-  /* The nose, in the one colour nothing else here uses, so which way the
-   * craft is pointing is never in doubt. */
-  ctx.fillStyle = SAKURA;
-  ctx.beginPath();
-  ctx.moveTo(r * 0.18, -r * 0.26);
-  ctx.lineTo(r * 0.86, 0);
-  ctx.lineTo(r * 0.18, r * 0.26);
-  ctx.closePath();
-  ctx.fill();
-  ink(ctx, 2);
-  ctx.stroke();
+  cel(ctx, pose.inv ? PAINT.bodyBellyUp : PAINT.body, 2, () => polygon(ctx, BODY, r));
+  cel(ctx, PAINT.nose, 2, () => polygon(ctx, NOSE, r));
   ctx.restore();
 }
 
-/* The line already flown, and a few ghosts along it holding the attitude the
- * craft had there. The ghosts are what make a still frame readable, which
- * matters for a screenshot and for a reader who has motion turned off. */
-function drawTrail(ctx, film, tNow, toPx, scale) {
-  const N = 46;
+/* The dashed path flown so far and three faint copies of the craft along
+ * it, so a single still frame still shows the shape of the trick. */
+const TRAIL_POINTS = 46;
+const GHOSTS = 3;
+
+function paintTrail(ctx, film, t, f, craftSize) {
   ctx.save();
-  ctx.strokeStyle = SAKURA;
+  ctx.strokeStyle = PAINT.nose;
   ctx.globalAlpha = 0.55;
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 5]);
   ctx.beginPath();
-  for (let i = 0; i <= N; i += 1) {
-    const t = (tNow * i) / N;
-    const p = sample(film, t);
-    const q = toPx(p.x, p.y);
-    if (i === 0) { ctx.moveTo(q.x, q.y); } else { ctx.lineTo(q.x, q.y); }
+  for (let i = 0; i <= TRAIL_POINTS; i += 1) {
+    const p = poseAt(film, (t * i) / TRAIL_POINTS);
+    const q = onScreen(f, p.x, p.y);
+    if (i) {
+      ctx.lineTo(q.x, q.y);
+    } else {
+      ctx.moveTo(q.x, q.y);
+    }
   }
   ctx.stroke();
   ctx.restore();
-  for (let i = 1; i <= 3; i += 1) {
-    const t = (tNow * i) / 4.4;
-    const p = sample(film, t);
-    const q = toPx(p.x, p.y);
-    drawQuad(ctx, q.x, q.y, p.spin, scale * 0.72, p.squash, 0.2, p.inv);
+  for (let i = 1; i <= GHOSTS; i += 1) {
+    const p = poseAt(film, (t * i) / 4.4);
+    paintCraft(ctx, onScreen(f, p.x, p.y), p, craftSize * 0.72, 0.2);
   }
 }
 
-/*
- * The whole frame. `t` is milliseconds into the film; pass a fixed set of
- * times instead and you get the key frame strip the reduced motion path
- * draws.
- */
+/* One whole frame at t ms into the film, on a W by H area. */
 export function drawFilm(ctx, film, t, W, H) {
   ctx.clearRect(0, 0, W, H);
-  drawWorld(ctx, film, W, H);
-  /* The shape is the point, so it fills the frame: a lap of radius 0.62 in
-   * film space leaves a comfortable margin at this scale and no more. */
-  const s = Math.min(W / 2.5, H / 2.05);
-  const cx = W * 0.5;
-  const cy = film.view === 'above' ? H * 0.5 : H * 0.44;
-  const hz = horizonOf(film.view, H);
-  const toPx = (x, y) => ({ x: cx + x * s, y: cy - y * s });
-  drawObstacle(ctx, film, cx, cy, s, hz);
-  drawTrail(ctx, film, t, toPx, s * 0.15);
-  const p = sample(film, t);
-  const q = toPx(p.x, p.y);
-  /* A tap flashes the wall where the craft meets it. */
-  if (p.seg && p.seg.tap && p.u > 0.45 && p.u < 0.62) {
-    ctx.fillStyle = MINT;
+  const f = frameFor(film.view, W, H);
+  paintBackdrop(ctx, film.view, W, H, f.ground);
+  if (film.obstacle) OBSTACLE[film.obstacle](ctx, f);
+  const craftSize = f.scale * 0.15;
+  paintTrail(ctx, film, t, f, craftSize);
+  const pose = poseAt(film, t);
+  const at = onScreen(f, pose.x, pose.y);
+  /* The moment of a tap lights up where the craft meets the wall. */
+  if (pose.seg && pose.seg.tap && pose.u > 0.45 && pose.u < 0.62) {
+    ctx.fillStyle = PAINT.flash;
     ctx.beginPath();
-    ctx.arc(q.x, q.y, s * 0.16, 0, TURN);
+    ctx.arc(at.x, at.y, f.scale * 0.16, 0, FULL);
     ctx.fill();
   }
-  drawQuad(ctx, q.x, q.y, p.spin, s * 0.15, p.squash, 1, p.inv);
+  paintCraft(ctx, at, pose, craftSize, 1);
 }
 
 /* ------------------------------------------------------------------ *
@@ -507,22 +494,28 @@ export class TrickFilmPlayer {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.film = null;
-    this.raf = 0;
-    this.t0 = 0;
-    this.reduced = typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false;
+    this.frame = 0;
+    this.startedAt = 0;
+    this.still = typeof window !== 'undefined' && Boolean(window.matchMedia)
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.onFrame = (now) => {
+      if (!this.startedAt) this.startedAt = now;
+      this.draw((now - this.startedAt) % this.film.totalMs);
+      this.frame = requestAnimationFrame(this.onFrame);
+    };
   }
 
-  /* Match the backing store to the box, capped at 2x: a teaching picture
-   * does not need a retina buffer and this runs beside a simulator. */
+  /* Sizes the backing store to the element at up to 2x; a teaching picture
+   * beside a simulator does not need more. The store is reallocated only
+   * when its width changes, as writing the size clears the canvas. */
   size() {
-    const box = this.canvas.getBoundingClientRect();
+    const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
-    const w = Math.max(160, Math.round(box.width));
-    const h = Math.max(110, Math.round(box.height));
-    if (this.canvas.width !== Math.round(w * dpr)) {
-      this.canvas.width = Math.round(w * dpr);
+    const w = Math.max(160, Math.round(rect.width));
+    const h = Math.max(110, Math.round(rect.height));
+    const storeWidth = Math.round(w * dpr);
+    if (this.canvas.width !== storeWidth) {
+      this.canvas.width = storeWidth;
       this.canvas.height = Math.round(h * dpr);
     }
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -531,66 +524,59 @@ export class TrickFilmPlayer {
 
   show(film) {
     this.film = film;
-    this.t0 = 0;
+    this.startedAt = 0;
     this.draw(0);
     this.start();
   }
 
   start() {
-    if (this.raf || !this.film || this.reduced) {
-      /* Reduced motion gets one still frame per segment, drawn once. */
-      if (this.reduced && this.film) { this.drawStrip(); }
+    if (this.still) {
+      if (this.film) this.drawStrip();
       return;
     }
-    const tick = (now) => {
-      if (!this.film) { this.raf = 0; return; }
-      if (!this.t0) { this.t0 = now; }
-      this.draw((now - this.t0) % this.film.totalMs);
-      this.raf = requestAnimationFrame(tick);
-    };
-    this.raf = requestAnimationFrame(tick);
+    if (this.frame || !this.film) return;
+    this.frame = requestAnimationFrame(this.onFrame);
   }
 
   stop() {
-    if (this.raf) {
-      cancelAnimationFrame(this.raf);
-      this.raf = 0;
+    if (this.frame) {
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
     }
-    this.t0 = 0;
+    this.startedAt = 0;
   }
 
   draw(t) {
-    if (!this.film) { return; }
+    if (!this.film) return;
     const { w, h } = this.size();
     drawFilm(this.ctx, this.film, t, w, h);
   }
 
-  /*
-   * The trick as a row of stills, one per segment plus the finish. Used when
-   * the reader has asked for no motion: NOTHING THAT CARRIES MEANING IS
-   * HIDDEN, which is the contract the rest of this shell keeps, so the shape
-   * of the trick is still on the screen, just not moving.
-   */
+  /* Reduced motion: up to four stills across the canvas, from the start to
+   * the finished shape, with an ink rule between them. */
   drawStrip() {
     const { w, h } = this.size();
-    const n = Math.min(4, this.film.segs.length + 1);
-    const cw = w / n;
-    this.ctx.clearRect(0, 0, w, h);
-    for (let i = 0; i < n; i += 1) {
-      this.ctx.save();
-      this.ctx.beginPath();
-      this.ctx.rect(i * cw, 0, cw, h);
-      this.ctx.clip();
-      this.ctx.translate(i * cw, 0);
-      drawFilm(this.ctx, this.film, (this.film.totalMs - HOLD_MS) * (i / (n - 1 || 1)), cw, h);
-      this.ctx.restore();
+    const { ctx, film } = this;
+    const panels = Math.min(4, film.segs.length + 1);
+    const pw = w / panels;
+    const playMs = film.totalMs - END_PAUSE_MS;
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < panels; i += 1) {
+      const left = i * pw;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, 0, pw, h);
+      ctx.clip();
+      ctx.translate(left, 0);
+      drawFilm(ctx, film, playMs * (i / (panels - 1 || 1)), pw, h);
+      ctx.restore();
       if (i > 0) {
-        this.ctx.strokeStyle = INK;
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(i * cw, 0);
-        this.ctx.lineTo(i * cw, h);
-        this.ctx.stroke();
+        ctx.strokeStyle = PAINT.ink;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(left, 0);
+        ctx.lineTo(left, h);
+        ctx.stroke();
       }
     }
   }
