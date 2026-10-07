@@ -140,7 +140,7 @@ import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud, heldRolesOf } from './ui/opshud.js';
 import {
-  briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
+  bearingSaid, briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
 } from './share/ops/guide.js';
 import { RolesBoard } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
@@ -1071,7 +1071,12 @@ export async function boot({
         /* The ops room's voices (lines.json's Interior speakers): the
          * room sends each seat only the lines it hears. */
         if (e.radio != null) {
-          warSay([e.radio], 'story', opsHud);
+          /* A fixed "from your nose" hour is said off this screen's nose,
+           * the same frame as the guide's nudges (opsGuideFrame). */
+          threePosToDoc(pCurr.x, pCurr.y, pCurr.z, guideDoc);
+          threePosToDoc(camFwd.x, camFwd.y, camFwd.z, guideFwd);
+          const bearings = roomOps.mission() && roomOps.mission().bearings;
+          warSay([bearingSaid(bearings, e.radio, [guideDoc.x, guideDoc.y], Math.atan2(guideFwd.x, guideFwd.y))], 'story', opsHud);
         }
         /* A classification's card is told with its change, below. */
         if (e.card && e.card !== 'card.classification_updated') {

@@ -30,6 +30,10 @@
  *   briefOf(focus, role)            the line id the guide says for it
  *   nudgeOf(target, here, heading)  the line ids a nudge says: what, the
  *                                   clock bearing off the nose, how far
+ *   bearingSaid(bearings, radio, here, heading)
+ *                                   a cue's lines as this screen says
+ *                                   them: a take naming a fixed clock hour
+ *                                   only when that is the hour
  *   createNudger()                  when a nudge is due: no progress for
  *                                   NUDGE_IDLE_MS (closing on the objective
  *                                   by CLOSE_M counts as progress), and
@@ -272,6 +276,24 @@ export function clockOf(here, at, heading) {
   const rel = bearing(here, at) - heading;
   const h = Math.round((((rel / (2 * Math.PI)) * 12) % 12 + 12) % 12);
   return h === 0 ? 12 : h;
+}
+
+/*
+ * A cue's radio as this screen says it. A take that names a fixed hour to
+ * a place (the mission's `bearings`: { [line]: { hour, at } }) is right
+ * only on the heading the script imagined; off it, the guide's own search
+ * line and the computed hour to the same place are said instead, so the
+ * voice and the nudge that follows never name two different hours.
+ */
+export function bearingSaid(bearings, radio, here, heading) {
+  return [radio].flat().flatMap((id) => {
+    const b = bearings && bearings[id];
+    if (!b) {
+      return [id];
+    }
+    const h = clockOf(here, b.at, heading);
+    return h === b.hour ? [id] : [LEADS.search, `int-g-clock-${h}`];
+  });
 }
 
 /* The distance band's line for d metres. */
