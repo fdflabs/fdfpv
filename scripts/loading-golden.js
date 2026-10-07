@@ -1170,6 +1170,16 @@ loaderCase('race', {}, async (t) => {
   t.wait(1000);
 });
 
+/* Either side of the line between the minimal loader and the full one. */
+loaderCase('minimal-line', {}, async (t) => {
+  for (const ms of [1039, 1040, 1041]) {
+    t.step(`run ${ms}`, (ld) => ld.run(t.mod.planStages(['module', 'world', 'frame'], ms)));
+    t.step(`world ${ms}`, (ld) => ld.start('world'));
+  }
+  t.step('cold under the line', (ld) => ld.run(t.mod.planStages(['three', 'world'], 10)));
+  t.step('warm under the line, no ms', (ld) => ld.run([{ id: 'world', weight: 1 }]));
+});
+
 loaderCase('api', {}, async (t) => {
   for (const v of [50, 30, 'abc', NaN, -5, 150, '70.456', 99.5, null, undefined, 12.34567]) {
     t.step(`boot ${canon(v)}`, (ld) => ld.setProgress('boot-progress', 'boot-progress-text', v));
