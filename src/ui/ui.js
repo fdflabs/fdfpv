@@ -744,6 +744,8 @@ export class Ui {
     this.freestyleRun = null;
     this.runPosted = null;
     this.resultsFastest = null;
+    /* The flight's debrief record (src/game/debrief.js), or null. */
+    this.resultsDebrief = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
     /* Seed the pad's edges on the next poll rather than acting on them;
      * every screen change sets it (show). */

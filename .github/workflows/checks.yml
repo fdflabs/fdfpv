@@ -209,6 +209,9 @@ jobs:
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
+      # A solo race's debrief in the real page: the facts, Watch the replay
+      # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
+      - run: npm run debrief:race
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest

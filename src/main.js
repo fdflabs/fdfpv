@@ -72,6 +72,7 @@ import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
+import { createRoute, fromRace, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -91,7 +92,7 @@ import {
 import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
-  addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
+  addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
 } from './share/flighttime.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
@@ -1909,6 +1910,10 @@ export async function boot({
     }
   })());
   let flightClockFlew = false;
+  /* This run's own share of that clock and its route, for the debrief
+   * (src/game/debrief.js, docs/DEBRIEF.md); reset() clears both. */
+  let runAirMs = 0;
+  const runRoute = createRoute();
   function commitFlightTime() {
     const got = flightClock.take();
     if (!got.length) {
@@ -1932,6 +1937,12 @@ export async function boot({
    * the room's game in a room, else Track Day on a race map and Free
    * Flight anywhere else. Every game but those two is played in a room,
    * alone or not (LOBBY_GAMES). */
+  /* The seated aircraft's flight time over every device, this run's
+   * unsent seconds included: what the debrief's record line shows. */
+  function aircraftSecondsNow() {
+    commitFlightTime();
+    return flightTotals(ui.settings.flightTime).byAirframe[runAirframe] ?? 0;
+  }
   function flightActivity() {
     const st = roomLinkState.state();
     if (st.phase === 'open' && st.welcome) {
@@ -11407,6 +11418,8 @@ export async function boot({
      * or a stale stamp keeps a fresh run inside an expired cooldown. */
     simTimeMs = 0;
     trickTouchAtSimMs = -1e9;
+    runAirMs = 0;
+    runRoute.reset();
     resetCraft(null);
     race.reset();
     /* Scored or free flight is re-read every run: the pilot switches it on
@@ -13613,7 +13626,24 @@ export async function boot({
     }],
     ['posttime', () => submitBoardTime()],
     ['postrun', () => submitFreestyleRun()],
+    ['watchreplay', watchReplayFromResults],
   ]);
+
+  /* Watch the replay from a flight's end screen (docs/DEBRIEF.md): the
+   * crash cam opens over the flight and closing it comes back to the
+   * results, not to a flight that has ended. */
+  let replayFromResults = false;
+  function watchReplayFromResults() {
+    if (!crashCam || mode !== 'results') {
+      return;
+    }
+    replayFromResults = true;
+    ui.show('flight');
+    if (!crashCam.open()) {
+      replayFromResults = false;
+      ui.show('results');
+    }
+  }
 
   ui.onAction = (action, s) => {
     if (s) {
@@ -15530,6 +15560,9 @@ export async function boot({
       flightClock.note(steps * MS_PER_STEP, {
         airborne: flightClockFlew, airframe: runAirframe, activity: flightActivity(),
       });
+      if (flightClockFlew) {
+        runAirMs += steps * MS_PER_STEP;
+      }
       flightLog.push(stateCurr, rcHeld, FULL_THROTTLE_RPM);
     }
     judgeGround(nowWall);
@@ -16027,6 +16060,7 @@ export async function boot({
       }
       racePrev.copy(pCurr);
       raceHasPrev = true;
+      runRoute.add(simNow, pCurr.x, pCurr.y, pCurr.z);
       ghostPrev.valid = true;
       ghostPrev.simMs = simNow;
       ghostPrev.x = pCurr.x;
@@ -16094,7 +16128,16 @@ export async function boot({
     poseLock = false;
     paintBest();
     if (!roomRun()) {
-      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote());
+      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), fromRace({
+        aircraft: runAirframe,
+        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        log: race.log,
+        recordAtStart: race.recordAtStart,
+        flightMs: runAirMs,
+        totalS: aircraftSecondsNow(),
+        route: runRoute.snapshot(),
+        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+      }));
       return;
     }
     roomShowResults();
@@ -18767,11 +18810,17 @@ export async function boot({
       mode = 'replay';
     },
     exit: () => {
-      mode = 'flight';
       acc = 0;
       /* The map as the war has it now, whatever the replay drew. */
       warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));
       warBreakageLive(roomLinkState.roomNow());
+      if (replayFromResults) {
+        replayFromResults = false;
+        mode = 'results';
+        ui.show('results');
+        return;
+      }
+      mode = 'flight';
       ui.show('flight');
     },
     drawWar: warMapDraw,
