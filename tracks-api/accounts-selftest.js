@@ -194,6 +194,11 @@ console.log('the progress merge');
     { v: 1, data: { progress: { v: 1, xp: 50, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll: false } }, stamps: {} },
     { v: 1, data: { progress: { v: 2, xp: 40, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: { 'mission:itaipu-1:win': true }, unlockAll: false } }, stamps: {} },
   );
+  const lm = mergeBlobs(
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 2000, first_turns: 5000 } } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 1000, race_lap: 3000 } } }, stamps: {} },
+  );
+  check('lessons passed merge as the union at the earliest pass time', JSON.stringify(lm.data.progress.lessons) === '{"first_takeoff":1000,"first_turns":5000,"race_lap":3000}', JSON.stringify(lm.data.progress.lessons));
   check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
     JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2

@@ -2283,6 +2283,7 @@ export default {
   "progress.toast_first": "A first",
   "progress.toast_first_level": "A first, level {n}!",
   "progress.first_more": "and {n} more firsts",
+  "progress.first.lesson": "Lesson passed: {lesson}",
   "progress.first.win": "{mission}: won",
   "progress.first.star": "{mission}: star {n}",
   "progress.first.flight": "First flight: {plane}",
