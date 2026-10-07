@@ -66,7 +66,6 @@ src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
 src/replay/crashcam.js
-src/share/board.js
 src/share/bugs.js
 src/share/flightlog.js
 src/share/ghostdata.js
