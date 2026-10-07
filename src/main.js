@@ -16502,6 +16502,11 @@ export async function boot({
             }
             if (runDamage) {
               crashAfterStep(stNow);
+            } else {
+              /* The step trace without crash physics too, so a harness can
+               * hold the shell's own contact pass to a record (it resolves
+               * every hit itself when the plant does not). */
+              tracePost(stNow);
             }
             logObstacleStep(stNow);
             if (scoring) {
