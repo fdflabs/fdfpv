@@ -201,6 +201,9 @@ jobs:
       - run: npm run trackdoc:golden
       - run: npm run race:golden
       - run: npm run ghost:golden
+      # The turtle in the real page: the wait, the poke, the flip and the
+      # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
+      - run: npm run turtle:check
       - run: npm run collide:golden
       - run: npm run simmod:selftest
       - run: npm run contact:selftest
