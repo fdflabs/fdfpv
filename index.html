@@ -134,20 +134,17 @@
         --slate: #9db3c8;
         --deep: #141c16;
         /*
-         * THE FRAME'S TWO BARS, as tokens rather than as numbers typed into
-         * seventeen places.
-         *
-         * Every scroller cap in this sheet is a hand tuned vh, and seven of
-         * them say in their own comments which window they were measured
-         * against. Adding a status bar and a command bar without telling
-         * those caps about it puts the Rates screen 52 px under its own bar
-         * at 1280x720, measured. So the caps subtract these, and a screen
-         * that hides a bar sets its own value to zero rather than fighting
-         * the cap.
+         * The status bar and the command bar. Every scroller height in
+         * the sheet subtracts these, so a cap tuned for a window stays
+         * right with the bars up, and a screen that drops a bar zeroes its
+         * own value instead of overriding each cap.
          */
         --bar-top: 36px;
         --bar-bot: 44px;
         --bars: calc(var(--bar-top) + var(--bar-bot));
+        /* The banner's type: 30 px on a laptop, small enough on a phone that a
+           long message stays a few lines rather than covering the screen. */
+        --banner-size: clamp(17px, 4.4vw, 30px);
         --panel: #1a241c;
         --ink: rgba(12, 18, 14, 0.86);
         --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -259,286 +256,190 @@
         --hub-hangar: #a9b4bb;
         --hub-accent: var(--hub-ops);
       }
-      /* overscroll-behavior is for phones: a drag that starts on the world
-         must not become a pull-to-refresh mid-flight. */
-      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--deep); overscroll-behavior: none; }
-      #view {
-        display: block; position: fixed; inset: 0;
-        width: 100%; height: 100%;
+      /* The page is the canvas and never scrolls, and on a phone a drag
+         that begins on the world must not turn into a pull-to-refresh. */
+      html, body {
+        width: 100%; height: 100%; margin: 0; overflow: hidden;
+        overscroll-behavior: none; background: var(--deep);
       }
+      #view { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
       #ui {
         position: fixed; inset: 0; pointer-events: none; user-select: none;
-        font-family: var(--ui-font); color: var(--cream);
-        font-variant-numeric: tabular-nums;
+        color: var(--cream); font-family: var(--ui-font); font-variant-numeric: tabular-nums;
       }
 
-      /* Flight display. Thin warm type over a dark edge, the way an OSD
-         reads over any background. */
-      .osd { position: absolute; inset: 0; }
+      /* THE FLIGHT DISPLAY. Pale type over a dark shadow reads on sky,
+         grass and tarmac alike, which is how a video OSD stays legible. */
+      .osd, .score-hud { position: absolute; inset: 0; }
+      .score-hud { pointer-events: none; }
       .osd.dim { opacity: 0.4; }
-      .osd-top {
-        position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
-        text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-      }
-      /* A war has no lap and no run: its clock is the war HUD's. */
-      #ui.war-on .osd-top { display: none; }
-      .osd-timer { font-size: 46px; font-weight: 600; letter-spacing: 0.02em; line-height: 1; }
-      .osd-timer.waiting { color: #b9c9d8; }
-      .osd-label {
+      .osd-ghost.is-off, .osd-launch.is-off, .room-race.is-off,
+      .score-hud.is-off, .score-combo.is-off { display: none; }
+      .osd-top, .osd-corner, .score-total { text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
+      .osd-label, .room-race-title, .score-label {
+        margin-bottom: 2px; color: var(--slate);
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 2px;
       }
+      .score-label { margin-bottom: 1px; }
+
+      /* The clock block, top centre. A war has no lap to time: the war HUD
+         keeps its clock. */
+      .osd-top { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; }
+      #ui.war-on .osd-top { display: none; }
+      .osd-timer { font-size: 46px; font-weight: 600; line-height: 1; letter-spacing: 0.02em; }
+      .osd-timer.waiting { color: #b9c9d8; }
+      /* A freestyle run's last ten seconds. Amber and not red: nothing has
+         gone wrong, the run is ending, and this is when a pilot decides on
+         one more big line. */
+      .osd-timer.is-late { color: var(--amber); }
       .osd-value { font-size: 20px; font-weight: 600; }
-      .osd-sub { font-size: 13px; color: var(--slate); margin-top: 1px; margin-bottom: 8px; }
-      .osd-gate { font-size: 15px; color: var(--amber); margin-top: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .osd-best { font-size: 14px; color: var(--slate); margin-top: 3px; }
-      /* The gap to the ghost, lit for a moment after each gate. Mint when
-         the pilot is ahead of it, amber when it is ahead, the same reading
-         the rest of this overlay teaches: mint is the good news. */
-      .osd-ghost { font-size: 15px; font-weight: 600; margin-top: 4px; letter-spacing: 0.04em; }
-      .osd-ghost.is-off { display: none; }
+      .osd-sub, .osd-best { color: var(--slate); }
+      .osd-sub { margin: 1px 0 8px; font-size: 13px; }
+      .osd-best { margin-top: 3px; font-size: 14px; }
+      .osd-gate, .osd-mode { color: var(--amber); text-transform: uppercase; }
+      .osd-gate { margin-top: 6px; font-size: 15px; letter-spacing: 0.08em; }
+      .osd-mode { letter-spacing: 0.14em; }
+      /* The split to the ghost, shown briefly after each gate. Mint is the
+         good news everywhere on this overlay, so mint means ahead. */
+      .osd-ghost { margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
       .osd-ghost.ahead { color: var(--mint); }
       .osd-ghost.behind { color: var(--amber); }
-      .osd-corner {
-        position: absolute; bottom: 20px; width: 190px;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.85); font-size: 15px;
-      }
+
+      /* The pack and flight blocks in the two lower corners. */
+      .osd-corner { position: absolute; bottom: 20px; width: 190px; font-size: 15px; }
       .osd-left { left: 22px; }
       .osd-right { right: 22px; text-align: right; }
-      .osd-mode { letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); }
+      .bar, .score-combo-bar { overflow: hidden; background: rgba(12, 22, 34, 0.65); }
+      .bar {
+        height: 5px; margin-top: 7px; border-radius: 3px;
+        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.35);
+      }
+      .bar-fill { width: 0%; height: 100%; background: var(--mint); transition: width 0.12s linear; }
+      .bar-fill.warm { background: var(--amber); }
+      .osd-hits { margin-top: 10px; margin-bottom: 0; }
+
+      /* The launch call sits high, where the eye already is, and blinks
+         while armed. */
       .osd-launch {
-        position: absolute; left: 50%; top: 16%;
-        transform: translate(-50%, 0);
+        position: absolute; top: 16%; left: 50%; transform: translate(-50%, 0);
+        pointer-events: none; color: var(--amber);
         font-size: clamp(28px, 4.2vw, 46px); font-weight: 700;
         letter-spacing: 0.18em; text-transform: uppercase;
-        color: var(--amber);
         text-shadow: 0 3px 14px rgba(0, 0, 0, 0.92);
-        pointer-events: none;
       }
-      .osd-launch.is-off { display: none; }
       .osd-launch.is-hot { animation: launch-blink 0.32s step-end infinite; }
-      .osd-launch.is-go {
-        color: #8dffb0;
-        letter-spacing: 0.32em;
-        font-size: clamp(40px, 6vw, 64px);
-      }
+      .osd-launch.is-go { color: #8dffb0; font-size: clamp(40px, 6vw, 64px); letter-spacing: 0.32em; }
       @keyframes launch-blink {
         50% { opacity: 0.2; }
       }
 
-      /* FREESTYLE SCORE, down the left. See src/ui/scorehud.js for why it
-         is here and not anywhere else: the top centre, both bottom corners
-         and the bottom centre are already spoken for by the flight OSD.
-         Everything that moves is a keyframe on a node that removes itself,
-         so this costs no frame time when nothing has happened. */
-      .score-hud { position: absolute; inset: 0; pointer-events: none; }
-      .score-hud.is-off { display: none; }
-      /* A ROOM'S RACE, down the left under the link readout (src/ui/
-         roomhud.js): the right has the flight buttons and the throttle, the
-         top centre the lap clock, and the left column's other tenant, the
-         freestyle score, is never up in a race. */
+      /* A ROOM'S STANDINGS (src/ui/roomhud.js), in the left column under
+         the link readout. The column's other user, the freestyle score, is
+         never up during a race. */
       .room-race {
-        position: absolute; left: 16px; top: calc(var(--bar-top) + 96px);
-        min-width: 180px; max-width: 42vw; pointer-events: none;
-        padding: 6px 10px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
+        position: absolute; top: calc(var(--bar-top) + 96px); left: 16px;
+        min-width: 180px; max-width: 42vw; padding: 6px 10px; border-radius: 4px;
+        pointer-events: none; background: rgba(16, 22, 17, 0.62);
         font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
       }
-      .room-race.is-off { display: none; }
-      .room-race-title {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 2px;
-      }
-      /* A state of this pilot's in the match, a tag under the title (Catch
-         the Ace's chase boost). */
+      /* A tag for something only this pilot has right now, such as Catch
+         the Ace's chase boost. */
       .room-race-chip {
         display: inline-block; margin: 1px 0 3px; padding: 0 6px; border-radius: 3px;
-        font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #1b1405; background: var(--amber);
+        background: var(--amber); color: #1b1405;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
       }
       .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
       .room-race-row.is-me { color: var(--amber); }
       .room-race-place { width: 1.2em; text-align: right; }
       .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
       .room-race-value { font-variant-numeric: tabular-nums; }
-      /* Clear of the music dock, which moves to the top left corner on the
-         flight screen (.music-dock.on-flight) and is 30 px tall at 16 px.
-         --bar-top is zero in flight, so this offset is measured from the
-         top of the window there and from under the bar everywhere else. */
-      .score-total {
-        position: absolute; left: 22px; top: calc(var(--bar-top) + 58px);
-        text-shadow: 0 2px 6px rgba(0,0,0,0.85);
-      }
-      .score-label {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); margin-bottom: 1px;
-      }
-      /* The scorer admits what it is, beside the word it qualifies. Amber
-         is the instrument colour this overlay and the menus both use for a
-         reading about the state of the machine rather than about the
-         flying, and it is a shade smaller and a shade dimmer than the label
-         so it reads as a footnote and never competes with the number.
-         See the comment on totalBox in src/ui/scorehud.js. */
-      .score-beta {
-        margin-left: 6px; font-size: 9px; letter-spacing: 0.1em;
-        color: var(--amber); opacity: 0.8;
-      }
-      /* A HARD OUTLINE, NOT A GLOW. Every other readout on this overlay
-         uses a soft drop shadow, and a soft shadow works because the world
-         behind the OSD is mostly sky or grass. The score sits over the
-         town: cream on a pale road at midday, which measured as unreadable
-         in the first capture. Four one pixel offsets give the glyph an
-         edge whatever is behind it, and the blur underneath keeps it from
-         looking stencilled. */
+
+      /* THE FREESTYLE SCORE (src/ui/scorehud.js) owns the left column,
+         the one stretch of frame the OSD leaves free. It is drawn the way
+         the cel shaded town is: flat fills, hard edges, no blur that is not
+         under an ink line. Everything that moves is a keyframe on a node
+         that deletes itself when done, so an idle score asks for no frames
+         from a page running a 1 kHz simulation. */
+
+      /* The running total clears the music dock (30 px tall in the top left
+         corner during flight, where --bar-top is zero). */
+      .score-total { position: absolute; top: calc(var(--bar-top) + 58px); left: 22px; }
+      /* The in-development note: amber because it is about the scorer, not
+         the flying, and smaller and dimmer than the label it footnotes. */
+      .score-beta { margin-left: 6px; color: var(--amber); opacity: 0.8; font-size: 9px; letter-spacing: 0.1em; }
+      /* Score type crosses pale roads at midday, where a soft shadow
+         vanishes. Four one pixel offsets ink a hard edge round each glyph;
+         the blur beneath keeps it from looking stencilled. */
       .score-cut {
         text-shadow:
-          -1px -1px 0 rgba(8, 12, 9, 0.92),  1px -1px 0 rgba(8, 12, 9, 0.92),
-          -1px  1px 0 rgba(8, 12, 9, 0.92),  1px  1px 0 rgba(8, 12, 9, 0.92),
+          -1px -1px 0 rgba(8, 12, 9, 0.92), 1px -1px 0 rgba(8, 12, 9, 0.92),
+          -1px 1px 0 rgba(8, 12, 9, 0.92), 1px 1px 0 rgba(8, 12, 9, 0.92),
           0 2px 10px rgba(0, 0, 0, 0.9);
       }
       .score-value {
-        font-size: clamp(26px, 3.4vw, 40px); font-weight: 700;
-        line-height: 1; letter-spacing: 0.01em; color: var(--cream);
+        color: var(--cream); font-size: clamp(26px, 3.4vw, 40px); font-weight: 700;
+        line-height: 1; letter-spacing: 0.01em;
       }
-      /* THE LAST TEN SECONDS of a freestyle run, on the OSD's own clock.
-         Amber rather than red because nothing has gone wrong: the run is
-         ending, and this is the window a pilot spends deciding whether to
-         try the big line. It is the only thing on the flight overlay that
-         changes colour without something having happened. */
-      .osd-timer.is-late { color: var(--amber); }
-      /* The name stack sits directly ON TOP OF the combo line and grows
-         UPWARD, which is the Tony Hawk arrangement and not a stylistic
-         choice: the newest trick has to be adjacent to the number it just
-         changed, or the eye has to cross half the screen to connect them.
-         The stack is anchored by its BOTTOM edge and laid out top down, so
-         the newest name is appended last and lands nearest the combo line,
-         and the older ones are pushed up and out. No JS: the container
-         simply grows upward as rows arrive. */
+
+      /* Trick names stack upward from just above the combo, newest lowest,
+         so the latest trick always sits beside the number it changed. The
+         stack is pinned by its bottom edge and grows up with no script. */
       .score-names {
         position: absolute; left: 22px; bottom: calc(24vh + 62px);
+        display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
         width: min(46vw, 340px);
-        display: flex; flex-direction: column;
-        align-items: flex-start; gap: 2px;
       }
+      /* Each row is the box its ray burst centres on. */
       .score-name {
-        display: flex; align-items: baseline; gap: 8px;
+        position: relative; display: flex; align-items: baseline; gap: 8px;
+        color: var(--cream); white-space: nowrap;
         font-size: clamp(15px, 1.85vw, 21px); font-weight: 700;
         letter-spacing: 0.06em; text-transform: uppercase;
-        color: var(--cream);
-        white-space: nowrap;
-        animation: score-name-in 2.2s ease-out forwards;
       }
+      .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
       .score-name.is-sloppy { color: var(--amber); }
       .score-name.is-bump { color: var(--sakura); }
-      .score-name-points { font-size: 0.8em; color: var(--cream); opacity: 0.7; font-weight: 500; }
-      .score-name-tag {
-        font-size: 0.62em; letter-spacing: 0.14em; color: var(--slate);
-        opacity: 0.85;
+      /* The burst goes behind the words by paint order among positioned
+         siblings. A negative z-index would sink the whole row under the
+         world canvas. */
+      .score-name > span { position: relative; }
+      /* The points land a beat after the name, so the eye reads the trick
+         first and the number second. */
+      .score-name-points {
+        color: var(--cream); opacity: 0.7; font-size: 0.8em; font-weight: 500;
+        animation: score-pop 620ms cubic-bezier(0.1, 1.5, 0.4, 1) 90ms backwards;
       }
+      .score-name-tag { color: var(--slate); opacity: 0.85; font-size: 0.62em; letter-spacing: 0.14em; }
       @keyframes score-name-in {
         0%   { opacity: 0; transform: translateX(-14px); }
         7%   { opacity: 1; transform: translateX(0); }
         75%  { opacity: 1; }
         100% { opacity: 0; transform: translateY(-10px); }
       }
-      /* The live combo. Under the names, and it is the number the pilot is
-         gambling: it reads big on purpose. */
-      .score-combo {
-        position: absolute; left: 22px; bottom: 24vh;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      @keyframes score-name-slam {
+        0%   { opacity: 0; transform: translateX(-42px) skewX(-16deg) scale(1.38); }
+        9%   { opacity: 1; transform: translateX(3px) skewX(4deg) scale(0.96); }
+        15%  { transform: translateX(0) skewX(0) scale(1); }
+        76%  { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateY(-14px); }
       }
-      .score-combo.is-off { display: none; }
-      .score-combo-line {
-        display: flex; align-items: baseline; gap: 6px;
-        font-size: clamp(22px, 2.8vw, 34px); font-weight: 700; line-height: 1;
-        color: var(--amber);
+      @keyframes score-pop {
+        0%   { transform: scale(2.1); opacity: 0; }
+        30%  { opacity: 1; }
+        100% { transform: scale(1); opacity: 0.7; }
       }
-      .score-combo-mult { font-size: 0.82em; color: var(--mint); }
-      .score-combo-bar {
-        margin-top: 6px; height: 4px; width: clamp(90px, 12vw, 150px);
-        border-radius: 2px; background: rgba(12, 22, 34, 0.65);
-        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.3);
-        overflow: hidden;
-      }
-      .score-combo-fill {
-        height: 100%; width: 100%; background: var(--amber);
-        transform-origin: left center; transform: scaleX(1);
-      }
-      /* Banked or bailed. Centre screen for one beat, because it is the one
-         moment worth looking away from the quad for. */
-      .score-verdict {
-        position: absolute; left: 50%; top: 38%;
-        transform: translate(-50%, -50%);
-        font-size: clamp(30px, 4.6vw, 54px); font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase;
-        opacity: 0;
-      }
-      .score-verdict.is-on { animation: score-verdict 1.15s ease-out forwards; }
-      .score-verdict.is-bank { color: var(--mint); }
-      /* A saturated sakura rather than the token. --sakura is the brand's
-         blossom pink and it is a pale one by design; over a lit road it
-         read as decoration rather than as a loss. Same hue, enough
-         saturation to mean something. */
-      .score-verdict.is-bail { color: #ff7d96; }
-      @keyframes score-verdict {
-        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
-        14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
-        24%  { transform: translate(-50%, -50%) scale(1); }
-        70%  { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -74%) scale(1); }
-      }
-      /* Phones fly with the touch sticks up and a much shorter screen, so
-         the combo climbs out of their way and the stack keeps two rows. */
-      @media (max-height: 560px) {
-        .score-combo { bottom: 34vh; }
-        .score-names { bottom: calc(34vh + 52px); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .score-name, .score-verdict.is-on { animation-duration: 0.01s; }
-      }
-      /* ------------------------------------------------------------------
-         THE ANIME LAYER.
-
-         The town is cel shaded and the score was not: flat type fading in
-         and out over a world drawn with hard ink lines. This is the same
-         readout wearing the same clothes as the place it sits in.
-
-         CEL SHADING IS A RULE, not a mood. Flat colour, hard edges, no
-         blur, no soft glow, no gradient that is not a stack of hard stops.
-         Every ray fan below is a repeating-conic-gradient whose stops sit
-         on top of each other, so it renders as solid wedges rather than as
-         a smear, which is exactly what an ink burst is.
-
-         AND IT STILL ASKS FOR NO FRAMES. Every moving thing here is a
-         keyframe on a node that removes itself when the animation ends, the
-         rule scorehud.js opens with. A rAF driven overlay competing with a
-         1 kHz simulation is how a smooth sim gets a stutter nobody can find.
-         ------------------------------------------------------------------ */
-
-      /* The ray fan behind a trick name. Sixteen hard wedges in a ring,
-         punched hollow in the middle so the type stays readable through it,
-         and drawn TWICE: an ink fan and, inside it, the colour. Cel shading
-         is a fill with a line round it, and over a pale sky the line is the
-         half that makes the fill visible at all.
-
-         The row is the thing it belongs to, so the row is what it is
-         positioned against: the first version resolved against the whole
-         overlay and threw its rays into empty sky halfway up the screen. */
-      .score-name { position: relative; }
-      /* The rays go behind the type by DOM ORDER, not by a negative
-         z-index. z-index -1 on the burst took the whole row down with it,
-         behind the world canvas, and the trick name vanished: a positioned
-         child asking to paint below its parent's box asks to paint below
-         everything the parent sits on. Positioning the spans instead puts
-         them in the same group as the burst, where the one appended last
-         wins, which is exactly what is wanted. */
-      .score-name > span { position: relative; }
+      /* An ink burst: sixteen hard wedges in a hollow ring, an ink fan with
+         the colour fan inside it, because over pale sky the dark line is
+         what makes the fill visible. Stacked conic stops give solid
+         wedges, not a smear. */
       .score-burst {
-        position: absolute; left: -34px; top: 50%;
+        position: absolute; top: 50%; left: -34px;
         width: 200px; height: 200px; margin-top: -100px;
-        pointer-events: none;
+        pointer-events: none; opacity: 0;
         background: repeating-conic-gradient(#0b1116 0deg 8.4deg, transparent 8.4deg 22.5deg);
         -webkit-mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
         mask-image: radial-gradient(closest-side, transparent 0 30%, #000 33% 74%, transparent 78%);
-        opacity: 0;
         animation: score-burst 480ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
       }
       .score-burst::before {
@@ -553,29 +454,15 @@
         100% { opacity: 0; transform: scale(1.25) rotate(5deg); }
       }
 
-      /* The name slams in. Overshoot, a touch of shear, and a hard stop:
-         an anime title card lands, it does not arrive. */
-      .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
-      @keyframes score-name-slam {
-        0%   { opacity: 0; transform: translateX(-42px) skewX(-16deg) scale(1.38); }
-        9%   { opacity: 1; transform: translateX(3px) skewX(4deg) scale(0.96); }
-        15%  { transform: translateX(0) skewX(0) scale(1); }
-        76%  { opacity: 1; transform: translateX(0); }
-        100% { opacity: 0; transform: translateY(-14px); }
+      /* The live combo is the stake, so it is big, and it gets louder by
+         tier: colour first, a throb from tier three, and a badge. */
+      .score-combo { position: absolute; left: 22px; bottom: 24vh; text-shadow: 0 2px 8px rgba(0,0,0,0.9); }
+      .score-combo-line {
+        display: flex; align-items: baseline; gap: 6px;
+        color: var(--amber); font-size: clamp(22px, 2.8vw, 34px); font-weight: 700; line-height: 1;
+        transition: color 140ms linear;
       }
-      /* The points on a name pop a beat after the name, so the eye reads
-         the trick and then the number rather than both at once. */
-      .score-name-points { animation: score-pop 620ms cubic-bezier(0.1, 1.5, 0.4, 1) 90ms backwards; }
-      @keyframes score-pop {
-        0%   { transform: scale(2.1); opacity: 0; }
-        30%  { opacity: 1; }
-        100% { transform: scale(1); opacity: 0.7; }
-      }
-
-      /* THE COMBO TIER. The number is the thing at risk, so as the chain
-         grows it gets louder in three ways at once: colour, weight and a
-         chevron that only appears when there is something to lose. */
-      .score-combo-line { transition: color 140ms linear; }
+      .score-combo-mult { color: var(--mint); font-size: 0.82em; }
       .score-combo.tier-2 .score-combo-line { color: var(--amber); }
       .score-combo.tier-3 .score-combo-line { color: #ffc46b; }
       .score-combo.tier-4 .score-combo-line { color: #ff9f5a; }
@@ -587,48 +474,57 @@
         from { transform: scale(1); }
         to   { transform: scale(1.045); }
       }
-      /* The tier badge: an English word for what it is and a Japanese one
-         for where it is. The town is a Japanese one and reads its own
-         signage; this is the score speaking the same language. */
+      /* The badge names the tier in English and in the town's Japanese. It
+         is a solid chip of the tier's own colour (currentColor) with the
+         words cut out of it in ink. */
       .score-tier {
         display: inline-flex; align-items: baseline; gap: 6px;
         margin-left: 10px; padding: 2px 8px;
+        background: currentColor; box-shadow: 0 0 0 2px rgba(8, 12, 9, 0.9);
         font-size: 0.44em; font-weight: 700; letter-spacing: 0.18em;
         text-transform: uppercase; white-space: nowrap;
-        /* INHERITS the tier's colour and paints itself with it, so the
-           badge is a solid chip of whatever the number has just become and
-           the words are punched out of it. Setting a colour here instead
-           was dark ink on a dark chip and read as a black bar. */
-        background: currentColor;
-        box-shadow: 0 0 0 2px rgba(8, 12, 9, 0.9);
         animation: score-tier-in 420ms cubic-bezier(0.1, 1.4, 0.4, 1);
       }
       .score-tier > span { color: #0b1116; }
-      .score-tier .score-tier-jp { letter-spacing: 0.05em; opacity: 0.72; }
+      .score-tier .score-tier-jp { opacity: 0.72; letter-spacing: 0.05em; }
       @keyframes score-tier-in {
         0%   { transform: scale(0.4) rotate(-8deg); opacity: 0; }
         60%  { transform: scale(1.12) rotate(2deg); opacity: 1; }
         100% { transform: scale(1) rotate(0); }
       }
+      /* The chain's timer, drained by script through a scaleX. */
+      .score-combo-bar {
+        width: clamp(90px, 12vw, 150px); height: 4px; margin-top: 6px; border-radius: 2px;
+        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.3);
+      }
+      .score-combo-fill {
+        width: 100%; height: 100%; background: var(--amber);
+        transform-origin: left center; transform: scaleX(1);
+      }
 
-      /* BANKED. A hard ring, not a bloom: one 3 px stroke expanding once.
-         Cel shading has no falloff, so neither does this. */
-      .score-ring {
-        position: absolute; left: 50%; top: 38%;
-        width: 90px; height: 90px; margin: -45px 0 0 -45px;
-        border: 3px solid var(--mint); border-radius: 50%;
-        opacity: 0; pointer-events: none;
-        animation: score-ring 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      /* Banked or bailed, centre frame for one beat: the one moment worth
+         looking away from the quad for. A bank lands with overshoot, a bail
+         shakes, and one or two hard rings go out from it. */
+      .score-verdict, .score-ring { position: absolute; top: 38%; left: 50%; opacity: 0; }
+      .score-verdict {
+        transform: translate(-50%, -50%);
+        font-size: clamp(30px, 4.6vw, 54px); font-weight: 700;
+        letter-spacing: 0.14em; text-transform: uppercase;
       }
-      .score-ring.is-bail { border-color: #ff7d96; }
-      .score-ring.is-late { animation-delay: 110ms; }
-      @keyframes score-ring {
-        0%   { opacity: 0.9; transform: scale(0.35); border-width: 5px; }
-        100% { opacity: 0; transform: scale(3.4); border-width: 1px; }
+      .score-verdict.is-bank {
+        color: var(--mint);
+        animation: score-verdict-bank 1.15s cubic-bezier(0.1, 1.3, 0.3, 1) forwards;
       }
-      /* The verdict itself lands harder than it used to, and a bail SHAKES:
-         losing a chain should feel like a hit, not like a fade. */
-      .score-verdict.is-bank { animation: score-verdict-bank 1.15s cubic-bezier(0.1, 1.3, 0.3, 1) forwards; }
+      /* The token sakura is a pale blossom and read as decoration over a
+         lit road; a loss needs the same hue saturated. */
+      .score-verdict.is-bail { color: #ff7d96; animation: score-verdict-bail 1.15s ease-out forwards; }
+      @keyframes score-verdict {
+        0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
+        14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+        24%  { transform: translate(-50%, -50%) scale(1); }
+        70%  { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -74%) scale(1); }
+      }
       @keyframes score-verdict-bank {
         0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-5deg); }
         12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22) rotate(2deg); }
@@ -636,7 +532,6 @@
         68%  { opacity: 1; }
         100% { opacity: 0; transform: translate(-50%, -96%) scale(1); }
       }
-      .score-verdict.is-bail { animation: score-verdict-bail 1.15s ease-out forwards; }
       @keyframes score-verdict-bail {
         0%   { opacity: 0; transform: translate(-50%, -50%) scale(1.5) skewX(-14deg); }
         8%   { opacity: 1; transform: translate(-52%, -50%) scale(1) skewX(0); }
@@ -646,19 +541,28 @@
         70%  { opacity: 1; }
         100% { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
       }
+      .score-ring {
+        width: 90px; height: 90px; margin: -45px 0 0 -45px;
+        border: 3px solid var(--mint); border-radius: 50%; pointer-events: none;
+        animation: score-ring 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+      .score-ring.is-bail { border-color: #ff7d96; }
+      .score-ring.is-late { animation-delay: 110ms; }
+      @keyframes score-ring {
+        0%   { opacity: 0.9; transform: scale(0.35); border-width: 5px; }
+        100% { opacity: 0; transform: scale(3.4); border-width: 1px; }
+      }
 
-      /* SPEED LINES down both edges, and ONLY while a chain is worth
-         something. Two flat strips of hard vertical stripes, so the frame
-         gets busier exactly as the pilot has more to lose. Nothing here
-         reads a value: it is a class the combo tier already computes. */
+      /* Speed lines down both edges from tier three, busier as the chain is
+         worth more. They read the tier class the combo already sets. */
       .score-lines {
         position: absolute; inset: 0; pointer-events: none; opacity: 0;
-        transition: opacity 220ms linear;
         background:
-          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) left  / 11vw 100% no-repeat,
+          repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) left / 11vw 100% no-repeat,
           repeating-linear-gradient(90deg, var(--cream) 0 2px, transparent 2px 13px) right / 11vw 100% no-repeat;
         -webkit-mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
         mask-image: linear-gradient(90deg, #000 0, transparent 12vw, transparent calc(100% - 12vw), #000 100%);
+        transition: opacity 220ms linear;
       }
       .score-hud.tier-3 .score-lines { opacity: 0.16; }
       .score-hud.tier-4 .score-lines { opacity: 0.24; }
@@ -668,139 +572,76 @@
         to   { transform: translateX(6px); }
       }
 
+      /* A short phone screen has the thumb sticks up, so the combo climbs
+         clear of them and the name stack keeps two rows. */
+      @media (max-height: 560px) {
+        .score-combo { bottom: 34vh; }
+        .score-names { bottom: calc(34vh + 52px); }
+      }
+      /* Reduced motion keeps every colour, badge and number and drops only
+         the movement. */
       @media (prefers-reduced-motion: reduce) {
-        .score-name, .score-verdict.is-on { animation-duration: 0.01s; }
-        /* NOTHING THAT CARRIES MEANING IS HIDDEN. The tier colour, the
-           badge and the score all stay; what goes is the movement, which is
-           the same contract the rest of this overlay keeps. */
         .score-hud .score-name, .score-verdict.is-bank, .score-verdict.is-bail,
         .score-name-points, .score-tier { animation-duration: 0.01s; }
         .score-burst, .score-ring { display: none; }
         .score-combo.tier-3 .score-combo-line,
         .score-combo.tier-4 .score-combo-line,
-        .score-combo.tier-5 .score-combo-line { animation: none; }
+        .score-combo.tier-5 .score-combo-line,
         .score-hud.tier-5 .score-lines { animation: none; }
       }
 
-      .bar {
-        height: 5px; margin-top: 7px; border-radius: 3px;
-        background: rgba(12, 22, 34, 0.65);
-        box-shadow: inset 0 0 0 1px rgba(157, 179, 200, 0.35);
-        overflow: hidden;
-      }
-      .bar-fill { height: 100%; width: 0%; background: var(--mint); transition: width 0.12s linear; }
-      .bar-fill.warm { background: var(--amber); }
-      .osd-hits { margin-top: 10px; margin-bottom: 0; }
-      .osd-hits.warn { color: var(--amber); }
-
-
-      /* Keyboard stick ghost. Two Mode 2 gimbals: left is yaw and
-         throttle, right is roll and pitch. Shown only when the keyboard
-         is the stick source, so a radio does not grow a second pair of
-         sticks. Transparent enough to read a gate through. */
+      /* THE STICK GHOST: two Mode 2 gimbals (yaw and throttle left, roll
+         and pitch right) with the air slider between them, bottom centre.
+         Shown only for keyboard flying, so a radio never grows a second
+         pair of sticks, and faint enough to see a gate through. */
       .osd-sticks {
-        position: absolute; left: 50%; bottom: 18px;
-        transform: translateX(-50%);
+        position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
         display: flex; align-items: flex-end; gap: 14px;
         pointer-events: none;
-        /*
-         * ABOVE THE THUMB ZONES, and this was found by hit test, not by eye.
-         * The touch overlay is the last child of #ui so its catchment beats
-         * every screen, and its two zones are 44 percent of the width each
-         * from the bottom up. On an 844 by 390 phone that put
-         * elementFromPoint at the Got it button on .touch-zone-left and at
-         * the track's right end on .touch-zone-right: a thumb could neither
-         * dismiss the card nor reach Sinky, which is the end the report
-         * asked for. 1 is enough to beat an overlay at auto and stays under
-         * the chips at 6 and 7 and the dialogs at 8. Only the track and the
-         * button take pointer events, so a thumb landing anywhere else in
-         * this block still falls through to the zone beneath it. While
-         * paused .osd.dim has opacity under 1, which makes it a stacking
-         * context and keeps this value inside the OSD, under the menu,
-         * where it belongs.
-         */
+        /* Over the touch zones, found by hit testing an 844 by 390 phone:
+           the zones are later in #ui and caught the hint's button and the
+           slider's far end. 1 beats them and stays under the chips (6, 7)
+           and dialogs (8); paused, .osd.dim's opacity makes the OSD its own
+           stacking context and keeps this under the menu. */
         z-index: 1;
       }
-      .osd-sticks.is-off { display: none; }
-      .osd-gimbal.is-off { display: none; }
+      .osd-sticks.is-off, .osd-gimbal.is-off, .osd-air.is-off { display: none; }
       .osd-gimbal-plate {
         position: relative;
-        width: clamp(64px, 11vw, 88px);
-        height: clamp(64px, 11vw, 88px);
-        border-radius: 4px;
-        background: rgba(12, 18, 14, 0.28);
+        width: clamp(64px, 11vw, 88px); height: clamp(64px, 11vw, 88px);
+        border-radius: 4px; background: rgba(12, 18, 14, 0.28);
         box-shadow: inset 0 0 0 1px rgba(243, 234, 212, 0.32);
       }
-      .osd-cross-x, .osd-cross-y {
-        position: absolute;
-        background: rgba(157, 179, 200, 0.32);
-      }
-      .osd-cross-x { left: 10%; right: 10%; height: 1px; top: 50%; }
-      .osd-cross-y { top: 10%; bottom: 10%; width: 1px; left: 50%; }
+      .osd-cross-x, .osd-cross-y { position: absolute; background: rgba(157, 179, 200, 0.32); }
+      .osd-cross-x { top: 50%; left: 10%; right: 10%; height: 1px; }
+      .osd-cross-y { top: 10%; bottom: 10%; left: 50%; width: 1px; }
       .osd-nub {
-        position: absolute; left: 50%; top: 50%;
-        width: 11px; height: 11px;
-        border-radius: 50%;
-        background: var(--amber);
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 11px; height: 11px; border-radius: 50%; background: var(--amber);
         box-shadow: 0 0 0 1px rgba(12, 18, 14, 0.55), 0 1px 6px rgba(0, 0, 0, 0.45);
-        transform: translate(-50%, -50%);
       }
-      .osd-gimbal-cap {
-        margin-top: 6px;
-        font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-        color: var(--slate); text-align: center;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+      .osd-gimbal-cap, .osd-air-end {
+        color: var(--slate); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
       }
+      .osd-gimbal-cap, .osd-air { text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+      .osd-gimbal-cap { margin-top: 6px; text-align: center; }
 
-      /*
-       * THE AIR SLIDER, between the sticks, because that is where the hands
-       * already are and because the thing it changes is only legible while
-       * flying.
-       *
-       * It rides inside .osd-sticks so the two gimbals sit either side of it
-       * and the whole block stays one centred row, which is why .osd-sticks
-       * is no longer hidden as a unit: the GIMBALS carry their own is-off
-       * now and the container is shown whenever either half has something to
-       * say. The gap drops to 14px because the slider is the wide part.
-       *
-       * Amber, which on this overlay means an instrument rather than a
-       * record: it reads a number about the pilot's own quad, the same job
-       * the throttle bar and the pack gauge do. The track is the only thing
-       * on this overlay that takes a pointer, so it turns events back on for
-       * itself against .osd-sticks' none.
-       */
+      /* The air slider is an instrument reading about the pilot's own quad,
+         so it wears amber like the throttle and pack gauges. Its track and
+         thumb geometry come from .row-range. */
       .osd-air {
         position: relative;
-        display: flex; flex-direction: column; align-items: center;
-        gap: 2px; padding-bottom: 2px;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        padding-bottom: 2px;
       }
-      .osd-air.is-off { display: none; }
       .osd-air-row { display: flex; align-items: center; gap: 8px; }
-      .osd-air-end {
-        font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-        color: var(--slate); white-space: nowrap;
-      }
-      /*
-         Reuses .row-range for the track and thumb geometry, so the menu's
-         slider and this one are the same control; only the colour differs,
-         the same way .screen-fc recolours it. Two rules here are load bearing
-         and both were learned the hard way in this file:
-
-         THE SELECTOR CARRIES TWO CLASSES. .row-range is declared later in
-         this sheet, so a bare .osd-air-range ties on specificity and loses on
-         source order, and the first build of this control came out with the
-         menu's mint thumb over a cream track, which on an OSD means a record
-         rather than an instrument.
-
-         AND THE VENDOR PREFIXES ARE WRITTEN OUT SEPARATELY. A shared selector
-         list is dropped whole by any engine that does not know one of them.
-
-         The track is darkened as well as tinted: this one sits over a lit
-         world rather than over a panel, and the menu's 0.22 cream vanished
-         against grass.
-      */
-      .osd-air-range { width: clamp(90px, 13vw, 150px); }
+      .osd-air-end, .osd-air-cap { white-space: nowrap; }
+      .osd-air-cap { color: var(--amber); font-size: 11px; letter-spacing: 0.08em; }
+      .osd-air-cap.is-stock { color: var(--slate); }
+      /* Two classes to outrank .row-range, which comes later; one rule per
+         vendor pseudo-element, because a selector list containing one an
+         engine does not know is dropped whole. Darker than the menu's track:
+         this one sits over a lit world. */
       .osd-air .osd-air-range::-webkit-slider-runnable-track {
         background: rgba(12, 18, 14, 0.55);
         box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.35);
@@ -812,29 +653,12 @@
       .osd-air .osd-air-range::-webkit-slider-thumb { background: var(--amber); }
       .osd-air .osd-air-range::-moz-range-thumb { background: var(--amber); }
       .osd-air .osd-air-range:focus-visible { outline-color: var(--amber); }
-      .osd-air-cap {
-        font-size: 11px; letter-spacing: 0.08em;
-        color: var(--amber); white-space: nowrap;
-      }
-      .osd-air-cap.is-stock { color: var(--slate); }
-      /*
-       * THE ONE TIME IT EXPLAINS ITSELF.
-       *
-       * A slider with no label is furniture, and a label long enough to say
-       * what this one does would sit over the track for the rest of the
-       * pilot's life. So it says it once, on the first flight this browser
-       * has ever seen, and never again: the seen flag is its own localStorage
-       * key rather than a field in the settings blob, because saving settings
-       * is what detectFirstRun reads to decide somebody is a returning pilot,
-       * and dismissing a hint is not the same as having been here before.
-       *
-       * It is pinned ABOVE the slider and pointer-events are on for the
-       * button alone, so the hint can be read and dismissed without ever
-       * being able to swallow a stick input aimed past it.
-       */
+
+      /* The slider's one explanation, on this browser's first flight only.
+         It floats above the track and only its button takes the pointer,
+         so it can never eat a stick input. */
       .osd-air-hint {
-        position: absolute; bottom: calc(100% + 10px); left: 50%;
-        transform: translateX(-50%);
+        position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
         width: max-content; max-width: min(78vw, 320px);
         padding: 10px 14px; border-radius: 6px;
         background: rgba(16, 22, 17, 0.94);
@@ -842,89 +666,57 @@
         text-align: left; pointer-events: none;
       }
       .osd-air-hint[hidden] { display: none; }
-      /* The pointer down at the track. A rotated square rather than a border
-         triangle, so the one pixel hairline above can run around it. */
+      /* The pointer to the track is a turned square, so the hairline can
+         run round it. */
       .osd-air-hint::after {
-        content: ''; position: absolute; left: 50%; bottom: -5px;
-        width: 10px; height: 10px; margin-left: -5px;
-        transform: rotate(45deg);
+        content: ''; position: absolute; bottom: -5px; left: 50%;
+        width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg);
         background: rgba(16, 22, 17, 0.94);
         box-shadow: inset -1px -1px 0 0 rgba(255, 212, 92, 0.42);
       }
       .osd-air-hint-title {
+        margin: 0 0 4px; color: var(--amber);
         font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-        color: var(--amber); margin: 0 0 4px;
       }
-      .osd-air-hint-body {
-        font-size: 13px; line-height: 1.45; color: var(--cream); margin: 0;
-      }
+      .osd-air-hint-body { margin: 0; color: var(--cream); font-size: 13px; line-height: 1.45; }
       .osd-air-hint-btn {
-        appearance: none; border: 0; background: var(--amber); color: var(--deep);
+        appearance: none; border: 0; border-radius: 999px;
+        margin-top: 9px; padding: 5px 12px;
+        background: var(--amber); color: var(--deep);
         font: inherit; font-size: 12px; font-weight: 600;
-        padding: 5px 12px; border-radius: 999px; margin-top: 9px;
         cursor: pointer; pointer-events: auto;
       }
       .osd-air-hint-btn:focus-visible { outline: 1px solid var(--cream); outline-offset: 2px; }
-      /*
-       * SHORT SCREEN: THE CARD HANGS BELOW THE SLIDER INSTEAD.
-       *
-       * Measured on an 844 by 390 landscape phone with the thumb sticks up.
-       * The slider sits at y 155 there, the card is about 125 px, and the
-       * world banner sits at 22 percent of the height, which is y 60 to 112:
-       * above the slider the two land on each other and the hint is not
-       * readable. Below it the card covers the stacked pack and flight
-       * blocks for as long as it takes to read one sentence and tap Got it,
-       * which is a trade worth making once, on one flight, ever.
-       */
+      /* On a short landscape phone the space above the slider belongs to
+         the banner, so the card hangs below it for the one read. */
       @media (max-height: 560px) {
-        .osd-air-hint {
-          bottom: auto; top: calc(100% + 10px);
-          font-size: 12px;
-        }
+        .osd-air-hint { top: calc(100% + 10px); bottom: auto; font-size: 12px; }
         .osd-air-hint::after {
-          bottom: auto; top: -5px;
+          top: -5px; bottom: auto;
           box-shadow: inset 1px 1px 0 0 rgba(255, 212, 92, 0.42);
         }
       }
 
-      /*
-       * Thumb sticks, src/input/touchsticks.js. The ZONES are the
-       * catchment, most of each lower corner, invisible; the drawn gimbal
-       * is an instrument inside them and takes no pointer events of its
-       * own. The zones stop at 68 percent of the height so the chips and
-       * the music dock along the top stay tappable even on a short phone,
-       * and everything in them refuses text selection, callouts and
-       * browser gestures: a thumb hold is a stick hold.
-       */
+      /* THUMB STICKS (src/input/touchsticks.js). Each zone is an invisible
+         catchment over most of a lower corner, stopping at 68 percent of the
+         height so the chips along the top stay tappable; the drawn gimbal
+         inside it is only a gauge. A hold here is a stick hold, never a
+         text selection, callout or browser gesture. */
       .touch-fly { position: absolute; inset: 0; pointer-events: none; }
       .touch-fly[hidden] { display: none; }
       .touch-zone {
-        position: absolute; bottom: 0; height: 68%; width: 44%;
-        pointer-events: auto; touch-action: none;
-        -webkit-user-select: none; user-select: none;
-        -webkit-touch-callout: none;
+        position: absolute; bottom: 0; width: 44%; height: 68%;
         display: flex; align-items: flex-end;
+        pointer-events: auto; touch-action: none;
+        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
       }
-      .touch-zone-left {
-        left: 0; justify-content: flex-start;
-        padding-left: max(16px, env(safe-area-inset-left));
-      }
-      .touch-zone-right {
-        right: 0; justify-content: flex-end;
-        padding-right: max(16px, env(safe-area-inset-right));
-      }
-      .touch-gimbal {
-        pointer-events: none;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-      }
-      /* Doubled from 30vmin on the owner's phone report: a bigger box is
-         more glass per degree, because the deflection travel in
-         touchsticks.js scales off the drawn plate's width. Landscape only;
-         the portrait block below keeps the smaller plates, because two
-         doubled plates are wider than a portrait phone. */
+      .touch-zone-left { left: 0; justify-content: flex-start; padding-left: max(16px, env(safe-area-inset-left)); }
+      .touch-zone-right { right: 0; justify-content: flex-end; padding-right: max(16px, env(safe-area-inset-right)); }
+      .touch-gimbal { padding-bottom: max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
+      /* touchsticks.js scales the deflection travel off the plate's drawn
+         width, so a bigger plate is finer control. */
       .touch-plate {
-        width: clamp(200px, 60vmin, 300px);
-        height: clamp(200px, 60vmin, 300px);
+        width: clamp(200px, 60vmin, 300px); height: clamp(200px, 60vmin, 300px);
         background: rgba(12, 18, 14, 0.30);
         transition: background 0.15s ease, box-shadow 0.15s ease;
       }
@@ -933,139 +725,82 @@
         box-shadow: inset 0 0 0 1px rgba(232, 168, 184, 0.55);
       }
       .touch-nub { width: 24px; height: 24px; }
-      /* Under the bug chip, same right edge: the two chips a pilot needs in
-         flight on glass, stacked where the right thumb flicks up to. The
-         two-class selector is load-bearing: .bug-chip sets top 16px LATER
-         in this sheet, and a bare .touch-pause lost to it and stacked the
-         two chips on the same pixels. */
+      /* Stacked under the bug chip where the right thumb reaches. Two
+         classes because .bug-chip's top comes later in the sheet. */
       .touch-fly .touch-pause { top: 52px; }
-      /* The rotate hint, only while the sticks are up and the phone is
-         tall. It does not block anything: the sticks still work, the hint
-         just says why everything is cramped. */
+      /* Says why a portrait phone looks cramped; blocks nothing. */
       .touch-rotate {
-        display: none;
-        position: absolute; left: 50%; top: 38%;
-        transform: translate(-50%, -50%);
+        display: none; position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
         padding: 10px 18px; border-radius: 999px;
         background: rgba(16, 22, 17, 0.85); color: var(--amber);
         box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.4);
         font-size: 15px; letter-spacing: 0.06em; white-space: nowrap;
         pointer-events: none;
       }
-      @media (orientation: portrait) {
-        .touch-fly:not([hidden]) .touch-rotate { display: block; }
-      }
       .turtle-on .touch-rotate { display: none !important; }
-      /*
-       * While the thumb sticks are up, the OSD corners STACK in the centre
-       * column: the doubled plates own both lower corners outright, and
-       * two side-by-side corner blocks no longer fit between them on a
-       * common phone width (an 800 px landscape leaves 264 px of gap).
-       * Stacked and centred they need one column 170 px wide, which every
-       * phone this runs on has. The timer drops a size for the same
-       * reason.
-       */
-      .touch-fly-on .osd-corner {
-        bottom: 8px; width: 170px; font-size: 13px;
-        text-align: center;
-      }
-      .touch-fly-on .osd-left { left: 50%; transform: translateX(-50%); bottom: 116px; }
-      .touch-fly-on .osd-right { right: auto; left: 50%; transform: translateX(-50%); }
+      /* With the plates owning both lower corners, the OSD corners stack in
+         one 170 px centre column (an 800 px landscape leaves 264 px between
+         the plates), with the air slider above them at 196 px, clear of the
+         roughly 186 px the two blocks take. */
+      .touch-fly-on .osd-corner { bottom: 8px; width: 170px; font-size: 13px; text-align: center; }
+      .touch-fly-on .osd-left,
+      .touch-fly-on .osd-right { left: 50%; transform: translateX(-50%); }
+      .touch-fly-on .osd-left { bottom: 116px; }
+      .touch-fly-on .osd-right { right: auto; }
       .touch-fly-on .osd-timer { font-size: 30px; }
       .touch-fly-on .osd-value { font-size: 16px; }
-      /*
-       * The air slider goes ABOVE the stacked corners rather than into them.
-       * Bottom 8px is the flight block and 116px is the pack block, and the
-       * pack block is about 70px of type and bar, so the centre column is
-       * spoken for up to roughly 186px. 196px clears it, and the doubled
-       * thumb plates own the two corners rather than the middle, so the
-       * width is there. Hidden on a portrait phone, where .touch-rotate is
-       * already saying the screen is the wrong way round and the plates
-       * shrink to reach across it.
-       */
       .touch-fly-on .osd-sticks { bottom: 196px; }
-      /* Portrait is the hinted-away state, but it still has to be tidy:
-         the plates go back to the single size, because two doubled plates
-         are wider than the screen, and the corners go back to a split pair
-         riding above them. */
+      /* Portrait is hinted away but kept tidy: two large plates are wider
+         than the screen, so they shrink, the slider goes, and the corners
+         split again above the plates. */
       @media (orientation: portrait) {
-        .touch-plate {
-          width: clamp(112px, 30vmin, 168px);
-          height: clamp(112px, 30vmin, 168px);
-        }
+        .touch-fly:not([hidden]) .touch-rotate { display: block; }
+        .touch-plate { width: clamp(112px, 30vmin, 168px); height: clamp(112px, 30vmin, 168px); }
         .touch-fly-on .osd-sticks { display: none; }
         .touch-fly-on .osd-corner { bottom: 186px; }
         .touch-fly-on .osd-left { left: calc(50% - 164px); transform: none; text-align: left; }
         .touch-fly-on .osd-right { left: auto; right: calc(50% - 164px); transform: none; text-align: right; }
       }
-      /* Eleven pause rows do not fit a phone held sideways. The modal list
-         scrolls rather than running off the glass; thumbs already know how. */
+      /* The pause list scrolls on a phone held sideways rather than running
+         off the glass. */
       @media (max-height: 540px) {
         .screen-modal .menu { max-height: calc(66vh - var(--bars)); overflow-y: auto; }
       }
 
-      /*
-       * THE BANNER SCALES WITH THE WINDOW.
-       *
-       * It was a flat 30 px with a 92vw cap, which is right on a laptop and
-       * absurd on a phone: at 390 px "Nothing has been built yet. Open the
-       * track builder from the title screen, place some gates, then come
-       * back." wrapped to TEN lines of 30 px type, centred, covering the
-       * status bar, the airframe and half the list underneath it. The
-       * launch card was unreadable behind it.
-       *
-       * One token, used by both the plain banner and the panelled one, so
-       * the flight-time uses (the launch prompt, lap splits, a crash
-       * notice) shrink on a phone by the same rule rather than needing
-       * their own. 22 characters of 22em is still the line length cap; this
-       * only decides how big those characters are.
-       */
-      :root { --banner-size: clamp(17px, 4.4vw, 30px); }
-
-      .banner.panel {
-        background: rgba(16, 22, 17, 0.92); border-radius: 4px;
-        padding: 18px 24px; box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.45);
-        font-size: var(--banner-size); color: var(--cream); line-height: 1.35;
-        max-width: min(92vw, 22em); white-space: pre-wrap; transition: none;
-      }
+      /* THE BANNER: one message line under the OSD's top block, 150 px down
+         so a two line banner clears the clock, gate, best and ghost lines,
+         and high enough to stay off the gate a tilted FPV camera puts low in
+         the frame. Its type scales with the window (--banner-size) so a
+         long message stays a few lines on a phone. */
       .banner {
-        /* 22 percent, not 38. A regulation gate's aperture centre sits at
-           0.762 m and the FPV camera is tilted up, so the target lands low in
-           the frame, and a pilot found the launch banner drawn directly over
-           the one thing they need to find. */
-        /* And under the OSD's top block, not centred on 22 percent: at 22
-           percent a two line banner (a lap's time and record, the launch
-           prompt) landed on the block's last lap, record and ghost lines and
-           the two read as one smear (2026-09-26). 150 px clears the block,
-           as .edge found, and keeps the banner high in the frame. */
-        position: absolute; left: 50%; top: calc(var(--bar-top) + 150px); transform: translate(-50%, 0);
-        text-align: center; white-space: pre-wrap; font-size: var(--banner-size); font-weight: 600;
-        letter-spacing: 0.04em; color: var(--amber); opacity: 0;
-        transition: opacity 0.18s ease; text-shadow: 0 3px 10px rgba(0,0,0,0.9);
+        position: absolute; top: calc(var(--bar-top) + 150px); left: 50%; transform: translate(-50%, 0);
         max-width: min(92vw, 22em);
+        color: var(--amber); opacity: 0;
+        font-size: var(--banner-size); font-weight: 600; letter-spacing: 0.04em;
+        text-align: center; white-space: pre-wrap;
+        text-shadow: 0 3px 10px rgba(0,0,0,0.9);
+        transition: opacity 0.18s ease;
       }
-      /* One line under the OSD's top block, for a message about a craft the
-         camera is looking at. The panel sat over the middle third, and the
-         chase camera aims at the wreck, so a pilot watching a crash settle
-         watched a box instead. 150 px clears the top block with a race's
-         gate, best and ghost lines under the timer. */
+      .banner.panel {
+        padding: 18px 24px; border-radius: 4px;
+        background: rgba(16, 22, 17, 0.92); box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.45);
+        color: var(--cream); line-height: 1.35; transition: none;
+      }
+      /* A note about a craft the camera is watching, such as a crash
+         settling: one small line, so the pilot sees the wreck, not a box. */
       .banner.edge {
-        top: calc(var(--bar-top) + 150px); transform: translate(-50%, 0);
-        font-size: clamp(14px, 1.9vw, 18px); letter-spacing: 0.03em; line-height: 1.3;
+        width: max-content; max-width: min(92vw, 40em);
         padding: 3px 12px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
-        max-width: min(92vw, 40em); width: max-content;
+        font-size: clamp(14px, 1.9vw, 18px); letter-spacing: 0.03em; line-height: 1.3;
       }
 
       /*
-       * EVERY MENU SURFACE WEARS PDCS (the owner, 2 October: the menu
-       * follows the bootloader's aesthetic). The flight display keeps the
-       * warm tokens above; these surfaces map them onto the shared palette,
-       * so a rule written against --cream or --mint draws in PDCS here and
-       * in the flight palette over the world. The font is set again because
-       * #ui resolved its own before these redefine it.
-       *
-       * Monospace leads: labels, rows, values and tags. Sentences a pilot
-       * reads through (ledes, help notes, card lines) take --pdcs-read.
+       * THE MENUS SPEAK THE BOOT SCREEN'S PALETTE (the owner, 2 October).
+       * Each menu surface points the flight display's warm tokens at the
+       * PDCS ones, so one rule written against --cream or --mint draws warm
+       * over the world and PDCS on a menu. --ui-font is redefined here, so
+       * the font has to be set again: #ui resolved it before this. Labels,
+       * rows and values are monospace; prose a pilot reads through is not.
        */
       .screen, .frame-top, .frame-bot, .name-dialog, .carousel, .hangar,
       .bug-chip, .signin-chip, .signin-panel, .music-dock, .pause-chip, .swap-chip, .room-bar, .update-bar {
@@ -1084,114 +819,61 @@
       .gate-card-blurb, .credits-roll, .name-dialog p, .howto-keys dd, .howto-mode {
         font-family: var(--pdcs-read);
       }
-      /* The hangar is a workbench of dense labelled controls whose panel is
-         sized to fit without scrolling (scripts/hangar-check.js), so it
-         keeps the readable face throughout, the monospace only for its
-         name and its tabs. */
+      /* The hangar's dense panel is sized to fit unscrolled
+         (scripts/hangar-check.js) in the readable face; only its name and
+         tabs are monospace. */
       .hangar { --ui-font: var(--pdcs-read); font-family: var(--ui-font); }
       .hangar .hangar-name, .hangar .hangar-tab-btn { font-family: var(--pdcs-mono); }
 
-      /* Screens. */
+      /* A SCREEN: a column over the boot screen's grid and ground, made
+         translucent so the world behind a menu is a dim shape. */
       .screen {
-        position: absolute; inset: 0; pointer-events: none;
+        position: absolute; inset: 0; box-sizing: border-box;
         display: flex; flex-direction: column; align-items: center;
-        /* Stops the double-tap zoom that maximum-scale used to be here for,
-           and keeps the pinch zoom it also blocked. See the viewport note in
-           the head. */
-        touch-action: manipulation;
-        /*
-         * SAFE CENTRE, not centre.
-         *
-         * A centred flex column whose content is taller than the box
-         * overflows in BOTH directions, and the half that goes off the top
-         * cannot be scrolled back to: that is the classic centring bug, and
-         * on a 390 px phone it is most of a screen. `safe` falls back to
-         * flex-start the moment the content stops fitting, which is the
-         * only time the difference is visible.
-         */
+        /* safe: once the content outgrows the box it starts at the top
+           instead of spilling off it where no scroll can reach (a 390 px
+           phone loses most of a screen to plain centring). */
         justify-content: safe center;
         padding: calc(2vh + var(--bar-top)) 6vw calc(2vh + var(--bar-bot));
-        box-sizing: border-box;
-        /* The bootloader's ground and grid, translucent: the world under
-           a menu is a dim shape behind an instrument, not a picture. */
+        pointer-events: none;
+        /* No double-tap zoom, with pinch zoom still allowed (see the
+           viewport note in the head). */
+        touch-action: manipulation;
         background: var(--pdcs-grid), var(--pdcs-scrim);
       }
-      /* The title is a HUD over the live map. Copy on the left (or top
-         and bottom on a phone), the world and the flying airframe fill
-         the rest. The wash is a hole, not a second landscape. */
+      /* A page or the pause modal scrolls what it cannot fit: a landscape
+         phone has under 300 px for the Rates screen's curve and thirteen
+         rows. contain stops the end of a flick becoming a pull-to-refresh. */
+      .screen-page, .screen-modal { overflow-y: auto; overscroll-behavior: contain; }
+      /* Paused, the same ground thinner, so the frozen frame shows through. */
+      .screen-modal {
+        background: var(--pdcs-grid),
+          radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.7) 0%, rgba(8, 10, 11, 0.78) 48%, rgba(5, 6, 7, 0.86) 100%);
+      }
+      /* The title is a HUD over the live map: copy down the left, and a wash
+         that darkens only behind the copy and along the edges. */
       .screen-title {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: stretch;
-        width: 100%;
-        height: 100%;
+        align-items: stretch; justify-content: stretch;
+        width: 100%; height: 100%;
         padding: 4.5vh 4vw calc(1.5vh + var(--bar-bot));
         background:
           linear-gradient(90deg, rgba(10, 13, 14, 0.78) 0%, rgba(10, 13, 14, 0.42) 26%, rgba(10, 13, 14, 0.08) 52%, rgba(10, 13, 14, 0.10) 100%),
           linear-gradient(180deg, rgba(10, 13, 14, 0.32) 0%, transparent 22%, transparent 64%, rgba(10, 13, 14, 0.38) 100%);
       }
-      /*
-       * THE GATE'S GROUND is the bootloader's, opaque: the boot screen
-       * fades out onto the same gradient and grid, so the menu reads as
-       * the system that just initialised rather than a promo splash. The
-       * title world behind it is decoration on the gate (past the gate the
-       * live world is the pilot's chosen map, and it shows again), so it
-       * is covered rather than dimmed.
-       */
-      .screen-title.is-gate {
-        background: var(--pdcs-grid), var(--pdcs-ground);
-        background-color: var(--pdcs-bg);
-      }
+      /* On the gate the boot screen fades out onto this very ground, so the
+         menu reads as the system that just started. The world behind it is
+         decoration there, and covered. */
+      .screen-title.is-gate { background: var(--pdcs-grid), var(--pdcs-ground); background-color: var(--pdcs-bg); }
       .title-copy {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        width: min(36em, 46vw);
-        height: 100%;
-        min-width: 0;
-        min-height: 0;
         z-index: 1;
+        display: flex; flex-direction: column; justify-content: space-between;
+        width: min(36em, 46vw); height: 100%; min-width: 0; min-height: 0;
       }
-      /*
-       * A PAGE SCREEN SCROLLS RATHER THAN LOSING WHAT IT CANNOT FIT.
-       *
-       * The flex fitting above and in the breakpoints keeps almost every
-       * window from needing this. `Almost` is the problem: a 844 by 390
-       * phone in landscape has 294 px of usable height, and the Rates
-       * screen is a live curve, thirteen rows and a note. It cannot fit,
-       * and before this the part that did not fit was simply gone, with no
-       * scrollbar and no way to reach it.
-       *
-       * The Race and Freestyle rooms already scrolled, which is why their
-       * card grids are usable on a phone. This is that, for every page.
-       * `safe center` on .screen is the other half: without it the overflow
-       * goes off the top as well and cannot be scrolled back to.
-       *
-       * overscroll-behavior stops a flick at the end of the list turning
-       * into a pull-to-refresh on the page behind it.
-       */
-      .screen-page,
-      .screen-modal {
-        justify-content: safe center;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-      }
-      /* Paused over a run the pilot is coming back to: the same ground,
-         thinner, so the frozen frame stays readable under the grid. */
-      .screen-modal {
-        background: var(--pdcs-grid),
-          radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.7) 0%, rgba(8, 10, 11, 0.78) 48%, rgba(5, 6, 7, 0.86) 100%);
-      }
-      /* One line under a screen's title, saying what the screen is showing
-         when the screen is showing a filtered view of something. Slate,
-         because it recedes: it is context, not an instruction. */
+      /* The line under a screen's title saying what it is filtered to.
+         Muted: context, not an instruction. */
       .screen-lede {
-        margin: -6px 0 14px;
-        color: var(--slate);
-        font-size: 13.5px;
-        line-height: 1.5;
-        max-width: 34em;
+        max-width: 34em; margin: -6px 0 14px;
+        color: var(--slate); font-size: 13.5px; line-height: 1.5;
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
       }
       .screen-lede:empty { display: none; }
