@@ -38,7 +38,6 @@ src/native/plant.c
 src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
-src/share/board.js
 src/trackbuilder/index.html
 src/ui/credits.js
 src/ui/pidspanel.js
