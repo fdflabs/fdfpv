@@ -60,6 +60,7 @@ import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
 import { DECAL_KIND_IDS, FINISHES } from '../../configs/paint.js';
+import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
 
 const { POWER } = powerConfig;
 const { liveryKey, schemesFor } = liveryConfig;
@@ -178,7 +179,39 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, unlockAll };
+}
+
+/*
+ * THE STORED SHAPE'S VERSIONS (docs/ECONOMY.md section 3). Each step is a
+ * pure function from version n to n + 1, in order, so a profile of any
+ * age is walked up one step at a time and a profile already current is
+ * walked nowhere. Stored progress with no `v` is the v1 shape, which is
+ * what every build before versioning wrote.
+ *
+ *   1 to 2  `firsts`, the firsts whose XP has been paid. Empty: a pilot
+ *           who won a mission before this shipped is paid for it once,
+ *           on the next load, by the same awardFirsts as a new win.
+ *           Known edge, accepted: a tab still open on a build before v2
+ *           writes progress without `firsts`, and this computer would pay
+ *           those firsts again locally; the account's copy keeps the paid
+ *           flags (a union) and its XP is the higher, so a sync heals it.
+ */
+export const PROGRESS_VERSION = 2;
+export const PROGRESS_MIGRATIONS = [
+  null,
+  null,
+  (p) => ({ ...p, v: 2, firsts: {} }),
+];
+
+export function migrateProgress(stored) {
+  let p = { ...stored };
+  let v = Number.isInteger(p.v) && p.v >= 1 ? p.v : 1;
+  while (v < PROGRESS_VERSION) {
+    v += 1;
+    p = PROGRESS_MIGRATIONS[v](p);
+  }
+  return p;
 }
 
 function isRecord(o) {
@@ -199,9 +232,9 @@ function flags(o, max) {
 }
 
 /*
- * Stored progress made safe: XP a finite whole number, the course,
- * challenge, seen and casual track maps of true flags only, and unlockAll
- * a boolean.
+ * Stored progress made safe: migrated to PROGRESS_VERSION, XP a finite
+ * whole number, the course, challenge, seen, casual track and firsts maps
+ * of true flags only, and unlockAll a boolean.
  * Nothing stored and `existing` (the browser had a profile from before
  * progression) is a pilot who already flew everything: unlocked.
  */
@@ -209,15 +242,17 @@ export function normaliseProgress(stored, { existing = false } = {}) {
   if (!isRecord(stored)) {
     return freshProgress(existing);
   }
-  const xp = Number.isFinite(stored.xp) ? Math.max(0, Math.min(1e7, Math.floor(stored.xp))) : 0;
+  const p = migrateProgress(stored);
+  const xp = Number.isFinite(p.xp) ? Math.max(0, Math.min(1e7, Math.floor(p.xp))) : 0;
   return {
-    v: 1,
+    v: PROGRESS_VERSION,
     xp,
-    courses: flags(stored.courses, 2000),
-    challenges: flags(stored.challenges, 200),
-    seen: flags(stored.seen, 2000),
-    casual: flags(stored.casual, 500),
-    unlockAll: typeof stored.unlockAll === 'boolean' ? stored.unlockAll : existing,
+    courses: flags(p.courses, 2000),
+    challenges: flags(p.challenges, 200),
+    seen: flags(p.seen, 2000),
+    casual: flags(p.casual, 500),
+    firsts: flags(p.firsts, 2000),
+    unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
 
@@ -414,6 +449,86 @@ export function awardChallenge(progress, id) {
   }
   progress.challenges[id] = true;
   return [{ type: 'challenge', id }, ...addXp(progress, c.xp, { kind: 'challenge', id })];
+}
+
+/*
+ * FIRSTS (PROGRESSION.md section 3, docs/ECONOMY.md): a thing done for
+ * the first time pays XP once, and the same thing again pays nothing. The
+ * list is FINITE by construction, a known mission's win and stars and a
+ * known aircraft's flight time milestones, because the server pays tokens
+ * for the same list (src/game/economy.js) and a list anyone could grow
+ * (built courses) would be a mint.
+ *
+ * Read from the facts the pilot's settings already hold: `campaign` (the
+ * war's stars, src/game/campaign.js) and `seconds`, airborne seconds by
+ * airframe id (src/share/flighttime.js flightTotals().byAirframe). A float
+ * plane's time counts for its land plane, the one the hangar shows.
+ */
+export const FIRST_XP = { win: 100, star: 40, flight: 40, ten: 60, hour: 150 };
+export const MILESTONE_S = { flight: 1, ten: 600, hour: 3600 };
+const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
+const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
+
+/* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
+export function firstsOf({ campaign = null, seconds = {} } = {}) {
+  const out = [];
+  const missions = isRecord(campaign) && isRecord(campaign.missions) ? campaign.missions : {};
+  for (const id of [...MISSION_IDS]) {
+    const m = missions[id];
+    if (!isRecord(m)) {
+      continue;
+    }
+    if (m.won === true) {
+      out.push({ key: `mission:${id}:win`, xp: FIRST_XP.win });
+    }
+    const stars = Number.isFinite(m.stars) ? Math.min(MAX_STARS, Math.floor(m.stars)) : 0;
+    for (let n = 1; n <= stars; n += 1) {
+      out.push({ key: `mission:${id}:star${n}`, xp: FIRST_XP.star });
+    }
+  }
+  const by = {};
+  for (const [id, s] of Object.entries(isRecord(seconds) ? seconds : {})) {
+    if (Number.isFinite(s) && s > 0) {
+      by[liveryKey(id)] = (by[liveryKey(id)] || 0) + s;
+    }
+  }
+  for (const id of MASTERED) {
+    for (const [m, need] of Object.entries(MILESTONE_S)) {
+      if ((by[id] || 0) >= need) {
+        out.push({ key: `aircraft:${id}:${m}`, xp: FIRST_XP[m] });
+      }
+    }
+  }
+  return out;
+}
+
+/* An aircraft's milestones reached, by name: { flight, ten, hour }. */
+export function milestonesOf(seconds, airframe) {
+  const key = liveryKey(airframe);
+  let s = 0;
+  for (const [id, n] of Object.entries(isRecord(seconds) ? seconds : {})) {
+    if (liveryKey(id) === key && Number.isFinite(n)) {
+      s += n;
+    }
+  }
+  return Object.fromEntries(Object.entries(MILESTONE_S).map(([m, need]) => [m, s >= need]));
+}
+
+/* The firsts the facts show and progress has not paid, paid now, in
+ * place: one { type: 'first', key } event each, then the XP's events. */
+export function awardFirsts(progress, facts) {
+  const due = firstsOf(facts).filter((f) => !progress.firsts[f.key]);
+  if (!due.length) {
+    return [];
+  }
+  const events = [];
+  let xp = 0;
+  for (const f of due) {
+    progress.firsts[f.key] = true;
+    events.push({ type: 'first', key: f.key, xp: f.xp });
+    xp += f.xp;
+  }
+  return [...events, ...addXp(progress, xp, { kind: 'first', keys: due.map((f) => f.key) })];
 }
 
 /*

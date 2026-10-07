@@ -56,6 +56,7 @@ import {
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { flightTotals } from '../share/flighttime.js';
+import { milestonesOf } from '../game/progress.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
@@ -468,6 +469,17 @@ export class Hangar {
     for (const f of facts) {
       this.factsEl.append(el('span', 'carousel-fact', f));
     }
+    /* Its mastery milestones (src/game/progress.js MILESTONE_S): each one
+     * reached is lit, the rest wait, so the next one is the reason to fly. */
+    const reached = milestonesOf(flightTotals(settings.flightTime).byAirframe, airframe);
+    const pips = el('span', 'carousel-fact hangar-milestones');
+    pips.dataset.key = 'milestones';
+    for (const [m, on] of Object.entries(reached)) {
+      const pip = el('span', `hangar-milestone${on ? ' on' : ''}`, str(`hangar.milestone.${m}`));
+      pip.dataset.milestone = m;
+      pips.append(pip);
+    }
+    this.factsEl.append(pips);
     /* A plane with a float version has the Floats toggle beside its span and
      * weight (`floats`: { on, set(on) }, src/ui/ui.js openHangar). Flipping
      * it opens the hangar again on the other version, so an unsaved change

@@ -3992,6 +3992,11 @@
         background: rgba(10, 13, 14, 0.62); border: 1px solid var(--pdcs-line-soft);
         text-shadow: none;
       }
+      .hangar-milestones { display: inline-flex; gap: 10px; }
+      .hangar-milestone { opacity: 0.4; }
+      .hangar-milestone::before { content: '\25CB\00a0'; }
+      .hangar-milestone.on { opacity: 1; color: var(--cream); }
+      .hangar-milestone.on::before { content: '\25CF\00a0'; }
       .carousel-note { margin: 10px auto 0; max-width: 40em; font-family: var(--pdcs-read); font-size: 15px; line-height: 1.45; }
       .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
       .carousel-dot {

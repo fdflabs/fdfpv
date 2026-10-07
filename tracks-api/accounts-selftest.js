@@ -187,6 +187,14 @@ console.log('the progress merge');
   check('the higher XP wins', m.data.progress.xp === 900);
   check('courses, challenges and seen are the union', m.data.progress.courses.a && m.data.progress.courses.b && m.data.progress.challenges.c1 && m.data.progress.seen.s);
   check('Unlock all on either side is on', m.data.progress.unlockAll === true);
+  /* Progress v2 (src/game/progress.js PROGRESS_VERSION) meeting a v1
+   * computer: the firsts already paid survive, and the merge stays v2, so
+   * no load migrates it again and pays them twice. */
+  const v2 = mergeBlobs(
+    { v: 1, data: { progress: { v: 1, xp: 50, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll: false } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 40, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: { 'mission:itaipu-1:win': true }, unlockAll: false } }, stamps: {} },
+  );
+  check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
     JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2
     && m.data.liverySaves.zagi1219.length === 1);
