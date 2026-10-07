@@ -190,8 +190,11 @@ async function hop(page) {
   const y0 = await page.evaluate('window.__craftState().worldY');
   await page.evaluate('window.__stick(0, 0, 0, 0.75); true');
   /* An air start holds the craft for its countdown first. */
-  await page.until(`!window.__craftState().landed && Math.abs(window.__craftState().worldY - ${y0}) > 0.5`, 30000).catch(() => {});
-  await page.sleep(2500);
+  await page.until(`!window.__craftState().landed && Math.abs(window.__craftState().worldY - ${y0}) > 0.5`, 60000).catch(() => {});
+  /* Two and a half seconds of the plant's own clock, not the wall's: a
+   * software rasteriser steps far fewer of them in a wall second. */
+  const m0 = await page.evaluate('window.__stickPath().moduleMs');
+  await page.until(`window.__stickPath().moduleMs >= ${m0 + 2500}`, 120000).catch(() => {});
   await page.evaluate('window.__stick(0, 0, 0, 0.5); true');
   await page.evaluate("window.__ui.act('pause'); true");
   await page.until("window.__craftState().mode === 'paused'", 10000).catch(() => {});
