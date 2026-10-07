@@ -31,7 +31,7 @@
 
 import { seeded, transcript } from './lib/transcript.js';
 
-const PINNED = '66607f78b149ed056835a1bec0421f5052ebe74bd136c58d28cbbd1228de4d31';
+const PINNED = 'e42371937d49c0a657c9d77e67ce6a6cebb07c6bcc8daf74368b780cbb9cc6d8';
 
 class Storage {
   constructor() {
@@ -100,9 +100,15 @@ globalThis.fetch = async (url, init = {}) => {
   return new Response(text, { status });
 };
 
+/* A browser that kept an override under the old name, as the module
+ * loads: it is moved to the new name, once. */
+store.map.set('webfpv.board.origin', 'https://kept.example/board');
 const board = await import('../src/share/board.js');
+const OVERRIDE = 'fdfpv.board.origin';
 const { setLocale } = await import('../src/strings/index.js');
 const t = transcript();
+t.note('the old override, moved at load', store.dump());
+store.clear();
 
 async function call(label, fn) {
   log.length = 0;
@@ -147,7 +153,7 @@ for (const place of PLACES) {
     store.clear();
     placeAt(place);
     if (stored !== null) {
-      store.map.set('webfpv.board.origin', stored);
+      store.map.set(OVERRIDE, stored);
     }
     const label = `${place} stored=${stored}`;
     t.rec(`defaultBoardOrigin ${label}`, () => board.defaultBoardOrigin());

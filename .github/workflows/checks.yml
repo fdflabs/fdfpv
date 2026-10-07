@@ -160,6 +160,9 @@ jobs:
       # How the page reaches the public board (src/share/board.js): which
       # board, every request and every answer, against a pinned transcript.
       - run: npm run board:selftest
+      # Values under the old webfpv.* storage names moved to fdfpv.* once
+      # (src/share/oldkeys.js): new name wins, idempotent, refusal retried.
+      - run: npm run oldkeys:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check

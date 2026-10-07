@@ -52,6 +52,7 @@
 import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
 import { API_ORIGIN } from './api.js';
+import { carryRenamedKeys } from './oldkeys.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
 
@@ -61,7 +62,11 @@ export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
  * its board is named here: the /board mount on the API host, which the
  * rooms and tracks servers share (deploy/vm/README.md). */
 export const PRODUCTION_BOARD_ORIGIN = `${API_ORIGIN}/board`;
-const OVERRIDE_KEY = 'webfpv.board.origin';
+const OVERRIDE_KEY = 'fdfpv.board.origin';
+
+/* Read at call time, never at load, so moving the old name here before
+ * anything asks is enough. */
+carryRenamedKeys([['webfpv.board.origin', OVERRIDE_KEY]]);
 
 /* A fork with no board of its own sets its production board to this, and
  * the page then asks no board at all (My tracks lists only the pilot's). */
