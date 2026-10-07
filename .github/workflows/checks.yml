@@ -237,6 +237,10 @@ jobs:
       # The share seat, edit keys, binds and lap bookkeeping kept in this
       # browser (src/share/session.js), against a pinned transcript.
       - run: npm run session:selftest
+      # The Stage 1 verification checks (tests/lib/checks.js) against a pinned
+      # transcript: the real sim over the fixtures for the checks that need no
+      # browser, stand ins for the build, the harness and the page runs.
+      - run: npm run checks:selftest
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
