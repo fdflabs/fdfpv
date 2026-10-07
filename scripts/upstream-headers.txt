@@ -44,7 +44,6 @@ src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
 src/share/board.js
-src/share/flightlog.js
 src/share/ghostdata.js
 src/share/orbitcache.js
 src/share/orbit.html

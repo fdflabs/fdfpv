@@ -141,6 +141,9 @@ jobs:
       - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
+      # The in-browser flight recorder and its blackbox CSV
+      # (src/share/flightlog.js), against a pinned transcript.
+      - run: npm run flightlog:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
