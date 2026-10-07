@@ -13152,6 +13152,7 @@ export async function boot({
           thrustToWeight: st.tw,
           hoverMinutes: st.hoverMin,
           fullMinutes: st.fullMin,
+          responseMs: st.tau * 1000,
         };
       },
     };
@@ -13189,6 +13190,9 @@ export async function boot({
           topSpeed: e.topSpeed ?? null,
           minutes: e.minutes ?? null,
           thrustToWeight: o.thrustN / (mass * 9.80665),
+          /* Handling, as one number the plant flies: grams on each dm^2
+           * of the plant's wing. */
+          wingLoading: (mass * 1000) / (tuningFor(id).area * 100),
         };
       },
     };
