@@ -3953,286 +3953,156 @@
         font-size: 15px; line-height: 1.65; text-align: center;
       }
 
-      /* Credits. A race programme over the live world, not a second
-         landscape. Sections are ruled like a printed page, the beta roll
-         is a start list with a slot number under each face, and every
-         card that names a person opens that person's channel.
+      /* Credits, laid out as a race programme over the live world rather
+         than a second landscape: sections ruled like a printed page, the
+         beta roll a start list with a slot number under every face, and
+         each card that names a person a way to that person's channel.
 
-         WHY THE CARD CARRIES THE HOVER AND NOT THE HEADING. credits.js
-         stretches the heading anchor's ::after over the whole card, so
-         the pointer is over a live target anywhere on it. If only the
-         heading lit up, most of that target would look dead. Hover is
-         therefore a card state, and :focus-within is the same state
-         arriving by keyboard. */
+         The card, not its heading, takes the hover. credits.js stretches
+         the heading link's ::after across the card, so the whole card is
+         one target; lighting only the heading would make most of that
+         target look dead. Hover is a card state, and :focus-within is the
+         keyboard's way into the same state. The page scrolls, and its foot
+         clears the command bar that Back rides above. */
       .screen-credits {
-        justify-content: flex-start;
-        align-items: stretch;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        pointer-events: auto;
-        /* Clear of the command bar, which Back now rides above. */
+        pointer-events: auto; justify-content: flex-start; align-items: stretch;
+        overflow-y: auto; overscroll-behavior: contain;
         padding: 5vh 4vw calc(var(--bar-bot) + 8px);
       }
-      .screen-credits h2 {
-        align-self: center;
-        margin-bottom: 8px;
-      }
+      .screen-credits h2 { margin-bottom: 8px; align-self: center; }
       .screen-credits h2::after {
-        content: "";
-        display: block;
-        width: 36px; height: 2px;
-        background: var(--sakura);
-        margin: 10px auto 0;
+        content: ""; display: block; margin: 10px auto 0;
+        width: 36px; height: 2px; background: var(--sakura);
       }
-      .credits-roll {
-        width: min(760px, 94vw);
-        margin: 0 auto;
-        pointer-events: auto;
-      }
+      .credits-roll { margin: 0 auto; width: min(760px, 94vw); pointer-events: auto; }
       .credits-lede {
-        max-width: 46em;
-        margin: 10px auto 26px;
-        color: var(--slate);
-        font-size: 15px;
-        line-height: 1.65;
-        text-align: center;
+        margin: 10px auto 26px; max-width: 46em; text-align: center;
+        font-size: 15px; line-height: 1.65; color: var(--slate);
       }
       .credit-block { margin: 0 0 26px; }
-      /* The kicker's rule runs out to the margin and fades there, so a
-         section reads as a band across the page rather than a label
-         floating above a box. */
+      /* The kicker's rule runs on to the margin and fades out, so each
+         section reads as a band across the page and not as a label hung
+         over a box. */
       .credit-kicker {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: var(--sakura);
-        margin-bottom: 10px;
+        margin-bottom: 10px; display: flex; align-items: center; gap: 12px; color: var(--sakura);
+        font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em;
       }
       .credit-kicker::after {
-        content: "";
-        flex: 1 1 auto;
-        height: 1px;
+        content: ""; flex: 1 1 auto; height: 1px;
         background: linear-gradient(90deg, rgba(215, 221, 221, 0.42), rgba(215, 221, 221, 0));
       }
       .credit-block h3 {
-        margin: 0 0 14px;
-        font-size: 17px;
-        font-weight: 600;
-        letter-spacing: 0.01em;
-        text-transform: none;
-        color: var(--cream);
+        margin: 0 0 14px; color: var(--cream);
+        font-size: 17px; font-weight: 600; text-transform: none; letter-spacing: 0.01em;
       }
-      /* A credit list, the parks' sources: one line each and the note
-         underneath. A list rather than a card each, because names on cards
-         read as an advert and the point here is the credit. */
-      .credit-rooms {
-        background: rgba(10, 13, 14, 0.72);
-        border-radius: 0;
-        border-top: 2px solid rgba(215, 221, 221, 0.28);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.10);
-        padding: 14px 16px 16px;
+      /* One panel surface for the source list, every card and the beta
+         roll: near black, a ruled top edge and a faint hairline. The
+         sources are a list, a line each, because a card per name reads as
+         an advert where the point is the credit. */
+      .credit-rooms, .credit, .credit-row.pilots {
+        border-radius: 0; border-top: 2px solid rgba(215, 221, 221, 0.28);
+        background: rgba(10, 13, 14, 0.72); box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.10);
       }
+      .credit-rooms { padding: 14px 16px 16px; }
       .credit-room { margin: 0 0 6px; color: var(--cream); }
-      .credit-room b { color: var(--cream); font-weight: 600; }
+      .credit-room b { font-weight: 600; color: var(--cream); }
       .credit {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 14px 16px 16px;
-        margin-bottom: 10px;
-        background: rgba(10, 13, 14, 0.72);
-        border-radius: 0;
-        border-top: 2px solid rgba(215, 221, 221, 0.28);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.10);
+        position: relative; margin-bottom: 10px; padding: 14px 16px 16px;
+        display: flex; flex-direction: column; gap: 10px;
       }
-      /* A person card puts the face and the slot number in a left rail
-         with the copy beside it. A project card keeps its mark across
-         the top, because a wordmark wants the width. */
+      /* A person's card keeps the face and slot number in a rail on the
+         left with the words beside it; a project's keeps its mark along
+         the top, since a wordmark needs the width. The maker's card is
+         the one hero on the page: a wider rail and a brighter edge. */
       .credit.person {
-        display: grid;
-        grid-template-columns: 64px 1fr;
-        gap: 16px;
-        align-items: start;
-        padding: 16px;
+        padding: 16px; display: grid; grid-template-columns: 64px 1fr; align-items: start; gap: 16px;
       }
-      /* The maker card is the one hero on the page, so it takes the
-         brighter edge and the wider rail. */
-      .credit.maker {
-        grid-template-columns: 84px 1fr;
-        padding: 20px;
-        border-top-color: rgba(215, 221, 221, 0.55);
-      }
+      .credit.maker { padding: 20px; grid-template-columns: 84px 1fr; border-top-color: rgba(215, 221, 221, 0.55); }
       .credit.is-link {
-        transition:
-          transform 0.16s ease,
-          border-top-color 0.16s ease,
-          box-shadow 0.16s ease;
+        transition: transform 0.16s ease, border-top-color 0.16s ease, box-shadow 0.16s ease;
       }
       .credit.is-link:hover,
       .credit.is-link:focus-within {
-        transform: translateY(-2px);
-        border-top-color: var(--sakura);
-        box-shadow:
-          inset 0 0 0 1px rgba(215, 221, 221, 0.20),
-          0 8px 20px rgba(10, 13, 14, 0.55);
+        transform: translateY(-2px); border-top-color: var(--sakura);
+        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.20), 0 8px 20px rgba(10, 13, 14, 0.55);
       }
-      .credit.is-link:focus-within {
-        outline: 1px solid var(--sakura);
-        outline-offset: 3px;
-      }
-      .credit.is-link h4 a { color: var(--cream); text-decoration: none; }
-      /* The stretched anchor. Everything it covers is text, so nothing
-         is buried that wanted a click of its own. The ring is on the
-         card above, which is why the anchor drops its own. */
-      .credit.is-link h4 a::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 0;
-      }
+      .credit.is-link:focus-within { outline: 1px solid var(--sakura); outline-offset: 3px; }
+      /* The stretched link covers only text, so nothing underneath loses a
+         click it wanted. Its focus ring is the card's, above, so the link
+         draws none of its own. */
+      .credit.is-link h4 a { text-decoration: none; color: var(--cream); }
+      .credit.is-link h4 a::after { content: ""; position: absolute; inset: 0; border-radius: 0; }
       .credit.is-link h4 a:focus-visible { outline: none; }
-      .credit-stack {
-        display: grid;
-        justify-items: center;
-        gap: 7px;
-      }
+      .credit-stack { display: grid; gap: 7px; justify-items: center; }
       .credit-face {
-        display: block;
-        width: 64px;
-        height: 64px;
-        border-radius: 0;
-        overflow: hidden;
-        background: rgba(10, 13, 14, 0.55);
-        box-shadow: 0 0 0 1px rgba(215, 221, 221, 0.16);
+        display: block; overflow: hidden; width: 64px; height: 64px; border-radius: 0;
+        background: rgba(10, 13, 14, 0.55); box-shadow: 0 0 0 1px rgba(215, 221, 221, 0.16);
         transition: box-shadow 0.16s ease;
       }
-      .credit.maker .credit-face { width: 84px; height: 84px; }
-      .credit-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .credit.maker .credit-face { height: 84px; width: 84px; }
+      .credit-face img { display: block; height: 100%; width: 100%; object-fit: cover; }
       .credit-face.is-blank {
-        display: grid;
-        place-items: center;
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.45);
+        display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.45);
       }
-      .credit-face-mark {
-        color: var(--sakura);
-        font-size: 17px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-      }
+      .credit-face-mark { font-size: 17px; font-weight: 800; letter-spacing: 0.08em; color: var(--sakura); }
       .credit.is-link:hover .credit-face,
-      .credit.is-link:focus-within .credit-face {
-        box-shadow: 0 0 0 1px var(--sakura);
-      }
-      /* The slot number is a start list's: the order they turned up, not
-         a ranking. Amber because it is a reading off the page rather
-         than a piece of chrome. */
+      .credit.is-link:focus-within .credit-face { box-shadow: 0 0 0 1px var(--sakura); }
+      /* A start list's slot number: the order people arrived in, never a
+         ranking. Amber, as a reading off the page and not a bit of
+         chrome. */
       .credit-slot {
+        color: var(--amber); letter-spacing: 0.14em;
         font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-        letter-spacing: 0.14em;
-        color: var(--amber);
       }
-      .credit-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
+      .credit-row { display: grid; gap: 10px; grid-template-columns: 1fr; }
       @media (min-width: 640px) {
         .credit-row.pair { grid-template-columns: 1fr 1fr; }
       }
-      /* The beta roll is one panel of ruled rows rather than four
-         floating cards, because a start list is a list. Four identical
-         boxes down a page say nothing about what they hold; four rows
-         under one edge say these are the same kind of thing. */
-      .credit-row.pilots {
-        gap: 0;
-        background: rgba(10, 13, 14, 0.72);
-        border-radius: 0;
-        border-top: 2px solid rgba(215, 221, 221, 0.28);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.10);
-        overflow: hidden;
-      }
-      /* A pilot row is a name, a number and a link out. Nothing is
-         written under the name, so the copy sits against the middle of
-         the face rather than starting level with the top of it. */
+      /* The beta roll is a list, so it is one panel of ruled rows. Four
+         matching boxes down a page tell you nothing about what is in them;
+         four rows under one edge say they are the same kind of thing. */
+      .credit-row.pilots { overflow: hidden; gap: 0; }
+      /* A pilot's row has a name, a number and a link out and nothing
+         under the name, so the words centre on the face rather than
+         starting at its top edge. */
       .credit.pilot {
-        margin: 0;
-        padding: 14px 18px 14px 16px;
-        align-items: center;
-        background: none;
-        border-top: 0;
-        border-radius: 0;
-        box-shadow: none;
+        margin: 0; padding: 14px 18px 14px 16px; align-items: center;
+        border-top: 0; border-radius: 0; background: none; box-shadow: none;
       }
       .credit.pilot .credit-copy h4 { margin-bottom: 0; }
       .credit.pilot .credit-handle { margin-top: 7px; }
       .credit.pilot + .credit.pilot { border-top: 1px solid rgba(215, 221, 221, 0.09); }
-      /* A row's affordance is a bar down its leading edge, not a lift: a
-         row in a list has nowhere to lift to without breaking the rules
-         above and below it. */
+      /* A row in a list cannot lift without crossing the rules above and
+         below it, so a row says it is live with a bar down its leading
+         edge instead. */
       .credit.pilot::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 2px;
+        content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 2px;
         background: var(--sakura);
-        transform: scaleY(0);
-        transform-origin: 50% 0;
-        transition: transform 0.16s ease;
+        transform: scaleY(0); transform-origin: 50% 0; transition: transform 0.16s ease;
       }
       .credit.pilot.is-link:hover,
       .credit.pilot.is-link:focus-within {
-        transform: none;
-        background: rgba(215, 221, 221, 0.055);
-        border-top-color: rgba(215, 221, 221, 0.09);
-        box-shadow: none;
+        transform: none; box-shadow: none;
+        background: rgba(215, 221, 221, 0.055); border-top-color: rgba(215, 221, 221, 0.09);
       }
       .credit.pilot.is-link:hover::before,
       .credit.pilot.is-link:focus-within::before { transform: scaleY(1); }
-      /* The panel clips, so the focus ring has to be drawn inside it. */
+      /* The panel clips its rows, so a row's focus ring goes inside. */
       .credit.pilot.is-link:focus-within { outline-offset: -3px; }
-      .credit-logo {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        min-height: 44px;
-      }
+      .credit-logo { min-height: 44px; display: flex; justify-content: flex-start; align-items: center; }
       .credit-logo img, .credit-logo svg {
-        display: block;
-        height: 40px;
-        width: auto;
-        max-width: min(100%, 280px);
-        object-fit: contain;
+        display: block; object-fit: contain; height: 40px; width: auto; max-width: min(100%, 280px);
       }
       .credit-logo.light {
-        background: var(--cream);
-        border-radius: 0;
-        padding: 10px 14px;
-        min-height: 0;
-        align-self: flex-start;
+        align-self: flex-start; min-height: 0; padding: 10px 14px; border-radius: 0; background: var(--cream);
       }
       .credit-logo.light img, .credit-logo.light svg { height: 32px; }
-      /* The mark is the card's title, so when the fetch fails the words
-         that replace it have to carry a title's weight. */
-      .credit-logo-fallback {
-        color: var(--cream);
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
+      /* The mark is the card's title, so the words standing in for it when
+         the image will not load need a title's weight. */
+      .credit-logo-fallback { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; color: var(--cream); }
       .credit-title {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin: 0;
-        font-size: inherit;
-        font-weight: inherit;
+        margin: 0; display: flex; align-items: center; gap: 14px;
+        font-size: inherit; font-weight: inherit;
       }
       .credit.project { gap: 14px; }
       .credit-title a {
@@ -4242,18 +4112,10 @@
         text-decoration: none;
         border-radius: 0;
       }
-      /* Only for a mark that is a symbol rather than a name. Claude's
-         starburst does not spell anything, so the word sits beside it. */
-      .credit-title-text {
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        color: var(--cream);
-      }
-      .credit-title .credit-logo {
-        opacity: 0.92;
-        transition: opacity 0.16s ease;
-      }
+      /* Only a mark that is a symbol and not a name gets words beside it:
+         Claude's starburst spells nothing. */
+      .credit-title-text { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; color: var(--cream); }
+      .credit-title .credit-logo { opacity: 0.92; transition: opacity 0.16s ease; }
       .credit-title a:hover .credit-logo,
       .credit-title a:focus-visible .credit-logo { opacity: 1; }
       .credit-title a:focus-visible {
@@ -4261,111 +4123,66 @@
         outline-offset: 4px;
       }
       .maker-mark {
-        font-size: 30px;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        color: var(--cream);
-        line-height: 1;
-        text-shadow: 2px 2px 0 rgba(10, 13, 14, 0.82);
+        line-height: 1; color: var(--cream); text-shadow: 2px 2px 0 rgba(10, 13, 14, 0.82);
+        font-size: 30px; font-weight: 800; letter-spacing: 0.06em;
       }
       .maker-mark .fpv { color: var(--sakura); }
-      .credit-copy h4 {
-        margin: 0 0 7px;
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        color: var(--cream);
-      }
+      .credit-copy h4 { margin: 0 0 7px; font-size: 18px; font-weight: 700; letter-spacing: 0.02em; color: var(--cream); }
       .credit.maker .credit-copy h4 { margin-bottom: 10px; }
-      .credit-copy p {
-        margin: 0;
-        color: var(--slate);
-        font-size: 14px;
-        line-height: 1.55;
-      }
-      /* Where the card goes. The play triangle is drawn here rather than
-         fetched, so the line can say video without borrowing anybody's
-         mark to do it. */
+      .credit-copy p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--slate); }
+      /* Where the card leads. The play triangle is drawn in borders, not
+         fetched, so the line can say video without borrowing anyone's
+         mark to say it. */
       .credit-handle {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 12px;
+        margin-top: 12px; display: inline-flex; align-items: center; gap: 8px;
+        color: var(--pdcs-blue); transition: color 0.16s ease;
         font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-        color: var(--pdcs-blue);
-        transition: color 0.16s ease;
       }
       .credit-handle::before {
-        content: "";
-        width: 0;
-        height: 0;
-        border-left: 8px solid currentColor;
-        border-top: 5px solid transparent;
-        border-bottom: 5px solid transparent;
+        content: ""; width: 0; height: 0;
+        border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid currentColor;
       }
       .credit.is-link:hover .credit-handle,
       .credit.is-link:focus-within .credit-handle { color: var(--pdcs-blue-strong); }
-      .credit-copy a, .credits-legal a, .credits-lede a, .credit-room a {
-        color: var(--pdcs-blue);
-        text-decoration: none;
-      }
+      .credit-copy a, .credits-legal a, .credits-lede a, .credit-room a { text-decoration: none; color: var(--pdcs-blue); }
       .credit-copy a:hover, .credits-legal a:hover, .credits-lede a:hover, .credit-room a:hover { color: var(--cream); }
       .credits-legal {
-        margin: 14px 0 6px;
-        color: rgba(215, 221, 221, 0.55);
-        font-size: 12px;
-        line-height: 1.55;
-        text-align: center;
+        margin: 14px 0 6px; text-align: center;
+        font-size: 12px; line-height: 1.55; color: rgba(215, 221, 221, 0.55);
       }
-      /* Reduced motion drops the travel, never the state: the lift, the
-         bar and the ring all still say the card is live, they just
-         arrive without moving. */
+      /* Reduced motion takes away the movement and keeps the state: the
+         lift, the bar and the ring still say the card is live, they just
+         arrive in place. */
       @media (prefers-reduced-motion: reduce) {
-        .credit.is-link,
-        .credit.is-link:hover,
-        .credit.is-link:focus-within {
-          transition: none;
-          transform: none;
-        }
+        .credit.is-link, .credit.is-link:hover, .credit.is-link:focus-within { transform: none; transition: none; }
         .credit.pilot::before { transition: none; }
       }
-      /* Under about 560 the left rail costs more than the face is worth,
-         so both shrink rather than the copy going to four words a line. */
+      /* Below about 560 px the left rail costs more than the face earns,
+         so rail and face both shrink before the words drop to four a
+         line. */
       @media (max-width: 560px) {
-        .credit.person {
-          grid-template-columns: 52px 1fr;
-          gap: 12px;
-          padding: 14px;
-        }
+        .credit.person { padding: 14px; gap: 12px; grid-template-columns: 52px 1fr; }
         .credit.maker { grid-template-columns: 64px 1fr; }
-        .credit-face { width: 52px; height: 52px; }
-        .credit.maker .credit-face { width: 64px; height: 64px; }
+        .credit-face { height: 52px; width: 52px; }
+        .credit.maker .credit-face { height: 64px; width: 64px; }
         .credit-face-mark { font-size: 15px; }
         .maker-mark { font-size: 24px; }
         .credit-copy h4 { font-size: 17px; }
       }
-      /* Back rides the bottom of the page while the roll scrolls under it.
-         At the end of a roll a window and a half long it was 1631 px below
-         a 1600 by 900 window when the screen opened, so the one row on the
-         screen was out of sight until the pilot had scrolled every credit
-         (scripts/shell-check.js, the fold). The roll grows with every
-         source credited; this does not. */
+      /* Back stays pinned to the foot of the page while the roll scrolls
+         beneath it. At the end of a roll one and a half windows long it
+         opened 1631 px below a 1600 by 900 window, out of sight until
+         every credit had been scrolled past (scripts/shell-check.js, the
+         fold). The roll gets longer with each source credited; this does
+         not. */
       .screen-credits .menu-stage {
-        width: min(760px, 94vw);
-        margin: 12px auto 0;
-        display: block;
-        position: sticky; bottom: 0; z-index: 1;
-        padding: 18px 0 0;
+        position: sticky; bottom: 0; z-index: 1; display: block;
+        width: min(760px, 94vw); margin: 12px auto 0; padding: 18px 0 0;
         background: linear-gradient(180deg, rgba(10, 13, 14, 0), rgba(10, 13, 14, 0.97) 18px);
       }
-      .screen-credits .menu {
-        min-width: 0;
-        width: 100%;
-        margin-top: 0;
-        /* One row. The phone rule's 200 px floor is for a list, and here
-           it pushed Back's empty box down under the command bar. */
-        min-height: 0;
-      }
+      /* A single row: the phone rule's 200 px floor is meant for a list,
+         and here it pushed Back's empty box under the command bar. */
+      .screen-credits .menu { margin-top: 0; width: 100%; min-width: 0; min-height: 0; }
       .screen-credits .hint { margin-left: auto; margin-right: auto; }
 
       .screen-modal { background: rgba(10, 13, 14, 0.72); }
