@@ -71,7 +71,13 @@ async function shot(page, name) {
   await writeFile(join(outDir, `${name}.png`), Buffer.from(data, 'base64'));
 }
 
-const cam = (page) => page.evaluate('window.__carouselStats().camera');
+/* The hangar's camera as last drawn. Null until the hangar has drawn a
+ * frame since it opened (the picker clears it), which on a slow software
+ * renderer is a while: waited for, not assumed. */
+async function cam(page) {
+  await page.until('Boolean(window.__carouselStats().camera)', 60000);
+  return page.evaluate('window.__carouselStats().camera');
+}
 /* The roll landed on `to` and the springs still. A headless page draws few
  * frames a second, so this waits on the rig's own numbers. */
 const ROLLED = (to) => `(() => { const c = window.__carouselStats().camera; return Boolean(c) && Math.abs(c.roll - ${to}) < 0.01; })()`;
@@ -170,7 +176,6 @@ async function closedFlipped(page) {
   }
   await page.tap('KeyC');
   await page.until('window.__ui.hangar.isOpen', 10000);
-  await page.sleep(300);
   const c = await cam(page);
   const pressed = await page.evaluate("document.querySelector('.hangar [data-key=\"flip\"]').getAttribute('aria-pressed')");
   say(Math.abs(c.roll) < 0.01 && pressed === 'false', `opened again it stands upright: roll ${c.roll.toFixed(3)}, pressed ${pressed}`);
