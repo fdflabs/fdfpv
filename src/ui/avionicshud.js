@@ -328,6 +328,9 @@ export class AvionicsHud {
     const temp = row(health, str('avionics.hud.temp'));
     this.fTemp = new Field(temp);
     tag(temp).set('SIM');
+    const dmg = row(health, str('avionics.hud.dmg'));
+    this.fDmg = new Field(dmg);
+    this.fDmgPart = new Field(dmg);
 
     /* Bottom left: energy and propulsion. */
     const energy = P('energy');
@@ -662,6 +665,10 @@ export class AvionicsHud {
     this.fVioTag.set(tel.nav.source === 'VIO' ? str('avionics.hud.in_use') : 'VIO');
     this.fCpu.set(str('avionics.hud.cpu_load', { pct: Math.round(tel.compute.load * 100) }));
     this.fTemp.set(str('avionics.hud.degc', { n: Math.round(tel.compute.tempC) }));
+    const A = tel.airframe;
+    const aCls = { operational: 'avx-ok', impaired: 'avx-warn', destroyed: 'avx-bad' }[A.condition];
+    this.fDmg.set(str(`avionics.hud.cond_${A.condition}`), aCls);
+    this.fDmgPart.set(A.condition === 'impaired' && A.part ? str(`osd.part_${A.part}`) : '', aCls);
 
     const B = tel.battery;
     this.fBatt.set(str('avionics.hud.batt_line', {
