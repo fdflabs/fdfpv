@@ -31,20 +31,20 @@
  * Like hangar.js, THIS FILE IS THE CHOICE AND NOT THE PICTURE: no three.js.
  * The thumbnails are drawn by src/render/decalart.js, which has none either.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
@@ -54,6 +54,7 @@ import {
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
 import { str } from '../strings/index.js';
+import { el } from './dom.js';
 
 export const PAINT_PAGES = ['paint', 'decals', 'saved'];
 
@@ -68,17 +69,6 @@ const CLICK_SLOP = 6;
  * degrees. */
 const SIZE_STEP = 1.12;
 const TURN_STEP = 15;
-
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
-    n.textContent = text;
-  }
-  return n;
-}
 
 function button(cls, text) {
   const b = el('button', cls, text);
