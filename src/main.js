@@ -1086,6 +1086,14 @@ export async function boot({
     b.step(paused ? 0 : dtS, paused ? {} : ballInput(b), { p, heading }, ballHeightAt);
     if (!ballWas) {
       ballSaved = { mainView: sensors.state.mainView, stab: sensors.state.stab };
+      /* The mission's thermal palette, once a match (interior-1.js
+       * sensor): the pilot's own choice holds after a period press. */
+      const m = roomOps.mission();
+      const matchId = roomOps.match();
+      if (m && m.sensor && m.sensor.palette && matchId != null && opsPaletteFor !== matchId) {
+        opsPaletteFor = matchId;
+        sensors.setPalette(m.sensor.palette);
+      }
     }
     /* The gimbal is the stabilisation: the picture must be the camera the
      * room is told of, so no electronic turn on top of it. */
@@ -1410,6 +1418,8 @@ export async function boot({
    */
   const opsFilmStore = createCampaignStore(ui.settings, () => ui.persistSettings());
   let opsIntroShown = null;
+  /* The match whose mission palette the thermal core has been set to. */
+  let opsPaletteFor = null;
   let opsOutroShown = null;
   /* The prologue owed before the campaign's page: its film id, or null. */
   let opsPrologueDue = null;
