@@ -101,6 +101,7 @@
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "flightlog:selftest": "node scripts/flightlog-selftest.js",
     "ghostdata:selftest": "node scripts/ghostdata-selftest.js",
+    "harness:selftest": "node scripts/harness-selftest.js",
     "browser:selftest": "node scripts/browser-selftest.js",
     "server:selftest": "node scripts/server-selftest.js",
     "table:selftest": "node scripts/table-selftest.js",
