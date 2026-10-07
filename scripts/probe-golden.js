@@ -13,7 +13,8 @@
  * and on the Alps with the craft thrown to a fixed point and held there
  * (__crashThrow with hold), so the pose and everything derived from it is
  * the same on every run, then on the Swiss valley the two seats that freeze
- * the pose (__seatCraft cameraDown and invertedHold).
+ * the pose (__seatCraft cameraDown and invertedHold), and the Track seat,
+ * the one with gates, for the race probes (__nextGate, __gateTiers).
  *
  * Some answers move between two runs of the same code (frame times, fps,
  * the wall clock, anything rendered at whatever moment the probe lands).
@@ -89,6 +90,14 @@ const PARAMETRIC = [
   ['__hit', 'sx, sy + 2, sz, sx + 30, sy + 2, sz + 30'],
 ];
 
+/* The Track seat flies a track built in a world; this one is the v4
+ * fixture, seated the way a published track's link seats it (see
+ * scripts/shots.js --course). */
+const TRACK_DOC = JSON.parse(readFileSync(join(root, 'tests', 'fixtures', 'map-track-v4.json'), 'utf8'));
+const TRACK_SEAT = `localStorage.setItem('webfpv.share.import.v1', ${JSON.stringify(JSON.stringify({
+  id: TRACK_DOC.id, name: TRACK_DOC.name, author: '', board: '', document: TRACK_DOC, local: true,
+}))});`;
+
 function seed(map) {
   const settings = {
     ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor'),
@@ -105,6 +114,7 @@ function seed(map) {
     Object.assign(s, ${JSON.stringify(settings)});
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.airhint.v2', '1');
+    ${map === 'track' ? TRACK_SEAT : ''}
   } catch (e) { /* Storage refused; the run boots on defaults and the record says so. */ }`];
 }
 
@@ -183,7 +193,7 @@ const THROW = (m) => `JSON.stringify(window.__crashThrow({
 
 async function sample() {
   const out = {};
-  for (const map of ['swiss2', 'alps']) {
+  for (const map of ['swiss2', 'alps', 'track']) {
     const page = await openPage({ root, width: 1280, height: 720, url: `/index.html?map=${map}`, seed: seed(map) });
     try {
       await page.until('window.__shellReady && window.__map && window.__map().ready', WAIT);
