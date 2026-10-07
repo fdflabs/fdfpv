@@ -614,10 +614,8 @@ export async function boot({
   });
   loading.system('input', 'loading');
   const input = new InputManager();
-  /*
-   * Sample the sticks on their own timer rather than once per rendered frame.
-   * See src/input/input.js for what that was costing feedforward.
-   */
+  /* The sticks are read on a 2 ms timer of their own: a frame rate read
+   * would hand feedforward steps as coarse as the display (src/input/input.js). */
   input.startPolling(2);
   loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
@@ -2806,15 +2804,15 @@ export async function boot({
     startZ = sp.z;
     startYaw = sp.yaw;
     startPitch = sp.pitch || 0;
-    /* Terrain here is not at y = 0. Spawning without its height puts the
-     * craft underground, looking up at the lit underside of the terrain. */
+    /* The spawn sits on the ground under it, which on these maps is
+     * nowhere near zero; at zero the craft starts inside the hill. */
     startY = spawnHeight(startX, startZ, sp.y);
     qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
     qSpawnInv.copy(qSpawn).invert();
   }
 
-  /* The race: gate order, lap clock, best lap. On a freestyle map it is a
-   * real object with no gates in it and it scores nothing. */
+  /* Gates, laps and the best lap. A freestyle map gets one too, empty, so
+   * the code that asks it questions never has to ask whether it exists. */
   let race = new Race(view.gates, 'full');
   /* The in-sim builder, once a world it can build in is seated. Declared up
    * here because the ghost below asks whether a run is its test flight. See
@@ -11833,17 +11831,13 @@ export async function boot({
   }
 
   /*
-   * Swap the world.
-   *
-   * `mapReady` is what keeps the frame loop out of a half built world: the
-   * loop keeps running through the swap because stopping and restarting it
-   * would lose the accumulator, so it has to be told to skip a frame instead.
-   * `swapInFlight` is the lock that used to be the same flag: conflating them
-   * meant a failed load left mapReady false forever, so the next map pick
-   * was refused and the shell froze on a disposed scene.
-   * Disposing BEFORE building is deliberate and it is the whole point of the
-   * split: the city's render targets and the field's must never both exist,
-   * or P5's 120 MB budget is measured against two worlds.
+   * A world swap has two flags because it has two questions. mapReady: may
+   * the frame loop touch the world this frame? The loop never stops during
+   * a swap (that would drop the accumulator), it skips. swapInFlight: is a
+   * swap already running? One flag for both left the shell refusing every
+   * later map after a load that failed. The old world goes before the new
+   * one is built, so two worlds' render targets never coexist against
+   * P5's 120 MB budget.
    */
   let mapReady = true;
   let swapInFlight = false;
@@ -14138,15 +14132,10 @@ export async function boot({
   window.addEventListener('pointerdown', wakeAudio);
 
   /*
-   * Swallow a dropped file, and say why nothing happened.
-   *
-   * The page used to fly any Betaflight CLI diff dropped on it, and that is
-   * gone: the menu offers the registry tunes, the PIDs screen adjusts them,
-   * and the rates are the pilot's.
-   * The listeners stay because REMOVING them is not neutral. Without a
-   * preventDefault the browser navigates to the dropped file, which tears
-   * down the simulator and loses the run, and a pilot who read the old
-   * README is exactly the person who will try it.
+   * A file dropped on the page is refused with a notice. Dropping a CLI diff
+   * to fly it is no longer a feature (tunes come from the registry and the
+   * PIDs screen), but the handlers must stay: with no preventDefault the
+   * browser opens the dropped file in place of the page and the run is lost.
    */
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => {
@@ -14160,8 +14149,8 @@ export async function boot({
     };
   });
 
-  /* Reused, not rebuilt: applySettings runs off a menu keypress, but the
-   * same object also keeps the shape of the call obvious in one place. */
+  /* One object for every applyMix call, filled in place; its keys are the
+   * mixer's stems. */
   const mixArg = { motors: 1, wind: 1, music: 1, focus: 1, effects: 1, voice: 1, ambience: 1, other: 1 };
   const pPrev = new THREE.Vector3();
   const pCurr = new THREE.Vector3();
@@ -14174,15 +14163,13 @@ export async function boot({
   const qCollide = new THREE.Quaternion();
   const pProbe = new THREE.Vector3();
   const pBounce = new THREE.Vector3();
-  /* The craft's own up axis in world space, for the prop plane test. Hoisted
-   * because it is written on every contact and budget P8 says the frame loop
-   * does not allocate. */
+  /* World space up of the craft for the prop disc test, written on every
+   * contact; held here because the loop may not allocate (P8). */
   const upAxis = new THREE.Vector3();
   const nSim = { x: 0, y: 0, z: 0 };
   const pSim = { x: 0, y: 0, z: 0 };
   const vsSim = { x: 0, y: 0, z: 0 };
-  /* The contact pass runs on the sim clock, several times a frame, so its
-   * working set is hoisted for the same reason upAxis is. */
+  /* Scratch for the contact pass, which runs several times per frame. */
   const rPatch = { x: 0, y: 0, z: 0 };
   const rSim = { x: 0, y: 0, z: 0 };
   const obsPrev = new THREE.Vector3();
@@ -14191,7 +14178,7 @@ export async function boot({
   const obsPlace = new THREE.Vector3();
   const qObs = new THREE.Quaternion();
   const groundNWorld = new THREE.Vector3(0, 1, 0);
-  /* The same normal with the spawn yaw taken out, ready for the plant. */
+  /* groundNWorld turned into the plant's frame (spawn yaw removed). */
   const nWorld = new THREE.Vector3(0, 1, 0);
   const camFwd = new THREE.Vector3();
   const camUp = new THREE.Vector3();
@@ -14202,8 +14189,7 @@ export async function boot({
   const introLook = new THREE.Vector3();
   const introRight = new THREE.Vector3();
   const introUp = new THREE.Vector3(0, 1, 0);
-  /* The orbit's own forward: the craft's heading FLATTENED onto the ground
-   * plane. See the note where it is filled. */
+  /* The pad shot's level forward (padShot says why it is level). */
   const introFwd = new THREE.Vector3();
   const introQuat = new THREE.Quaternion();
     const fpvPos = new THREE.Vector3();
@@ -14235,7 +14221,7 @@ export async function boot({
     const losBack = new THREE.Vector3();
     const finishFpvPos = new THREE.Vector3();
     const finishFpvQuat = new THREE.Quaternion();
-    /* -1: not on the finish shot. 0+: milliseconds into the pull-out. */
+    /* Milliseconds into the results camera's pull, or -1 when it is off. */
     let finishCamMs = -1;
   /* Eased toward PARKED_LIFT while the craft is down and toward zero once it
    * is flying, so the view rises off the pad rather than jumping. */
@@ -15141,7 +15127,7 @@ export async function boot({
   let titleStepMs = 0;
   /* The clock the last drawn frame's world was animated at. */
   let animDrawnMs = 0;
-  /* Wall time of the last frame the cap let through. */
+  /* When the frame cap last allowed a draw (wall ms). */
   let capLastDraw = -1e9;
 
   /*
@@ -16691,7 +16677,7 @@ export async function boot({
     try {
       showcase.dispose();
     } catch (e) {
-      /* Already gone. */
+      /* A context the browser has already dropped throws here; that is done too. */
     }
     showcase = null;
   }
