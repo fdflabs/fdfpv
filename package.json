@@ -45,6 +45,7 @@
     "lint:boot": "node scripts/boot-check.js",
     "boot:entry": "node scripts/boot-entry-check.js",
     "contact:golden": "node scripts/contact-golden.js",
+    "lock:check": "node scripts/lock-check.js",
     "probe:golden": "node scripts/probe-golden.js",
     "lint:memory": "node scripts/memory-check.js",
     "catalog-rules:selftest": "node scripts/catalog-rules-selftest.js",
