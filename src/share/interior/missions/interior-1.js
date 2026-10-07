@@ -313,6 +313,7 @@ export default {
         {
           id: 'bravo', text: 'ops.interior.m1.obj.bravo', tier: 'primary', after: 'alpha', done: { captured: { set: 'bravo' }, n: 2 }, guide: 'int1-g-bravo',
         },
+        { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
         {
@@ -338,6 +339,7 @@ export default {
         {
           id: 'charlie', text: 'ops.interior.m1.obj.charlie', tier: 'primary', done: { discovered: 'pair' }, guide: 'int1-g-charlie',
         },
+        { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
         { at: 0, radio: 'int1-s2-charlie', card: 'card.primary_updated' },
@@ -358,7 +360,7 @@ export default {
           unless: { discovered: 'pair' },
           radio: ['int1-s3-hold', 'int1-s3-bearing'],
           search: { id: 'pair-search', at: ALONG('forest-edge'), r: 250 },
-          card: 'card.search_area',
+          card: ['card.search_area', 'card.unidentified_movement'],
         },
         {
           when: { discovered: 'pair' }, at: 1.5, radio: ['int1-s3-class', 'int1-s3-none', 'int1-s3-road', 'int1-s3-notclass', 'int1-s3-follow'], unsearch: 'pair-search',
@@ -377,6 +379,7 @@ export default {
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
+        { at: 0, card: 'card.primary_updated' },
         { when: { station: 0 }, at: 2, radio: 'int1-tr-picket', heard: TRACKER },
         { when: { lost: 'pair', s: 8 }, radio: 'int1-s4-welcome' },
         {
@@ -396,7 +399,7 @@ export default {
           when: { all: [{ route: 'pair', point: 'opening' }, { seen: 'pair', now: true }] },
           radio: ['int1-s4-armed', 'int1-s4-possible', 'int1-s4-comeon', 'int1-s4-rifle', 'int1-s4-know'],
           classify: { contacts: 'pair', to: 'poi', why: 'ev.long_objects' },
-          card: 'card.intelligence_updated',
+          card: ['card.intelligence_updated', 'card.possible_armed'],
         },
       ],
       exits: [
@@ -434,8 +437,10 @@ export default {
         {
           id: 'distant', text: 'ops.interior.m1.obj.distant', tier: 'optional', done: { vanished: 'camp', watched: true },
         },
+        { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
+        { at: 0, card: 'card.primary_updated' },
         { when: { station: 0 }, at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
         { when: { station: 0 }, at: 4, radio: 'int1-tr-angle', heard: TRACKER },
         /* Once the dispersal has started nobody walks back into the camp
@@ -464,6 +469,8 @@ export default {
           when: DISPERSAL,
           choose: { name: 'dispersal', value: 'started' },
           text: 'ops.interior.m1.dispersal',
+          /* RETURN TO BASE shows with it. */
+          card: 'card.primary_updated',
           radio: ['int1-s5-moving', 'int1-s5-high', 'int1-s5-people', 'int1-s5-noway', 'int1-s5-major', 'int1-s5-fivemin', 1, 'int1-s5-understand'],
           move: [
             ...Object.entries(OUT).map(([d, ids]) => ids.map((id, k) => ({
