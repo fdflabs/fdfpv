@@ -31,16 +31,12 @@ scripts/frame-check.js
 scripts/gatecards.js
 scripts/icons.js
 scripts/itaipu-check.js
-scripts/lib/flightrig.js
 scripts/memory-check.js
-scripts/mouse-shell.js
 scripts/music.js
 scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
 scripts/og.js
-scripts/orbit-check.js
-scripts/path-check.js
 scripts/pixels.js
 scripts/posters.js
 scripts/preset-lint.js
@@ -52,12 +48,8 @@ scripts/serve.js
 scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
-scripts/trick-sweep.js
-scripts/wall-check.js
 src/boot.js
 src/game/airframehull.js
-src/game/collide.js
-src/game/proven.js
 src/game/verify.js
 src/main.js
 src/maps/build-cost.js
@@ -73,8 +65,6 @@ src/native/plant.c
 src/native/sim_abi.h
 src/native/sim.c
 src/native/sim_internal.h
-src/render/pylons.js
-src/render/scene.js
 src/replay/crashcam.js
 src/share/board.js
 src/share/bugs.js
@@ -90,7 +80,6 @@ src/share/stats.js
 src/share/summary.js
 src/share/windows.js
 src/trackbuilder/faces.js
-src/trackbuilder/figures.js
 src/trackbuilder/index.html
 src/trackbuilder/storage.js
 src/ui/accountui.js

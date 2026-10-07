@@ -21,20 +21,20 @@
  *
  *   node scripts/mouse-shell.js [--shots=DIR] [--only=quad|plane]
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { dirname, join } from 'node:path';
@@ -61,13 +61,13 @@ const say = (ok, what) => {
   }
 };
 
+/* Settings written before the shell boots: low graphics so every machine
+ * boots the same page, and mouse flight already picked. */
+const BOOT_SETTINGS = { graphics: 'low', graphicsAuto: false, mouseFlight: true };
 const SEED = `try {
-  const k = ${JSON.stringify(SETTINGS_KEY)};
-  const s = JSON.parse(localStorage.getItem(k) || '{}');
-  s.graphics = 'low';
-  s.graphicsAuto = false;
-  s.mouseFlight = true;
-  localStorage.setItem(k, JSON.stringify(s));
+  const key = ${JSON.stringify(SETTINGS_KEY)};
+  const saved = JSON.parse(localStorage.getItem(key) || '{}');
+  localStorage.setItem(key, JSON.stringify(Object.assign(saved, ${JSON.stringify(BOOT_SETTINGS)})));
 } catch (e) { /* Storage refused. The run still boots, and the check below says mouse flight is off. */ }`;
 
 /* The pointer, as DevTools sees it. Under pointer lock only the movement
@@ -413,8 +413,8 @@ try {
   if (ONLY !== 'quad') {
     await plane(page);
   }
-  const uncaught = page.errors.filter((e) => e.startsWith('uncaught:'));
-  say(uncaught.length === 0, `no uncaught exception${uncaught.length ? `: ${uncaught.slice(0, 2).join(' | ')}` : ''}`);
+  const thrown = page.errors.filter((e) => e.startsWith('uncaught:'));
+  say(thrown.length === 0, `no uncaught exception${thrown.length ? `: ${thrown.slice(0, 2).join(' | ')}` : ''}`);
 } finally {
   await page.close();
 }
