@@ -1929,7 +1929,10 @@ export async function boot({
     }
     ui.settings.flightTime = record;
     ui.persistSettings();
+    ui.progress.checkFirsts();
   }
+  /* A profile from before firsts is paid for what it already holds. */
+  ui.progress.checkFirsts();
   /* The activity flown, as the mode registry's id (src/share/modes.js):
    * the room's game in a room, else Track Day on a race map and Free
    * Flight anywhere else. Every game but those two is played in a room,

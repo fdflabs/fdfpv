@@ -101,7 +101,7 @@ console.log('2. refusals');
     ['a decal colour that is not a colour', rawCode({ ...base, e: { decals: [{ ...stripe, c: 'red' }] } }), 'bad_value'],
     ['a stripe with lettering', rawCode({ ...base, e: { decals: [{ ...stripe, f: 'block' }] } }), 'unknown_field'],
     ['too many decals', rawCode({ ...base, e: { decals: Array.from({ length: MAX_DECALS + 1 }, () => num) } }), 'bad_value'],
-    ['a finish that is not one', rawCode({ ...base, e: { finishes: { wing: 'gold' } } }), 'bad_value'],
+    ['a finish that is not one', rawCode({ ...base, e: { finishes: { wing: 'velvet' } } }), 'bad_value'],
     ['a finish on a region the plane lacks', rawCode({ ...base, e: { finishes: { rotor: 'gloss' } } }), 'bad_value'],
     ['film on a region that is not film', rawCode({ ...base, e: { finishes: { wing: 'film' } } }), 'bad_value'],
     ['a finish on the Kadet\'s trim', rawCode({ ...base, p: 'kadet1981', e: { finishes: { wing_trim: 'chrome' } } }), 'bad_value'],
@@ -118,7 +118,7 @@ console.log('2. refusals');
 console.log('3. the settings');
 {
   const stale = normaliseLiveries({
-    timber1500: { scheme: 'super', finishes: { wing: 'gold', tail: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
+    timber1500: { scheme: 'super', finishes: { wing: 'velvet', tail: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
     kadet1981: { finishes: { wing: 'film', fuselage: 'chrome' } },
     nope: { scheme: 'x' },
   });
@@ -127,7 +127,7 @@ console.log('3. the settings');
     kadet1981: { finishes: { fuselage: 'chrome' } },
   }), JSON.stringify(stale));
   const saves = normaliseSaves({
-    timber1500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'gold' } } }],
+    timber1500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'velvet' } } }],
     kadet1981: Array.from({ length: MAX_SAVED + 5 }, (_, i) => ({ name: `L${i}`, entry: {} })),
     nope: [{ name: 'a', entry: {} }],
   });
