@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  page-selftest.html: the page scripts/page-selftest.js opens to pin
+  tests/lib/page.js. It records every key and mouse event it receives, the
+  order the seeds ran in, and whether a CDN module and an overridden module
+  arrived, and writes nothing to the console on its own: the selftest prints
+  there itself and asserts exactly what was captured.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>page selftest fixture</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body { margin: 0; background: #123; }
+      #target { position: absolute; left: 200px; top: 100px; width: 50px; height: 30px; background: #fc0; }
+    </style>
+  </head>
+  <body>
+    <div id="pdcs-loader" hidden></div>
+    <div id="target"></div>
+    <script>
+      window.__seen = { keys: [], mouse: [], seeds: window.__seeds ? window.__seeds.slice() : null, pads: navigator.getGamepads().length };
+      for (const type of ['keydown', 'keyup']) {
+        window.addEventListener(type, (e) => {
+          window.__seen.keys.push({ type, key: e.key, code: e.code, keyCode: e.keyCode });
+        });
+      }
+      for (const type of ['mousedown', 'mouseup', 'click']) {
+        document.getElementById('target').addEventListener(type, (e) => {
+          window.__seen.mouse.push({ type, x: e.clientX, y: e.clientY, button: e.button });
+        });
+      }
+      window.__later = false;
+      setTimeout(() => { window.__later = true; }, 300);
+    </script>
+  </body>
+</html>

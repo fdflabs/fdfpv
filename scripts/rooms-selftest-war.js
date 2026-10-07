@@ -814,12 +814,13 @@ export function warSection(check) {
   }
   {
     /* THE RELEASE GATE (the owner, 2026-10-04: only mission 1 until it is
-     * right; src/game/campaign.js ACT1 release). A room refuses to start a
+     * right; 2026-10-07: mission 1 held too, until it has its narration;
+     * src/game/campaign.js ACT1 release). A room refuses to start a
      * mission in development, by its word, whatever a client sends: a
-     * stale build, a crafted socket, a ?missions=dev page. Mission 1 and
-     * the drill, which no campaign offers, start as ever; a check's own
-     * room (dev) starts 2 to 4. */
-    for (const id of ['itaipu-2', 'itaipu-3', 'itaipu-4']) {
+     * stale build, a crafted socket, a ?missions=dev page. The drill,
+     * which no campaign offers, starts as ever; a check's own room (dev)
+     * starts 1 to 4. */
+    for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4']) {
       const held = warRoom({ mission: MISSIONS[id], code: 'R3L000' });
       check(`${id}: the room refuses to start it, 'unreleased', and no war is on`, held.errors(0).includes('unreleased') && held.r.war.match === null,
         JSON.stringify({ errors: held.errors(0), match: held.r.war.match && held.r.war.match.mission }));
@@ -831,10 +832,9 @@ export function warSection(check) {
       check(`${id}: a check's own room (devMissions) starts it`, dev.errors(0).length === 0 && dev.r.war.match && dev.r.war.match.mission === id,
         JSON.stringify(dev.errors(0)));
     }
-    for (const id of ['itaipu-1', 'itaipu-drill']) {
-      const open = warRoom({ mission: MISSIONS[id], code: 'R3L002' });
-      check(`${id}: the room starts it as ever`, open.errors(0).length === 0 && open.r.war.match && open.r.war.match.mission === id, JSON.stringify(open.errors(0)));
-    }
+    const open = warRoom({ mission: MISSIONS['itaipu-drill'], code: 'R3L002' });
+    check('itaipu-drill: the room starts it as ever', open.errors(0).length === 0 && open.r.war.match && open.r.war.match.mission === 'itaipu-drill',
+      JSON.stringify(open.errors(0)));
   }
   {
     /* One airframe a pilot. Seat 1 kills a Strike head on (spent 1,
@@ -1134,7 +1134,9 @@ export function warSection(check) {
     const ON = new Set(['briefing', 'countdown', 'live']);
     for (const skip of [false, true]) {
       const c = createRoomWar(() => {});
-      const one = warRoom({ n: 1, start: false, code: 'M1SS10', air: WAR_DEFAULT });
+      const one = warRoom({
+        n: 1, start: false, code: 'M1SS10', air: WAR_DEFAULT, dev: true,
+      });
       one.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-1', intro: true,
       });

@@ -28,10 +28,3 @@ src/ui/credits.js
 src/ui/ui.js
 src/ui/update.js
 tests/gen/gen-baseline.js
-tests/lib/browser.js
-tests/lib/checks.js
-tests/lib/page.js
-tests/lib/replay.js
-tests/lib/server.js
-tests/lib/simmod.js
-tests/verify.js

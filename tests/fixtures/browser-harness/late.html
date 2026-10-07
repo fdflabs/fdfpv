@@ -1,0 +1,6 @@
+<!doctype html>
+<!-- A harness page for scripts/browser-selftest.js: the result exists
+     only after a while, so the runner has to wait for it to appear. -->
+<html><head><meta charset="utf-8"><script>
+  setTimeout(() => { window.__simHarnessResult = Promise.resolve('late but here'); }, 1500);
+</script></head><body>late</body></html>
