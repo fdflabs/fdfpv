@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createRoute, fromFree, fromRace, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
+import { createRoute, fromFree, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -128,6 +128,19 @@ const ok = { ok: true, why: null };
   check('free: no score in the answer, no change', withPosted(e, { ok: true }) === e);
   const w = fromFree({ aircraft: 'cub1400', fixedWing: true, summary: { total: 0, tricks: 0, unique: 0, crashes: 0, timed: false, durationMs: 0 }, flightMs: 1, totalS: 1, replay: ok, landed: true });
   check('free: a plane reports its landing', w.result.landed === true);
+}
+
+/* Flight Club rooms. */
+{
+  const won = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: true, flightMs: 90000, totalS: 100, replay: ok });
+  check('room: first when called is won', won.result.kind === 'won' && won.accuracy[0].what === 'debrief.place' && won.accuracy[0].n === 1 && won.accuracy[0].of === 4);
+  const wait = fromRoom({ activity: 'roomrace', aircraft: 'whoop65', place: 1, of: 4, final: false, flightMs: 90000, totalS: 100, replay: ok });
+  check('room: first while others finish is not yet won', wait.result.kind === 'complete');
+  const lost = fromRoom({ activity: 'tag', aircraft: 'cub1400', fixedWing: true, place: 3, of: 3, final: true, points: 7, flightMs: 1, totalS: 1, replay: ok });
+  check('room: a later place when called is lost, points counted', lost.result.kind === 'lost' && lost.accuracy[1].what === 'debrief.points' && lost.accuracy[1].n === 7 && lost.accuracy[1].of === null);
+  const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
+  check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
+  check('room: the room rows lead', JSON.stringify(won.next) === '["room","replay","title"]');
 }
 
 /* The replay row and the fallback next list. */

@@ -106,6 +106,11 @@ export function createRoute() {
 const NEXT = {
   race: ['again', 'replay', 'aircraft', 'title'],
   free: ['again', 'replay', 'aircraft', 'title'],
+  /* A room's own rows (the host's Again, Fly on, the room's) lead; the
+   * replay follows them. */
+  roomrace: ['room', 'replay', 'title'],
+  tag: ['room', 'replay', 'title'],
+  combat: ['room', 'replay', 'title'],
 };
 
 export function nextActions(activity) {
@@ -174,6 +179,40 @@ export function fromRace({ aircraft, fixedWing = false, log, recordAtStart, flig
  * when the run was sent ({ score, improved }), else null: the board holds
  * the pilot's best, so the record line is its answer, not a local copy.
  */
+/*
+ * A Flight Club room's match: a room race, Catch the Ace or Streamer
+ * Combat. place and of are this pilot's standing in the room's order
+ * (place null when the room has none for this pilot yet); final whether
+ * the room has called the result, so a race still being finished by the
+ * others says neither won nor lost. points: this pilot's points where the
+ * game counts them, else null.
+ */
+export function fromRoom({ activity, aircraft, fixedWing = false, place, of, final, points = null, flightMs, totalS, route = null, replay }) {
+  let kind = 'complete';
+  if (final && place != null) {
+    kind = place === 1 ? 'won' : 'lost';
+  }
+  const accuracy = [];
+  if (place != null && of > 0) {
+    accuracy.push({ what: 'debrief.place', n: place, of });
+  }
+  if (Number.isFinite(points)) {
+    accuracy.push({ what: 'debrief.points', n: points, of: null });
+  }
+  return {
+    activity,
+    aircraft,
+    fixedWing,
+    result: { kind, landed: null },
+    route,
+    time: { flightMs, runMs: null },
+    accuracy,
+    records: timeRecord(totalS, flightMs),
+    replay,
+    next: nextActions(activity),
+  };
+}
+
 /* The record with the board's answer to a posted run as its record line,
  * which arrives after the screen is up. The board answers with its kept
  * score: this run's when it improved (the old best is not sent back), the

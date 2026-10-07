@@ -72,7 +72,7 @@ import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromFree, fromRace, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, fromRoom, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -7242,6 +7242,28 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : str('roomrace.gone');
   }
+  /*
+   * A room match's debrief (src/game/debrief.js fromRoom) from the room's
+   * order: rows of { seat, place, points? }. The replay is offered only
+   * when this pilot's own flight is what ended here (mode 'results'); a
+   * pilot who was on a room screen has no flight of theirs to replay.
+   */
+  function roomDebrief(activity, rows, seat, final) {
+    const me = rows.find((row) => row.seat === seat) || null;
+    return fromRoom({
+      activity,
+      aircraft: runAirframe,
+      fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+      place: me ? me.place : null,
+      of: rows.length,
+      final,
+      points: me && activity !== 'roomrace' ? me.points : null,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: mode === 'results' ? replayState(crashCam ? crashCam.span() : null, false) : null,
+    });
+  }
   /* The results screen, from the room's order; again as it changes. */
   function roomShowResults() {
     const view = resultsView(roomRace, roomSeatName);
@@ -7251,7 +7273,7 @@ export async function boot({
     }
     roomResultsKey = key;
     roomResultsOf = 'race';
-    ui.showRoomResults(view);
+    ui.showRoomResults(view, roomDebrief('roomrace', roomRace.standings(), roomRace.seat(), roomRace.race().state === 'results'));
   }
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
@@ -7539,7 +7561,7 @@ export async function boot({
       }
       roomTagRunId = null;
       roomResultsOf = 'tag';
-      ui.showRoomResults(tagResultsView(roomTag, roomSeatName));
+      ui.showRoomResults(tagResultsView(roomTag, roomSeatName), roomDebrief('tag', roomTag.standings(), roomTag.seat(), true));
     }
     if (wallMs < roomTagHudAt) {
       return;
