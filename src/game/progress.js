@@ -59,7 +59,9 @@ import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import * as powerConfig from '../../configs/power.js';
 import * as liveryConfig from '../../configs/liveries.js';
 import { ADDON_ORDER, PROPS, addonsFor } from '../../configs/hangar-parts.js';
-import { DECAL_KIND_IDS, FINISHES } from '../../configs/paint.js';
+import {
+  DECAL_KIND_IDS, FINISHES, SHOP_DECALS, SHOP_FINISHES,
+} from '../../configs/paint.js';
 import { ACT1, INTERIOR, MAX_STARS } from './campaign.js';
 
 const { POWER } = powerConfig;
@@ -354,13 +356,15 @@ export function unlockables() {
    * first finish and the first few decals are free, so a new pilot can
    * paint a number and a stripe on the first day, and the rest open two a
    * level. A saved livery or a shared code is worn whatever it uses: it is
-   * the pilot's own work or a friend's. */
-  FINISHES.forEach((f, i) => {
+   * the pilot's own work or a friend's. The shop's finishes and decals
+   * (configs/paint.js SHOP_FINISHES, SHOP_DECALS) are owned, not levelled,
+   * and are left out here. */
+  FINISHES.filter((f) => !SHOP_FINISHES.includes(f)).forEach((f, i) => {
     if (i > 0) {
       add({ key: itemKey('finish', f), kind: 'finish', id: f, airframe: null, level: 1 + i, name: `hangar.finish_${f}` });
     }
   });
-  DECAL_KIND_IDS.forEach((k, i) => {
+  DECAL_KIND_IDS.filter((k) => !SHOP_DECALS.includes(k)).forEach((k, i) => {
     if (i >= FREE_DECALS) {
       add({ key: itemKey('decal', k), kind: 'decal', id: k, airframe: null, level: 2 + Math.floor((i - FREE_DECALS) / 2), name: `hangar.decal_${k}` });
     }

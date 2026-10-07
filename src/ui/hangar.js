@@ -449,6 +449,7 @@ export class Hangar {
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
+    this.pin = null;
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
@@ -552,7 +553,9 @@ export class Hangar {
   }
 
   triedEntry() {
-    const h = this.hover;
+    /* `pin`: a look a tab keeps on show without the pointer over it (the
+     * Shop's chosen item, src/ui/hangar-shop.js); the pointer still wins. */
+    const h = this.hover ?? this.pin;
     if (!h) {
       return this.entry;
     }
@@ -623,6 +626,7 @@ export class Hangar {
     this.shop.stopPlacing();
     this.tab = t;
     this.hover = null;
+    this.pin = null;
     this.focus = tabFocus(t, this.quad());
     this.paint(dir);
     this.preview();

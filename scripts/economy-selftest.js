@@ -22,7 +22,10 @@
 import {
   CHALLENGE_TOKENS, EVENT_TIERS, FIRST_TOKENS, ITEMS, earnedFrom, eventGrants, grantCeiling, grantsFrom, itemById,
 } from '../src/game/economy.js';
-import { CHALLENGES, everyFirst } from '../src/game/progress.js';
+import { CHALLENGES, everyFirst, unlockables } from '../src/game/progress.js';
+import {
+  DECAL_KINDS, FINISHES, SHOP_DECALS, SHOP_FINISHES, newDecal,
+} from '../configs/paint.js';
 import { UPGRADES } from '../src/game/campaign.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { addFlight } from '../src/share/flighttime.js';
@@ -77,6 +80,12 @@ check('flying everything once buys the whole shop', ITEMS.filter((it) => it.pric
 check('the gold finish is earned with all seven challenges, the ribbon with three stars', earnedFrom(everything).sort().join() === 'decal:ribbon,finish:gold'
   && earnedFrom({ data: { campaign: { missions: { 'itaipu-1': { stars: 2, won: true } } } } }).length === 0);
 check('itemById knows each and nothing else', ITEMS.every((it) => itemById(it.id) === it) && itemById('finish:chrome') === null);
+
+check('every item\'s paint exists, and the shop lists are exactly the items', ITEMS.every((it) => (it.kind === 'finish' ? FINISHES.includes(it.paint) : Boolean(DECAL_KINDS[it.paint])))
+  && ITEMS.filter((it) => it.kind === 'finish').map((it) => it.paint).sort().join() === [...SHOP_FINISHES].sort().join()
+  && ITEMS.filter((it) => it.kind === 'decal').map((it) => it.paint).sort().join() === [...SHOP_DECALS].sort().join());
+check('a shop decal is a valid decal', SHOP_DECALS.every((k) => newDecal(k, [0, 0, 0], [0, 1, 0]).k === k));
+check('no shop item is a level unlock, so Unlock all cannot give it', !unlockables().some((u) => (u.kind === 'finish' && SHOP_FINISHES.includes(u.id)) || (u.kind === 'decal' && SHOP_DECALS.includes(u.id))));
 
 console.log('Flight Club events');
 check('a gold pays every tier under it, keyed by event', sum(eventGrants('2026-w41-alps', 'gold')) === Object.values(EVENT_TIERS).reduce((a, b) => a + b, 0)

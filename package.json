@@ -442,6 +442,7 @@
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
     "economy:selftest": "node scripts/economy-selftest.js",
+    "shop:check": "node scripts/shop-check.js",
     "flighttime:selftest": "node scripts/flighttime-selftest.js",
     "stats:selftest": "node scripts/stats-selftest.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",
