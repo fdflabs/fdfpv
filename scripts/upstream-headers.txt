@@ -80,7 +80,6 @@ src/share/stats.js
 src/share/summary.js
 src/share/windows.js
 src/trackbuilder/index.html
-src/trackbuilder/path.js
 src/trackbuilder/storage.js
 src/ui/accountui.js
 src/ui/campaign.js
