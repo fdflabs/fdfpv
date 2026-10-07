@@ -117,6 +117,10 @@ const HAND_HOLD = 4;
  */
 const HOP_ZOOM = 2.6;
 const HOP_ELEV = 1.1;
+/* FLIP: the aircraft rolled over on its stand so its underside is up, the
+ * camera staying over the floor (docs/redesign/WORKSHOP-PAINT.md). Slower
+ * than the camera's springs so the roll reads as the stand turning it. */
+const ROLL_OMEGA = 5;
 
 function wrap(a) {
   let x = a % (2 * Math.PI);
@@ -149,6 +153,7 @@ export function createHangarRig() {
   const along = { x: 0, v: 0 };
   const up = { x: 0, v: 0 };
   const pop = { x: 1, v: 0 };
+  const roll = { x: 0, v: 0 };
   let handT = 0;
   let focusSeen = null;
   let revealSeq = -1;
@@ -169,6 +174,8 @@ export function createHangarRig() {
       zoom.v = 0;
       elev.x = 0.2;
       elev.v = 0;
+      roll.x = 0;
+      roll.v = 0;
     }
     if (h.pulse !== pulseSeq) {
       if (pulseSeq !== -1) {
@@ -220,6 +227,7 @@ export function createHangarRig() {
     spring(zoom, v.zoom, dt);
     spring(along, v.along, dt);
     spring(up, v.up, dt);
+    spring(roll, h.flip ? Math.PI : 0, dt, ROLL_OMEGA);
     /* The pop is a touch under damped on purpose: a scheme going on is a
      * small event and it should land with a little bounce. */
     const x = pop.x - 1;
@@ -233,6 +241,7 @@ export function createHangarRig() {
       zoom: zoom.x * orbit.zoom,
       along: along.x,
       up: up.x,
+      roll: roll.x,
       pop: pop.x,
       reveal: 1 - (1 - revealT) ** 3,
       pulse: pulseT,
