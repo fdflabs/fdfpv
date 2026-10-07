@@ -181,7 +181,8 @@ function gearText(gear) {
   return str(GEAR_KEYS[gear] || 'ui.gear_moving');
 }
 
-/* How many cards differ from the pads in view, without allocating. */
+/* Whether the cards on screen are already one per pad in view. A loop,
+ * not every(), because this runs every frame the screen is up. */
 function sameRoster(nodes, pads) {
   if (pads.length !== nodes.size) {
     return false;
@@ -377,9 +378,9 @@ export const overlayMethods = {
      * counts bounces, in the neutral colour, and is blank until there is
      * one. */
     if (this.osdHits) {
-      this.osdHits.textContent = bounces ? `${bounces} ${bounces === 1 ? 'bounce' : 'bounces'}` : '';
+      Ui.text(this.osdHits, bounces ? `${bounces} ${bounces === 1 ? 'bounce' : 'bounces'}` : '');
       if (bounces) {
-        this.osdHits.className = 'osd-sub osd-hits';
+        Ui.klass(this.osdHits, 'osd-sub osd-hits');
       }
     }
   },
