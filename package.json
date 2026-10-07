@@ -42,6 +42,7 @@
     "keys:golden": "node scripts/keys-golden.js",
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
     "overlay:golden": "node scripts/overlay-golden.js",
+    "session:golden": "node scripts/session-golden.js",
     "cards:golden": "node scripts/cards-check.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",

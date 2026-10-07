@@ -42,6 +42,7 @@ jobs:
       - run: npm run menucontrols:golden
       - run: npm run dialogs:golden
       - run: npm run overlay:golden
+      - run: npm run session:golden
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
