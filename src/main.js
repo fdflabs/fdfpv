@@ -11624,18 +11624,18 @@ export async function boot({
     const got = Array.from(bad.subarray(1, 14)).join(' ');
     console.error(`plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
     resetCraft(null);
-    holdPlantAt([sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]], 'after a plant fault');
+    holdPlantAt([sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]], 'plantFault');
     beginClipCrash('plant', nowWall);
   }
 
   /* Seats the plant at `pose` (position, then quaternion w x y z, plant
    * frame) at rest, or leaves it where it is when pose is null, and takes
    * the craft as airborne from there. */
-  function holdPlantAt(pose, why) {
+  function holdPlantAt(pose, caller) {
     if (pose) {
       const code = sim.e.sim_set_pose(...pose);
       if (code !== SIM_OK) {
-        throw new Error(`sim_set_pose ${why}: ${simErrorName(code)}`);
+        throw new Error(`sim_set_pose in ${caller}: ${simErrorName(code)}`);
       }
       sim.rest();
     }
@@ -11711,7 +11711,7 @@ export async function boot({
      * spot, which may be a storey below the air that was checked, or
      * inside whatever the craft was stuck in. The plant owes the rest. */
     const lift = (spot.y - startY) - SPAWN_ALT;
-    holdPlantAt(lift > 0 ? [0, 0, lift, 1, 0, 0, 0] : null, 'for a recovery');
+    holdPlantAt(lift > 0 ? [0, 0, lift, 1, 0, 0, 0] : null, 'finishClipCrash');
     simClockPrevMs = simTimeMs;
     /* The terrain query and the collider sweep are different tests, so the
      * catch gets a grace to settle in rather than firing again at once. */
