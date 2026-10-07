@@ -597,19 +597,17 @@ export function buildBramorCraft(opts = {}) {
 
   /* The chute bay's lid on the pod's back, and the harness over the top
    * in C-Astral's red, from the lid out to the roots. */
-  /* The lid is thin and follows the pod's back fore and aft, as a strip
-   * of skin a shade darker with its seam. */
+  /* The lid is thin and follows the pod's back both ways, as a strip of
+   * skin a shade darker with its seam: laid flat across, it stood up to
+   * 2 mm off the back where the pod falls away from the centre line, over
+   * the harness straps' 1.6 mm, and cut them into dashes. */
   {
-    const pts = [];
-    for (let i = 0; i <= 6; i += 1) {
-      const aft = 0.24 + (0.16 * i) / 6;
-      pts.push(new THREE.Vector2(topAt(0, aft) + 0.0012, aft - NOSE_TO_CG));
-    }
-    const lidGeo = new THREE.PlaneGeometry(0.10, 1, 1, 6);
+    const lidGeo = new THREE.PlaneGeometry(0.10, 1, 4, 6);
     const lp = lidGeo.attributes.position;
     for (let i = 0; i < lp.count; i += 1) {
-      const row = Math.round((0.5 - lp.getY(i)) * 6);
-      lp.setXYZ(i, lp.getX(i), pts[row].x, pts[row].y);
+      const x = lp.getX(i);
+      const aft = 0.24 + 0.16 * (0.5 - lp.getY(i));
+      lp.setXYZ(i, x, topAt(x, aft) + 0.0012, aft - NOSE_TO_CG);
     }
     lidGeo.computeVertexNormals();
     const lid = new THREE.Mesh(lidGeo, coat.shade('airframe', cel({ color: 0x94a0ac, rim: 0.28, spec: 0.28, side: THREE.DoubleSide })));
