@@ -1,18 +1,28 @@
 /*
- * orbit-check.js: what a pilot orbits is in the obstacle field, and one slow
- * lap is one lap.
+ * orbit-check.js: the thumbnail page (src/share/orbit.html and orbit.js)
+ * pinned as a transcript in Chromium.
  *
- *     node scripts/orbit-check.js      (npm run check:orbit)
+ *     node scripts/orbit-check.js [--dump=<file>]   (npm run orbit:check)
  *
- * Two regressions this pins. The shell's ground function once answered the
- * training mast's legs with the height of its head deck, which put each leg
- * above its own top and erased it from the obstacle field, so an orbit of
- * the mast could never score. And a slow lap used to be cut in two by the
- * path hysteresis. The geometry half asks deriveObstacles directly; the
- * flight half orbits the mast on the real plant (scripts/lib/flightrig.js)
- * at several radii, speeds and spawn yaws. Then the negatives: a straight
- * run past a street of posts names nothing, and rolls flown down that
- * street with no plant and no flush are still released to the pilot.
+ * A plain page of this checkout frames orbit.html the way a map card and
+ * the board do, and records what the frame tells its parent (the
+ * fdfpv-orbit-ready and fdfpv-orbit-clip messages, their fields and the
+ * clip's size), the window flags the checks read (__orbitReady,
+ * __orbitMap, __orbitCached, __orbitLoopMs, __orbitError, the ?capture=1
+ * base64), its status line, its title and what it leaves on screen.
+ *
+ *   - Which world each address records, from clips already cached under
+ *     each world's key: a named world, the Track seat (map=custom and
+ *     map=track) and an unknown id, which record the title's valley.
+ *   - A ?share= course, from a stand in board this script serves: a map
+ *     track records its world and titles the page after the course; a
+ *     field track, and a course the board does not have, say why not.
+ *   - One real capture (?capture=1) of a world: built, recorded for one
+ *     camera loop with its length stamped, stored, shown and posted.
+ *   - Opened on its own, not in a frame: the cached clip still shows.
+ *
+ * Pinned by digest (scripts/lib/transcript.js), recorded on the page
+ * before its rewrite. Local, not in CI: it drives Chromium.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -30,181 +40,132 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import http from 'node:http';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  makeRig, buildWorld, V, sub, mul, norm, len, rampPath, circlePath, dropPath,
-} from './lib/flightrig.js';
-import { Colliders } from '../src/game/collide.js';
-import { deriveObstacles, ObstacleField, OB_POLE } from '../src/game/obstacles.js';
-import { TrickDetector } from '../src/game/trickdetect.js';
+import { openPage } from '../tests/lib/page.js';
+import { transcript } from './lib/transcript.js';
 
+const PINNED = '761785391691c093d5bfa0848a7e1fe0c17a92534847033386d42216f3aa9a5f';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const wasmPath = join(root, 'dist/sim.wasm');
+const CAPTURE_MAP = process.env.ORBIT_CAPTURE_MAP || 'alps';
 
-/* The training mast: four square legs on a plinth, a deck on top. */
-const MAST = { x: 96, z: 160, half: 1.5, leg: 0.16, height: 34, base: 0.45, deck: 34.75 };
+/* The stand in board: two course documents and a 404. */
+const COURSES = {
+  'trk-onmap': { id: 'trk-onmap', name: 'Ring on the Alps', author: 'Ada', document: { schemaVersion: 4, id: 'trk-onmap', name: 'Doc name', map: 'alps', elements: [], sequence: [] } },
+  'trk-bare': { schemaVersion: 4, id: 'trk-bare', name: 'Bare doc on interior', map: 'interior', elements: [], sequence: [] },
+  'trk-field': { id: 'trk-field', name: 'Old field', document: { schemaVersion: 3, id: 'trk-field', name: 'Old field', elements: [], sequence: [] } },
+};
+const boardServer = http.createServer((req, res) => {
+  const m = /^\/board\/api\/tracks\/([^/]+)\/document$/.exec(req.url);
+  const body = m && COURSES[decodeURIComponent(m[1])];
+  res.writeHead(body ? 200 : 404, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+  res.end(JSON.stringify(body || { error: 'That track is not on the board.' }));
+});
+await new Promise((r) => boardServer.listen(0, '127.0.0.1', r));
+const BOARD = `http://127.0.0.1:${boardServer.address().port}/board`;
 
-let passed = 0;
-let failed = 0;
-function report(ok, label, note) {
-  if (ok) passed += 1;
-  else failed += 1;
-  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${label}`);
-  if (note) console.log(`        ${note}`);
-}
-const joined = (names, none = 'nothing') => (names.length ? names.join(' + ') : none);
-
-function mastLegs() {
-  const legs = [];
-  for (const sx of [-1, 1]) {
-    for (const sz of [-1, 1]) {
-      const cx = MAST.x + sx * MAST.half;
-      const cz = MAST.z + sz * MAST.half;
-      legs.push({
-        kind: 'box', material: 'wall',
-        x0: cx - MAST.leg, y0: MAST.base, z0: cz - MAST.leg,
-        x1: cx + MAST.leg, y1: MAST.base + MAST.height, z1: cz + MAST.leg,
-      });
+/* In the host page: frame `query`, collect messages until the frame has
+ * said all it will (`want` messages, or an error), then read it. */
+const FRAME = async ({ query, want, seed, timeoutMs }) => {
+  const oc = await import('/src/share/orbitcache.js');
+  for (const [map, text] of seed || []) {
+    await oc.putClip(oc.clipKeyForMap(map), new Blob([text], { type: 'video/webm' }));
+  }
+  const messages = [];
+  const listen = (e) => {
+    const d = e.data || {};
+    const row = { ...d };
+    if (d.buffer) {
+      row.buffer = `${d.buffer.constructor.name}:${d.buffer.byteLength > 0}`;
+      row.text = d.buffer.byteLength < 64 ? new TextDecoder().decode(d.buffer) : '(clip)';
+    }
+    messages.push(row);
+  };
+  window.addEventListener('message', listen);
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'width:480px;height:270px;border:0';
+  frame.src = `/src/share/orbit.html${query}`;
+  document.body.append(frame);
+  const deadline = performance.now() + timeoutMs;
+  const w = () => frame.contentWindow;
+  while (performance.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 100));
+    if (messages.length >= want || (w() && w().__orbitError)) {
+      break;
     }
   }
-  return legs;
-}
-
-console.log('\norbit-check: the mast is an obstacle, and a slow lap is one lap\n');
-
-{
-  const c = new Colliders();
-  for (const b of mastLegs()) c.addBox(b.material, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1);
-  c.addBox('wall', MAST.x - 1.85, MAST.deck - 0.3, MAST.z - 1.85, MAST.x + 1.85, MAST.deck, MAST.z + 1.85);
-  c.build();
-  /* The fixed ground function: below the deck, a leg stands on the plinth. */
-  const withBase = deriveObstacles(c, (x, z, fromY) => (fromY !== undefined && fromY < MAST.deck ? MAST.base + 0.3 : MAST.deck));
-  const poles = withBase.countOf(OB_POLE);
-  report(poles >= 4, 'the four legs of the mast are poles a pilot can orbit',
-    `${poles} poles from four legs under a deck`);
-  /* The bug restated: ask for the top of the stack and the legs vanish. */
-  const topOnly = deriveObstacles(c, () => MAST.deck).countOf(OB_POLE);
-  report(topOnly === 0, 'and answered with the deck height everywhere, they vanish',
-    `${topOnly} poles when every leg is told the ground is the deck`);
-}
-
-if (!existsSync(wasmPath)) {
-  console.log('\n  SKIP  no dist/sim.wasm; the flights need the plant, a skip is not a pass\n');
-  console.log(`${passed} passed, ${failed} failed`);
-  process.exit(failed ? 1 : 0);
-}
-const wasmBytes = readFileSync(wasmPath);
-const diffText = readFileSync(join(root, 'configs/betaflight-default.diff'), 'utf8');
-
-const mastWorld = buildWorld(mastLegs(), deriveObstacles, MAST.base);
-
-/* Ramp onto a circle about the mast and fly it facing the mast; returns
- * the trick names and the worst path error. */
-async function orbit({ radius, secs, laps, alt, inverted = false, yaw = Math.PI }) {
-  const rig = await makeRig({
-    wasmBytes, diffText, colliders: mastWorld.colliders, field: mastWorld.field,
-    spawn: V(MAST.x, MAST.base, MAST.z - 20), spawnYaw: yaw, groundY: MAST.base,
-  });
-  const circle = circlePath(V(MAST.x, alt, MAST.z), V(1, 0, 0), V(0, 0, 1), radius, secs, 0, laps);
-  /* Belly up the thrust points down, so the planned path falls to match. */
-  const lap = inverted ? dropPath(circle, 11.4) : circle;
-  const entry = lap(0);
-  const vEntry = len(entry.v);
-  const from = sub(entry.p, mul(norm(entry.v), 12));
-  const look = (t, s) => Math.atan2(MAST.x - s.p.x, MAST.z - s.p.z);
-  rig.hold(200, 0, 0, 0, 0.5);
-  rig.settle(from, look(0, { p: from }), 2.0);
-  rig.fly(rampPath(from, entry.p, (12 * 1.9) / Math.max(2, vEntry), vEntry), { heading: look });
-  const flown = rig.fly(lap, {
-    heading: look, ky: inverted ? 1.6 : 3.0, yawMax: inverted ? 0.5 : 0.85, invertOk: inverted,
-  });
-  rig.hold(600, 0, 0, 0, 0.45);
-  return { names: rig.done(800).map((t) => t.name), err: flown.worstErr };
-}
-
-const scored = (o) => `named ${joined(o.names)} (path error ${o.err.toFixed(1)} m)`;
-for (const [shape, want, label] of [
-  [{ radius: 6, secs: 5.0, laps: 2, alt: 8 }, 'Orbit x2', 'two laps of 6 m in five seconds'],
-  [{ radius: 8, secs: 7.0, laps: 2, alt: 10 }, 'Orbit x2', 'two slow laps of 8 m in seven seconds, which the old hysteresis cut'],
-  [{ radius: 5, secs: 2.3, laps: 1, alt: 24, inverted: true }, '1 Trippy Spin', 'one lap flown belly up'],
-]) {
-  const o = await orbit(shape);
-  report(o.names.includes(want), `${label}: ${want}`, scored(o));
-}
-
-{
-  const seen = [];
-  for (const [yaw, name] of [[0, '0'], [Math.PI / 2, '90'], [Math.PI, '180']]) {
-    seen.push([name, joined((await orbit({ radius: 6, secs: 5.0, laps: 2, alt: 8, yaw })).names)]);
+  await new Promise((r) => setTimeout(r, 300));
+  window.removeEventListener('message', listen);
+  const win = w();
+  const doc = frame.contentDocument;
+  const status = doc.getElementById('status');
+  const clipNode = doc.querySelector('.orbit-clip');
+  const read = {
+    messages,
+    flags: {
+      ready: win.__orbitReady, map: win.__orbitMap, cached: win.__orbitCached, loopMs: win.__orbitLoopMs, error: win.__orbitError,
+      captureDone: win.__orbitCaptureDone, captureBase64: typeof win.__orbitCapture === 'string' ? win.__orbitCapture.length > 1000 : win.__orbitCapture,
+      framesRan: typeof win.__orbitFrames === 'number' ? win.__orbitFrames > 8 : win.__orbitFrames,
+    },
+    title: doc.title,
+    status: status ? { text: status.textContent, gone: status.classList.contains('gone') } : null,
+    canvasLeft: Boolean(doc.getElementById('view')),
+    clip: clipNode ? {
+      tag: clipNode.tagName, ariaHidden: clipNode.hasAttribute('aria-hidden'), className: clipNode.className, count: doc.querySelectorAll('.orbit-clip').length,
+    } : null,
+  };
+  /* What IndexedDB holds now, through a copy of the module with nothing
+   * in memory. */
+  const fresh = await import(`/src/share/orbitcache.js?read=${Math.random()}`);
+  const stored = await fresh.getClip(fresh.clipKeyForMap(win.__orbitMap));
+  read.storedType = stored && stored.type;
+  if (typeof win.__orbitCapture === 'string') {
+    /* The Duration stamped in the captured WebM's header, in ms. */
+    const b = Uint8Array.from(atob(win.__orbitCapture), (c) => c.charCodeAt(0));
+    let at = -1;
+    for (let i = 0; i < Math.min(b.length, 16384) - 1; i += 1) {
+      if (b[i] === 0x44 && b[i + 1] === 0x89) {
+        at = i;
+        break;
+      }
+    }
+    const size = at < 0 ? 0 : b[at + 2] & 0x7f;
+    const view = new DataView(b.buffer, at + 3, size);
+    read.capturedDurationMs = size === 4 ? Math.round(view.getFloat32(0)) : size === 8 ? Math.round(view.getFloat64(0)) : null;
   }
-  report(seen.every(([, s]) => s.includes('Orbit x2')), 'the same two laps score alike from three spawn yaws',
-    seen.map(([name, s]) => `yaw ${name}: ${s}`).join(' | '));
-}
+  frame.remove();
+  return read;
+};
 
-for (const [radius, secs] of [[6, 5], [10, 7], [14, 9], [18, 11]]) {
-  const o = await orbit({ radius, secs, laps: 2, alt: 12 });
-  report(o.names.includes('Orbit x2'), `two laps at ${radius} m, a radius a park paints or a pilot drifts to`,
-    `named ${joined(o.names)}`);
+const t = transcript();
+const page = await openPage({ root, url: '/privacy.html', width: 800, height: 600 });
+try {
+  await page.until('document.readyState === "complete"', 30000);
+  const run = async (label, args) => {
+    const got = await page.evaluate(`(${FRAME.toString()})(${JSON.stringify(args)})`);
+    t.note(label, got);
+    console.log(`  ${label}: ${got.flags.error || `${got.messages.length} messages`}`);
+  };
+  const cached = { want: 2, timeoutMs: 30000 };
+  await run('a named world, cached', { ...cached, query: '?map=itaipu', seed: [['itaipu', 'clip of itaipu']] });
+  await run('the Track seat as map=custom', { ...cached, query: '?map=custom', seed: [['swiss2', 'clip of swiss2']] });
+  await run('the Track seat as map=track', { ...cached, query: '?map=track' });
+  await run('an unknown world', { ...cached, query: '?map=atlantis' });
+  await run('no map at all', { ...cached, query: '' });
+  await run('a board course on a world', { ...cached, query: `?map=custom&share=trk-onmap&board=${encodeURIComponent(BOARD)}`, seed: [['alps', 'clip of alps']] });
+  await run('a bare board document', { ...cached, query: `?share=trk-bare&board=${encodeURIComponent(BOARD)}`, seed: [['interior', 'clip of interior']] });
+  await run('a field course', { ...cached, query: `?map=custom&share=trk-field&board=${encodeURIComponent(BOARD)}` });
+  await run('a course the board does not have', { ...cached, query: `?map=custom&share=trk-gone&board=${encodeURIComponent(BOARD)}` });
+  await run('a real capture', { want: 2, timeoutMs: 420000, query: `?map=${CAPTURE_MAP}&capture=1` });
+  /* On its own, outside any frame. */
+  await page.cdp.send('Page.navigate', { url: `${page.origin}/src/share/orbit.html?map=itaipu` }, page.sessionId);
+  await page.until('window.__orbitReady === true || Boolean(window.__orbitError)', 30000);
+  t.note('opened on its own', await page.evaluate(`({
+    cached: window.__orbitCached, map: window.__orbitMap, clip: Boolean(document.querySelector('.orbit-clip')), canvas: Boolean(document.getElementById('view')),
+  })`));
+} finally {
+  await page.close();
+  boardServer.close();
 }
-
-{
-  const one = await orbit({ radius: 6, secs: 5.0, laps: 1, alt: 8 });
-  report(one.names.includes('Yaw Spin'), 'one tracked lap of the mast is a full turn of yaw, and scores as one',
-    `named ${joined(one.names)}`);
-  const two = await orbit({ radius: 6, secs: 5.0, laps: 2, alt: 8 });
-  report(two.names.includes('Orbit x2') && !two.names.includes('Yaw Spin'), 'while two laps are an Orbit x2 and no Yaw Spin',
-    `named ${joined(two.names)}`);
-}
-
-{
-  const posts = [];
-  for (let i = 0; i < 8; i += 1) {
-    const x = 10 + i * 8;
-    posts.push({ kind: 'box', material: 'wall', x0: x - 0.16, y0: 0, z0: -0.16, x1: x + 0.16, y1: 6, z1: 0.16 });
-  }
-  const street = buildWorld(posts, deriveObstacles, 0);
-  for (const [z, speed, secs, label] of [
-    [-4, 12, 6.5, 'a straight run past a street of posts at 12 m/s names nothing'],
-    [-2.5, 9, 9.0, 'nor does the same run closer in, at 9 m/s'],
-  ]) {
-    const rig = await makeRig({
-      wasmBytes, diffText, colliders: street.colliders, field: street.field,
-      spawn: V(0, 0, -14), spawnYaw: Math.PI, groundY: 0,
-    });
-    const east = Math.atan2(1, 0);
-    rig.hold(200, 0, 0, 0, 0.5);
-    rig.settle(V(4, 4, z), east, 2.0);
-    rig.fly(rampPath(V(4, 4, z), V(78, 4, z), secs, speed), { heading: east });
-    const names = rig.done(900).map((t) => t.name);
-    report(names.length === 0, label, names.length ? `named ${joined(names)}` : 'nothing named');
-  }
-}
-
-/* No plant here: the detector alone, fed a craft rolling once every eight
- * seconds down a street of poles and never flushed. While a path run is
- * open beside a pole, a roll must still be released when it completes. */
-for (const spacing of [15, 20, 26]) {
-  const poles = new ObstacleField();
-  for (let i = 0; i < 80; i += 1) poles.add(OB_POLE, i * spacing, 6, 6, 0, 1, 0, 6);
-  const field = poles.build();
-  const names = [];
-  const det = new TrickDetector((t) => { names.push(t.name); }, field);
-  const ROLL_RATE = (Math.PI * 2) / 1.05;
-  let phi = 0;
-  let x = 0;
-  for (let ms = 0; ms < 60000; ms += 1) {
-    const t = ms / 1000;
-    const p = t > 4 && (t % 8) < 1.05 ? ROLL_RATE : 0;
-    phi += p * 0.001;
-    x += 15 * 0.001;
-    det.step(0.001, p, 0, 0, Math.sin(phi / 2), 0, 15, x, 6, 0, 1, 0, 0, 0, Math.cos(phi), Math.sin(phi));
-  }
-  const rolls = names.filter((n) => n === 'Roll').length;
-  report(rolls === 7, `seven rolls down a street of poles ${spacing} m apart are all named, unflushed`,
-    `${names.length} named: ${joined(names, 'none')}`);
-}
-
-console.log(`\n${passed} passed, ${failed} failed`);
-process.exit(failed ? 1 : 0);
+t.finish('orbit page', PINNED);
