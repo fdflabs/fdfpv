@@ -36,7 +36,13 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const KEY_STORAGE = 'webfpv.pilot.key.v1';
+import { carryRenamedKeys } from './oldkeys.js';
+
+export const KEY_STORAGE = 'fdfpv.pilot.key.v1';
+/* webfpv.pilot.key.v1 before the project took its own name; moved once at
+ * load (src/share/oldkeys.js), so a pilot keeps the key their times are
+ * filed under. */
+carryRenamedKeys([['webfpv.pilot.key.v1', KEY_STORAGE]]);
 export const TIME_MESSAGE_PREFIX = 'fdfpv-time/v1';
 
 const CURVE = { name: 'ECDSA', namedCurve: 'P-256' };

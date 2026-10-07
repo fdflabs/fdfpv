@@ -326,9 +326,9 @@ async function main() {
      * My tracks shows the seated track as its own card rather than twice.
      * The seat is emptied here, as if the pilot had flown something else
      * since, so the track has to be found among the board's. */
-    const seatWas = await page.evaluate(`(JSON.parse(localStorage.getItem('webfpv.share.import.v1') || 'null') || {}).id || null`);
+    const seatWas = await page.evaluate(`(JSON.parse(localStorage.getItem('fdfpv.share.import.v1') || 'null') || {}).id || null`);
     say(seatWas === id, `publishing seated it, as a publish from the builder does: ${seatWas}`);
-    await page.evaluate("localStorage.removeItem('webfpv.share.import.v1'), true");
+    await page.evaluate("localStorage.removeItem('fdfpv.share.import.v1'), true");
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await shellUp(page);

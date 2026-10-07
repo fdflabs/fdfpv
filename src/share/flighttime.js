@@ -60,6 +60,7 @@
  */
 
 import { MODES } from './modes.js';
+import { carryRenamedKeys } from './oldkeys.js';
 
 /* The activities time is split by: the mode registry's ids, so a mode
  * added there is a bucket here with no edit. */
@@ -75,7 +76,10 @@ export const FLIGHT_ACTIVITIES = MODES.map((m) => m.id);
  */
 export const FLIGHT_DEVICES_MAX = 256;
 
-const DEVICE_KEY = 'webfpv.flight.device.v1';
+const DEVICE_KEY = 'fdfpv.flight.device.v1';
+/* webfpv.flight.device.v1 before the project took its own name; moved
+ * once at load (src/share/oldkeys.js). */
+carryRenamedKeys([['webfpv.flight.device.v1', DEVICE_KEY]]);
 const DEVICE_RE = /^[a-z0-9]{8,32}$/;
 const AIRFRAME_RE = /^[a-z0-9_-]{1,40}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;

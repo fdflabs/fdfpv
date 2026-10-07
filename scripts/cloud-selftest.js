@@ -44,8 +44,8 @@ globalThis.localStorage = {
 const win = new EventTarget();
 win.location = { search: '', hostname: 'fdflabs.github.io' };
 globalThis.window = win;
-localStorage.setItem('webfpv.tracks.origin', 'http://tracks.test');
-localStorage.setItem('webfpv.pilot.name', 'Ada');
+localStorage.setItem('fdfpv.tracks.origin', 'http://tracks.test');
+localStorage.setItem('fdfpv.pilot.name', 'Ada');
 
 /* Every PUT, held until the test lets it answer. */
 const puts = [];

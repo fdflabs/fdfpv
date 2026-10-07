@@ -76,6 +76,7 @@ import {
   createIdentity, keyLinkMessage, memoryStorage, nameClaimMessage,
 } from './identity.js';
 import { ACCOUNT_KEY, normaliseName, readAccount } from './pilot.js';
+import { carryRenamedKeys } from './oldkeys.js';
 import { pullOwnTracks, tracksConfigured, tracksOrigin } from './cloud.js';
 import { boardConfigured, boardOrigin } from './board.js';
 import { mergeBlobs, pickSynced, stampChanges } from './progressmerge.js';
@@ -92,8 +93,10 @@ import { mergeBlobs, pickSynced, stampChanges } from './progressmerge.js';
  */
 export const GOOGLE_CLIENT_ID = '684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.apps.googleusercontent.com';
 
-const GUEST_KEY = 'webfpv.pilot.key.guest.v1';
-const SYNCED_KEY = 'webfpv.account.synced.v1';
+const GUEST_KEY = 'fdfpv.pilot.key.guest.v1';
+const SYNCED_KEY = 'fdfpv.account.synced.v1';
+/* webfpv.* before the project took its own name; moved once at load. */
+carryRenamedKeys([['webfpv.pilot.key.guest.v1', GUEST_KEY], ['webfpv.account.synced.v1', SYNCED_KEY]]);
 const TIMEOUT_MS = 10000;
 /* The session goes as `authorization: Bearer <token>`. */
 const AUTH_SCHEME = 'Bearer';

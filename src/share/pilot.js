@@ -23,8 +23,9 @@
  */
 
 import { str } from '../strings/index.js';
+import { carryRenamedKeys } from './oldkeys.js';
 
-const HANDLE_KEY = 'webfpv.pilot.name';
+const HANDLE_KEY = 'fdfpv.pilot.name';
 
 /*
  * The signed in account's record, { session, callsign, publicKey, ... },
@@ -32,7 +33,11 @@ const HANDLE_KEY = 'webfpv.pilot.name';
  * only needs the name avoids the account module's network code. While a
  * browser is signed in, the callsign is the pilot's name everywhere.
  */
-export const ACCOUNT_KEY = 'webfpv.account.v1';
+export const ACCOUNT_KEY = 'fdfpv.account.v1';
+
+/* Both were webfpv.* before the project took its own name; moved once at
+ * load (src/share/oldkeys.js). */
+carryRenamedKeys([['webfpv.pilot.name', HANDLE_KEY], ['webfpv.account.v1', ACCOUNT_KEY]]);
 
 export function readAccount() {
   let record;

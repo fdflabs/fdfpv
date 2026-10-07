@@ -166,6 +166,34 @@ console.log('the pack');
   check('signed in with no guest key aside: no pilot key goes at all', !('webfpv.pilot.key.v1' in entriesOf(noGuest)));
 }
 {
+  /* The same storage after a newer build moved it to the fdfpv.* names. */
+  const renamed = new Storage({
+    'fdfpv.pilot.name': 'Ada',
+    'fdfpv.tracks.origin': 'https://129.151.39.48',
+    'fdfpv.pilot.key.v1': '{"v":1,"privateJwk":{"d":"ACCOUNT-secret"},"publicRaw":"acct"}',
+    'fdfpv.pilot.key.guest.v1': GUEST['webfpv.pilot.key.v1'],
+    'fdfpv.account.v1': JSON.stringify({ session: 'S3SS10N', callsign: 'ADA', publicKey: 'acct', keyIsAccounts: true }),
+    'fdfpv.account.synced.v1': '{"at":1}',
+  });
+  const e = entriesOf(renamed);
+  const text = JSON.stringify(e);
+  check('renamed: the name goes, the tracks server override does not', e['fdfpv.pilot.name'] === 'Ada' && !('fdfpv.tracks.origin' in e));
+  check('renamed: a signed in browser sends the guest\'s key as the pilot key',
+    e['fdfpv.pilot.key.v1'] === GUEST['webfpv.pilot.key.v1'] && !('fdfpv.pilot.key.guest.v1' in e));
+  check('renamed: and nothing of the account', !text.includes('S3SS10N') && !text.includes('ACCOUNT-secret') && !('fdfpv.account.v1' in e) && !('fdfpv.account.synced.v1' in e));
+  check('renamed: the account names are excluded too', EXCLUDED.has('fdfpv.account.v1') && EXCLUDED.has('fdfpv.account.synced.v1') && EXCLUDED.has('fdfpv.tracks.origin'));
+  const guestOnly = new Storage({ 'fdfpv.pilot.key.v1': 'GUEST-KEY', 'fdfpv.pilot.key.guest.v1': 'stale' });
+  check('renamed, not signed in: the pilot key goes as it is, never the guest copy',
+    entriesOf(guestOnly)['fdfpv.pilot.key.v1'] === 'GUEST-KEY' && !('fdfpv.pilot.key.guest.v1' in entriesOf(guestOnly)));
+  let refusedNew = false;
+  try {
+    await decodePack(await encodePack({ 'fdfpv.account.v1': '{}' }));
+  } catch (err) {
+    refusedNew = true;
+  }
+  check('renamed: a pack carrying the account under its new name is refused whole', refusedNew);
+}
+{
   const entries = entriesOf(new Storage(GUEST));
   const text = await encodePack(entries);
   const back = await decodePack(text);

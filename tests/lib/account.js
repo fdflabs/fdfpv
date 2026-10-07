@@ -55,7 +55,7 @@ const RS256 = {
   name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256',
 };
 /* src/share/cloud.js's override of where the tracks server is. */
-const TRACKS_ORIGIN_KEY = 'webfpv.tracks.origin';
+const TRACKS_ORIGIN_KEY = 'fdfpv.tracks.origin';
 /* A seeded page's own mark, outside the game's keys (src/share/move.js
  * KEY), so a sign out in the check is not undone by the next load. */
 const SEEDED_KEY = 'sim.account.seeded';

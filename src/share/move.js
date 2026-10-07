@@ -105,10 +105,17 @@ export const EXCLUDED = new Set([
   'webfpv.account.v1',
   'webfpv.account.synced.v1',
   'webfpv.probe',
+  'fdfpv.tracks.origin',
+  'fdfpv.account.v1',
+  'fdfpv.account.synced.v1',
 ]);
-const ACCOUNT_KEY = 'webfpv.account.v1';
-const PILOT_KEY = 'webfpv.pilot.key.v1';
-const GUEST_PILOT_KEY = 'webfpv.pilot.key.guest.v1';
+/* The account record and the pilot keys under both spellings: the old
+ * origin's storage holds the webfpv.* names, or the fdfpv.* ones once a
+ * newer build has run there and moved them (src/share/oldkeys.js). */
+const KEY_SPELLINGS = [
+  { account: 'webfpv.account.v1', pilot: 'webfpv.pilot.key.v1', guest: 'webfpv.pilot.key.guest.v1' },
+  { account: 'fdfpv.account.v1', pilot: 'fdfpv.pilot.key.v1', guest: 'fdfpv.pilot.key.guest.v1' },
+];
 
 const BOT = /bot|crawl|spider|slurp|lighthouse|preview/i;
 
@@ -130,7 +137,8 @@ export function hasGameState(storage) {
 
 /* The entries that go, as a plain object. A signed in browser's pilot key
  * is the account's (src/share/account.js keeps the guest's aside under
- * GUEST_PILOT_KEY); what goes is the guest's, as signing out would leave. */
+ * the guest key name, in either spelling); what goes is the guest's, as
+ * signing out would leave. */
 export function entriesOf(storage) {
   const out = {};
   for (const key of storageKeys(storage).sort()) {
@@ -138,19 +146,23 @@ export function entriesOf(storage) {
       out[key] = storage.getItem(key);
     }
   }
-  let account = null;
-  try {
-    account = JSON.parse(storage.getItem(ACCOUNT_KEY) || 'null');
-  } catch (e) {
-    account = null;
-  }
-  if (account && account.keyIsAccounts) {
-    delete out[PILOT_KEY];
-    if (out[GUEST_PILOT_KEY] != null) {
-      out[PILOT_KEY] = out[GUEST_PILOT_KEY];
+  const accountOf = (key) => {
+    try {
+      return JSON.parse(storage.getItem(key) || 'null');
+    } catch (e) {
+      return null;
     }
+  };
+  const signedIn = KEY_SPELLINGS.some(({ account }) => accountOf(account)?.keyIsAccounts);
+  for (const { pilot, guest } of KEY_SPELLINGS) {
+    if (signedIn) {
+      delete out[pilot];
+      if (out[guest] != null) {
+        out[pilot] = out[guest];
+      }
+    }
+    delete out[guest];
   }
-  delete out[GUEST_PILOT_KEY];
   return out;
 }
 

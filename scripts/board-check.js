@@ -206,7 +206,7 @@ async function main() {
         localStorage.setItem(k, JSON.stringify(s));
         /* Point the simulator at the board this check just started. */
         localStorage.setItem('webfpv.board.origin', ${JSON.stringify(ORIGIN)});
-        localStorage.setItem('webfpv.pilot.name', 'sugarK');
+        localStorage.setItem('fdfpv.pilot.name', 'sugarK');
       } catch (e) { /* Storage refused. The run still boots. */ }`],
     });
     await page.until('window.__shellReady === true', 90000);

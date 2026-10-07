@@ -95,7 +95,7 @@ function check(name, ok, detail = '') {
   }
 }
 
-const SYNCED_KEY = 'webfpv.account.synced.v1';
+const SYNCED_KEY = 'fdfpv.account.synced.v1';
 const GUEST_XP = 4321;
 const GUEST_COURSE = 'guest-course-flown';
 

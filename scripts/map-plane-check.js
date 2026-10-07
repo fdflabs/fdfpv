@@ -508,7 +508,7 @@ async function skyhunter() {
     const row = (await boardJson('/api/tracks')).tracks.find((t) => t.id === id);
     say(Boolean(row) && row.map === 'swiss2' && row.planes.includes(sky.id) && row.planes.includes('bramor2300'),
       `the board lists it on swiss2 for ${row ? row.planes.length : 0} planes: ${row ? row.planes.join(', ') : 'nothing'}`);
-    const seatKey = 'webfpv.share.import.wing.v1';
+    const seatKey = 'fdfpv.share.import.wing.v1';
     const seatWas = await page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(seatKey)}) || 'null') || {}).id || null`);
     say(seatWas === id, `publishing seated it in the plane's seat, ${seatKey}`);
     await leave(page);
@@ -532,7 +532,7 @@ async function skyhunter() {
     say(Boolean(card), `My tracks lists it for the ${sky.short}`);
     say(!listed.some((t) => t.id === narrowPub.id), `and not ${narrowPub.id}, a map track of five inch gates it does not fit`);
     await shot(page, '2-plane-my-tracks');
-    const seated = await page.evaluate('({ map: window.__map(), key: window.__race().key, build: window.__build.state().state, seat: (JSON.parse(localStorage.getItem("webfpv.share.import.wing.v1") || "null") || {}).id })');
+    const seated = await page.evaluate('({ map: window.__map(), key: window.__race().key, build: window.__build.state().state, seat: (JSON.parse(localStorage.getItem("fdfpv.share.import.wing.v1") || "null") || {}).id })');
     say(seated.map.id === 'swiss2' && seated.map.mode === 'race' && seated.map.gates === 3 && seated.build === 'racing',
       `choosing it seats the course on ${seated.map.id}: a race over ${seated.map.gates} gates`);
     say(seated.seat === id && seated.key.includes(`.${sky.id}`) && seated.key.endsWith(`.map.${id}`), `in the plane's seat, with the ${sky.short}'s record of its own`);
@@ -578,7 +578,7 @@ async function skyhunter() {
 
     /* 5. The chase link. */
     console.log('reload on the chase link, and chase the plane\'s ghost');
-    await page.evaluate("localStorage.removeItem('webfpv.share.import.wing.v1'), true");
+    await page.evaluate("localStorage.removeItem('fdfpv.share.import.wing.v1'), true");
     await reloadOn(page, url(`map=custom&share=${id}&ghost=${posted.id}&craft=${sky.id}`));
     await page.until(`window.__map().ready && window.__map().mode === 'race' && window.__race().gates.length === 3 && window.__ghost().choice === ${JSON.stringify(`board:${posted.id}`)}`, 400000).catch(() => {});
     const chase0 = await page.evaluate('({ map: window.__map(), g: window.__ghost(), key: window.__race().key, af: window.__ui.settings.airframe })');
@@ -617,11 +617,11 @@ async function skyhunter() {
      * interceptor is seeded after it, and the quads' seat emptied as if the
      * pilot had flown something else since. */
     await page.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed('interceptor')[0] }, page.sessionId);
-    await page.evaluate("localStorage.removeItem('webfpv.share.import.v1'), true");
+    await page.evaluate("localStorage.removeItem('fdfpv.share.import.v1'), true");
     await reloadOn(page, url('map=swiss2'));
     const quadListed = await seatFromMyTracks(page, id, 'swiss2', 3);
     say(quadListed.some((t) => t.id === id) && quadListed.some((t) => t.id === narrowPub.id), 'My tracks, the interceptor seated, lists it, and the quad gate ring beside it');
-    const quadSeat = await page.evaluate('({ af: window.__ui.settings.airframe, key: window.__race().key, seat: (JSON.parse(localStorage.getItem("webfpv.share.import.v1") || "null") || {}).id, g: window.__ghost() })');
+    const quadSeat = await page.evaluate('({ af: window.__ui.settings.airframe, key: window.__race().key, seat: (JSON.parse(localStorage.getItem("fdfpv.share.import.v1") || "null") || {}).id, g: window.__ghost() })');
     say(quadSeat.af === 'interceptor' && quadSeat.seat === id && quadSeat.key.endsWith(`.map.${id}`), 'seated in the quads\' seat');
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 60000);
@@ -724,7 +724,7 @@ async function floats() {
     say(Boolean(row) && row.map === 'alps' && row.planes.includes(tf.id), `the board lists it on the Alps for the ${tf.short} among ${row ? row.planes.length : 0} planes`);
     await leave(page);
     await page.until(`${B('.state')} === 'off'`, 10000);
-    await page.evaluate("localStorage.removeItem('webfpv.share.import.wing.v1'), true");
+    await page.evaluate("localStorage.removeItem('fdfpv.share.import.wing.v1'), true");
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await shellUp(page);

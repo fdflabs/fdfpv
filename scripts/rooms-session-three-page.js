@@ -239,7 +239,7 @@ try {
     centre: [sp.x + fx * 90, sp.y + 20, sp.z + fz * 90], radius: 50,
   });
   await pages.A.evaluate(`(() => {
-    localStorage.setItem('webfpv.share.import.v1', JSON.stringify({ id: ${JSON.stringify(doc.id)}, name: ${JSON.stringify(doc.name)}, author: '', board: '', document: ${JSON.stringify(doc)}, local: true, importedUtc: new Date().toISOString() }));
+    localStorage.setItem('fdfpv.share.import.v1', JSON.stringify({ id: ${JSON.stringify(doc.id)}, name: ${JSON.stringify(doc.name)}, author: '', board: '', document: ${JSON.stringify(doc)}, local: true, importedUtc: new Date().toISOString() }));
     window.__ui.play();
     return true;
   })()`);

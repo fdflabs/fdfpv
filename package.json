@@ -367,6 +367,7 @@
     "olddb:check": "node scripts/olddb-check.js",
     "board:selftest": "node scripts/board-selftest.js",
     "oldkeys:selftest": "node scripts/oldkeys-selftest.js",
+    "oldkeys:check": "node scripts/oldkeys-check.js",
     "lint:attract": "node scripts/attract-check.js",
     "trick:sweep": "node scripts/trick-sweep.js",
     "trick:proven": "node scripts/trick-sweep.js --all --write",

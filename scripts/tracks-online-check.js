@@ -82,7 +82,7 @@ function seed() {
     s.airframeAsked = true;
     s.fpsCap = 0;
     localStorage.setItem(k, JSON.stringify(s));
-    localStorage.setItem('webfpv.pilot.name', ${JSON.stringify(`Pilot ${RUN}`)});
+    localStorage.setItem('fdfpv.pilot.name', ${JSON.stringify(`Pilot ${RUN}`)});
   } catch (e) { /* storage refused; the checks below will say so */ }
   navigator.getGamepads = () => [];`];
 }
@@ -164,7 +164,7 @@ async function main() {
     /* B, the other computer. */
     const b = await open('B');
     try {
-      const bKey = await b.evaluate("JSON.parse(localStorage.getItem('webfpv.pilot.key.v1') || 'null')");
+      const bKey = await b.evaluate("JSON.parse(localStorage.getItem('fdfpv.pilot.key.v1') || 'null')");
       say(!bKey || bKey.publicRaw !== aKey, 'B has a pilot key of its own, not A\'s');
       say(await b.evaluate(`!(JSON.parse(localStorage.getItem('webfpv.trackbuilder.library.v1') || '{}'))[${JSON.stringify(id)}]`), 'and B\'s own library does not hold the track');
       await b.evaluate("window.__ui.show('courses'), true");
@@ -176,8 +176,8 @@ async function main() {
       /* Play seats it and the world builds round it; Fly on the launch
        * card is the pilot's next key, as in scripts/map-share-check.js. */
       await b.evaluate(`window.__ui.actOnCard('card-fly', ${cardOf(b, id)}), true`);
-      await b.until(`(JSON.parse(localStorage.getItem('webfpv.share.import.v1') || 'null') || {}).id === ${JSON.stringify(id)} && window.__map().ready && window.__map().id === 'swiss2' && window.__map().mode === 'race' && window.__race().gates.length === 3`, 300000).catch(() => {});
-      const seated = await b.evaluate("({ seat: (JSON.parse(localStorage.getItem('webfpv.share.import.v1') || 'null') || {}).id, map: window.__map().id, mode: window.__map().mode, gates: window.__race().gates.length, key: window.__race().key })");
+      await b.until(`(JSON.parse(localStorage.getItem('fdfpv.share.import.v1') || 'null') || {}).id === ${JSON.stringify(id)} && window.__map().ready && window.__map().id === 'swiss2' && window.__map().mode === 'race' && window.__race().gates.length === 3`, 300000).catch(() => {});
+      const seated = await b.evaluate("({ seat: (JSON.parse(localStorage.getItem('fdfpv.share.import.v1') || 'null') || {}).id, map: window.__map().id, mode: window.__map().mode, gates: window.__race().gates.length, key: window.__race().key })");
       say(seated.seat === id && seated.map === 'swiss2' && seated.mode === 'race' && seated.gates === 3 && String(seated.key).endsWith(id),
         `B's Play seats it as a race in the Swiss valley over its 3 gates: ${JSON.stringify(seated)}`);
       const startGate = (await b.evaluate(B('.gates')))[0].centre;
