@@ -1,16 +1,24 @@
 <!doctype html>
 <!--
-  The title shot, and nothing else. Map cards and the public board iframe
-  this page so a thumbnail is the same renderer, the same camera and the
-  same world as the game. The first visit records one camera cycle; later
-  visits play that clip and never build the world again.
+  orbit.html: one world's thumbnail, for map cards and the public board to
+  frame. orbit.js records the title camera's loop of the world once and
+  plays the kept clip after that, so a thumbnail is the game's own
+  renderer, camera and world without a second copy of any of them.
 
-  This file is part of WebFPVSimulator.
+  This file is part of the Paraguayan Drone Combat Simulator.
 
-  WebFPVSimulator is free software: you can redistribute it and/or modify
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or (at
   your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
 -->
 <html lang="en">
   <head>
@@ -19,19 +27,19 @@
     <title>Paraguayan Drone Combat Simulator, orbit</title>
     <link rel="icon" href="data:," />
     <style>
-      html, body {
-        margin: 0; width: 100%; height: 100%; overflow: hidden;
-        background: #141c16;
-      }
+      :root { --ground: #141c16; --hint: #8a9a86; }
+      html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; background: var(--ground); }
+      /* The canvas while recording, then the clip in its place: either one
+       * covers the whole frame. */
       #view, .orbit-clip {
-        display: block; position: fixed; inset: 0;
+        position: fixed; inset: 0; display: block;
         width: 100%; height: 100%;
-        object-fit: cover; background: #141c16;
+        background: var(--ground); object-fit: cover;
       }
       #status {
-        position: fixed; inset: 0; display: grid; place-items: center;
-        padding: 12px; box-sizing: border-box; text-align: center;
-        color: #8a9a86; font: 13px/1.45 system-ui, sans-serif;
+        position: fixed; inset: 0; box-sizing: border-box; padding: 12px;
+        display: grid; place-items: center; text-align: center;
+        font: 13px/1.45 system-ui, sans-serif; color: var(--hint);
         pointer-events: none;
       }
       #status.gone { display: none; }

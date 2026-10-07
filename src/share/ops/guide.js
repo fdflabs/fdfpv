@@ -31,9 +31,10 @@
  *   nudgeOf(target, here, heading)  the line ids a nudge says: what, the
  *                                   clock bearing off the nose, how far
  *   createNudger()                  when a nudge is due: no progress for
- *                                   NUDGE_IDLE_MS, or far from the action,
- *                                   and never closer together than a gap
- *                                   that grows while nothing changes
+ *                                   NUDGE_IDLE_MS (closing on the objective
+ *                                   by CLOSE_M counts as progress), and
+ *                                   never closer together than a gap that
+ *                                   grows while nothing changes
  *
  * Positions are the ops frame (z up, metres, x east, y north); a bearing
  * is clockwise from north. Pure: no DOM, no clock of its own, runs in
@@ -59,9 +60,11 @@ import { itemsOf, resolve } from './stages.js';
 
 /* A nudge once nothing has changed for this long, ms. */
 export const NUDGE_IDLE_MS = 20000;
-/* Farther than this from the objective is far from the action, m: a
- * nudge is due whatever the progress. */
-export const FAR_M = 1500;
+/* Getting this much nearer the objective, m, is progress: a pilot on the
+ * way to it is left alone (the owner's flight, 2026-10-07: nudged three
+ * times on the two minute leg to Alpha, the first rule said far from the
+ * objective was due a nudge whatever they were doing). */
+export const CLOSE_M = 100;
 /* The gap between two guide lines starts here and grows by NUDGE_GROW
  * each time nothing changed between them, up to NUDGE_MAX_MS. */
 export const NUDGE_GAP_MS = 20000;
@@ -290,38 +293,52 @@ export function nudgeOf(target, here, heading, brief = null) {
 }
 
 /*
- * When a nudge is due. `progress(key, now)` is told what this screen
+ * When a nudge is due. `progress(key, now, dist)` is told what this screen
  * would call progress (a key that changes when a count moves, a card is
- * done, a contact is told, the stage moves on); `spoke(now)` that a guide
- * line was said; `due(now, far)` whether a nudge is due now.
+ * done, a contact is told, the stage moves on) and how far the objective
+ * is now (null for one with no place): the key changing, or the pilot
+ * CLOSE_M nearer than they have been since it last changed, is progress;
+ * `spoke(now)` that a guide line was said; `due(now)` whether a nudge is
+ * due now.
  */
 export function createNudger() {
   let key = null;
   let since = 0;
+  let near = Infinity;
   let last = -Infinity;
   let gap = NUDGE_GAP_MS;
   return {
-    progress(k, now) {
+    progress(k, now, dist = null) {
       if (k !== key) {
         key = k;
         since = now;
+        near = Infinity;
         gap = NUDGE_GAP_MS;
+      }
+      if (dist != null && dist < near - CLOSE_M) {
+        if (near !== Infinity) {
+          since = now;
+          gap = NUDGE_GAP_MS;
+        }
+        near = dist;
       }
     },
     spoke(now) {
       last = now;
     },
-    due(now, far) {
+    due(now) {
       if (now - last < gap) {
         return false;
       }
-      return far || now - since >= NUDGE_IDLE_MS;
+      return now - since >= NUDGE_IDLE_MS;
     },
     /* A nudge said: the next waits longer while nothing changes. */
     nudged(now) {
       last = now;
       gap = Math.min(NUDGE_MAX_MS, gap * NUDGE_GROW);
     },
-    state: () => ({ key, since, last, gap }),
+    state: () => ({
+      key, since, near, last, gap,
+    }),
   };
 }

@@ -16,20 +16,20 @@
  *
  *   node scripts/floats-shell.js [timber1500f|cub1400f] [alps|swiss2]
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { dirname } from 'node:path';
@@ -38,7 +38,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const airframe = process.argv[2] ?? 'timber1500f';
 const af = airframeById(airframe);
 const LAKE_Y = -1.5;
@@ -146,11 +146,9 @@ const page = await openPage({
   height: 300,
   url: '/index.html',
   seed: [`try {
-    const k = ${JSON.stringify(SETTINGS_KEY)};
-    const s = JSON.parse(localStorage.getItem(k) || '{}');
-    Object.assign(s, ${JSON.stringify(seated)});
-    s.airframeAsked = true;
-    localStorage.setItem(k, JSON.stringify(s));
+    const settingsKey = ${JSON.stringify(SETTINGS_KEY)};
+    const prior = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+    localStorage.setItem(settingsKey, JSON.stringify({ ...prior, ...${JSON.stringify(seated)}, airframeAsked: true }));
   } catch (e) { /* storage refused */ }`],
 });
 let failed = 0;

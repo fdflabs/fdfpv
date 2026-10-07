@@ -93,8 +93,63 @@ export function buildLife({
   let parked = CAMP_PROPS.motorcycles.length;
   let seconds = 0;
   let roomMs = 0;
+  /* What the camp's people have done to the camp, read off the contacts
+   * the room tells (their route and how far along it they are), so the
+   * camp changes on every screen as the script says and the room sends
+   * nothing new for it (M1 audit gap 4, 2026-10-07): the side tarp comes
+   * back over its crouch at the marked shelter, the mast comes down over
+   * the antenna man's dwell, and each pusher takes the parked motorcycle
+   * nearest where their route starts. Applied only as it changes, so a
+   * check's own setCamp holds until the contacts move. */
+  const TARP_PULL_MS = 20000;
+  const pushersBike = new Map();
+  for (const id of routes.ids) {
+    const r = routes.route(id);
+    if (!(r.segments || []).some((g) => g.action === 'pushMotorcycle')) {
+      continue;
+    }
+    const p = routes.poseOnRoute(id, 0);
+    let best = null;
+    for (const m of CAMP_PROPS.motorcycles) {
+      const d = (m.at[0] - p.x) ** 2 + (m.at[1] - p.z) ** 2;
+      if (!best || d < best.d) {
+        best = { d, id: m.id };
+      }
+    }
+    pushersBike.set(id, best.id);
+  }
+  let done = { tarp: 0, mast: 0 };
+  function campDone() {
+    let tarp = 0;
+    let mast = 0;
+    const taken = new Set();
+    for (const c of contacts) {
+      if (!c.route || c.ms == null) {
+        continue;
+      }
+      const r = routes.route(c.route);
+      if (/^camp-tarp-move/.test(c.route)) {
+        const crouch = (r.dwell || []).find((d) => d.action === 'crouchTarp');
+        const from = routes.total(c.route) - (crouch ? crouch.s * 1000 : 0);
+        tarp = Math.max(tarp, Math.max(0, Math.min(1, (c.ms - from) / TARP_PULL_MS)));
+      }
+      const down = (r.dwell || []).find((d) => d.i === 0 && d.action === 'takeDownAntenna');
+      if (down) {
+        mast = Math.max(mast, Math.max(0, Math.min(1, c.ms / (down.s * 1000))));
+      }
+      if (pushersBike.has(c.route) && c.ms >= 0) {
+        taken.add(pushersBike.get(c.route));
+      }
+    }
+    return { tarp, mast, taken };
+  }
 
   function draw() {
+    const now = campDone();
+    if (now.tarp !== done.tarp || now.mast !== done.mast) {
+      done = { tarp: now.tarp, mast: now.mast };
+      camp.setCamp(done);
+    }
     const people = [];
     const cars = [];
     for (const c of contacts) {
@@ -120,6 +175,9 @@ export function buildLife({
       }
     }
     CAMP_PROPS.motorcycles.slice(0, parked).forEach((m, k) => {
+      if (now.taken.has(m.id)) {
+        return;
+      }
       cars.push({
         x: m.at[0], y: world.groundAt(m.at[0], m.at[1]), z: m.at[1], heading: Math.atan2(m.dir[0], -m.dir[1]), kind: 'motorcycle', tint: PAINTS[k % PAINTS.length],
       });
@@ -169,7 +227,7 @@ export function buildLife({
       camp.light.setSun(irradiance);
     },
     stats: () => ({
-      people: figures.stats().drawn, vehicles: vehicles.stats().drawn, camp: camp.stats(), ambient: ambient.stats(),
+      people: figures.stats().drawn, vehicles: vehicles.stats().drawn, camp: camp.stats(), ambient: ambient.stats(), parked: parked - campDone().taken.size,
     }),
     dispose() {
       figures.dispose();

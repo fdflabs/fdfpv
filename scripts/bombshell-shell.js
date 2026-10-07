@@ -17,20 +17,20 @@
  * Any fixed wing on wheels flies it: npm run kadet:shell is the Kadet
  * Senior's, which also holds its sound to the four stroke's voice.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { dirname } from 'node:path';
@@ -38,7 +38,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { airframeById } from '../configs/airframes.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const AF = process.argv[2] ?? 'bombshell1118';
 const MAPS = (process.argv[3] ?? 'swiss2,alps').split(',');
 const af = airframeById(AF);
