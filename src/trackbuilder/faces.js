@@ -41,6 +41,15 @@ const STILE_DEPTH = 1.2;
 const STILE_INNER = 0.45;
 const STILE_REACH = 3.0;
 
+/* Closer than this to the opening's foot and the marker is standing in the
+ * opening, not on a stile, whatever the width says. Metres. */
+const ON_THE_FOOT = 0.15;
+
+/* The width a stile test assumes for an opening whose clear width is zero or
+ * unreadable: the standard 60 inch gate. Without it a zero width makes every
+ * marker near the foot count as beside the frame. Metres. */
+const ASSUMED_CLEAR_W = 1.524;
+
 /* The sign of the opening's decided pass nearest the marker's first pass in
  * the flying order, the earlier one on a tie; for a marker not yet flown,
  * its first decided pass; +1 when it has none. */
@@ -68,7 +77,7 @@ const PARKABLE = ['flag', 'cone'];
 /* The travel through the opening a marker is parked beside, or null when it
  * stands clear of every opening. The nearest one wins; the first wins a tie. */
 export function nearbyApertureTravel(doc, el) {
-  if (!PARKABLE.includes(el.type)) {
+  if (!el || !PARKABLE.includes(el.type)) {
     return null;
   }
   let best = null;
@@ -80,10 +89,16 @@ export function nearbyApertureTravel(doc, el) {
     const offset = { x: el.position.x - other.position.x, y: el.position.y - other.position.y, z: 0 };
     const facing = yawVector(other.yaw);
     const depth = Math.abs(dot(offset, facing));
-    const across = Math.abs(dot(offset, leftOf(facing)));
-    const half = other.dims.clearW / 2;
-    const distance = Math.sqrt(offset.x * offset.x + offset.y * offset.y);
-    if (depth > STILE_DEPTH || across < STILE_INNER * half || distance > STILE_REACH) {
+    /* The plain perpendicular, not leftOf's renormalised one, and hypot,
+     * because the stored tracks were decided with exactly these: a last
+     * place difference flips a marker standing on a limit. */
+    const across = Math.abs(dot(offset, { x: -facing.y, y: facing.x, z: 0 }));
+    const half = (other.dims?.clearW || ASSUMED_CLEAR_W) / 2;
+    const distance = Math.hypot(offset.x, offset.y);
+    if (distance > STILE_REACH || distance < ON_THE_FOOT) {
+      continue;
+    }
+    if (depth > STILE_DEPTH || across < STILE_INNER * half) {
       continue;
     }
     if (distance < bestDistance) {
