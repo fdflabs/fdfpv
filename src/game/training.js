@@ -28,7 +28,7 @@
 
 /* What a flight must do before it counts, and how long down and still is a
  * landing: the same as progress.js judges a landing by. */
-export const AIRBORNE_MS = 20000;
+export const TAKEOFF_HOLD_MS = 20000;
 const LANDED_MS = 1000;
 const FLEW_MS = 2000;
 const TURN_RAD = 2 * Math.PI;
@@ -42,12 +42,12 @@ const TURN_RAD = 2 * Math.PI;
  * training.lesson.<id> and training.lesson.<id>_note.
  */
 export const LESSONS = [
-  { id: 'first_takeoff', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ airborne: AIRBORNE_MS }] },
+  { id: 'first_takeoff', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ airborne: TAKEOFF_HOLD_MS }] },
   { id: 'first_turns', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ turn: 'left' }, { turn: 'right' }] },
   { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ land: true }] },
   {
     id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-acro', place: 'swiss2',
-    steps: [{ airborne: AIRBORNE_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
+    steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },
   { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, steps: [{ laps: 1, clean: false }] },
   { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, steps: [{ laps: 1, clean: true }] },
