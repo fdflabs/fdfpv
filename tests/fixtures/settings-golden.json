@@ -112,7 +112,8 @@
    "AVX_PALETTES": [
     "whitehot",
     "ironbow",
-    "rainbow"
+    "rainbow",
+    "arctic"
    ],
    "CAMERA_ANGLE_DEFAULT": 30,
    "CAMERA_ANGLE_MAX": 55,
