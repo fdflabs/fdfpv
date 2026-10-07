@@ -1,42 +1,35 @@
 /*
- * ratespanel.js: the stick-to-rate curve, drawn.
+ * ratespanel.js: the Rates screen's picture of what each stick asks for.
  *
- * WHAT THIS IS NOT ANY MORE. It used to be a Configurator Rateprofile
- * table: five columns, three axes, a rates-type dropdown, and every cell
- * writing a CLI key straight into a Betaflight dump. That belonged to the
- * flight-controller screen, and the flight-controller screen is gone. A
- * pilot who wants to hand-edit a rateprofile has Betaflight for it.
+ * The rows beside this panel edit the pilot's rate profile; configs/rates.js
+ * stores it and turns it into CLI, and the module flies it. This panel only
+ * looks. It plots degrees per second against stick travel for every axis,
+ * with the numbers a pilot actually reasons with (quarter, half and full
+ * stick, and where hover sits) listed under the plot, and amber dots that
+ * follow the live sticks along the curve each one will fly.
  *
- * What is left is the part that was always doing the teaching: a picture of
- * what the sticks do. It reads the pilot's rate profile out of Settings
- * (configs/rates.js owns it) and previews Betaflight's own curve for
- * whichever rates type they chose through src/fc/ratescurve.js, which is a
- * transcription of fc/rc.c. It writes nothing. The rows beside it write the
- * settings, the settings become CLI in configs/rates.js, and Betaflight
- * flies it.
+ * Every rate comes from angleRateDeg in src/fc/ratescurve.js, the display
+ * copy of Betaflight's rc.c that fc-trace checks against the compiled
+ * module. Nothing in this file computes a rate.
  *
- * ONE CURVE PER AXIS THAT DIFFERS. Roll and pitch share a line while they
- * hold the same three numbers, which is the usual case and the case the menu
- * defaults to; split the pitch on the rows and a third curve appears rather
- * than a second colour appearing on top of a line that did not change.
+ * Roll and pitch are one curve until the pilot gives pitch numbers of its
+ * own, because two identical curves drawn on top of each other look like one
+ * curve in the wrong colour.
  *
- * The live dots are the real sticks, fed from the frame loop, so moving a
- * stick on this screen moves the dot along the curve it is about to fly.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
@@ -45,358 +38,384 @@ import {
 import { ANGLE_RATE_SAMPLES, angleRateDeg } from '../fc/ratescurve.js';
 import { str } from '../strings/index.js';
 
-/* House palette, from the :root block in index.html. Kept as literals
- * because a canvas cannot read a CSS custom property. EXPORTED for the
- * PIDs panel, which colours the same three axes: roll is sakura and yaw is
- * slate on every screen, and one copy of the trio is what keeps that true.
- * The surface tints travel with them so the two canvases sit on the same
- * glass. */
+/* Canvas colours. A 2D context cannot resolve var(--...), so the index.html
+ * palette is repeated here as literals. The PIDs panel imports the axis
+ * colours and surface tints from this file so both canvases agree on which
+ * colour is which axis. */
 export const INK = 'rgba(12, 18, 14, 0.55)';
-const GRID = 'rgba(244, 236, 214, 0.10)';
 export const AXIS = 'rgba(244, 236, 214, 0.26)';
 export const LABEL = 'rgba(235, 230, 215, 0.62)';
 export const SAKURA = '#e8a8b8';
 export const MINT = '#7dffb4';
 export const SLATE = '#9db3c8';
-const AMBER = '#ffd45c';
+const GRIDLINE = 'rgba(244, 236, 214, 0.10)';
+const STICK_DOT = '#ffd45c';
 
-/* Where the readout takes its samples. A quarter and a half are where a
- * pilot actually lives; the stop is what the number on the row claims. */
-const SAMPLE_STICKS = [0.25, 0.5, 1];
+const FONT = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
 
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
+/* Stick positions the readout lists, as fractions of full travel. */
+const READOUT_AT = [0.25, 0.5, 1];
+
+/* Plot margins in CSS pixels: room for the scale on the left, the per curve
+ * maxima on the right and the left/centre/right words underneath. */
+const MARGIN = {
+  left: 44, right: 52, top: 14, bottom: 26,
+};
+
+function make(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) {
+    node.className = className;
   }
   if (text != null) {
-    n.textContent = text;
+    node.textContent = text;
   }
-  return n;
+  return node;
+}
+
+function curve(id, label, color, dash, profile, axisName) {
+  const c = { id, label, color };
+  if (dash) {
+    c.dash = dash;
+  }
+  c.type = profile.type;
+  c.axis = rateAxis(profile, axisName);
+  return c;
 }
 
 /*
- * The curves this screen draws, in the units src/fc/ratescurve.js expects,
- * which are the firmware's own uint8s and are exactly what the menu stores.
- * No conversion happens here at all: the display scaling that turns 67 into
- * "670 deg/s" belongs to the rows, not to the curve.
+ * What gets drawn for a rate profile, in ratescurve.js's units (the stored
+ * uint8s, untouched).
  *
- * Yaw is DASHED and drawn LAST, on top of the others. On the Betaflight
- * defaults every axis is the same curve, and two solid lines on the same
- * pixels is one line in whichever colour was painted last: the screen
- * claimed a sakura roll curve and drew a slate yaw one over it. Dashes on
- * top is the fix that works in both cases. Where the curves coincide the
- * slate dashes sit in the sakura line and you can see that both are there;
- * where they part, both read whole.
+ * Yaw is last and dashed so that on a profile where all three axes agree the
+ * yaw dashes sit inside the roll line and both stay visible; drawn solid, or
+ * first, one would hide the other. A split pitch gets its own dash pattern
+ * for the same reason.
  */
 export function ratesCurves(rates) {
-  const r = normaliseRates(rates || {});
-  const yaw = {
-    id: 'yaw', label: 'Yaw', color: SLATE, dash: [5, 4], type: r.type, axis: rateAxis(r, 'yaw'),
-  };
-  if (pitchMatchesRoll(r)) {
-    return [
-      {
-        id: 'rollpitch', label: str('ui.roll_pitch'), color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
-      },
-      yaw,
-    ];
+  const profile = normaliseRates(rates || {});
+  const yaw = curve('yaw', 'Yaw', SLATE, [5, 4], profile, 'yaw');
+  if (pitchMatchesRoll(profile)) {
+    return [curve('rollpitch', str('ui.roll_pitch'), SAKURA, null, profile, 'roll'), yaw];
   }
   return [
-    {
-      id: 'roll', label: str('ratespanel.roll'), color: SAKURA, type: r.type, axis: rateAxis(r, 'roll'),
-    },
-    {
-      id: 'pitch', label: str('ui.pitch'), color: MINT, dash: [2, 3], type: r.type, axis: rateAxis(r, 'pitch'),
-    },
+    curve('roll', str('ratespanel.roll'), SAKURA, null, profile, 'roll'),
+    curve('pitch', str('ui.pitch'), MINT, [2, 3], profile, 'pitch'),
     yaw,
   ];
 }
 
-function degAt(curve, stick) {
-  return angleRateDeg(curve.type, curve.axis, stick);
+const rateAt = (c, stick) => angleRateDeg(c.type, c.axis, stick);
+
+/* The curve a live stick is drawn on: its own axis, else the shared roll and
+ * pitch line, else whatever is first. */
+function riddenBy(curves, axisName) {
+  return curves.find((c) => c.id === axisName)
+    || curves.find((c) => c.id === 'rollpitch')
+    || curves[0];
 }
 
-/* Which curve a stick rides. Roll and pitch share one while they are the
- * same curve, so the dots ride the line that is actually drawn. */
-function curveFor(curves, id) {
-  return curves.find((c) => c.id === id) || curves.find((c) => c.id === 'rollpitch') || curves[0];
-}
-
-/* One sentence a screen reader can read instead of the picture. */
-function describe(curves) {
-  const parts = curves.map((c) => {
-    const at = SAMPLE_STICKS.map((s) => str('ratespanel.at', { v1: Math.round(degAt(c, s)), v2: s === 1 ? str('ratespanel.the_stop') : `${s * 100} percent` }));
-    return str('ratespanel.degrees_per_second', { label: c.label, v2: at.join(', ') });
+function spokenSummary(curves) {
+  const perCurve = curves.map((c) => {
+    const points = READOUT_AT.map((stick) => str('ratespanel.at', {
+      v1: Math.round(rateAt(c, stick)),
+      v2: stick === 1 ? str('ratespanel.the_stop') : `${stick * 100} percent`,
+    }));
+    return str('ratespanel.degrees_per_second', { label: c.label, v2: points.join(', ') });
   });
-  return str('ratespanel.stick_to_rate_curve', { v1: parts.join('. ') });
+  return str('ratespanel.stick_to_rate_curve', { v1: perCurve.join('. ') });
+}
+
+/* Sizes the backing store to the wrap at the device pixel ratio and hands
+ * back a context scaled to CSS pixels, or null when there is no context.
+ * Assigning width or height wipes a canvas and its context state, so it is
+ * only done when the size really changed. */
+function fitCanvas(canvas, wrap) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const width = Math.max(200, wrap.clientWidth || 520);
+  const height = Math.max(150, wrap.clientHeight || 240);
+  const deviceW = Math.round(width * dpr);
+  const deviceH = Math.round(height * dpr);
+  if (canvas.width !== deviceW || canvas.height !== deviceH) {
+    canvas.width = deviceW;
+    canvas.height = deviceH;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return null;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  return { ctx, width, height };
+}
+
+/* The plot rectangle and its two mappings: stick (-1..1) to x, and deg/s
+ * (-scale..scale) to y. */
+function plotArea(width, height, scale) {
+  const w = Math.max(20, width - MARGIN.left - MARGIN.right);
+  const h = Math.max(20, height - MARGIN.top - MARGIN.bottom);
+  const cx = MARGIN.left + w / 2;
+  const cy = MARGIN.top + h / 2;
+  return {
+    left: MARGIN.left,
+    top: MARGIN.top,
+    right: MARGIN.left + w,
+    bottom: MARGIN.top + h,
+    w,
+    h,
+    cx,
+    cy,
+    scale,
+    x: (stick) => cx + stick * (w / 2),
+    y: (deg) => cy - (deg / scale) * (h / 2),
+  };
+}
+
+/* Gridlines sit on half pixels so a one pixel line covers one row of
+ * pixels instead of smearing over two. */
+const crisp = (v) => Math.round(v) + 0.5;
+
+function paintBackdrop(ctx, plot) {
+  ctx.fillStyle = INK;
+  ctx.fillRect(plot.left, plot.top, plot.w, plot.h);
+
+  ctx.setLineDash([]);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = GRIDLINE;
+  ctx.beginPath();
+  for (const stick of [-0.75, -0.5, -0.25, 0.25, 0.5, 0.75]) {
+    const x = crisp(plot.x(stick));
+    ctx.moveTo(x, plot.top);
+    ctx.lineTo(x, plot.bottom);
+  }
+  for (const half of [-0.5, 0.5]) {
+    const y = crisp(plot.cy - half * (plot.h / 2));
+    ctx.moveTo(plot.left, y);
+    ctx.lineTo(plot.right, y);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = AXIS;
+  ctx.beginPath();
+  ctx.moveTo(plot.left, crisp(plot.cy));
+  ctx.lineTo(plot.right, crisp(plot.cy));
+  ctx.moveTo(crisp(plot.cx), plot.top);
+  ctx.lineTo(crisp(plot.cx), plot.bottom);
+  ctx.stroke();
+}
+
+function paintCurves(ctx, plot, curves) {
+  ctx.lineWidth = 2;
+  for (const c of curves) {
+    ctx.setLineDash(c.dash || []);
+    ctx.strokeStyle = c.color;
+    ctx.beginPath();
+    for (let i = 0; i <= ANGLE_RATE_SAMPLES; i += 1) {
+      const stick = (2 * i) / ANGLE_RATE_SAMPLES - 1;
+      const x = plot.x(stick);
+      const y = plot.y(rateAt(c, stick));
+      if (i) {
+        ctx.lineTo(x, y);
+      } else {
+        ctx.moveTo(x, y);
+      }
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+function paintScale(ctx, plot) {
+  ctx.font = FONT;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = LABEL;
+  ctx.textAlign = 'right';
+  const scaleX = plot.left - 6;
+  ctx.fillText(String(plot.scale), scaleX, plot.y(plot.scale));
+  ctx.fillText('0', scaleX, plot.cy);
+  ctx.fillText(`-${plot.scale}`, scaleX, plot.y(-plot.scale));
+
+  ctx.textAlign = 'center';
+  const wordsY = plot.bottom + 12;
+  ctx.fillText('centre', plot.cx, wordsY);
+  ctx.fillText('left', plot.left + 16, wordsY);
+  ctx.fillText('right', plot.right - 16, wordsY);
+}
+
+/* Each curve's full stick rate beside the plot in its own colour. Curves
+ * that end at the same rate would print on one line, so each label steps
+ * down until it is clear of the ones already written. */
+function paintMaxima(ctx, plot, curves) {
+  ctx.textAlign = 'left';
+  const taken = [];
+  for (const c of curves) {
+    const top = rateAt(c, 1);
+    let y = plot.y(top);
+    while (taken.some((other) => Math.abs(other - y) < 12)) {
+      y += 12;
+    }
+    taken.push(y);
+    ctx.fillStyle = c.color;
+    ctx.fillText(String(Math.round(top)), plot.right + 6, y);
+  }
+}
+
+function paintSticks(ctx, plot, curves, sticks) {
+  ctx.fillStyle = STICK_DOT;
+  for (const axisName of ['roll', 'pitch', 'yaw']) {
+    const raw = sticks[axisName];
+    const on = riddenBy(curves, axisName);
+    if (!Number.isFinite(raw) || !on) {
+      continue;
+    }
+    const stick = Math.min(1, Math.max(-1, raw));
+    ctx.beginPath();
+    ctx.arc(plot.x(stick), plot.y(rateAt(on, stick)), 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/*
+ * The legend and the readout table for one set of curves. The returned
+ * handles are what each paint writes into; they are rebuilt only when the
+ * set of curves changes (a pitch split or rejoined), so a knob step costs
+ * text writes and no new nodes.
+ *
+ * Each readout number is its own span in its curve's colour, in curve
+ * order, so the legend's colours say which number is which axis without a
+ * label per number.
+ */
+function buildKey(legend, readout, curves) {
+  legend.textContent = '';
+  readout.textContent = '';
+  const maxima = curves.map((c) => {
+    const swatch = make('span', c.dash ? 'rates-key-dot rates-key-dash' : 'rates-key-dot');
+    swatch.style.background = c.color;
+    const value = make('span', 'rates-key-val', '');
+    const entry = make('span', 'rates-key');
+    entry.append(swatch, make('span', 'rates-key-lab', c.label), value);
+    legend.append(entry);
+    return value;
+  });
+
+  const rows = READOUT_AT.map((stick) => {
+    const heading = stick === 1 ? str('ratespanel.full_stick') : str('ratespanel.stick', { v1: stick * 100 });
+    const numbers = make('dd', null, '');
+    const slots = curves.map((c, i) => {
+      const sep = i > 0 ? make('span', 'rates-num-sep', ' / ') : null;
+      const num = make('span', 'rates-num');
+      num.style.color = c.color;
+      if (sep) {
+        numbers.append(sep);
+      }
+      numbers.append(num);
+      return { sep, num };
+    });
+    numbers.append(make('span', 'rates-num-unit', ' deg/s'));
+    const row = make('div', 'rates-cell');
+    row.append(make('dt', null, heading), numbers);
+    readout.append(row);
+    return { stick, slots };
+  });
+
+  const hover = make('dd', null, '');
+  const hoverRow = make('div', 'rates-cell');
+  hoverRow.append(make('dt', null, str('ratespanel.hover_sits_at')), hover);
+  readout.append(hoverRow);
+
+  return { maxima, rows, hover };
+}
+
+/* Writes one readout row. A number equal to the one before it is blanked
+ * along with its separator: on a profile where every axis agrees the row
+ * says 670 once rather than "670 / 670 / 670". */
+function fillRow(row, curves) {
+  let previous = null;
+  row.slots.forEach((slot, i) => {
+    const deg = Math.round(rateAt(curves[i], row.stick));
+    const repeat = deg === previous;
+    slot.num.textContent = repeat ? '' : String(deg);
+    slot.num.hidden = repeat;
+    if (slot.sep) {
+      slot.sep.hidden = repeat;
+    }
+    previous = deg;
+  });
 }
 
 export function mountRatesPanel() {
-  const root = el('div', 'rates-panel');
-
-  const graphWrap = el('div', 'rates-graph-wrap');
   const canvas = document.createElement('canvas');
   canvas.className = 'rates-graph';
   canvas.setAttribute('role', 'img');
+  const graphWrap = make('div', 'rates-graph-wrap');
   graphWrap.append(canvas);
-
-  const legend = el('div', 'rates-legend');
-  const readout = el('dl', 'rates-readout');
+  const legend = make('div', 'rates-legend');
+  const readout = make('dl', 'rates-readout');
+  const root = make('div', 'rates-panel');
   root.append(graphWrap, legend, readout);
 
+  /* Curves are always rebuilt from the profile handed to paint and never
+   * cached in the key: a key holding stale curve objects once showed one
+   * rates type's numbers under another type's legend. The key keys on the
+   * list of curve ids only. */
   let curves = ratesCurves(null);
-  let stick = { roll: 0, pitch: 0, yaw: 0 };
-  /* What the legend and the readout were last built for. Both are rebuilt
-   * when the set of curves changes, which is a pitch being split or joined
-   * and nothing else, so a knob moving one step does not rebuild the DOM. */
-  let shape = '';
-  let cells = [];
-  let swatches = new Map();
-  let hoverDd = null;
-
-  /*
-   * The legend and the three-numbers-per-stick readout, built from whatever
-   * curves there are.
-   *
-   * Roll, pitch and yaw are separate spans in the curves' own colours rather
-   * than one "670 / 670 / 500" string, because a slash does not say which
-   * part is which and the legend two lines up already taught the colours.
-   */
-  function buildRows() {
-    legend.textContent = '';
-    readout.textContent = '';
-    swatches = new Map();
-    cells = [];
-    for (const c of curves) {
-      const key = el('span', 'rates-key');
-      /* A dot for a solid curve, a dashed rule for a dashed one, so the key
-       * matches what is actually on the canvas. */
-      const dot = el('span', c.dash ? 'rates-key-dot rates-key-dash' : 'rates-key-dot');
-      dot.style.background = c.color;
-      const lab = el('span', 'rates-key-lab', c.label);
-      const val = el('span', 'rates-key-val', '');
-      key.append(dot, lab, val);
-      legend.append(key);
-      swatches.set(c.id, val);
-    }
-    for (const s of SAMPLE_STICKS) {
-      const wrap = el('div', 'rates-cell');
-      wrap.append(el('dt', null, s === 1 ? str('ratespanel.full_stick') : str('ratespanel.stick', { v1: s * 100 })));
-      const dd = el('dd', null, '');
-      /* The spans only, in curve order. The curve OBJECT is deliberately not
-       * kept: it is rebuilt from the settings on every paint, and a cell
-       * holding the one it was built with went on reading the rate profile
-       * the pilot had before they changed the rates type, so the legend said
-       * 667 and the numbers under it said 670. The order is the guarantee,
-       * and the shape check above is what keeps the order true. */
-      const nums = curves.map((c, i) => {
-        const sep = i === 0 ? null : el('span', 'rates-num-sep', ' / ');
-        const num = el('span', 'rates-num');
-        num.style.color = c.color;
-        if (sep) {
-          dd.append(sep);
-        }
-        dd.append(num);
-        return { num, sep };
-      });
-      dd.append(el('span', 'rates-num-unit', ' deg/s'));
-      wrap.append(dd);
-      readout.append(wrap);
-      cells.push({ stick: s, nums });
-    }
-    const hoverWrap = el('div', 'rates-cell');
-    hoverWrap.append(el('dt', null, str('ratespanel.hover_sits_at')));
-    hoverDd = el('dd', null, '');
-    hoverWrap.append(hoverDd);
-    readout.append(hoverWrap);
-  }
+  let sticks = { roll: 0, pitch: 0, yaw: 0 };
+  let key = null;
+  let keyIds = '';
 
   function draw() {
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const cssW = Math.max(200, graphWrap.clientWidth || 520);
-    const cssH = Math.max(150, graphWrap.clientHeight || 240);
-    const w = Math.round(cssW * dpr);
-    const h = Math.round(cssH * dpr);
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
+    const fit = fitCanvas(canvas, graphWrap);
+    if (!fit) {
       return;
     }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
-
-    /* The vertical scale is the fastest curve, rounded up to a round
-     * hundred, so the drawing does not rescale by a pixel every time a
-     * knob moves one step. */
-    const peak = Math.max(...curves.map((c) => degAt(c, 1)), 100);
-    const maxY = Math.ceil(peak / 100) * 100;
-
-    const padL = 44;
-    const padR = 52;
-    const padT = 14;
-    const padB = 26;
-    const gw = Math.max(20, cssW - padL - padR);
-    const gh = Math.max(20, cssH - padT - padB);
-    const x0 = padL + gw / 2;
-    const y0 = padT + gh / 2;
-    const xOf = (s) => x0 + s * (gw / 2);
-    const yOf = (deg) => y0 - (deg / maxY) * (gh / 2);
-
-    ctx.fillStyle = INK;
-    ctx.fillRect(padL, padT, gw, gh);
-
-    /* Quarter-stick gridlines, both sides. A pilot reads the curve against
-     * where their thumb is, not against a number on an axis. */
-    ctx.strokeStyle = GRID;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (const s of [-0.75, -0.5, -0.25, 0.25, 0.5, 0.75]) {
-      const x = Math.round(xOf(s)) + 0.5;
-      ctx.moveTo(x, padT);
-      ctx.lineTo(x, padT + gh);
-    }
-    for (const frac of [-0.5, 0.5]) {
-      const y = Math.round(y0 - frac * (gh / 2)) + 0.5;
-      ctx.moveTo(padL, y);
-      ctx.lineTo(padL + gw, y);
-    }
-    ctx.stroke();
-
-    ctx.strokeStyle = AXIS;
-    ctx.beginPath();
-    ctx.moveTo(padL, Math.round(y0) + 0.5);
-    ctx.lineTo(padL + gw, Math.round(y0) + 0.5);
-    ctx.moveTo(Math.round(x0) + 0.5, padT);
-    ctx.lineTo(Math.round(x0) + 0.5, padT + gh);
-    ctx.stroke();
-
-    for (const c of curves) {
-      ctx.beginPath();
-      ctx.setLineDash(c.dash || []);
-      ctx.strokeStyle = c.color;
-      ctx.lineWidth = 2;
-      for (let i = 0; i <= ANGLE_RATE_SAMPLES; i += 1) {
-        const s = -1 + (2 * i) / ANGLE_RATE_SAMPLES;
-        const x = xOf(s);
-        const y = yOf(degAt(c, s));
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-      ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = LABEL;
-    ctx.textAlign = 'right';
-    ctx.fillText(`${maxY}`, padL - 6, yOf(maxY));
-    ctx.fillText('0', padL - 6, y0);
-    ctx.fillText(`-${maxY}`, padL - 6, yOf(-maxY));
-    ctx.textAlign = 'center';
-    ctx.fillText('centre', x0, padT + gh + 12);
-    ctx.fillText('left', padL + 16, padT + gh + 12);
-    ctx.fillText('right', padL + gw - 16, padT + gh + 12);
-
-    /* Each curve's own maximum, on its own line, in its own colour. Equal
-     * maxima would stack two strings on one baseline, so a label that lands
-     * on top of one already placed is pushed clear of it. */
-    ctx.textAlign = 'left';
-    const placed = [];
-    for (const c of curves) {
-      const deg = degAt(c, 1);
-      let y = yOf(deg);
-      while (placed.some((p) => Math.abs(p - y) < 12)) {
-        y += 12;
-      }
-      placed.push(y);
-      ctx.fillStyle = c.color;
-      ctx.fillText(`${Math.round(deg)}`, padL + gw + 6, y);
-    }
-
-    /* The live sticks, each on the curve it will actually fly. */
-    const dots = [
-      { s: stick.roll, curve: curveFor(curves, 'roll') },
-      { s: stick.pitch, curve: curveFor(curves, 'pitch') },
-      { s: stick.yaw, curve: curveFor(curves, 'yaw') },
-    ];
-    for (const d of dots) {
-      if (!Number.isFinite(d.s) || !d.curve) {
-        continue;
-      }
-      const s = Math.max(-1, Math.min(1, d.s));
-      ctx.fillStyle = AMBER;
-      ctx.beginPath();
-      ctx.arc(xOf(s), yOf(degAt(d.curve, s)), 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    const { ctx } = fit;
+    const fastest = Math.max(...curves.map((c) => rateAt(c, 1)), 100);
+    /* Rounded up to whole hundreds so the plot keeps its scale while a knob
+     * steps through a range. */
+    const plot = plotArea(fit.width, fit.height, Math.ceil(fastest / 100) * 100);
+    paintBackdrop(ctx, plot);
+    paintCurves(ctx, plot, curves);
+    paintScale(ctx, plot);
+    paintMaxima(ctx, plot, curves);
+    paintSticks(ctx, plot, curves, sticks);
   }
 
   /*
-   * Repaint from a rate profile. The caller hands the profile it wants
-   * DRAWN, which on the Rates screen is the pilot's own settings with any
-   * half-typed number laid over the top: the picture follows the keystroke,
-   * and the quad follows the commit.
+   * `rates` is the profile to show, which on the Rates screen may carry a
+   * number the pilot is still typing. `stick`, when given, replaces the live
+   * stick object. `airframe` picks the hover table's column and may be left
+   * out for the default aircraft.
    */
-  /* `airframe` is only for the hover readout, which is a measured table with
-   * one column per aircraft: hover lands at 32 percent of a whoop's stick and
-   * 26 of a five inch's, and further apart than that under a cap. Optional,
-   * defaulting to the five inch, which is what this panel meant when there
-   * was one aircraft. */
-  function paint(rates, next, airframe) {
-    const r = normaliseRates(rates || {});
-    curves = ratesCurves(r);
-    if (next) {
-      stick = next;
+  function paint(rates, stick, airframe) {
+    const profile = normaliseRates(rates || {});
+    curves = ratesCurves(profile);
+    if (stick) {
+      sticks = stick;
     }
-    const nextShape = curves.map((c) => c.id).join(',');
-    if (nextShape !== shape) {
-      shape = nextShape;
-      buildRows();
+    const ids = curves.map((c) => c.id).join(',');
+    if (ids !== keyIds) {
+      keyIds = ids;
+      key = buildKey(legend, readout, curves);
     }
-    for (const c of curves) {
-      const val = swatches.get(c.id);
-      if (val) {
-        val.textContent = str('ratespanel.deg_s', { v1: Math.round(degAt(c, 1)) });
-      }
+    curves.forEach((c, i) => {
+      key.maxima[i].textContent = str('ratespanel.deg_s', { v1: Math.round(rateAt(c, 1)) });
+    });
+    for (const row of key.rows) {
+      fillRow(row, curves);
     }
-    for (const cell of cells) {
-      /* A number the same as the one before it is not written twice: on the
-       * defaults every axis reads 670 and "670 / 670 / 670" is three copies
-       * of one fact. The separator hides with the number it precedes. */
-      let last = null;
-      cell.nums.forEach((n, i) => {
-        const deg = Math.round(degAt(curves[i], cell.stick));
-        const dup = last !== null && deg === last;
-        n.num.textContent = dup ? '' : String(deg);
-        n.num.hidden = dup;
-        if (n.sep) {
-          n.sep.hidden = dup;
-        }
-        last = deg;
-      });
-    }
-    if (hoverDd) {
-      hoverDd.textContent = str('ratespanel.stick', { v1: hoverStickPercent(r.throttleCap, airframe).toFixed(1) });
-    }
-    canvas.setAttribute('aria-label', describe(curves));
+    key.hover.textContent = str('ratespanel.stick', {
+      v1: hoverStickPercent(profile.throttleCap, airframe).toFixed(1),
+    });
+    canvas.setAttribute('aria-label', spokenSummary(curves));
     draw();
   }
 
-  /* Called from the frame loop, and only while this screen is up: the caller
-   * owns that check. Redraws the curve, nothing else, because rebuilding the
-   * readout sixty times a second to write the same string is work the pilot
-   * cannot see. */
-  function paintStick(next) {
-    if (next) {
-      stick = next;
+  /* The frame loop's entry, called only while the Rates screen shows. It
+   * moves the dots and leaves the text alone, since the text cannot have
+   * changed between two frames. */
+  function paintStick(stick) {
+    if (stick) {
+      sticks = stick;
     }
     draw();
   }

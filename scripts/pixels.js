@@ -1,231 +1,243 @@
 /*
- * pixels.js: measure patches of a captured frame.
+ * pixels.js: measures patches of a captured frame, so a claim like "the gate
+ * ring is the same value as the grass behind it" is a number, not a look.
+ * Decodes the PNG with node's zlib and prints the mean colour and relative
+ * luminance of named rectangles, plus two edge measurements (walk, stair).
+ * Luminance is Rec. 709 on linearised sRGB, the quantity a bloom high-pass
+ * thresholds on, so the numbers compare directly with the bloom threshold in
+ * src/render/post.js. Nothing imports this; src/main.js points at it.
  *
- * Value band arguments cannot be settled by looking. "The gate ring is the
- * same value as the grass behind it" is a number, and a reviewer produced
- * that number before this project could. This decodes a PNG with zlib and
- * prints the mean colour and relative luminance of named rectangles, so a
- * claim about the frame can be checked rather than asserted.
- *
- * Usage:
  *   node scripts/pixels.js FRAME.png name=x,y,w,h [name=x,y,w,h ...]
+ *   node scripts/pixels.js FRAME.png name=walk:x,y,dx,dy,n
+ *   node scripts/pixels.js FRAME.png name=stair:x,y,w,rows,level
  *
- * Luminance is Rec. 709 on linearised sRGB, the same quantity a bloom
- * high pass filter thresholds on, so the numbers here are comparable with
- * the bloom threshold in src/render/post.js.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
-import { inflateSync } from 'node:zlib';
+import fs from 'node:fs';
+import zlib from 'node:zlib';
 
-/* Minimal decoder: 8 bit RGB or RGBA, no interlace, which is what
- * Chromium's Page.captureScreenshot produces. */
-function decodePng(buf) {
-  if (buf.readUInt32BE(0) !== 0x89504e47) {
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
+const CHANNELS = { 2: 3, 6: 4 };
+
+function paeth(a, b, c) {
+  const pa = Math.abs(b - c);
+  const pb = Math.abs(a - c);
+  const pc = Math.abs(a + b - 2 * c);
+  if (pa <= pb && pa <= pc) {
+    return a;
+  }
+  return pb <= pc ? b : c;
+}
+
+/* Indexed by filter type: the predictor from left (a), above (b), above-left (c). */
+const PREDICT = [
+  () => 0,
+  (a) => a,
+  (a, b) => b,
+  (a, b) => Math.floor((a + b) / 2),
+  paeth,
+];
+
+/*
+ * Only 8 bit RGB or RGBA, non-interlaced: what Chromium's
+ * Page.captureScreenshot writes. Anything else fails loudly rather than
+ * producing plausible numbers from misread bytes.
+ */
+function decode(buf) {
+  if (!PNG_MAGIC.every((byte, i) => buf[i] === byte)) {
     throw new Error('not a PNG');
   }
-  let off = 8;
   let width = 0;
   let height = 0;
-  let colorType = 6;
-  let bitDepth = 8;
+  let depth = 8;
+  let colourType = 6;
   const idat = [];
-  while (off < buf.length) {
-    const len = buf.readUInt32BE(off);
-    const type = buf.toString('ascii', off + 4, off + 8);
-    const data = buf.subarray(off + 8, off + 8 + len);
+  let at = 8;
+  while (at + 8 <= buf.length) {
+    const length = buf.readUInt32BE(at);
+    const type = buf.toString('ascii', at + 4, at + 8);
+    const data = buf.subarray(at + 8, at + 8 + length);
+    at += 12 + length;
+    if (type === 'IEND') {
+      break;
+    }
+    if (type === 'IDAT') {
+      idat.push(data);
+    }
     if (type === 'IHDR') {
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
-      bitDepth = data[8];
-      colorType = data[9];
+      depth = data[8];
+      colourType = data[9];
       if (data[12] !== 0) {
         throw new Error('interlaced PNG not supported');
       }
-    } else if (type === 'IDAT') {
-      idat.push(data);
-    } else if (type === 'IEND') {
-      break;
     }
-    off += 12 + len;
   }
-  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
-    throw new Error(`unsupported PNG: depth ${bitDepth} colour type ${colorType}`);
+  const channels = CHANNELS[colourType];
+  if (depth !== 8 || !channels) {
+    throw new Error(`unsupported PNG: depth ${depth} colour type ${colourType}`);
   }
-  const channels = colorType === 6 ? 4 : 3;
-  const raw = inflateSync(Buffer.concat(idat));
+  const raw = zlib.inflateSync(Buffer.concat(idat));
   const stride = width * channels;
-  const out = Buffer.alloc(height * stride);
-  let p = 0;
-  for (let y = 0; y < height; y += 1) {
-    const filter = raw[p];
-    p += 1;
-    const line = raw.subarray(p, p + stride);
-    p += stride;
-    const cur = out.subarray(y * stride, (y + 1) * stride);
-    const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null;
-    for (let i = 0; i < stride; i += 1) {
-      const a = i >= channels ? cur[i - channels] : 0;
-      const b = prev ? prev[i] : 0;
-      const c = prev && i >= channels ? prev[i - channels] : 0;
-      const x = line[i];
-      let v;
-      if (filter === 0) {
-        v = x;
-      } else if (filter === 1) {
-        v = x + a;
-      } else if (filter === 2) {
-        v = x + b;
-      } else if (filter === 3) {
-        v = x + ((a + b) >> 1);
-      } else if (filter === 4) {
-        const pa = Math.abs(b - c);
-        const pb = Math.abs(a - c);
-        const pc = Math.abs(a + b - 2 * c);
-        const pred = pa <= pb && pa <= pc ? a : (pb <= pc ? b : c);
-        v = x + pred;
-      } else {
-        throw new Error(`bad PNG filter ${filter}`);
-      }
-      cur[i] = v & 0xff;
+  const pixels = new Uint8Array(stride * height);
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (stride + 1)];
+    const predict = PREDICT[filter];
+    if (!predict) {
+      throw new Error(`bad PNG filter ${filter}`);
+    }
+    const src = y * (stride + 1) + 1;
+    const row = y * stride;
+    for (let i = 0; i < stride; i++) {
+      const a = i >= channels ? pixels[row + i - channels] : 0;
+      const b = y > 0 ? pixels[row - stride + i] : 0;
+      const c = i >= channels && y > 0 ? pixels[row - stride + i - channels] : 0;
+      pixels[row + i] = (raw[src + i] + predict(a, b, c)) & 0xff;
     }
   }
-  return { width, height, channels, data: out };
+  return { width, height, channels, pixels };
 }
 
-function toLinear(u) {
+function linear(u) {
   const c = u / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 }
 
-const args = process.argv.slice(2);
-if (args.length < 2) {
-  console.error('usage: node scripts/pixels.js FRAME.png name=x,y,w,h [...]');
-  console.error('       node scripts/pixels.js FRAME.png name=walk:x,y,dx,dy,n');
-  process.exit(2);
+function rgbAt(img, x, y) {
+  const o = (y * img.width + x) * img.channels;
+  return [img.pixels[o], img.pixels[o + 1], img.pixels[o + 2]];
 }
-const img = decodePng(readFileSync(args[0]));
-console.log(`${args[0]} ${img.width} by ${img.height}`);
 
-function lumAt(x, y) {
-  const i = y * img.width * img.channels + x * img.channels;
-  return 0.2126 * toLinear(img.data[i])
-    + 0.7152 * toLinear(img.data[i + 1])
-    + 0.0722 * toLinear(img.data[i + 2]);
+function lumAt(img, x, y) {
+  const [r, g, b] = rgbAt(img, x, y);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+function inside(img, x, y) {
+  return x >= 0 && y >= 0 && x < img.width && y < img.height;
 }
 
 /*
- * walk: single pixel luminances along a line, which is how G4's "a
- * reviewer walking any edge must find a real coverage pixel" is settled.
- * An aliased edge steps from one value to the other in one pixel. An
- * antialiased one puts at least one intermediate value between them, and
- * the intermediate has to be a real blend rather than bloom bleed, so the
- * run is printed rather than summarised.
+ * Prints the run rather than a summary: an aliased edge steps in one pixel,
+ * an antialiased one has a real intermediate, and a reviewer walking any edge
+ * must be able to find that coverage pixel.
  */
-for (const spec of args.slice(1)) {
-  const [name, rect] = spec.split('=');
-  if (rect.startsWith('walk:')) {
-    const [x, y, dx, dy, n] = rect.slice(5).split(',').map(Number);
-    const vals = [];
-    for (let i = 0; i < n; i += 1) {
-      const xx = x + dx * i;
-      const yy = y + dy * i;
-      if (xx < 0 || yy < 0 || xx >= img.width || yy >= img.height) {
-        break;
-      }
-      vals.push(lumAt(xx, yy).toFixed(3));
+function walk(img, name, spec) {
+  const [x, y, dx, dy, n] = spec.split(',').map(Number);
+  const values = [];
+  for (let i = 0; i < n; i++) {
+    const px = x + dx * i;
+    const py = y + dy * i;
+    if (!inside(img, px, py)) {
+      break;
     }
-    console.log(`${name.padEnd(16)} walk ${x},${y} step ${dx},${dy}: ${vals.join(' ')}`);
-    continue;
+    values.push(lumAt(img, px, py).toFixed(3));
   }
-  /*
-   * stair: the sub pixel position, row by row, at which a near vertical
-   * edge crosses a luminance level, and the RMS of the second difference
-   * of that sequence.
-   *
-   * This is the measurement that distinguishes antialiasing from blur, and
-   * walking across an edge does not make it. A blur spreads the step over
-   * more pixels and leaves the edge sitting at the same integer column for
-   * several rows before jumping; coverage moves the crossing a fraction of
-   * a pixel per row. So the first difference is the edge's slope, which is
-   * whatever the geometry is, and the SECOND difference is the staircase.
-   * Low is smooth, high is stepped.
-   */
-  if (rect.startsWith('stair:')) {
-    const [x0, y0, w0, rows, level] = rect.slice(6).split(',').map(Number);
-    const at = [];
-    for (let ry = 0; ry < rows; ry += 1) {
-      const yy = y0 + ry;
-      if (yy >= img.height) {
-        break;
-      }
-      let found = null;
-      let prev = lumAt(x0, yy);
-      for (let i = 1; i < w0 && x0 + i < img.width; i += 1) {
-        const cur = lumAt(x0 + i, yy);
-        if ((prev - level) * (cur - level) <= 0 && prev !== cur) {
-          found = x0 + i - 1 + (level - prev) / (cur - prev);
-          break;
-        }
-        prev = cur;
-      }
-      at.push(found);
+  console.log(`${name.padEnd(16)} walk ${x},${y} step ${dx},${dy}: ${values.join(' ')}`);
+}
+
+/* Sub-pixel x where the row's luminance first crosses level, or null. */
+function crossing(img, x0, y, w0, level) {
+  let prev = lumAt(img, x0, y);
+  for (let i = 1; i < w0 && x0 + i < img.width; i++) {
+    const cur = lumAt(img, x0 + i, y);
+    if ((prev - level) * (cur - level) <= 0 && prev !== cur) {
+      return x0 + i - 1 + (level - prev) / (cur - prev);
     }
-    const good = at.filter((v) => v != null);
-    let sum = 0;
-    let n = 0;
-    let worst = 0;
-    for (let i = 1; i + 1 < at.length; i += 1) {
-      if (at[i - 1] == null || at[i] == null || at[i + 1] == null) {
-        continue;
-      }
-      const d2 = at[i + 1] - 2 * at[i] + at[i - 1];
-      sum += d2 * d2;
-      n += 1;
-      worst = Math.max(worst, Math.abs(d2));
-    }
-    console.log(
-      `${name.padEnd(16)} stair rows=${good.length}/${at.length} ` +
-      `secondDiffRMS ${n ? Math.sqrt(sum / n).toFixed(3) : 'n/a'} worst ${worst.toFixed(2)} px`,
-    );
-    console.log(`                 crossings: ${at.map((v) => (v == null ? '-' : v.toFixed(2))).join(' ')}`);
-    continue;
+    prev = cur;
   }
-  const [x, y, w, h] = rect.split(',').map(Number);
-  let r = 0;
-  let g = 0;
-  let b = 0;
+  return null;
+}
+
+/*
+ * The second difference of the crossing position separates antialiasing from
+ * blur. Blur leaves the edge on one integer column for several rows and then
+ * jumps; coverage moves it a fraction per row. The first difference is the
+ * slope, the second is the staircase: low is smooth, high is stepped.
+ */
+function stair(img, name, spec) {
+  const [x0, y0, w0, rows, level] = spec.split(',').map(Number);
+  const at = [];
+  for (let ry = 0; ry < rows && y0 + ry < img.height; ry++) {
+    at.push(crossing(img, x0, y0 + ry, w0, level));
+  }
+  const good = at.filter((v) => v !== null).length;
+  let sum = 0;
+  let count = 0;
+  let worst = 0;
+  for (let i = 1; i < at.length - 1; i++) {
+    if (at[i - 1] === null || at[i] === null || at[i + 1] === null) {
+      continue;
+    }
+    const d2 = at[i + 1] - 2 * at[i] + at[i - 1];
+    sum += d2 * d2;
+    count++;
+    worst = Math.max(worst, Math.abs(d2));
+  }
+  const rms = count > 0 ? Math.sqrt(sum / count).toFixed(3) : 'n/a';
+  console.log(`${name.padEnd(16)} stair rows=${good}/${at.length} secondDiffRMS ${rms} worst ${worst.toFixed(2)} px`);
+  const marks = at.map((v) => (v === null ? '-' : v.toFixed(2)));
+  console.log(`${' '.repeat(17)}crossings: ${marks.join(' ')}`);
+}
+
+function rect(img, name, spec) {
+  const [x, y, w, h] = spec.split(',').map(Number);
+  const sum = [0, 0, 0];
   let lum = 0;
   let n = 0;
-  for (let yy = y; yy < Math.min(y + h, img.height); yy += 1) {
-    for (let xx = x; xx < Math.min(x + w, img.width); xx += 1) {
-      const i = yy * img.width * img.channels + xx * img.channels;
-      r += img.data[i];
-      g += img.data[i + 1];
-      b += img.data[i + 2];
-      lum += 0.2126 * toLinear(img.data[i])
-        + 0.7152 * toLinear(img.data[i + 1])
-        + 0.0722 * toLinear(img.data[i + 2]);
-      n += 1;
+  for (let yy = y; yy < Math.min(y + h, img.height); yy++) {
+    for (let xx = x; xx < Math.min(x + w, img.width); xx++) {
+      const rgb = rgbAt(img, xx, yy);
+      sum[0] += rgb[0];
+      sum[1] += rgb[1];
+      sum[2] += rgb[2];
+      lum += lumAt(img, xx, yy);
+      n++;
     }
   }
-  console.log(
-    `${name.padEnd(16)} rgb ${(r / n).toFixed(0).padStart(3)} ${(g / n).toFixed(0).padStart(3)} ${(b / n).toFixed(0).padStart(3)}` +
-    `   linear luminance ${(lum / n).toFixed(3)}   ${n} pixels`,
-  );
+  const [r, g, b] = sum.map((s) => (s / n).toFixed(0).padStart(3));
+  console.log(`${name.padEnd(16)} rgb ${r} ${g} ${b}   linear luminance ${(lum / n).toFixed(3)}   ${n} pixels`);
 }
+
+const KINDS = { 'walk:': walk, 'stair:': stair };
+
+function measure(img, arg) {
+  const [name, spec] = arg.split('=');
+  const prefix = Object.keys(KINDS).find((p) => spec.startsWith(p));
+  if (prefix) {
+    KINDS[prefix](img, name, spec.slice(prefix.length));
+    return;
+  }
+  rect(img, name, spec);
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  if (args.length < 2) {
+    process.stderr.write('usage: node scripts/pixels.js FRAME.png name=x,y,w,h [...]\n');
+    process.stderr.write('       node scripts/pixels.js FRAME.png name=walk:x,y,dx,dy,n\n');
+    process.exit(2);
+  }
+  const img = decode(fs.readFileSync(args[0]));
+  console.log(`${args[0]} ${img.width} by ${img.height}`);
+  for (const arg of args.slice(1)) {
+    measure(img, arg);
+  }
+}
+
+main();
