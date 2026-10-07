@@ -46,7 +46,12 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { TRACKS, MENU_TRACKS, MUSIC_REF_LUFS, trackGain, trackUrl } from '../src/render/tracks.js';
+import * as tracks from '../src/render/tracks.js';
+import { MUSIC_REF_LUFS, trackGain, trackUrl } from '../src/render/tracks.js';
+/* The real crates are empty since the unlicensed records came out
+ * (NOTICE), so the bed is driven through the crates as they were; the
+ * empty crates get their own section at the end. */
+import { FLIGHT as TRACKS, MENU as MENU_TRACKS } from '../tests/fixtures/music-crates.js';
 
 /*
  * The two bus gains, restated. Not imported, because music.js does not
@@ -219,7 +224,7 @@ const settle = () => new Promise((r) => { setTimeout(r, 0); });
 
 const nodes = [];
 const ctx = new FakeCtx();
-const m = new Music();
+const m = new Music({ menu: MENU_TRACKS, flight: TRACKS });
 m.setEnabled(true);
 m.setLevel(0.5);
 m.attach(ctx, new FakeNode('dest'), (n) => {
@@ -388,6 +393,46 @@ check('with music off the context changes immediately, without waiting on a tick
 m.setEnabled(true);
 check('and the bus comes back on the right bed',
   Math.abs(m.gain.gain.value - 0.5 * MUSIC_BUS) < 1e-9, `${m.gain.gain.value}`);
+
+console.log('\nthe real crates, which are empty');
+/*
+ * Until licensed records are in tracks.js the game ships no music. The bed
+ * must then be silence and nothing else: no element pointed at a file, no
+ * fetch, no play, no warm, a dock with nothing to name, and every control
+ * that walks a crate a no op rather than a throw.
+ */
+check('the flight and menu crates are empty', tracks.TRACKS.length === 0 && tracks.MENU_TRACKS.length === 0,
+  `${tracks.TRACKS.length} and ${tracks.MENU_TRACKS.length}`);
+check('the Music track setting offers only rotation', JSON.stringify(tracks.musicIds()) === '["rotation"]',
+  JSON.stringify(tracks.musicIds()));
+check('a removed record is no record, not another one', tracks.trackById('tarmac-pulse') === null);
+{
+  const before = FakeAudio.made.length;
+  const quiet = new Music();
+  quiet.setEnabled(true);
+  quiet.setLevel(0.5);
+  quiet.attach(new FakeCtx(), new FakeNode('dest'), (n) => n);
+  const qel = quiet.el;
+  await settle();
+  check('the element is pointed at nothing', !qel.src, String(qel.src));
+  check('and is not playing', qel.paused === true);
+  check('status names nothing', quiet.status().id === '' && quiet.status().name === '');
+  quiet.skip(1);
+  quiet.skip(-1);
+  qel.fire('ended');
+  qel.fire('error');
+  check('skips, an end and an error change nothing', !qel.src && qel.paused === true, String(qel.src));
+  quiet.setTrack('tarmac-pulse');
+  check('a stored id of a removed record falls back to rotation', quiet.selection === 'rotation', quiet.selection);
+  quiet.setContext('flight');
+  ctx.currentTime += 0.4;
+  quiet.tick(ctx.currentTime);
+  check('flight is silent too', quiet.context === 'flight' && !qel.src && qel.paused === true, String(qel.src));
+  qel.paused = false;
+  quiet.tick(ctx.currentTime);
+  check('nothing is ever warmed', quiet.warmId === '' && FakeAudio.made.length === before + 1,
+    `${quiet.warmId || 'nothing'}, ${FakeAudio.made.length - before} elements`);
+}
 
 console.log(fails.length ? `\n${fails.length} failed` : '\nall passed');
 for (const f of fails) {

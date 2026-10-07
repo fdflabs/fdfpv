@@ -52,7 +52,8 @@ function integratedLufs(file) {
 }
 
 const check = process.argv.includes('--check');
-const ids = readdirSync(crate).filter((f) => f.endsWith('.webm')).map((f) => f.slice(0, -5)).sort();
+/* No directory is no records: the crate has been empty since 2026-10-06. */
+const ids = (existsSync(crate) ? readdirSync(crate) : []).filter((f) => f.endsWith('.webm')).map((f) => f.slice(0, -5)).sort();
 const measured = new Map(ids.map((id) => [id, integratedLufs(join(crate, `${id}.webm`))]));
 
 if (!check) {

@@ -2,32 +2,32 @@
  "byId": [
   [
    "prop-wash",
-   "prop-wash",
+   null,
    true
   ],
   [
    "neon-gate",
-   "tarmac-pulse",
+   null,
    true
   ],
   [
    "nope",
-   "tarmac-pulse",
+   null,
    true
   ],
   [
    "",
-   "tarmac-pulse",
+   null,
    true
   ],
   [
    "undefined",
-   "tarmac-pulse",
+   null,
    true
   ],
   [
    "tarmac-pulse",
-   "tarmac-pulse",
+   null,
    true
   ]
  ],
@@ -36,90 +36,8 @@
   "MUSIC_REF_LUFS": -17.2
  },
  "crates": {
-  "TRACKS": [
-   {
-    "id": "tarmac-pulse",
-    "name": "Tarmac Pulse",
-    "lufs": -13
-   },
-   {
-    "id": "neon-horizon",
-    "name": "Neon Horizon",
-    "lufs": -17.2
-   },
-   {
-    "id": "pace-shift-skyline",
-    "name": "Pace Shift Skyline",
-    "lufs": -13.5
-   },
-   {
-    "id": "fractal-current",
-    "name": "Fractal Current",
-    "lufs": -16.5
-   },
-   {
-    "id": "subway-rattle",
-    "name": "Subway Rattle",
-    "lufs": -14.4
-   },
-   {
-    "id": "shroom-spiral",
-    "name": "Shroom Spiral",
-    "lufs": -14
-   },
-   {
-    "id": "barnstorm-break",
-    "name": "Barnstorm Break",
-    "lufs": -15.6
-   },
-   {
-    "id": "bluegrass-circuit",
-    "name": "Bluegrass Circuit",
-    "lufs": -14
-   },
-   {
-    "id": "celtic-riser",
-    "name": "Celtic Riser",
-    "lufs": -13.3
-   },
-   {
-    "id": "driving-tension",
-    "name": "Driving Tension",
-    "lufs": -14.3
-   },
-   {
-    "id": "gritty-breakbeats",
-    "name": "Gritty Breakbeats",
-    "lufs": -13.5
-   },
-   {
-    "id": "hypnotic-acid-loop",
-    "name": "Hypnotic Acid Loop",
-    "lufs": -13.4
-   },
-   {
-    "id": "prop-wash",
-    "name": "Prop Wash",
-    "lufs": -13.8
-   },
-   {
-    "id": "ground-effect",
-    "name": "Ground Effect",
-    "lufs": -13.7
-   }
-  ],
-  "MENU_TRACKS": [
-   {
-    "id": "neon-gate",
-    "name": "Neon Gate",
-    "lufs": -14.2
-   },
-   {
-    "id": "neon-gate-take-2",
-    "name": "Neon Gate Take 2",
-    "lufs": -13.6
-   }
-  ]
+  "TRACKS": [],
+  "MENU_TRACKS": []
  },
  "exports": [
   "MENU_TRACKS",
@@ -127,211 +45,17 @@
   "MUSIC_REV",
   "TRACKS",
   "musicIds",
-  "pickMenuTrack",
-  "pickTrack",
   "trackById",
   "trackGain",
   "trackUrl"
  ],
  "gains": [
-  0.6165950018614822,
-  1,
-  0.6531305526474724,
-  0.9225714271547633,
-  0.7244359600749901,
-  0.6918309709189365,
-  0.8317637711026711,
-  0.6918309709189365,
-  0.6382634861905488,
-  0.7161434102129022,
-  0.6531305526474724,
-  0.6456542290346556,
-  0.6760829753919819,
-  0.6683439175686147,
-  0.7079457843841379,
-  0.660693448007596,
   1,
   1,
   0.1380384264602885
  ],
  "ids": [
-  "rotation",
-  "tarmac-pulse",
-  "neon-horizon",
-  "pace-shift-skyline",
-  "fractal-current",
-  "subway-rattle",
-  "shroom-spiral",
-  "barnstorm-break",
-  "bluegrass-circuit",
-  "celtic-riser",
-  "driving-tension",
-  "gritty-breakbeats",
-  "hypnotic-acid-loop",
-  "prop-wash",
-  "ground-effect"
- ],
- "picks": [
-  [
-   "celtic-riser",
-   "neon-gate"
-  ],
-  [
-   "hypnotic-acid-loop",
-   "neon-gate"
-  ],
-  [
-   "neon-horizon",
-   "neon-gate-take-2"
-  ],
-  [
-   "subway-rattle",
-   "neon-gate-take-2"
-  ],
-  [
-   "bluegrass-circuit",
-   "neon-gate"
-  ],
-  [
-   "hypnotic-acid-loop",
-   "neon-gate"
-  ],
-  [
-   "tarmac-pulse",
-   "neon-gate-take-2"
-  ],
-  [
-   "fractal-current",
-   "neon-gate-take-2"
-  ],
-  [
-   "bluegrass-circuit",
-   "neon-gate"
-  ],
-  [
-   "gritty-breakbeats",
-   "neon-gate"
-  ],
-  [
-   "ground-effect",
-   "neon-gate-take-2"
-  ],
-  [
-   "fractal-current",
-   "neon-gate-take-2"
-  ],
-  [
-   "barnstorm-break",
-   "neon-gate"
-  ],
-  [
-   "driving-tension",
-   "neon-gate"
-  ],
-  [
-   "prop-wash",
-   "neon-gate-take-2"
-  ],
-  [
-   "pace-shift-skyline",
-   "neon-gate-take-2"
-  ],
-  [
-   "shroom-spiral",
-   "neon-gate"
-  ],
-  [
-   "celtic-riser",
-   "neon-gate"
-  ],
-  [
-   "prop-wash",
-   "neon-gate"
-  ],
-  [
-   "neon-horizon",
-   "neon-gate-take-2"
-  ],
-  [
-   "subway-rattle",
-   "neon-gate-take-2"
-  ],
-  [
-   "celtic-riser",
-   "neon-gate"
-  ],
-  [
-   "hypnotic-acid-loop",
-   "neon-gate"
-  ],
-  [
-   "tarmac-pulse",
-   "neon-gate-take-2"
-  ],
-  [
-   "fractal-current",
-   "neon-gate-take-2"
-  ],
-  [
-   "bluegrass-circuit",
-   "neon-gate"
-  ],
-  [
-   "gritty-breakbeats",
-   "neon-gate"
-  ],
-  [
-   "ground-effect",
-   "neon-gate-take-2"
-  ],
-  [
-   "fractal-current",
-   "neon-gate-take-2"
-  ],
-  [
-   "barnstorm-break",
-   "neon-gate"
-  ],
-  [
-   "driving-tension",
-   "neon-gate"
-  ],
-  [
-   "ground-effect",
-   "neon-gate-take-2"
-  ],
-  [
-   "pace-shift-skyline",
-   "neon-gate-take-2"
-  ],
-  [
-   "shroom-spiral",
-   "neon-gate"
-  ],
-  [
-   "driving-tension",
-   "neon-gate"
-  ],
-  [
-   "prop-wash",
-   "neon-gate"
-  ],
-  [
-   "neon-horizon",
-   "neon-gate-take-2"
-  ],
-  [
-   "subway-rattle",
-   "neon-gate-take-2"
-  ],
-  [
-   "celtic-riser",
-   "neon-gate"
-  ],
-  [
-   "hypnotic-acid-loop",
-   "neon-gate"
-  ]
+  "rotation"
  ],
  "urls": [
   [
