@@ -2,18 +2,27 @@
  * wear.js: owned packs and worn parts, career and war only
  * (docs/PARTS-WEAR.md is the contract; this file is its data and rules).
  *
- * Two synced sections, both keyed (src/share/progressmerge.js):
+ * The packs are a synced section of their own, keyed by pack id
+ * (src/share/progressmerge.js):
  *
  *   settings.packs[packId] = { v, spec, cycles, health, charge, from }
- *   settings.wear[airframeId] = { v, motor, prop, parts, flights }
  *
- * `parts` is the structure, by the crash part table's index (the one
- * settings.parts' damage uses): { [i]: health }, a part missing is new.
+ * health an integer per mille, 1000 new. The parts' wear rides the
+ * airframe's parts entry, beside its crash damage (lead decision
+ * 2026-10-07, the training lane's shape, docs/PARTS-WEAR.md):
  *
- * Health is an integer per mille, 1000 new. Wear reaches the flight only
- * through the blocks the shell already seats, configs/power.js powerBlock
- * for a plane and configs/motors.js's two for a quad, scaled here once at
- * the seat and never during a flight. The replay journal copies those
+ *   settings.parts[airframeId].wear = { v: 1, parts: { [i]: w } }
+ *
+ * i the crash part table's index (the one the saved damage uses) and w how
+ * worn, above 0 (a new part is left out) to 1 spent, in steps of 0.001.
+ * Accrual works in whole per mille and stores w = (1000 - health) / 1000,
+ * so a record always reads back to the same integers.
+ *
+ * Wear reaches the flight only through the blocks the shell already seats,
+ * configs/power.js powerBlock for a plane and configs/motors.js's two for
+ * a quad, scaled here once at the seat and never during a flight, from the
+ * worst worn motor and prop (which parts those are is the module's part
+ * table, `kinds`, SIM_PART ids by index). The replay journal copies those
  * blocks, so a recorded flight replays identically on the wear it was
  * flown with. Every scale is + - * / of small integers: the block is the
  * same double in Node and every browser.
@@ -42,6 +51,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { PART_KINDS, PART_STATE_DOUBLES, STATE } from './parts.js';
 import { POWER, powerBlock, powerOption, SIM_POWER } from './power.js';
 import {
   MOTORS, SIM_MOTORS, SIM_PROP_PACK, hasMotors, motorsDoubles, packOption, propPackDoubles,
@@ -55,7 +65,6 @@ export const RETIRED_BELOW = 600;
 export const CHARGER_CHANNELS = 2;
 /* Packs granted with a realism airframe, once, until the economy lands. */
 export const STARTER_PACKS = 2;
-export const PARTS = ['motor', 'prop'];
 /* sim_parts_count's ceiling, configs/parts.js PARTS_MAX. */
 const PART_INDEX_MAX = 24;
 const CHARGES = ['full', 'storage', 'flat'];
@@ -76,7 +85,7 @@ const FLOOR_CELL_V = 3.3;
 
 const PACK_ID_RE = /^[a-z0-9_-]{1,48}$/;
 const isInt = (n, lo, hi) => Number.isInteger(n) && n >= lo && n <= hi;
-const health = (n) => (isInt(n, 0, NEW) ? n : NEW);
+const packHealth = (n) => (isInt(n, 0, NEW) ? n : NEW);
 
 /* Whether a flight wears anything: a campaign mission or a war room. */
 export function realismFlight({ mission = false, war = false } = {}) {
@@ -116,7 +125,7 @@ function normalisePack(e) {
     v: WEAR_VERSION,
     spec: e.spec,
     cycles: isInt(e.cycles, 0, 100000) ? e.cycles : 0,
-    health: health(e.health),
+    health: packHealth(e.health),
     charge: CHARGES.includes(e.charge) ? e.charge : 'full',
     from: typeof e.from === 'string' && e.from.length <= 40 ? e.from : null,
   };
@@ -136,52 +145,54 @@ export function normalisePacks(stored) {
   return out;
 }
 
-function normaliseStructure(parts) {
-  const out = {};
-  if (!parts || typeof parts !== 'object' || Array.isArray(parts)) {
-    return out;
+const STEP = 1000;
+const healthOf = (w) => NEW - Math.round(w * STEP);
+const wornBy = (h) => (NEW - h) / STEP;
+
+/* A stored wear record, valid, or null for nothing worn. */
+export function normaliseWearRecord(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r) || !r.parts || typeof r.parts !== 'object' || Array.isArray(r.parts)) {
+    return null;
   }
-  for (const [k, n] of Object.entries(parts)) {
+  const parts = {};
+  for (const [k, w] of Object.entries(r.parts)) {
     const i = Number(k);
-    if (String(i) === k && isInt(i, 0, PART_INDEX_MAX - 1) && isInt(n, 0, NEW - 1)) {
-      out[k] = n;
+    if (String(i) === k && isInt(i, 0, PART_INDEX_MAX - 1) && typeof w === 'number' && w > 0 && w <= 1) {
+      const h = healthOf(w);
+      if (h < NEW) {
+        parts[k] = wornBy(h);
+      }
     }
   }
-  return out;
+  return Object.keys(parts).length ? { v: WEAR_VERSION, parts } : null;
 }
 
-function normaliseEntry(e) {
-  const ok = e && typeof e === 'object' && !Array.isArray(e);
-  return {
-    v: WEAR_VERSION,
-    motor: health(ok ? e.motor : NEW),
-    prop: health(ok ? e.prop : NEW),
-    parts: normaliseStructure(ok ? e.parts : null),
-    flights: ok && isInt(e.flights, 0, 1000000) ? e.flights : 0,
-  };
+/* An airframe's wear record, empty where nothing is stored. */
+export function wearRecordOf(settings, airframeId) {
+  const e = settings && settings.parts ? settings.parts[airframeId] : null;
+  return normaliseWearRecord(e && e.wear) ?? { v: WEAR_VERSION, parts: {} };
 }
 
-/* How worn, 0 new to 1 spent: the training lane's bands read this. */
-export function wearLevel(n) {
-  return (NEW - n) / NEW;
+/* Which part an index is, for wear: 'motor', 'prop' or 'structure'. */
+export function partClass(kindId) {
+  const k = PART_KINDS[kindId];
+  return k === 'motor' || k === 'prop' ? k : 'structure';
 }
 
-export function normaliseWear(stored) {
-  const out = {};
-  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+/* The worst motor's and prop's health, per mille, that the seat flies on.
+ * `kinds` null (no part table) is new. */
+export function propulsionHealth(record, kinds) {
+  const out = { motor: NEW, prop: NEW };
+  if (!kinds) {
     return out;
   }
-  for (const [id, e] of Object.entries(stored)) {
-    if (POWER[id] || hasMotors(id)) {
-      out[id] = normaliseEntry(e);
+  for (const [k, w] of Object.entries(record.parts)) {
+    const c = partClass(kinds[Number(k)]);
+    if (c !== 'structure') {
+      out[c] = Math.min(out[c], healthOf(w));
     }
   }
   return out;
-}
-
-/* One airframe's parts, new where nothing is stored. */
-export function wearOf(settings, airframeId) {
-  return normaliseEntry(settings && settings.wear ? settings.wear[airframeId] : null);
 }
 
 /* ------------------------------------------------------------------ */
@@ -236,16 +247,51 @@ export function wornQuadBlocks(airframeId, choice, motors, propPack, wear, pack 
 /* ------------------------------------------------------------------ */
 /* Packs on the shelf. */
 
-/* The starter packs for a realism airframe, once: ids from the airframe
- * so two computers granting them grant the same keys. */
+/* The starter packs, until the economy sells them: two of each spec an
+ * airframe is flown on in career or war, once. Their ids come from the
+ * airframe and the spec, so two computers granting them grant the same
+ * keys, and a pack retired or sold is never granted again. */
 export function seedPacks(packs, airframeId, packId) {
   const spec = packSpec(airframeId, packId);
   const out = { ...packs };
-  if (!spec || Object.values(packs).some((p) => p.from === airframeId)) {
+  if (!spec || out[`${airframeId}-${spec}-1`]) {
     return out;
   }
   for (let i = 1; i <= STARTER_PACKS; i += 1) {
-    out[`${airframeId}-${i}`] = { v: WEAR_VERSION, spec, cycles: 0, health: NEW, charge: 'full', from: airframeId };
+    out[`${airframeId}-${spec}-${i}`] = { v: WEAR_VERSION, spec, cycles: 0, health: NEW, charge: 'full', from: airframeId };
+  }
+  return out;
+}
+
+/*
+ * A realism sortie's start: the starter packs granted, one charger
+ * turnaround, and the pack to fly. Returns the packs to store, the id
+ * flown (null when none of the spec is charged, which with as many
+ * channels as starter packs cannot happen) and the airframe's wear record.
+ */
+export function startSortie(settings, airframeId, choice) {
+  let packs = seedPacks(normalisePacks(settings.packs), airframeId, choice.pack);
+  packs = turnaround(packs);
+  const packId = pickPack(packs, packSpec(airframeId, choice.pack));
+  return { packs, packId, record: wearRecordOf(settings, airframeId) };
+}
+
+/*
+ * What a flight's crash parts say was hit, for accrue: from the plant's
+ * parts state (sim_parts_state, PART_STATE_DOUBLES a part), every part
+ * past the root with damage on it, once, by index, with the energy it
+ * took.
+ */
+export function impactsFrom(parts, count) {
+  const out = [];
+  if (!parts) {
+    return out;
+  }
+  for (let i = 1; i < count; i += 1) {
+    const o = i * PART_STATE_DOUBLES;
+    if (parts[o + STATE.damage] > 0) {
+      out.push({ i, energyJ: parts[o + STATE.energy] });
+    }
   }
   return out;
 }
@@ -277,49 +323,52 @@ export function turnaround(packs, to = 'full') {
 /* Accrual, after a realism flight. Pure: the same state and flight give
  * the same answer on any machine.
  *
- * flight = { airframe, packId, drawnC, capacityC, minCellV, lvcV,
- *            fullThrottleS, impacts: [{ kind: 'prop'|'motor'|'structure', i, energyJ }] }
+ * flight = { airframe, kinds, packId, drawnC, capacityC, minCellV, lvcV,
+ *            fullThrottleS, impacts: [{ i, energyJ }] }
  *
- * `i` is the crash part table's index, for a structure hit.
+ * `kinds` is the part table's SIM_PART ids by index: every motor heats by
+ * the time at full throttle, and a hit part wears by what it is.
  *
- * Returns { packs, wear, delta }, delta as docs/PARTS-WEAR.md's shared
- * shape, the debrief's only input. */
+ * Returns { packs, record, delta }, delta as docs/PARTS-WEAR.md's shared
+ * shape, the debrief's only input: parts as { i, part, before, after,
+ * cause }, before and after as w. */
 
 const down = (n, loss) => Math.max(0, n - Math.max(0, Math.round(loss)));
 
-export function accrue(packs, wear, flight) {
-  const id = flight.airframe;
-  const was = normaliseEntry(wear[id]);
-  const now = { ...was, flights: was.flights + 1 };
+export function accrue(packs, record, flight) {
+  const kinds = flight.kinds || [];
+  const health = {};
+  for (const [k, w] of Object.entries(record.parts)) {
+    health[k] = healthOf(w);
+  }
   const parts = [];
-  const note = (part, before, after, cause, i = null) => {
+  const wear = (i, loss, cause) => {
+    const before = health[i] ?? NEW;
+    const after = down(before, loss);
     if (after !== before) {
-      parts.push(i === null ? { part, before, after, cause } : { part, i, before, after, cause });
+      parts.push({ i, part: partClass(kinds[i]), before: wornBy(before), after: wornBy(after), cause });
+      health[i] = after;
     }
   };
-  let motor = down(now.motor, (flight.fullThrottleS || 0) / 60 * MOTOR_PER_FULL_MIN);
-  note('motor', now.motor, motor, 'heat');
-  let prop = now.prop;
-  const structure = { ...now.parts };
+  const heat = (flight.fullThrottleS || 0) / 60 * MOTOR_PER_FULL_MIN;
+  kinds.forEach((kind, i) => {
+    if (i > 0 && partClass(kind) === 'motor') {
+      wear(i, heat, 'heat');
+    }
+  });
   for (const hit of flight.impacts || []) {
-    if (hit.kind === 'prop') {
-      const after = down(prop, IMPACT.prop);
-      note('prop', prop, after, 'impact');
-      prop = after;
-    } else if (hit.kind === 'motor') {
-      const after = down(motor, IMPACT.motor);
-      note('motor', motor, after, 'impact');
-      motor = after;
-    } else if (hit.kind === 'structure' && isInt(hit.i, 0, PART_INDEX_MAX - 1)) {
-      const before = structure[hit.i] ?? NEW;
-      const after = down(before, Math.min(STRUCTURE_IMPACT_MAX, (hit.energyJ || 0) * STRUCTURE_PER_J));
-      note('structure', before, after, 'impact', hit.i);
-      if (after < NEW) {
-        structure[hit.i] = after;
-      }
+    if (!isInt(hit.i, 1, PART_INDEX_MAX - 1)) {
+      continue;
+    }
+    const c = partClass(kinds[hit.i]);
+    wear(hit.i, c === 'structure' ? Math.min(STRUCTURE_IMPACT_MAX, (hit.energyJ || 0) * STRUCTURE_PER_J) : IMPACT[c], 'impact');
+  }
+  const stored = {};
+  for (const k of Object.keys(health).map(Number).sort((a, b) => a - b)) {
+    if (health[k] < NEW) {
+      stored[k] = wornBy(health[k]);
     }
   }
-  Object.assign(now, { motor, prop, parts: structure });
 
   const outPacks = {};
   for (const [k, p] of Object.entries(packs)) {
@@ -329,40 +378,41 @@ export function accrue(packs, wear, flight) {
   const retired = [];
   const flown = flight.packId ? packs[flight.packId] : null;
   if (flown) {
-    const dod = flight.capacityC > 0 ? Math.min(1.5, flight.drawnC / flight.capacityC) : 0;
+    /* A plant that does not drain its pack (a quad's) is taken to fly
+     * it down, one full cycle. */
+    const dod = flight.capacityC > 0 ? Math.min(1.5, flight.drawnC / flight.capacityC) : 1;
     const floor = flight.lvcV > 0 ? flight.lvcV : FLOOR_CELL_V;
     const over = flight.minCellV > 0 && flight.minCellV < floor;
     const after = down(flown.health, dod * PACK_PER_CYCLE + (over ? PACK_OVERDISCHARGE : 0));
     const next = { ...flown, health: after, cycles: flown.cycles + 1, charge: 'flat' };
     outPacks[flight.packId] = next;
-    pack = { id: flight.packId, spec: flown.spec, before: flown.health, after, cycles: next.cycles, charge: 'flat' };
-    if (over) {
-      parts.push({ part: 'pack', before: flown.health, after, cause: 'overdischarge' });
-    }
+    pack = { id: flight.packId, spec: flown.spec, before: flown.health, after, cycles: next.cycles, charge: 'flat', overdischarged: over };
     if (flown.health >= RETIRED_BELOW && after < RETIRED_BELOW) {
       retired.push(flight.packId);
     }
   }
-  return { packs: outPacks, wear: { ...wear, [id]: now }, delta: { airframe: id, pack, parts, retired } };
+  return {
+    packs: outPacks,
+    record: { v: WEAR_VERSION, parts: stored },
+    delta: { airframe: flight.airframe, pack, parts, retired },
+  };
 }
 
 /* ------------------------------------------------------------------ */
 /* Repair, and what the hangar room's furniture reads. */
 
-/* An airframe's worn parts back to new (free until the economy prices
- * it): `part` 'motor', 'prop' or 'structure' (every structural part), or
- * null for all of them. */
-export function repair(wear, airframeId, part = null) {
-  const now = { ...normaliseEntry(wear[airframeId]) };
-  for (const k of PARTS) {
-    if (!part || part === k) {
-      now[k] = NEW;
+/* A worn part back to new, by index, or every part for null (free until
+ * the economy prices it). */
+export function repair(record, i = null) {
+  const parts = {};
+  if (i !== null) {
+    for (const [k, w] of Object.entries(record.parts)) {
+      if (Number(k) !== i) {
+        parts[k] = w;
+      }
     }
   }
-  if (!part || part === 'structure') {
-    now.parts = {};
-  }
-  return { ...wear, [airframeId]: now };
+  return { v: WEAR_VERSION, parts };
 }
 
 export function packShelf(settings) {
@@ -376,11 +426,10 @@ export function chargerState(settings) {
   return { channels: CHARGER_CHANNELS, next: flat.slice(0, CHARGER_CHANNELS), waiting: flat.slice(CHARGER_CHANNELS) };
 }
 
-export function benchState(settings, airframeId) {
-  const w = wearOf(settings, airframeId);
-  const parts = PARTS.map((part) => ({ part, health: w[part], worn: w[part] < NEW }));
-  for (const i of Object.keys(w.parts).map(Number).sort((a, b) => a - b)) {
-    parts.push({ part: 'structure', i, health: w.parts[i], worn: true });
-  }
-  return { flights: w.flights, parts };
+/* The bench: each worn part by index, its w, and what it is where the
+ * part table is known. */
+export function benchState(settings, airframeId, kinds = null) {
+  const r = wearRecordOf(settings, airframeId);
+  return Object.keys(r.parts).map(Number).sort((a, b) => a - b)
+    .map((i) => ({ i, w: r.parts[i], part: kinds ? partClass(kinds[i]) : null }));
 }
