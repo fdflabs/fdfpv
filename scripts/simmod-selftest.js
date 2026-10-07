@@ -29,7 +29,9 @@
  * only its memory (the first missing name is the message), one exporting
  * every function but no memory, and one that counts the _initialize call.
  * The digest below was taken on the module before its rewrite
- * (scripts/lib/transcript.js).
+ * (scripts/lib/transcript.js). Layer 2 is also a pin on the dist/sim.wasm
+ * in the tree: a PR that rebuilds the module re-pins it, with --dump here
+ * and at the old revision and the two diffed, as collide:golden is.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
