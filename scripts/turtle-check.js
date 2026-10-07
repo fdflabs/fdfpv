@@ -308,7 +308,16 @@ try {
     window.__spawnZ = s.worldZ;
     return true;
   })()`);
+  /* Every assertion here reads the shell's state, none reads a pixel, and
+   * on a CI runner a software rasterised frame of the valley took long
+   * enough that 15 frames did not fit in a minute. The draw is skipped
+   * (the harness hook the town's perf checks use); the loop, the plant
+   * and the turtle run exactly as they do with it. */
+  await page.evaluate('window.__drawOff(true)');
   await page.evaluate(RECORDER);
+  const f0 = await page.evaluate('window.__turtleFrames');
+  await page.sleep(2000);
+  console.log(`frame rate with the draw off: ${((await page.evaluate('window.__turtleFrames') - f0) / 2).toFixed(1)} fps`);
   await scripted(page);
   await arrows(page);
   await fallsOnItsBack(page);
