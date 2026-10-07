@@ -7633,8 +7633,202 @@
  },
  {
   "name": "someone else holds the id: a fork",
-  "threw": {
-   "engineError": "TypeError"
+  "returned": {
+   "posted": {
+    "id": "trk-40fd0e00",
+    "name": "Taken",
+    "editKey": "ek-fork"
+   },
+   "doc": {
+    "schemaVersion": 4,
+    "id": "trk-40fd0e00",
+    "name": "Taken",
+    "createdUtc": "<time>",
+    "modifiedUtc": "<time>",
+    "trackClass": "full",
+    "map": "swiss2",
+    "field": {
+     "width": 60,
+     "depth": 40,
+     "gridSize": 1
+    },
+    "settings": {
+     "tangentScale": 1.1,
+     "minCurveRadius": 2.5,
+     "samplesPerSegment": 48
+    },
+    "branding": {
+     "logos": []
+    },
+    "credit": null,
+    "elements": [
+     {
+      "id": "el-1",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-2",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 5,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-3",
+      "type": "waypoint",
+      "name": "",
+      "position": {
+       "x": 10,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "height": 1.6,
+       "poleRadius": 0.02,
+       "clearance": 0
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-4",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 15,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-5",
+      "type": "groundLogo",
+      "name": "",
+      "position": {
+       "x": 1,
+       "y": 1,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "width": 10,
+       "depth": 4
+      },
+      "logoId": "",
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     }
+    ],
+    "sequence": [
+     {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     },
+     {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     },
+     {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": null,
+      "entry": null,
+      "passSide": "left",
+      "clearance": 0,
+      "overridden": false
+     },
+     {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     }
+    ]
+   },
+   "forked": true
   },
   "requests": [
    {
@@ -7832,14 +8026,217 @@
       ]
      }
     }
+   },
+   {
+    "method": "POST",
+    "url": "https://board.example/api/tracks",
+    "body": {
+     "author": "Ada",
+     "document": {
+      "schemaVersion": 4,
+      "id": "trk-40fd0e00",
+      "name": "Taken",
+      "createdUtc": "<time>",
+      "modifiedUtc": "<time>",
+      "trackClass": "full",
+      "map": "swiss2",
+      "field": {
+       "width": 60,
+       "depth": 40,
+       "gridSize": 1
+      },
+      "settings": {
+       "tangentScale": 1.1,
+       "minCurveRadius": 2.5,
+       "samplesPerSegment": 48
+      },
+      "branding": {
+       "logos": []
+      },
+      "credit": null,
+      "elements": [
+       {
+        "id": "el-1",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-2",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 5,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-3",
+        "type": "waypoint",
+        "name": "",
+        "position": {
+         "x": 10,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "height": 1.6,
+         "poleRadius": 0.02,
+         "clearance": 0
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-4",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 15,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-5",
+        "type": "groundLogo",
+        "name": "",
+        "position": {
+         "x": 1,
+         "y": 1,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "width": 10,
+         "depth": 4
+        },
+        "logoId": "",
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       }
+      ],
+      "sequence": [
+       {
+        "id": "sq-1",
+        "elementId": "el-1",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-2",
+        "elementId": "el-2",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-3",
+        "elementId": "el-3",
+        "apertureIndex": null,
+        "entry": null,
+        "passSide": "left",
+        "clearance": 0,
+        "overridden": false
+       },
+       {
+        "id": "sq-4",
+        "elementId": "el-4",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       }
+      ]
+     }
+    }
    }
   ],
-  "storage": {}
+  "storage": {
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+  }
  },
  {
   "name": "the fork is refused too",
   "threw": {
-   "engineError": "TypeError"
+   "error": "Still not yours.",
+   "status": 409,
+   "conflict": true
   },
   "requests": [
    {
@@ -8037,9 +8434,210 @@
       ]
      }
     }
+   },
+   {
+    "method": "POST",
+    "url": "https://board.example/api/tracks",
+    "body": {
+     "author": "Ada",
+     "document": {
+      "schemaVersion": 4,
+      "id": "trk-9a035600",
+      "name": "Taken",
+      "createdUtc": "<time>",
+      "modifiedUtc": "<time>",
+      "trackClass": "full",
+      "map": "swiss2",
+      "field": {
+       "width": 60,
+       "depth": 40,
+       "gridSize": 1
+      },
+      "settings": {
+       "tangentScale": 1.1,
+       "minCurveRadius": 2.5,
+       "samplesPerSegment": 48
+      },
+      "branding": {
+       "logos": []
+      },
+      "credit": null,
+      "elements": [
+       {
+        "id": "el-1",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-2",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 5,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-3",
+        "type": "waypoint",
+        "name": "",
+        "position": {
+         "x": 10,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "height": 1.6,
+         "poleRadius": 0.02,
+         "clearance": 0
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-4",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 15,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-5",
+        "type": "groundLogo",
+        "name": "",
+        "position": {
+         "x": 1,
+         "y": 1,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "width": 10,
+         "depth": 4
+        },
+        "logoId": "",
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       }
+      ],
+      "sequence": [
+       {
+        "id": "sq-1",
+        "elementId": "el-1",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-2",
+        "elementId": "el-2",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-3",
+        "elementId": "el-3",
+        "apertureIndex": null,
+        "entry": null,
+        "passSide": "left",
+        "clearance": 0,
+        "overridden": false
+       },
+       {
+        "id": "sq-4",
+        "elementId": "el-4",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       }
+      ]
+     }
+    }
    }
   ],
-  "storage": {}
+  "storage": {
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+  }
  },
  {
   "name": "any other refusal is thrown",
@@ -8246,7 +8844,12 @@
     }
    }
   ],
-  "storage": {}
+  "storage": {
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+  }
  },
  {
   "name": "a document that is not a track is thrown",
@@ -8254,6 +8857,11 @@
    "engineError": "TypeError"
   },
   "requests": [],
-  "storage": {}
+  "storage": {
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+  }
  }
 ]
