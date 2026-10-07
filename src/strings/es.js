@@ -3686,6 +3686,8 @@ export default {
   "training.card_assists": "Primero Stabilised, después Acro",
   "training.card_gates": "Nada depende de ellas",
   "training.lede": "Vuela cualquier lección, en cualquier orden. Cada una elige su aeronave y su modo de vuelo; un choque la empieza de nuevo.",
+  "training.skip": "Ya vuelo",
+  "training.skip_note": "Vuela {lesson} una vez y las lecciones anteriores quedan aprobadas también.",
   "training.track.first": "Primer vuelo",
   "training.track.racing": "Carreras",
   "training.lesson_n": "Lección {n}",

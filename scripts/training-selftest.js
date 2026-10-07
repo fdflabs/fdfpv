@@ -22,7 +22,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { GLIDE, LESSONS, LessonWatch, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById } from '../src/game/training.js';
+import { GLIDE, LESSONS, LessonWatch, SKIPS, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -151,6 +151,23 @@ expect('a gate to the right: the arrow points right', near(gateCue(eye, { x: 10,
 expect('to the left: left', near(gateCue(eye, { x: -10, y: 0, z: 0 }).angle, -Math.PI / 2), true);
 expect('above: up', near(gateCue(eye, { x: 0, y: 10, z: 0 }).angle, 0), true);
 expect('behind and a little right: right, not ahead', gateCue(eye, { x: 1, y: 0, z: 20 }).angle > 0 && !gateCue(eye, { x: 1, y: 0, z: 20 }).ahead, true);
+
+/* I fly already: each track's skip is its own lesson, and what a lesson
+ * covers is earlier lessons of its own track. */
+for (const t of TRACKS) {
+  const l = lessonById(SKIPS[t]);
+  expect(`${t}: its skip is one of its lessons`, Boolean(l) && l.track === t, true);
+}
+for (const l of LESSONS.filter((x) => x.covers)) {
+  const at = LESSONS.indexOf(l);
+  expect(`${l.id} covers earlier lessons of its track`, l.covers.every((id) => {
+    const c = lessonById(id);
+    return c && c.track === l.track && LESSONS.indexOf(c) < at;
+  }), true);
+}
+expect('a pass of the unaided round passes the first flight track', passesOf('first_unaided').join(), 'first_unaided,first_takeoff,first_turns,first_land');
+expect('a pass of a lesson that covers nothing passes itself', passesOf('first_land').join(), 'first_land');
+expect('training.skip en and es', ['training.skip', 'training.skip_note'].every((k) => typeof en[k] === 'string' && typeof es[k] === 'string'), true);
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

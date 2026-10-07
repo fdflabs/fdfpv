@@ -159,6 +159,38 @@ try {
   await page.tap('Escape');
   await page.until('!window.__ui.carousel.isOpen', 10000).catch(() => {});
 
+  /* I FLY ALREADY: First flight's skip flies the unaided round in Acro,
+   * and its pass, fed to Progress as the frames would feed it, passes the
+   * three lessons before it too. */
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-skip="first"] .training-skip-btn');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'first_unaided'", 15000).catch(() => {});
+  const skipSeat = await page.evaluate("({ lesson: window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id, tune: window.__ui.settings.tune })");
+  check('I fly already on First flight flies the unaided round, in Acro', skipSeat.lesson === 'first_unaided' && skipSeat.tune === 'timber-acro', JSON.stringify(skipSeat));
+  await page.evaluate(`(() => {
+    const p = window.__ui.progress;
+    let t = 0;
+    let h = 0;
+    const seg = (ms, grounded, rate) => {
+      for (const end = t + ms; t < end; t += 16) {
+        h += rate * 0.016;
+        p.tick({ simMs: t, crashed: false, grounded, heading: Math.atan2(Math.sin(h), Math.cos(h)) });
+      }
+    };
+    const circle = 2 * Math.PI / 8;
+    seg(300, true, 0);
+    seg(21000, false, 0);
+    seg(8200, false, circle);
+    seg(8200, false, -circle);
+    seg(1200, true, 0);
+    return true;
+  })()`);
+  const skipped = await page.evaluate('Object.keys(window.__ui.settings.progress.lessons).sort().join()');
+  check('its pass passes the whole First flight track', skipped.includes('first_land,first_takeoff,first_turns,first_unaided'), skipped);
+
   /* A PASS IS KEPT: A lap lesson flown from the page, its lap closed
    * through Progress as the race step closes one, then the page again, and
    * again after a reload: Passed, from the synced progress. */

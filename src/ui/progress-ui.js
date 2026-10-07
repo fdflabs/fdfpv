@@ -33,7 +33,7 @@ import { liveryKey } from '../../configs/liveries.js';
 import {
   CHALLENGES, RIM_KINDS, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
-import { LessonWatch } from '../game/training.js';
+import { LessonWatch, passesOf } from '../game/training.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
@@ -276,7 +276,10 @@ export class Progress {
     }
     const total = w.lesson.steps.length;
     if (w.passed) {
-      this.state.lessons[w.lesson.id] = Date.now();
+      const now = Date.now();
+      for (const id of passesOf(w.lesson.id)) {
+        this.state.lessons[id] ??= now;
+      }
       this.save();
       this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
       this.lesson = null;

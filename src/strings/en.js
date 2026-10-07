@@ -3681,6 +3681,8 @@ export default {
   "training.card_assists": "Stabilised first, then Acro",
   "training.card_gates": "Nothing waits on them",
   "training.lede": "Fly any lesson, in any order. Each one seats its aircraft and its flight mode; a crash starts the lesson again.",
+  "training.skip": "I fly already",
+  "training.skip_note": "Fly {lesson} once and the lessons before it are passed too.",
   "training.track.first": "First flight",
   "training.track.racing": "Racing",
   "training.lesson_n": "Lesson {n}",

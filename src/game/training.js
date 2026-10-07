@@ -40,7 +40,8 @@ const TURN_RAD = 2 * Math.PI;
  * clean meaning no rim touched; { ghost: true } a lap faster than the ghost.
  * A crash starts the lesson's steps again. `aid` is the visual aid the
  * lesson draws: 'glide', the glide path to its place's strip, or 'gate',
- * the next gate's direction on the HUD. The words are
+ * the next gate's direction on the HUD. `covers` lists the lessons a pass
+ * of this one passes too, because it asks all they ask. The words are
  * training.lesson.<id> and training.lesson.<id>_note.
  */
 export const LESSONS = [
@@ -49,10 +50,11 @@ export const LESSONS = [
   { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true }] },
   {
     id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-acro', place: 'swiss2', aid: 'glide',
+    covers: ['first_takeoff', 'first_turns', 'first_land'],
     steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },
   { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
-  { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: true }] },
+  { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
   { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
 ];
 
@@ -110,6 +112,17 @@ export function gateCue(cam, to, cone = 0.35) {
 
 /* The tracks in the order the page lists them. */
 export const TRACKS = ['first', 'racing'];
+
+/* "I fly already": per track, the one lesson an experienced pilot flies
+ * to pass the track's basics at once (TRAINING.md 4), the lesson that
+ * covers the rest. */
+export const SKIPS = { first: 'first_unaided', racing: 'race_clean' };
+
+/* What a pass of lesson `id` passes: itself and what it covers. */
+export function passesOf(id) {
+  const l = lessonById(id);
+  return l ? [l.id, ...(l.covers || [])] : [];
+}
 
 /*
  * The craft's heading from a plant state (src/sim, CLAUDE.md): the body to
