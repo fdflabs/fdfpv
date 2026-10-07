@@ -89,6 +89,7 @@
     "ghost:golden": "node scripts/ghost-golden.js",
     "board:post": "node scripts/board-post-check.js",
     "settings:calls": "node scripts/settings-calls-check.js",
+    "ghost:shell": "node scripts/ghost-shell-check.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
     "collide:golden": "node scripts/collide-golden.js",
