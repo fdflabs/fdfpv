@@ -29,10 +29,3 @@ src/ui/ui.js
 src/ui/update.js
 tests/browser/harness.html
 tests/browser/harness.js
-tests/lib/browser.js
-tests/lib/checks.js
-tests/lib/page.js
-tests/lib/replay.js
-tests/lib/server.js
-tests/lib/simmod.js
-tests/verify.js
