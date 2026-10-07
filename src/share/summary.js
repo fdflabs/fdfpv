@@ -1,37 +1,36 @@
 /*
- * summary.js: the name of the track this browser will fly, without
- * building it.
+ * summary.js: the course the shell would fly, for the title menu and the
+ * launch card, read from the share seat without building anything (the
+ * builder would pull the renderer in with it).
  *
- * The title menu and the launch card need a name. They must not import the
- * builder, because that pulls the renderer. This file reads the share seat
- * the shell flies and hands back a summary.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { inspectCourse } from './listing.js';
 
+/* The seated course's listing (src/share/listing.js inspectCourse), or
+ * null when nothing is seated or the seat cannot be read: a menu shows no
+ * course rather than failing. */
 export function activeCourseSummary() {
+  let seated;
   try {
-    const course = inspectCourse();
-    if (!course || course.kind === 'none' || !course.doc) {
-      return null;
-    }
-    return course;
+    seated = inspectCourse();
   } catch (e) {
     return null;
   }
+  const flyable = Boolean(seated) && seated.kind !== 'none' && Boolean(seated.doc);
+  return flyable ? seated : null;
 }
