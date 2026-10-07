@@ -78,6 +78,16 @@ const FINISH = {
   chrome: { diffuse: 0.1, env: 1.05, tint: 0.12, spec: 1.3, width: 0.008, rim: 0.5, cel: 0 },
   carbon: { diffuse: 1, env: 0.05, tint: 0, spec: 0.55, width: 0.008, rim: 0.5, cel: 0, carbon: 1 },
   aluminium: { diffuse: 1, env: 0.14, tint: 0.1, spec: 0.8, width: 0.03, rim: 0.8, cel: 0, alu: 1 },
+  /* The shop's (configs/paint.js SHOP_FINISHES). Satin: a soft wide sheen,
+   * between matte and gloss. Pearl: a white reflection over the paint
+   * and a bright rim, so the colour shifts to pale at the edges. Candy: a
+   * darkened coat under a reflection wholly the paint's colour, a deep
+   * tinted lacquer. Gold, earned: the region gold whatever its paint,
+   * metallic over it, like aluminium a material of its own. */
+  satin: { diffuse: 0.97, env: 0.04, tint: 0.3, spec: 0.35, width: 0.05, rim: 0.85, cel: 0 },
+  pearl: { diffuse: 0.86, env: 0.3, tint: 0.15, spec: 0.8, width: 0.03, rim: 1.8, cel: 0 },
+  candy: { diffuse: 0.55, env: 0.7, tint: 1, spec: 1.1, width: 0.01, rim: 1.3, cel: 0 },
+  gold: { diffuse: 0.5, env: 0.85, tint: 0, spec: 1.2, width: 0.02, rim: 0.8, cel: 0, gold: 1 },
 };
 
 /* The model's own coordinates and normal, for the weave and the wear. */
@@ -158,6 +168,8 @@ const FINISH_CHUNK = /* glsl */ `
     vec3 finBase = gl_FragColor.rgb;
     if (uFinCarbon > 0.5) {
       finBase = finShade * vec3(0.05, 0.052, 0.058) * (0.55 + 0.9 * finTwill());
+    } else if (uFinGold > 0.5) {
+      finBase = finShade * vec3(0.62, 0.45, 0.14);
     } else if (uFinAlu > 0.5) {
       float brush = finNoise(vec3(vFinP.x * 3.0, vFinP.y * 400.0, vFinP.z * 400.0));
       finBase = finShade * vec3(0.44, 0.46, 0.49) * (0.88 + 0.2 * brush);
@@ -196,7 +208,7 @@ const FINISH_CHUNK = /* glsl */ `
     }
     #endif
     finLight = clamp(finLight * 0.6, 0.35, 1.2);
-    vec3 finTint = mix(vec3(1.0), pow(diffuse, vec3(0.4545)), uFinTint);
+    vec3 finTint = mix(vec3(1.0), pow(diffuse, vec3(0.4545)), uFinTint) * mix(vec3(1.0), vec3(1.0, 0.8, 0.42), uFinGold);
     float finSpec = max(dot(finR, normalize(uFinSpecDir)), 0.0);
     finSpec = step(0.985 - uFinWidth, finSpec) * uFinSpec;
     gl_FragColor.rgb = finBase * uFinDiffuse + (finEnv * uFinEnv * finLight + finSpec) * finTint;
@@ -218,6 +230,7 @@ function wrap(mat) {
     uRimStrength: { value: 0 },
     uFinCarbon: { value: 0 },
     uFinAlu: { value: 0 },
+    uFinGold: { value: 0 },
     uFinWear: { value: 0 },
   };
   const state = { u, rim: null, spec: null, finish: 'kit' };
@@ -249,6 +262,7 @@ function wrap(mat) {
          uniform vec3 uFinSpecDir;
          uniform float uFinCarbon;
          uniform float uFinAlu;
+         uniform float uFinGold;
          uniform float uFinWear;
          ${FINISH_HELPERS}`)
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>
@@ -285,6 +299,7 @@ function apply(state, finish) {
   u.uSpecStrength.value = state.spec * f.cel;
   u.uFinCarbon.value = f.carbon ?? 0;
   u.uFinAlu.value = f.alu ?? 0;
+  u.uFinGold.value = f.gold ?? 0;
 }
 
 /*
@@ -339,7 +354,7 @@ export function readWear(craft) {
 
 /* The finish uniforms each region's first material holds now, for a
  * check: whether its program has the finish in it yet (`compiled`), and
- * the carbon, aluminium and wear it draws. */
+ * the carbon, aluminium, gold and wear it draws. */
 export function readFinishUniforms(craft) {
   if (!craft.livery || !craft.livery.materials) {
     return {};
@@ -347,7 +362,9 @@ export function readFinishUniforms(craft) {
   const out = {};
   for (const [id, mats] of Object.entries(craft.livery.materials())) {
     const s = mats[0] && mats[0].userData.finishState;
-    out[id] = s ? { compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, wear: s.u.uFinWear.value } : null;
+    out[id] = s ? {
+      compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, gold: s.u.uFinGold.value, wear: s.u.uFinWear.value,
+    } : null;
   }
   return out;
 }

@@ -445,7 +445,13 @@ export function motorsBlock(airframeId, choice) {
     && packOption(airframeId, c.pack) === m.packs[0]) {
     return null;
   }
-  const p = quadPlant(airframeId, c);
+  return motorsDoubles(airframeId, c);
+}
+
+/* The sim_set_motors block for a choice, whatever it is: configs/wear.js
+ * seats a worn stock motor through it. */
+export function motorsDoubles(airframeId, choice) {
+  const p = quadPlant(airframeId, choice);
   const out = new Float64Array(SIM_MOTORS_DOUBLES);
   out[SIM_MOTORS.MASS] = p.massKg;
   out[SIM_MOTORS.IXX] = p.inertia[0];
