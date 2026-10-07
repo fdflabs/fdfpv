@@ -157,8 +157,8 @@ async function main() {
     /* The quads' seat, or the planes' when --airframe seats a plane: see
      * importKey in src/share/session.js. */
     const seat = opts.airframe && airframeById(String(opts.airframe)).fixedWing
-      ? 'webfpv.share.import.wing.v1'
-      : 'webfpv.share.import.v1';
+      ? 'fdfpv.share.import.wing.v1'
+      : 'fdfpv.share.import.v1';
     const share = { id: doc.id, name: doc.name, author: '', board: '', document: doc, local: true };
     seed.push(`try {
       localStorage.setItem(${JSON.stringify(seat)}, ${JSON.stringify(JSON.stringify(share))});

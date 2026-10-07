@@ -55,6 +55,7 @@ import { sha256Base64, trackDeleteMessage, trackMessage } from './identity.js';
 import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
 import { API_ORIGIN } from './api.js';
+import { carryRenamedKeys } from './oldkeys.js';
 
 /*
  * The deployed server: tracks-api/node.js on the owner's VM, behind Caddy
@@ -65,11 +66,14 @@ import { API_ORIGIN } from './api.js';
  */
 const PLACEHOLDER_ORIGIN = 'https://fdfpv-tracks.example.workers.dev';
 export const PRODUCTION_TRACKS_ORIGIN = API_ORIGIN;
-const ORIGIN_KEY = 'webfpv.tracks.origin';
+const ORIGIN_KEY = 'fdfpv.tracks.origin';
+/* webfpv.tracks.origin before the project took its own name; moved once
+ * at load (src/share/oldkeys.js). */
+carryRenamedKeys([['webfpv.tracks.origin', ORIGIN_KEY]]);
 
 /* The event every upload outcome goes out on: detail { id, name, state,
  * error, forkedTo }. */
-export const TRACK_SYNC_EVENT = 'webfpv-tracks-sync';
+export const TRACK_SYNC_EVENT = 'fdfpv-tracks-sync';
 
 const LOOPBACK_HOSTS = new Set(['', 'localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
 const READ_TIMEOUT_MS = 8000;

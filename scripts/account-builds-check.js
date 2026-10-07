@@ -66,7 +66,7 @@ import { startTracks } from '../tracks-api/node.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const boardDir = resolve(process.argv[2] || join(root, '..', 'fdfpv-leaderboard'));
 const RS256 = { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' };
-const SYNCED_KEY = 'webfpv.account.synced.v1';
+const SYNCED_KEY = 'fdfpv.account.synced.v1';
 
 let failed = 0;
 let passed = 0;

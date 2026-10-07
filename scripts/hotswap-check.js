@@ -70,7 +70,7 @@ const SPEED_TOL = 1e-3;
 /* src/main.js SWAP_AIR_ABOVE and the 0.3 m a flying swap keeps off the floor. */
 const AIR_ABOVE = 3;
 const FLOOR_CLEAR = 0.3;
-const SHARE_KEY = 'webfpv.share.import.v1';
+const SHARE_KEY = 'fdfpv.share.import.v1';
 
 let failed = 0;
 let passed = 0;

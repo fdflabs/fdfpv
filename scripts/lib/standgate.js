@@ -41,7 +41,7 @@ export async function standGate(page, map) {
   addGate(doc, 'gate', { x: at.x, y: at.y, z: at.z }, qAxis(0, 1, 0, headingOf(at.tx, at.tz)));
   const share = { id: doc.id, name: doc.name, document: toPlain(doc), local: true };
   await page.evaluate(`(() => {
-    localStorage.setItem('webfpv.share.import.v1', ${JSON.stringify(JSON.stringify(share))});
+    localStorage.setItem('fdfpv.share.import.v1', ${JSON.stringify(JSON.stringify(share))});
     window.__ui.settings.map = 'track';
     window.__ui.persistSettings();
     window.__ui.onSettings(window.__ui.settings);

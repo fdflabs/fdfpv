@@ -171,7 +171,7 @@ try {
   await page.until(`location.hostname === '${DOMAIN}' && !location.hash && document.getElementById('pdcs-loader') && document.getElementById('pdcs-loader').hidden`, LOAD_MS);
   const got = JSON.parse(await page.evaluate(`JSON.stringify({
     href: location.href,
-    name: localStorage.getItem('webfpv.pilot.name'),
+    name: localStorage.getItem('fdfpv.pilot.name'),
     builds: localStorage.getItem('webfpv.builds.v1'),
     voice: localStorage.getItem('fdfpv.voice'),
     rooms: localStorage.getItem('fdfpv.rooms'),
@@ -195,11 +195,11 @@ try {
   check('no bounce the second time', hits.move === before, String(hits.move - before));
 
   console.log('4. a pack nobody asked for');
-  await page.evaluate("localStorage.setItem('webfpv.pilot.name', 'Mine')");
+  await page.evaluate("localStorage.setItem('fdfpv.pilot.name', 'Mine')");
   const forged = await page.evaluate(`import('/src/share/move.js').then(async (m) => (await m.partsOf(await m.encodePack({ 'webfpv.pilot.name': 'Attacker' })))[0])`);
   await go(`https://${DOMAIN}/?map=swiss2#pdcs-move=${forged}`);
   await page.until(`location.hostname === '${DOMAIN}' && document.getElementById('pdcs-loader') && document.getElementById('pdcs-loader').hidden`, LOAD_MS);
-  check('ignored: the name is the pilot\'s', await page.evaluate("localStorage.getItem('webfpv.pilot.name')") === 'Mine');
+  check('ignored: the name is the pilot\'s', await page.evaluate("localStorage.getItem('fdfpv.pilot.name')") === 'Mine');
   check('and the fragment is gone from the address', await page.evaluate('location.hash') === '' && await page.evaluate('location.search') === '?map=swiss2');
 
   const errors = page.errors.filter((e) => !/ERR_NAME_NOT_RESOLVED|ERR_BLOCKED_BY_CLIENT|Failed to fetch|ERR_CONNECTION_REFUSED|WebSocket/.test(String(e)));

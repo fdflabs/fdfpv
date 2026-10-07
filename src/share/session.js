@@ -14,8 +14,9 @@
  * bind between a local course and its listing, a lap waiting to be
  * posted, and the best lap posted per course.
  *
- * Imports nothing but the strings, so src/trackbuilder/storage.js can take
- * readJson and writeJson from here without a cycle.
+ * Imports only the strings and oldkeys.js (which imports nothing), so
+ * src/trackbuilder/storage.js can take readJson and writeJson from here
+ * without a cycle.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -34,6 +35,7 @@
  */
 
 import { str } from '../strings/index.js';
+import { carryRenamedKeys } from './oldkeys.js';
 
 /*
  * There are two seats. Quads and the fixed wings that fit a course's gates
@@ -44,11 +46,12 @@ import { str } from '../strings/index.js';
  */
 const SHELL_SETTINGS_KEY = 'webfpv.settings.v3';
 const SEAT_KEYS = {
-  full: 'webfpv.share.import.v1',
-  wing: 'webfpv.share.import.wing.v1',
+  full: 'fdfpv.share.import.v1',
+  wing: 'fdfpv.share.import.wing.v1',
 };
 /* The whoop's old seat, webfpv.share.import.micro.v1, held a RaceGOW room
- * and is never read: a whoop is a quad and sits in the quads' seat. */
+ * and is never read or moved: a whoop is a quad and sits in the quads'
+ * seat. */
 
 /*
  * Every fixed wing, which take the planes' seat; anything else takes the
@@ -64,10 +67,21 @@ const FIXED_WINGS = new Set([
   'tigermoth1803', 'timber1500', 'timber1500f', 'uglystik1567', 'wing1000', 'wot41334', 'zagi1219',
 ]);
 
-const EDIT_KEYS_KEY = 'webfpv.share.editkeys.v1';
-const BINDS_KEY = 'webfpv.share.bind.v1';
-const PENDING_LAP_KEY = 'webfpv.share.pending.v1';
-const POSTED_BESTS_KEY = 'webfpv.share.posted.v1';
+const EDIT_KEYS_KEY = 'fdfpv.share.editkeys.v1';
+const BINDS_KEY = 'fdfpv.share.bind.v1';
+const PENDING_LAP_KEY = 'fdfpv.share.pending.v1';
+const POSTED_BESTS_KEY = 'fdfpv.share.posted.v1';
+
+/* Kept under webfpv.* names before the project took its own; moved once
+ * at load (src/share/oldkeys.js). */
+carryRenamedKeys([
+  ['webfpv.share.import.v1', SEAT_KEYS.full],
+  ['webfpv.share.import.wing.v1', SEAT_KEYS.wing],
+  ['webfpv.share.editkeys.v1', EDIT_KEYS_KEY],
+  ['webfpv.share.bind.v1', BINDS_KEY],
+  ['webfpv.share.pending.v1', PENDING_LAP_KEY],
+  ['webfpv.share.posted.v1', POSTED_BESTS_KEY],
+]);
 
 /* The parsed value under `key`, or `fallback` when there is none, it is
  * not JSON, or storage refuses to be read. */

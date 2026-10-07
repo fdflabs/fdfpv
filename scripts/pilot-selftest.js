@@ -28,7 +28,7 @@
 
 import { transcript } from './lib/transcript.js';
 
-const PINNED = 'cfb21b31fad524bc9c31be5c48a1e0b7abdaaa70ce4202f13b62d059a12b2605';
+const PINNED = '9ed69aa641e2ac586d5c2aadcf3a4698ea4c550ec6df264e2d87b5309285390d';
 const map = new Map();
 let mode = 'ok';
 globalThis.localStorage = {
@@ -48,8 +48,12 @@ globalThis.localStorage = {
     map.delete(k);
   },
 };
+map.set('webfpv.pilot.name', 'Kept');
+map.set('webfpv.account.v1', '{"session":"s","callsign":"Kept"}');
 const pilot = await import('../src/share/pilot.js');
 const t = transcript();
+t.note('the old names, moved at load', [...map.entries()].sort());
+map.clear();
 const dump = () => [...map.entries()].sort();
 
 t.note('exports', Object.keys(pilot).sort());
@@ -77,7 +81,7 @@ mode = 'ok';
 for (const raw of [null, '', 'null', '{bad', '[]', '{"session":5}', '{"session":"s"}', '{"session":"","callsign":"Bo"}', '{"session":"s","callsign":"Bo"}',
   '{"session":"s","callsign":"  Grace  Hopper "}', '{"session":"s","callsign":"!"}', '{"session":"s","callsign":""}']) {
   map.clear();
-  map.set('webfpv.pilot.name', 'Ada');
+  map.set('fdfpv.pilot.name', 'Ada');
   if (raw !== null) {
     map.set(pilot.ACCOUNT_KEY, raw);
   }
@@ -85,9 +89,9 @@ for (const raw of [null, '', 'null', '{bad', '[]', '{"session":5}', '{"session":
   t.rec(`readPilotName with account ${raw}`, () => pilot.readPilotName());
 }
 map.clear();
-map.set('webfpv.pilot.name', '  Ada  ');
+map.set('fdfpv.pilot.name', '  Ada  ');
 t.rec('readPilotName tidies a stored name', () => pilot.readPilotName());
-map.set('webfpv.pilot.name', 'A');
+map.set('fdfpv.pilot.name', 'A');
 t.rec('readPilotName of a stored name too short', () => pilot.readPilotName());
 
 t.finish('pilot.js', PINNED);

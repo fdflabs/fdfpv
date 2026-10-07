@@ -326,7 +326,7 @@ try {
   await c.until(`(JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || '{}').callsign === 'Maverick')`, 15000);
   check('it signs in as the same callsign with no picker', (await c.evaluate(dialogTitle)) !== 'Choose your callsign');
   check('and signs with the account\'s pilot key', (await pilotKey(c)) === aKey);
-  const cGuest = await c.evaluate("(JSON.parse(JSON.parse(localStorage.getItem('webfpv.pilot.key.guest.v1') || 'null') || 'null') || {}).publicRaw || null");
+  const cGuest = await c.evaluate("(JSON.parse(JSON.parse(localStorage.getItem('fdfpv.pilot.key.guest.v1') || 'null') || 'null') || {}).publicRaw || null");
   check('its own key set aside, not lost', Boolean(cGuest) && cGuest !== aKey);
   await c.until(`(JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}').progress || {}).xp === 420`, 20000).catch(() => {});
   const cProgress = await c.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).progress`);

@@ -30,7 +30,7 @@
 
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '563a8de226eedf4267856682a261550eed96e9cf1a8fe2fac4d7524711545a68';
+const PINNED = '79771bcc69b90eb29cac8cef658a7c7271358c12d1503108b8ac80de3fa725bc';
 
 class Storage {
   constructor() {
@@ -75,8 +75,15 @@ globalThis.Date = class extends RealDate {
   }
 };
 
+/* A browser that kept everything under the old names, as the module
+ * loads: each value moves to its fdfpv.* name, once. */
+for (const [i, name] of ['import.v1', 'import.wing.v1', 'editkeys.v1', 'bind.v1', 'pending.v1', 'posted.v1', 'import.micro.v1'].entries()) {
+  store.map.set(`webfpv.share.${name}`, `old-${i}`);
+}
 const s = await import('../src/share/session.js');
 const t = transcript();
+t.note('the old names, moved at load (the whoop seat is not)', store.dump());
+store.map.clear();
 const reset = () => {
   store.map.clear();
   store.mode = 'ok';
@@ -156,7 +163,7 @@ for (const [label, payload] of [
 }
 look('seat writes');
 for (const raw of ['{"id":"a"}', '{"document":{}}', '[]', '"str"', '{"id":"a","document":{"x":1},"extra":true}', '{bad']) {
-  store.map.set('webfpv.share.import.v1', raw);
+  store.map.set('fdfpv.share.import.v1', raw);
   t.rec(`readShareImport of ${raw}`, () => s.readShareImport('full'));
 }
 store.mode = 'full';
@@ -167,8 +174,8 @@ for (const share of [null, {}, { id: '' }, { id: 'a' }, { id: 'a', local: true, 
 }
 t.rec('courseSeatKey of a local seat with no document', engineSafe(() => s.courseSeatKey({ id: 'a', local: true })));
 reset();
-store.map.set('webfpv.share.import.v1', '1');
-store.map.set('webfpv.share.import.wing.v1', '2');
+store.map.set('fdfpv.share.import.v1', '1');
+store.map.set('fdfpv.share.import.wing.v1', '2');
 s.clearShareImport('wing');
 look('clearShareImport wing');
 s.clearShareImport();
@@ -188,7 +195,7 @@ for (const id of ['a', 'b', 'c', '', 'undefined', 'nope']) {
 }
 t.rec('readAllEditKeys', () => s.readAllEditKeys());
 for (const raw of ['[]', '"x"', 'null', '{"a":5,"b":"ok","c":null}', '{bad']) {
-  store.map.set('webfpv.share.editkeys.v1', raw);
+  store.map.set('fdfpv.share.editkeys.v1', raw);
   t.rec(`readEditKey a, stored ${raw}`, () => s.readEditKey('a'));
   t.rec(`readEditKey b, stored ${raw}`, () => s.readEditKey('b'));
   t.rec(`readAllEditKeys, stored ${raw}`, () => s.readAllEditKeys());
@@ -209,11 +216,11 @@ t.rec('writeBind a string removes', () => s.writeBind('c', 'str'));
 look('binds');
 t.rec('readBind a', () => s.readBind('a'));
 t.rec('readBind no id', () => s.readBind(''));
-store.map.set('webfpv.share.bind.v1', '{"a":"str","b":7,"c":{"x":1},"d":null}');
+store.map.set('fdfpv.share.bind.v1', '{"a":"str","b":7,"c":{"x":1},"d":null}');
 for (const id of ['a', 'b', 'c', 'd']) {
   t.rec(`readBind of a stored ${id}`, () => s.readBind(id));
 }
-store.map.set('webfpv.share.bind.v1', '[1]');
+store.map.set('fdfpv.share.bind.v1', '[1]');
 t.rec('readBind over an array', () => s.readBind('0'));
 t.rec('writeBind over an array', () => s.writeBind('0', { board: 'b' }));
 look('binds over an array');
@@ -231,18 +238,18 @@ for (const [label, p] of [
 }
 t.rec('readPendingTime', () => s.readPendingTime());
 for (const raw of ['{"trackId":"a"}', '{"trackId":"","lapMs":1}', '{"trackId":"a","lapMs":"1"}', '{"trackId":"a","lapMs":1,"x":2}', '[]']) {
-  store.map.set('webfpv.share.pending.v1', raw);
+  store.map.set('fdfpv.share.pending.v1', raw);
   t.rec(`readPendingTime of ${raw}`, () => s.readPendingTime());
 }
-store.map.set('webfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
+store.map.set('fdfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
 s.clearPendingTime('b');
 look('clearPendingTime another track');
 s.clearPendingTime('a');
 look('clearPendingTime its track');
-store.map.set('webfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
+store.map.set('fdfpv.share.pending.v1', '{"trackId":"a","lapMs":1}');
 s.clearPendingTime();
 look('clearPendingTime any');
-store.map.set('webfpv.share.pending.v1', 'junk');
+store.map.set('fdfpv.share.pending.v1', 'junk');
 s.clearPendingTime('b');
 look('clearPendingTime of junk');
 store.mode = 'locked';
@@ -256,7 +263,7 @@ look('posted bests');
 for (const id of ['a', 'b', 'c', '']) {
   t.rec(`readPostedBest ${id}`, () => s.readPostedBest(id));
 }
-store.map.set('webfpv.share.posted.v1', '{"a":{"lapMs":"oops"},"b":{"lapMs":"12"},"c":5}');
+store.map.set('fdfpv.share.posted.v1', '{"a":{"lapMs":"oops"},"b":{"lapMs":"12"},"c":5}');
 t.rec('readPostedBest junk', () => [s.readPostedBest('a'), s.readPostedBest('b'), s.readPostedBest('c')]);
 t.rec('writePostedBest over junk', () => s.writePostedBest('a', 9));
 look('posted over junk');
