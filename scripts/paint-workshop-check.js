@@ -194,6 +194,21 @@ const paintOf = (page, id) => page.evaluate(`window.__pickPaint(${JSON.stringify
 /* Paint the first region that is not a film's underside in the third
  * swatch on offer. Returns { region, hex } or null when every region is
  * film (the Kadet). */
+/* A button that has stopped moving: the panel slides its controls in when
+ * it is drawn again, and a click on a moving one lands on its neighbour. */
+async function steady(page, selector) {
+  let last = '';
+  for (let i = 0; i < 50; i++) {
+    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return [r.left, r.top, getComputedStyle(b).opacity].join(); })()`);
+    if (r === last && r !== 'none') {
+      return;
+    }
+    last = r;
+    await page.sleep(150);
+  }
+  throw new Error(`${selector} never stood still`);
+}
+
 async function paintUnder(page, id) {
   await page.click('.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
@@ -208,8 +223,12 @@ async function paintUnder(page, id) {
     throw e;
   });
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
-  const key = keys[2];
+  /* A colour the top is not in: the top's own is no underside of its own. */
+  const top = (await paintOf(page, id))[region];
+  const key = keys.filter((k) => k !== `colour-${top}`)[2];
+  await steady(page, `.hangar [data-key="${key}"]`);
   await page.click(`.hangar [data-key="${key}"]`);
+  await page.until(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(key.slice('colour-'.length))}`, 5000).catch(() => {});
   /* The pointer off the panel, so no swatch under it is being tried on. */
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
   return { region, hex: key.slice('colour-'.length) };
@@ -237,7 +256,7 @@ async function underEach(page) {
     const u = l && l.uniforms[got.region];
     const entry = await page.evaluate('window.__ui.hangar.entry');
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
-      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}`);
+      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}`);
     if (id === 'timber1500') {
       await page.click('.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
@@ -263,11 +282,9 @@ async function main() {
   try {
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    if (!process.env.WORKSHOP_ONLY) {
-      await viewsEach(page);
-      await flipAndViews(page);
-      await closedFlipped(page);
-    }
+    await viewsEach(page);
+    await flipAndViews(page);
+    await closedFlipped(page);
     await underEach(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);

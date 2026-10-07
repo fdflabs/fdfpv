@@ -208,20 +208,13 @@ function withScheme(entry, scheme) {
   return out;
 }
 
-/* An entry with a region's underside in `hex`; the top's own colour
- * (`top`) there is no underside of its own, so it is taken away. */
-function withUnder(entry, region, hex, top) {
-  const under = { ...(entry.under ?? {}) };
-  if (hex === top) {
-    delete under[region];
-  } else {
-    under[region] = hex;
-  }
-  const out = { ...entry, under };
-  if (!Object.keys(under).length) {
-    delete out.under;
-  }
-  return out;
+/* An entry with a region's underside in `hex`. Kept even when it is the
+ * top's colour in the entry: a combat aircraft's top is drawn in its
+ * loadout finish's colour (src/render/combatpaint.js), not the entry's,
+ * so the entry cannot tell an underside that matches from one that does
+ * not. */
+function withUnder(entry, region, hex) {
+  return { ...entry, under: { ...(entry.under ?? {}), [region]: hex } };
 }
 
 /* The power choice a stored one names, made valid for these options. A
@@ -611,7 +604,7 @@ export class Hangar {
       return this.shop.withDecal(this.entry, h.decal, h.patch);
     }
     if (h.side === 'under') {
-      return withUnder(this.entry, h.region, h.hex, coloursFor(this.id, this.entry)[h.region]);
+      return withUnder(this.entry, h.region, h.hex);
     }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
   }
@@ -717,7 +710,7 @@ export class Hangar {
     }
     const v = hex.toLowerCase();
     if (this.underSide()) {
-      this.entry = withUnder(this.entry, this.region, v, coloursFor(this.id, this.entry)[this.region]);
+      this.entry = withUnder(this.entry, this.region, v);
       this.changed(`colour-${v}`);
       return;
     }

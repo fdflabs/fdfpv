@@ -308,11 +308,14 @@ function apply(state, finish) {
  * Dress a craft's regions in their finishes: `finishes` region id to a
  * finish id, a region left out (or on `film`) in the kit's, and every
  * region in `wear`, 0 to 1, and `under` region id to the 0xRRGGBB its
- * underside wears, a region left out one colour all round. The regions'
+ * underside wears, a region left out one colour all round; null leaves
+ * the undersides as they are, for the combat aircraft's loadout paint
+ * (src/render/combatpaint.js), which redresses finishes and does not own
+ * the underside. The regions'
  * materials are the livery's own (craft.livery.materials()); a craft
  * without them has no finishes to wear.
  */
-export function dressFinish(craft, finishes = {}, wear = 0, under = {}) {
+export function dressFinish(craft, finishes = {}, wear = 0, under = null) {
   if (!craft.livery || !craft.livery.materials) {
     return;
   }
@@ -320,7 +323,7 @@ export function dressFinish(craft, finishes = {}, wear = 0, under = {}) {
   let hooked = false;
   for (const [id, mats] of Object.entries(craft.livery.materials())) {
     const want = finishes[id] && finishes[id] !== 'film' ? finishes[id] : 'kit';
-    const below = under[id];
+    const below = under ? under[id] : undefined;
     for (const mat of mats) {
       let state = mat.userData.finishState;
       if (!state) {
@@ -332,7 +335,9 @@ export function dressFinish(craft, finishes = {}, wear = 0, under = {}) {
       }
       apply(state, want);
       state.u.uFinWear.value = wear;
-      state.u.uFinUnder.value = below === undefined ? 0 : 1;
+      if (under) {
+        state.u.uFinUnder.value = below === undefined ? 0 : 1;
+      }
       if (below !== undefined) {
         const k = ((shades[id] || []).find((p) => p.mat === mat) || { k: 1 }).k;
         state.u.uFinUnderCol.value.setHex(below).multiplyScalar(k);
