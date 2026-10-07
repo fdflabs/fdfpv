@@ -775,7 +775,12 @@ function pausedRows(ui, s) {
 
 function resultsRows(ui, s) {
   if (ui.roomResults && ui.roomResultsRows) {
-    return ui.roomResultsRows();
+    /* The replay right under the room's way back into the air (Fly on),
+     * above the room's own rows. */
+    const rows = ui.roomResultsRows();
+    const replay = replayRow(ui.resultsDebrief);
+    const at = rows.findIndex((it) => it.action === 'restart');
+    return replay && at >= 0 ? [...rows.slice(0, at + 1), replay, ...rows.slice(at + 1)] : rows;
   }
   const again = { label: str('ui.fly_again'), action: 'restart', primary: true };
   if (ui.osdMode === 'freestyle') {

@@ -3684,6 +3684,8 @@ export default {
   "debrief.top": "Highest",
   "debrief.top_value": "{m} m over the start",
   "debrief.n_of": "{n} of {of}",
+  "debrief.place": "Place",
+  "debrief.points": "Points",
   "debrief.clean_laps": "Clean laps",
   "debrief.gates": "Gates",
   "debrief.tricks_kinds": "Kinds of trick",

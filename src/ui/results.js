@@ -387,10 +387,12 @@ export const resultsMethods = {
    * v = { kicker, head, heroCap, heroTime, heroMeta, win, rows: [{ label,
    * time, tag, me, out }] }, all written by the shell. Nothing is posted.
    */
-  showRoomResults(v) {
+  showRoomResults(v, debrief = null) {
     this.roomResults = true;
     const first = this.screen !== 'results';
     resetScreen(this, Boolean(v.win), false, false);
+    this.resultsDebrief = debrief;
+    fillFacts(this.resultsFacts, debrief);
     this.resultsKicker.textContent = v.kicker;
     this.resultsHead.textContent = v.head;
     this.resultsHeroCap.textContent = v.heroCap;
