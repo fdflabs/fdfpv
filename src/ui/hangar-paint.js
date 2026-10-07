@@ -82,7 +82,7 @@ const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 const DECAL_COLOURS = PALETTE.filter((c) => !c.film);
 
 /* A small picture of a decal, drawn by the renderer's own art. */
-function thumb(d, w = 54, h = 34) {
+export function thumb(d, w = 54, h = 34) {
   const c = el('canvas', 'paint-thumb');
   const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
   c.width = Math.round(w * dpr);

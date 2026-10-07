@@ -59,6 +59,11 @@ const FINISHES = {
   metallic: { roughness: 0.34, metalness: 0.85, clearcoat: 1, clearcoatRoughness: 0.08 },
   chrome: { roughness: 0.04, metalness: 1 },
   aluminium: { roughness: 0.32, metalness: 1, grain: 0.04 },
+  satin: { roughness: 0.45, metalness: 0, clearcoat: 0.4, clearcoatRoughness: 0.35 },
+  pearl: { roughness: 0.3, metalness: 0.25, clearcoat: 1, clearcoatRoughness: 0.06 },
+  candy: { roughness: 0.2, metalness: 0.6, clearcoat: 1, clearcoatRoughness: 0.03 },
+  /* Gold whatever the region's paint (finish.js). */
+  gold: { roughness: 0.22, metalness: 1, color: 0xd9a441 },
 };
 
 /* Relative luminance of an sRGB hex, as the cel palette was authored. */
@@ -148,7 +153,7 @@ const NOISE = /* glsl */ `
 function craftMaterial(cel, finish) {
   const f = FINISHES[finish];
   const mat = new THREE.MeshPhysicalMaterial({
-    color: cel.color.clone(),
+    color: f.color === undefined ? cel.color.clone() : new THREE.Color().setHex(f.color, THREE.SRGBColorSpace),
     map: cel.map,
     roughness: f.roughness,
     metalness: f.metalness,

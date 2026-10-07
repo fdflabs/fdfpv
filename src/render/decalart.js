@@ -253,6 +253,21 @@ const DRAW = {
     tongues(1, 1, d.c);
     tongues(0.62, 0.5, d.c2);
   },
+  ribbon(g, d, w) {
+    /* A campaign ribbon bar (economy.js, earned with three stars): the
+     * bar in c, a broad centre band and a thin stripe near each end in
+     * c2, edged in c2. Plain bands, no insignia (non-goals). */
+    g.fillStyle = d.c;
+    g.fillRect(0.04, 0.12, w - 0.08, 0.76);
+    g.fillStyle = d.c2;
+    g.fillRect(w * 0.42, 0.12, w * 0.16, 0.76);
+    for (const x of [0.16, 0.8]) {
+      g.fillRect(w * x, 0.12, w * 0.04, 0.76);
+    }
+    g.lineWidth = 0.06;
+    g.strokeStyle = d.c2;
+    g.strokeRect(0.04, 0.12, w - 0.08, 0.76);
+  },
   shield(g, d, w) {
     const k = w / 0.84;
     const outline = [[0.06, 0.04], [0.78, 0.04], [0.78, 0.5], [0.42, 0.97], [0.06, 0.5]].map(([x, y]) => [x * k, y]);
