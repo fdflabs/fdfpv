@@ -323,6 +323,7 @@
     "domain:selftest": "node scripts/domain-selftest.js",
     "base:check": "node scripts/base-path-check.js",
     "move:selftest": "node scripts/move-selftest.js",
+    "listing:selftest": "node scripts/listing-selftest.js",
     "move:check": "node scripts/move-check.js",
     "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",
