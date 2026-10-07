@@ -97,7 +97,6 @@ src/ui/loading.js
 src/ui/pidspanel.js
 src/ui/progress-ui.js
 src/ui/ratespanel.js
-src/ui/scorehud.js
 src/ui/trickfilm.js
 src/ui/ui.js
 src/ui/update.js
