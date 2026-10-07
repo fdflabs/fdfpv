@@ -180,10 +180,16 @@ const SEED = `(() => {
 
 const dir = mkdtempSync(join(tmpdir(), 'game-lobby-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+/* The war: devMissions, and the page's ?missions=dev, since its mission 1
+ * is in development (held since 2026-10-07; src/game/campaign.js
+ * released). Its room is then private, the one kind the server makes for
+ * a mission in development, so its public and rooms panel rows fail
+ * until a mission is released again: they say what the war's card no
+ * longer does. */
+const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: GAME === 'war' });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`${GAME}: a card, one click into its lobby, rooms at ${rooms}`);
-const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
+const url = `/index.html?rooms=${encodeURIComponent(rooms)}${GAME === 'war' ? '&missions=dev' : ''}`;
 
 /* The room's own end of its round, in this process's server, sent the way
  * the room sends any change. */
