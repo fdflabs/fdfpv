@@ -339,7 +339,7 @@
     "lint:responsive": "node scripts/responsive-check.js",
     "lint:board": "node scripts/board-check.js",
     "board:live": "node scripts/board-live-check.js",
-    "orbit:check": "node scripts/orbit-check.js",
+    "orbitpage:check": "node scripts/orbitpage-check.js",
     "lint:attract": "node scripts/attract-check.js",
     "trick:sweep": "node scripts/trick-sweep.js",
     "trick:proven": "node scripts/trick-sweep.js --all --write",

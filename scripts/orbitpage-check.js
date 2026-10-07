@@ -1,8 +1,8 @@
 /*
- * orbit-check.js: the thumbnail page (src/share/orbit.html and orbit.js)
+ * orbitpage-check.js: the thumbnail page (src/share/orbit.html and orbit.js)
  * pinned as a transcript in Chromium.
  *
- *     node scripts/orbit-check.js [--dump=<file>]   (npm run orbit:check)
+ *     node scripts/orbitpage-check.js [--dump=<file>]   (npm run orbitpage:check)
  *
  * A plain page of this checkout frames orbit.html the way a map card and
  * the board do, and records what the frame tells its parent (the
