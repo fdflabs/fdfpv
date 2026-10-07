@@ -79,15 +79,23 @@ class Storage {
   }
 }
 
-/* A window at `url`, whose location.replace records where it went. */
+/* A window at `url`, whose location.replace records where it went and
+ * settles `left`. moveIn never settles once it has sent the page away (the
+ * page is leaving), so a test waits on `left` for that, never on a timer:
+ * under load a timer can fire before the async ask has gone. */
 function windowAt(url, { local = new Storage(), session = new Storage(), userAgent = 'Mozilla/5.0 Chrome/140' } = {}) {
-  const win = { localStorage: local, sessionStorage: session, navigator: { userAgent, webdriver: false }, went: null };
+  let markLeft;
+  const left = new Promise((r) => {
+    markLeft = r;
+  });
+  const win = { localStorage: local, sessionStorage: session, navigator: { userAgent, webdriver: false }, went: null, left };
   const set = (href) => {
     const u = new URL(href);
     win.location = {
       href: u.href, hostname: u.hostname, pathname: u.pathname, search: u.search, hash: u.hash,
       replace: (to) => {
         win.went = to;
+        markLeft(to);
       },
     };
   };
@@ -97,6 +105,17 @@ function windowAt(url, { local = new Storage(), session = new Storage(), userAge
     replaceState: (state, title, to) => set(new URL(to, win.location.href).href),
   };
   return win;
+}
+
+/* A wait that never ends would hang CI instead of failing a row, so every
+ * wait on a page leaving also gives up, loudly, after this long. */
+const STUCK_MS = 10000;
+function leftOrStuck(win) {
+  let timer;
+  const stuck = new Promise((r) => {
+    timer = setTimeout(() => r('stuck'), STUCK_MS);
+  });
+  return Promise.race([win.left, stuck]).finally(() => clearTimeout(timer));
 }
 
 const pageThere = () => Promise.resolve(new Response('', { status: 200 }));
@@ -226,7 +245,7 @@ console.log('the receiver');
   moveIn({ win, fetchImpl: pageThere }).then(() => {
     settled = true;
   });
-  await new Promise((r) => setTimeout(r, 20));
+  await leftOrStuck(win);
   const ask = new URL(win.went || 'about:blank');
   check('a fresh domain asks the sender, with its path and query', ask.href.startsWith(MOVE_PAGE) && ask.searchParams.get('back') === '/?room=K7PZ2M', win.went);
   check('marked asked first, so a broken return cannot loop', JSON.parse(win.localStorage.getItem(MARKER_KEY)).state === 'asked');
@@ -260,8 +279,7 @@ async function roundTrip(oldStore, startUrl) {
   const session = new Storage();
   let win = windowAt(startUrl, { local, session });
   for (let hop = 0; hop < 10; hop += 1) {
-    win.went = null;
-    const result = await Promise.race([moveIn({ win, fetchImpl: pageThere }), new Promise((r) => setTimeout(() => r(null), 50))]);
+    const result = await Promise.race([moveIn({ win, fetchImpl: pageThere }), leftOrStuck(win).then((to) => (to === 'stuck' ? 'stuck' : null))]);
     if (result !== null) {
       return { result, local, win, hops: hop };
     }
@@ -304,12 +322,12 @@ console.log('the round trip');
   const session = new Storage();
   let win = windowAt('https://paraguayandronecombatsimulator.com/', { local, session });
   moveIn({ win, fetchImpl: pageThere });
-  await new Promise((r) => setTimeout(r, 20));
+  await leftOrStuck(win);
   let sender = windowAt(win.went, { local: old });
   await moveOut(sender);
   win = windowAt(sender.went, { local, session });
   moveIn({ win, fetchImpl: pageThere });
-  await new Promise((r) => setTimeout(r, 20));
+  await leftOrStuck(win);
   old.setItem('webfpv.pilot.name', 'Changed');
   sender = windowAt(win.went, { local: old });
   await moveOut(sender);

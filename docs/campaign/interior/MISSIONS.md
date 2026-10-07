@@ -53,6 +53,7 @@ The war's general triggers stay (`time`, `region`, `objective`, `held`,
 | `post(state)` | M3's post condition reached `steady`, `pressed` or `critical` |
 | `chosen(branch)` | which branch a player choice took (M2's A or B, M5's decision) |
 | `route(C, point)` | contact C reached a named point on its authored route |
+| `station(s)` | s seconds after the pilots can be on station: the stage's opening, or on a checkpoint restart (which starts on the rail) the go plus the stage's `restartLead`, the time a first timer takes to fly back out; the contacts' times are held for the same lead |
 
 ### 1.3 Objectives, cards, stars, flags
 
@@ -217,8 +218,9 @@ outranks them. IBARRA's voice read clean (lines.json `ibarra-guide`,
 preset `guia`): no crackle, the owner's rule of 2026-10-04 that crackle
 belongs only to scripted story moments. A nudge is a lead, a clock bearing
 off the nose and a distance band, said back to back; it comes after
-20 s with no progress, or when the pilot is over 1.5 km from the
-objective, and the gap between nudges grows while nothing changes.
+20 s with no progress (closing on the objective by 100 m is progress,
+so a pilot on the way is left alone), and the gap between nudges grows
+while nothing changes.
 
 | id | cue | who | heard | EN |
 | --- | --- | --- | --- | --- |
@@ -435,8 +437,10 @@ the squad's captures (INTROS M1, N8).
 - **Fail:** the ISR destroyed with no other aircraft of the squad
   airborne; leaving the boundary after the final warning; the required
   survey impossible (a required item destroyed or the light gone: the
-  sun sets two minutes after the latest the script can need, so this
-  only fires on a broken run).
+  sun sets 59.9 minutes after the go, about 12 minutes after a first
+  timer flying the Bramor at 18 m/s lands (clock.js, measured by
+  interior:stages), so this fires on a run that dawdled or got lost,
+  not an ordinary one).
 - **Never fail:** for briefly losing a contact, imperfect framing, time,
   or a different valid route.
 

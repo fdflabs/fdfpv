@@ -1,264 +1,226 @@
 /*
- * noun-lint.js: the player only ever sees "track", never "course".
+ * noun-lint.js: the player only ever reads "track". Fails when "course" or
+ * "courses" appears in text a player can read: string literals in .js files
+ * and, in .html pages, inline script literals, text nodes and the attributes
+ * that render. Identifiers, screen ids, class names, storage keys, routes and
+ * comments are not read. Run with npm run lint:nouns.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
- * ONE WORD FOR ONE THING.
+ * One word for one thing. The object a player builds, publishes and races
+ * used to be a "track" in map ids, menu rows, screen titles and a mode, and a
+ * "course" on the board and in the builder's prose; the board's own empty
+ * state used both nouns in one sentence. A player cannot be expected to work
+ * out that two nouns are one object. The rename is finished; this keeps the
+ * word from coming back with the next new screen.
  *
- * "Track" was a map id, a menu row, a screen title and a mode, and the same
- * object was a "course" on the board and in the builder's prose. The board's
- * own empty state used both nouns in one sentence. A player cannot be
- * expected to work out that the thing they built, the thing they published
- * and the thing they are racing are the same object when the product calls
- * it two things.
- *
- * The rename is done. This is what stops it coming back, because it will:
- * the next screen somebody adds will say "course" if nothing objects.
- *
- * WHAT THIS CHECKS, and what it deliberately does not.
- *
- * Player-visible text only: string literals that reach the DOM, and HTML
- * text nodes and rendering attributes. NOT identifiers, screen ids, CSS
- * class names, storage keys or API routes. `activeCourseSummary` and
- * `.course-card` are fine: nobody reads them but us, and renaming a stored
- * key would orphan every track already in somebody's browser.
- *
- * Comments are not checked either. They are for whoever is reading the
- * code, and a comment explaining why a key is still spelled `course` has to
- * be allowed to say the word.
+ * Only player-visible text is policed. activeCourseSummary or .course-card
+ * are read by developers only, and renaming a stored key would orphan every
+ * track already saved in someone's browser. Comments are free to say the
+ * word, since one may have to explain why a key is still spelled that way.
  */
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, dirname, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-/* Directories that are not the product: vendored source, build output,
- * scratch, and the test suites, whose names describe code rather than
- * addressing a player. */
+/*
+ * Exceptions, each argued: a blanket rule that cannot be argued with gets
+ * switched off rather than obeyed. Entries are { file, text }, matched
+ * against the raw literal of a .js file. Empty now. The one historical entry
+ * was "FINA 50 m course" in the Municipal baths map (the swimming term), and
+ * it went with the map on 2026-08-30: an exception outliving the file it
+ * excuses is how such a list stops meaning anything.
+ */
+const ALLOWED = [];
+
 const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', '.loop', 'vendor', 'dist', 'tests', 'tmp']);
 
 /*
- * Sightings that are allowed, with their reasons, because a blanket rule
- * that cannot be argued with gets switched off rather than obeyed.
- *
- * EMPTY, and it was not always. The one entry was "FINA 50 m course" in
- * Municipal baths' reference table: the swimming term, long course as
- * against short course, and the real world figure the world-scale check
- * measured that pool against. That map was removed on 2026-08-30 and the
- * exception went with it. An exception outliving the file it excuses is
- * how a list like this stops meaning anything.
+ * The check harnesses drive the shell by its internal screen ids inside
+ * templates passed to page.evaluate (ui.show('courses')), which a string
+ * reader cannot tell from prose, and selftest names describe code. Other
+ * scripts that generate player-visible output are still read.
  */
-const ALLOWED = [
+const SKIP_FILES = [
+  (rel) => rel === 'scripts/noun-lint.js',
+  (rel) => rel.endsWith('selftest.js'),
+  (rel) => /^scripts\/[a-z-]+-check\.js$/.test(rel),
 ];
 
-const WORD = /(?<![A-Za-z0-9_])[Cc]ourses?(?![A-Za-z0-9_])/;
+const WORD = /(?<![A-Za-z0-9_])[cC]ourses?(?![A-Za-z0-9_])/;
+const MACHINE_TOKEN = /^[a-z0-9\-_./#?=&:]+$/;
+/* ${...} is code, not text: ${card.course.track.id} puts the word in front
+ * of the lint and nothing in front of a player. */
+const INTERPOLATION = /\$\{[^}]*\}/g;
+const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+const SCRIPT_BLOCK = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+const STYLE_BLOCK = /<style[^>]*>[\s\S]*?<\/style>/gi;
+const TEXT_NODE = />([^<]+)</g;
+const ATTRIBUTE = /(content|placeholder|aria-label|title|alt)="([^"]*)"/g;
+
+async function* walk(dir) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!SKIP_DIRS.has(entry.name)) {
+        yield* walk(path);
+      }
+      continue;
+    }
+    if (entry.name.endsWith('.js') || entry.name.endsWith('.html')) {
+      yield path;
+    }
+  }
+}
 
 /*
- * Strip comments, then hand back the string literals. Written as a small
- * scanner rather than a regex because a regex cannot tell an apostrophe in
- * a comment from the start of a string, and this file's whole job is to be
- * trusted about which text a player reads.
+ * A character scanner rather than a regex, because a regex cannot tell an
+ * apostrophe in a comment from the start of a string. It knows nothing of
+ * regex literals: a quote inside one opens a string.
  */
 function literals(src) {
-  const out = [];
+  const found = [];
   let i = 0;
-  const n = src.length;
-  while (i < n) {
-    const c = src[i];
-    if (c === '"' || c === "'" || c === '`') {
-      let j = i + 1;
-      while (j < n) {
-        if (src[j] === '\\') {
-          j += 2;
-          continue;
-        }
-        if (src[j] === c) {
-          break;
-        }
-        j += 1;
-      }
-      out.push({ at: i + 1, text: src.slice(i + 1, Math.min(j, n)) });
-      i = j + 1;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2);
+      i = end < 0 ? src.length : end + 2;
       continue;
     }
-    if (c === '/' && src[i + 1] === '*') {
-      const j = src.indexOf('*/', i + 2);
-      i = j < 0 ? n : j + 2;
+    if (ch === '/' && src[i + 1] === '/') {
+      const end = src.indexOf('\n', i);
+      i = end < 0 ? src.length : end;
       continue;
     }
-    if (c === '/' && src[i + 1] === '/') {
-      const j = src.indexOf('\n', i);
-      i = j < 0 ? n : j;
+    if (ch !== '\'' && ch !== '"' && ch !== '`') {
+      i++;
       continue;
     }
-    i += 1;
+    const start = i + 1;
+    let j = start;
+    while (j < src.length && src[j] !== ch) {
+      j += src[j] === '\\' ? 2 : 1;
+    }
+    const end = Math.min(j, src.length);
+    found.push({ pos: start, text: src.slice(start, end) });
+    i = end + 1;
   }
-  return out;
+  return found;
 }
 
-/*
- * A route, a storage key, a selector, or a list of CSS class names. Every
- * space separated token is lower case and made only of the characters those
- * things are made of, so `screen screen-page screen-courses` is machinery
- * and `A gated course` is prose.
- */
 function isMachineText(text) {
-  const tokens = text.trim().split(/\s+/).filter(Boolean);
-  if (!tokens.length) {
-    return true;
+  return text.trim().split(/\s+/).filter(Boolean).every((token) => MACHINE_TOKEN.test(token));
+}
+
+function visibleText(raw) {
+  return raw.replace(INTERPOLATION, '');
+}
+
+function lineAt(text, offset) {
+  let line = 1;
+  for (let i = 0; i < offset && i < text.length; i++) {
+    if (text[i] === '\n') {
+      line++;
+    }
   }
-  return tokens.every((t) => /^[a-z0-9\-_./#?=&:]+$/.test(t));
+  return line;
+}
+
+/* Keeps the newlines so every later line number still points into the original. */
+function blank(block) {
+  return block.replace(/[^\n]/g, '');
+}
+
+function readsAsProse(raw) {
+  const visible = visibleText(raw);
+  return WORD.test(visible) && !isMachineText(visible);
+}
+
+function lintJs(rel, src) {
+  return literals(src)
+    .filter(({ text }) => readsAsProse(text))
+    .filter(({ text }) => !ALLOWED.some((a) => a.file === rel && text.includes(a.text)))
+    .map(({ pos, text }) => ({ line: lineAt(src, pos), text: text.trim().replace(/\s+/g, ' ').slice(0, 90) }));
 }
 
 /*
- * Blank out every ${...} in a template literal.
- *
- * What is inside one is CODE, not text: `${card.course.track.id}` puts the
- * word in front of this check while putting nothing in front of a player.
- * Reading a property name as prose is the single biggest way this lint
- * could earn a reputation for crying wolf, and a lint with that reputation
- * gets switched off rather than obeyed.
+ * Style is not player text and script is JavaScript, read by the literal
+ * rule; both are blanked before the text node pass, or the palette and every
+ * inline module would come back as prose. Inline script lines are counted in
+ * the original file at the block's offset in the comment-stripped text, so a
+ * comment before a script reads short; kept so results match the history.
  */
-function stripInterpolations(text) {
-  return text.replace(/\$\{[^}]*\}/g, '');
-}
-
-async function walk(dir, out) {
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) {
-        continue;
-      }
-      await walk(join(dir, entry.name), out);
-      continue;
-    }
-    if (/\.(js|html)$/.test(entry.name)) {
-      out.push(join(dir, entry.name));
-    }
-  }
-  return out;
-}
-
-function lineOf(src, at) {
-  return src.slice(0, at).split('\n').length;
-}
-
-async function main() {
-  const files = await walk(root, []);
+function lintHtml(src) {
+  const stripped = src.replace(HTML_COMMENT, blank);
+  const scripts = [...stripped.matchAll(SCRIPT_BLOCK)];
+  const blanked = stripped.replace(STYLE_BLOCK, blank).replace(SCRIPT_BLOCK, blank);
   const findings = [];
-  let scanned = 0;
-
-  for (const file of files) {
-    const rel = relative(root, file);
-    /* This file names the word it is looking for, dozens of times. */
-    if (rel === 'scripts/noun-lint.js') {
-      continue;
-    }
-    /*
-     * A selftest's own check names describe code, not a player. So do the
-     * check harnesses under scripts/: they drive the shell by its INTERNAL
-     * screen ids, `ui.show('courses')`, and they carry that code inside
-     * template literals handed to page.evaluate, where it is indistinguishable
-     * from prose to anything reading strings. Those ids are deliberately
-     * not policed by this lint, so the harnesses that quote them are not
-     * either.
-     *
-     * Anything under scripts/ that GENERATES player-visible output, icons.js
-     * and og.js among them, is still scanned: only the -check.js harnesses
-     * are skipped, and only because their whole job is to name internals.
-     */
-    if (/selftest\.js$/.test(rel) || /^scripts\/[a-z-]+-check\.js$/.test(rel)) {
-      continue;
-    }
-    const raw = await readFile(file, 'utf8');
-    scanned += 1;
-
-    if (rel.endsWith('.html')) {
-      /*
-       * A <style> block is not text a player reads, and a <script> block is
-       * JavaScript, whose literals go through the same scanner as any other
-       * file's. Both are blanked here, keeping the line count, so the text
-       * node pass sees only what is actually rendered. Without this the
-       * whole palette and every inline module came back as prose.
-       */
-      const keepLines = (m) => '\n'.repeat((m.match(/\n/g) || []).length);
-      let src = raw.replace(/<!--[\s\S]*?-->/g, keepLines);
-      const inlineScripts = [...src.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
-      src = src.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, keepLines);
-      src = src.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, keepLines);
-      for (const sc of inlineScripts) {
-        for (const lit of literals(sc[1])) {
-          const visible = stripInterpolations(lit.text);
-          if (WORD.test(visible) && !isMachineText(visible)) {
-            findings.push({
-              rel,
-              line: lineOf(raw, sc.index),
-              text: `inline script: ${visible.trim().slice(0, 80)}`,
-            });
-          }
-        }
+  for (const script of scripts) {
+    const line = lineAt(src, script.index);
+    for (const { text } of literals(script[1])) {
+      if (readsAsProse(text)) {
+        findings.push({ line, text: `inline script: ${visibleText(text).trim().slice(0, 80)}` });
       }
-      /* Text nodes. */
-      for (const m of src.matchAll(/>([^<]+)</g)) {
-        if (WORD.test(m[1])) {
-          findings.push({ rel, line: lineOf(src, m.index), text: m[1].trim().slice(0, 90) });
-        }
-      }
-      /* The attributes that render. */
-      for (const m of src.matchAll(/(content|placeholder|aria-label|title|alt)="([^"]*)"/g)) {
-        if (WORD.test(m[2])) {
-          findings.push({ rel, line: lineOf(src, m.index), text: `${m[1]}="${m[2].slice(0, 70)}"` });
-        }
-      }
-      continue;
-    }
-
-    for (const lit of literals(raw)) {
-      const visible = stripInterpolations(lit.text);
-      if (!WORD.test(visible)) {
-        continue;
-      }
-      if (isMachineText(visible)) {
-        continue;
-      }
-      const line = lineOf(raw, lit.at);
-      const text = lit.text.trim().replace(/\s+/g, ' ').slice(0, 90);
-      if (ALLOWED.some((a) => a.file === rel && lit.text.includes(a.text))) {
-        continue;
-      }
-      findings.push({ rel, line, text });
     }
   }
-
-  console.log(`noun lint: ${scanned} file(s) scanned for a player-visible "course"`);
-  if (!findings.length) {
-    console.log(`  allowed, with reasons in this file: ${ALLOWED.length}`);
-    console.log('\nPASS, the player only ever sees a track');
-    return 0;
+  for (const node of blanked.matchAll(TEXT_NODE)) {
+    if (WORD.test(node[1])) {
+      findings.push({ line: lineAt(blanked, node.index), text: node[1].trim().slice(0, 90) });
+    }
   }
-  for (const f of findings) {
-    console.log(`  ${f.rel}:${f.line}  ${f.text}`);
+  for (const attr of blanked.matchAll(ATTRIBUTE)) {
+    const [, name, value] = attr;
+    if (WORD.test(value)) {
+      findings.push({ line: lineAt(blanked, attr.index), text: `${name}="${value.slice(0, 70)}"` });
+    }
   }
-  console.log(`\nFAIL, ${findings.length} player-visible "course"`);
-  console.log('The player sees one noun. Use track, or add an argued exception to ALLOWED.');
-  return 1;
+  return findings;
 }
 
-process.exit(await main());
+let scanned = 0;
+const failures = [];
+for await (const path of walk(root)) {
+  const rel = relative(root, path).split(sep).join('/');
+  if (SKIP_FILES.some((skip) => skip(rel))) {
+    continue;
+  }
+  scanned++;
+  const src = await readFile(path, 'utf8');
+  const findings = rel.endsWith('.html') ? lintHtml(src) : lintJs(rel, src);
+  for (const { line, text } of findings) {
+    failures.push(`  ${rel}:${line}  ${text}`);
+  }
+}
+
+console.log(`noun lint: ${scanned} file(s) scanned for a player-visible "course"`);
+if (failures.length) {
+  for (const failure of failures) {
+    console.log(failure);
+  }
+  console.log('');
+  console.log(`FAIL, ${failures.length} player-visible "course"`);
+  console.log('The player sees one noun. Use track, or add an argued exception to ALLOWED.');
+  process.exit(1);
+}
+console.log(`  allowed, with reasons in this file: ${ALLOWED.length}`);
+console.log('');
+console.log('PASS, the player only ever sees a track');

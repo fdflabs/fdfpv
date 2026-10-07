@@ -32,10 +32,20 @@ jobs:
       - run: npm run lint:nouns
       - run: npm run lint:copy
       - run: npm run lint:header
+      - run: npm run settings:golden
+      - run: npm run rows:golden
+      - run: npm run ways:golden
+      - run: npm run format:golden
+      - run: npm run widgets:golden
+      - run: npm run trickslist:golden
+      - run: npm run keys:golden
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
       - run: npm run dump:selftest
+      # The flight controller bench, src/ui/fc.js: rows, closures, DOM strips
+      # and the horizon, over a pinned module dump (scripts/fc-bench-selftest.js).
+      - run: npm run fc-bench:selftest
       # The firmware's name only in its Credits attribution: string tables,
       # script literals and the served pages (scripts/brand-lint.js).
       - run: npm run lint:bf
@@ -88,6 +98,9 @@ jobs:
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
+      # The camp changes on screen as its people act: the tarp, the mast
+      # and the pushed motorcycles read off the contacts the room tells.
+      - run: npm run interior:camp
       # The owner's allowlist (DEV_ACCOUNTS): only a host on it starts
       # missions in development on a live server.
       - run: npm run dev:accounts
@@ -138,10 +151,18 @@ jobs:
       - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
+      # The in-browser flight recorder and its blackbox CSV
+      # (src/share/flightlog.js), against a pinned transcript.
+      - run: npm run flightlog:selftest
+      # The ghost and live frame wire formats (src/share/ghostdata.js), bit
+      # for bit against a pinned transcript.
+      - run: npm run ghostdata:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
+      - run: npm run trickfilm:golden
+      - run: npm run loading:golden
       - run: npm run obstacles:golden
       - run: npm run track:golden
       - run: npm run guide:golden
@@ -183,6 +204,22 @@ jobs:
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
+      # The two named tabs, simulator and board (src/share/windows.js).
+      - run: npm run windows:selftest
+      # The pilot's name and the signed in account record
+      # (src/share/pilot.js), against a pinned transcript.
+      - run: npm run pilot:selftest
+      # A tester ticket sent to the board (src/share/bugs.js), against a
+      # pinned transcript.
+      - run: npm run bugs:selftest
+      # The seated course's summary for the title menu (src/share/summary.js).
+      - run: npm run summary:selftest
+      # How a seated track relates to the board (src/share/listing.js),
+      # against a transcript of answers, requests and storage.
+      - run: npm run listing:selftest
+      # The share seat, edit keys, binds and lap bookkeeping kept in this
+      # browser (src/share/session.js), against a pinned transcript.
+      - run: npm run session:selftest
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
@@ -201,6 +238,12 @@ jobs:
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest
+      # What this browser tells the board's statistics page, and when it
+      # refuses (src/share/stats.js), against a pinned transcript.
+      - run: npm run stats:selftest
+      # The language and statistics keys shared with the board, through
+      # their move to fdfpv.* names (src/share/sharedkeys.js).
+      - run: npm run sharedkeys:selftest
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest

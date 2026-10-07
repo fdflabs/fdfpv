@@ -1,0 +1,8863 @@
+{
+ "@boot": {
+  "state": {
+   "firstRun": true,
+   "screen": "title"
+  }
+ },
+ "calibrate": {
+  "screen": "calibrate",
+  "items": [],
+  "rows": [],
+  "leads": []
+ },
+ "courses": {
+  "screen": "courses",
+  "items": [
+   {
+    "action": "newtrack",
+    "id": "courses:a-newtrack",
+    "label": "New track",
+    "note": "Build one: choose the world, then place the gates where you want them."
+   },
+   {
+    "action": "leaderboard",
+    "id": "courses:a-leaderboard",
+    "label": "Tracks and Statistics on the web",
+    "note": "The public page, for sending somebody a link. Everything on it is in here too. Opens in a new tab."
+   },
+   {
+    "action": "back",
+    "id": "courses:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "New track"
+   },
+   {
+    "cls": "row row-link",
+    "text": "Tracks and Statistics on the web"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "courses:a-newtrack",
+    "to": "courses",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "courses:a-leaderboard",
+    "to": "courses",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "courses:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "credits": {
+  "screen": "credits",
+  "items": [
+   {
+    "action": "back",
+    "id": "credits:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "credits:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "fc": {
+  "screen": "fc",
+  "items": [
+   {
+    "current": "pid",
+    "id": "fc:tab",
+    "label": "Tab",
+    "note": "Flight controller tabs. Grey tabs can be read, not edited.",
+    "options": [
+     {
+      "label": "Setup",
+      "value": "setup"
+     },
+     {
+      "label": "Ports",
+      "value": "ports"
+     },
+     {
+      "label": "Configuration",
+      "value": "configuration"
+     },
+     {
+      "label": "PID Tuning",
+      "value": "pid"
+     },
+     {
+      "label": "Receiver",
+      "value": "receiver"
+     },
+     {
+      "label": "Modes",
+      "value": "modes"
+     },
+     {
+      "label": "Adjustments",
+      "value": "adjustments"
+     },
+     {
+      "label": "Servos",
+      "value": "servos"
+     },
+     {
+      "label": "Motors",
+      "value": "motors"
+     },
+     {
+      "label": "OSD",
+      "value": "osd"
+     },
+     {
+      "label": "VTX",
+      "value": "vtx"
+     },
+     {
+      "label": "LED Strip",
+      "value": "led"
+     },
+     {
+      "label": "GPS",
+      "value": "gps"
+     },
+     {
+      "label": "Failsafe",
+      "value": "failsafe"
+     },
+     {
+      "label": "Blackbox",
+      "value": "blackbox"
+     },
+     {
+      "label": "Blackbox viewer",
+      "value": "blackbox-viewer"
+     },
+     {
+      "label": "Power",
+      "value": "power"
+     },
+     {
+      "label": "Presets",
+      "value": "presets"
+     },
+     {
+      "label": "Firmware flasher",
+      "value": "flasher"
+     },
+     {
+      "label": "Autotune",
+      "value": "autotune"
+     },
+     {
+      "label": "Flight plan",
+      "value": "flight-plan"
+     },
+     {
+      "label": "User cloud profile",
+      "value": "cloud-profile"
+     },
+     {
+      "label": "Backups to cloud",
+      "value": "cloud-backups"
+     }
+    ],
+    "value": "PID Tuning"
+   },
+   {
+    "current": false,
+    "id": "fc:walk-every-key",
+    "label": "Walk every key",
+    "note": "Up and Down skip the 12 key(s) this build does not implement. Turn this on to walk them and read why each one is missing. They are still on screen either way.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "current": "pid",
+    "id": "fc:page",
+    "label": "Page",
+    "note": "PID Tuning in 4.5.1 is PID Profile, Filters, and Rateprofile.",
+    "options": [
+     {
+      "label": "PID Profile Settings",
+      "value": "pid"
+     },
+     {
+      "label": "Filter Settings",
+      "value": "filters"
+     },
+     {
+      "label": "Rateprofile Settings",
+      "value": "rates"
+     }
+    ],
+    "value": "PID Profile Settings"
+   },
+   {
+    "action": "fc-save",
+    "id": "fc:a-fc-save",
+    "label": "Save",
+    "note": "No edits. Save does not re-init, so a live race is not killed for nothing.",
+    "rowClass": "fc-btn"
+   },
+   {
+    "action": "fc-discard",
+    "id": "fc:a-fc-discard",
+    "label": "Discard",
+    "note": "Restores the dump that was live when this screen opened. Stays here.",
+    "rowClass": "fc-btn"
+   },
+   {
+    "action": "fc-export",
+    "id": "fc:a-fc-export",
+    "label": "Export",
+    "note": "Downloads CLI text a 4.5 configurator app can read. Does not Save. Text goes OUT of this simulator only; there is no door for pasting any back in.",
+    "rowClass": "fc-btn"
+   },
+   {
+    "action": "fc-back",
+    "id": "fc:a-fc-back",
+    "label": "Exit",
+    "note": "Leaves this screen. Escape does the same.",
+    "rowClass": "fc-btn"
+   },
+   {
+    "disabled": true,
+    "id": "fc:simplified-tuning",
+    "info": true,
+    "label": "Simplified tuning",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-simplified_pids_mode",
+    "key": "simplified_pids_mode",
+    "label": "simplified_pids_mode",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "RP",
+      "value": "RP"
+     },
+     {
+      "label": "RPY",
+      "value": "RPY"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "id": "fc:k-simplified_master_multiplier",
+    "key": "simplified_master_multiplier",
+    "label": "simplified_master_multiplier",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_i_gain",
+    "key": "simplified_i_gain",
+    "label": "simplified_i_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_d_gain",
+    "key": "simplified_d_gain",
+    "label": "simplified_d_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_pi_gain",
+    "key": "simplified_pi_gain",
+    "label": "simplified_pi_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_dmax_gain",
+    "key": "simplified_dmax_gain",
+    "label": "simplified_dmax_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_feedforward_gain",
+    "key": "simplified_feedforward_gain",
+    "label": "simplified_feedforward_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_pitch_d_gain",
+    "key": "simplified_pitch_d_gain",
+    "label": "simplified_pitch_d_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-simplified_pitch_pi_gain",
+    "key": "simplified_pitch_pi_gain",
+    "label": "simplified_pitch_pi_gain",
+    "note": "Writes the slider, then simplified_tuning apply, then any expert lines below it. The firmware does the math. The PIDs screen drives the same sliders with fewer steps.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:pid",
+    "info": true,
+    "label": "PID",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-p_pitch",
+    "key": "p_pitch",
+    "label": "p_pitch",
+    "note": "How hard the controller corrects the error it can see right now. More holds the line harder and shakes more in propwash.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-i_pitch",
+    "key": "i_pitch",
+    "label": "i_pitch",
+    "note": "How hard it corrects error that has been there a while. This is what holds an angle against wind and against a heavy battery.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_pitch",
+    "key": "d_pitch",
+    "label": "d_pitch",
+    "note": "Damping ceiling. Resists fast movement, which is what stops P ringing. Configurator apps call this D max.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-f_pitch",
+    "key": "f_pitch",
+    "label": "f_pitch",
+    "note": "Feedforward. Pushes on stick MOVEMENT, before any error has appeared, so the quad starts turning with your thumb rather than after it.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-p_roll",
+    "key": "p_roll",
+    "label": "p_roll",
+    "note": "How hard the controller corrects the error it can see right now. More holds the line harder and shakes more in propwash.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-i_roll",
+    "key": "i_roll",
+    "label": "i_roll",
+    "note": "How hard it corrects error that has been there a while. This is what holds an angle against wind and against a heavy battery.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_roll",
+    "key": "d_roll",
+    "label": "d_roll",
+    "note": "Damping ceiling. Resists fast movement, which is what stops P ringing. Configurator apps call this D max.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-f_roll",
+    "key": "f_roll",
+    "label": "f_roll",
+    "note": "Feedforward. Pushes on stick MOVEMENT, before any error has appeared, so the quad starts turning with your thumb rather than after it.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-p_yaw",
+    "key": "p_yaw",
+    "label": "p_yaw",
+    "note": "How hard the controller corrects the error it can see right now. More holds the line harder and shakes more in propwash.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-i_yaw",
+    "key": "i_yaw",
+    "label": "i_yaw",
+    "note": "How hard it corrects error that has been there a while. This is what holds an angle against wind and against a heavy battery.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_yaw",
+    "key": "d_yaw",
+    "label": "d_yaw",
+    "note": "Damping ceiling. Resists fast movement, which is what stops P ringing. Configurator apps call this D max.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-f_yaw",
+    "key": "f_yaw",
+    "label": "f_yaw",
+    "note": "Feedforward. Pushes on stick MOVEMENT, before any error has appeared, so the quad starts turning with your thumb rather than after it.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_min_roll",
+    "key": "d_min_roll",
+    "label": "d_min_roll",
+    "note": "Damping floor: where D sits while the sticks are still. It rises toward the ceiling only when the quad is being thrown about, so cruise stays cool and quiet.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_min_pitch",
+    "key": "d_min_pitch",
+    "label": "d_min_pitch",
+    "note": "Damping floor: where D sits while the sticks are still. It rises toward the ceiling only when the quad is being thrown about, so cruise stays cool and quiet.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_min_yaw",
+    "key": "d_min_yaw",
+    "label": "d_min_yaw",
+    "note": "Damping floor: where D sits while the sticks are still. It rises toward the ceiling only when the quad is being thrown about, so cruise stays cool and quiet.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_max_gain",
+    "key": "d_max_gain",
+    "label": "d_max_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-d_max_advance",
+    "key": "d_max_advance",
+    "label": "d_max_advance",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-vbat_sag_compensation",
+    "key": "vbat_sag_compensation",
+    "label": "vbat_sag_compensation",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 150,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-pid_at_min_throttle",
+    "key": "pid_at_min_throttle",
+    "label": "pid_at_min_throttle",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "disabled": true,
+    "id": "fc:anti-gravity",
+    "info": true,
+    "label": "Anti gravity",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-anti_gravity_gain",
+    "key": "anti_gravity_gain",
+    "label": "anti_gravity_gain",
+    "note": "How much extra I is thrown in during a fast throttle change. This is what stops the nose dropping when you punch out.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-anti_gravity_cutoff_hz",
+    "key": "anti_gravity_cutoff_hz",
+    "label": "anti_gravity_cutoff_hz",
+    "note": "Shapes how anti gravity reacts to the throttle: how quickly it decides a throttle move counts, and how much P rides along with the I boost.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 50,
+      "cliMin": 2,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-anti_gravity_p_gain",
+    "key": "anti_gravity_p_gain",
+    "label": "anti_gravity_p_gain",
+    "note": "Shapes how anti gravity reacts to the throttle: how quickly it decides a throttle move counts, and how much P rides along with the I boost.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~2",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-acc_limit_yaw",
+    "key": "acc_limit_yaw",
+    "label": "acc_limit_yaw",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 500,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-acc_limit",
+    "key": "acc_limit",
+    "label": "acc_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 500,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_dthreshold",
+    "key": "crash_dthreshold",
+    "label": "crash_dthreshold",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 2000,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_gthreshold",
+    "key": "crash_gthreshold",
+    "label": "crash_gthreshold",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 2000,
+      "cliMin": 100,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_setpoint_threshold",
+    "key": "crash_setpoint_threshold",
+    "label": "crash_setpoint_threshold",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 2000,
+      "cliMin": 50,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_time",
+    "key": "crash_time",
+    "label": "crash_time",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 5000,
+      "cliMin": 100,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_delay",
+    "key": "crash_delay",
+    "label": "crash_delay",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 500,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_recovery_angle",
+    "key": "crash_recovery_angle",
+    "label": "crash_recovery_angle",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 30,
+      "cliMin": 5,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_recovery_rate",
+    "key": "crash_recovery_rate",
+    "label": "crash_recovery_rate",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 255,
+      "cliMin": 50,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-crash_limit_yaw",
+    "key": "crash_limit_yaw",
+    "label": "crash_limit_yaw",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-crash_recovery",
+    "key": "crash_recovery",
+    "label": "crash_recovery",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     },
+     {
+      "label": "BEEP",
+      "value": "BEEP"
+     },
+     {
+      "label": "DISARM",
+      "value": "DISARM"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "disabled": true,
+    "id": "fc:iterm-relax",
+    "info": true,
+    "label": "Iterm relax",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-iterm_rotation",
+    "key": "iterm_rotation",
+    "label": "iterm_rotation",
+    "note": "Rotates accumulated I with the craft as it yaws, so I earned on roll does not end up fighting pitch after a spin.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-iterm_relax",
+    "key": "iterm_relax",
+    "label": "iterm_relax",
+    "note": "Which axes stop accumulating I while the sticks are moving. Without it, a fast flick banks up I that then springs back when you stop: the bounce at the end of a roll.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "RP",
+      "value": "RP"
+     },
+     {
+      "label": "RPY",
+      "value": "RPY"
+     },
+     {
+      "label": "RP_INC",
+      "value": "RP_INC"
+     },
+     {
+      "label": "RPY_INC",
+      "value": "RPY_INC"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "current": "GYRO",
+    "id": "fc:k-iterm_relax_type",
+    "key": "iterm_relax_type",
+    "label": "iterm_relax_type",
+    "note": "Whether relax watches the gyro or the setpoint. Setpoint is the modern default and reacts to what you asked for rather than to what happened.",
+    "options": [
+     {
+      "label": "GYRO",
+      "value": "GYRO"
+     },
+     {
+      "label": "SETPOINT",
+      "value": "SETPOINT"
+     }
+    ],
+    "rowClass": "",
+    "value": "GYRO"
+   },
+   {
+    "id": "fc:k-iterm_relax_cutoff",
+    "key": "iterm_relax_cutoff",
+    "label": "iterm_relax_cutoff",
+    "note": "How quick a stick movement counts as moving. Lower leaves relax on for longer and is calmer; higher lets I build sooner and holds better.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 50,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-iterm_windup",
+    "key": "iterm_windup",
+    "label": "iterm_windup",
+    "note": "The motor saturation point past which I stops growing, so a quad pinned at full throttle does not bank up correction it can never deliver.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 30,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-iterm_limit",
+    "key": "iterm_limit",
+    "label": "iterm_limit",
+    "note": "A hard ceiling on how much I is allowed to contribute at all.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 500,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~3",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-pidsum_limit",
+    "key": "pidsum_limit",
+    "label": "pidsum_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 100,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-pidsum_limit_yaw",
+    "key": "pidsum_limit_yaw",
+    "label": "pidsum_limit_yaw",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 1000,
+      "cliMin": 100,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:tpa",
+    "info": true,
+    "label": "TPA",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-throttle_boost",
+    "key": "throttle_boost",
+    "label": "throttle_boost",
+    "note": "A short kick of extra throttle on a fast throttle movement, so punch outs feel sharper than the motors alone would give.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-throttle_boost_cutoff",
+    "key": "throttle_boost_cutoff",
+    "label": "throttle_boost_cutoff",
+    "note": "A short kick of extra throttle on a fast throttle movement, so punch outs feel sharper than the motors alone would give.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 50,
+      "cliMin": 5,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:angle",
+    "info": true,
+    "label": "Angle",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-angle_p_gain",
+    "key": "angle_p_gain",
+    "label": "angle_p_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-angle_feedforward",
+    "key": "angle_feedforward",
+    "label": "angle_feedforward",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-angle_feedforward_smoothing_ms",
+    "key": "angle_feedforward_smoothing_ms",
+    "label": "angle_feedforward_smoothing_ms",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-angle_limit",
+    "key": "angle_limit",
+    "label": "angle_limit",
+    "note": "How far Angle mode will let the quad lean. This is the ceiling a hands-off recovery levels back to.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 85,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-angle_earth_ref",
+    "key": "angle_earth_ref",
+    "label": "angle_earth_ref",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~4",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-abs_control_gain",
+    "key": "abs_control_gain",
+    "label": "abs_control_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 20,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-abs_control_limit",
+    "key": "abs_control_limit",
+    "label": "abs_control_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 255,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-abs_control_error_limit",
+    "key": "abs_control_error_limit",
+    "label": "abs_control_error_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 45,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-abs_control_cutoff",
+    "key": "abs_control_cutoff",
+    "label": "abs_control_cutoff",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 45,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-use_integrated_yaw",
+    "key": "use_integrated_yaw",
+    "label": "use_integrated_yaw",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "id": "fc:k-integrated_yaw_relax",
+    "key": "integrated_yaw_relax",
+    "label": "integrated_yaw_relax",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 255,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-motor_output_limit",
+    "key": "motor_output_limit",
+    "label": "motor_output_limit",
+    "note": "A cap on how much of the motor range the mixer may use.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "NORMAL",
+    "id": "fc:k-launch_control_mode",
+    "key": "launch_control_mode",
+    "label": "launch_control_mode",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "NORMAL",
+      "value": "NORMAL"
+     },
+     {
+      "label": "PITCHONLY",
+      "value": "PITCHONLY"
+     },
+     {
+      "label": "FULL",
+      "value": "FULL"
+     }
+    ],
+    "rowClass": "",
+    "value": "NORMAL"
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-launch_trigger_allow_reset",
+    "key": "launch_trigger_allow_reset",
+    "label": "launch_trigger_allow_reset",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "id": "fc:k-launch_trigger_throttle_percent",
+    "key": "launch_trigger_throttle_percent",
+    "label": "launch_trigger_throttle_percent",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 90,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-launch_angle_limit",
+    "key": "launch_angle_limit",
+    "label": "launch_angle_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 80,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-launch_control_gain",
+    "key": "launch_control_gain",
+    "label": "launch_control_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-thrust_linear",
+    "key": "thrust_linear",
+    "label": "thrust_linear",
+    "note": "How the mixer turns the controller’s roll, pitch, yaw and throttle demands into four motor outputs.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 150,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-transient_throttle_limit",
+    "key": "transient_throttle_limit",
+    "label": "transient_throttle_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 30,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:feedforward",
+    "info": true,
+    "label": "Feedforward",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-feedforward_transition",
+    "key": "feedforward_transition",
+    "label": "feedforward_transition",
+    "note": "Fades feedforward in away from centre stick, so tiny corrections around the middle are not amplified.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-feedforward_averaging",
+    "key": "feedforward_averaging",
+    "label": "feedforward_averaging",
+    "note": "Averages feedforward over a number of RC frames. Smoother on a slow link, later on a fast one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "2_POINT",
+      "value": "2_POINT"
+     },
+     {
+      "label": "3_POINT",
+      "value": "3_POINT"
+     },
+     {
+      "label": "4_POINT",
+      "value": "4_POINT"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "id": "fc:k-feedforward_smooth_factor",
+    "key": "feedforward_smooth_factor",
+    "label": "feedforward_smooth_factor",
+    "note": "Smooths the feedforward signal. More is calmer and slightly later; less is sharper and noisier.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 95,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-feedforward_jitter_factor",
+    "key": "feedforward_jitter_factor",
+    "label": "feedforward_jitter_factor",
+    "note": "Ignores the small stick jitter a radio always has, so feedforward does not chase a thumb tremor.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 20,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-feedforward_boost",
+    "key": "feedforward_boost",
+    "label": "feedforward_boost",
+    "note": "Extra push on the sharpest part of a stick movement, on top of feedforward itself.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 50,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-feedforward_max_rate_limit",
+    "key": "feedforward_max_rate_limit",
+    "label": "feedforward_max_rate_limit",
+    "note": "Stops feedforward asking for more rotation than the rates allow.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~5",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-dyn_idle_min_rpm",
+    "key": "dyn_idle_min_rpm",
+    "label": "dyn_idle_min_rpm",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-dyn_idle_p_gain",
+    "key": "dyn_idle_p_gain",
+    "label": "dyn_idle_p_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-dyn_idle_i_gain",
+    "key": "dyn_idle_i_gain",
+    "label": "dyn_idle_i_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 1,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-dyn_idle_d_gain",
+    "key": "dyn_idle_d_gain",
+    "label": "dyn_idle_d_gain",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-dyn_idle_max_increase",
+    "key": "dyn_idle_max_increase",
+    "label": "dyn_idle_max_increase",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 255,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-dyn_idle_start_increase",
+    "key": "dyn_idle_start_increase",
+    "label": "dyn_idle_start_increase",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 255,
+      "cliMin": 10,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:angle~2",
+    "info": true,
+    "label": "Angle",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-level_race_mode",
+    "key": "level_race_mode",
+    "label": "level_race_mode",
+    "note": "How hard Angle and Horizon pull the quad back toward level, and how quickly.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "disabled": true,
+    "id": "fc:tpa~2",
+    "info": true,
+    "label": "TPA",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "current": "PD",
+    "id": "fc:k-tpa_mode",
+    "key": "tpa_mode",
+    "label": "tpa_mode",
+    "note": "Whether TPA reduces D only, or P and D together.",
+    "options": [
+     {
+      "label": "PD",
+      "value": "PD"
+     },
+     {
+      "label": "D",
+      "value": "D"
+     }
+    ],
+    "rowClass": "",
+    "value": "PD"
+   },
+   {
+    "id": "fc:k-tpa_rate",
+    "key": "tpa_rate",
+    "label": "tpa_rate",
+    "note": "How much PID gain is taken away at high throttle. Fast air needs less correction, and leaving full gain there is what makes a quad buzz on a straight.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-tpa_breakpoint",
+    "key": "tpa_breakpoint",
+    "label": "tpa_breakpoint",
+    "note": "The throttle position where that reduction starts. Below this, gains are untouched.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 2000,
+      "cliMin": 1000,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-tpa_low_rate",
+    "key": "tpa_low_rate",
+    "label": "tpa_low_rate",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-tpa_low_breakpoint",
+    "key": "tpa_low_breakpoint",
+    "label": "tpa_low_breakpoint",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 2000,
+      "cliMin": 1000,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "current": "OFF",
+    "id": "fc:k-tpa_low_always",
+    "key": "tpa_low_always",
+    "label": "tpa_low_always",
+    "note": "A named choice from the firmware’s own list. No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "options": [
+     {
+      "label": "OFF",
+      "value": "OFF"
+     },
+     {
+      "label": "ON",
+      "value": "ON"
+     }
+    ],
+    "rowClass": "",
+    "value": "OFF"
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~6",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "id": "fc:k-ez_landing_threshold",
+    "key": "ez_landing_threshold",
+    "label": "ez_landing_threshold",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-ez_landing_limit",
+    "key": "ez_landing_limit",
+    "label": "ez_landing_limit",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 75,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "id": "fc:k-ez_landing_speed",
+    "key": "ez_landing_speed",
+    "label": "ez_landing_speed",
+    "note": "No plain-English note has been written for this key yet, so nothing here will guess at one.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 250,
+      "cliMin": 0,
+      "decimals": 0,
+      "scale": 1,
+      "unit": ""
+     },
+     "text": "0",
+     "unit": ""
+    },
+    "rowClass": ""
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-rateprofile_name",
+    "info": true,
+    "key": "rateprofile_name",
+    "label": "rateprofile_name",
+    "note": "One rate profile, profile 0",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-profile_name",
+    "info": true,
+    "key": "profile_name",
+    "label": "profile_name",
+    "note": "One PID profile, profile 0",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-acro_trainer_angle_limit",
+    "info": true,
+    "key": "acro_trainer_angle_limit",
+    "label": "acro_trainer_angle_limit",
+    "note": "USE_ACRO_TRAINER is not built for this target",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-acro_trainer_lookahead_ms",
+    "info": true,
+    "key": "acro_trainer_lookahead_ms",
+    "label": "acro_trainer_lookahead_ms",
+    "note": "USE_ACRO_TRAINER is not built for this target",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-acro_trainer_debug_axis",
+    "info": true,
+    "key": "acro_trainer_debug_axis",
+    "label": "acro_trainer_debug_axis",
+    "note": "USE_ACRO_TRAINER is not built for this target",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-acro_trainer_gain",
+    "info": true,
+    "key": "acro_trainer_gain",
+    "label": "acro_trainer_gain",
+    "note": "USE_ACRO_TRAINER is not built for this target",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:angle~3",
+    "info": true,
+    "label": "Angle",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-horizon_level_strength",
+    "info": true,
+    "key": "horizon_level_strength",
+    "label": "horizon_level_strength",
+    "note": "Stored. HORIZON_MODE is never raised. ANGLE is sim_set_angle_mode. pidLevel never reads Horizon gains.",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-horizon_limit_sticks",
+    "info": true,
+    "key": "horizon_limit_sticks",
+    "label": "horizon_limit_sticks",
+    "note": "Stored. HORIZON_MODE is never raised. pidLevel never reads Horizon stick limits.",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-horizon_limit_degrees",
+    "info": true,
+    "key": "horizon_limit_degrees",
+    "label": "horizon_limit_degrees",
+    "note": "Stored. HORIZON_MODE is never raised.",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-horizon_ignore_sticks",
+    "info": true,
+    "key": "horizon_ignore_sticks",
+    "label": "horizon_ignore_sticks",
+    "note": "Stored. HORIZON_MODE is never raised.",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-horizon_delay_ms",
+    "info": true,
+    "key": "horizon_delay_ms",
+    "label": "horizon_delay_ms",
+    "note": "Stored. HORIZON_MODE is never raised.",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   },
+   {
+    "disabled": true,
+    "id": "fc:advanced~7",
+    "info": true,
+    "label": "Advanced",
+    "note": "Screen group. Values still travel as CLI.",
+    "rowClass": "fc-section"
+   },
+   {
+    "disabled": true,
+    "id": "fc:k-auto_profile_cell_count",
+    "info": true,
+    "key": "auto_profile_cell_count",
+    "label": "auto_profile_cell_count",
+    "note": "One PID profile, profile 0",
+    "rowClass": "row-grey",
+    "skip": true,
+    "value": "unset"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "TabPID Tuning"
+   },
+   {
+    "cls": "row",
+    "text": "Walk every keyOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "PagePID Profile Settings"
+   },
+   {
+    "cls": "row fc-btn",
+    "text": "Save"
+   },
+   {
+    "cls": "row fc-btn",
+    "text": "Discard"
+   },
+   {
+    "cls": "row fc-btn",
+    "text": "Export"
+   },
+   {
+    "cls": "row fc-btn",
+    "text": "Exit"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Simplified tuning"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_pids_modeOFFRPRPY"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_master_multiplier"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_i_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_d_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_pi_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_dmax_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_feedforward_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_pitch_d_gain"
+   },
+   {
+    "cls": "row",
+    "text": "simplified_pitch_pi_gain"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "PID"
+   },
+   {
+    "cls": "row",
+    "text": "p_pitch▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "i_pitch▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_pitch▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "f_pitch▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "p_roll▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "i_roll▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_roll▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "f_roll▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "p_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "i_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "f_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_min_roll▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_min_pitch▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_min_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_max_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "d_max_advance▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "vbat_sag_compensation▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "pid_at_min_throttleOFFON"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Anti gravity"
+   },
+   {
+    "cls": "row",
+    "text": "anti_gravity_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "anti_gravity_cutoff_hz▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "anti_gravity_p_gain▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "acc_limit_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "acc_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_dthreshold▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_gthreshold▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_setpoint_threshold▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_time▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_delay▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_recovery_angle▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_recovery_rate▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_limit_yaw▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "crash_recoveryOFFONBEEPDISARM"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Iterm relax"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_rotationOFFON"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_relaxOFF"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_relax_typeGYROSETPOINT"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_relax_cutoff▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_windup▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "iterm_limit▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "pidsum_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "pidsum_limit_yaw▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "TPA"
+   },
+   {
+    "cls": "row",
+    "text": "throttle_boost▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "throttle_boost_cutoff▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Angle"
+   },
+   {
+    "cls": "row",
+    "text": "angle_p_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "angle_feedforward▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "angle_feedforward_smoothing_ms▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "angle_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "angle_earth_ref▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "abs_control_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "abs_control_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "abs_control_error_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "abs_control_cutoff▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "use_integrated_yawOFFON"
+   },
+   {
+    "cls": "row",
+    "text": "integrated_yaw_relax▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "motor_output_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "launch_control_modeNORMALPITCHONLYFULL"
+   },
+   {
+    "cls": "row",
+    "text": "launch_trigger_allow_resetOFFON"
+   },
+   {
+    "cls": "row",
+    "text": "launch_trigger_throttle_percent▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "launch_angle_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "launch_control_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "thrust_linear▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "transient_throttle_limit▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Feedforward"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_transition▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_averagingOFF2_POINT3_POINT4_POINT"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_smooth_factor▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_jitter_factor▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_boost▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "feedforward_max_rate_limit▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_min_rpm▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_p_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_i_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_d_gain▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_max_increase▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "dyn_idle_start_increase▲▼"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Angle"
+   },
+   {
+    "cls": "row",
+    "text": "level_race_modeOFFON"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "TPA"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_modePDD"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_rate▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_breakpoint▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_low_rate▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_low_breakpoint▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "tpa_low_alwaysOFFON"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row",
+    "text": "ez_landing_threshold▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "ez_landing_limit▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "ez_landing_speed▲▼"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "rateprofile_nameunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "profile_nameunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "acro_trainer_angle_limitunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "acro_trainer_lookahead_msunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "acro_trainer_debug_axisunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "acro_trainer_gainunset"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Angle"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "horizon_level_strengthunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "horizon_limit_sticksunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "horizon_limit_degreesunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "horizon_ignore_sticksunset"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "horizon_delay_msunset"
+   },
+   {
+    "cls": "row row-info row-grey fc-section",
+    "text": "Advanced"
+   },
+   {
+    "cls": "row row-info row-grey row-grey",
+    "text": "auto_profile_cell_countunset"
+   }
+  ]
+ },
+ "freestyle": {
+  "screen": "freestyle",
+  "items": [
+   {
+    "action": "map:alps",
+    "id": "freestyle:a-map:alps",
+    "label": "The Alps",
+    "map": {
+     "build": true,
+     "buildMs": 917,
+     "id": "alps",
+     "mode": "freestyle",
+     "name": "The Alps",
+     "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock.",
+     "poster": "assets/posters/alps.jpg"
+    },
+    "note": "A glacial valley six kilometres long between snow ridges, pine on the slopes, a village and a grass strip on the floor and a lake at its foot. No gates, no clock."
+   },
+   {
+    "action": "map:swiss2",
+    "id": "freestyle:a-map:swiss2",
+    "label": "Swiss valley, photoreal",
+    "map": {
+     "build": true,
+     "buildMs": 2500,
+     "id": "swiss2",
+     "mode": "freestyle",
+     "name": "Swiss valley, photoreal",
+     "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock.",
+     "poster": "assets/posters/swiss2.jpg"
+    },
+    "note": "The Alps' valley drawn to look like a photograph: photographed meadow, rock, timber and slate, the real sky lighting it, and haze on the far ridges. Heavier on the graphics card than the Alps. No gates, no clock."
+   },
+   {
+    "action": "map:itaipu",
+    "id": "freestyle:a-map:itaipu",
+    "label": "Itaipu",
+    "map": {
+     "build": true,
+     "buildMs": 2600,
+     "id": "itaipu",
+     "mode": "freestyle",
+     "name": "Itaipu",
+     "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock.",
+     "poster": "assets/posters/itaipu.jpg"
+    },
+    "note": "Forty kilometres square round the Itaipu Dam on the Parana at real scale, from satellite imagery and elevation: the dam, the reservoir and the river below at their levels, the towns and the forests. Map data (c) OpenStreetMap contributors. No gates, no clock."
+   },
+   {
+    "action": "map:interior",
+    "id": "freestyle:a-map:interior",
+    "label": "The Interior (in development)",
+    "map": {
+     "buildMs": 2600,
+     "id": "interior",
+     "mode": "freestyle",
+     "name": "The Interior (in development)",
+     "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock."
+    },
+    "note": "In development: The Interior campaign's map, sixteen kilometres square of ranch land, soy fields, gallery forest and a slow river, the land from open elevation and land cover data and every road, house and name on it invented. Mission 1's corridor only. No gates, no clock."
+   },
+   {
+    "current": "off",
+    "id": "freestyle:scoring",
+    "label": "Scoring",
+    "note": "Off: no overlay, no names and no run clock, just the valley and the quad. Free flight: tricks are named and scored as you land them, with no clock and no board, and the run never ends. That is the one to learn a Powerloop in. Scored run: two minutes on the clock, and what you finish with goes to the high score board.",
+    "options": [
+     {
+      "label": "Off",
+      "value": "off"
+     },
+     {
+      "label": "Free flight",
+      "value": "free"
+     },
+     {
+      "label": "Scored run",
+      "value": "scored"
+     }
+    ],
+    "pickOnly": true,
+    "value": "Off"
+   },
+   {
+    "action": "quad",
+    "id": "freestyle:a-quad",
+    "label": "Plane",
+    "note": "The machine. Its Tune row opens PIDs, where the tune is chosen and the firmware's own sliders adjust it, and the camera, the flight mode and the firmware bench are there too.",
+    "value": "Timber, Acro"
+   },
+   {
+    "current": "expert",
+    "id": "freestyle:physics-model",
+    "label": "Physics model",
+    "note": "Expert: the full physics, propwash, gyro noise and build tolerance included. Arcade turns the imperfections off for a friendlier machine. Takes effect on the next flight.",
+    "options": [
+     {
+      "label": "Expert",
+      "value": "expert"
+     },
+     {
+      "label": "Arcade",
+      "value": "arcade"
+     }
+    ],
+    "value": "Expert"
+   },
+   {
+    "current": true,
+    "id": "freestyle:crash-damage",
+    "label": "Crash damage",
+    "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
+    "action": "back",
+    "id": "freestyle:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row",
+    "text": "ScoringOffFree flightScored run"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "PlaneTimber, Acro"
+   },
+   {
+    "cls": "row",
+    "text": "Physics modelExpertArcade"
+   },
+   {
+    "cls": "row",
+    "text": "Crash damageOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "freestyle:a-map:alps",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "freestyle:a-map:swiss2",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "freestyle:a-map:itaipu",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "freestyle:a-map:interior",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "freestyle:scoring",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "freestyle:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "freestyle:physics-model",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "freestyle:crash-damage",
+    "to": "freestyle",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "freestyle:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "friends": {
+  "screen": "friends",
+  "items": [
+   {
+    "action": "rooms",
+    "id": "friends:a-rooms",
+    "label": "Rooms",
+    "note": "Every public room flying right now, with its name and who is in it. Pick one to join.",
+    "primary": true,
+    "value": ""
+   },
+   {
+    "action": "roomnew",
+    "id": "friends:a-roomnew",
+    "label": "Make a room",
+    "note": "Name it, choose public or private, the world and a game.",
+    "primary": false
+   },
+   {
+    "action": "friends-join",
+    "id": "friends:a-friends-join",
+    "label": "Join with a code",
+    "note": "Type the six letter code a friend gave you."
+   },
+   {
+    "current": "[1,2,42]",
+    "id": "friends:your-name",
+    "label": "Your name",
+    "note": "Names are picked from a list, never typed, so nobody in a room can write anything to anybody.",
+    "options": [
+     {
+      "label": "Happy Eagle 42",
+      "value": "[1,2,42]"
+     },
+     "<noise>",
+     "<noise>"
+    ],
+    "value": "Happy Eagle 42"
+   },
+   {
+    "id": "friends:your-pilot",
+    "label": "Your pilot",
+    "note": "How you stand on the field while you fly: a suit and a cap.",
+    "value": "4 of 12"
+   },
+   {
+    "action": "back",
+    "id": "friends:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-nav row-primary on",
+    "text": "Rooms"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Make a room"
+   },
+   {
+    "cls": "row",
+    "text": "Join with a code"
+   },
+   {
+    "cls": "row",
+    "text": "Your nameHappy Eagle 42"
+   },
+   {
+    "cls": "row",
+    "text": "Your pilot4 of 12▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "friends:a-rooms",
+    "to": "rooms",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rooms"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "friends:a-roomnew",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "roomnew"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "friends:a-friends-join",
+    "to": "friends",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "friends:your-name",
+    "to": "friends",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "friends:your-pilot",
+    "to": "friends",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "friends:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "howto": {
+  "screen": "howto",
+  "items": [
+   {
+    "action": "back",
+    "id": "howto:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "howto:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "launch": {
+  "screen": "launch",
+  "items": [
+   {
+    "id": "launch:track",
+    "info": true,
+    "label": "Track",
+    "note": "This is what your time will be measured on.",
+    "value": "Track"
+   },
+   {
+    "action": "quad",
+    "id": "launch:a-quad",
+    "label": "Plane",
+    "note": "The tune, the PIDs, the camera and the firmware. Opens Quad. Whatever is loaded there is what this run flies, and it goes to the board with the time.",
+    "value": "Timber, Acro"
+   },
+   {
+    "id": "launch:s-what-this-run-counts-as",
+    "label": "What this run counts as",
+    "section": true
+   },
+   {
+    "current": 3,
+    "id": "launch:laps",
+    "label": "Laps",
+    "note": "How many laps a run lasts before the result screen. Latched when you launch, so changing it mid-run does nothing until the next one.",
+    "options": [
+     {
+      "label": "1",
+      "value": 1
+     },
+     {
+      "label": "3",
+      "value": 3
+     },
+     {
+      "label": "5",
+      "value": 5
+     }
+    ],
+    "value": "3"
+   },
+   {
+    "current": 4.2,
+    "id": "launch:pack-charge",
+    "label": "Pack charge",
+    "note": "A tired pack sags harder and gives less punch. Best laps are kept per charge level, so a time set on a fresh pack and a time set on a tired one are two different records.",
+    "options": [
+     {
+      "label": "4.20 volts per cell",
+      "value": 4.2
+     },
+     {
+      "label": "3.80 volts per cell",
+      "value": 3.8
+     },
+     {
+      "label": "3.50 volts per cell",
+      "value": 3.5
+     }
+    ],
+    "value": "4.20 volts per cell"
+   },
+   {
+    "current": "expert",
+    "id": "launch:flight-model",
+    "label": "Flight model",
+    "note": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",
+    "options": [
+     {
+      "label": "Expert",
+      "value": "expert"
+     },
+     {
+      "label": "Arcade",
+      "value": "arcade"
+     }
+    ],
+    "value": "Expert"
+   },
+   {
+    "current": true,
+    "id": "launch:crash-damage",
+    "label": "Crash damage",
+    "note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
+    "current": "perfect",
+    "id": "launch:radio-link",
+    "label": "Radio link",
+    "note": "A perfect link is sharper than any real radio: every frame arrives, exactly on time. Times set on it are marked on the board.",
+    "options": [
+     {
+      "label": "Perfect (no radio)",
+      "value": "perfect"
+     },
+     {
+      "label": "ELRS 500 Hz",
+      "value": "elrs500"
+     },
+     {
+      "label": "ELRS 250 Hz",
+      "value": "elrs250"
+     },
+     {
+      "label": "ELRS 150 Hz",
+      "value": "elrs150"
+     },
+     {
+      "label": "Crossfire 150 Hz",
+      "value": "crossfire"
+     }
+    ],
+    "value": "Perfect (no radio)"
+   },
+   {
+    "action": "launch-go",
+    "id": "launch:a-launch-go",
+    "label": "Fly",
+    "note": "Your best on Track is filed under exactly this: Expert physics, 4.20 V per cell, 3 laps, the Acro tune. Change any part of it and you are on a different board. This run is on a perfect link.",
+    "primary": true
+   },
+   {
+    "action": "back",
+    "id": "launch:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-info",
+    "text": "TrackTrack"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "PlaneTimber, Acro"
+   },
+   {
+    "cls": "row",
+    "text": "Laps135"
+   },
+   {
+    "cls": "row",
+    "text": "Pack charge4.20 volts per cell"
+   },
+   {
+    "cls": "row",
+    "text": "Flight modelExpertArcade"
+   },
+   {
+    "cls": "row",
+    "text": "Crash damageOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Radio linkPerfect (no radio)"
+   },
+   {
+    "cls": "row row-primary on",
+    "text": "Fly"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "launch:track",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "launch:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "launch:laps",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "launch:pack-charge",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "launch:flight-model",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "launch:crash-damage",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "launch:radio-link",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "launch:a-launch-go",
+    "to": "launch",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "launch:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "padpick": {
+  "screen": "padpick",
+  "items": [],
+  "rows": [],
+  "leads": []
+ },
+ "paused": {
+  "screen": "paused",
+  "items": [
+   {
+    "action": "resume",
+    "id": "paused:a-resume",
+    "label": "Resume",
+    "primary": true
+   },
+   {
+    "action": "restart",
+    "id": "paused:a-restart",
+    "label": "Restart run"
+   },
+   {
+    "action": "hotswap",
+    "id": "paused:a-hotswap",
+    "label": "Change aircraft",
+    "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
+    "value": "Timber"
+   },
+   {
+    "action": "customise",
+    "id": "paused:a-customise",
+    "label": "Customise",
+    "note": "The power and the paint of the plane you are flying. Save puts them on it where it is."
+   },
+   {
+    "id": "paused:s-does-it-feel-wrong",
+    "label": "Does it feel wrong?",
+    "section": true
+   },
+   {
+    "action": "pids",
+    "id": "paused:a-pids",
+    "label": "Tune",
+    "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
+    "value": "Acro"
+   },
+   {
+    "action": "rates",
+    "id": "paused:a-rates",
+    "label": "Rates",
+    "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
+    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "action": "feel",
+    "id": "paused:a-feel",
+    "label": "Flight feel",
+    "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it."
+   },
+   {
+    "id": "paused:s-elsewhere",
+    "label": "Elsewhere",
+    "section": true
+   },
+   {
+    "action": "quad",
+    "id": "paused:a-quad",
+    "label": "Plane",
+    "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
+    "value": "Timber, Acro"
+   },
+   {
+    "action": "pilot",
+    "id": "paused:a-pilot",
+    "label": "Settings",
+    "note": "Rates, your radio, graphics and sound.",
+    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "current": "high",
+    "id": "paused:graphics",
+    "label": "Graphics",
+    "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+    "options": [
+     {
+      "label": "Low",
+      "value": "low"
+     },
+     {
+      "label": "Medium",
+      "value": "medium"
+     },
+     {
+      "label": "High",
+      "value": "high"
+     }
+    ],
+    "value": "High"
+   },
+   {
+    "action": "howto",
+    "id": "paused:a-howto",
+    "label": "How to fly"
+   },
+   {
+    "action": "credits",
+    "id": "paused:a-credits",
+    "label": "Credits",
+    "note": "Who made this, who flew it, and whose work it stands on."
+   },
+   {
+    "action": "mytracks",
+    "id": "paused:a-mytracks",
+    "label": "My tracks",
+    "note": "Back to the list of tracks: play another, edit this one, or build a new one."
+   },
+   {
+    "action": "title",
+    "id": "paused:a-title",
+    "label": "Quit to title"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-primary on",
+    "text": "Resume"
+   },
+   {
+    "cls": "row",
+    "text": "Restart run"
+   },
+   {
+    "cls": "row",
+    "text": "Change aircraftTimber"
+   },
+   {
+    "cls": "row",
+    "text": "Customise"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "TuneAcro"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "cls": "row",
+    "text": "Flight feel"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "PlaneTimber, Acro"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "SettingsActual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "cls": "row",
+    "text": "GraphicsLowMediumHigh"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "How to fly"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Credits"
+   },
+   {
+    "cls": "row",
+    "text": "My tracks"
+   },
+   {
+    "cls": "row",
+    "text": "Quit to title"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "paused:a-resume",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "paused:a-restart",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "paused:a-hotswap",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "paused:a-customise",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onHangarPreview",
+      "timber1500",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "paused:a-pids",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onHangarPreview",
+      "timber1500",
+      "object"
+     ],
+     [
+      "onScreenChange",
+      "pids"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "paused:a-rates",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rates"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "paused:a-feel",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "paused:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "paused:a-pilot",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "pilot"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "paused:graphics",
+    "to": "paused",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "paused:a-howto",
+    "to": "howto",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "howto"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "paused:a-credits",
+    "to": "credits",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "credits"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "paused:a-mytracks",
+    "to": "courses",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ],
+     [
+      "onScreenChange",
+      "courses"
+     ],
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "paused:a-title",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "pids": {
+  "screen": "pids",
+  "items": [
+   {
+    "current": "timber-acro",
+    "id": "pids:tune",
+    "label": "Tune",
+    "note": "Everything below belongs to this one, and each tune keeps its own adjustment. Stock is the only tune shipped. Edit one on Firmware bench and save it, and it joins this row as Your edits.",
+    "options": [
+     {
+      "label": "Stabilised",
+      "value": "timber-stab"
+     },
+     {
+      "label": "Acro",
+      "value": "timber-acro"
+     },
+     {
+      "label": "Manual",
+      "value": "timber-manual"
+     }
+    ],
+    "pickOnly": true,
+    "value": "Acro"
+   },
+   {
+    "current": false,
+    "id": "pids:set-pids-directly",
+    "label": "Set PIDs directly",
+    "note": "Off. The sliders below drive the PIDs through the firmware's own simplified tuning. Turn this on to type every value yourself, starting from exactly what is flying now.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "id": "pids:s-the-firmware-s-tuning-sliders",
+    "label": "The firmware's tuning sliders",
+    "section": true
+   },
+   {
+    "id": "pids:master-multiplier",
+    "label": "Master multiplier",
+    "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_master_multiplier",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Master multiplier",
+      "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "id": "pids:tracking-p-and-i",
+    "label": "Tracking, P and I",
+    "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_pi_gain",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Tracking, P and I",
+      "note": "How hard the quad chases the rate the stick asks for. Low is lazy and smooth, high snaps onto the setpoint and holds it.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "id": "pids:drift-and-wobble-i",
+    "label": "Drift and wobble, I",
+    "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_i_gain",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Drift and wobble, I",
+      "note": "The slow-error term on its own. Too low drifts off attitude in wind-up moves; too high winds during a long throw and dumps it as a twitch when the stick centres. On this plant the twitch arrives well before the drift.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "id": "pids:damping-d",
+    "label": "Damping, D",
+    "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_d_gain",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Damping, D",
+      "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "id": "pids:dynamic-damping-d-max",
+    "label": "Dynamic damping, D max",
+    "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_dmax_gain",
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "label": "Dynamic damping, D max",
+      "note": "How much extra D arrives during fast moves and stops, on top of the base D. Zero holds D constant.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    }
+   },
+   {
+    "id": "pids:stick-response-ff",
+    "label": "Stick response, FF",
+    "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_feedforward_gain",
+      "cliMax": 200,
+      "cliMin": 0,
+      "decimals": 0,
+      "label": "Stick response, FF",
+      "note": "Feedforward pushes on stick movement itself, before any error exists. High is immediate; too high overshoots the start of every move. Zero flies on P and D alone.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 0
+    }
+   },
+   {
+    "id": "pids:pitch-tracking",
+    "label": "Pitch tracking",
+    "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_pitch_pi_gain",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Pitch tracking",
+      "note": "Pitch P and I relative to roll. A quad is longer than it is wide, so pitch usually carries a few percent more.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "id": "pids:pitch-damping",
+    "label": "Pitch damping",
+    "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+    "num": {
+     "cli": 100,
+     "spec": {
+      "cli": "simplified_pitch_d_gain",
+      "cliMax": 200,
+      "cliMin": 30,
+      "decimals": 0,
+      "label": "Pitch damping",
+      "note": "Pitch D relative to roll, for the same reason pitch tracking exists.",
+      "scale": 1,
+      "unit": "%"
+     },
+     "text": "100",
+     "unit": "%"
+    },
+    "range": {
+     "max": 200,
+     "min": 30
+    }
+   },
+   {
+    "action": "fc",
+    "id": "pids:a-fc",
+    "label": "Every setting",
+    "note": "The full Flight controller screen: filters, features and every firmware key, not just the PIDs. Laid out like a configurator app. No CLI paste."
+   },
+   {
+    "action": "pids-default",
+    "disabled": true,
+    "id": "pids:a-pids-default",
+    "label": "Back to the tune's own values",
+    "note": "Acro is already flying its own values."
+   },
+   {
+    "action": "back",
+    "id": "pids:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "TuneStabilisedAcroManual"
+   },
+   {
+    "cls": "row",
+    "text": "Set PIDs directlyOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Master multiplier%"
+   },
+   {
+    "cls": "row",
+    "text": "Tracking, P and I%"
+   },
+   {
+    "cls": "row",
+    "text": "Drift and wobble, I%"
+   },
+   {
+    "cls": "row",
+    "text": "Damping, D%"
+   },
+   {
+    "cls": "row",
+    "text": "Dynamic damping, D max%"
+   },
+   {
+    "cls": "row",
+    "text": "Stick response, FF%"
+   },
+   {
+    "cls": "row",
+    "text": "Pitch tracking%"
+   },
+   {
+    "cls": "row",
+    "text": "Pitch damping%"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Every setting"
+   },
+   {
+    "cls": "row row-grey",
+    "text": "Back to the tune's own values"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "pids:tune",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "pids:set-pids-directly",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "pids:master-multiplier",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "pids:tracking-p-and-i",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "pids:drift-and-wobble-i",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "pids:damping-d",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "pids:dynamic-damping-d-max",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "pids:stick-response-ff",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "pids:pitch-tracking",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "pids:pitch-damping",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "pids:a-fc",
+    "to": "fc",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "onScreenChange",
+      "fc"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "pids:a-pids-default",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "pids:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "pilot": {
+  "screen": "pilot",
+  "items": [
+   {
+    "id": "pilot:s-you",
+    "label": "You",
+    "section": true
+   },
+   {
+    "current": "en",
+    "id": "pilot:language",
+    "label": "Language",
+    "note": "The words on every screen. Changing it reloads the page; nothing else changes.",
+    "options": [
+     {
+      "label": "English",
+      "value": "en"
+     },
+     {
+      "label": "Español",
+      "value": "es"
+     }
+    ],
+    "value": "English"
+   },
+   {
+    "action": "setname",
+    "id": "pilot:a-setname",
+    "label": "Your name",
+    "note": "Needed to publish a track or post a time. Two to twenty four letters, numbers, spaces, dots, underscores or hyphens.",
+    "value": "Not set"
+   },
+   {
+    "action": "exportkey",
+    "id": "pilot:a-exportkey",
+    "label": "Pilot key",
+    "note": "On the board your name belongs to a key kept in this browser, made the first time you post. Export copies it, to carry your name to another browser or to keep it safe.",
+    "value": "This browser"
+   },
+   {
+    "action": "importkey",
+    "id": "pilot:a-importkey",
+    "label": "Import pilot key",
+    "note": "Paste a key exported from another browser. Times you post from here then count as that pilot, and the key that was here is gone."
+   },
+   {
+    "id": "pilot:flight-time",
+    "info": true,
+    "label": "Flight time",
+    "note": "Time in the air, counted from your first takeoff. Pauses, menus and replays do not count.",
+    "value": "Not flown yet"
+   },
+   {
+    "id": "pilot:s-sticks",
+    "label": "Sticks",
+    "section": true
+   },
+   {
+    "action": "choosepad",
+    "id": "pilot:a-choosepad",
+    "label": "Choose joystick",
+    "note": "Plug in a radio in joystick mode. If more than one is plugged in, this is how you pick which one flies.",
+    "value": "Keyboard"
+   },
+   {
+    "current": false,
+    "id": "pilot:mouse-flight",
+    "label": "Mouse flight",
+    "note": "The scroll wheel is the throttle and holds where you leave it; the mouse is the right stick, sideways rolls and forward and back pitches. The left and right buttons yaw, the middle button or Z centres the stick, and every keyboard key still works. In flight the pointer is captured: Escape frees it and pauses, a click takes it back. On, it flies instead of a connected radio.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "action": "calibrate",
+    "id": "pilot:a-calibrate",
+    "label": "Calibrate sticks",
+    "note": "Centre, full range, then one named move per stick. Saved after you check it."
+   },
+   {
+    "action": "calibrate-check",
+    "id": "pilot:a-calibrate-check",
+    "label": "Check sticks",
+    "note": "Your saved mapping, live, without calibrating again. Move a stick and watch it: if it goes the wrong way, one key reverses that channel, and if the wrong stick moves on screen, one key puts them on the other hands. Nothing is kept until you save."
+   },
+   {
+    "current": 2,
+    "id": "pilot:stick-mode",
+    "label": "Stick mode",
+    "note": "Which stick is throttle and which is yaw, the way your radio is set up. Mode 2 is throttle on the left, which is what this page has always been. Mode 1 puts throttle on the right and pitch on the left. This flies the THUMB STICKS and the KEYBOARD, which have no mode of their own. A radio already applies its own mode before this page sees a stick, so for a radio this only names the sticks drawn on screen.",
+    "options": [
+     {
+      "label": "Mode 1",
+      "value": 1
+     },
+     {
+      "label": "Mode 2",
+      "value": 2
+     },
+     {
+      "label": "Mode 3",
+      "value": 3
+     },
+     {
+      "label": "Mode 4",
+      "value": 4
+     }
+    ],
+    "value": "Mode 2"
+   },
+   {
+    "action": "rates",
+    "id": "pilot:a-rates",
+    "label": "Rates",
+    "note": "How far the sticks go, and how sharply. Yours, not the tune's. A radio in Acro flies this curve; keyboard flight is Angle. Changing them mid run leaves the quad where it is and the clock running.",
+    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "current": "perfect",
+    "id": "pilot:radio-link",
+    "label": "Radio link",
+    "note": "No radio: every frame arrives, exactly on time. Feedforward and RC smoothing read that cadence, so this is sharper than any real link.",
+    "options": [
+     {
+      "label": "Perfect (no radio)",
+      "value": "perfect"
+     },
+     {
+      "label": "ELRS 500 Hz",
+      "value": "elrs500"
+     },
+     {
+      "label": "ELRS 250 Hz",
+      "value": "elrs250"
+     },
+     {
+      "label": "ELRS 150 Hz",
+      "value": "elrs150"
+     },
+     {
+      "label": "Crossfire 150 Hz",
+      "value": "crossfire"
+     }
+    ],
+    "value": "Perfect (no radio)"
+   },
+   {
+    "current": "low",
+    "id": "pilot:stick-latency",
+    "label": "Stick latency",
+    "note": "Low hands the flight controller each stick reading in the frame it was read instead of the next one, so a move reaches the picture about 5 ms sooner on average. Recordings and replays are unchanged, since they hold what reached the flight controller.",
+    "options": [
+     {
+      "label": "Standard",
+      "value": "standard"
+     },
+     {
+      "label": "Low",
+      "value": "low"
+     }
+    ],
+    "value": "Low"
+   },
+   {
+    "action": "quad",
+    "id": "pilot:a-quad",
+    "label": "Tune, PIDs and the firmware",
+    "note": "Those belong to the machine, not to you, so they are one room over under Quad. Camera angle and flight mode are there too."
+   },
+   {
+    "id": "pilot:s-screen",
+    "label": "Screen",
+    "section": true
+   },
+   {
+    "current": "high",
+    "id": "pilot:graphics",
+    "label": "Graphics",
+    "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+    "options": [
+     {
+      "label": "Low",
+      "value": "low"
+     },
+     {
+      "label": "Medium",
+      "value": "medium"
+     },
+     {
+      "label": "High",
+      "value": "high"
+     }
+    ],
+    "value": "High"
+   },
+   {
+    "id": "pilot:gpu",
+    "info": true,
+    "label": "GPU",
+    "note": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2. WebGL 2 is drawing on this GPU. On a dual-GPU laptop that should be the discrete chip, because the session asked for high-performance. Nothing is uploaded.",
+    "value": "NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "current": 100,
+    "id": "pilot:render-scale",
+    "label": "Render scale",
+    "note": "Fewer pixels, then stretched to fit. The one lever that always helps a starved GPU, at the price of sharpness. 100 is native for the preset.",
+    "options": [
+     {
+      "label": "Native",
+      "value": 100
+     },
+     {
+      "label": "85%",
+      "value": 85
+     },
+     {
+      "label": "70%",
+      "value": 70
+     },
+     {
+      "label": "55%",
+      "value": 55
+     }
+    ],
+    "value": "Native"
+   },
+   {
+    "current": "balanced",
+    "id": "pilot:performance-mode",
+    "label": "Performance mode",
+    "note": "How the game holds its frame rate when the GPU falls behind. Balanced lowers the resolution a little while a scene is heavy and gives it back when it is not, with a light sharpen so it reads the same. Quality never lowers it. Performance lowers it sooner and further. Shadows and effects never change.",
+    "options": [
+     {
+      "label": "Quality",
+      "value": "quality"
+     },
+     {
+      "label": "Balanced",
+      "value": "balanced"
+     },
+     {
+      "label": "Performance",
+      "value": "performance"
+     }
+    ],
+    "value": "Balanced"
+   },
+   {
+    "current": 0,
+    "id": "pilot:frame-cap",
+    "label": "Frame cap",
+    "note": "Caps how often the world is drawn. A steady 60 reads better than a heaving 90, and it spares the battery. Sticks are still read and the physics still steps every frame; only the picture waits.",
+    "options": [
+     {
+      "label": "Uncapped",
+      "value": 0
+     },
+     {
+      "label": "144 fps",
+      "value": 144
+     },
+     {
+      "label": "120 fps",
+      "value": 120
+     },
+     {
+      "label": "90 fps",
+      "value": 90
+     },
+     {
+      "label": "60 fps",
+      "value": 60
+     },
+     {
+      "label": "30 fps",
+      "value": 30
+     }
+    ],
+    "value": "Uncapped"
+   },
+   {
+    "current": false,
+    "id": "pilot:frame-readout",
+    "label": "Frame readout",
+    "note": "A small box low on the left with the frame rate, the slowest 1 percent of frames, how long a frame takes and what it draws. F3 shows and hides it anywhere.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "current": true,
+    "id": "pilot:mission-guidance",
+    "label": "Mission guidance",
+    "note": "In an ops mission, one objective line with its count, a ring on the objective and a chevron at the edge toward it. Off leaves the mission's voice and its briefs as they are.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
+    "current": "osd",
+    "id": "pilot:hud-style",
+    "label": "HUD style",
+    "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+    "options": [
+     {
+      "label": "FPV OSD",
+      "value": "osd"
+     },
+     {
+      "label": "Game",
+      "value": "game"
+     },
+     {
+      "label": "Avionics",
+      "value": "avionics"
+     }
+    ],
+    "value": "FPV OSD"
+   },
+   {
+    "current": "on",
+    "id": "pilot:pilot-markers",
+    "label": "Pilot markers",
+    "note": "In a room, a small mark in each pilot's colour shows where the others are when their aircraft is far away, hidden behind a hill or out of the picture: over the aircraft, or an arrow at the edge of the screen pointing the way. A pilot who is close and clear gets only their name. Minimal draws the marks without the names and ranges.",
+    "options": [
+     {
+      "label": "On",
+      "value": "on"
+     },
+     {
+      "label": "Minimal",
+      "value": "minimal"
+     },
+     {
+      "label": "Off",
+      "value": "off"
+     }
+    ],
+    "value": "On"
+   },
+   {
+    "current": "whitehot",
+    "id": "pilot:thermal-palette",
+    "label": "Thermal palette",
+    "note": "How the thermal camera in white hot colours its picture: white hot, ironbow or rainbow, as a real camera offers them. Black hot stays its own camera mode (J). The . (period) key changes it in flight.",
+    "options": [
+     {
+      "label": "white hot",
+      "value": "whitehot"
+     },
+     {
+      "label": "ironbow",
+      "value": "ironbow"
+     },
+     {
+      "label": "rainbow",
+      "value": "rainbow"
+     }
+    ],
+    "value": "white hot"
+   },
+   {
+    "id": "pilot:s-sound",
+    "label": "Sound",
+    "section": true
+   },
+   {
+    "current": true,
+    "id": "pilot:sound",
+    "label": "Sound",
+    "note": "All sound: motors, wind, music and cues.",
+    "on": true,
+    "sw": true,
+    "value": "On"
+   },
+   {
+    "id": "pilot:volume",
+    "label": "Volume",
+    "note": "Overall level. Zero to ten.",
+    "step": true,
+    "value": "6"
+   },
+   {
+    "id": "pilot:motors-and-engines",
+    "label": "Motors and engines",
+    "note": "The blade pass tone. You fly on its pitch, so keep some of it.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:wind",
+    "label": "Wind",
+    "note": "Air over the airframe. Rises with speed.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:other-aircraft",
+    "label": "Other aircraft",
+    "note": "Other pilots, attackers and vehicles.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:effects",
+    "label": "Effects",
+    "note": "Impacts, wrecks, explosions and the combat sounds.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:ambience",
+    "label": "Ambience",
+    "note": "The world around you: wildlife, water, traffic.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:voice",
+    "label": "Voice",
+    "note": "The war radio's calls.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "id": "pilot:music",
+    "label": "Music",
+    "note": "Recorded tracks in flight, and a quieter bed in the menus. One level for both. The skip buttons on screen jump a track.",
+    "step": true,
+    "value": "5"
+   },
+   {
+    "current": "rotation",
+    "id": "pilot:music-track",
+    "label": "Music track",
+    "note": "What flies. A random start, then every track in turn.",
+    "options": [
+     {
+      "label": "Rotation",
+      "value": "rotation"
+     }
+    ],
+    "value": "Rotation"
+   },
+   {
+    "current": false,
+    "id": "pilot:binaural-tone",
+    "label": "Binaural tone",
+    "note": "A quiet 1000 Hz tone, 6 Hz apart between the ears. Needs headphones to do anything at all.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "id": "pilot:s-diagnostics",
+    "label": "Diagnostics",
+    "section": true
+   },
+   {
+    "current": false,
+    "id": "pilot:flight-log",
+    "label": "Flight log",
+    "note": "Record the run for download as a blackbox CSV. Holds the whole flight in memory.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "action": "downloadflightlog",
+    "id": "pilot:a-downloadflightlog",
+    "label": "Download flight log",
+    "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads."
+   },
+   {
+    "action": "back",
+    "id": "pilot:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "LanguageEnglishEspañol"
+   },
+   {
+    "cls": "row",
+    "text": "Your nameNot set"
+   },
+   {
+    "cls": "row",
+    "text": "Pilot keyThis browser"
+   },
+   {
+    "cls": "row",
+    "text": "Import pilot key"
+   },
+   {
+    "cls": "row row-info",
+    "text": "Flight timeNot flown yet"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Choose joystickKeyboard"
+   },
+   {
+    "cls": "row",
+    "text": "Mouse flightOffOn"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Calibrate sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Check sticks"
+   },
+   {
+    "cls": "row",
+    "text": "Stick modeMode 1Mode 2Mode 3Mode 4"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "cls": "row",
+    "text": "Radio linkPerfect (no radio)"
+   },
+   {
+    "cls": "row",
+    "text": "Stick latencyStandardLow"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Tune, PIDs and the firmware"
+   },
+   {
+    "cls": "row",
+    "text": "GraphicsLowMediumHigh"
+   },
+   {
+    "cls": "row row-info",
+    "text": "GPUNVIDIA GeForce RTX 3060 Ti/PCIe/SSE2"
+   },
+   {
+    "cls": "row",
+    "text": "Render scaleNative85%70%55%"
+   },
+   {
+    "cls": "row",
+    "text": "Performance modeBalanced"
+   },
+   {
+    "cls": "row",
+    "text": "Frame capUncapped"
+   },
+   {
+    "cls": "row",
+    "text": "Frame readoutOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Mission guidanceOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "HUD styleFPV OSDGameAvionics"
+   },
+   {
+    "cls": "row",
+    "text": "Pilot markersOnMinimalOff"
+   },
+   {
+    "cls": "row",
+    "text": "Thermal palettewhite hotironbowrainbow"
+   },
+   {
+    "cls": "row",
+    "text": "SoundOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Volume6▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Motors and engines5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Wind5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Other aircraft5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Effects5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Ambience5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Voice5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Music5▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Music trackRotation"
+   },
+   {
+    "cls": "row",
+    "text": "Binaural toneOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Flight logOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Download flight log"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "pilot:language",
+    "skipped": "reloads the page"
+   },
+   {
+    "i": 2,
+    "id": "pilot:a-setname",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "setname",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "pilot:a-exportkey",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "exportkey",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "pilot:a-importkey",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "importkey",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "pilot:flight-time",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "pilot:a-choosepad",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "pilot:mouse-flight",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "pilot:a-calibrate",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "pilot:a-calibrate-check",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "calibrate-check",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "pilot:stick-mode",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "pilot:a-rates",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rates"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "pilot:radio-link",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "pilot:stick-latency",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "pilot:a-quad",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "quad"
+     ]
+    ]
+   },
+   {
+    "i": 17,
+    "id": "pilot:graphics",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 18,
+    "id": "pilot:gpu",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 19,
+    "id": "pilot:render-scale",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 20,
+    "id": "pilot:performance-mode",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 21,
+    "id": "pilot:frame-cap",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 22,
+    "id": "pilot:frame-readout",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 23,
+    "id": "pilot:mission-guidance",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 24,
+    "id": "pilot:hud-style",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 25,
+    "id": "pilot:pilot-markers",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 26,
+    "id": "pilot:thermal-palette",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 28,
+    "id": "pilot:sound",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 29,
+    "id": "pilot:volume",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 30,
+    "id": "pilot:motors-and-engines",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 31,
+    "id": "pilot:wind",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 32,
+    "id": "pilot:other-aircraft",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 33,
+    "id": "pilot:effects",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 34,
+    "id": "pilot:ambience",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 35,
+    "id": "pilot:voice",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 36,
+    "id": "pilot:music",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 37,
+    "id": "pilot:music-track",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 38,
+    "id": "pilot:binaural-tone",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 40,
+    "id": "pilot:flight-log",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 41,
+    "id": "pilot:a-downloadflightlog",
+    "to": "pilot",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "downloadflightlog",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 42,
+    "id": "pilot:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "quad": {
+  "screen": "quad",
+  "items": [
+   {
+    "id": "quad:s-the-machine",
+    "label": "The machine",
+    "section": true
+   },
+   {
+    "current": "timber1500",
+    "id": "quad:aircraft",
+    "label": "Aircraft",
+    "note": "A 1555 mm E-flite Turbo Timber Evolution on 4S, a bush plane with slats and big flaps. Full flaps and it is off the strip in two metres and crawls nose high; flaps up and it is quick and aerobatic. F sets the flaps. Changing it loads that machine's tune, its pack and its camera, and moves the track builder to the field that machine flies. Your own rates are kept unless they are still the stock ones.",
+    "options": [
+     {
+      "label": "Seven inch",
+      "value": "7inch"
+     },
+     {
+      "label": "Ten inch",
+      "value": "10inch"
+     },
+     {
+      "label": "Interceptor",
+      "value": "interceptor"
+     },
+     {
+      "label": "Skyhunter",
+      "value": "sky1800"
+     },
+     {
+      "label": "Piper Cub",
+      "value": "cub1400"
+     },
+     {
+      "label": "Radian",
+      "value": "radian2000"
+     },
+     {
+      "label": "Bramor C4EYE",
+      "value": "bramor2300"
+     },
+     {
+      "label": "Slow Stick",
+      "value": "slowstick1180"
+     },
+     {
+      "label": "Turbo Timber",
+      "value": "timber1500"
+     },
+     {
+      "label": "Turbo Timber, floats",
+      "value": "timber1500f"
+     },
+     {
+      "label": "Piper Cub, floats",
+      "value": "cub1400f"
+     },
+     {
+      "label": "Buzzard Bombshell",
+      "value": "bombshell1118"
+     },
+     {
+      "label": "Kadet Senior",
+      "value": "kadet1981"
+     },
+     {
+      "label": "Ugly Stik",
+      "value": "uglystik1567"
+     },
+     {
+      "label": "Tiger Moth",
+      "value": "tigermoth1803"
+     },
+     {
+      "label": "P-51D Mustang",
+      "value": "p51d1450"
+     },
+     {
+      "label": "F-16 Falcon",
+      "value": "f16878"
+     },
+     {
+      "label": "Zagi HP",
+      "value": "zagi1219"
+     },
+     {
+      "label": "NRJ DLG",
+      "value": "nrj1490"
+     },
+     {
+      "label": "Striker",
+      "value": "striker2500"
+     }
+    ],
+    "pickOnly": true,
+    "value": "Turbo Timber"
+   },
+   {
+    "action": "pids",
+    "id": "quad:a-pids",
+    "label": "Tune",
+    "note": "A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept.",
+    "value": "Acro"
+   },
+   {
+    "action": "fc",
+    "id": "quad:a-fc",
+    "label": "Firmware bench",
+    "note": "Every firmware 4.5.1 key the module compiles, tab by tab, in the classic configurator colours. Opens as a tool, in its own frame. Save becomes Your edits and the Tune row above starts naming it; the picker that puts you back on stock is in PIDs. There is no CLI paste."
+   },
+   {
+    "id": "quad:s-camera",
+    "label": "Camera",
+    "section": true
+   },
+   {
+    "id": "quad:camera-angle",
+    "label": "Camera angle",
+    "note": "How far the camera tilts up from the airframe. 0 is flat, looking along the nose. 30 is a typical cruise. 45 to 55 is race. Above about 30, yaw starts to roll the horizon: at 5 degrees, 9 percent of a yaw shows up as roll in the picture. That is what a real tilted camera does. Lower Yaw max rate on the Rates screen to tame it.",
+    "step": true,
+    "value": "5 degrees"
+   },
+   {
+    "current": 100,
+    "id": "quad:field-of-view",
+    "label": "Field of view",
+    "note": "Wider sees more, narrower magnifies. 75 matches what an FPV lens does to the middle of the frame; 85 gives some of that back for width; 115 is the widest this projection can honestly offer, about 145 degrees corner to corner, and the gates will look smaller for it.",
+    "options": [
+     {
+      "label": "75 degrees vertical",
+      "value": 75
+     },
+     {
+      "label": "85 degrees vertical",
+      "value": 85
+     },
+     {
+      "label": "95 degrees vertical",
+      "value": 95
+     },
+     {
+      "label": "105 degrees vertical",
+      "value": 105
+     },
+     {
+      "label": "115 degrees vertical",
+      "value": 115
+     }
+    ],
+    "value": "100 degrees vertical"
+   },
+   {
+    "id": "quad:s-flight",
+    "label": "Flight",
+    "section": true
+   },
+   {
+    "current": "acro",
+    "id": "quad:flight-mode",
+    "label": "Flight mode",
+    "note": "Acro: sticks are rates, hands off holds attitude. Angle: sticks are tilt, hands off levels. Racing on a keyboard always uses Angle. Freestyle uses this setting whatever you fly with, because Angle holds the craft to about thirty degrees of bank and no trick in the book can be flown in it.",
+    "options": [
+     {
+      "label": "Acro",
+      "value": "acro"
+     },
+     {
+      "label": "Angle",
+      "value": "angle"
+     }
+    ],
+    "value": "Acro"
+   },
+   {
+    "current": false,
+    "id": "quad:launch-control",
+    "label": "Launch control",
+    "note": "Launch control, off by default. When on, press L on the start line, pitch forward, centre the stick, then punch throttle. The quad holds the angle until you go.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "action": "rates",
+    "id": "quad:a-rates",
+    "label": "Rates",
+    "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
+    "value": "Actual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "action": "back",
+    "id": "quad:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "AircraftTurbo Timber"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "TuneAcro"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "Firmware bench"
+   },
+   {
+    "cls": "row",
+    "text": "Camera angle5 degrees▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Field of view100 degrees vertical"
+   },
+   {
+    "cls": "row",
+    "text": "Flight modeAcroAngle"
+   },
+   {
+    "cls": "row",
+    "text": "Launch controlOffOn"
+   },
+   {
+    "cls": "row row-nav",
+    "text": "RatesActual, 670 roll and pitch, 670 yaw deg/s"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "quad:aircraft",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "quad:a-pids",
+    "to": "pids",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "pids"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "quad:a-fc",
+    "to": "fc",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "onScreenChange",
+      "fc"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "quad:camera-angle",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "quad:field-of-view",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "quad:flight-mode",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "quad:launch-control",
+    "to": "quad",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "quad:a-rates",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "rates"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "quad:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "rates": {
+  "screen": "rates",
+  "items": [
+   {
+    "id": "rates:stick-path",
+    "info": true,
+    "label": "Stick path",
+    "note": "A key is not a stick. Holding one ramps the stick to 34 percent and stays there until about three quarters of a second, then stretches to full at one and a quarter. So the rates below are the rates a RADIO would fly: a tap reaches roughly a third of them, which is why keyboard flight feels firmer and slower to bite than the numbers say. A gamepad or a radio in USB joystick mode gets the whole curve.",
+    "value": "Keyboard"
+   },
+   {
+    "id": "rates:preset",
+    "info": true,
+    "label": "Preset",
+    "note": "Save the numbers below under a name and they come back in one press, which is what a second track wants. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+    "value": "None saved"
+   },
+   {
+    "current": "ACTUAL",
+    "id": "rates:rates-type",
+    "label": "Rates type",
+    "note": "Which rate system the numbers below are in. All five are the firmware's own and all five fly: the curve is chosen in fc/rc.c by this one field. Actual is the firmware 4.5 default and the one whose Max rate column means exactly what it says at the stop. Changing this loads that system's own defaults, because a Classic RC rate of 1.00 and an Actual centre sensitivity of 70 are the same stored number and not the same setting.",
+    "options": [
+     {
+      "label": "Classic",
+      "value": "BETAFLIGHT"
+     },
+     {
+      "label": "Raceflight",
+      "value": "RACEFLIGHT"
+     },
+     {
+      "label": "KISS",
+      "value": "KISS"
+     },
+     {
+      "label": "Actual",
+      "value": "ACTUAL"
+     },
+     {
+      "label": "Quick",
+      "value": "QUICK"
+     }
+    ],
+    "value": "Actual"
+   },
+   {
+    "current": false,
+    "id": "rates:separate-pitch",
+    "label": "Separate pitch",
+    "note": "Off. Roll and pitch share one set of numbers, which is how most quads are set up and what the firmware ships. Turn it on to give pitch its own.",
+    "on": false,
+    "sw": true,
+    "value": "Off"
+   },
+   {
+    "id": "rates:s-roll-and-pitch",
+    "label": "Roll and pitch",
+    "section": true
+   },
+   {
+    "id": "rates:centre-sensitivity",
+    "label": "Centre sensitivity",
+    "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. At full stick this axis is 670 deg/s.",
+    "num": {
+     "cli": 7,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 1,
+      "decimals": 0,
+      "label": "Centre sensitivity",
+      "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity.",
+      "scale": 10,
+      "unit": "deg/s"
+     },
+     "text": "70",
+     "unit": "deg/s"
+    }
+   },
+   {
+    "id": "rates:max-rate",
+    "label": "Max rate",
+    "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. At full stick this axis is 670 deg/s.",
+    "num": {
+     "cli": 67,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 1,
+      "decimals": 0,
+      "label": "Max rate",
+      "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle.",
+      "scale": 10,
+      "unit": "deg/s"
+     },
+     "text": "670",
+     "unit": "deg/s"
+    }
+   },
+   {
+    "id": "rates:expo",
+    "label": "Expo",
+    "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 2,
+      "label": "Expo",
+      "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+      "scale": 0.01,
+      "unit": ""
+     },
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   {
+    "id": "rates:s-yaw",
+    "label": "Yaw",
+    "section": true
+   },
+   {
+    "id": "rates:centre-sensitivity~2",
+    "label": "Centre sensitivity",
+    "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity. At full stick this axis is 670 deg/s.",
+    "num": {
+     "cli": 7,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 1,
+      "decimals": 0,
+      "label": "Centre sensitivity",
+      "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity.",
+      "scale": 10,
+      "unit": "deg/s"
+     },
+     "text": "70",
+     "unit": "deg/s"
+    }
+   },
+   {
+    "id": "rates:max-rate~2",
+    "label": "Max rate",
+    "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle. At full stick this axis is 670 deg/s. Quads yaw slower than they roll, so many pilots set yaw below roll. Your camera is tilted up 5 degrees, so 9 percent of a yaw rolls the horizon rather than turning it: 58 deg/s of picture roll at full pedal.",
+    "num": {
+     "cli": 67,
+     "spec": {
+      "cliMax": 200,
+      "cliMin": 1,
+      "decimals": 0,
+      "label": "Max rate",
+      "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle.",
+      "scale": 10,
+      "unit": "deg/s"
+     },
+     "text": "670",
+     "unit": "deg/s"
+    }
+   },
+   {
+    "id": "rates:expo~2",
+    "label": "Expo",
+    "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 2,
+      "label": "Expo",
+      "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it.",
+      "scale": 0.01,
+      "unit": ""
+     },
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   {
+    "id": "rates:s-throttle",
+    "label": "Throttle",
+    "section": true
+   },
+   {
+    "current": 100,
+    "id": "rates:throttle-limit",
+    "label": "Throttle limit",
+    "note": "Off. This quad is almost nine to one thrust to weight and hovers at 24.1 percent of stick, so most of the travel is above hover. Capping it scales the whole stick down and gives the resolution back.",
+    "options": [
+     {
+      "label": "Off",
+      "value": 100
+     },
+     {
+      "label": "90%",
+      "value": 90
+     },
+     {
+      "label": "80%",
+      "value": 80
+     },
+     {
+      "label": "75%",
+      "value": 75
+     },
+     {
+      "label": "70%",
+      "value": 70
+     },
+     {
+      "label": "65%",
+      "value": 65
+     },
+     {
+      "label": "60%",
+      "value": 60
+     },
+     {
+      "label": "50%",
+      "value": 50
+     },
+     {
+      "label": "40%",
+      "value": 40
+     }
+    ],
+    "value": "Off"
+   },
+   {
+    "id": "rates:throttle-mid",
+    "label": "Throttle mid",
+    "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel. This quad hovers near 24.1 percent of stick on the factory curve.",
+    "num": {
+     "cli": 50,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 2,
+      "label": "Throttle mid",
+      "note": "Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel.",
+      "scale": 0.01,
+      "unit": ""
+     },
+     "text": "0.50",
+     "unit": ""
+    }
+   },
+   {
+    "id": "rates:throttle-expo",
+    "label": "Throttle expo",
+    "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+    "num": {
+     "cli": 0,
+     "spec": {
+      "cliMax": 100,
+      "cliMin": 0,
+      "decimals": 2,
+      "label": "Throttle expo",
+      "note": "Flattens the throttle around the mid point and steepens the ends, exactly the firmware's thr_expo. 0 is the factory straight line.",
+      "scale": 0.01,
+      "unit": ""
+     },
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   {
+    "id": "rates:s-presets",
+    "label": "Presets",
+    "section": true
+   },
+   {
+    "action": "rates-save",
+    "id": "rates:a-rates-save",
+    "label": "Save as preset",
+    "note": "Name these numbers and they come back in one press. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded."
+   },
+   {
+    "action": "rates-delete",
+    "disabled": true,
+    "id": "rates:a-rates-delete",
+    "label": "Delete preset",
+    "note": "Load a preset first. This deletes the profile the rows below are flying, and they are not flying a saved one.",
+    "rowClass": "row-grey"
+   },
+   {
+    "action": "rates-default",
+    "disabled": true,
+    "id": "rates:a-rates-default",
+    "label": "Revert to defaults",
+    "note": "Already on the firmware 4.5.1 defaults."
+   },
+   {
+    "action": "back",
+    "id": "rates:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-info on",
+    "text": "Stick pathKeyboard"
+   },
+   {
+    "cls": "row row-info",
+    "text": "PresetNone saved"
+   },
+   {
+    "cls": "row",
+    "text": "Rates typeActual"
+   },
+   {
+    "cls": "row",
+    "text": "Separate pitchOffOn"
+   },
+   {
+    "cls": "row",
+    "text": "Centre sensitivitydeg/s▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Max ratedeg/s▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Expo▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Centre sensitivitydeg/s▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Max ratedeg/s▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Expo▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Throttle limitOff"
+   },
+   {
+    "cls": "row",
+    "text": "Throttle mid▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Throttle expo▲▼"
+   },
+   {
+    "cls": "row",
+    "text": "Save as preset"
+   },
+   {
+    "cls": "row row-grey row-grey",
+    "text": "Delete preset"
+   },
+   {
+    "cls": "row row-grey",
+    "text": "Revert to defaults"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "rates:stick-path",
+    "to": "rates",
+    "calls": []
+   },
+   {
+    "i": 1,
+    "id": "rates:preset",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "rates:rates-type",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "rates:separate-pitch",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "adjust"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "rates:centre-sensitivity",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "rates:max-rate",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "rates:expo",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "rates:centre-sensitivity~2",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "rates:max-rate~2",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "rates:expo~2",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "rates:throttle-limit",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "rates:throttle-mid",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "rates:throttle-expo",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 17,
+    "id": "rates:a-rates-save",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 18,
+    "id": "rates:a-rates-delete",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 19,
+    "id": "rates:a-rates-default",
+    "to": "rates",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ]
+    ]
+   },
+   {
+    "i": 20,
+    "id": "rates:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "results": {
+  "screen": "results",
+  "items": [
+   {
+    "action": "restart",
+    "id": "results:a-restart",
+    "label": "Fly again",
+    "primary": true
+   },
+   {
+    "action": "feel",
+    "id": "results:a-feel",
+    "label": "Flight feel",
+    "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it."
+   },
+   {
+    "action": "title",
+    "id": "results:a-title",
+    "label": "Back to title"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-primary on",
+    "text": "Fly again"
+   },
+   {
+    "cls": "row",
+    "text": "Flight feel"
+   },
+   {
+    "cls": "row",
+    "text": "Back to title"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "results:a-restart",
+    "to": "results",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "results:a-feel",
+    "to": "results",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "results:a-title",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "roomnew": {
+  "screen": "roomnew",
+  "items": [
+   {
+    "action": "friends-roomname",
+    "id": "roomnew:a-friends-roomname",
+    "label": "Room name",
+    "note": "Enter to type a name, or leave it and the room gets a picked one, like the pilots' names.",
+    "value": "Picked for you"
+   },
+   {
+    "current": "0",
+    "id": "roomnew:who-can-join",
+    "label": "Who can join",
+    "note": "Public: listed in Rooms, up to sixteen pilots, anybody can join.",
+    "options": [
+     {
+      "label": "Everybody",
+      "value": "0"
+     },
+     {
+      "label": "Friends with the code",
+      "value": "1"
+     }
+    ],
+    "value": "Everybody"
+   },
+   {
+    "current": "1",
+    "id": "roomnew:the-world",
+    "label": "The world",
+    "note": "The world the room flies in.",
+    "options": [
+     {
+      "label": "The Alps",
+      "value": "0"
+     },
+     {
+      "label": "Swiss valley, photoreal",
+      "value": "1"
+     },
+     {
+      "label": "Itaipu",
+      "value": "2"
+     },
+     {
+      "label": "The Interior (in development)",
+      "value": "3"
+     }
+    ],
+    "value": "Swiss valley, photoreal"
+   },
+   {
+    "current": "0",
+    "id": "roomnew:game",
+    "label": "Game",
+    "note": "What the room is for. You are its host, and start the game from the room screen whenever you like.",
+    "options": [
+     {
+      "label": "Just fly",
+      "value": "0"
+     },
+     {
+      "label": "Race",
+      "value": "1"
+     },
+     {
+      "label": "Catch the Ace",
+      "value": "2"
+     },
+     {
+      "label": "Combat",
+      "value": "3"
+     }
+    ],
+    "value": "Just fly"
+   },
+   {
+    "action": "friends-make",
+    "id": "roomnew:a-friends-make",
+    "label": "Make the room",
+    "note": "Makes it and puts you in it. It shows up in Rooms for everybody.",
+    "primary": true
+   },
+   {
+    "action": "back",
+    "id": "roomnew:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row",
+    "text": "Room namePicked for you"
+   },
+   {
+    "cls": "row",
+    "text": "Who can joinEverybody"
+   },
+   {
+    "cls": "row",
+    "text": "The worldSwiss valley, photoreal"
+   },
+   {
+    "cls": "row",
+    "text": "GameJust fly"
+   },
+   {
+    "cls": "row row-primary on",
+    "text": "Make the room"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "roomnew:a-friends-roomname",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFriends",
+      "friends-roomname"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "roomnew:who-can-join",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "roomnew:the-world",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "roomnew:game",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "roomnew:a-friends-make",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFriends",
+      "friends-make"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "roomnew:a-back",
+    "to": "rooms",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "rooms"
+     ]
+    ]
+   }
+  ]
+ },
+ "rooms": {
+  "screen": "rooms",
+  "items": [
+   {
+    "id": "rooms:s-open-rooms",
+    "label": "Open rooms",
+    "section": true
+   },
+   {
+    "id": "rooms:looking-for-rooms",
+    "info": true,
+    "label": "Looking for rooms"
+   },
+   {
+    "id": "rooms:s-more-ways-in",
+    "label": "More ways in",
+    "section": true
+   },
+   {
+    "action": "roomnew",
+    "id": "rooms:a-roomnew",
+    "label": "Make a room",
+    "note": "Name it, choose public or private, the world and a game.",
+    "primary": true
+   },
+   {
+    "action": "friends-quick",
+    "id": "rooms:a-friends-quick",
+    "label": "Quick join",
+    "note": "Straight into the busiest public room in Swiss valley, photoreal with a seat, or a new one if there is none.",
+    "value": "Swiss valley, photoreal"
+   },
+   {
+    "action": "friends-join",
+    "id": "rooms:a-friends-join",
+    "label": "Join with a code",
+    "note": "Type the six letter code a friend gave you."
+   },
+   {
+    "action": "back",
+    "id": "rooms:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-info",
+    "text": "Looking for rooms"
+   },
+   {
+    "cls": "row row-nav row-primary on",
+    "text": "Make a room"
+   },
+   {
+    "cls": "row",
+    "text": "Quick joinSwiss valley, photoreal"
+   },
+   {
+    "cls": "row",
+    "text": "Join with a code"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 1,
+    "id": "rooms:looking-for-rooms",
+    "to": "rooms",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "rooms:a-roomnew",
+    "to": "roomnew",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onScreenChange",
+      "roomnew"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "rooms:a-friends-quick",
+    "to": "rooms",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFriends",
+      "friends-quick"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "rooms:a-friends-join",
+    "to": "rooms",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "rooms:a-back",
+    "to": "friends",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "friends"
+     ]
+    ]
+   }
+  ]
+ },
+ "standings": {
+  "screen": "standings",
+  "items": [
+   {
+    "disabled": true,
+    "id": "standings:no-track-chosen",
+    "info": true,
+    "label": "No track chosen",
+    "note": "Pick a track in the Race room and open its standings from there."
+   },
+   {
+    "action": "back",
+    "id": "standings:a-back",
+    "label": "Back"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row row-info row-grey on",
+    "text": "No track chosen"
+   },
+   {
+    "cls": "row",
+    "text": "Back"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "standings:no-track-chosen",
+    "to": "standings",
+    "calls": []
+   },
+   {
+    "i": 1,
+    "id": "standings:a-back",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onScreenChange",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ]
+   }
+  ]
+ },
+ "title": {
+  "screen": "title",
+  "items": [
+   {
+    "action": "hub-club",
+    "art": "assets/posters/swiss2.jpg",
+    "blurb": "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly.",
+    "card": "hub-club",
+    "facts": [],
+    "hub": "club",
+    "id": "title:a-hub-club",
+    "label": "Flight Club",
+    "links": [
+     {
+      "action": "way-race-5inch",
+      "key": "race-5inch",
+      "label": "Track Day"
+     },
+     {
+      "action": "way-freestyle-wing1000",
+      "key": "freestyle-wing1000",
+      "label": "Free Flight"
+     }
+    ],
+    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>"
+   },
+   {
+    "action": "hub-ops",
+    "art": "assets/posters/itaipu.jpg",
+    "blurb": "Defend the Paraná: missions at Itaipu, alone or as a squad.",
+    "card": "hub-ops",
+    "facts": [],
+    "hub": "ops",
+    "id": "title:a-hub-ops",
+    "label": "Operations",
+    "links": [
+     {
+      "action": "way-interior",
+      "key": "interior",
+      "label": "The Interior"
+     }
+    ],
+    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
+   },
+   {
+    "action": "hub-hangar",
+    "art": "assets/gate/hangar.jpg",
+    "blurb": "Your aircraft, its power, paint and parts, and your radio.",
+    "card": "hub-hangar",
+    "facts": [],
+    "hub": "hangar",
+    "id": "title:a-hub-hangar",
+    "label": "Hangar",
+    "links": [
+     {
+      "action": "hangar-aircraft",
+      "key": "hangar-aircraft",
+      "label": "Aircraft"
+     },
+     {
+      "action": "customise",
+      "key": "hangar-customise",
+      "label": "Customise"
+     },
+     {
+      "action": "calibrate",
+      "key": "hangar-sticks",
+      "label": "Calibrate sticks"
+     },
+     {
+      "action": "howto",
+      "key": "hangar-howto",
+      "label": "How to fly"
+     }
+    ],
+    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>"
+   }
+  ],
+  "rows": [],
+  "leads": [
+   {
+    "i": 0,
+    "id": "title:a-hub-club",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "title:a-hub-ops",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "title:a-hub-hangar",
+    "to": "title",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onUiSound",
+      "move"
+     ]
+    ]
+   }
+  ]
+ },
+ "tricks": {
+  "screen": "tricks",
+  "items": [
+   {
+    "action": "noop",
+    "id": "tricks:a-noop",
+    "label": "1 Trippy Spin",
+    "note": "Reliable. Block. A whole turn or more around a post, flown belly up. Seen from above.",
+    "value": "100"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~2",
+    "label": "Matty Flip",
+    "note": "Reliable. Novice. Half a lap around a rail, entered from over the top, carrying a half turn of flip. Seen from the side.",
+    "value": "200"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~3",
+    "label": "Anti Matty",
+    "note": "Reliable. Novice. Half a lap around a rail, entered from over the top, carrying a whole turn of flip. Seen from the side.",
+    "value": "250"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~4",
+    "label": "Power Matty",
+    "note": "Reliable. Intermediate. Half a lap around a rail, entered from over the top, carrying 1.5 turns of flip. Seen from the side.",
+    "value": "300"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~5",
+    "label": "Matty Roll",
+    "note": "Reliable. Advanced. Half a lap around a rail, entered from over the top, carrying three quarters of a turn of flip and a whole turn of roll. Seen from the side.",
+    "value": "425"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~6",
+    "label": "Matty 360",
+    "note": "Fussy. Advanced. Half a lap around a rail, entered from over the top, carrying a half turn of flip and a whole turn of yaw spin. Seen from the side.",
+    "value": "425"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~7",
+    "label": "Maverick Loop",
+    "note": "Reliable. Beginner. A whole lap around a rail, entered from underneath, carrying a whole turn of roll. Seen from the side.",
+    "value": "100"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~8",
+    "label": "Mavvy Roll",
+    "note": "Reliable. Novice. A whole lap around a rail, entered from underneath, carrying two whole turns of roll. Seen from the side.",
+    "value": "250"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~9",
+    "label": "Donkey Loop",
+    "note": "Reliable. Master. A whole lap around a rail, entered from underneath, carrying a half turn of flip and a whole turn of roll and a whole turn of yaw spin. Seen from the side.",
+    "value": "600"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~10",
+    "label": "Yaw Spin",
+    "note": "Reliable. Beginner. A whole turn or more around a post, with the post held on the screen. Seen from above.",
+    "value": "50"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~11",
+    "label": "Flip",
+    "note": "Reliable. Beginner. A whole turn of flip. Seen from the side.",
+    "value": "50"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~12",
+    "label": "Roll",
+    "note": "Reliable. Beginner. A whole turn of roll. Seen from behind.",
+    "value": "50"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~13",
+    "label": "Segmented Flips/Rolls",
+    "note": "Reliable. Beginner. A half turn of rotation, then a half turn of rotation the same way again, after a pause. Seen from the side.",
+    "value": "75"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~14",
+    "label": "Invert Rewind",
+    "note": "Reliable. Beginner. A half turn of rotation, then a half turn of rotation back the other way. Seen from the side.",
+    "value": "75"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~15",
+    "label": "Vanny Roll",
+    "note": "Reliable. Beginner. A half turn of yaw spin, then a whole turn of roll, then a half turn of yaw spin the same way again. Seen from above.",
+    "value": "125"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~16",
+    "label": "Double Flip",
+    "note": "Reliable. Beginner. Two whole turns of flip. Seen from the side.",
+    "value": "150"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~17",
+    "label": "Double Roll",
+    "note": "Reliable. Beginner. Two whole turns of roll. Seen from behind.",
+    "value": "150"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~18",
+    "label": "Juicy Flick",
+    "note": "Reliable. Novice. A half turn of flip, then a half turn of roll. Seen from the side.",
+    "value": "200"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~19",
+    "label": "Snapback",
+    "note": "Reliable. Novice. A half turn of flip, then a half turn of roll. Seen from the side.",
+    "value": "200"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~20",
+    "label": "Rubik's Cube",
+    "note": "Reliable. Intermediate. A half turn of roll, then a whole turn of flip, then a half turn of roll the same way again. Seen from the side.",
+    "value": "325"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~21",
+    "label": "Cubik's Rube",
+    "note": "Reliable. Intermediate. A half turn of flip, then a whole turn of roll, then a half turn of flip the same way again. Seen from the side.",
+    "value": "325"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~22",
+    "label": "Inverted Yaw Spin",
+    "note": "Reliable. Advanced. A whole turn of yaw spin, upside down. Seen from above.",
+    "value": "400"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~23",
+    "label": "Inverted Yaw Tracking",
+    "note": "Reliable. Advanced. A half turn of roll, then a whole turn of yaw spin back the other way, upside down, then a half turn of roll. Seen from above.",
+    "value": "425"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~24",
+    "label": "Eject Roll",
+    "note": "Reliable. Novice. A half turn of flip, then a whole turn of roll. Seen from the side.",
+    "value": "200"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~25",
+    "label": "Orbit x2",
+    "note": "Reliable. Beginner. Two whole turns or more around a post, with the post held on the screen. Seen from above.",
+    "value": "75"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~26",
+    "label": "Trippy Spin x2",
+    "note": "Reliable. Advanced. Two whole turns or more around a post, flown belly up. Seen from above.",
+    "value": "500"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~27",
+    "label": "Powerloop",
+    "note": "Reliable. Novice. A whole lap around a rail, entered from underneath, carrying a whole turn of flip. Seen from the side.",
+    "value": "200"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~28",
+    "label": "Immelmann Turn",
+    "note": "Reliable. Novice. Half a lap around a rail, entered from underneath, carrying a half turn of flip, then a half turn of roll. Seen from the side.",
+    "value": "250"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~29",
+    "label": "Power Flip",
+    "note": "Reliable. Intermediate. A whole lap around a rail, entered from underneath, carrying two whole turns of flip. Seen from the side.",
+    "value": "350"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~30",
+    "label": "Power Roll",
+    "note": "Fussy. Advanced. A whole lap around a rail, entered from underneath, carrying a whole turn of flip and a whole turn of roll. Seen from the side.",
+    "value": "450"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~31",
+    "label": "Inverted 360 Powerloop",
+    "note": "Fussy. Master. A whole lap around a rail, entered from underneath, carrying a whole turn of flip and a whole turn of yaw spin. Seen from the side.",
+    "value": "650"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~32",
+    "label": "Flip Stall Rewind",
+    "note": "Reliable. Novice. A whole turn of flip, after a pause. Seen from the side.",
+    "value": "275"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~33",
+    "label": "360 Stall Rewind",
+    "note": "Reliable. Novice. A whole turn of roll, after a pause. Seen from behind.",
+    "value": "275"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~34",
+    "label": "Split-S",
+    "note": "Fussy. Beginner. Half a lap around a rail, entered from over the top, carrying a half turn of roll and a half turn of flip. Seen from the side.",
+    "value": "100"
+   },
+   {
+    "action": "noop",
+    "id": "tricks:a-noop~35",
+    "label": "Split Yaw",
+    "note": "Fussy. Intermediate. Half a lap around a rail, entered from over the top, carrying a half turn of roll and a half turn of flip and a half turn of yaw spin. Seen from the side.",
+    "value": "300"
+   }
+  ],
+  "rows": [
+   {
+    "cls": "row on",
+    "text": "1 Trippy Spin100"
+   },
+   {
+    "cls": "row",
+    "text": "Matty Flip200"
+   },
+   {
+    "cls": "row",
+    "text": "Anti Matty250"
+   },
+   {
+    "cls": "row",
+    "text": "Power Matty300"
+   },
+   {
+    "cls": "row",
+    "text": "Matty Roll425"
+   },
+   {
+    "cls": "row",
+    "text": "Matty 360425"
+   },
+   {
+    "cls": "row",
+    "text": "Maverick Loop100"
+   },
+   {
+    "cls": "row",
+    "text": "Mavvy Roll250"
+   },
+   {
+    "cls": "row",
+    "text": "Donkey Loop600"
+   },
+   {
+    "cls": "row",
+    "text": "Yaw Spin50"
+   },
+   {
+    "cls": "row",
+    "text": "Flip50"
+   },
+   {
+    "cls": "row",
+    "text": "Roll50"
+   },
+   {
+    "cls": "row",
+    "text": "Segmented Flips/Rolls75"
+   },
+   {
+    "cls": "row",
+    "text": "Invert Rewind75"
+   },
+   {
+    "cls": "row",
+    "text": "Vanny Roll125"
+   },
+   {
+    "cls": "row",
+    "text": "Double Flip150"
+   },
+   {
+    "cls": "row",
+    "text": "Double Roll150"
+   },
+   {
+    "cls": "row",
+    "text": "Juicy Flick200"
+   },
+   {
+    "cls": "row",
+    "text": "Snapback200"
+   },
+   {
+    "cls": "row",
+    "text": "Rubik's Cube325"
+   },
+   {
+    "cls": "row",
+    "text": "Cubik's Rube325"
+   },
+   {
+    "cls": "row",
+    "text": "Inverted Yaw Spin400"
+   },
+   {
+    "cls": "row",
+    "text": "Inverted Yaw Tracking425"
+   },
+   {
+    "cls": "row",
+    "text": "Eject Roll200"
+   },
+   {
+    "cls": "row",
+    "text": "Orbit x275"
+   },
+   {
+    "cls": "row",
+    "text": "Trippy Spin x2500"
+   },
+   {
+    "cls": "row",
+    "text": "Powerloop200"
+   },
+   {
+    "cls": "row",
+    "text": "Immelmann Turn250"
+   },
+   {
+    "cls": "row",
+    "text": "Power Flip350"
+   },
+   {
+    "cls": "row",
+    "text": "Power Roll450"
+   },
+   {
+    "cls": "row",
+    "text": "Inverted 360 Powerloop650"
+   },
+   {
+    "cls": "row",
+    "text": "Flip Stall Rewind275"
+   },
+   {
+    "cls": "row",
+    "text": "360 Stall Rewind275"
+   },
+   {
+    "cls": "row",
+    "text": "Split-S100"
+   },
+   {
+    "cls": "row",
+    "text": "Split Yaw300"
+   }
+  ],
+  "leads": [
+   {
+    "i": 0,
+    "id": "tricks:a-noop",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "id": "tricks:a-noop~2",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "id": "tricks:a-noop~3",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 3,
+    "id": "tricks:a-noop~4",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "id": "tricks:a-noop~5",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 5,
+    "id": "tricks:a-noop~6",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 6,
+    "id": "tricks:a-noop~7",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 7,
+    "id": "tricks:a-noop~8",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 8,
+    "id": "tricks:a-noop~9",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 9,
+    "id": "tricks:a-noop~10",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 10,
+    "id": "tricks:a-noop~11",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 11,
+    "id": "tricks:a-noop~12",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 12,
+    "id": "tricks:a-noop~13",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 13,
+    "id": "tricks:a-noop~14",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 14,
+    "id": "tricks:a-noop~15",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 15,
+    "id": "tricks:a-noop~16",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 16,
+    "id": "tricks:a-noop~17",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 17,
+    "id": "tricks:a-noop~18",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 18,
+    "id": "tricks:a-noop~19",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 19,
+    "id": "tricks:a-noop~20",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 20,
+    "id": "tricks:a-noop~21",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 21,
+    "id": "tricks:a-noop~22",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 22,
+    "id": "tricks:a-noop~23",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 23,
+    "id": "tricks:a-noop~24",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 24,
+    "id": "tricks:a-noop~25",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 25,
+    "id": "tricks:a-noop~26",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 26,
+    "id": "tricks:a-noop~27",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 27,
+    "id": "tricks:a-noop~28",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 28,
+    "id": "tricks:a-noop~29",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 29,
+    "id": "tricks:a-noop~30",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 30,
+    "id": "tricks:a-noop~31",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 31,
+    "id": "tricks:a-noop~32",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 32,
+    "id": "tricks:a-noop~33",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 33,
+    "id": "tricks:a-noop~34",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   },
+   {
+    "i": 34,
+    "id": "tricks:a-noop~35",
+    "to": "tricks",
+    "calls": [
+     [
+      "onUiSound",
+      "move"
+     ],
+     [
+      "onUiSound",
+      "select"
+     ],
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ]
+   }
+  ]
+ }
+}
