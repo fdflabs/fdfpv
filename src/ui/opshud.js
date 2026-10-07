@@ -177,7 +177,10 @@ const CSS = `
   letter-spacing: 0.02em; line-height: 1.35; color: ${INK}; background: rgba(6, 10, 12, 0.55); padding: 0.25em 0.9em; }
 .ops-subtitle:empty { display: none; }
 .ops-goal { max-width: min(62ch, 90vw); text-align: center; white-space: normal; letter-spacing: 0.12em; line-height: 1.4;
-  padding: 0.2em 0.7em; background: rgba(6, 10, 12, 0.35); }
+  padding: 0.25em 0.8em; background: rgba(6, 10, 12, 0.55); font-size: 1.3em; color: #fff; }
+.ops-goal-n { color: ${AMBER}; font-weight: 600; margin-left: 0.5em; display: inline-block; }
+.ops-goal-n.ops-bump { animation: ops-bump 0.9s ease-out; }
+@keyframes ops-bump { 0% { transform: scale(1.7); } 100% { transform: scale(1); } }
 .ops-first { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; box-sizing: border-box;
   max-width: min(92vw, 520px); padding: 0.9em 1.2em; border: 1px solid rgba(236, 244, 240, 0.45); background: rgba(6, 10, 12, 0.78);
   letter-spacing: 0.1em; line-height: 1.55; }
@@ -823,8 +826,7 @@ export class OpsHud {
     this.tut.set(src.tutorial ? say(src.tutorial) : '');
     const goal = src.guide ? src.guide.line : '';
     if (goal !== this.goalText) {
-      this.goalText = goal;
-      this.goal.textContent = goal;
+      this.setGoal(goal);
     }
     const bound = v && v.boundary ? v.boundary[src.seat] : null;
     this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : '');
@@ -960,6 +962,25 @@ export class OpsHud {
       g.closePath();
       g.stroke();
       this.marks.push({ kind: 'lock', x: cx, y: cy });
+    }
+  }
+
+  /* The objective line, its count (the part after the last " · ",
+   * guide.js goalLine) in amber and bumped once when it changes: the
+   * owner's flight (2026-10-07) never noticed the count go up. */
+  setGoal(goal) {
+    const prev = this.goalText || '';
+    this.goalText = goal;
+    const i = goal.lastIndexOf(' · ');
+    if (i < 0) {
+      this.goal.textContent = goal;
+      return;
+    }
+    const count = goal.slice(i + 3);
+    this.goal.replaceChildren(goal.slice(0, i));
+    const n = el('span', 'ops-goal-n', this.goal, count);
+    if (prev.lastIndexOf(' · ') >= 0 && prev.slice(prev.lastIndexOf(' · ') + 3) !== count) {
+      n.classList.add('ops-bump');
     }
   }
 
