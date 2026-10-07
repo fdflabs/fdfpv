@@ -33,7 +33,6 @@ scripts/memory-check.js
 scripts/music-selftest.js
 scripts/noun-lint.js
 scripts/og-check.js
-scripts/og.js
 scripts/pixels.js
 scripts/posters.js
 scripts/quality-check.js
