@@ -87,7 +87,7 @@ import { createPerception } from './avionics/perception.js';
 import { createTrackManager } from './avionics/tracks.js';
 import { hudStateOf } from './avionics/hudstate.js';
 import {
-  adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
+  adoptShareFromLocation, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
 } from './share/board.js';
 import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
@@ -4929,9 +4929,6 @@ export async function boot({
       s.combat = { ...(s.combat ?? {}), [id]: { ...had, payload: payloadForWarhead(af, equipped) } };
     }
     s.airframeAsked = true;
-    /* As a swap seats it: the mode that goes with the aircraft waits for
-     * the title, and the war's world stays. */
-    ui.modeSyncedFor = id;
     ui.persistSettings();
     warCraftSaid = str('war.craft_switched', { name: airframeById(id).name });
     warCraftLog.push({ id, at: roomLinkState.roomNow(), said: warCraftSaid });
@@ -4956,7 +4953,7 @@ export async function boot({
     }
   }
 
-  function warBegin(v, wallMs) {
+  function warBegin(v) {
     warBegunId = roomWar.match();
     warCalls.reset();
     warTargetsClear();
@@ -5451,7 +5448,7 @@ export async function boot({
     warIntroFrame(v);
     warCraftFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
-      warBegin(v, wallMs);
+      warBegin(v);
     } else if (!roomWar.on() && warBegunId != null) {
       warFinish();
     }
@@ -9011,8 +9008,6 @@ export async function boot({
   let lastDescent = 0;
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
-  /* Which collider that was, so a check can tell a building's own wall
-   * from its neighbour's (scripts/roof-check.js). Harness only. */
   let lastHitIndex = -1;
   let lastGroundHits = 0;
   /* Every 1 ms step that ended with the hull on the ground plane or a
@@ -9260,8 +9255,6 @@ export async function boot({
   /* The last ground skip, so a craft sliding along the grass reports one
    * bounce rather than one a frame. */
   let groundBounceAtWall = 0;
-  let bounceHitIndex = -1;
-  let bounceHitKind = '';
   /* The craft's tilt-aware vertical half extent, written by the physics
    * branch each frame and read by the obstacle query later in the same
    * frame. Starts level. */
@@ -11640,8 +11633,6 @@ export async function boot({
     bounceCount = 0;
     bounceAtWall = 0;
     groundBounceAtWall = 0;
-    bounceHitIndex = -1;
-    bounceHitKind = '';
     /* The race interpolates a gate crossing between its own previous sim
      * time and this one. A respawn teleports the craft, so the segment
      * either side of it is not a flight path: leaving prevSimMs behind put
@@ -16137,7 +16128,6 @@ export async function boot({
     prevWall = nowWall;
     roomPoseMap = null;
     fps = fps * 0.95 + (dt > 0 ? 1000 / dt : 0) * 0.05;
-    let frameSteps = 0;
 
     /*
      * The site's counters, once a frame, reading state this loop already
@@ -16576,7 +16566,6 @@ export async function boot({
         if (!faulted) {
           simStepIdx += steps;
         }
-        frameSteps = steps;
         /* The pilot's flight time: the steps the plant just took, if they
          * were flight (src/share/flighttime.js stepsAreFlight). */
         flightClockFlew = stepsAreFlight({
@@ -16944,7 +16933,7 @@ export async function boot({
        * the watch is a duration, and while it counted frame deltas a
        * stutter aged it as fast as real time did: a machine that dropped
        * to 8 fps could confirm a 180 ms clip in two frames of a craft that
-       * had barely moved. frameSteps is the milliseconds the plant
+       * had barely moved. simStepMs is the milliseconds the plant
        * actually advanced, which is what those thresholds meant all along.
        * On a perch or a turtle the plant is frozen but the lap clock still
        * runs, and simTimeMs advances with it, so this stays honest there
