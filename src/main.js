@@ -2418,56 +2418,41 @@ export async function boot({
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
   loading.system('audio', 'standby');
-  audio.music.onChange = (st) => {
-    ui.setMusicNow(st);
-  };
-  /* The dock names what is playing, and what is playing on the title
-   * screen is the menu bed, whose record is a random pick on the player.
-   * Push it before the first gesture so the dock is not showing a flight
-   * track that nobody is going to hear yet. This is unconditional now:
-   * the Music track setting names a FLIGHT record, so a pinned setting is
-   * not the answer to what is playing in the menus either. */
-  if (typeof audio.musicStatus === 'function') {
-    ui.setMusicNow(audio.musicStatus());
-  }
+  /*
+   * The music dock shows what plays now from the first frame. On the title
+   * that is the menu bed's random record, so it is pushed before any
+   * gesture starts the audio, rather than a flight record nobody hears yet.
+   */
+  audio.music.onChange = (st) => ui.setMusicNow(st);
+  ui.setMusicNow(audio.musicStatus());
   ui.onMusicSkip = (dir) => {
     wakeAudio();
-    if (typeof audio.skipMusic !== 'function') {
-      return;
-    }
     audio.skipMusic(dir);
-    const st = audio.musicStatus();
+    const now = audio.musicStatus();
     /*
-     * A skip pins the setting only when what was skipped was a FLIGHT
-     * record. The dock's buttons skip whatever is playing, which in the
-     * menus is the two record bed, and writing one of those ids into
-     * musicTrack would leave the setting holding a value its own list
-     * does not contain, showing as the first flight track and silently
-     * coerced back to rotation on the next read.
+     * Only a skip between flight records moves a pinned Music track
+     * setting. In the menus the dock skips the menu bed, whose ids are not
+     * in the setting's list: stored, one would show as the first flight
+     * track and quietly turn back into rotation on the next load.
      */
-    if (st && st.context === 'flight' && ui.settings.musicTrack !== 'rotation') {
-      ui.settings.musicTrack = st.id;
+    const pinned = ui.settings.musicTrack !== 'rotation';
+    if (pinned && now && now.context === 'flight') {
+      ui.settings.musicTrack = now.id;
       ui.persistSettings();
     }
     if (ui.screen === 'pilot') {
       ui.renderMenu();
     }
   };
-  /* Which crate the bed plays, off the screen. ui.flying() is the one
-   * predicate for that question; see its comment for why paused is a
-   * flight. */
-  ui.onScreenChange = () => {
-    if (typeof audio.setMusicContext === 'function') {
-      audio.setMusicContext(ui.flying() ? 'flight' : 'menu');
-    }
-  };
+  /* Flight bed or menu bed, by ui.flying(), which counts a pause as flight. */
+  ui.onScreenChange = () => audio.setMusicContext(ui.flying() ? 'flight' : 'menu');
 
   loading.start('sim');
   loading.system('physics', 'loading');
   simStageLive = true;
   if (simProgress) {
-    /* Whatever arrived while the board was being asked. Usually all of it. */
-    loading.report('sim', simProgress[0], simProgress[1]);
+    /* What came in while the board was being asked: usually all of it. */
+    loading.report('sim', ...simProgress);
   }
   const sim = await loadSim(await simBytes);
   /* The crash cam's journal stands between the shell and the module from
@@ -2476,64 +2461,47 @@ export async function boot({
    * (src/replay/journal.js). */
   const journal = createJournal(sim.e);
   sim.e = journal.exports;
-  if (typeof sim.e.sim_deflect !== 'function') {
-    throw new Error('sim.wasm does not export sim_deflect');
-  }
-  if (typeof sim.e.sim_contact !== 'function') {
-    throw new Error('sim.wasm does not export sim_contact');
-  }
-  if (typeof sim.e.sim_set_ground !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_ground');
-  }
-  if (typeof sim.e.sim_set_crashflip !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_crashflip');
-  }
-  if (typeof sim.e.sim_set_pose !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_pose');
-  }
-  if (typeof sim.e.sim_ground_contacts !== 'function') {
-    throw new Error('sim.wasm does not export sim_ground_contacts');
-  }
-  if (typeof sim.e.sim_set_launch_stand !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_launch_stand');
+  /* Every entry point the shell calls, checked once here, so a stale
+   * dist/sim.wasm stops the boot by name instead of failing mid flight. */
+  for (const entry of [
+    'sim_deflect', 'sim_contact', 'sim_set_ground', 'sim_set_crashflip',
+    'sim_set_pose', 'sim_ground_contacts', 'sim_set_launch_stand',
+  ]) {
+    if (typeof sim.e[entry] !== 'function') {
+      throw new Error(`sim.wasm does not export ${entry}`);
+    }
   }
   /* The module is in and answers for every entry point the shell calls:
    * the plant is up. The controller is up once its tune is applied, below. */
   loading.system('physics', 'ready');
   loading.system('flight', 'loading');
   /*
-   * The flight controller comes entirely from a Betaflight diff, so which
-   * diff is chosen IS the tune. The choice is a setting; the boot path and
-   * the menu path load it the same way, and a stored id that no longer
-   * exists falls back to the first tune rather than failing to boot.
+   * The controller is whatever Betaflight diff the Tune setting names: the
+   * tune is the diff. What flies is that diff, then the pilot's PID
+   * adjustment for the loaded tune (configs/pids.js), then the pilot's
+   * rates last (configs/rates.js), joined by composeConfig in
+   * src/fc/dump.js and nowhere else. No file in configs/ carries rates, so
+   * choosing a tune never changes stick authority and a tune can be judged
+   * on its own, and even a dropped diff flies on the menu's rates. Boot and
+   * the menu load a tune the same way, and an id that no longer exists
+   * reads as the first tune (tuneById).
    */
   let configId = tuneById(ui.settings.tune).id;
-  /* What the Tune menu item last asked for, which is not the same question
-   * as what is loaded: a dropped file changes the second and not the first. */
+  /* The tune the menu last asked for, kept apart from the one loaded: a
+   * dropped file changes what is loaded and not what was asked for. */
   let menuTune = ui.settings.tune;
-  let configName = `${configId}.diff`;
+  let configName = '';
   /*
-   * Async config loads (tune menu, dropped diff) are generation counted.
-   * A stale fetch must not call sim_init after a newer choice has already
-   * won, and Fly / Resume must not start a run whose RC timestamps will be
-   * invalidated by a sim_init still in flight. See adoptSimClock.
+   * Tune loads after boot (the menu, a dropped diff) are async and
+   * numbered: a slow fetch must not sim_init over a newer choice, and Fly
+   * or Resume waits on configLoadWait so a run's RC timestamps are not
+   * invalidated by an init still on its way (adoptSimClock).
    */
   let configGen = 0;
   let configLoadWait = Promise.resolve();
-  /*
-   * A flown config is a TUNE plus the pilot's PID ADJUSTMENT plus the
-   * pilot's RATES, joined only by composeConfig in src/fc/dump.js. No file
-   * in configs/ carries a rateprofile any more, and the rate lines are
-   * appended last so that even a diff the pilot drops on the page flies on
-   * the rates in the menu. See configs/rates.js for why rates were
-   * separated: shipping rates inside a tune meant choosing that tune also
-   * halved the stick authority, so the tune could never be judged on its
-   * own. The PID adjustment sits between the two, keyed by
-   * the LOADED tune's id, so each tune keeps its own; see configs/pids.js.
-   */
-  /* The Flight controller screen's saved dump, the body of the pilot's
-   * own "custom" tune. Its rates were stripped on the way in, so it goes
-   * through composeConfig like any file in configs/. */
+  /* The pilot's own tune, "custom": the dump the Flight controller screen
+   * saved, its rates stripped on the way in, so it is composed like any
+   * file in configs/. Null when there is none or storage is shut. */
   function readFcDump() {
     try {
       return localStorage.getItem(FC_DUMP_KEY);
@@ -2541,98 +2509,75 @@ export async function boot({
       return null;
     }
   }
+  /* Saves the dump stamped with the aircraft it came off, so the Tune row
+   * offers it on that aircraft only (FC_DUMP_AIRFRAME_KEY). False when
+   * storage refuses either write. */
   function writeFcDump(body) {
     try {
       localStorage.setItem(FC_DUMP_KEY, body);
-      /* Stamped with the aircraft it came off, so the Tune row offers it on
-       * that aircraft only. See FC_DUMP_AIRFRAME_KEY. */
       localStorage.setItem(FC_DUMP_AIRFRAME_KEY, ui.settings.airframe);
-      return true;
     } catch (e) {
       return false;
     }
+    return true;
   }
-  let tuneText;
-  if (configId === 'custom') {
-    tuneText = readFcDump();
-    if (tuneText == null) {
-      /* A stored choice whose dump is gone. Fall back to the first tune
-       * rather than failing to boot; the stale choice must not stop the
-       * page. */
-      configId = TUNES[0].id;
-      ui.settings.tune = configId;
-      menuTune = configId;
-      configName = `${configId}.diff`;
-      ui.persistSettings();
-    } else {
-      configName = str('main.your_edits');
-    }
-  }
-  if (tuneText == null) {
-    tuneText = new TextDecoder().decode(await fetchBytes(tunePath(configId)));
-  }
+  const fetchTuneText = async (id) => new TextDecoder().decode(await fetchBytes(tunePath(id)));
+  /*
+   * The tune boot flies. A shipped tune the module refuses is a broken
+   * build and stops the boot. The pilot's own dump, missing or refused,
+   * must not brick the page: the first tune is flown instead and saved as
+   * the choice, and the dump stays stored for the pilot to fix.
+   */
+  let tuneText = null;
   let ratesText = ratesDiff(ui.settings.rates);
-  let pidsText = pidsDiffFor(ui.settings.pids, configId);
-  let configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
-  if (sim.init(configText) !== SIM_OK) {
-    if (configId !== 'custom') {
-      throw new Error(`sim_init failed on ${configName}`);
+  let pidsText = '';
+  let configText = '';
+  for (;;) {
+    const own = configId === 'custom';
+    tuneText = own ? readFcDump() : await fetchTuneText(configId);
+    configName = own ? str('main.your_edits') : `${configId}.diff`;
+    if (tuneText != null) {
+      pidsText = pidsDiffFor(ui.settings.pids, configId);
+      configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
+      if (sim.init(configText) === SIM_OK) {
+        break;
+      }
+      if (!own) {
+        throw new Error(`sim_init failed on ${configName}`);
+      }
     }
-    /* A saved dump the module refuses must not brick the page: boot the
-     * default tune instead and keep the dump stored for the pilot to
-     * re-edit. */
     configId = TUNES[0].id;
-    ui.settings.tune = configId;
     menuTune = configId;
-    configName = `${configId}.diff`;
+    ui.settings.tune = configId;
     ui.persistSettings();
-    tuneText = new TextDecoder().decode(await fetchBytes(tunePath(configId)));
-    pidsText = pidsDiffFor(ui.settings.pids, configId);
-    configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
-    if (sim.init(configText) !== SIM_OK) {
-      throw new Error(`sim_init failed on ${configName}`);
-    }
   }
   /*
-   * What the controller is actually flying, read back out of the module
-   * after every successful init and handed to the PIDs screen. The screen
-   * never computes a PID from a slider itself: this readback is the only
-   * source its numbers have, so a slider that stopped reaching Betaflight
-   * would be visible as a slider that moves nothing.
+   * The PIDs screen is handed what the controller really flies, read back
+   * from the module after every init; it never works a PID out from a
+   * slider, so a slider that stopped reaching Betaflight shows as one that
+   * moves nothing. The tune's own slider positions come from its text, not
+   * the module, whose sliders are the override once one has run: cliMap
+   * keeps the last write, as the CLI does, and a slider the tune never
+   * sets sits at the firmware's 100.
    */
+  const PID_TERMS = ['p', 'i', 'd', 'dmax', 'f'];
   function publishPids() {
-    const num = (key) => {
+    const flown = (key) => {
       const v = Number(moduleGet(sim, key));
       return Number.isFinite(v) ? v : 0;
     };
-    /*
-     * The tune's OWN slider positions come from the tune text, not from
-     * the module: once an override block has run, the module's stored
-     * sliders ARE the override, and "the value this tune ships" would be
-     * unrecoverable. The text is the tune, cliMap takes the last write
-     * exactly as the CLI does, and a key the tune never sets is the
-     * firmware default of 100.
-     */
-    const map = cliMap(tuneText);
-    const baseline = {};
-    for (const k of SLIDER_KEYS) {
-      const v = Number(map.get(SLIDERS[k].cli));
-      baseline[k] = Number.isFinite(v) ? v : 100;
-    }
-    const pids = {};
-    for (const axis of PID_AXES) {
-      pids[axis] = {
-        p: num(pidCliKey('p', axis)),
-        i: num(pidCliKey('i', axis)),
-        d: num(pidCliKey('d', axis)),
-        dmax: num(pidCliKey('dmax', axis)),
-        f: num(pidCliKey('f', axis)),
-      };
-    }
+    const shipped = cliMap(tuneText);
+    const baseline = Object.fromEntries(SLIDER_KEYS.map((k) => {
+      const v = Number(shipped.get(SLIDERS[k].cli));
+      return [k, Number.isFinite(v) ? v : 100];
+    }));
+    const pids = Object.fromEntries(PID_AXES.map((axis) => [
+      axis, Object.fromEntries(PID_TERMS.map((term) => [term, flown(pidCliKey(term, axis))])),
+    ]));
     ui.setPidsLive({
       tune: configId,
       mode: moduleGet(sim, 'simplified_pids_mode'),
-      baselineMode: map.get('simplified_pids_mode') || 'RPY',
+      baselineMode: shipped.get('simplified_pids_mode') || 'RPY',
       baseline,
       pids,
     });
@@ -2644,42 +2589,37 @@ export async function boot({
 
   applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings));
   /*
-   * The swap path has fallen back to the previous map on a failed load for
-   * a while; boot had nothing, so one map that would not build (a bad
-   * asset, a WebGL context the photographs cannot have) took the whole
-   * session down before the title screen. The Alps are the floor: the
-   * smallest world here, and the one the Swiss valley builds through, so
-   * if they cannot build there is nothing to fall back TO and the throw is
-   * honest.
+   * A world that will not build (a bad asset, a WebGL context the
+   * photographs cannot have) must not end the session before the title, as
+   * it did when only the map swap had a fallback. The Alps are the floor:
+   * the smallest world, and the one the Swiss valley builds through, so if
+   * they fail there is nothing under them and the error stands.
    */
+  const worldOptions = () => ({ quality: ui.settings.graphics, renderScale: renderScaleOf(ui.settings) });
+  const firstWorld = worldId();
   try {
-    view = await loadMap(shell, worldId(), loading, {
-      quality: ui.settings.graphics,
-      renderScale: renderScaleOf(ui.settings),
-    });
+    view = await loadMap(shell, firstWorld, loading, worldOptions());
   } catch (e) {
-    if (worldId() === FLOOR_WORLD) {
+    if (firstWorld === FLOOR_WORLD) {
       throw e;
     }
     console.error(e);
-    const failed = mapById(worldId()).name;
-    /* A title world that will not build is dropped, and the pilot's seat
-     * is left alone: it was not the seat that failed. syncWorld then builds
-     * the seat, with its own fallback, once the settings are applied. */
+    /* A title world that fails is dropped and the seat left alone, since
+     * the seat is not what failed (syncWorld builds it later, with its own
+     * fallback). A seat that fails moves to the floor. */
     if (titleWorld) {
       titleWorld = null;
     } else {
       ui.settings.map = FLOOR_WORLD;
     }
     ui.renderMenu();
-    view = await loadMap(shell, FLOOR_WORLD, loading, {
-      quality: ui.settings.graphics,
-      renderScale: renderScaleOf(ui.settings),
-    });
-    /* The banner, not `notice`: that is declared with the frame loop's own
-     * state further down and does not exist yet. This is the same way the
-     * share adoption above reports a boot failure. */
-    ui.setBanner(str('main.could_not_be_loaded_the_floor', { failed, floor: mapById(FLOOR_WORLD).name }), true);
+    view = await loadMap(shell, FLOOR_WORLD, loading, worldOptions());
+    /* Said on the banner, as a failed board link is: `notice` belongs to the
+     * frame loop's state further down and does not exist yet. */
+    ui.setBanner(str('main.could_not_be_loaded_the_floor', {
+      failed: mapById(firstWorld).name,
+      floor: mapById(FLOOR_WORLD).name,
+    }), true);
   }
   ui.setShare(view.share || null);
   /*
@@ -2706,11 +2646,9 @@ export async function boot({
   loading.start('frame');
 
   /*
-   * Where the run starts, in world space. The map owns this now. It used to be
-   * three module scope consts computed from view.gates[0], which is exactly
-   * why a gateless map could not boot: the shell dereferenced a gate before
-   * the first frame and a freestyle map has none. They are `let` because a map
-   * swap changes all three.
+   * The run's start in world space, which the map decides. `let`, because
+   * a map swap moves it. A gateless world has no first gate to start from,
+   * so nothing here may be read off one.
    */
   let startX = 0;
   let startZ = 0;
@@ -2718,35 +2656,25 @@ export async function boot({
   let startYaw = 0;
   let startPitch = 0;
   /*
-   * The height of the surface a craft standing at (x, z) rests on.
-   *
-   * Two calls, not one, and the reason is the city. `height(x, z, fromY)`
-   * only offers a platform that is within a step of the height the query is
-   * made from, which is what lets a quad fly UNDER the overbridge and land ON
-   * its deck. Asking from far below gives the bare ground; asking again from
-   * there picks up the footway, the kerb or the forecourt slab actually laid
-   * on it. Asking from far above would seat a craft parked in the street on
-   * the roof seven metres over it.
+   * The surface a craft standing at (x, z) rests on. view.height(x, z,
+   * fromY) only offers a platform within a step of fromY, which is how a
+   * quad flies under the city's overbridge yet lands on its deck. So the
+   * bare ground is asked for from far below, then asked again from that
+   * height, which finds the footway, kerb or slab laid on it. Asked from
+   * far above, a craft parked in the street would sit on a roof seven
+   * metres up.
    */
   function groundAt(x, z) {
-    const bare = view.height(x, z, -1000);
-    return view.height(x, z, bare);
+    return view.height(x, z, view.height(x, z, -1000));
   }
 
-  /* The y component of the craft's own up vector, in world space, clamped
-   * into the domain of acos. Rotating world up by q leaves 1 - 2(x^2 + z^2),
-   * and the clamp is there because a normalised quaternion can still put
-   * that a bit outside [-1, 1] in floating point. Reads qCollide, the
-   * attitude the ground query and the hit query both use this frame.
-   */
+  /* World y of the craft's own up vector, for acos: world up turned by
+   * the attitude has y = 1 - 2(x^2 + z^2), held to [-1, 1] because a
+   * normalised quaternion can still land a hair outside it. Uses qCollide,
+   * the attitude this frame's ground and hit queries share. */
   function craftUpY() {
-    const qx = qCollide.x;
-    const qz = qCollide.z;
-    const u = 1 - 2 * (qx * qx + qz * qz);
-    if (u > 1) {
-      return 1;
-    }
-    return u < -1 ? -1 : u;
+    const { x, z } = qCollide;
+    return Math.min(1, Math.max(-1, 1 - 2 * (x * x + z * z)));
   }
 
   /*
