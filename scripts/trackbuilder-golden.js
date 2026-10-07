@@ -763,6 +763,61 @@ function boundaryDocs(base) {
   return docs;
 }
 
+/*
+ * Markers at the edges of "parked on a gate's frame" (faces.js), which the
+ * random streams above miss: standing on the gate's foot, at the reach and
+ * depth limits, at the inner limit of the stile, beside a gate whose width
+ * normalize repaired to nothing, and the game golden's garbage-numbers
+ * track, where a cone repaired onto the foot of a zero width gate first
+ * showed the gap.
+ */
+function parkedDocs() {
+  const docs = [];
+  docs.push({
+    name: 'parked-garbage-numbers',
+    raw: {
+      id: 'g8',
+      field: { width: 'wide', depth: -4, gridSize: NaN },
+      settings: { tangentScale: -1, minCurveRadius: Infinity, samplesPerSegment: 1e6 },
+      elements: [
+        { id: 'a', type: 'gate', position: { x: NaN, y: Infinity, z: -Infinity }, yaw: NaN, pitch: 9, dims: { clearW: -1, levels: 100 } },
+        { id: 'b', type: 'ladder', position: { x: '12', y: '7.5', z: '1' }, yaw: '3', pitch: -9, dims: { levels: 0, sillH: 'x' } },
+        { id: 'c', type: 'cone', position: null, dims: { height: NaN, clearance: -3 } },
+      ],
+      sequence: [{ elementId: 'a', entry: Infinity }, { elementId: 'b', apertureIndex: NaN, entry: '-1' }, { elementId: 'c', clearance: NaN }],
+    },
+  });
+  const offsets = [
+    [0, 0], [0.1, 0], [0.149, 0], [0.15, 0], [0, 0.15], [0.343, 0], [0.3429, 0], [0.3431, 0], [0.5, 1.2], [0.5, 1.2000001],
+    [2.9, 0.7], [3, 0], [3.0000001, 0], [0, 3], [-0.6, -0.4], [1, 1], [-2, 1.1],
+  ];
+  const widths = [1.524, 0, -1, 'x', 0.2, 6];
+  offsets.forEach(([across, depth], n) => {
+    const clearW = widths[n % widths.length];
+    const yaw = [0, 0.7, Math.PI / 2, -2.5][n % 4];
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    const gx = 20;
+    const gy = 15;
+    for (const type of ['flag', 'cone']) {
+      docs.push({
+        name: `parked-${type}-${n}`,
+        raw: {
+          schemaVersion: 3,
+          id: `trk-${(0x20000000 + n * 31 + (type === 'cone' ? 1 : 0)).toString(16).slice(-8)}`,
+          elements: [
+            { id: 'g', type: 'gate', position: { x: gx, y: gy, z: 0 }, yaw, dims: { clearW } },
+            { id: 'm', type, position: { x: gx - s * across + c * depth, y: gy + c * across + s * depth, z: 0 } },
+            { id: 'h', type: 'gate', position: { x: gx + 10, y: gy + 4, z: 0 }, yaw: 1 },
+          ],
+          sequence: [{ elementId: 'h', entry: -1 }, { elementId: 'm' }, { elementId: 'g', entry: n % 2 ? 1 : -1 }],
+        },
+      });
+    }
+  });
+  return docs;
+}
+
 function buildCorpus() {
   const corpus = [];
   const real = realDocs();
@@ -793,6 +848,7 @@ function buildCorpus() {
     corpus.push({ name: `edge-${n}`, raw: edgeFieldDoc(edge, n) });
   }
   corpus.push(...boundaryDocs(real[0].raw));
+  corpus.push(...parkedDocs());
   return corpus;
 }
 
@@ -1253,6 +1309,112 @@ function storageCases() {
   return { 'storage/scenario': log };
 }
 
+/*
+ * What storage.js leaves in localStorage, key by key and byte for byte:
+ * the keys and their JSON are what a pilot's browser holds, so a rewrite
+ * has to write the same ones. Fresh fork ids are random by design, so they
+ * are renamed FORK0, FORK1... in order of first appearance. Also the inputs
+ * a browser can hand back: a library that is not an object, text that is
+ * not JSON, two entries naming one id, a forks cycle, and a setItem that
+ * throws (private browsing, quota).
+ */
+function storageRawCases() {
+  const s = storage;
+  const out = {};
+  const known = new Set();
+  const dump = () => {
+    const forks = new Map();
+    const rename = (text) => text.replace(/trk-[0-9a-f]{8}/g, (id) => {
+      if (known.has(id)) {
+        return id;
+      }
+      if (!forks.has(id)) {
+        forks.set(id, `FORK${forks.size}`);
+      }
+      return forks.get(id);
+    });
+    return [...store.keys()].sort().map((k) => [rename(k), rename(store.get(k))]);
+  };
+  const fixture = (f) => model.normalize(JSON.parse(readFileSync(join(ROOT, f), 'utf8'))).doc;
+  const a = fixture('tests/fixtures/map-track-v4.json');
+  const b = fixture('scripts/gatecards-track.json');
+  const field = fixture('tests/fixtures/trackbuilder/schema-example-v2.json');
+  const server = fixture('tests/fixtures/trackbuilder/prod-pocho-v4.json');
+  for (const d of [a, b, field, server]) {
+    known.add(d.id);
+  }
+
+  store.clear();
+  savedEvents.length = 0;
+  reseedMathRandom(11);
+  const log = [];
+  const rec = (label, v) => log.push([label, v, dump()]);
+  rec('save a', s.saveTrack(model.normalize(model.toPlain(a)).doc));
+  rec('save field', s.saveTrack(model.normalize(model.toPlain(field)).doc));
+  rec('autosave a', s.writeAutosave(a));
+  rec('server', s.storeFromServer(server, { state: 'online', hash: 'x', updatedUtc: '2026-10-03T18:29:48Z' }));
+  rec('online a', s.writeOnlineState(a.id, { state: 'online', hash: 'h', updatedUtc: '2026-10-01T00:00:00Z' }));
+  rec('save a again', s.saveTrack(model.normalize(model.toPlain(a)).doc));
+  rec('fork a', typeof s.forkTrack(a.id));
+  rec('save b', s.saveTrack(model.normalize(model.toPlain(b)).doc));
+  rec('fail b', s.writeOnlineState(b.id, { state: 'failed', error: 'nope' }));
+  rec('delete b', s.deleteTrack(b.id));
+  rec('delete server', s.deleteTrack(server.id));
+  rec('events', savedEvents.length);
+  out['storage/raw'] = log;
+
+  const corrupt = [];
+  const library = 'webfpv.trackbuilder.library.v1';
+  const online = 'webfpv.trackbuilder.online.v1';
+  const forksKey = 'webfpv.trackbuilder.forks.v1';
+  for (const text of ['[]', '[1,2]', '7', 'null', '"x"', '{', 'true', '{"x":null,"y":5}']) {
+    store.clear();
+    store.set(library, text);
+    store.set(online, text);
+    store.set(forksKey, text);
+    store.set('webfpv.trackbuilder.autosave.map.swiss2.v1', text);
+    corrupt.push([text, attempt(() => s.listMapTracks()), attempt(() => s.loadMapTrack('x')), attempt(() => s.readOnlineStates()),
+      attempt(() => s.readMapAutosave('swiss2')), attempt(() => s.markUnsyncedTracks()), attempt(() => s.deleteTrack('x')),
+      attempt(() => s.forkTrack('x')), dump()]);
+  }
+  store.clear();
+  const plainA = model.toPlain(a);
+  store.set(library, JSON.stringify({ one: plainA, two: plainA, [a.id]: { ...plainA, map: 'nowhere' } }));
+  corrupt.push(['two entries one id', s.markUnsyncedTracks(), s.listMapTracks().length, dump()]);
+  store.clear();
+  store.set(forksKey, JSON.stringify({ [a.id]: b.id, [b.id]: a.id }));
+  const cyc = model.normalize(plainA).doc;
+  corrupt.push(['forks cycle', s.saveTrack(cyc), cyc.id, dump()]);
+  out['storage/corrupt'] = corrupt;
+
+  const refused = [];
+  const realSet = globalThis.localStorage.setItem;
+  for (const failOn of [library, online, forksKey, 'webfpv.trackbuilder.autosave.map.swiss2.v1']) {
+    store.clear();
+    reseedMathRandom(12);
+    s.saveTrack(model.normalize(plainA).doc);
+    globalThis.localStorage.setItem = (k, v) => {
+      if (k === failOn) {
+        throw new Error('QuotaExceededError');
+      }
+      store.set(k, String(v));
+    };
+    globalThis.localStorage.removeItem = (k) => {
+      throw new Error(`no remove ${k}`);
+    };
+    const doc = model.normalize(plainA).doc;
+    doc.name = 'Refused';
+    refused.push([failOn, attempt(() => s.saveTrack(doc)), attempt(() => s.writeAutosave(doc)),
+      attempt(() => s.storeFromServer(model.normalize(model.toPlain(b)).doc, { hash: 'y' })),
+      attempt(() => typeof s.forkTrack(a.id)), attempt(() => s.deleteTrack(b.id)), dump()]);
+    globalThis.localStorage.setItem = realSet;
+    globalThis.localStorage.removeItem = (k) => store.delete(k);
+  }
+  out['storage/refused'] = refused;
+  store.clear();
+  return out;
+}
+
 async function autosaverCase() {
   store.clear();
   const s = storage;
@@ -1318,6 +1480,9 @@ for (const [k, v] of Object.entries(storageCases())) {
   put(k, v);
 }
 for (const [k, v] of Object.entries(await autosaverCase())) {
+  put(k, v);
+}
+for (const [k, v] of Object.entries(storageRawCases())) {
   put(k, v);
 }
 const corpus = buildCorpus();
