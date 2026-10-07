@@ -15124,194 +15124,227 @@ export async function boot({
   }
 
   /*
-   * The rounds of the slide, from obsFrom toward obsTo, both moved as the
-   * contacts place the craft. Answers whether the last round swept clear,
-   * how many rounds ran before the one that ended it, the solid the whole
-   * frame's travel first crossed (a punch through, judged after the slide),
-   * and whether the thrust axis was driven into a face.
+   * THE SLIDE. One obstacle pass may meet more than one face (a corner is
+   * two), so the hull is swept from obsFrom toward obsTo in rounds: each
+   * round that meets a face resolves it, keeps the travel still owed along
+   * that face, and sweeps that remainder next, so the slide cannot tunnel
+   * through the second face either. Four rounds is a corner and then some;
+   * a slide still meeting faces after that stops where it is.
+   *
+   * obstacleContactPass reads `clean` (the last round swept clear) and
+   * `rounds` (how many rounds resolved a face) and hands the whole record
+   * to noteStillInside and `pressing` to holdOrBleedPress. One record,
+   * refilled every pass, because nothing keeps it past the pass.
    */
+  const SLIDE_ROUNDS_MAX = 4;
+  const slide = {
+    clean: true,
+    rounds: 0,
+    pressing: false,
+    /* Where the pass's whole travel began, and the first solid that
+     * travel crossed outright (a punch through), if it crossed one. */
+    startX: 0,
+    startY: 0,
+    startZ: 0,
+    punched: false,
+    punchSolid: -1,
+    punchMoving: -1,
+  };
+  /*
+   * The face a round met, copied off the collider set's hit scratch once it
+   * is final: the set's next query overwrites that scratch, and the punch
+   * test above it in the round is such a query.
+   */
+  const face = {
+    solid: -1, index: -1, moving: -1, kind: '', nx: 0, ny: 0, nz: 0, t: 0, pen: 0, normalDot: 0,
+  };
+  /* Where on the swept segment the face was touched, and the travel owed
+   * after the touch with its part into the face taken off. */
+  const touchAt = { x: 0, y: 0, z: 0 };
+  const owed = { x: 0, y: 0, z: 0 };
+
   function slideThroughSolids(halfHeight) {
-    const sweep = {
-      clean: true, rounds: 0, pressing: false, punch: false, punchIndex: -1, punchMoving: -1,
-      fromX: obsFrom.x, fromY: obsFrom.y, fromZ: obsFrom.z,
-    };
-    const toX = obsTo.x;
-    const toY = obsTo.y;
-    const toZ = obsTo.z;
-    for (; sweep.rounds < 4; sweep.rounds += 1) {
-      const col = view.colliders;
-      const k = col.hit(
+    const col = view.colliders;
+    const endX = obsTo.x;
+    const endY = obsTo.y;
+    const endZ = obsTo.z;
+    slide.clean = true;
+    slide.rounds = 0;
+    slide.pressing = false;
+    slide.startX = obsFrom.x;
+    slide.startY = obsFrom.y;
+    slide.startZ = obsFrom.z;
+    slide.punched = false;
+    while (slide.rounds < SLIDE_ROUNDS_MAX) {
+      const solid = col.hit(
         obsFrom.x, obsFrom.y, obsFrom.z,
         obsTo.x, obsTo.y, obsTo.z,
         halfHeight, qObs.x, qObs.y, qObs.z, qObs.w,
         craftVerticalOffset(),
       );
-      if (k < 0) {
-        sweep.clean = true;
-        break;
+      slide.clean = solid < 0;
+      if (slide.clean) {
+        return slide;
       }
-      sweep.clean = false;
-      if (!sweep.punch && col.crossedHit(sweep.fromX, sweep.fromY, sweep.fromZ, toX, toY, toZ)) {
-        sweep.punch = true;
-        sweep.punchIndex = col.hitIndex;
-        sweep.punchMoving = col.hitMoving;
+      if (!slide.punched && col.crossedHit(slide.startX, slide.startY, slide.startZ, endX, endY, endZ)) {
+        slide.punched = true;
+        slide.punchSolid = col.hitIndex;
+        slide.punchMoving = col.hitMoving;
       }
-      if (meetFace(col, k, sweep) === 'stop') {
-        break;
+      readFace(col, solid);
+      if (!resolveFace()) {
+        return slide;
       }
+      slide.rounds += 1;
     }
-    return sweep;
+    return slide;
   }
 
+  function readFace(col, solid) {
+    face.solid = solid;
+    face.index = col.hitIndex;
+    face.moving = col.hitMoving;
+    face.kind = col.kindName(solid);
+    face.nx = col.hitNx;
+    face.ny = col.hitNy;
+    face.nz = col.hitNz;
+    face.t = col.hitT;
+    face.pen = col.hitPen;
+    face.normalDot = col.hitNormalDot;
+  }
+
+  /* Clamped to [0, 1] with a NaN left as it is, so a bad hit poisons the
+   * pose loudly rather than resolving at an invented point. */
+  const unitClamp = (v) => (v < 0 ? 0 : (v > 1 ? 1 : v));
+
   /*
-   * One face the sweep met (collider k, its hit fields fresh in col). Places
-   * the craft on it, has the plant resolve the contact, and sets obsFrom and
-   * obsTo up for the next round's sweep of the remaining slide. Answers
-   * 'stop' when the slide is over (nothing left to carry, or the module
-   * refused something) and 'again' otherwise.
+   * Everything the shell remembers about a face met (the contact HUD, the
+   * crash and roof decisions, the progress touch), then the contact itself.
+   * Answers whether the slide goes on to another round.
    */
-  function meetFace(col, k, sweep) {
-    const nx = col.hitNx;
-    const ny = col.hitNy;
-    const nz = col.hitNz;
+  function resolveFace() {
+    const { nx, ny, nz } = face;
     if (ny > 0.5) {
       obsRoof = true;
     }
-    /* Rotors driven into the face, noticed on the sweep: a craft already
-     * resting on the face has no approach left and resolves as resting, but
-     * its discs are against the wall all the same. */
+    /* The rotors driven into the face count even when the craft already
+     * rests on it with no approach left, which is the case they exist for. */
     if (thrustIntoFace(nx, ny, nz, upAxis.x, upAxis.y, upAxis.z)) {
-      sweep.pressing = true;
+      slide.pressing = true;
     }
-    lastHitKind = col.kindName(k);
-    lastHitIndex = col.hitIndex;
-    ui.progress.touch(lastHitKind);
-    lastClosing = speedNow * col.hitNormalDot;
+    lastHitKind = face.kind;
+    lastHitIndex = face.index;
+    ui.progress.touch(face.kind);
     obsTouched = true;
-    const closing = Math.abs(lastClosing);
-    if (closing > obsClosing) {
-      obsClosing = closing;
+    lastClosing = speedNow * face.normalDot;
+    if (Math.abs(lastClosing) > obsClosing) {
+      obsClosing = Math.abs(lastClosing);
     }
     lastUpDot = Math.abs(nx * upAxis.x + ny * upAxis.y + nz * upAxis.z);
 
-    let t = col.hitT;
-    if (t < 0) {
-      t = 0;
-    } else if (t > 1) {
-      t = 1;
-    }
-    const cx = obsFrom.x + (obsTo.x - obsFrom.x) * t;
-    const cy = obsFrom.y + (obsTo.y - obsFrom.y) * t;
-    const cz = obsFrom.z + (obsTo.z - obsFrom.z) * t;
+    const t = unitClamp(face.t);
+    touchAt.x = obsFrom.x + (obsTo.x - obsFrom.x) * t;
+    touchAt.y = obsFrom.y + (obsTo.y - obsFrom.y) * t;
+    touchAt.z = obsFrom.z + (obsTo.z - obsFrom.z) * t;
 
-    if (col.hitT <= 1e-6 && col.hitPen > 0.05) {
+    /* Already inside at the start of the round: no approach to resolve,
+     * only a way out, after which the round is swept again from there. */
+    if (face.t <= 1e-6 && face.pen > 0.05) {
       passStats.buried += 1;
-      if (!separateAt(nx, ny, nz, cx, cy, cz)) {
+      if (!separateAt(nx, ny, nz, touchAt.x, touchAt.y, touchAt.z)) {
         passStats.sepFail += 1;
-        return 'stop';
+        return false;
       }
       poseFromState(stateCurr, obsFrom);
       obsTo.copy(obsFrom);
-      return 'again';
+      return true;
     }
 
-    const mat = contactMaterial(lastHitKind);
-    obsKindIndex = k;
-    const surface = movingSurfaceVelocity(col);
-    /* The travel still owed after the touch, its part into the face taken
-     * off: the slide, swept next round so it cannot tunnel either. */
-    let rx = (obsTo.x - obsFrom.x) * (1 - t);
-    let ry = (obsTo.y - obsFrom.y) * (1 - t);
-    let rz = (obsTo.z - obsFrom.z) * (1 - t);
-    const into = rx * nx + ry * ny + rz * nz;
-    if (into < 0) {
-      rx -= nx * into;
-      ry -= ny * into;
-      rz -= nz * into;
+    const mat = contactMaterial(face.kind);
+    obsKindIndex = face.solid;
+    const surface = surfaceVelocity(face.moving);
+    owed.x = (obsTo.x - obsFrom.x) * (1 - t);
+    owed.y = (obsTo.y - obsFrom.y) * (1 - t);
+    owed.z = (obsTo.z - obsFrom.z) * (1 - t);
+    const inward = owed.x * nx + owed.y * ny + owed.z * nz;
+    if (inward < 0) {
+      owed.x -= nx * inward;
+      owed.y -= ny * inward;
+      owed.z -= nz * inward;
     }
 
-    const dv = resolveContactAt(nx, ny, nz, cx, cy, cz, mat.e, mat.mu, surface.x, surface.y, surface.z);
-    if (dv <= 0) {
-      /*
-       * No impulse. A refusal from the module (the contact could not be
-       * expressed) ends the slide, since sweeping on from an unresolved
-       * state is how a corner pumps energy. A declined one is the ordinary
-       * state of a hull sliding along a face, its approach already spent,
-       * and the slide still has to be carried; dropping it here is what
-       * once left a craft sitting on a wall. A hull with nothing left to
-       * carry stops: sim_contact_at places the craft a gap off the face
-       * every call, so going round on no travel would creep it away from
-       * the wall.
-       */
-      passStats.kind = lastHitKind;
+    const dv = resolveContactAt(nx, ny, nz, touchAt.x, touchAt.y, touchAt.z, mat.e, mat.mu, surface.x, surface.y, surface.z);
+    const pushed = dv > 0;
+    if (!pushed) {
+      passStats.kind = face.kind;
       passStats.e = mat.e;
       passStats.mu = mat.mu;
+      /* The module refused the contact. Sweeping on from a state it could
+       * not express is how a corner pumps energy into a craft. */
       if (passStats.code !== SIM_OK) {
         passStats.dvZero += 1;
-        return 'stop';
+        return false;
       }
-      passStats.resting += 1;
-      obsContact = true;
-      obsResolved = true;
-      poseFromState(stateCurr, obsFrom);
-      if (rx * rx + ry * ry + rz * rz <= 1e-12) {
-        obsTo.copy(obsFrom);
-        return 'stop';
-      }
-    } else {
+    }
+    obsContact = true;
+    obsResolved = true;
+    poseFromState(stateCurr, obsFrom);
+    if (pushed) {
       passStats.resolved += 1;
-      obsResolved = true;
-      obsContact = true;
       if (dv > obsImpulse) {
         obsImpulse = dv;
-        obsImpulseKind = lastHitKind;
+        obsImpulseKind = face.kind;
       }
-      poseFromState(stateCurr, obsFrom);
+    } else {
+      /* Declined: a hull sliding along a face with its approach spent. The
+       * owed travel still has to be carried or the craft sticks to the wall,
+       * but with none owed the slide stops, since every contact call sets
+       * the craft a gap off the face and going round again on nothing would
+       * walk it away from the wall. */
+      passStats.resting += 1;
+      if (owed.x * owed.x + owed.y * owed.y + owed.z * owed.z <= 1e-12) {
+        obsTo.copy(obsFrom);
+        return false;
+      }
     }
-    obsTo.set(obsFrom.x + rx, obsFrom.y + ry, obsFrom.z + rz);
-    return 'again';
+    obsTo.set(obsFrom.x + owed.x, obsFrom.y + owed.y, obsFrom.z + owed.z);
+    return true;
   }
 
   /*
-   * The velocity of a moving solid's surface (a car, a gondola) in the
-   * plant frame, from its two centres one pass apart (swept above, so the
-   * divisor is the pass's own OBSTACLE_STEP, never a frame's length). A
-   * solid that jumped further than SURFACE_SPEED_MAX allows in one pass
-   * teleported, and a teleport is no motion at all, so zero rather than a
-   * clamp. Zero for a solid that does not move.
+   * A moving solid's surface velocity in the plant frame (a car, a
+   * gondola), zero for a fixed one. Its centre's change over the pass that
+   * swept it, so over OBSTACLE_STEP and never a frame. A change faster than
+   * SURFACE_SPEED_MAX is a respawn or a wrap, not motion: zero then too.
    */
-  const surfaceVel = { x: 0, y: 0, z: 0 };
-  function movingSurfaceVelocity(col) {
-    surfaceVel.x = 0;
-    surfaceVel.y = 0;
-    surfaceVel.z = 0;
-    const m = col.hitMoving;
-    if (m < 0) {
-      return surfaceVel;
+  function surfaceVelocity(moving) {
+    vsSim.x = 0;
+    vsSim.y = 0;
+    vsSim.z = 0;
+    if (moving < 0) {
+      return vsSim;
     }
+    const col = view.colliders;
     const passS = OBSTACLE_STEP * 0.001;
-    const vx = (col.movingCx[m] - col.movingPx[m]) / passS;
-    const vy = (col.movingCy[m] - col.movingPy[m]) / passS;
-    const vz = (col.movingCz[m] - col.movingPz[m]) / passS;
+    const vx = (col.movingCx[moving] - col.movingPx[moving]) / passS;
+    const vy = (col.movingCy[moving] - col.movingPy[moving]) / passS;
+    const vz = (col.movingCz[moving] - col.movingPz[moving]) / passS;
     if (vx * vx + vy * vy + vz * vz <= SURFACE_SPEED_MAX * SURFACE_SPEED_MAX) {
       worldDirToSim(vx, vy, vz, vsSim);
-      surfaceVel.x = vsSim.x;
-      surfaceVel.y = vsSim.y;
-      surfaceVel.z = vsSim.z;
     }
-    return surfaceVel;
+    return vsSim;
   }
 
   /*
-   * After the slide: is the hull still in a solid, and how deep (the clip
-   * watch's inputs, kept as the frame's worst)? A punch through, the
-   * frame's whole travel crossing a solid it began outside of, counts as
-   * deep wherever the slide left the craft, if that solid is still between
-   * where the travel began and where the craft ended.
+   * The clip watch's inputs once the slide is done: whether the hull ended
+   * the pass inside a solid and how deep, kept as the frame's worst. A
+   * punch through (the pass's whole travel crossing a solid it started
+   * outside) is deep wherever the slide put the craft, as long as that
+   * solid still stands between the start and where the craft is now.
    */
-  function noteStillInside(sweep) {
+  function noteStillInside(done) {
     const col = view.colliders;
-    if (!sweep.clean) {
+    if (!done.clean) {
       obsLeftover = true;
     }
     if (obsLeftover) {
@@ -15319,265 +15352,212 @@ export async function boot({
       if (depth > obsInterior) {
         obsInterior = depth;
       }
+      /* The face that query found, when the craft is not really in it, is
+       * a roof it sits on if it faces up. */
       if (!(depth > CLIP_CENTER_EPS) && col.hitNy > 0.5) {
         obsRoof = true;
       }
     }
-    if (!sweep.punch) {
+    if (!done.punched) {
       return;
     }
-    const { fromX, fromY, fromZ } = sweep;
-    const through = sweep.punchMoving >= 0
-      ? col.crossedMoving(sweep.punchMoving, fromX, fromY, fromZ, obsPrev.x, obsPrev.y, obsPrev.z)
-      : col.crossedStatic(sweep.punchIndex, fromX, fromY, fromZ, obsPrev.x, obsPrev.y, obsPrev.z);
-    if (through) {
-      obsLeftover = true;
-      if (!(obsInterior >= CLIP_DEEP)) {
-        obsInterior = CLIP_DEEP;
-      }
+    const still = done.punchMoving >= 0
+      ? col.crossedMoving(done.punchMoving, done.startX, done.startY, done.startZ, obsPrev.x, obsPrev.y, obsPrev.z)
+      : col.crossedStatic(done.punchSolid, done.startX, done.startY, done.startZ, obsPrev.x, obsPrev.y, obsPrev.z);
+    if (!still) {
+      return;
+    }
+    obsLeftover = true;
+    if (!(obsInterior >= CLIP_DEEP)) {
+      obsInterior = CLIP_DEEP;
     }
   }
 
   /*
-   * A disc pressed onto a face has no air to pull through, so the thrust
-   * pinning a craft to a wall should not exist (collide.js, PRESS_UP_DOT,
-   * argues the thresholds). Once the craft has held itself on a face for
-   * PRESS_CONFIRM_MS the plant bleeds the rotors (sim_prop_strike) and it
-   * falls away on its own; PRESS_RELEASE_MS clear of any face forgets it.
-   * Not during Betaflight's crashflip, whose whole method is driving two
-   * rotors into whatever the craft lies on.
+   * Rotors against a face move no air, so the thrust that would hold a
+   * craft pinned there is not real (PRESS_UP_DOT in collide.js has the
+   * argument). A press that lasts PRESS_CONFIRM_MS has the plant bleed the
+   * rotors every pass after (sim_prop_strike) until the craft drops off;
+   * PRESS_RELEASE_MS clear of any face ends it (releasePress). Never during
+   * Betaflight's crashflip, which works by driving rotors into the ground.
+   * One call per obstacle pass, so every count is in OBSTACLE_STEP.
    */
   function holdOrBleedPress(pressedNow) {
     if (pressedNow) {
-      pressIdleMs = 0;
       pressing = true;
+      pressIdleMs = 0;
     } else if (pressing) {
       pressIdleMs += OBSTACLE_STEP;
       if (pressIdleMs > PRESS_RELEASE_MS) {
         releasePress();
+        return;
       }
-    }
-    if (!pressing) {
+    } else {
       return;
     }
     pressHeldMs += OBSTACLE_STEP;
-    if (pressHeldMs >= PRESS_CONFIRM_MS
-      && !sim.e.sim_crashflip_active()
-      && typeof sim.e.sim_prop_strike === 'function') {
-      sim.e.sim_prop_strike(PRESS_BLEED);
-      stateCurr = readState();
+    const confirmed = pressHeldMs >= PRESS_CONFIRM_MS;
+    if (!confirmed || sim.e.sim_crashflip_active() || typeof sim.e.sim_prop_strike !== 'function') {
+      return;
     }
+    sim.e.sim_prop_strike(PRESS_BLEED);
+    stateCurr = readState();
   }
 
-  /*
-   * The title screen's camera. It belongs to the MAP, because the shot that
-   * shows a map off is the map's business: the race field flies its own
-   * racing line, the city flies its own streets, and the shell only has to
-   * know which frame to ask for. Rebuilt on every swap, below.
-   */
+  /* The title screen's camera move is the current map's to choose (each
+   * world shows itself off its own way), so it is made from the view and
+   * made again on every swap. */
   let attractCam = makeAttractCamera(view);
   applySettings(ui.settings);
 
-  const bootPick = input.takePadPickQueue();
-  if (bootPick) {
-    openPadPick(bootPick);
+  /* A radio picker asked for before boot finished is opened now. */
+  const queuedPadPick = input.takePadPickQueue();
+  if (queuedPadPick) {
+    openPadPick(queuedPadPick);
   }
 
-  /* The spawn's placement in the world. Not fixed for the session any more:
-   * the two maps start in different places, so this is re-adopted on every
-   * map swap and the crash check reads whatever the current map says. It has
-   * to run before the first reset, because reset seats the craft on the
-   * ground at the spawn. */
+  /* Each map starts somewhere else, so the spawn is adopted per map, and it
+   * must be before the first reset, which seats the craft on the spawn's
+   * ground. The ghost picker hears about the boot course here, since the
+   * boot course does not come through adoptLoadedView. */
   adoptSpawn();
   reset();
-  /* The boot course goes through here rather than adoptLoadedView, so the
-   * ghost picker learns about it here: what the board holds for it, and
-   * the ?ghost= a chase link may have arrived with. */
   ghostCourseChanged();
 
   let prevWall = performance.now();
   /* The last frame's wall interval, ms, before FRAME_DT_MAX caps it. */
   let lastWallDt = 0;
-  /* Harness camera override, six numbers: position then look at target. */
+  /* The harness's parked camera (window.__setCam): eye x y z, target
+   * x y z, and an optional lens, or null when the shell owns the camera. */
   let camOverride = null;
   const camLookAt = new THREE.Vector3();
 
   /*
-   * The target mark's arithmetic. Two scratch vectors and a handful of
-   * constants, hoisted because this runs every frame of every race and the
-   * overlay is not allowed to be the thing that allocates.
+   * THE TARGET MARK: the next gate's bracket when it is in frame, a chevron
+   * on the frame's rim pointing at it when it is not (index.html .lock,
+   * drawn by ui.setTargetLock). The view decides which gate and from which
+   * side, the same call that colours the gate; the shell only projects it,
+   * because the canvas is the shell's.
    *
-   * The margins are how far inside the frame the chevron parks, and they
-   * are not one number because the OSD is not one shape. The lap clock
-   * stack runs about 140 px down the top of the frame and the pack and
-   * flight blocks stand 100 px off the bottom, so a chevron pinned 54 px in
-   * from an edge is right on the sides and sits on an instrument top and
-   * bottom.
-   *
-   * AIM_RELEASE and AIM_FADE are the range the lock lets go over. At 6 m a
-   * 1.7526 m opening is a fifth of the frame's height at the default lens,
-   * so a bracket around it is a box drawn on a barn door; at 13 m it is
-   * under a tenth and the bracket is still telling the pilot something. The
-   * mark never fades while it is on the frame edge, because a target you
-   * cannot see is exactly when the range matters.
+   * The mark keeps clear of the OSD: in from the sides by `side`, below the
+   * lap clock stack by `top`, and above whatever owns the bottom band. That
+   * is the two corner instruments for a radio pilot (`bottom`), and the
+   * stick ghost or the touch sticks for anyone else, which stand taller
+   * (`bottomSticks`: the plate's 18 px offset, its 88 px clamp ceiling, a
+   * caption and the same 8 px of air). A gate below the frame is every
+   * climb and every takeoff, so the band is where the chevron goes most.
    */
-  const AIM_MARGIN = 54;
-  const AIM_MARGIN_TOP = 100;
-  /*
-   * 108 CLEARS THE CORNER BLOCKS AND NOTHING ELSE, WHICH IS WHY THE CHEVRON
-   * KEPT LANDING ON THE STICKS.
-   *
-   * The bottom band belongs to whichever readout is in it, and that is not
-   * always the two corner instruments this number was sized for. The
-   * keyboard stick ghost sits centred at the bottom and stands about 124 px
-   * tall: an 18 px offset, a plate that clamps between 64 and 88 px, a
-   * caption margin and 10 px of type. On a touch layout the corner blocks
-   * themselves move to the bottom centre. A gate below the frame is the
-   * normal case straight after takeoff and in every climb, so the chevron
-   * and its range were being drawn over the roll and pitch gimbal, and over
-   * the speed readout on a phone, exactly when the pilot was reading both.
-   *
-   * So the margin is what is actually down there, measured the same way in
-   * both cases rather than assumed.
-   */
-  const AIM_MARGIN_BOTTOM = 108;
-  /* With the stick ghost or the touch layout up. Measured against the CSS in
-   * index.html: 18 px from the bottom, an 88 px plate at its clamp ceiling,
-   * a 6 px caption gap and 10 px of caption, plus the same 8 px of air the
-   * 108 above leaves over an instrument. */
-  const AIM_MARGIN_BOTTOM_STICKS = 130;
-  const AIM_RELEASE = 6;
-  const AIM_FADE = 13;
-  /* The bracket stands this much outside the opening, so it frames the gate
-   * instead of covering the ring the pilot aims at. */
-  const AIM_BRACKET = 1.45;
-  const aimNdc = new THREE.Vector3();
-  const aimFwd = new THREE.Vector3();
-  /* One argument object each, refilled in place. */
+  const MARK_INSET = {
+    side: 54, top: 100, bottom: 108, bottomSticks: 130,
+  };
+  /* Range, m, over which the in-frame mark fades out as the pilot closes:
+   * at 13 m a 1.75 m opening is a tenth of the frame and a bracket still
+   * says something, at 6 m it is a fifth and a bracket is clutter. A mark
+   * on the rim never fades, since that is when the range matters most. */
+  const MARK_FADE_FROM = 13;
+  const MARK_FADE_TO = 6;
+  /* The bracket stands this far outside the opening so the ring the pilot
+   * aims through stays visible, and never smaller than MARK_MIN_PX or
+   * taller than MARK_MAX_SHARE of the frame. */
+  const MARK_BRACKET = 1.45;
+  const MARK_MIN_PX = 34;
+  const MARK_MAX_SHARE = 0.62;
+  const markNdc = new THREE.Vector3();
+  const markFwd = new THREE.Vector3();
+  const markRel = new THREE.Vector3();
   const LOCK_OFF = { show: false };
-  const lockArg = {
+  /* Refilled every frame: the mark is up for a whole race and must not
+   * allocate. */
+  const markOut = {
     show: true, x: 0, y: 0, size: 0, angle: 0, edge: false, wrong: false, distance: 0, fade: 1,
   };
 
-  /*
-   * Put the target mark where the next gate is.
-   *
-   * The map owns which gate that is and which side of it the pilot is on,
-   * because that is the same decision that colours the gate itself; the
-   * shell owns the projection, because the canvas size is the shell's.
-   * Splitting it the other way is how the mark and the gate would end up
-   * disagreeing about which way through.
-   */
   function updateTargetLock() {
-    if (crashflipOn || turtleRecover) {
-      ui.setTargetLock(LOCK_OFF);
-      return;
-    }
-    const aim = view.targetAim ? view.targetAim() : null;
-    if (!aim || !aim.active) {
-      ui.setTargetLock(LOCK_OFF);
-      return;
-    }
-    const el = shell.renderer.domElement;
-    /* CSS pixels. The overlay is a DOM layer over the canvas, and the
-     * drawing buffer is a different size on any display whose pixel ratio
-     * is above one. */
-    const vw = el.clientWidth;
-    const vh = el.clientHeight;
-    if (vw < 2 || vh < 2) {
-      ui.setTargetLock(LOCK_OFF);
-      return;
-    }
-    aimNdc.copy(aim.centre).project(shell.camera);
-    /*
-     * BEHIND THE CAMERA THE PROJECTION LIES, and it lies plausibly: the
-     * divide is by a negative w, so the point reflects through the centre
-     * of the frame and lands somewhere a reader would believe. Negating
-     * both axes recovers the true bearing.
-     *
-     * A target DEAD behind lands on the centre of the frame either way, and
-     * a chevron at the centre pointing nowhere is worse than none, so a
-     * bearing shorter than a pixel is read as straight up: turn round, and
-     * either way round is as good as the other.
-     */
-    const behind = aimNdc.z <= -1 || aimNdc.z >= 1;
-    const nx = behind ? -aimNdc.x : aimNdc.x;
-    const ny = behind ? -aimNdc.y : aimNdc.y;
-    let sx = (nx * 0.5 + 0.5) * vw;
-    let sy = (1 - (ny * 0.5 + 0.5)) * vh;
-    const midX = vw * 0.5;
-    const midY = vh * 0.5;
-    if (behind) {
-      const ox = sx - midX;
-      const oy = sy - midY;
-      const len = Math.hypot(ox, oy);
-      /* Pushed well outside the frame, so the clamp below always turns it
-       * into a chevron rather than a bracket around empty sky. */
-      sx = len > 1 ? midX + (ox / len) * vw : midX;
-      sy = len > 1 ? midY + (oy / len) * vw : midY - vh;
-    }
-    const minX = AIM_MARGIN;
-    const maxX = vw - AIM_MARGIN;
-    const minY = AIM_MARGIN_TOP;
-    /* Whichever of the two the frame is currently showing. isTouchPrimary
-     * moves the corner blocks to the bottom centre; the keyboard ghost puts
-     * the gimbals there. Either way the bottom band is taller than the
-     * corner instruments alone. */
-    const bottomBand = (input.isKeyboardPrimary() || input.isTouchPrimary() || input.isMousePrimary())
-      ? AIM_MARGIN_BOTTOM_STICKS
-      : AIM_MARGIN_BOTTOM;
-    const maxY = vh - bottomBand;
-    const edge = behind || sx < minX || sx > maxX || sy < minY || sy > maxY;
-    /* A flag or cone already carries its own light. The in-frame bracket
-     * was sized to the scoring square, which is the gate box the owner
-     * asked not to draw. Off screen the chevron still points the way. */
-    if (aim.virtual && !edge) {
-      ui.setTargetLock(LOCK_OFF);
-      return;
-    }
-    /* The projected aperture, from the camera space depth rather than the
-     * range: a gate 55 degrees off axis is the same size on screen as one
-     * straight ahead at the same depth, and using the range instead
-     * overstates it by most of half again out at the edge of the frame. */
-    aimFwd.set(0, 0, -1).applyQuaternion(shell.camera.quaternion);
-    const depth = (aim.centre.x - shell.camera.position.x) * aimFwd.x
-      + (aim.centre.y - shell.camera.position.y) * aimFwd.y
-      + (aim.centre.z - shell.camera.position.z) * aimFwd.z;
-    const tanHalf = Math.tan((shell.camera.fov * Math.PI) / 360);
-    const raw = depth > 0.2
-      ? (vh * aim.clearH * AIM_BRACKET) / (2 * depth * tanHalf)
-      : 0;
-    lockArg.show = true;
-    lockArg.edge = edge;
-    lockArg.wrong = !aim.correct;
-    lockArg.distance = aim.distance;
-    lockArg.size = Math.max(34, Math.min(vh * 0.62, raw));
-    lockArg.x = Math.min(maxX, Math.max(minX, sx));
-    lockArg.y = Math.min(maxY, Math.max(minY, sy));
-    /* Clockwise from up, which is how the chevron is drawn. */
-    lockArg.angle = edge
-      ? (Math.atan2(sx - midX, midY - sy) * 180) / Math.PI
-      : 0;
-    lockArg.fade = edge
-      ? 1
-      : Math.max(0, Math.min(1, (aim.distance - AIM_RELEASE) / (AIM_FADE - AIM_RELEASE)));
-    if (lockArg.fade < 0.02) {
-      ui.setTargetLock(LOCK_OFF);
-      return;
-    }
-    ui.setTargetLock(lockArg);
+    const aim = crashflipOn || turtleRecover || !view.targetAim ? null : view.targetAim();
+    ui.setTargetLock(aim && aim.active && placeTargetMark(aim) ? markOut : LOCK_OFF);
   }
 
   /*
-   * The city's clock. Everything in the town that a quad can hit is a closed
-   * form of an integer fixed step count, so the town has to be handed one.
-   *
-   * During a run that count IS simTimeMs, the physics clock, which is what
-   * makes a collision with a level crossing boom reproducible from a recorded
-   * input stream at any frame rate. On the title screen the physics does not
-   * step at all, and a frozen town behind an attract camera reads as broken,
-   * so the title gets its own counter off the same 1 ms accumulator. Nothing
-   * collides on the title screen, so nothing is at stake there.
+   * Fill markOut for `aim`, in CSS pixels (the mark is a DOM layer, and the
+   * drawing buffer differs from the layout size on any high density
+   * display). False when there is nothing to draw.
+   */
+  function placeTargetMark(aim) {
+    const canvas = shell.renderer.domElement;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (w < 2 || h < 2) {
+      return false;
+    }
+    const cam = shell.camera;
+    const midX = w * 0.5;
+    const midY = h * 0.5;
+    markNdc.copy(aim.centre).project(cam);
+    /*
+     * A point behind the lens projects through a negative w, which mirrors
+     * it through the frame's centre to a place that looks believable. The
+     * mirror undone gives its true bearing, and it is then thrown well past
+     * the rim so it always reads as a chevron. Dead behind has no bearing
+     * at all; that one points up, since either way round will do.
+     */
+    const behind = Math.abs(markNdc.z) >= 1;
+    const flip = behind ? -1 : 1;
+    let px = (flip * markNdc.x * 0.5 + 0.5) * w;
+    let py = (0.5 - flip * markNdc.y * 0.5) * h;
+    if (behind) {
+      const len = Math.hypot(px - midX, py - midY);
+      if (len > 1) {
+        px = midX + ((px - midX) * w) / len;
+        py = midY + ((py - midY) * w) / len;
+      } else {
+        px = midX;
+        py = midY - h;
+      }
+    }
+    const sticksUp = input.isKeyboardPrimary() || input.isTouchPrimary() || input.isMousePrimary();
+    const left = MARK_INSET.side;
+    const right = w - MARK_INSET.side;
+    const top = MARK_INSET.top;
+    const bottom = h - (sticksUp ? MARK_INSET.bottomSticks : MARK_INSET.bottom);
+    const edge = behind || px < left || px > right || py < top || py > bottom;
+    /* A flag or a cone is lit on its own pole; the in-frame bracket would
+     * be the scoring square the owner asked not to see. Off frame the
+     * chevron still points the way. */
+    if (aim.virtual && !edge) {
+      return false;
+    }
+    const fade = edge
+      ? 1
+      : THREE.MathUtils.clamp((aim.distance - MARK_FADE_TO) / (MARK_FADE_FROM - MARK_FADE_TO), 0, 1);
+    if (fade < 0.02) {
+      return false;
+    }
+    /* Sized by the depth along the lens rather than the straight range,
+     * because that is what a projection scales with: off axis the range
+     * would overstate the opening by up to half again. */
+    markFwd.set(0, 0, -1).applyQuaternion(cam.quaternion);
+    const depth = markRel.subVectors(aim.centre, cam.position).dot(markFwd);
+    const focal = h / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2));
+    const opening = depth > 0.2 ? (focal * aim.clearH * MARK_BRACKET) / depth : 0;
+    markOut.edge = edge;
+    markOut.wrong = !aim.correct;
+    markOut.distance = aim.distance;
+    markOut.fade = fade;
+    markOut.size = Math.max(MARK_MIN_PX, Math.min(h * MARK_MAX_SHARE, opening));
+    markOut.x = Math.min(right, Math.max(left, px));
+    markOut.y = Math.min(bottom, Math.max(top, py));
+    /* Degrees clockwise from up, the way the chevron is drawn. */
+    markOut.angle = edge ? THREE.MathUtils.radToDeg(Math.atan2(px - midX, midY - py)) : 0;
+    return true;
+  }
+
+  /*
+   * The town's clock. Everything that moves in a world and can be hit is a
+   * closed form of a whole number of 1 ms steps. In a run that number is
+   * simTimeMs, so a crossing boom meets a recorded flight at the same step
+   * at any frame rate. The title does not step the plant but should not
+   * show a frozen town, so it keeps its own count off the same 1 ms
+   * accumulator; nothing can collide there.
    */
   let titleAcc = 0;
   let titleStepMs = 0;
@@ -15586,27 +15566,6 @@ export async function boot({
   /* Wall time of the last frame the cap let through. */
   let capLastDraw = -1e9;
 
-  /*
-   * ONE FAULT USED TO FREEZE THE PICTURE AND SAY NOTHING.
-   *
-   * The next frame is scheduled first, on purpose, so a slow frame does not
-   * stop the loop. That also meant a THROWN frame did not stop it: readState
-   * throws on any non-OK state code, sim_set_pose throws from the turtle and
-   * clip-crash paths, and a height query on a half disposed map throws. The
-   * loop kept running, every frame threw at the same line, and what the
-   * pilot saw was the last drawn frame, forever, with a stale OSD and no
-   * word about why.
-   *
-   * So the body is separated from the scheduling and wrapped once. The first
-   * fault is reported to the pilot in the language of the thing they can do
-   * about it, and stored where the F8 bug report can find it. The loop keeps
-   * running afterwards because the camera, the menus and the report form all
-   * live in it; what stops is the pretence that the flight is still valid.
-   *
-   * The flag itself is declared beside reset(), which clears it, because a
-   * `let` here would be in its temporal dead zone for every line of boot
-   * above this one and reset() is reachable from several of them.
-   */
   /*
    * The Avionics HUD's systems in their order (docs/AVIONICS-HUD.md): the
    * sensor, perception over the war's attackers, the tracks, the state,
@@ -15652,6 +15611,20 @@ export async function boot({
     });
   }
 
+  /*
+   * The loop schedules its next frame before doing anything, so a slow
+   * frame never stalls it, and it runs the body inside one catch, so a
+   * frame that throws does not either. Without the catch a fault that
+   * repeats every frame (readState on a bad state code, sim_set_pose from
+   * the turtle or clip paths, a height query on a half disposed map)
+   * leaves the last picture up forever with a stale OSD and no word why.
+   * The first fault is put to the pilot on the banner and kept in
+   * window.__frameFault for the F8 report, the one path that carries it
+   * off the machine; the loop runs on, because the camera, the menus and
+   * that report all live in it. frameFault is declared beside reset(),
+   * which clears it, since a `let` here would be in its dead zone for
+   * every boot line above that can reach reset().
+   */
   function frame(nowWall) {
     requestAnimationFrame(frame);
     try {
