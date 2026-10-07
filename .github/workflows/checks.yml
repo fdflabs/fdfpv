@@ -187,6 +187,8 @@ jobs:
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
+      # The two named tabs, simulator and board (src/share/windows.js).
+      - run: npm run windows:selftest
       # How a seated track relates to the board (src/share/listing.js),
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
