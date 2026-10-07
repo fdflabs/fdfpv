@@ -1,0 +1,502 @@
+{
+ "reels": {
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Alps"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Swiss valley, photoreal"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag",
+         "kids": [
+          "Flying now"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/itaipu.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Itaipu"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Interior (in development)"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "ids": [
+   "alps",
+   "swiss2",
+   "itaipu",
+   "interior"
+  ],
+  "waiting": {
+   "tag": "div",
+   "cls": "map-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Alps"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Swiss valley, photoreal"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag",
+         "kids": [
+          "Flying now"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/itaipu.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Itaipu"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Interior (in development)"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "freeze": false,
+  "cached": {
+   "id": "alps",
+   "shots": [
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "video",
+       "cls": "map-reel-view",
+       "aria-hidden": "true",
+       "src": "<blob>"
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "keptOnCursor": true,
+  "lit": [
+   [
+    false,
+    -1,
+    null,
+    false
+   ],
+   [
+    true,
+    -1,
+    null,
+    false
+   ],
+   [
+    false,
+    -1,
+    null,
+    false
+   ],
+   [
+    false,
+    -1,
+    null,
+    false
+   ]
+  ],
+  "tags": [
+   "",
+   "Flying now",
+   "",
+   ""
+  ],
+  "quietTooSoon": false,
+  "started": true,
+  "startedAfterQuiet": true,
+  "recorder": {
+   "tag": "canvas",
+   "cls": "map-reel-view",
+   "clip": "1",
+   "title": null,
+   "src": null
+  },
+  "freezeWhileRecording": false,
+  "afterInput": {
+   "recorder": false,
+   "freeze": false,
+   "shots": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "rearmed": true,
+  "afterRearm": [
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   }
+  ],
+  "stopped": {
+   "freeze": false,
+   "shots": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "thumbs": [
+   true
+  ]
+ }
+}
