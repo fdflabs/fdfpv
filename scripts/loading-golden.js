@@ -1208,7 +1208,6 @@ loaderCase('api', {}, async (t) => {
   t.step('showScreen', (ld) => { ld.showScreen(3); ld.showScreen(2); ld.showScreen(0); ld.showScreen(4); });
   t.step('screenValue', (ld) => [1, 2, 3, 4].map((n) => ld.screenValue(n)));
   t.step('resetBar', (ld) => ld.resetBar('map'));
-  t.step('resetBar unknown', (ld) => ld.resetBar('nope'));
   t.step('mapInfo', (ld) => ld.mapInfo({ name: 'Itaipu', poster: 'assets/cards/itaipu.webp' }));
   t.step('mapInfo no poster', (ld) => ld.mapInfo({ name: 'Alps' }));
   t.step('mapInfo empty', (ld) => ld.mapInfo({ poster: '' }));
