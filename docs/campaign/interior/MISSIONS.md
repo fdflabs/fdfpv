@@ -218,8 +218,9 @@ outranks them. IBARRA's voice read clean (lines.json `ibarra-guide`,
 preset `guia`): no crackle, the owner's rule of 2026-10-04 that crackle
 belongs only to scripted story moments. A nudge is a lead, a clock bearing
 off the nose and a distance band, said back to back; it comes after
-20 s with no progress, or when the pilot is over 1.5 km from the
-objective, and the gap between nudges grows while nothing changes.
+20 s with no progress (closing on the objective by 100 m is progress,
+so a pilot on the way is left alone), and the gap between nudges grows
+while nothing changes.
 
 | id | cue | who | heard | EN |
 | --- | --- | --- | --- | --- |
