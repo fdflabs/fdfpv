@@ -502,6 +502,14 @@ export function firstsOf({ campaign = null, seconds = {} } = {}) {
   return out;
 }
 
+/* Every first there is: the list's whole length, each once. */
+export function everyFirst() {
+  return firstsOf({
+    campaign: { missions: Object.fromEntries([...MISSION_IDS].map((id) => [id, { won: true, stars: MAX_STARS }])) },
+    seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
+  });
+}
+
 /* An aircraft's milestones reached, by name: { flight, ten, hour }. */
 export function milestonesOf(seconds, airframe) {
   const key = liveryKey(airframe);

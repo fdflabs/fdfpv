@@ -280,6 +280,8 @@ jobs:
       - run: npm run stab:chop
       - run: npm run power:check
       - run: npm run progress:selftest
+      # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
+      - run: npm run economy:selftest
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest
