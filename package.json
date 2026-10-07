@@ -113,6 +113,7 @@
     "guide:golden": "node scripts/guide-golden.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "blackbox:selftest": "node scripts/blackbox-selftest.js",
+    "recfile:selftest": "node scripts/recfile-selftest.js",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
     "crashrecord:selftest": "node scripts/crashrecord-selftest.js",
     "bug:crash": "node scripts/bug-crash-check.js",
