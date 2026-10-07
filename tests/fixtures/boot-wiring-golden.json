@@ -343,5 +343,334 @@
    "dpr": 1
   },
   "errors": []
+ },
+ "tune-default": {
+  "tune": {
+   "id": "betaflight-interceptor",
+   "name": "betaflight-interceptor.diff",
+   "menu": "betaflight-interceptor"
+  },
+  "storedTune": "betaflight-interceptor",
+  "dump": null,
+  "pidsLive": {
+   "tune": "betaflight-interceptor",
+   "mode": "RPY",
+   "baselineMode": "RPY",
+   "baseline": {
+    "master": 100,
+    "pi": 100,
+    "i": 100,
+    "d": 100,
+    "dmax": 100,
+    "ff": 100,
+    "pitchPi": 100,
+    "pitchD": 100
+   },
+   "pids": {
+    "roll": {
+     "p": 45,
+     "i": 80,
+     "d": 30,
+     "dmax": 40,
+     "f": 120
+    },
+    "pitch": {
+     "p": 47,
+     "i": 84,
+     "d": 34,
+     "dmax": 46,
+     "f": 125
+    },
+    "yaw": {
+     "p": 45,
+     "i": 80,
+     "d": 0,
+     "dmax": 0,
+     "f": 120
+    }
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  }
+ },
+ "tune-custom-missing": {
+  "tune": {
+   "id": "betaflight-interceptor",
+   "name": "betaflight-interceptor.diff",
+   "menu": "betaflight-interceptor"
+  },
+  "storedTune": "custom",
+  "dump": null,
+  "pidsLive": {
+   "tune": "betaflight-interceptor",
+   "mode": "RPY",
+   "baselineMode": "RPY",
+   "baseline": {
+    "master": 100,
+    "pi": 100,
+    "i": 100,
+    "d": 100,
+    "dmax": 100,
+    "ff": 100,
+    "pitchPi": 100,
+    "pitchD": 100
+   },
+   "pids": {
+    "roll": {
+     "p": 45,
+     "i": 80,
+     "d": 30,
+     "dmax": 40,
+     "f": 120
+    },
+    "pitch": {
+     "p": 47,
+     "i": 84,
+     "d": 34,
+     "dmax": 46,
+     "f": 125
+    },
+    "yaw": {
+     "p": 45,
+     "i": 80,
+     "d": 0,
+     "dmax": 0,
+     "f": 120
+    }
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  }
+ },
+ "tune-custom-dump": {
+  "tune": {
+   "id": "custom",
+   "name": "your edits",
+   "menu": "custom"
+  },
+  "storedTune": "custom",
+  "dump": "set p_roll = 61\nset d_roll = 33\n",
+  "pidsLive": {
+   "tune": "custom",
+   "mode": "RPY",
+   "baselineMode": "RPY",
+   "baseline": {
+    "master": 100,
+    "pi": 100,
+    "i": 100,
+    "d": 100,
+    "dmax": 100,
+    "ff": 100,
+    "pitchPi": 100,
+    "pitchD": 100
+   },
+   "pids": {
+    "roll": {
+     "p": 61,
+     "i": 80,
+     "d": 30,
+     "dmax": 33,
+     "f": 120
+    },
+    "pitch": {
+     "p": 47,
+     "i": 84,
+     "d": 34,
+     "dmax": 46,
+     "f": 125
+    },
+    "yaw": {
+     "p": 45,
+     "i": 80,
+     "d": 0,
+     "dmax": 0,
+     "f": 120
+    }
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  }
+ },
+ "floor-seat": {
+  "view": "alps",
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "itaipu"
+   }
+  },
+  "banners": [
+   "Itaipu could not be loaded.\nThe Alps was loaded instead."
+  ]
+ },
+ "floor-title": {
+  "view": "alps",
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "swiss2"
+   }
+  },
+  "banners": [
+   "Swiss valley, photoreal could not be loaded.\nThe Alps was loaded instead."
+  ]
+ },
+ "tune-custom-clamped": {
+  "tune": {
+   "id": "custom",
+   "name": "your edits",
+   "menu": "custom"
+  },
+  "storedTune": "custom",
+  "dump": "set p_roll = 99999\n",
+  "pidsLive": {
+   "tune": "custom",
+   "mode": "RPY",
+   "baselineMode": "RPY",
+   "baseline": {
+    "master": 100,
+    "pi": 100,
+    "i": 100,
+    "d": 100,
+    "dmax": 100,
+    "ff": 100,
+    "pitchPi": 100,
+    "pitchD": 100
+   },
+   "pids": {
+    "roll": {
+     "p": 255,
+     "i": 80,
+     "d": 30,
+     "dmax": 40,
+     "f": 120
+    },
+    "pitch": {
+     "p": 47,
+     "i": 84,
+     "d": 34,
+     "dmax": 46,
+     "f": 125
+    },
+    "yaw": {
+     "p": 45,
+     "i": 80,
+     "d": 0,
+     "dmax": 0,
+     "f": 120
+    }
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  }
+ },
+ "tune-custom-refused": {
+  "tune": {
+   "id": "wing-stab",
+   "name": "wing-stab.diff",
+   "menu": "wing-stab"
+  },
+  "storedTune": "wing-stab",
+  "dump": "set p_roll = lots\n",
+  "pidsLive": {
+   "tune": "wing-stab",
+   "mode": "RPY",
+   "baselineMode": "RPY",
+   "baseline": {
+    "master": 100,
+    "pi": 100,
+    "i": 100,
+    "d": 100,
+    "dmax": 100,
+    "ff": 100,
+    "pitchPi": 100,
+    "pitchD": 100
+   },
+   "pids": {
+    "roll": {
+     "p": 45,
+     "i": 80,
+     "d": 30,
+     "dmax": 40,
+     "f": 120
+    },
+    "pitch": {
+     "p": 47,
+     "i": 84,
+     "d": 34,
+     "dmax": 46,
+     "f": 125
+    },
+    "yaw": {
+     "p": 45,
+     "i": 80,
+     "d": 0,
+     "dmax": 0,
+     "f": 120
+    }
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  }
+ },
+ "music-title": {
+  "title": {
+   "context": "menu",
+   "dock": "menu",
+   "setting": "rotation"
+  },
+  "afterSkip": {
+   "context": "menu",
+   "dock": "menu",
+   "setting": "golden-pin"
+  }
+ },
+ "music-rotation": {
+  "flight": {
+   "context": "flight",
+   "dock": "flight",
+   "setting": "rotation"
+  },
+  "afterSkip": {
+   "context": "flight",
+   "dock": "flight",
+   "setting": "rotation"
+  }
+ },
+ "music-pinned": {
+  "flight": {
+   "context": "flight",
+   "dock": "flight",
+   "setting": "golden-pin"
+  },
+  "afterSkip": {
+   "context": "flight",
+   "dock": "flight",
+   "setting": ""
+  }
  }
 }

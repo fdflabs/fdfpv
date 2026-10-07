@@ -1,10 +1,10 @@
 /*
- * main.js: the shell. Loads dist/sim.wasm, feeds it timestamped stick
- * samples, steps it on a fixed 1 kHz accumulator driven by
- * requestAnimationFrame, renders an interpolated view, and drives the
- * product shell in src/ui/ui.js. The frame delta clocks the accumulator
- * and never reaches the integrator; a dropped frame changes nothing about
- * the trajectory.
+ * main.js: the game shell around the physics. It loads dist/sim.wasm,
+ * hands it stick samples stamped with their time, and advances it in fixed
+ * 1 ms steps; each animation frame only decides how many steps are owed,
+ * and the picture is drawn between the last two. The wall clock never
+ * becomes a physics timestep, which is why a slow or dropped frame cannot
+ * change where the craft goes. It also wires the menus in src/ui/ui.js.
  *
  * The page opens on a title: the loaded map fills the canvas, the Skyhunter
  * flies the map's attract line, and the menu sits on top as a HUD. The map
@@ -15,23 +15,21 @@
  * Settings still has its own cheap studio context, created when that
  * screen opens and torn down when flight starts.
  *
- * Ground handling is shell side: the physics module has no ground plane
- * (the verification harness measures free air behaviour), so the shell
- * raises sim_set_ground and the plant applies a rigid-body contact every
- * 1 ms step. Grass is a dead thump with a short belly slide. Turtle is
- * a scripted recovery: inverted, seated and still shows TURTLE MODE, and
- * any pitch or roll poke flips the hull upright. Hits bounce. The one
- * exception is a clip-through or a leftover overlap bounce cannot leave:
- * the shell freezes, says Crashed, and puts the quad back on the line.
- * See PROGRESS.md.
+ * The physics core knows nothing about terrain, so its free-flight numbers
+ * can be verified on their own. This file tells it where the ground is
+ * (sim_set_ground) and the core resolves the contact inside every step:
+ * grass absorbs a landing with a short slide, an obstacle bounces the
+ * craft off. Upside down and at rest is TURTLE MODE, and a pitch or roll
+ * input rolls it back over. Only a contact the core cannot resolve, the
+ * craft passing through a surface or stuck inside one, ends the run as
+ * Crashed and resets to the start line. PROGRESS.md has the history.
  *
- * Keys in flight: Escape pauses, R returns to the start line, L is launch
- * control when that setting is on, F steps the flaps of an aircraft that
- * has them, V opens the crash cam's replay (src/replay/crashcam.js), F8
- * reports a bug.
- * Everything else is a menu choice.
- * Sticks: radio in joystick mode (Gamepad API) or WASD plus arrows.
- * Drop a Betaflight diff file onto the page to fly your own config.
+ * Flight keys: Escape (pause), R (back to the start line), L (launch
+ * control, if enabled), F (next flap setting, on aircraft with flaps),
+ * V (crash cam replay, src/replay/crashcam.js), F8 (bug report). All
+ * other actions live in the menus. Stick input comes from a radio seen as
+ * a Gamepad API joystick, or from WASD and the arrow keys. A Betaflight
+ * diff dropped on the page becomes the flight controller config.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -593,32 +591,22 @@ export async function boot({
   loading, bootStart, mapId, titleMap, retiredFrom,
 }) {
   const BOOT_START = bootStart ?? performance.now();
-  /*
-   * FIRST, BEFORE ANYTHING READS THE QUERY.
-   *
-   * Two things in one call. It takes a sponsor's `utm_source` out of the
-   * address and puts it away for thirty days, and it takes every `utm_`
-   * parameter OUT of the address bar, which matters here more than
-   * anywhere: a simulator URL is how a track travels, so a pilot who sends
-   * a friend the link they are looking at must not attribute their friend
-   * to a poster they never saw. Everything the shell reads, map, share,
-   * board and craft, is left exactly where it was.
-   *
-   * Then one visit, counted once per browser per UTC day across all three
-   * pages. It sends nothing at all if the pilot has switched counting off
-   * or their browser sends Global Privacy Control, and nothing waits for
-   * it either way.
-   */
+  /* Ordering matters: pingVisit strips every utm_ parameter from the
+   * address (keeping the sponsor's utm_source aside for thirty days), and
+   * that has to happen before any code reads or copies the URL. Pilots
+   * share tracks by pasting the address they see, and a pasted campaign tag
+   * would credit the friend's visit to a campaign they never saw. Other
+   * parameters (map, share, board, craft) are untouched. The visit count
+   * itself is daily per browser, honours the opt-out and Global Privacy
+   * Control, and is fire and forget, so boot never waits on it. */
   pingVisit('sim');
   const canvas = document.getElementById('view');
-  /* The flying view wants the shortest path to the glass it can get, and
-   * has nothing to read its own frames back for. See shell.js for what the
-   * compositor queue costs a pilot.
-   *
-   * ?gpu=low is a measurement hook: WebGL powerPreference low-power, so a
-   * dual-GPU box can bind the iGPU. The flight default stays
-   * high-performance. A dual-GPU laptop must not pick the battery chip
-   * because a debug URL was opened once; this query is not stored. */
+  /* desynchronized: input to photon latency is what a pilot feels, and
+   * nothing reads the canvas back, so it may bypass the compositor queue
+   * (shell.js measures what that queue costs). ?gpu=low exists only to
+   * measure the integrated GPU on a dual-GPU machine; it is read per page
+   * load and never saved, so one test URL cannot leave a laptop flying on
+   * the slow chip. */
   const gpuQuery = new URLSearchParams(window.location.search).get('gpu');
   const shell = buildShell(canvas, {
     desynchronized: true,
@@ -2308,56 +2296,41 @@ export async function boot({
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
   loading.system('audio', 'standby');
-  audio.music.onChange = (st) => {
-    ui.setMusicNow(st);
-  };
-  /* The dock names what is playing, and what is playing on the title
-   * screen is the menu bed, whose record is a random pick on the player.
-   * Push it before the first gesture so the dock is not showing a flight
-   * track that nobody is going to hear yet. This is unconditional now:
-   * the Music track setting names a FLIGHT record, so a pinned setting is
-   * not the answer to what is playing in the menus either. */
-  if (typeof audio.musicStatus === 'function') {
-    ui.setMusicNow(audio.musicStatus());
-  }
+  /*
+   * The music dock shows what plays now from the first frame. On the title
+   * that is the menu bed's random record, so it is pushed before any
+   * gesture starts the audio, rather than a flight record nobody hears yet.
+   */
+  audio.music.onChange = (st) => ui.setMusicNow(st);
+  ui.setMusicNow(audio.musicStatus());
   ui.onMusicSkip = (dir) => {
     wakeAudio();
-    if (typeof audio.skipMusic !== 'function') {
-      return;
-    }
     audio.skipMusic(dir);
-    const st = audio.musicStatus();
+    const now = audio.musicStatus();
     /*
-     * A skip pins the setting only when what was skipped was a FLIGHT
-     * record. The dock's buttons skip whatever is playing, which in the
-     * menus is the two record bed, and writing one of those ids into
-     * musicTrack would leave the setting holding a value its own list
-     * does not contain, showing as the first flight track and silently
-     * coerced back to rotation on the next read.
+     * Only a skip between flight records moves a pinned Music track
+     * setting. In the menus the dock skips the menu bed, whose ids are not
+     * in the setting's list: stored, one would show as the first flight
+     * track and quietly turn back into rotation on the next load.
      */
-    if (st && st.context === 'flight' && ui.settings.musicTrack !== 'rotation') {
-      ui.settings.musicTrack = st.id;
+    const pinned = ui.settings.musicTrack !== 'rotation';
+    if (pinned && now && now.context === 'flight') {
+      ui.settings.musicTrack = now.id;
       ui.persistSettings();
     }
     if (ui.screen === 'pilot') {
       ui.renderMenu();
     }
   };
-  /* Which crate the bed plays, off the screen. ui.flying() is the one
-   * predicate for that question; see its comment for why paused is a
-   * flight. */
-  ui.onScreenChange = () => {
-    if (typeof audio.setMusicContext === 'function') {
-      audio.setMusicContext(ui.flying() ? 'flight' : 'menu');
-    }
-  };
+  /* Flight bed or menu bed, by ui.flying(), which counts a pause as flight. */
+  ui.onScreenChange = () => audio.setMusicContext(ui.flying() ? 'flight' : 'menu');
 
   loading.start('sim');
   loading.system('physics', 'loading');
   simStageLive = true;
   if (simProgress) {
-    /* Whatever arrived while the board was being asked. Usually all of it. */
-    loading.report('sim', simProgress[0], simProgress[1]);
+    /* What came in while the board was being asked: usually all of it. */
+    loading.report('sim', ...simProgress);
   }
   const sim = await loadSim(await simBytes);
   /* The crash cam's journal stands between the shell and the module from
@@ -2366,64 +2339,47 @@ export async function boot({
    * (src/replay/journal.js). */
   const journal = createJournal(sim.e);
   sim.e = journal.exports;
-  if (typeof sim.e.sim_deflect !== 'function') {
-    throw new Error('sim.wasm does not export sim_deflect');
-  }
-  if (typeof sim.e.sim_contact !== 'function') {
-    throw new Error('sim.wasm does not export sim_contact');
-  }
-  if (typeof sim.e.sim_set_ground !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_ground');
-  }
-  if (typeof sim.e.sim_set_crashflip !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_crashflip');
-  }
-  if (typeof sim.e.sim_set_pose !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_pose');
-  }
-  if (typeof sim.e.sim_ground_contacts !== 'function') {
-    throw new Error('sim.wasm does not export sim_ground_contacts');
-  }
-  if (typeof sim.e.sim_set_launch_stand !== 'function') {
-    throw new Error('sim.wasm does not export sim_set_launch_stand');
+  /* Every entry point the shell calls, checked once here, so a stale
+   * dist/sim.wasm stops the boot by name instead of failing mid flight. */
+  for (const entry of [
+    'sim_deflect', 'sim_contact', 'sim_set_ground', 'sim_set_crashflip',
+    'sim_set_pose', 'sim_ground_contacts', 'sim_set_launch_stand',
+  ]) {
+    if (typeof sim.e[entry] !== 'function') {
+      throw new Error(`sim.wasm does not export ${entry}`);
+    }
   }
   /* The module is in and answers for every entry point the shell calls:
    * the plant is up. The controller is up once its tune is applied, below. */
   loading.system('physics', 'ready');
   loading.system('flight', 'loading');
   /*
-   * The flight controller comes entirely from a Betaflight diff, so which
-   * diff is chosen IS the tune. The choice is a setting; the boot path and
-   * the menu path load it the same way, and a stored id that no longer
-   * exists falls back to the first tune rather than failing to boot.
+   * The controller is whatever Betaflight diff the Tune setting names: the
+   * tune is the diff. What flies is that diff, then the pilot's PID
+   * adjustment for the loaded tune (configs/pids.js), then the pilot's
+   * rates last (configs/rates.js), joined by composeConfig in
+   * src/fc/dump.js and nowhere else. No file in configs/ carries rates, so
+   * choosing a tune never changes stick authority and a tune can be judged
+   * on its own, and even a dropped diff flies on the menu's rates. Boot and
+   * the menu load a tune the same way, and an id that no longer exists
+   * reads as the first tune (tuneById).
    */
   let configId = tuneById(ui.settings.tune).id;
-  /* What the Tune menu item last asked for, which is not the same question
-   * as what is loaded: a dropped file changes the second and not the first. */
+  /* The tune the menu last asked for, kept apart from the one loaded: a
+   * dropped file changes what is loaded and not what was asked for. */
   let menuTune = ui.settings.tune;
-  let configName = `${configId}.diff`;
+  let configName = '';
   /*
-   * Async config loads (tune menu, dropped diff) are generation counted.
-   * A stale fetch must not call sim_init after a newer choice has already
-   * won, and Fly / Resume must not start a run whose RC timestamps will be
-   * invalidated by a sim_init still in flight. See adoptSimClock.
+   * Tune loads after boot (the menu, a dropped diff) are async and
+   * numbered: a slow fetch must not sim_init over a newer choice, and Fly
+   * or Resume waits on configLoadWait so a run's RC timestamps are not
+   * invalidated by an init still on its way (adoptSimClock).
    */
   let configGen = 0;
   let configLoadWait = Promise.resolve();
-  /*
-   * A flown config is a TUNE plus the pilot's PID ADJUSTMENT plus the
-   * pilot's RATES, joined only by composeConfig in src/fc/dump.js. No file
-   * in configs/ carries a rateprofile any more, and the rate lines are
-   * appended last so that even a diff the pilot drops on the page flies on
-   * the rates in the menu. See configs/rates.js for why rates were
-   * separated: shipping rates inside a tune meant choosing that tune also
-   * halved the stick authority, so the tune could never be judged on its
-   * own. The PID adjustment sits between the two, keyed by
-   * the LOADED tune's id, so each tune keeps its own; see configs/pids.js.
-   */
-  /* The Flight controller screen's saved dump, the body of the pilot's
-   * own "custom" tune. Its rates were stripped on the way in, so it goes
-   * through composeConfig like any file in configs/. */
+  /* The pilot's own tune, "custom": the dump the Flight controller screen
+   * saved, its rates stripped on the way in, so it is composed like any
+   * file in configs/. Null when there is none or storage is shut. */
   function readFcDump() {
     try {
       return localStorage.getItem(FC_DUMP_KEY);
@@ -2431,98 +2387,75 @@ export async function boot({
       return null;
     }
   }
+  /* Saves the dump stamped with the aircraft it came off, so the Tune row
+   * offers it on that aircraft only (FC_DUMP_AIRFRAME_KEY). False when
+   * storage refuses either write. */
   function writeFcDump(body) {
     try {
       localStorage.setItem(FC_DUMP_KEY, body);
-      /* Stamped with the aircraft it came off, so the Tune row offers it on
-       * that aircraft only. See FC_DUMP_AIRFRAME_KEY. */
       localStorage.setItem(FC_DUMP_AIRFRAME_KEY, ui.settings.airframe);
-      return true;
     } catch (e) {
       return false;
     }
+    return true;
   }
-  let tuneText;
-  if (configId === 'custom') {
-    tuneText = readFcDump();
-    if (tuneText == null) {
-      /* A stored choice whose dump is gone. Fall back to the first tune
-       * rather than failing to boot; the stale choice must not stop the
-       * page. */
-      configId = TUNES[0].id;
-      ui.settings.tune = configId;
-      menuTune = configId;
-      configName = `${configId}.diff`;
-      ui.persistSettings();
-    } else {
-      configName = str('main.your_edits');
-    }
-  }
-  if (tuneText == null) {
-    tuneText = new TextDecoder().decode(await fetchBytes(tunePath(configId)));
-  }
+  const fetchTuneText = async (id) => new TextDecoder().decode(await fetchBytes(tunePath(id)));
+  /*
+   * The tune boot flies. A shipped tune the module refuses is a broken
+   * build and stops the boot. The pilot's own dump, missing or refused,
+   * must not brick the page: the first tune is flown instead and saved as
+   * the choice, and the dump stays stored for the pilot to fix.
+   */
+  let tuneText = null;
   let ratesText = ratesDiff(ui.settings.rates);
-  let pidsText = pidsDiffFor(ui.settings.pids, configId);
-  let configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
-  if (sim.init(configText) !== SIM_OK) {
-    if (configId !== 'custom') {
-      throw new Error(`sim_init failed on ${configName}`);
+  let pidsText = '';
+  let configText = '';
+  for (;;) {
+    const own = configId === 'custom';
+    tuneText = own ? readFcDump() : await fetchTuneText(configId);
+    configName = own ? str('main.your_edits') : `${configId}.diff`;
+    if (tuneText != null) {
+      pidsText = pidsDiffFor(ui.settings.pids, configId);
+      configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
+      if (sim.init(configText) === SIM_OK) {
+        break;
+      }
+      if (!own) {
+        throw new Error(`sim_init failed on ${configName}`);
+      }
     }
-    /* A saved dump the module refuses must not brick the page: boot the
-     * default tune instead and keep the dump stored for the pilot to
-     * re-edit. */
     configId = TUNES[0].id;
-    ui.settings.tune = configId;
     menuTune = configId;
-    configName = `${configId}.diff`;
+    ui.settings.tune = configId;
     ui.persistSettings();
-    tuneText = new TextDecoder().decode(await fetchBytes(tunePath(configId)));
-    pidsText = pidsDiffFor(ui.settings.pids, configId);
-    configText = composeConfig(tuneText, ui.settings.rates, RATES_KEEP, pidsText);
-    if (sim.init(configText) !== SIM_OK) {
-      throw new Error(`sim_init failed on ${configName}`);
-    }
   }
   /*
-   * What the controller is actually flying, read back out of the module
-   * after every successful init and handed to the PIDs screen. The screen
-   * never computes a PID from a slider itself: this readback is the only
-   * source its numbers have, so a slider that stopped reaching Betaflight
-   * would be visible as a slider that moves nothing.
+   * The PIDs screen is handed what the controller really flies, read back
+   * from the module after every init; it never works a PID out from a
+   * slider, so a slider that stopped reaching Betaflight shows as one that
+   * moves nothing. The tune's own slider positions come from its text, not
+   * the module, whose sliders are the override once one has run: cliMap
+   * keeps the last write, as the CLI does, and a slider the tune never
+   * sets sits at the firmware's 100.
    */
+  const PID_TERMS = ['p', 'i', 'd', 'dmax', 'f'];
   function publishPids() {
-    const num = (key) => {
+    const flown = (key) => {
       const v = Number(moduleGet(sim, key));
       return Number.isFinite(v) ? v : 0;
     };
-    /*
-     * The tune's OWN slider positions come from the tune text, not from
-     * the module: once an override block has run, the module's stored
-     * sliders ARE the override, and "the value this tune ships" would be
-     * unrecoverable. The text is the tune, cliMap takes the last write
-     * exactly as the CLI does, and a key the tune never sets is the
-     * firmware default of 100.
-     */
-    const map = cliMap(tuneText);
-    const baseline = {};
-    for (const k of SLIDER_KEYS) {
-      const v = Number(map.get(SLIDERS[k].cli));
-      baseline[k] = Number.isFinite(v) ? v : 100;
-    }
-    const pids = {};
-    for (const axis of PID_AXES) {
-      pids[axis] = {
-        p: num(pidCliKey('p', axis)),
-        i: num(pidCliKey('i', axis)),
-        d: num(pidCliKey('d', axis)),
-        dmax: num(pidCliKey('dmax', axis)),
-        f: num(pidCliKey('f', axis)),
-      };
-    }
+    const shipped = cliMap(tuneText);
+    const baseline = Object.fromEntries(SLIDER_KEYS.map((k) => {
+      const v = Number(shipped.get(SLIDERS[k].cli));
+      return [k, Number.isFinite(v) ? v : 100];
+    }));
+    const pids = Object.fromEntries(PID_AXES.map((axis) => [
+      axis, Object.fromEntries(PID_TERMS.map((term) => [term, flown(pidCliKey(term, axis))])),
+    ]));
     ui.setPidsLive({
       tune: configId,
       mode: moduleGet(sim, 'simplified_pids_mode'),
-      baselineMode: map.get('simplified_pids_mode') || 'RPY',
+      baselineMode: shipped.get('simplified_pids_mode') || 'RPY',
       baseline,
       pids,
     });
@@ -2534,42 +2467,37 @@ export async function boot({
 
   applyPixelRatio(shell, ui.settings.graphics, renderScaleOf(ui.settings));
   /*
-   * The swap path has fallen back to the previous map on a failed load for
-   * a while; boot had nothing, so one map that would not build (a bad
-   * asset, a WebGL context the photographs cannot have) took the whole
-   * session down before the title screen. The Alps are the floor: the
-   * smallest world here, and the one the Swiss valley builds through, so
-   * if they cannot build there is nothing to fall back TO and the throw is
-   * honest.
+   * A world that will not build (a bad asset, a WebGL context the
+   * photographs cannot have) must not end the session before the title, as
+   * it did when only the map swap had a fallback. The Alps are the floor:
+   * the smallest world, and the one the Swiss valley builds through, so if
+   * they fail there is nothing under them and the error stands.
    */
+  const worldOptions = () => ({ quality: ui.settings.graphics, renderScale: renderScaleOf(ui.settings) });
+  const firstWorld = worldId();
   try {
-    view = await loadMap(shell, worldId(), loading, {
-      quality: ui.settings.graphics,
-      renderScale: renderScaleOf(ui.settings),
-    });
+    view = await loadMap(shell, firstWorld, loading, worldOptions());
   } catch (e) {
-    if (worldId() === FLOOR_WORLD) {
+    if (firstWorld === FLOOR_WORLD) {
       throw e;
     }
     console.error(e);
-    const failed = mapById(worldId()).name;
-    /* A title world that will not build is dropped, and the pilot's seat
-     * is left alone: it was not the seat that failed. syncWorld then builds
-     * the seat, with its own fallback, once the settings are applied. */
+    /* A title world that fails is dropped and the seat left alone, since
+     * the seat is not what failed (syncWorld builds it later, with its own
+     * fallback). A seat that fails moves to the floor. */
     if (titleWorld) {
       titleWorld = null;
     } else {
       ui.settings.map = FLOOR_WORLD;
     }
     ui.renderMenu();
-    view = await loadMap(shell, FLOOR_WORLD, loading, {
-      quality: ui.settings.graphics,
-      renderScale: renderScaleOf(ui.settings),
-    });
-    /* The banner, not `notice`: that is declared with the frame loop's own
-     * state further down and does not exist yet. This is the same way the
-     * share adoption above reports a boot failure. */
-    ui.setBanner(str('main.could_not_be_loaded_the_floor', { failed, floor: mapById(FLOOR_WORLD).name }), true);
+    view = await loadMap(shell, FLOOR_WORLD, loading, worldOptions());
+    /* Said on the banner, as a failed board link is: `notice` belongs to the
+     * frame loop's state further down and does not exist yet. */
+    ui.setBanner(str('main.could_not_be_loaded_the_floor', {
+      failed: mapById(firstWorld).name,
+      floor: mapById(FLOOR_WORLD).name,
+    }), true);
   }
   ui.setShare(view.share || null);
   /*
@@ -2596,11 +2524,9 @@ export async function boot({
   loading.start('frame');
 
   /*
-   * Where the run starts, in world space. The map owns this now. It used to be
-   * three module scope consts computed from view.gates[0], which is exactly
-   * why a gateless map could not boot: the shell dereferenced a gate before
-   * the first frame and a freestyle map has none. They are `let` because a map
-   * swap changes all three.
+   * The run's start in world space, which the map decides. `let`, because
+   * a map swap moves it. A gateless world has no first gate to start from,
+   * so nothing here may be read off one.
    */
   let startX = 0;
   let startZ = 0;
@@ -2608,35 +2534,25 @@ export async function boot({
   let startYaw = 0;
   let startPitch = 0;
   /*
-   * The height of the surface a craft standing at (x, z) rests on.
-   *
-   * Two calls, not one, and the reason is the city. `height(x, z, fromY)`
-   * only offers a platform that is within a step of the height the query is
-   * made from, which is what lets a quad fly UNDER the overbridge and land ON
-   * its deck. Asking from far below gives the bare ground; asking again from
-   * there picks up the footway, the kerb or the forecourt slab actually laid
-   * on it. Asking from far above would seat a craft parked in the street on
-   * the roof seven metres over it.
+   * The surface a craft standing at (x, z) rests on. view.height(x, z,
+   * fromY) only offers a platform within a step of fromY, which is how a
+   * quad flies under the city's overbridge yet lands on its deck. So the
+   * bare ground is asked for from far below, then asked again from that
+   * height, which finds the footway, kerb or slab laid on it. Asked from
+   * far above, a craft parked in the street would sit on a roof seven
+   * metres up.
    */
   function groundAt(x, z) {
-    const bare = view.height(x, z, -1000);
-    return view.height(x, z, bare);
+    return view.height(x, z, view.height(x, z, -1000));
   }
 
-  /* The y component of the craft's own up vector, in world space, clamped
-   * into the domain of acos. Rotating world up by q leaves 1 - 2(x^2 + z^2),
-   * and the clamp is there because a normalised quaternion can still put
-   * that a bit outside [-1, 1] in floating point. Reads qCollide, the
-   * attitude the ground query and the hit query both use this frame.
-   */
+  /* World y of the craft's own up vector, for acos: world up turned by
+   * the attitude has y = 1 - 2(x^2 + z^2), held to [-1, 1] because a
+   * normalised quaternion can still land a hair outside it. Uses qCollide,
+   * the attitude this frame's ground and hit queries share. */
   function craftUpY() {
-    const qx = qCollide.x;
-    const qz = qCollide.z;
-    const u = 1 - 2 * (qx * qx + qz * qz);
-    if (u > 1) {
-      return 1;
-    }
-    return u < -1 ? -1 : u;
+    const { x, z } = qCollide;
+    return Math.min(1, Math.max(-1, 1 - 2 * (x * x + z * z)));
   }
 
   /*
@@ -2905,135 +2821,104 @@ export async function boot({
    * buildHost. */
   let build = null;
   /*
-   * THE FREESTYLE SCORE, and it only ever runs on a freestyle map.
-   *
-   * The detector is fed one physics step at a time from inside the step
-   * loop, not once a frame, because a 360 roll at 900 deg/s is 400 ms and a
-   * frame at 30 fps would sample it eleven times: the rate integral has to
-   * see every millisecond the plant saw or the turn count is a guess. That
-   * is the only thing in the shell that runs at 1 kHz, and it is three
-   * multiply-accumulates and a compare, which is why it can.
-   *
-   * The scorer is the opposite: it is ticked once a frame, off the SIM
-   * clock rather than the wall clock, so a dropped frame cannot bank a
-   * combo early and a paused game cannot bank one at all.
+   * Freestyle scoring (freestyle maps only) has two halves on two clocks.
+   * TrickDetector integrates body rates, so it must see every 1 ms physics
+   * step; sampled per frame, a fast roll would be a handful of points and
+   * its rotation count a guess. Its per-step cost is tiny, which is what
+   * makes running it at physics rate affordable. FreestyleScore is ticked
+   * per frame but on simulation time, so frame drops and pause cannot
+   * change when a combo banks.
    */
-  /* Set once a frame, read 1000 times: whether this map and this moment
-   * are being scored at all. */
+  /* Decided per frame, consulted every step. */
   let scoring = false;
-  /* Scratch for the per-step world position and heading handed to the
-   * detector. Written in place, never allocated in the step loop. */
+  /* Reused buffers for the detector's per-step pose: the step loop must
+   * not allocate. */
   const scorePos = new THREE.Vector3();
   const scoreFwd = new THREE.Vector3();
-  /* The craft's own up axis, in the obstacles' frame. With the nose it gives
-   * the recogniser the whole body frame, which is what lets a lap tell the
-   * loop's own turn from the bank it was flown at. See debankLap. */
+  /* Body up in world space. Nose alone cannot separate a loop's rotation
+   * from the bank angle it was flown at; nose plus up can (debankLap). */
   const scoreUp = new THREE.Vector3();
   const scoreQuat = new THREE.Quaternion();
   /*
-   * The run's shape is the pilot's choice, made on the Freestyle screen and
-   * re-read every time a run starts: 'scored' is two minutes and a board,
-   * 'free' is neither, and 'off' shows the pilot none of it. See
-   * DEFAULTS.freestyleScoring in src/ui/ui.js for why off is the default.
-   *
-   * OFF IS A DISPLAY DECISION AND NOTHING ELSE. The recogniser still runs
-   * and the scorer still keeps its total: what off removes is the overlay
-   * and the clock, so the pilot is not shown a number from a system that
-   * is still being built. Keeping the engine running is the cheaper change
-   * by far, it keeps one code path in the air instead of two, and it means
-   * the thing being developed goes on being exercised on real flights.
-   * Only 'scored' puts a clock on the run, so 'off' and 'free' alike leave
-   * score.timed false and the run never ends.
+   * settings.freestyleScoring, read at each run start: 'scored' runs a
+   * two minute timed run with a leaderboard, 'free' scores without a
+   * clock, 'off' (the default, see DEFAULTS in src/ui/ui.js) hides it.
+   * 'off' only hides: detection and scoring keep running underneath, so
+   * there is a single in-flight code path and real flights keep exercising
+   * the scorer while it matures. Timing is on for 'scored' alone.
    */
   const scoredRun = () => ui.settings.freestyleScoring === 'scored';
   const scoringWanted = () => ui.settings.freestyleScoring !== 'off';
   const score = new FreestyleScore({ timed: scoredRun() });
-  /*
-   * The things in the world worth flying around, derived from the map's own
-   * colliders once when the map is built. Null on a map with none, and the
-   * detector is then exactly the open-air recogniser it was before.
-   */
+  /* Trick targets (deriveObstacles output) for the current map, or null,
+   * in which case the detector recognises open-air tricks only. */
   let obstacles = null;
   const trickDetector = new TrickDetector((trick) => {
     score.land(trick);
   });
   /*
-   * Rebuild the obstacle list for the map now loaded. Freestyle only: a
-   * race map has a course, and nothing on a course is a powerloop object.
-   * The ground query is the map's own, so a wall that reaches sixty metres
-   * underground is measured from the street rather than from its buried
-   * bottom edge.
+   * Called on every map change. Race courses get no trick targets. Heights
+   * come from the map's own ground query so a wall modelled deep into the
+   * terrain is measured from where it meets the ground.
+   *
+   * Every exit sets obstacles AND solids: leaving solids from the previous
+   * freestyle map would let the detector query a world no longer loaded.
    */
   function rebuildObstacles() {
-    if (!view || view.mode !== 'freestyle' || !view.colliders) {
-      obstacles = null;
-      trickDetector.obstacles = null;
-      return;
-    }
-    obstacles = deriveObstacles(view.colliders, (x, z, fromY) => view.height(x, z, fromY));
+    const col = view && view.mode === 'freestyle' ? view.colliders : null;
+    obstacles = col ? deriveObstacles(col, (x, z, fromY) => view.height(x, z, fromY)) : null;
     trickDetector.obstacles = obstacles;
-    /* And the world itself, as one distance query. The recogniser measures
-     * the craft's own path and asks this only whether anything solid was
-     * inside the circle it flew, which is a question a wall, a roof edge or
-     * a tree can answer as well as a rail can. See TrickDetector.solids. */
-    trickDetector.solids = view.colliders
-      ? {
-        gapAt: (x, y, z, r) => view.colliders.gapAt(x, y, z, r),
-        /* The nearest solid's own direction, and the point on its centre
-         * line nearest the query. A rail, a coping, a parapet and a roof
-         * edge all have one, which is what lets a figure flown over any of
-         * them be the same measurement. See TrickDetector.closeTrack. */
-        axisAt: (x, y, z, r) => (view.colliders.axisAt(x, y, z, r)
-          ? {
-            gap: view.colliders.axisGap,
-            dx: view.colliders.axisDx,
-            dy: view.colliders.axisDy,
-            dz: view.colliders.axisDz,
-            cx: view.colliders.axisCx,
-            cy: view.colliders.axisCy,
-            cz: view.colliders.axisCz,
-          }
-          : null),
-      }
-      : null;
+    trickDetector.solids = col ? solidsQuery(col) : null;
   }
-  /* The map loaded at boot never passes through the swap path above, so it
-   * gets its obstacles here. After the consts, not before: rebuildObstacles
-   * writes to trickDetector and a call any earlier is a dead zone away. */
+  /* TrickDetector wants plain answers: a gap distance, and an axis record
+   * {gap,dx,dy,dz,cx,cy,cz} or null. Colliders.axisAt instead reports a
+   * hit as a boolean and leaves the record in its own fields, so it is
+   * copied out here. The detector uses these to ask whether anything solid
+   * sat inside the figure flown, and along which line. */
+  function solidsQuery(col) {
+    return {
+      gapAt: (x, y, z, r) => col.gapAt(x, y, z, r),
+      axisAt(x, y, z, r) {
+        if (!col.axisAt(x, y, z, r)) {
+          return null;
+        }
+        return {
+          gap: col.axisGap,
+          dx: col.axisDx,
+          dy: col.axisDy,
+          dz: col.axisDz,
+          cx: col.axisCx,
+          cy: col.axisCy,
+          cz: col.axisCz,
+        };
+      },
+    };
+  }
+  /* The boot map skips swapMap, so it is set up here; this call has to
+   * follow the trickDetector const or it hits the temporal dead zone. */
   rebuildObstacles();
   const racePrev = new THREE.Vector3();
   let raceHasPrev = false;
 
   /*
-   * THE GHOST: a recorded lap flown back as a translucent pacer.
-   *
-   * Everything here is downstream of the physics, the same standing as the
-   * race itself: the recorder samples the same interpolated world pose the
-   * hero craft and the gate scoring already use, and the replay drives a
-   * separate session-lived craft that collides with nothing. Timeline zero
-   * for both sides is the timing gate crossing, so the chase is one
-   * subtraction from the lap clock, and a ghost recorded at any frame rate
-   * replays identically at any other.
-   *
-   * What can be chased: the session's best lap on this course, the previous
-   * lap, or a lap somebody posted to the board with a recording attached.
-   * Session ghosts live in memory only; the board is where a lap outlives
-   * the tab. The pilot's choice is settings.ghost for the two session modes
-   * and session state for a board pick, because a board ghost belongs to
-   * one course and one visit.
+   * Ghost laps: a semi-transparent replay to race against. It only reads
+   * the physics (the recorder samples the interpolated pose that rendering
+   * and gate scoring already use; the replay craft has no collisions), so
+   * it cannot affect a flight. Both recording and playback measure time
+   * from the start gate crossing, so playback is lap clock lookups and
+   * frame rate does not matter. Sources: best lap this session, last lap,
+   * or a board entry with a recording. Session ghosts are memory only.
+   * settings.ghost picks between the session sources; a board ghost is a
+   * per-visit choice because it belongs to one course.
    */
   const ghostRecorder = new GhostRecorder();
   const ghostBook = new GhostBook();
   let ghostRig = buildGhostCraft();
-  /*
-   * Session lived, like the craft. It is parented into whichever scene
-   * holds the hero craft, below, and nothing used to take it out again, so
-   * every map swap ran disposeSceneGraph over its geometry, its body and
-   * disc materials, its sprite material and its name tag CanvasTexture,
-   * which is not in SESSION_TEXTURES. Re-parenting it on the next frame
-   * does not undo a free. Saying so here means each map's dispose hands it
-   * back without having to know it exists.
-   */
+  /* The ghost rig outlives maps, but it sits inside the current map's
+   * scene, and a map's teardown frees everything in its scene graph,
+   * name tag texture included. Registering it here makes teardown detach
+   * it instead, since re-adding it after a free would draw freed GPU
+   * resources. */
   shell.keepAcrossMaps(ghostRig.group);
   /* The ghost is the seated aircraft again, so it is rebuilt when that
    * changes: a wing chasing a wing's lap, not a quad. Between runs only,
@@ -17395,46 +17280,28 @@ export async function boot({
   let worstBlockMs = 0;
   let worstShellMs = 0;
   let worstAudioMs = 0;
-  /* Hoisted: P8 forbids a new array per frame, and this one used to be a
-   * literal in the audio.update call. */
+  /* Rotor speeds for audio.update, one array for the session: per frame
+   * allocation is banned in the hot path (rule P8). */
   const audioRpm = [0, 0, 0, 0];
   /* The engine's extra state, the same way: written in place. */
   const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
   /*
-   * The other way the mix can be left holding a tone, and it is the same
-   * defect from the other end: the whole mix is driven from inside frame(),
-   * and requestAnimationFrame is not called for a hidden document. The
-   * AudioContext keeps its own clock while the tab is in the background, so
-   * switching away mid flight used to leave the motors and the wind running
-   * on the last values they were handed, for as long as the tab stayed
-   * hidden, which is longer than any crash lockout. One update with the
-   * motors stopped, scheduled the moment the page goes away, and the fade
-   * a parked craft gets takes it down. Coming back, the next frame feeds
-   * the live state again and the mix ramps up on the same 30 ms tau.
+   * Audio is fed from frame(), and browsers stop animation frames for a
+   * hidden tab while the AudioContext keeps playing, so without this the
+   * last motor and wind values would hold for as long as the tab is away.
+   * Feeding stopped rotors once lets the normal spool-down fade run; the
+   * first frame after return restores the live mix.
+   *
+   * A flight in progress also pauses, exactly as Escape would, so the
+   * pilot returns to the pause menu rather than to a craft already moving
+   * and a lap clock still running.
    */
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       return;
     }
-    audioRpm[0] = 0;
-    audioRpm[1] = 0;
-    audioRpm[2] = 0;
-    audioRpm[3] = 0;
+    audioRpm.fill(0);
     audio.update(audioRpm, 0);
-    /*
-     * A HIDDEN TAB PAUSES, THE WAY EVERY OTHER GAME DOES.
-     *
-     * Muting the mix was the whole handler. Nothing exploded without this,
-     * because rAF stops while hidden and the accumulator caps the return at
-     * 100 ms, but the pilot who alt-tabbed mid lap came back to a live FPV
-     * view and a quad that resumed at speed in the same frame the window
-     * did, with the last 100 ms of stick history behind it. The lap clock
-     * kept the time honestly, which made it worse: the run was still
-     * running and they were not flying it.
-     *
-     * These are the two calls Escape makes, and nothing else, so a return
-     * lands on the pause menu the pilot already knows how to leave.
-     */
     if (mode === 'flight' && ui.screen === 'flight') {
       ui.act('pause');
       ui.show('paused');
