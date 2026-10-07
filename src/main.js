@@ -18552,289 +18552,252 @@ export async function boot({
   });
   let firstFrameMs = -1;
   let frames = 0;
-  /* Render statistics for the harness and the frame budget gate. */
+  /*
+   * HARNESS PROBES, part one: the craft, the ground under it, the score and
+   * the colliders.
+   *
+   * Everything named window.__* below exists for the checks in scripts/ and
+   * for capture rigs. The shell never calls them. Their names and the shape
+   * of what they return are a contract with those checks, and
+   * scripts/probe-golden.js holds the whole answer of each one in fixed
+   * states, so a field cannot quietly go missing.
+   *
+   * The frame loop copies the renderer's per frame counts into renderStats
+   * (autoReset is off so the composer's passes add up into one frame).
+   */
   const renderStats = { calls: 0, triangles: 0 };
   shell.renderer.info.autoReset = false;
+
+  /* Scratch for the attitude reads, kept apart from the scorer's own. */
+  const probeQuat = new THREE.Quaternion();
+  const probeVec = new THREE.Vector3();
+  const plain = (v) => ({ x: v.x, y: v.y, z: v.z });
+
+  /* The craft's axes and velocity in three.js world space, the conversion
+   * the recogniser uses: sim quaternion, then the spawn rotation. */
+  function probeAxis(st, x, y, z) {
+    simQuatToThree(st[7], st[8], st[9], st[10], probeQuat);
+    probeQuat.premultiply(qSpawn);
+    return plain(probeVec.set(x, y, z).applyQuaternion(probeQuat));
+  }
+  /* World velocity needs no attitude: the plant's velocity is already in
+   * its world frame, so the axis swap and the spawn turn are all of it.
+   * (Rotating it by the attitude as well was tried once and doubled the
+   * tracking error of every guidance law built on it.) */
+  function probeVelocity(st) {
+    simPosToThree(st[4], st[5], st[6], probeVec);
+    return plain(probeVec.applyQuaternion(qSpawn));
+  }
+
+  /* The module's optional exports: a probe answers `none` for an aircraft or
+   * build that does not have one. */
+  const wasm = (name, none, ...args) => (typeof sim.e[name] === 'function' ? sim.e[name](...args) : none);
+
   window.__renderStats = () => ({ ...renderStats });
-  /* Dynamic resolution's live state, for scripts/dynres-check.js. */
   window.__dynres = () => ({ ...dynres.state, pixelRatio: shell.pixelRatio, fps });
-  /*
-   * What the GPU is holding, for scripts/memory-check.js. Three.js counts
-   * live geometries and textures itself, and those two numbers are the ones
-   * that say whether a map's dispose actually gave the memory back or only
-   * stopped drawing it. A lazy load that never frees is a leak with extra
-   * steps, and on a laptop it is the difference between switching maps twice
-   * and switching maps until the tab dies.
-   */
-  window.__gpuMemory = () => ({
-    geometries: shell.renderer.info.memory.geometries,
-    textures: shell.renderer.info.memory.textures,
-    programs: shell.renderer.info.programs ? shell.renderer.info.programs.length : 0,
-  });
-  /* Handles the screenshot harness uses to reach a screen that would
-   * otherwise need a flown lap. Nothing in the shell reads them. */
+  /* Live geometries, textures and shader programs: the numbers that say
+   * whether leaving a map gave its memory back (scripts/memory-check.js). */
+  window.__gpuMemory = () => {
+    const { memory, programs } = shell.renderer.info;
+    return { geometries: memory.geometries, textures: memory.textures, programs: programs ? programs.length : 0 };
+  };
+
+  /* Live handles. __race is a getter because a map swap replaces the race
+   * object; the others live as long as the page. */
   window.__ui = ui;
-  /* The input layer, for the same reason: the radio dead ends cannot be
-   * exercised from the shell alone, because the thing that is broken is
-   * what a gamepad reports, and headless Chromium has no gamepad. The
-   * checks drive it with a fake pad. */
   window.__input = input;
-  /* A function, not a snapshot. Every other handle here reads `view` or
-   * `race` at call time; this one captured the object identity at boot, so
-   * after a map swap it answered with the previous map's race. */
   window.__race = () => race;
-  /* P12 and P13 are audio budgets, and neither can be read while the audio
-   * context is null: update() returns immediately and reports a cost of
-   * nothing. A capture run has to click the page to satisfy the browser's
-   * gesture requirement and then check that the context is real. */
   window.__audio = audio;
-  /* The cost ledger. Measured on demand from the harness, never per
-   * frame. __setCam parks the camera for a named view; __setCam(null)
-   * gives it back to the shell. */
-  /*
-   * The seated aircraft, as four independent answers rather than one, so a
-   * harness can catch the case where the shell and the module disagree about
-   * what is flying. That is the failure this feature is most likely to have:
-   * the setting says whoop, the model draws a whoop, and the plant is still
-   * integrating a 710 gram quad.
-   */
-  /* The aircraft picker's own cost, measured in its draw: CPU time to
-   * submit, draw calls, its target's size. Harness only. */
+
+  /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
   window.__lastSwap = () => lastSwap;
-  /* The paint on the craft the shell draws: which aircraft, the colour each
-   * region's materials are in now, and every colour on its drawn meshes,
-   * for scripts/hangar-check.js. */
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
-  /* The hangar's rev (ui.onHangarTry): the voice it speaks on, the one it
-   * gives back, and the rpm last fed to the mix. For scripts/progress-check.js. */
-  window.__hangarRev = () => ({
-    rev: hangarRev ? { voice: hangarRev.voice, was: hangarRev.was, ms: hangarRev.ms ?? null } : null,
-    voice: Object.keys(VOICES).find((k) => VOICES[k] === audio.voice) ?? null,
-    rpm: audioRpm.slice(),
-  });
   window.__pickLook = (id) => pickStage.look(id);
   window.__pickParts = (id) => pickStage.fitted(id);
   window.__pickCombat = (id) => pickStage.combat(id);
-  window.__craft = () => ({
-    setting: ui.settings.airframe,
-    run: runAirframe,
-    module: typeof sim.e.sim_airframe === 'function' ? sim.e.sim_airframe() : -1,
-    sweepM: CRAFT_R,
-    massKg: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(51) : 0,
-    drawn: shell.quad.name,
-    shown: drawnCraft,
-    power: readPower(),
-    cells: runCells,
-    addons: (airframeById(runAirframe).fixedWing || airframeById(runAirframe).combat) && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
-    /* A combat quad's seated payload and accessories, and its roll
-     * inertia, for scripts/combat-shell.js. */
-    combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
-    ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
-    /* A quad's motors, prop and pack as the plant flies them, for
-     * scripts/garage-motors-check.js: the loaded torque constant, the
-     * resistance and the rotor's inertia, sim_set_motors's three, and the
-     * prop's thrust constant and a cell's resistance, sim_set_prop_pack's. */
-    motors: hasMotors(runAirframe) && typeof sim.e.sim_bf_debug === 'function'
-      ? {
-        ke: sim.e.sim_bf_debug(62), r: sim.e.sim_bf_debug(61), j: sim.e.sim_bf_debug(60),
-        kt: sim.e.sim_bf_debug(10), rCell: sim.e.sim_bf_debug(63),
-      } : null,
-    parts: shell.quad.userData.partsFit ?? null,
-    smoke: { on: smokeOn, puffs: smoke.live() },
-    bladeScale: audio.bladeScale,
-    /* The sim_wing_tune block in force and the flap switch, for
-     * scripts/hangar-check.js; null on a quad. */
-    tune: airframeById(runAirframe).fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
-    flapNotch,
-    /* The hangar's test stand on the motor's audio: its voice and rpm. */
-    standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
-  });
+  window.__hangarRev = () => {
+    const voiceName = Object.keys(VOICES).find((name) => VOICES[name] === audio.voice);
+    return {
+      rev: hangarRev ? { voice: hangarRev.voice, was: hangarRev.was, ms: hangarRev.ms ?? null } : null,
+      voice: voiceName ?? null,
+      rpm: audioRpm.slice(),
+    };
+  };
+
   /*
-   * WHERE THE CRAFT IS AGAINST THE FLOOR UNDER IT, which is the one thing
-   * a screenshot argues about and a number settles. The pilot's report
-   * that a whoop "hits the ground too soon, then lifts off the ground a
-   * little when it resets" is a claim about these five numbers, and there
-   * was no way to read them. Harness only.
+   * The seated aircraft as each layer sees it: the setting, what this run
+   * flies, what the module integrates and what the scene draws. They are
+   * separate on purpose, because the bug worth catching is two of them
+   * disagreeing (a whoop drawn, a 700 g quad integrated).
    */
-  window.__ground = () => ({
-    y: pCurr.y,
-    surf: view.height(pCurr.x, pCurr.z, pCurr.y - SURFACE_BIAS),
-    above: pCurr.y - view.height(pCurr.x, pCurr.z, pCurr.y - SURFACE_BIAS),
-    clearance: lastClearance,
-    landed,
-    rest: REST_HEIGHT,
-    hits: lastGroundHits,
-    contactSteps: groundContactSteps,
-    /* The material the plant was last given for the ground under the craft. */
-    material: SURFACES[groundMaterialNow],
-  });
-  /* An optional seventh argument pins the vertical fov as well: without it
-   * the parked camera keeps whatever lens the shell last set, which is the
-   * title's 44 degrees until the settings are applied and the pilot's lens
-   * after, at a moment that depends on the machine's speed. */
+  window.__craft = () => {
+    const af = airframeById(runAirframe);
+    const motors = hasMotors(runAirframe) && typeof sim.e.sim_bf_debug === 'function'
+      ? {
+        ke: sim.e.sim_bf_debug(62),
+        r: sim.e.sim_bf_debug(61),
+        j: sim.e.sim_bf_debug(60),
+        kt: sim.e.sim_bf_debug(10),
+        rCell: sim.e.sim_bf_debug(63),
+      }
+      : null;
+    return {
+      setting: ui.settings.airframe,
+      run: runAirframe,
+      module: wasm('sim_airframe', -1),
+      drawn: shell.quad.name,
+      shown: drawnCraft,
+      sweepM: CRAFT_R,
+      massKg: wasm('sim_bf_debug', 0, 51),
+      ixx: wasm('sim_bf_debug', 0, 55),
+      power: readPower(),
+      cells: runCells,
+      motors,
+      addons: (af.fixedWing || af.combat) && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+      combat: af.combat && combatSeatKey ? JSON.parse(combatSeatKey) : null,
+      parts: shell.quad.userData.partsFit ?? null,
+      smoke: { on: smokeOn, puffs: smoke.live() },
+      bladeScale: audio.bladeScale,
+      tune: af.fixedWing && typeof sim.e.sim_wing_tune === 'function' ? Array.from(sim.tune()) : null,
+      flapNotch,
+      standAudio: { voice: standVoiceOn, rpm: standVoiceOn ? audioRpm[0] : 0 },
+    };
+  };
+
+  /* The drawn craft against the floor beneath it, the numbers behind any
+   * "it sinks into the ground" report. */
+  window.__ground = () => {
+    const floor = view.height(pCurr.x, pCurr.z, pCurr.y - SURFACE_BIAS);
+    return {
+      y: pCurr.y,
+      surf: floor,
+      above: pCurr.y - floor,
+      clearance: lastClearance,
+      rest: REST_HEIGHT,
+      landed,
+      hits: lastGroundHits,
+      contactSteps: groundContactSteps,
+      material: SURFACES[groundMaterialNow],
+    };
+  };
+
+  /* Park the camera at (a, b, c) looking at (d, e, f); null hands it back.
+   * The optional fov pins the lens too, since otherwise a capture gets the
+   * title's lens or the pilot's depending on how fast the machine booted. */
   window.__setCam = (a, b, c, d, e, f, fov) => {
     camOverride = a == null ? null : [a, b, c, d, e, f, fov];
   };
-  window.__intro = () => ({
-    ms: introMs,
-    holding: introMs >= 0 && introMs < INTRO_FLY,
-    orbiting: introMs >= 0 && introMs < INTRO_ORBIT,
-    approaching: introMs >= INTRO_ORBIT && introMs < INTRO_FLY,
-    zooming: introMs >= INTRO_FLY && introMs < INTRO_TOTAL,
-    quadVisible: shell.quad.visible,
-  });
-  /* Put the race on a given gate. The ledger and the value measurements
-   * park the camera at a point on the racing line, and a pilot at that
-   * point has a real next gate, which is not gate 0 just because the run
-   * has not started. Without this the glow ladder in a parked capture
-   * belongs to a different position on the course than the camera does.
-   * Harness only.
-   *
-   * Setting `race.next` alone leaves the rest of the race inconsistent:
-   * `lapStartMs` is only ever set by passing gate 0, so the lap clock never
-   * starts, and `race.update` treats a gate frame tap with `next !== 0` and
-   * no lap start as a lap to void, which flashes "Gate touched, lap void"
-   * across whatever is being captured. So this resets the race first and
-   * hands back the previous value for a run to restore.
+
+  window.__intro = () => {
+    const live = introMs >= 0;
+    return {
+      ms: introMs,
+      holding: live && introMs < INTRO_FLY,
+      orbiting: live && introMs < INTRO_ORBIT,
+      approaching: introMs >= INTRO_ORBIT && introMs < INTRO_FLY,
+      zooming: introMs >= INTRO_FLY && introMs < INTRO_TOTAL,
+      quadVisible: shell.quad.visible,
+    };
+  };
+
+  /*
+   * Put the race on gate `raceIndex` for a capture parked on the racing
+   * line. The race is reset first: a bare `race.next` with no lap started
+   * makes the next gate frame touch read as a voided lap, which would flash
+   * across the capture. Returns the old value so a rig can put it back.
    */
   window.__setRaceNext = (raceIndex) => {
-    const n = race.gates.length;
-    const was = race.next;
+    const previous = race.next;
+    const count = race.gates.length;
     race.reset();
-    race.next = (((raceIndex | 0) % n) + n) % n;
+    race.next = (((raceIndex | 0) % count) + count) % count;
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     racePrev.copy(shell.quad.position);
     raceHasPrev = true;
-    return { raceNext: race.next, sceneIndex: race.nextSceneIndex(), previous: was };
+    return { raceNext: race.next, sceneIndex: race.nextSceneIndex(), previous };
   };
+
+  /* A point on the course curve at u (0 to 1), its heading and the ground
+   * under it; null on a map without a curve. */
   window.__trackPoint = (u) => {
     if (!view.curve) {
       return null;
     }
-    const p = view.curve.getPointAt(u);
-    const t = view.curve.getTangentAt(u);
-    return { x: p.x, y: p.y, z: p.z, tx: t.x, tz: t.z, ground: view.height(p.x, p.z) };
+    const at = view.curve.getPointAt(u);
+    const dir = view.curve.getTangentAt(u);
+    return { x: at.x, y: at.y, z: at.z, tx: dir.x, tz: dir.z, ground: view.height(at.x, at.z) };
   };
+
   /*
-   * The freestyle score. A reader and a writer, for the same reason
-   * __setRaceNext has both: a screenshot of the score overlay has to be
-   * able to put a known score on it, and every other route to one involves
-   * flying a Rubik's Cube in a headless browser on a software rasteriser.
-   * The writer goes through score.land, so what it captures is the real
-   * scoring path and not a mock of it.
+   * Freestyle scoring. The writers stage a trick, the horn or a bail through
+   * the real scorer, because flying one in a headless browser is not
+   * reproducible. A staged trick is flagged `assisted`, which the results
+   * screen carries and the board refuses, so no capture can post a score.
    */
   window.__score = () => score.summary();
-  /*
-   * The recogniser itself, so a probe can watch what it does rather than
-   * only what it says. Every "verified" trick in this repo's history was
-   * checked against a CONSTRUCTED flight: an exact circle, a constant turn
-   * rate, a nose pointed by arithmetic. Those flights pass things a flown
-   * one does not, and the gap is where the owner's "not picking up at all"
-   * lives. A probe holding this can patch closePath and read the laps a
-   * REAL stick input produced. Harness only; nothing in the shell reads it.
-   */
   window.__trickDetector = () => trickDetector;
-  /* What the map offered up to fly around, for the audit in
-   * scripts/obstacle-audit.js and for check 16's eyes. */
-  window.__obstacleField = () => obstacles;
-  window.__obstacles = () => (obstacles
-    ? {
-      count: obstacles.count,
-      poles: obstacles.countOf(OB_POLE),
-      bars: obstacles.countOf(OB_BAR),
-    }
-    : null);
   window.__scoreTrick = (name, execution) => {
     score.tick(simTimeMs);
-    /*
-     * MARKED, because this is not flying.
-     *
-     * The run summary carries the flag out to the results screen and the
-     * post path refuses it there, so a screenshot rig cannot put a
-     * fabricated score on a public table. It is on the TRICK rather than
-     * on the scorer so that score.js needs no knowledge of a harness: it
-     * simply records that something it was handed said it was staged.
-     */
-    const r = score.land({
+    const landedTrick = score.land({
       name, execution: execution || 'CLEAN', endMs: simTimeMs, assisted: true,
     });
-    return r && { name: r.name, net: Math.round(r.net), combo: score.view().combo };
+    if (!landedTrick) {
+      return landedTrick;
+    }
+    return { name: landedTrick.name, net: Math.round(landedTrick.net), combo: score.view().combo };
   };
-  /* The horn, staged, for the same reason the bail is: a real one is two
-   * minutes of flying that a headless browser on a software rasteriser
-   * cannot be asked for. Same path as the real one, no mock. */
   window.__scoreFinish = () => {
     score.finish();
     endFreestyleRun();
     return score.summary();
   };
-  /* The bail, staged. There is no other way to photograph the one screen
-   * that matters most in this mode: a real bail needs a real crash, and a
-   * crash in a headless browser on a software rasteriser is a twenty step
-   * flight nobody can reproduce. Same path as the real one, no mock. */
   window.__scoreCrash = () => {
     trickDetector.reset();
     score.crash();
     return score.summary();
   };
-  /*
-   * The gap to the nearest solid at a point, in metres, by exactly the
-   * query the freestyle recogniser is fed. Harness only, and it exists
-   * because "a Wall Ride was flown near a wall" is a claim about a number
-   * nothing else in the shell reports. See WALL_NEAR_M.
-   */
-  window.__nearSolid = (x, y, z, r = WALL_NEAR_M) => {
-    if (!view.colliders) {
+
+  /* The obstacle field the recogniser flies around (scripts/obstacle-audit.js). */
+  window.__obstacleField = () => obstacles;
+  window.__obstacles = () => {
+    if (!obstacles) {
       return null;
     }
-    return view.colliders.gapAt(x, y, z, r);
+    return { count: obstacles.count, poles: obstacles.countOf(OB_POLE), bars: obstacles.countOf(OB_BAR) };
   };
-  /* What is solid, and how well the broadphase is doing. */
+
+  /* Distance to the nearest solid by the recogniser's own query (the Wall
+   * Ride test, see WALL_NEAR_M); null on a map without colliders. */
+  window.__nearSolid = (x, y, z, r = WALL_NEAR_M) => (view.colliders ? view.colliders.gapAt(x, y, z, r) : null);
+
   /*
-   * THE CONTACT COUNTERS, so a probe can tell a wall it touched from a wall
-   * it stopped short of. The owner's report is that a wall tap "ended in a
-   * crash rather than a tap", and the two halves of that are answered by
-   * different numbers: bounces says the contact pass saw the wall at all,
-   * lastImpulse says how hard, and GRAZE_SPEED_MAX is the line between a
-   * tap and a smack. Nothing in the shell reads it.
-   */
-  /*
-   * DRAW NOTHING, FLY EVERYTHING. Harness only.
-   *
-   * The town costs about two hundred milliseconds a frame under
-   * swiftshader, so a probe driving the sticks from requestAnimationFrame
-   * moves them FIVE TIMES A SECOND. Nothing can be flown at five hertz: a
-   * tracker measured eighteen metres off a straight line it had six seconds
-   * to fly, and every trick built on that measurement was measuring the
-   * probe. Skipping the draw leaves the frame loop, the accumulator, the
-   * fixed timestep and the interpolation exactly as they were, which is the
-   * same promise the fps cap already makes one branch below, and hands the
-   * probe back a control rate a radio would recognise.
+   * Skip the draw and keep everything else: frame loop, accumulator, fixed
+   * step and interpolation run as before. On a software rasteriser a heavy
+   * world draws a few frames a second, and a probe steering from
+   * requestAnimationFrame cannot fly anything at that rate.
    */
   window.__drawOff = (on = true) => {
     harnessNoDraw = Boolean(on);
     return harnessNoDraw;
   };
-  /* Which control mode the plant is actually in. A rig that thinks it is
-   * flying acro and is not measures nothing: angle cannot loop. */
+
+  /* The mode the plant is in, not the one the menu shows: angle cannot loop. */
   window.__flightMode = () => (angleModeOn ? 'angle' : 'acro');
-  /*
-   * The air, READ BACK OUT OF THE MODULE rather than out of the menu, which
-   * is the same discipline the PIDs panel keeps: a slider that stopped
-   * reaching the plant has to be visible as a slider that moves nothing.
-   * `run` is what the shell believes the current lap is being flown in and
-   * is what the record key is built from, so the two disagreeing is a bug
-   * with a name rather than a mystery. Harness only.
-   */
+
+  /* Gravity as the menu, this run and the module each hold it, and the
+   * record key built from the run's value. */
   window.__air = () => ({
     setting: ui.settings.weight,
     run: runWeight,
     scale: runGravityScale,
-    module: typeof sim.e.sim_gravity === 'function' ? sim.e.sim_gravity() : null,
+    module: wasm('sim_gravity', null),
     key: recordKey(),
   });
+
+  /* The contact pass's counters: whether a wall was seen at all (bounces),
+   * how hard (lastImpulse) and where a tap ends and a smack begins. */
   window.__contacts = () => ({
     ...passStats,
     interior: obsInterior,
@@ -18847,194 +18810,158 @@ export async function boot({
     grazeMax: GRAZE_SPEED_MAX,
     bounceMax: BOUNCE_SPEED_MAX,
   });
+
   window.__colliders = () => view.colliders.stats();
+
   /*
-   * Every solid box within `r` of a point, as plain numbers. Harness only,
-   * and it exists because the collider fit is the one thing in this project
-   * that cannot be checked by a number alone: "the collisions hug the
-   * graphics" is a claim about a picture, and the way to check it is to draw
-   * the boxes over the picture and look. scripts/collider-overlay.js does
-   * exactly that with what this returns.
+   * Solid boxes whose centre lies within r of (x, z), as
+   * [ax, ay, az, bx, by, bz, index] (a turned box by its world bounds), for
+   * drawing over a screenshot (scripts/collider-overlay.js). The index is
+   * what a roof's `solids` list refers to.
    */
   window.__colliderBoxes = (x, z, r) => {
-    const c = view.colliders;
-    const out = [];
-    if (!c.fbox) {
-      return out;
+    const set = view.colliders;
+    const found = [];
+    if (!set.fbox) {
+      return found;
     }
-    for (let i = 0; i < c.fbox.length; i += 1) {
-      if (!c.fbox[i]) {
-        continue;
+    set.fbox.forEach((isBox, i) => {
+      if (!isBox) {
+        return;
       }
-      const cx = (c.fax[i] + c.fbx[i]) * 0.5;
-      const cz = (c.faz[i] + c.fbz[i]) * 0.5;
-      if (Math.hypot(cx - x, cz - z) > r) {
-        continue;
+      const mx = (set.fax[i] + set.fbx[i]) * 0.5;
+      const mz = (set.faz[i] + set.fbz[i]) * 0.5;
+      if (Math.hypot(mx - x, mz - z) > r) {
+        return;
       }
-      /* The seventh number is the collider's index, which a roof's
-       * `solids` (window.__roofs) name. A turned box is its world
-       * bounding box here; __crashSolids has its own frame. */
-      out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i], i]);
-    }
-    return out;
+      found.push([set.fax[i], set.fay[i], set.faz[i], set.fbx[i], set.fby[i], set.fbz[i], i]);
+    });
+    return found;
   };
+
   /*
-   * A SHAPE CENSUS OF THE WHOLE COLLIDER SET, and the near misses.
-   *
-   * `__colliderBoxes` above answers "is the collider where the drawing is",
-   * which is a question about a picture. This answers a different one that
-   * is just as invisible from the outside: of everything solid in this
-   * world, how much of it is a shape the freestyle recogniser can fly
-   * AROUND, and for the things that nearly are, which test threw them out.
-   *
-   * It exists because the obstacle field was empty in the real town for a
-   * long time and no check could see it: every self-test builds its own
-   * constructed field of one bar and one pole, so the derivation was proved
-   * against a world that is not this one. See PROGRESS.md, 2026-09-02.
-   *
-   * `near` is the near misses: a capsule or box that failed exactly one of
-   * the pole or bar tests, with the test that rejected it and the number it
-   * was judged on, so "the town has no bars" can be told apart from "the
-   * town's bars are half a metre too thick".
+   * Length, thickness, how upright (1 vertical, 0 flat) and lowest point of
+   * collider i, by the rules the obstacle derivation uses. A box is judged
+   * by its own sides when turned. An upright box's thickness is its larger
+   * footprint side; a lying one's is the larger of its thin side and its
+   * height, so a wide flat deck never passes for a thin bar.
+   */
+  function colliderFigure(set, i) {
+    if (!set.fbox[i]) {
+      const dx = set.fbx[i] - set.fax[i];
+      const dy = set.fby[i] - set.fay[i];
+      const dz = set.fbz[i] - set.faz[i];
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      return {
+        len,
+        thick: set.fr[i] * 2,
+        upright: len > 1e-6 ? Math.abs(dy / len) : 1,
+        lowY: Math.min(set.fay[i], set.fby[i]) - set.fr[i],
+      };
+    }
+    const turned = set.fbox[i] === TURNED;
+    const sideA = turned ? set.fu1[i] - set.fu0[i] : Math.abs(set.fbx[i] - set.fax[i]);
+    const sideB = turned ? set.fw1[i] - set.fw0[i] : Math.abs(set.fbz[i] - set.faz[i]);
+    const tall = Math.abs(set.fby[i] - set.fay[i]);
+    const aWider = sideA > sideB;
+    const wide = aWider ? sideA : sideB;
+    const narrow = aWider ? sideB : sideA;
+    const lowY = Math.min(set.fay[i], set.fby[i]);
+    if (tall >= wide) {
+      return { len: tall, thick: wide, upright: 1, lowY };
+    }
+    return { len: wide, thick: narrow > tall ? narrow : tall, upright: 0, lowY };
+  }
+
+  /*
+   * A census of every collider by shape, and of the near misses: long
+   * horizontal pieces that failed to count as a bar, with the reason. It
+   * answers "does this world have bars to fly under" for the real map,
+   * where every self-test builds its own tidy field. The pole and bar tests
+   * are written out again here rather than imported, so the census can
+   * disagree with the derivation when the derivation is wrong.
    */
   window.__colliderShapes = (opts = {}) => {
-    const c = view.colliders;
-    const out = {
+    const set = view.colliders;
+    const census = {
       total: 0, boxes: 0, capsules: 0, byKind: {}, poles: 0, bars: 0, near: [], barList: [],
     };
-    if (!c || !c.fbox) {
-      return out;
+    if (!set || !set.fbox) {
+      return census;
     }
-    const KIND = KINDS;
-    const limit = opts.near ?? 12;
-    for (let i = 0; i < c.fbox.length; i += 1) {
-      out.total += 1;
-      const kind = KIND[c.fkind[i]] ?? String(c.fkind[i]);
-      out.byKind[kind] = (out.byKind[kind] ?? 0) + 1;
-      const box = Boolean(c.fbox[i]);
-      out[box ? 'boxes' : 'capsules'] += 1;
-      const cx = (c.fax[i] + c.fbx[i]) * 0.5;
-      const cz = (c.faz[i] + c.fbz[i]) * 0.5;
-      let len;
-      let thick;
-      let upright;
-      let lowY;
+    const keep = opts.near ?? 12;
+    const r1 = (v) => +v.toFixed(1);
+    const r2 = (v) => +v.toFixed(2);
+    for (let i = 0; i < set.fbox.length; i += 1) {
+      const kind = KINDS[set.fkind[i]] ?? String(set.fkind[i]);
+      const box = Boolean(set.fbox[i]);
+      census.total += 1;
+      census.byKind[kind] = (census.byKind[kind] ?? 0) + 1;
       if (box) {
-        /*
-         * MIRRORS deriveObstacles' box branch exactly, and the first draft
-         * did not: it took the thickness as the smaller of the footprint
-         * and the height, which called a 16 by 11 metre overbridge deck
-         * 0.24 m thick and reported six bars in a town that has none. A
-         * diagnostic that flatters the thing it is measuring is worse than
-         * no diagnostic. A box is a bar only if it is thin in BOTH of the
-         * two directions that are not its length.
-         */
-        /* A turned box by its own sides, not its world bounding box. */
-        const turned = c.fbox[i] === TURNED;
-        const w = turned ? c.fu1[i] - c.fu0[i] : Math.abs(c.fbx[i] - c.fax[i]);
-        const d = turned ? c.fw1[i] - c.fw0[i] : Math.abs(c.fbz[i] - c.faz[i]);
-        const h = Math.abs(c.fby[i] - c.fay[i]);
-        const foot = w > d ? w : d;
-        const thin = w > d ? d : w;
-        lowY = Math.min(c.fay[i], c.fby[i]);
-        if (h >= foot) {
-          len = h;
-          thick = foot;
-          upright = 1;
-        } else {
-          len = foot;
-          /* Both cross sections, not the smaller of them. */
-          thick = thin > h ? thin : h;
-          upright = 0;
-        }
+        census.boxes += 1;
       } else {
-        const ex = c.fbx[i] - c.fax[i];
-        const ey = c.fby[i] - c.fay[i];
-        const ez = c.fbz[i] - c.faz[i];
-        len = Math.sqrt(ex * ex + ey * ey + ez * ez);
-        thick = c.fr[i] * 2;
-        upright = len > 1e-6 ? Math.abs(ey / len) : 1;
-        lowY = Math.min(c.fay[i], c.fby[i]) - c.fr[i];
+        census.capsules += 1;
       }
-      /* Below the collider's own base, the same question deriveObstacles
-       * asks and for the same reason: the unhinted height is the top of
-       * whatever is stacked over the point, so under a deck it reports a
-       * support as having negative daylight beneath it. */
-      const clear = lowY - view.height(cx, cz, lowY);
-      /* The same tests deriveObstacles applies, restated here so a near
-       * miss can name the one that failed. They are deliberately a copy:
-       * this is a diagnostic and it must be able to disagree. */
-      const poleShaped = upright >= 0.9 && thick <= 0.9 && len >= 2.5;
-      const barShaped = upright <= 0.1 && thick <= 0.8 && len >= 2 && clear >= 1.5;
-      if (poleShaped) {
-        out.poles += 1;
-      } else if (barShaped) {
-        out.bars += 1;
-        if (out.barList.length < limit) {
-          out.barList.push({
-            kind,
-            box,
-            at: [+cx.toFixed(1), +lowY.toFixed(1), +cz.toFixed(1)],
-            len: +len.toFixed(2),
-            thick: +thick.toFixed(2),
-            clear: +clear.toFixed(2),
-            a: [+c.fax[i].toFixed(1), +c.fay[i].toFixed(1), +c.faz[i].toFixed(1)],
-            b: [+c.fbx[i].toFixed(1), +c.fby[i].toFixed(1), +c.fbz[i].toFixed(1)],
-            r: +c.fr[i].toFixed(2),
+      const { len, thick, upright, lowY } = colliderFigure(set, i);
+      const mx = (set.fax[i] + set.fbx[i]) * 0.5;
+      const mz = (set.faz[i] + set.fbz[i]) * 0.5;
+      /* Daylight under the piece, measured below its own base: the plain
+       * height query answers with whatever is stacked on top. */
+      const clear = lowY - view.height(mx, mz, lowY);
+      const summary = { kind, box, at: [r1(mx), r1(lowY), r1(mz)], len: r2(len), thick: r2(thick), clear: r2(clear) };
+      if (upright >= 0.9 && thick <= 0.9 && len >= 2.5) {
+        census.poles += 1;
+      } else if (upright <= 0.1 && thick <= 0.8 && len >= 2 && clear >= 1.5) {
+        census.bars += 1;
+        if (census.barList.length < keep) {
+          census.barList.push({
+            ...summary,
+            a: [r1(set.fax[i]), r1(set.fay[i]), r1(set.faz[i])],
+            b: [r1(set.fbx[i]), r1(set.fby[i]), r1(set.fbz[i])],
+            r: r2(set.fr[i]),
           });
         }
-      } else if (out.near.length < limit && upright <= 0.3 && len >= 2) {
-        /* Horizontal and long, so it wanted to be a bar. Say why it is not. */
-        out.near.push({
-          kind,
-          box,
-          at: [+cx.toFixed(1), +lowY.toFixed(1), +cz.toFixed(1)],
-          len: +len.toFixed(2),
-          thick: +thick.toFixed(2),
-          clear: +clear.toFixed(2),
-          failed: thick > 0.8 ? 'too thick' : (clear < 1.5 ? str('main.no_daylight_under_it') : 'too short'),
-        });
+      } else if (census.near.length < keep && upright <= 0.3 && len >= 2) {
+        let failed = 'too short';
+        if (thick > 0.8) {
+          failed = 'too thick';
+        } else if (clear < 1.5) {
+          failed = str('main.no_daylight_under_it');
+        }
+        census.near.push({ ...summary, failed });
       }
     }
-    return out;
+    return census;
   };
-  /* How many cel materials the per frame clock walk touches. Check 16
-   * asserts this returns to its boot value after a map round trip, which is
-   * the measurement that catches a dead uniform kept alive forever. */
+
+  /* Cel materials the per frame clock walks; back to its boot value after a
+   * map round trip, or a dead uniform is being kept alive. */
   window.__celCount = () => celTimeCount();
-  /*
-   * The craft's contact state, so a capture can ASSERT a landing instead of
-   * describing one. descentRate and tiltDeg are the values the last ground
-   * contact was judged on, and the thresholds are published beside them so a
-   * reviewer does not have to go and find them.
-   */
-  /* The radio, for a capture or a pilot comparing links. Returns the id in
-   * force so a shot can name it. */
+
+  /* The radio link: switch preset with an id, and read what is in force. */
   window.__link = (id) => {
     if (id != null) {
       rcLink.setPreset(id);
       rcLink.reset(rcNextMs);
     }
-    return { id: rcLink.id, hz: rcLink.hz, delayMs: rcLink.delayMs,
-      jitterMs: rcLink.jitterMs, lossPpm: rcLink.lossPpm,
-      sent: rcLink.sent, dropped: rcLink.dropped,
-      presets: Object.keys(LINK_PRESETS) };
+    const { hz, delayMs, jitterMs, lossPpm, sent, dropped } = rcLink;
+    return { id: rcLink.id, hz, delayMs, jitterMs, lossPpm, sent, dropped, presets: Object.keys(LINK_PRESETS) };
   };
-  /* The recorder, for a capture and for checking a session recorded
-   * anything before asking a pilot to download it. */
+
+  /* The flight recorder, and the CSV the download button would save. */
   window.__flightLog = () => ({
-    on: flightLog.on, rows: flightLog.count, seconds: flightLog.seconds,
+    on: flightLog.on,
+    rows: flightLog.count,
+    seconds: flightLog.seconds,
     csv: flightLog.count > 1 ? flightLog.csv().length : 0,
   });
-  /* The recorded CSV itself, so a capture can check the file the download
-   * button would write without driving a file dialog. */
   window.__flightLogCsv = () => flightLog.csv();
-  /* The ghost, so a capture can ASSERT a chase: what is armed, what the
-   * recorder holds, where the rig is and how present it is. */
+
+  /* The ghost chase: what is armed, what is being recorded, where the rig is. */
   window.__ghost = () => {
-    const key = ghostCourseKey();
-    const best = ghostBook.best(key);
-    const previous = ghostBook.previous(key);
+    const course = ghostCourseKey();
+    const best = ghostBook.best(course);
+    const previous = ghostBook.previous(course);
     return {
       choice: ghostChoice,
       armed: Boolean(ghostLap),
@@ -19050,8 +18977,7 @@ export async function boot({
       boardTimes: (ghostBoardTimes || []).length,
     };
   };
-  /* Arm a ghost from wire base64 directly, the way a board fetch would,
-   * so a capture can fly a chase without a board running. */
+  /* Arm a lap from wire base64 as if the board had sent it. */
   window.__ghostLoad = (b64, name) => {
     const lap = new GhostLap(decodeGhost(ghostFromBase64(b64)), {
       label: str('main.board_lap'),
@@ -19060,233 +18986,205 @@ export async function boot({
     });
     lap.timeId = 'tm-00000000';
     ghostBoardLap = lap;
-    ghostChoice = 'board:tm-00000000';
+    ghostChoice = `board:${lap.timeId}`;
     armGhost();
     syncGhostRow();
     return { armed: Boolean(ghostLap), durationMs: lap.durationMs, splits: lap.splits.length };
   };
-  /* Pick a ghost mode by id, as the menu row would. */
   window.__ghostPick = (id) => {
     pickGhost(String(id));
     return ghostChoice;
   };
-  /* Light the OSD gap readout as a crossing would, so a capture can look
-   * at the element without having to fly two laps first. */
+  /* Light the OSD's gap readout for 2.8 s without flying two laps. */
   window.__ghostGapShow = (deltaMs, final) => {
     ghostGap = { deltaMs: Number(deltaMs), final: Boolean(final), untilWall: performance.now() + 2800 };
     return ghostGap;
   };
-  /* The session's recorded laps as wire base64, so a capture can prove the
-   * record-encode-decode-chase loop end to end. */
+  /* A session lap as wire base64 ('previous', or the best otherwise). */
   window.__ghostExport = (which) => {
-    const key = ghostCourseKey();
-    const lap = which === 'previous' ? ghostBook.previous(key) : ghostBook.best(key);
+    const course = ghostCourseKey();
+    const lap = which === 'previous' ? ghostBook.previous(course) : ghostBook.best(course);
     return lap ? ghostToBase64(encodeGhost(lap)) : null;
   };
-  window.__craftState = () => ({
-    mode,
-    wingStab: typeof sim.e.sim_wing_stab === 'function' ? sim.e.sim_wing_stab() : null,
-    tune: configId,
-    flownThisRun,
-    landed,
-    crashed,
-    clipCrash: crashed,
-    clipCrashKind,
-    turtle: crashflipOn,
-    /* Real Betaflight crashflip held by the pilot, as distinct from the
-     * scripted turtle above. Published so a capture can tell the two
-     * apart: they drive the same mixer path and look alike from outside. */
-    manualFlip,
-    crashflipActive: sim.e.sim_crashflip_active() !== 0,
-    turtleWait,
-    turtleFlip: turtleFlip.active,
-    turtleParked: isTurtleParked(),
-    turtleRecover,
-    turtleResumeGate,
-    banner: ui.banner ? ui.banner.textContent : '',
-    /* Where the craft IS, world space, so a capture can steer toward a
-     * gate instead of describing where it hoped to be. */
-    worldX: shell.quad.position.x,
-    worldY: shell.quad.position.y,
-    worldZ: shell.quad.position.z,
-    /* And how far the nose is down, the launch overlay's own reading, so a
-     * capture can tell a stick that reached the plant from one that only
-     * reached the menu. */
-    pitchDeg: stateCurr ? pitchNoseDownDeg(stateCurr) : 0,
-    /*
-     * ATTITUDE, VELOCITY AND BODY RATES, so a probe can fly the aircraft on
-     * feedback rather than on a stopwatch. A trick is a shape the craft
-     * makes, and a stick script that cannot see which way up it is has to
-     * guess how long to hold the stick. Every guess is a different loop, so
-     * a check built on one measures the guess. Same numbers the recogniser
-     * is fed at src/main.js's trickDetector.step call, and the same
-     * conversion: sim quaternion, spawn premultiplied, in three.js space.
-     */
-    up: stateCurr ? (() => {
-      simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], scoreQuat);
-      scoreQuat.premultiply(qSpawn);
-      scoreFwd.set(0, 1, 0).applyQuaternion(scoreQuat);
-      return { x: scoreFwd.x, y: scoreFwd.y, z: scoreFwd.z };
-    })() : null,
-    fwd: stateCurr ? (() => {
-      simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], scoreQuat);
-      scoreQuat.premultiply(qSpawn);
-      scoreFwd.set(0, 0, -1).applyQuaternion(scoreQuat);
-      return { x: scoreFwd.x, y: scoreFwd.y, z: scoreFwd.z };
-    })() : null,
-    speed: stateCurr
-      ? Math.sqrt(stateCurr[4] * stateCurr[4] + stateCurr[5] * stateCurr[5]
-        + stateCurr[6] * stateCurr[6])
-      : 0,
-    /* An aircraft on floats: what the water did on the last step, the ten
-     * numbers of sim_float_state (buoyancy, planing force, drag, volume,
-     * the two wetted lengths, the keels' load on land, the water rudders,
-     * the wave drag, the water body), and whether it started afloat. */
-    floats: airframeById(runAirframe).floats && typeof sim.e.sim_float_state === 'function'
-      ? (() => {
-        if (!floatStatePtr) {
-          floatStatePtr = sim.e.malloc(10 * 8);
-        }
-        sim.e.sim_float_state(floatStatePtr);
-        return { state: Array.from(new Float64Array(sim.e.memory.buffer, floatStatePtr, 10)), onWater: floatsOnWater() };
-      })()
-      : null,
-    /*
-     * World velocity, so a guidance law can close a loop on where the craft
-     * is GOING as well as where it is.
-     *
-     * The plant's velocity is already in the world frame, so the axis
-     * permutation and the spawn rotation are the whole conversion, the same
-     * pair poseFromState uses minus the offset. Turning it by the craft's
-     * attitude as well was tried and is wrong: it doubled the tracking
-     * error on a straight line and quadrupled it on a circle.
-     */
-    vel: stateCurr ? (() => {
-      simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], scoreFwd);
-      scoreFwd.applyQuaternion(qSpawn);
-      return { x: scoreFwd.x, y: scoreFwd.y, z: scoreFwd.z };
-    })() : null,
-    rates: stateCurr
-      ? { p: stateCurr[11], q: stateCurr[12], r: stateCurr[13] }
-      : null,
-    /* The plant's own clock, s, so a probe times what the aircraft did on
-     * the sim's time and not the page's, which headless runs slower. */
-    simS: stateCurr ? stateCurr[0] : 0,
-    /* The plant's own position, its world frame (z up, the map's spawn at
-     * the origin facing +x), where its thermals are placed; the rising air
-     * there; the discus launch's phase; and the HUD's notice, so a probe
-     * can read what the pilot is told. */
-    plantPos: stateCurr ? { x: stateCurr[1], y: stateCurr[2], z: stateCurr[3] } : null,
-    airLift: stateCurr && typeof sim.e.sim_air_lift === 'function' ? sim.e.sim_air_lift(stateCurr[1], stateCurr[2], stateCurr[3]) : 0,
-    discusPhase: typeof sim.e.sim_wing_discus_phase === 'function' ? sim.e.sim_wing_discus_phase() : 0,
-    notice: notice ? notice.text : '',
-    descentRate: lastDescent,
-    tiltDeg: lastTiltDeg,
-    lastHitKind,
-    lastHitIndex,
-    lastClosingSpeed: lastClosing,
-    lastUpDot,
-    grazeSpeedMax: GRAZE_SPEED_MAX,
-    bounceSpeedMax: BOUNCE_SPEED_MAX,
-    bounceCount,
-    propPlaneMaxUpDot: PROP_PLANE_MAX_UP_DOT,
-    /* Biased like the OSD's altitude and like every contact query. A
-     * harness reading this against a flight is reading the same number the
-     * pilot is. */
-    /* Null while a world swap is under way: the world in `view` is the
-     * one being left, already disposed. */
-    groundClearance: mapReady ? shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, shell.quad.position.y - SURFACE_BIAS) : null,
-    fpvY: lastFpvY,
-    camFloor: lastCamFloor,
-    camClear: lastCamClear,
-    camFwdY: lastCamFwdY,
-    camUpY: lastCamUpY,
-    lastUpz,
-    thresholds: {
-      descentMax: LAND_DESCENT_MAX,
-      horizontalMax: LAND_HORIZONTAL_MAX,
-      tiltMaxDeg: LAND_TILT_MAX_DEG,
-      tiltHardDeg: LAND_TILT_HARD_DEG,
-      tipSpeedMax: LAND_TIP_SPEED_MAX,
-      /* The radius the QUERY sweeps, in world metres, because that is what
-       * check 15 compares against the drawn craft's world bounding box. The
-       * airframe's true radius and the ratio between them are published
-       * beside it so neither can be mistaken for the other. */
-      craftRadius: CRAFT_WORLD_R,
-      craftRadiusTrue: CRAFT_R,
-      /* And the span up and down, the aircraft's own metres, so a check can
-       * hold the drawn machine against the hull that sweeps it on every
-       * axis rather than only across. scripts/craft-check.js does. */
-      craftUpTrue: CRAFT_V_UP,
-      craftDownTrue: CRAFT_V_DOWN,
-      worldScale: WORLD_SCALE,
-    },
-    lap: race.lap,
-    bestLapMs: race.bestLapMs ? race.bestLapMs() : null,
-    bestThreeMs: race.bestThreeMs ? race.bestThreeMs() : null,
-  });
-  /* Capture hook: seat the plant on the grass under the current xz.
-   * cameraDown and invertedHold freeze the integrator (poseLock) so a
-   * capture can photograph the lens before the hull tumbles. inverted
-   * is the turtle path: wait for pitch or roll, then a guaranteed flip. */
-  window.__seatCraft = (kind) => {
-    if (!stateCurr) {
-      return null;
+
+  /*
+   * The craft's whole state for a probe that flies on feedback: modes and
+   * recovery flags, where it is and how it is turned, the last ground
+   * contact and the thresholds it was judged on, the lens's clearance, the
+   * lap. World figures are three.js space; plantPos is the plant's own frame
+   * (z up, spawn at the origin), where thermals live; simS is the plant's
+   * clock, which a slow headless page does not stretch.
+   */
+  window.__craftState = () => {
+    const st = stateCurr;
+    const af = airframeById(runAirframe);
+    let floats = null;
+    if (af.floats && typeof sim.e.sim_float_state === 'function') {
+      if (!floatStatePtr) {
+        floatStatePtr = sim.e.malloc(10 * 8);
+      }
+      sim.e.sim_float_state(floatStatePtr);
+      floats = { state: Array.from(new Float64Array(sim.e.memory.buffer, floatStatePtr, 10)), onWater: floatsOnWater() };
     }
-    poseFromState(stateCurr, pProbe);
-    const hy = view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
-    const seatY = kind === 'invertedAir' ? hy + 4 : hy + REST_HEIGHT;
-    worldPosToSim(pProbe.x, seatY, pProbe.z, pSim);
-    let qw = 1;
-    let qx = 0;
-    let qy = 0;
-    let qz = 0;
-    if (kind === 'inverted' || kind === 'invertedHold' || kind === 'invertedAir') {
-      qw = 0;
-      qx = 1;
-    } else if (kind === 'cameraDown') {
-      const h = Math.PI / 4;
-      qw = Math.cos(h);
-      qy = Math.sin(h);
-    }
+    const at = shell.quad.position;
+    return {
+      mode,
+      tune: configId,
+      flownThisRun,
+      landed,
+      crashed,
+      clipCrash: crashed,
+      clipCrashKind,
+      wingStab: wasm('sim_wing_stab', null),
+      /* turtle is the scripted recovery; manualFlip and crashflipActive are
+       * Betaflight's own crashflip, which looks the same from outside. */
+      turtle: crashflipOn,
+      manualFlip,
+      crashflipActive: sim.e.sim_crashflip_active() !== 0,
+      turtleWait,
+      turtleFlip: turtleFlip.active,
+      turtleParked: isTurtleParked(),
+      turtleRecover,
+      turtleResumeGate,
+      banner: ui.banner ? ui.banner.textContent : '',
+      notice: notice ? notice.text : '',
+      worldX: at.x,
+      worldY: at.y,
+      worldZ: at.z,
+      /* Null mid world swap, when `view` is the world being disposed. */
+      groundClearance: mapReady ? at.y - view.height(at.x, at.z, at.y - SURFACE_BIAS) : null,
+      pitchDeg: st ? pitchNoseDownDeg(st) : 0,
+      up: st ? probeAxis(st, 0, 1, 0) : null,
+      fwd: st ? probeAxis(st, 0, 0, -1) : null,
+      vel: st ? probeVelocity(st) : null,
+      speed: st ? Math.sqrt(st[4] * st[4] + st[5] * st[5] + st[6] * st[6]) : 0,
+      rates: st ? { p: st[11], q: st[12], r: st[13] } : null,
+      simS: st ? st[0] : 0,
+      plantPos: st ? { x: st[1], y: st[2], z: st[3] } : null,
+      airLift: st && typeof sim.e.sim_air_lift === 'function' ? sim.e.sim_air_lift(st[1], st[2], st[3]) : 0,
+      discusPhase: wasm('sim_wing_discus_phase', 0),
+      floats,
+      descentRate: lastDescent,
+      tiltDeg: lastTiltDeg,
+      lastHitKind,
+      lastHitIndex,
+      lastClosingSpeed: lastClosing,
+      lastUpDot,
+      lastUpz,
+      bounceCount,
+      grazeSpeedMax: GRAZE_SPEED_MAX,
+      bounceSpeedMax: BOUNCE_SPEED_MAX,
+      propPlaneMaxUpDot: PROP_PLANE_MAX_UP_DOT,
+      fpvY: lastFpvY,
+      camFloor: lastCamFloor,
+      camClear: lastCamClear,
+      camFwdY: lastCamFwdY,
+      camUpY: lastCamUpY,
+      /* craftRadius is the radius the contact query sweeps, in world metres
+       * (what check 15 holds against the drawn model); the airframe's own
+       * figures sit beside it so the two are never confused. */
+      thresholds: {
+        descentMax: LAND_DESCENT_MAX,
+        horizontalMax: LAND_HORIZONTAL_MAX,
+        tiltMaxDeg: LAND_TILT_MAX_DEG,
+        tiltHardDeg: LAND_TILT_HARD_DEG,
+        tipSpeedMax: LAND_TIP_SPEED_MAX,
+        craftRadius: CRAFT_WORLD_R,
+        craftRadiusTrue: CRAFT_R,
+        craftUpTrue: CRAFT_V_UP,
+        craftDownTrue: CRAFT_V_DOWN,
+        worldScale: WORLD_SCALE,
+      },
+      lap: race.lap,
+      bestLapMs: race.bestLapMs ? race.bestLapMs() : null,
+      bestThreeMs: race.bestThreeMs ? race.bestThreeMs() : null,
+    };
+  };
+
+  /*
+   * Teleports for capture rigs. Both put the plant at a pose with
+   * sim_set_pose, settle it, clear every recovery and launch state that
+   * would otherwise act on the new pose, and re-seed the contact pass so its
+   * next sweep does not run from the old position to the new one through
+   * half the map. Both answer with __craftState(), or { ok: false, code }
+   * when the module refuses the pose.
+   */
+  function teleportPlant(world, qw, qx, qy, qz) {
+    worldPosToSim(world.x, world.y, world.z, pSim);
     const code = sim.e.sim_set_pose(pSim.x, pSim.y, pSim.z, qw, qx, qy, qz);
     if (code !== SIM_OK) {
-      return { ok: false, code };
+      return code;
     }
     sim.rest();
     setCrashflip(false);
     turtleRecover = false;
     introMs = -1;
     camOverride = null;
-    poseLock = kind === 'cameraDown' || kind === 'invertedHold';
-    landed = kind !== 'cameraDown' && kind !== 'inverted' && kind !== 'invertedHold'
-      && kind !== 'invertedAir';
     takingOff = false;
-    /* Same reason as __placeCraft: a seat is a teleport. */
     obsHasPrev = false;
     obsPhase = 0;
+    return SIM_OK;
+  }
+  /* The drawn craft onto the plant's current state. */
+  function drawPlantPose() {
+    poseFromState(stateCurr, pCurr);
+    simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qPrev);
+    qPrev.premultiply(qSpawn);
+    shell.quad.position.copy(pCurr);
+    shell.quad.quaternion.copy(qPrev);
+  }
+
+  /*
+   * Seat the craft on the ground under where it is now:
+   *   (default)     level on its skids, landed;
+   *   cameraDown    on its side with the lens to the ground, pose frozen;
+   *   inverted      upside down, which starts the turtle wait;
+   *   invertedHold  upside down, pose frozen;
+   *   invertedAir   upside down 4 m up.
+   * The frozen ones (poseLock) let a capture photograph the lens before the
+   * hull falls over; __releasePose lets go. The camera is placed at once,
+   * so a capture taken before the next frame sees the seat.
+   */
+  window.__seatCraft = (kind) => {
+    if (!stateCurr) {
+      return null;
+    }
+    const upsideDown = kind === 'inverted' || kind === 'invertedHold' || kind === 'invertedAir';
+    const airborne = kind === 'invertedAir';
+    poseFromState(stateCurr, pProbe);
+    const floorY = view.height(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
+    pProbe.y = floorY + (airborne ? 4 : REST_HEIGHT);
+    let turn = [1, 0, 0, 0];
+    if (upsideDown) {
+      turn = [0, 1, 0, 0];
+    } else if (kind === 'cameraDown') {
+      turn = [Math.cos(Math.PI / 4), 0, Math.sin(Math.PI / 4), 0];
+    }
+    const code = teleportPlant(pProbe, ...turn);
+    if (code !== SIM_OK) {
+      return { ok: false, code };
+    }
+    poseLock = kind === 'cameraDown' || kind === 'invertedHold';
+    landed = !upsideDown && kind !== 'cameraDown';
     parkedLift = 0;
     adoptSimClock();
     acc = 0;
-    groundY = hy;
+    groundY = floorY;
     stateCurr = readState();
     statePrev = stateCurr;
     raiseGroundFromState(stateCurr);
     lastGroundHits = sim.e.sim_ground_contacts();
-    lastClearance = kind === 'invertedAir' ? 4 : REST_HEIGHT;
-    turtleOnSupport = lastGroundHits > 0 && kind !== 'invertedAir';
+    lastClearance = airborne ? 4 : REST_HEIGHT;
+    turtleOnSupport = lastGroundHits > 0 && !airborne;
     if (kind === 'inverted') {
       turtleOnSupport = true;
       beginTurtleWait(true);
     }
     lastUpz = plantUpZ(stateCurr);
-    {
-      const uClamp = lastUpz > 1 ? 1 : lastUpz < -1 ? -1 : lastUpz;
-      lastTiltDeg = (Math.acos(uClamp) * 180) / Math.PI;
-    }
-    simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qPrev);
-    qPrev.premultiply(qSpawn);
-    poseFromState(stateCurr, pCurr);
+    lastTiltDeg = (Math.acos(Math.min(1, Math.max(-1, lastUpz))) * 180) / Math.PI;
+
+    drawPlantPose();
+    shell.quad.visible = false;
     camFwd.set(0, 0, -1).applyQuaternion(qPrev);
     camUp.set(0, 1, 0).applyQuaternion(qPrev);
     fpvPos.copy(pCurr)
@@ -19299,13 +19197,7 @@ export async function boot({
     if (fpvPos.y < lastCamFloor) {
       fpvPos.y = lastCamFloor;
     }
-    if (parkedLift > 0.001) {
-      fpvPos.y += parkedLift;
-    }
     lastFpvY = fpvPos.y;
-    shell.quad.position.copy(pCurr);
-    shell.quad.quaternion.copy(qPrev);
-    shell.quad.visible = false;
     fpvQuat.copy(qPrev).multiply(qTilt);
     shell.camera.position.copy(fpvPos);
     shell.camera.quaternion.copy(fpvQuat);
@@ -19313,28 +19205,25 @@ export async function boot({
     shell.camera.updateProjectionMatrix();
     return window.__craftState();
   };
-  /* Harness: drop the plant at a world point, airborne, so a capture can
-   * prove a clip-through crash without flying there. fromX/Y/Z is last
-   * frame's pose when the test is a punch-through chord. */
+
+  /*
+   * Drop the craft level and airborne at a world point, in flight, as if a
+   * run were under way. (fromX, fromY, fromZ) is where the race and ground
+   * sweeps think the craft was last frame, for a test that needs the chord
+   * between the two to cross something; it defaults to the point itself.
+   */
   window.__placeCraft = (x, y, z, fromX, fromY, fromZ) => {
     if (!stateCurr) {
       return null;
     }
-    worldPosToSim(x, y, z, pSim);
-    const code = sim.e.sim_set_pose(pSim.x, pSim.y, pSim.z, 1, 0, 0, 0);
+    const code = teleportPlant({ x, y, z }, 1, 0, 0, 0);
     if (code !== SIM_OK) {
       return { ok: false, code };
     }
-    sim.rest();
-    setCrashflip(false);
-    turtleRecover = false;
     turtleWait = false;
     setTurtleParkMotors(false);
-    introMs = -1;
-    camOverride = null;
     poseLock = false;
     landed = false;
-    takingOff = false;
     launchStaging = false;
     flownThisRun = true;
     crashed = false;
@@ -19344,21 +19233,11 @@ export async function boot({
     mode = 'flight';
     ui.show('flight');
     resetClipWatch(clipWatch);
-    /* A place is a teleport. Re-seed the contact pass or its next sweep is
-     * the segment from wherever the craft used to be to here, which is a
-     * line through half the map and reads as a punch through every solid
-     * on it. */
-    obsHasPrev = false;
-    obsPhase = 0;
     adoptSimClock();
     acc = 0;
     stateCurr = readState();
     statePrev = stateCurr;
-    poseFromState(stateCurr, pCurr);
-    simQuatToThree(stateCurr[7], stateCurr[8], stateCurr[9], stateCurr[10], qPrev);
-    qPrev.premultiply(qSpawn);
-    shell.quad.position.copy(pCurr);
-    shell.quad.quaternion.copy(qPrev);
+    drawPlantPose();
     if (fromX == null) {
       racePrev.copy(pCurr);
     } else {
