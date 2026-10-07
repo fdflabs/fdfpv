@@ -58,6 +58,7 @@
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "panels:golden": "node scripts/panels-golden.js",
     "lint:boot": "node scripts/boot-check.js",
+    "boot:wiring": "node scripts/boot-wiring-golden.js",
     "boot:entry": "node scripts/boot-entry-check.js",
     "contact:golden": "node scripts/contact-golden.js",
     "lock:check": "node scripts/lock-check.js",
