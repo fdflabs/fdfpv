@@ -1,0 +1,1268 @@
+{
+ "title": {
+  "home": {
+   "hub": "",
+   "cursor": 0,
+   "cards": {
+    "tag": "div",
+    "cls": "gate-cards",
+    "data-count": "3",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "gate-card gate-card-hub-club on",
+      "role": "button",
+      "aria-label": "Flight Club",
+      "aria-current": "true",
+      "tabindex": "0",
+      "data-hub": "club",
+      "kids": [
+       {
+        "tag": "div",
+        "cls": "gate-card-art",
+        "kids": [
+         {
+          "tag": "img",
+          "cls": "gate-card-shot",
+          "alt": "",
+          "decoding": "async",
+          "src": "assets/posters/swiss2.jpg"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-mark",
+          "svg": true
+         }
+        ]
+       },
+       {
+        "tag": "div",
+        "cls": "gate-card-body",
+        "kids": [
+         {
+          "tag": "div",
+          "cls": "gate-card-name",
+          "kids": [
+           "Flight Club"
+          ]
+         },
+         {
+          "tag": "p",
+          "cls": "gate-card-blurb",
+          "kids": [
+           "Fly anything. Race the clock, cut streamers, chase the Ace, or just fly."
+          ]
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-facts"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-links",
+          "kids": [
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-race-5inch",
+            "tabindex": "-1",
+            "kids": [
+             "Track Day"
+            ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-freestyle-wing1000",
+            "tabindex": "-1",
+            "kids": [
+             "Free Flight"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "gate-card gate-card-hub-ops",
+      "role": "button",
+      "aria-label": "Operations",
+      "aria-current": "false",
+      "tabindex": "-1",
+      "data-hub": "ops",
+      "kids": [
+       {
+        "tag": "div",
+        "cls": "gate-card-art",
+        "kids": [
+         {
+          "tag": "img",
+          "cls": "gate-card-shot",
+          "alt": "",
+          "decoding": "async",
+          "src": "assets/posters/itaipu.jpg"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-mark",
+          "svg": true
+         }
+        ]
+       },
+       {
+        "tag": "div",
+        "cls": "gate-card-body",
+        "kids": [
+         {
+          "tag": "div",
+          "cls": "gate-card-name",
+          "kids": [
+           "Operations"
+          ]
+         },
+         {
+          "tag": "p",
+          "cls": "gate-card-blurb",
+          "kids": [
+           "Defend the Paraná: missions at Itaipu, alone or as a squad."
+          ]
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-facts"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-links",
+          "kids": [
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-interior",
+            "tabindex": "-1",
+            "kids": [
+             "The Interior"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "gate-card gate-card-hub-hangar",
+      "role": "button",
+      "aria-label": "Hangar",
+      "aria-current": "false",
+      "tabindex": "-1",
+      "data-hub": "hangar",
+      "kids": [
+       {
+        "tag": "div",
+        "cls": "gate-card-art",
+        "kids": [
+         {
+          "tag": "img",
+          "cls": "gate-card-shot",
+          "alt": "",
+          "decoding": "async",
+          "src": "assets/gate/hangar.jpg"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-mark",
+          "svg": true
+         }
+        ]
+       },
+       {
+        "tag": "div",
+        "cls": "gate-card-body",
+        "kids": [
+         {
+          "tag": "div",
+          "cls": "gate-card-name",
+          "kids": [
+           "Hangar"
+          ]
+         },
+         {
+          "tag": "p",
+          "cls": "gate-card-blurb",
+          "kids": [
+           "Your aircraft, its power, paint and parts, and your radio."
+          ]
+         },
+         {
+          "tag": "div",
+          "cls": "gate-card-facts"
+         },
+         {
+          "tag": "div",
+          "cls": "gate-links",
+          "kids": [
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-hangar-aircraft",
+            "tabindex": "-1",
+            "kids": [
+             "Aircraft"
+            ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-hangar-customise",
+            "tabindex": "-1",
+            "kids": [
+             "Customise"
+            ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-hangar-sticks",
+            "tabindex": "-1",
+            "kids": [
+             "Calibrate sticks"
+            ]
+           },
+           {
+            "tag": "button",
+            "cls": "gate-link gate-card-hangar-howto",
+            "tabindex": "-1",
+            "kids": [
+             "How to fly"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "rooms": {
+    "tag": "div",
+    "cls": "gate-rooms",
+    "hidden": "",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "gate-rooms-buttons"
+     }
+    ]
+   }
+  },
+  "keptOnRender": true,
+  "walk": [
+   {
+    "i": 0,
+    "cards": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": []
+   },
+   {
+    "i": 1,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": []
+   },
+   {
+    "i": 2,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      true,
+      0,
+      "true",
+      false
+     ]
+    ],
+    "rooms": []
+   }
+  ],
+  "hubs": {
+   "club": {
+    "hub": "club",
+    "cursor": 0,
+    "cards": {
+     "tag": "div",
+     "cls": "gate-cards",
+     "data-count": "2",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-race-5inch on",
+       "role": "button",
+       "aria-label": "Track Day",
+       "aria-current": "true",
+       "tabindex": "0",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/gate/race.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Track Day"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Gates against the clock, on your own track or one from the board."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Gates"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "The clock"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "The board"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-freestyle-wing1000",
+       "role": "button",
+       "aria-label": "Free Flight",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "img",
+           "cls": "gate-card-shot",
+           "alt": "",
+           "decoding": "async",
+           "src": "assets/gate/flight.jpg"
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Free Flight"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Every fixed wing, picked under Plane, free in the Swiss valley."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Every plane"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "The Swiss valley"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "lit": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ]
+   },
+   "ops": {
+    "hub": "ops",
+    "cursor": 0,
+    "cards": {
+     "tag": "div",
+     "cls": "gate-cards",
+     "data-count": "1",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-interior on",
+       "role": "button",
+       "aria-label": "The Interior",
+       "aria-current": "true",
+       "tabindex": "0",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "The Interior"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts",
+           "kids": [
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Five missions"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Co-op roles, any squad"
+             ]
+            },
+            {
+             "tag": "span",
+             "cls": "gate-card-fact",
+             "kids": [
+              "Camera ball, quiet HUD"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "lit": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ]
+    ]
+   },
+   "hangar": {
+    "hub": "hangar",
+    "cursor": 0,
+    "cards": {
+     "tag": "div",
+     "cls": "gate-cards",
+     "data-count": "4",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-aircraft on",
+       "role": "button",
+       "aria-label": "Aircraft",
+       "aria-current": "true",
+       "tabindex": "0",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Aircraft"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "Twenty aircraft on one physics. Pick the one you fly next."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-customise",
+       "role": "button",
+       "aria-label": "Customise",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-mark",
+           "svg": true
+          }
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Customise"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "The power and the paint of the plane you are flying. Save puts them on it where it is."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-sticks",
+       "role": "button",
+       "aria-label": "Calibrate sticks",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "Calibrate sticks"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "A radio in joystick mode or a gamepad: map and centre its sticks."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-card gate-card-hangar-howto",
+       "role": "button",
+       "aria-label": "How to fly",
+       "aria-current": "false",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "gate-card-art"
+        },
+        {
+         "tag": "div",
+         "cls": "gate-card-body",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "gate-card-name",
+           "kids": [
+            "How to fly"
+           ]
+          },
+          {
+           "tag": "p",
+           "cls": "gate-card-blurb",
+           "kids": [
+            "The sticks, live, and what the keys do."
+           ]
+          },
+          {
+           "tag": "div",
+           "cls": "gate-card-facts"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "lit": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ]
+   }
+  },
+  "linkClick": {
+   "link": "gate-link gate-card-race-5inch",
+   "screen": "title",
+   "hub": null,
+   "calls": [
+    [
+     "onUiSound",
+     "select"
+    ]
+   ]
+  },
+  "focus": {
+   "cursor": 1
+  },
+  "cardClick": {
+   "screen": "title",
+   "hub": "ops",
+   "calls": [
+    [
+     "onUiSound",
+     "move"
+    ],
+    [
+     "onUiSound",
+     "select"
+    ],
+    [
+     "onUiSound",
+     "move"
+    ]
+   ]
+  },
+  "rooms": {
+   "tag": "div",
+   "cls": "gate-rooms",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-head",
+     "kids": [
+      {
+       "tag": "span",
+       "cls": "gate-rooms-title",
+       "kids": [
+        "Rooms"
+       ]
+      },
+      {
+       "tag": "span",
+       "cls": "gate-rooms-count",
+       "kids": [
+        "2 rooms, 5 pilots"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "gate-rooms-list",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-room is-live",
+       "role": "button",
+       "aria-label": "Fernando, 3 of 8",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Fernando"
+         ]
+        },
+        {
+         "tag": "span",
+         "cls": "gate-room-value",
+         "kids": [
+          {
+           "tag": "span",
+           "cls": "gate-room-join",
+           "kids": [
+            "Join"
+           ]
+          },
+          " · 3 of 8"
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-room",
+       "role": "button",
+       "aria-label": "Quiet one, 1 of 4",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Quiet one"
+         ]
+        },
+        {
+         "tag": "span",
+         "cls": "gate-room-value",
+         "kids": [
+          {
+           "tag": "span",
+           "cls": "gate-room-join",
+           "kids": [
+            "Join"
+           ]
+          },
+          " · 1 of 4"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "gate-rooms-buttons",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-all",
+       "role": "button",
+       "aria-label": "All rooms",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "All rooms"
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-make",
+       "role": "button",
+       "aria-label": "Make a room",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Make a room"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "roomWalk": [
+   {
+    "i": -3,
+    "cards": [
+     [
+      true,
+      0,
+      "true",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": [
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ]
+    ]
+   },
+   {
+    "i": 1,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": [
+     [
+      true,
+      0
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ]
+    ]
+   },
+   {
+    "i": 2,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": [
+     [
+      false,
+      -1
+     ],
+     [
+      true,
+      0
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ]
+    ]
+   },
+   {
+    "i": 4,
+    "cards": [
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ],
+     [
+      false,
+      -1,
+      "false",
+      false
+     ]
+    ],
+    "rooms": [
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      false,
+      -1
+     ],
+     [
+      true,
+      0
+     ]
+    ]
+   }
+  ],
+  "roomsKept": true,
+  "roomPicked": [
+   3
+  ],
+  "roomsRebuilt": true,
+  "roomsAfter": {
+   "tag": "div",
+   "cls": "gate-rooms",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-head",
+     "kids": [
+      {
+       "tag": "span",
+       "cls": "gate-rooms-title",
+       "kids": [
+        "Rooms"
+       ]
+      },
+      {
+       "tag": "span",
+       "cls": "gate-rooms-count",
+       "kids": [
+        "2 rooms, 5 pilots"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "gate-rooms-list",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-room is-live",
+       "role": "button",
+       "aria-label": "Fernando, 3 of 8",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Fernando"
+         ]
+        },
+        {
+         "tag": "span",
+         "cls": "gate-room-value",
+         "kids": [
+          {
+           "tag": "span",
+           "cls": "gate-room-join",
+           "kids": [
+            "Join"
+           ]
+          },
+          " · 3 of 8"
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-room",
+       "role": "button",
+       "aria-label": "Quiet one, 2 of 4",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Quiet one"
+         ]
+        },
+        {
+         "tag": "span",
+         "cls": "gate-room-value",
+         "kids": [
+          {
+           "tag": "span",
+           "cls": "gate-room-join",
+           "kids": [
+            "Join"
+           ]
+          },
+          " · 2 of 4"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "gate-rooms-buttons",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-all on",
+       "role": "button",
+       "aria-label": "All rooms",
+       "tabindex": "0",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "All rooms"
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "gate-room gate-room-make",
+       "role": "button",
+       "aria-label": "Make a room",
+       "tabindex": "-1",
+       "kids": [
+        {
+         "tag": "span",
+         "cls": "gate-room-name",
+         "kids": [
+          "Make a room"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "roomsEmpty": {
+   "tag": "div",
+   "cls": "gate-rooms",
+   "hidden": "",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "gate-rooms-buttons"
+    }
+   ]
+  }
+ }
+}

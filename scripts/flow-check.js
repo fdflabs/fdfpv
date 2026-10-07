@@ -96,7 +96,11 @@ const ROOM = `(() => {
   return { phase: r.phase, code: r.code, search: window.location.search, screen: window.__ui.screen };
 })()`;
 
-const server = await roomsServer(process.argv[2], 'flow');
+/* devMissions, and the page's ?missions=dev: the campaign card's Play
+ * below is mission 1's, in development (held since 2026-10-07), which only
+ * a check's own server starts and only such a page offers. A server named
+ * on the command line must run with DEV_MISSIONS=on. */
+const server = await roomsServer(process.argv[2], 'flow', { devMissions: true });
 console.log(`Flow, rooms at ${server.url}`);
 const res = await fetch(`${server.url}/v2/create`, {
   method: 'POST',
@@ -105,7 +109,7 @@ const res = await fetch(`${server.url}/v2/create`, {
 });
 const { code } = await res.json();
 const page = await openPage({
-  root, url: `/index.html?rooms=${encodeURIComponent(server.url)}&room=${code}`, width: 1280, height: 720,
+  root, url: `/index.html?rooms=${encodeURIComponent(server.url)}&missions=dev&room=${code}`, width: 1280, height: 720,
 });
 try {
   /* A LINK IS USED ONCE. */

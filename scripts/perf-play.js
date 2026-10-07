@@ -722,7 +722,9 @@ const SCENARIOS = {
     async setup() {
       const dir = await mkdtemp(join(tmpdir(), 'perf-rooms-'));
       const port = await freePort();
-      const server = await startRooms({ db: join(dir, 'rooms.db'), port });
+      /* devMissions: mission 1, which this scene starts, is in development
+       * (held since 2026-10-07; src/game/campaign.js released). */
+      const server = await startRooms({ db: join(dir, 'rooms.db'), port, devMissions: true });
       return {
         url: `/index.html?rooms=${encodeURIComponent(`http://127.0.0.1:${port}`)}`,
         async stop() { await server.stop(); await rm(dir, { recursive: true, force: true }); },
