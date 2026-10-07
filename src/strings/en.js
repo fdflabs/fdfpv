@@ -3665,4 +3665,7 @@ export default {
   "walk.bench": "Paint and parts",
   "walk.shelf": "Parts",
   "walk.door": "Fly",
+  "walk.field": "Field hangar",
+  "walk.field_blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+  "walk.door_war": "To the front",
 };

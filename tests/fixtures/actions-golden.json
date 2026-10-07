@@ -102117,6 +102117,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102227,6 +102232,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102352,6 +102362,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102475,6 +102490,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"

@@ -45,10 +45,16 @@ main room with the pilot second, the war field hangar third.
   footprint in cells; nothing overlaps and nothing leaves the room, held
   by a Node check over every layout. Each tier has a default layout.
   Moving furniture by hand is not in this item (see Questions).
-- **War field hangar** (third PR): a second room, a tent over a dirt
-  floor with sandbags and crates, entered from the war's own lobby, its
-  door flying the war sortie. Same code, its own layout and palette. No
-  real insignia, no flags on walls (the flag is always horizontal).
+- **War field hangar** (third PR): a second room, `field` in ROOMS (10 by
+  7 m, a tent over a dirt floor, timber poles, sandbags along its sides,
+  crates), opened from a **Field hangar** card under Operations. Same code,
+  its own layout and palette. Its door reads "To the front" and opens the
+  first Operations card the pilot could open from the hub (it needs a
+  rooms server; without one the door gives no prompt); Escape returns to
+  Operations. No real insignia, no flags on walls (the flag is always
+  horizontal). Measured within the same budget: 17 calls at Low, 32 at
+  Medium and High, 8.4 k to 13.8 k triangles (hangar:perf), 30 calls in
+  the real shell.
 
 ## Look
 

@@ -3669,4 +3669,7 @@ export default {
   "walk.bench": "Pintura y piezas",
   "walk.shelf": "Piezas",
   "walk.door": "Volar",
+  "walk.field": "Hangar de campaña",
+  "walk.field_blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+  "walk.door_war": "Al frente",
 };

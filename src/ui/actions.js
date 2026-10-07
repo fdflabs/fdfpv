@@ -257,6 +257,7 @@ const ACTIONS = {
   hotswap(ui) { ui.openSwap('paused'); },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
   'hangar-walk'(ui) { ui.openWalk(); },
+  'field-walk'(ui) { ui.openWalk('field'); },
   customise(ui) {
     /* The aircraft in the air may be a My Hangar build; a change in the
      * hangar is then a change to that build. */
@@ -498,9 +499,9 @@ const needsAccount = (action) => typeof action === 'string' && !OPEN_ACTIONS.has
 
 /* Screens with their own step back. True when the step was taken. */
 const BACK_FROM = {
-  /* The walkable hangar backs out to the Hangar's cards. */
+  /* A walkable hangar backs out to the cards of the hub it came from. */
   walk(ui) {
-    ui.hub = 'hangar';
+    ui.hub = ui.walk ? ui.walk.hub : 'hangar';
     ui.show('title');
     return true;
   },
@@ -719,9 +720,16 @@ export const actionMethods = {
   /* The three hub cards with their activities as links. A hub with
    * nothing to offer (Operations without a rooms server) is left out. */
   hubCards(rooms) {
-    const linksOf = (hub) => (hub.id === 'hangar'
-      ? this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }))
-      : hubWays(hub.id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id })));
+    const ways = (id) => hubWays(id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id }));
+    /* Operations also holds the war's field hangar, which needs no rooms
+     * server to walk round. */
+    const field = { label: str('walk.field'), action: 'field-walk', key: 'ops-field' };
+    const linksOf = (hub) => {
+      if (hub.id === 'hangar') {
+        return this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }));
+      }
+      return hub.id === 'ops' ? [...ways(hub.id), field] : ways(hub.id);
+    };
     return HUBS.map((hub) => ({
       label: str(hub.label),
       card: `hub-${hub.id}`,
