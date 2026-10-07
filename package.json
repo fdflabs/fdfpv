@@ -41,6 +41,7 @@
     "trickslist:golden": "node scripts/trickslist-golden.js",
     "keys:golden": "node scripts/keys-golden.js",
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
+    "overlay:golden": "node scripts/overlay-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
