@@ -31,4 +31,3 @@ tests/browser/harness.html
 tests/browser/harness.js
 tests/gen/gen-baseline.js
 tests/lib/replay.js
-tests/lib/server.js

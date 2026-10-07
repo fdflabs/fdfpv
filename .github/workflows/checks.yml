@@ -164,6 +164,9 @@ jobs:
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
+      # The harness file server (tests/lib/server.js): types, ranges, the
+      # cache rule and every way out of the root, against a pinned transcript.
+      - run: npm run server:selftest
       # The blackbox_decode CSV reader (tests/lib/blackbox.js), against a
       # pinned transcript.
       - run: npm run blackbox:selftest
