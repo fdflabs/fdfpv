@@ -99,8 +99,8 @@ const SCENARIOS = {
 
 /* Two digests: the SKIP scenario is pinned apart because it is only
  * reachable where the vendored sources are absent (see the top). */
-const PINNED_CORE = 'd92a1990a22c46942fc2191422f27e1dcb0556046ae84ad857ee0de9389e0a46';
-const PINNED_SKIP = '9981b9d21db0894c35e085dc309637a06d7460aeef553ec39289e81fdeb515b7';
+const PINNED_CORE = '242dd230f1d6fde624e923704476439ea207da43f96508886e55ff6209b1dc87';
+const PINNED_SKIP = '546adafc1fa60b06910b4ff49e092bfb4c5a2d5525588d759c0a3d9fe85d17be';
 
 function log(role, argv) {
   appendFileSync(process.env.VERIFY_SELFTEST_LOG, `${role}\t${argv.join('\t')}\n`);
@@ -183,11 +183,17 @@ function makeFakes(dir, name) {
   }
 }
 
-/* Paths that differ per machine or per run, masked before the digest. */
+/* Paths that differ per machine or per run, masked before the digest. The
+ * report table is padded to its widest cell, and a reason that names the
+ * root is as wide as the checkout's path, so the table's padding and its
+ * rule of dashes are collapsed too: the alignment itself is table.js's
+ * pin (table:selftest), what is pinned here is the text. */
 function mask(text) {
   return text
     .split(root).join('<root>')
-    .replace(/--user-data-dir=\S*sim-chrome-\S+/g, '--user-data-dir=<tmp>/sim-chrome-<rand>');
+    .replace(/--user-data-dir=\S*sim-chrome-\S+/g, '--user-data-dir=<tmp>/sim-chrome-<rand>')
+    .replace(/ {2,}\|/g, ' |')
+    .replace(/-{3,}/g, '---');
 }
 
 function runScenario(name) {
