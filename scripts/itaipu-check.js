@@ -85,20 +85,20 @@
  * and water rows, which come with the build), for the loop round a
  * junction change wants; without it every row runs.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -118,7 +118,7 @@ import {
 } from '../src/maps/itaipu/terrain/conform.js';
 import { embankmentCrests, embankmentSection, junctionRims } from '../src/maps/itaipu/dam/index.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
 const ONLY_EDGES = onlyArg === '--only=edges';
@@ -687,11 +687,9 @@ async function main() {
     height: 720,
     url: '/index.html?map=alps',
     seed: [`try {
-      const k = ${JSON.stringify(SETTINGS_KEY)};
-      const s = JSON.parse(localStorage.getItem(k) || '{}');
-      s.graphics = 'high';
-      s.graphicsAuto = false;
-      localStorage.setItem(k, JSON.stringify(s));
+      const settingsKey = ${JSON.stringify(SETTINGS_KEY)};
+      const prior = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+      localStorage.setItem(settingsKey, JSON.stringify({ ...prior, graphics: 'high', graphicsAuto: false }));
       localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
     } catch (e) { /* Storage refused. The run still boots. */ }`,
     'performance.setResourceTimingBufferSize(100000);'],
@@ -901,7 +899,9 @@ async function main() {
   console.log('PASS, Itaipu builds on its own data, its ground is its tiles and its water is at its levels');
 }
 
-main().catch((e) => {
-  console.error(e && e.stack ? e.stack : e);
+try {
+  await main();
+} catch (err) {
+  console.error(err?.stack ?? err);
   process.exitCode = 1;
-});
+}

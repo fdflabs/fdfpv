@@ -32,8 +32,10 @@
  */
 
 import en from './en.js';
+import { LANG_KEY, readSharedKey, writeSharedKey } from '../share/sharedkeys.js';
 
-export const LANG_KEY = 'webfpv.lang';
+/* Shared with the board on one origin; see src/share/sharedkeys.js. */
+export { LANG_KEY };
 export const LOCALES = ['en', 'es'];
 /* Each language's name in itself: what the Language row shows. */
 export const LOCALE_NAMES = { en: 'English', es: 'Español' };
@@ -93,7 +95,7 @@ export async function useLocale(id) {
  * menu rows are built from the table when their modules load. */
 export function rememberLocale(id) {
   try {
-    localStorage.setItem(LANG_KEY, id);
+    writeSharedKey(LANG_KEY, id);
   } catch (e) {
   }
 }
@@ -108,7 +110,7 @@ export function preferredLocale() {
   } catch (e) {
   }
   try {
-    const stored = localStorage.getItem(LANG_KEY);
+    const stored = readSharedKey(LANG_KEY);
     if (stored) {
       return stored;
     }

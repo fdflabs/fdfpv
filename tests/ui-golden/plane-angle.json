@@ -1,4 +1,10 @@
 {
+ "@boot": {
+  "state": {
+   "firstRun": false,
+   "screen": "title"
+  }
+ },
  "calibrate": {
   "screen": "calibrate",
   "items": [],

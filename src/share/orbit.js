@@ -1,40 +1,47 @@
 /*
- * orbit.js: the title camera, with no shell around it.
+ * orbit.js: the page behind every world thumbnail (orbit.html), the title
+ * screen's attract camera with nothing else around it.
  *
- * Map cards and the public board need a moving picture of a world. The first
- * time a world is asked for, this page loads it, flies the same attract
- * camera the title screen flies (airframe on the line), records one full
- * cycle at 480p, and stores it. After that the page is a <video> element:
- * no second WebGL context, no second copy of the town, no physics and no
- * WASM.
+ * Map cards and the public board frame this page. The first time a world
+ * is asked for, it builds that world, flies the title's camera round it
+ * (with the airframe on the line), records one whole camera loop through
+ * src/share/orbitcache.js and keeps it; every later visit just plays the
+ * kept clip, with no WebGL, no world, no physics and no WASM.
  *
- * A ?share= id fetches that track from the board and records the world it
- * stands in, without writing the player's share seat, so several board cards
- * can show several tracks without colliding. The clip is the world's own,
- * shared with the world's card in the Freestyle room; the track's gates are
- * not in it. A track drawn for the race field, which this simulator no
- * longer builds, has no world to record and says so.
+ * ?map= names the world. ?share= names a board course instead: the page
+ * fetches it (without touching the pilot's share seat, so a board page of
+ * cards can show many courses at once) and records the world it stands
+ * in. The clip is the world's, the same one the Freestyle room shows; the
+ * course's gates are not in it. A course drawn for the old race field has
+ * no world, and the page says so.
  *
- * This file is part of WebFPVSimulator.
+ * In a frame the page tells its parent: fdfpv-orbit-ready { map, cached,
+ * key } once there is something to see, then fdfpv-orbit-clip { key, map,
+ * mime, buffer } with the clip's bytes, which ui.js keeps. Checks read the
+ * __orbit* flags on its window; ?capture=1 records even when a clip is
+ * kept and leaves the recording's base64 in __orbitCapture.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { mapById } from '../maps/registry.js';
 import { isMapTrack } from '../trackbuilder/model.js';
 import { CAMERA_FOV_DEFAULT } from '../render/lens.js';
 import { fetchTrackDocument } from './board.js';
+import { ghostToBase64 } from './ghostdata.js';
 import { str } from '../strings/index.js';
 import {
   CLIP_W,
@@ -49,334 +56,280 @@ import {
   whenVisible,
 } from './orbitcache.js';
 
-const canvas = document.getElementById('view');
-const status = document.getElementById('status');
-const params = new URLSearchParams(window.location.search);
+const view = document.getElementById('view');
+const statusLine = document.getElementById('status');
+const query = new URLSearchParams(window.location.search);
+const forceCapture = query.get('capture') === '1';
 
-function setStatus(text) {
-  if (!status) {
+function say(text) {
+  if (!statusLine) {
     return;
   }
-  if (!text) {
-    status.classList.add('gone');
-    status.textContent = '';
-    return;
-  }
-  status.classList.remove('gone');
-  status.textContent = text;
+  statusLine.textContent = text || '';
+  statusLine.classList.toggle('gone', !text);
 }
 
-function periodMsOf(attract) {
-  const n = attract && attract.periodMs;
-  return n > 0 ? n : 0;
-}
-
-function bytesToBase64(bytes) {
-  const chunk = 0x8000;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}
-
-/*
- * The world this page records: the one a ?share= track stands in, or the
- * one ?map= names. The Track seat (map=custom, which is what the board's
- * links still carry, or map=track) and an id no map has are no world of
- * their own, and record the seat's home, the title's valley.
- */
-async function worldToRecord() {
-  const shareId = params.get('share') || '';
-  let mapId = params.get('map');
+/* The world to record: the one a ?share= course stands in, else ?map=.
+ * An id with no loader of its own (the Track seat, map=custom or
+ * map=track, or an id no world has) records its home, the title's
+ * valley. */
+async function chosenWorld() {
+  let mapId = query.get('map');
+  const shareId = query.get('share');
   if (shareId) {
     const payload = await fetchTrackDocument(shareId);
-    const doc = payload.document || payload;
-    if (!isMapTrack(doc)) {
+    const course = payload.document || payload;
+    if (!isMapTrack(course)) {
       throw new Error(str('orbit.no_world_for_this_track'));
     }
-    window.document.title = payload.name || doc.name || str('orbit.fdfpv_orbit');
-    mapId = doc.map;
+    document.title = payload.name || course.name || str('orbit.fdfpv_orbit');
+    mapId = course.map;
   }
-  const entry = mapById(mapId);
-  return entry.load ? entry.id : entry.home;
+  const world = mapById(mapId);
+  return world.load ? world.id : world.home;
 }
 
-function post(type, extra) {
+const framed = window.parent !== window;
+
+function tellParent(type, fields) {
   try {
-    window.parent.postMessage({ type, ...extra }, '*');
+    window.parent.postMessage({ type, ...fields }, '*');
   } catch (e) {
-    /* Not in an iframe. */
+    /* No parent to tell. */
   }
 }
 
-async function postClip(key, mapId, blob) {
-  if (window.parent === window) {
+async function handClipToParent(key, mapId, blob) {
+  if (!framed) {
     return;
   }
-  const buffer = await blob.arrayBuffer();
-  post('fdfpv-orbit-clip', { key, map: mapId, mime: blob.type, buffer });
+  tellParent('fdfpv-orbit-clip', {
+    key, map: mapId, mime: blob.type, buffer: await blob.arrayBuffer(),
+  });
 }
 
-let clipUrl = null;
+let shownUrl = null;
 
-function showClip(blob) {
-  setStatus('');
-  if (canvas) {
-    canvas.remove();
+/* Put the clip on screen in place of the canvas (or a clip shown before). */
+function show(blob) {
+  say('');
+  if (view) {
+    view.remove();
   }
-  const host = document.body;
-  const existing = host.querySelector('.orbit-clip');
-  if (existing) {
-    existing.remove();
+  document.body.querySelector('.orbit-clip')?.remove();
+  if (shownUrl) {
+    URL.revokeObjectURL(shownUrl);
   }
-  if (clipUrl) {
-    URL.revokeObjectURL(clipUrl);
-    clipUrl = null;
-  }
-  const made = makeClipElement(blob, 'orbit-clip');
-  clipUrl = made.url;
-  made.node.removeAttribute('aria-hidden');
-  host.append(made.node);
+  const { node, url } = makeClipElement(blob, 'orbit-clip');
+  shownUrl = url;
+  /* Here the clip is the page's whole content, not a decoration. */
+  node.removeAttribute('aria-hidden');
+  document.body.append(node);
 }
 
-function pinThumb(shell, view, THREE) {
+function markReady(mapId, extra = {}) {
+  window.__orbitReady = true;
+  window.__orbitMap = mapId;
+  Object.assign(window, extra);
+}
+
+async function playKept(mapId, key, blob) {
+  show(blob);
+  markReady(mapId, { __orbitCached: true });
+  tellParent('fdfpv-orbit-ready', { map: mapId, cached: true, key });
+  await handClipToParent(key, mapId, blob);
+}
+
+/* The renderer at the clip's own size whatever the frame's size, the
+ * canvas stretched over the frame. */
+function fitToClip(shell, scene) {
   shell.renderer.setPixelRatio(1);
   shell.renderer.setSize(CLIP_W, CLIP_H, false);
-  if (canvas) {
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
+  if (view) {
+    view.style.width = '100%';
+    view.style.height = '100%';
   }
   shell.camera.aspect = CLIP_W / CLIP_H;
   shell.camera.updateProjectionMatrix();
-  if (view.post && view.post.setSize) {
-    view.post.setSize(CLIP_W, CLIP_H);
-  }
-  if (view.scene && THREE) {
-    view.scene.traverse((obj) => {
-      if (obj.isLight && obj.shadow && obj.shadow.mapSize) {
-        obj.shadow.mapSize.set(512, 512);
-      }
-    });
+  if (scene && scene.post && scene.post.setSize) {
+    scene.post.setSize(CLIP_W, CLIP_H);
   }
 }
 
-function loseRenderer(shell) {
+/* Shadow maps a thumbnail can afford. */
+function cheapShadows(scene) {
+  scene.scene?.traverse((obj) => {
+    if (obj.isLight && obj.shadow && obj.shadow.mapSize) {
+      obj.shadow.mapSize.set(512, 512);
+    }
+  });
+}
+
+/* Free the GPU now rather than whenever the frame goes. */
+function dropRenderer(shell) {
   try {
     shell.renderer.dispose();
   } catch (e) {
-    /* Already gone. */
+    /* Already disposed. */
   }
   try {
-    const gl = shell.renderer.getContext();
-    const ext = gl && gl.getExtension('WEBGL_lose_context');
-    if (ext) {
-      ext.loseContext();
-    }
+    shell.renderer.getContext()?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch (e) {
-    /* The context is already lost. */
+    /* Already lost. */
   }
 }
 
-async function renderAndCapture(mapId, key) {
-  const THREE = await import('three');
+const untilFrames = (counter, n) => new Promise((resolve) => {
+  const look = () => (counter() > n ? resolve() : requestAnimationFrame(look));
+  look();
+});
+
+async function captureWorld(mapId, key) {
+  await import('three');
   const { buildShell } = await import('../render/shell.js');
   const { makeAttractCamera } = await import('../render/attract.js');
+  const world = mapById(mapId);
+  say(str('orbit.loading', { name: world.name }));
 
-  const spec = mapById(mapId);
-  setStatus(str('orbit.loading', { name: spec.name }));
-
-  const shell = buildShell(canvas, { pixelRatio: 1, powerPreference: 'low-power' });
-  /* The same lens the race is flown on, so a course does not look like a
-   * different course in the clip somebody shares of it. */
+  const shell = buildShell(view, { pixelRatio: 1, powerPreference: 'low-power' });
+  /* The lens the race is flown on, so a course in the clip looks like the
+   * course a pilot flies. */
   shell.camera.fov = CAMERA_FOV_DEFAULT;
   shell.resize = () => {
-    shell.renderer.setPixelRatio(1);
-    shell.renderer.setSize(CLIP_W, CLIP_H, false);
-    if (canvas) {
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-    }
-    shell.camera.aspect = CLIP_W / CLIP_H;
-    shell.camera.updateProjectionMatrix();
+    fitToClip(shell, null);
     return { w: CLIP_W, h: CLIP_H };
   };
   shell.resize();
   shell.camera.updateProjectionMatrix();
 
-  const mod = await spec.load();
-  const view = await mod.buildMap(shell, (f) => {
-    /* A builder may name a phase with no fraction (src/maps/alps.js). */
-    if (f === undefined) {
-      return;
+  const built = await world.load();
+  const scene = await built.buildMap(shell, (fraction) => {
+    /* Some builders name a phase without a fraction (src/maps/alps.js). */
+    if (fraction !== undefined) {
+      say(str('orbit.building_percent', { name: world.name, v2: Math.round(fraction * 100) }));
     }
-    setStatus(str('orbit.building_percent', { name: spec.name, v2: Math.round(f * 100) }));
   }, { quality: 'low' });
-  pinThumb(shell, view, THREE);
-  if (view.post) {
-    view.post.setSize(CLIP_W, CLIP_H);
-  }
+  fitToClip(shell, scene);
+  cheapShadows(scene);
   shell.quad.visible = true;
+  const camera = makeAttractCamera(scene);
 
-  const attract = makeAttractCamera(view);
-
-  let alive = true;
+  let running = true;
   const onResize = () => {
-    if (!alive) {
-      return;
+    if (running) {
+      fitToClip(shell, scene);
+      cheapShadows(scene);
     }
-    pinThumb(shell, view, THREE);
   };
   window.addEventListener('resize', onResize);
 
-  const periodMs = periodMsOf(attract);
+  /* The clip holds one whole camera loop, sped up when the loop is longer
+   * than a clip may be: a slice of a long orbit, looped, jumps. */
+  const periodMs = camera && camera.periodMs > 0 ? camera.periodMs : 0;
   const loopMs = clipDurationMs(periodMs);
-  /* One full camera cycle in the clip, sped up if the natural period is
-   * longer than CLIP_MS_MAX. Recording a slice of a 57 s orbit and looping
-   * it is a jump, which is what the board thumbnails were doing. */
-  const captureScale = (periodMs > 0 ? periodMs : loopMs) / loopMs;
+  const speed = (periodMs || loopMs) / loopMs;
 
-  let prevWall = performance.now();
-  let titleAcc = 0;
-  let titleStepMs = 0;
-  let camMs = 0;
-  let windT0 = 0;
-  let frames = 0;
-  let raf = 0;
-
-  function frame(nowWall) {
-    if (!alive) {
+  const clock = {
+    lastWall: performance.now(), cameraMs: 0, animCarry: 0, animMs: 0, windFrom: 0, frames: 0,
+  };
+  const restartClocks = () => {
+    Object.assign(clock, { cameraMs: 0, animCarry: 0, animMs: 0, windFrom: performance.now() });
+  };
+  let rafId = 0;
+  const drawFrame = (wall) => {
+    if (!running) {
       return;
     }
-    raf = requestAnimationFrame(frame);
-    /*
-     * A FLOOR AS WELL AS A CEILING. prevWall is seeded from
-     * performance.now() during setup, and the timestamp requestAnimationFrame
-     * hands the first callback is the time that FRAME began, which the
-     * browser may have started before the setup call that read the clock.
-     * The first delta is then negative, tens of milliseconds of it, and the
-     * camera clock started the recording behind zero.
-     *
-     * The ceiling was here for a backgrounded tab. The floor is for this:
-     * time does not run backwards, so a negative delta is a lie about the
-     * clock rather than a small step, and it belongs at zero.
-     */
-    const dt = Math.min(Math.max(nowWall - prevWall, 0), 100);
-    prevWall = nowWall;
-    camMs += dt * captureScale;
-    attract.update(camMs, shell.camera, { craft: shell.quad });
+    rafId = requestAnimationFrame(drawFrame);
+    /* Clamped to [0, 100] ms. The first rAF time can be earlier than the
+     * clock read during setup (the frame began before it), and a negative
+     * step would start the recording behind zero; a long step is a hidden
+     * tab coming back. */
+    const step = Math.min(100, Math.max(0, wall - clock.lastWall));
+    clock.lastWall = wall;
+    clock.cameraMs += step * speed;
+    camera.update(clock.cameraMs, shell.camera, { craft: shell.quad });
     if (shell.blades) {
       for (let m = 0; m < 4; m += 1) {
-        const dir = shell.propSpin ? shell.propSpin[m] : 1;
-        shell.blades[m].rotation.y += 0.40 * dir;
+        shell.blades[m].rotation.y += 0.40 * (shell.propSpin ? shell.propSpin[m] : 1);
         shell.discs[m].rotation.y += 0.40;
       }
     }
-    titleAcc += dt;
-    const ts = Math.floor(titleAcc);
-    titleAcc -= ts;
-    titleStepMs += ts > 100 ? 100 : ts;
-    view.updateAnim(titleStepMs);
-    view.updateShadowFocus(shell.quad.position);
-    const windT = windT0 ? (nowWall - windT0) * 0.001 : nowWall * 0.001;
-    view.updateWind(windT, shell.quad.position, 0.85);
-    view.post.render();
-    frames += 1;
-    window.__orbitFrames = frames;
-  }
-  raf = requestAnimationFrame(frame);
+    /* World animation advances in whole milliseconds, at most 100 a frame,
+     * with the fraction carried. */
+    clock.animCarry += step;
+    const whole = Math.floor(clock.animCarry);
+    clock.animCarry -= whole;
+    clock.animMs += Math.min(whole, 100);
+    scene.updateAnim(clock.animMs);
+    scene.updateShadowFocus(shell.quad.position);
+    scene.updateWind((clock.windFrom ? wall - clock.windFrom : wall) * 0.001, shell.quad.position, 0.85);
+    scene.post.render();
+    clock.frames += 1;
+    window.__orbitFrames = clock.frames;
+  };
+  rafId = requestAnimationFrame(drawFrame);
 
-  window.__orbitReady = true;
-  window.__orbitMap = mapId;
-  window.__orbitLoopMs = loopMs;
-  post('fdfpv-orbit-ready', { map: mapId, cached: false, key });
+  markReady(mapId, { __orbitLoopMs: loopMs });
+  tellParent('fdfpv-orbit-ready', { map: mapId, cached: false, key });
 
-  let blob;
+  let clip;
   try {
     await whenVisible();
-    await new Promise((resolve) => {
-      const tick = () => {
-        if (frames > 8) {
-          resolve();
-        } else {
-          requestAnimationFrame(tick);
-        }
-      };
-      tick();
-    });
-
-    camMs = 0;
-    titleAcc = 0;
-    titleStepMs = 0;
-    windT0 = performance.now();
-    attract.update(0, shell.camera, { craft: shell.quad });
-    view.updateAnim(0);
-    view.updateWind(0, shell.quad.position, 0.85);
-    view.post.render();
-
-    blob = await recordCanvasStream(canvas, loopMs);
+    /* Let the first frames settle (shader compiles, first shadow pass)
+     * before the clock restarts at the loop's start. */
+    await untilFrames(() => clock.frames, 8);
+    restartClocks();
+    camera.update(0, shell.camera, { craft: shell.quad });
+    scene.updateAnim(0);
+    scene.updateWind(0, shell.quad.position, 0.85);
+    scene.post.render();
+    clip = await recordCanvasStream(view, loopMs);
   } catch (e) {
     window.__orbitError = String(e.message || e);
     throw e;
   } finally {
-    alive = false;
-    cancelAnimationFrame(raf);
+    running = false;
+    cancelAnimationFrame(rafId);
     window.removeEventListener('resize', onResize);
     try {
-      view.dispose();
+      scene.dispose();
     } catch (e) {
-      /* The graph may already be gone. */
+      /* Part of the graph may be gone already. */
     }
-    loseRenderer(shell);
+    dropRenderer(shell);
   }
 
-  await putClip(key, blob);
-  if (params.get('capture') === '1') {
-    const buf = new Uint8Array(await blob.arrayBuffer());
-    window.__orbitCapture = bytesToBase64(buf);
+  await putClip(key, clip);
+  if (forceCapture) {
+    window.__orbitCapture = ghostToBase64(new Uint8Array(await clip.arrayBuffer()));
     window.__orbitCaptureDone = true;
   }
-  showClip(blob);
-  await postClip(key, mapId, blob);
+  show(clip);
+  await handClipToParent(key, mapId, clip);
 }
 
-async function boot() {
-  const mapId = await worldToRecord();
+async function start() {
+  const mapId = await chosenWorld();
   const key = clipKeyForMap(mapId);
-
-  const forceCapture = params.get('capture') === '1';
-  if (!forceCapture) {
-    const cached = await getClip(key);
-    if (cached) {
-      showClip(cached);
-      window.__orbitReady = true;
-      window.__orbitMap = mapId;
-      window.__orbitCached = true;
-      post('fdfpv-orbit-ready', { map: mapId, cached: true, key });
-      await postClip(key, mapId, cached);
+  const kept = forceCapture ? null : await getClip(key);
+  if (kept) {
+    await playKept(mapId, key, kept);
+    return;
+  }
+  await withCaptureLock(async () => {
+    /* Another frame may have recorded it while this one waited. */
+    const keptMeanwhile = forceCapture ? null : await getClip(key);
+    if (keptMeanwhile) {
+      await playKept(mapId, key, keptMeanwhile);
       return;
     }
-  }
-
-  await withCaptureLock(async () => {
-    if (!forceCapture) {
-      const again = await getClip(key);
-      if (again) {
-        showClip(again);
-        window.__orbitReady = true;
-        window.__orbitMap = mapId;
-        window.__orbitCached = true;
-        post('fdfpv-orbit-ready', { map: mapId, cached: true, key });
-        await postClip(key, mapId, again);
-        return;
-      }
-    }
-    await renderAndCapture(mapId, key);
+    await captureWorld(mapId, key);
   });
 }
 
-boot().catch((e) => {
-  setStatus(e.message || str('orbit.the_preview_failed'));
+start().catch((e) => {
+  say(e.message || str('orbit.the_preview_failed'));
   window.__orbitError = String(e.message || e);
   console.error(e);
 });

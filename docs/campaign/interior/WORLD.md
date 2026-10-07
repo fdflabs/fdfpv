@@ -94,8 +94,9 @@ path-crossing, clearing, gap2, opening, camp-edge) and `ALT_POINTS`; the
 places' positions are places.js `PLACES`, `CAMP_PROPS`.
 
 Mission 1's clock: clock.js `M1_CLOCK = { startHour: 16.667, sunsetHour:
-18.2446, rate: 2.95 }` (hours of day per hour of room: the sun sets 32
-minutes into the mission), `localHour(clock, startedMs, roomMs)`,
+18.2446, rate: 1.58 }` (hours of day per hour of room: the sun sets 59.9
+minutes into the mission, about 12 minutes after a first timer at 18 m/s
+lands, measured by interior:stages' light runs), `localHour(clock, startedMs, roomMs)`,
 `sunsetMs(clock)`.
 
 **VIEW** (the map instance, scene frame):
