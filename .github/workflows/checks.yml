@@ -141,6 +141,9 @@ jobs:
       - run: npm run input:trace
       - run: npm run stickmode:selftest
       - run: npm run ghost:selftest
+      # The blackbox_decode CSV reader (tests/lib/blackbox.js), against a
+      # pinned transcript.
+      - run: npm run blackbox:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
