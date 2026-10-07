@@ -168,6 +168,9 @@ jobs:
       # Values under the old webfpv.* storage names moved to fdfpv.* once
       # (src/share/oldkeys.js): new name wins, idempotent, refusal retried.
       - run: npm run oldkeys:selftest
+      # The text table the verify runner prints (tests/lib/table.js), against
+      # a pinned transcript.
+      - run: npm run table:selftest
       # The .rec stick recording format (tests/lib/recfile.js), against a
       # pinned transcript.
       - run: npm run recfile:selftest
