@@ -1203,11 +1203,11 @@
        */
 
       /*
-       * The flight-controller screen, restored. Configurator 10.10
-       * (firmware 4.5.1 era): #ffbb00 header, #4d4d4d body, dark left
-       * tabs. Homage: our layout, system fonts, no Vue, no MSP, no
-       * iframe, and no CLI paste anywhere. Every other menu wears PDCS;
-       * this screen alone wears the yellow.
+       * FLIGHT CONTROLLER. The one screen that wears the Betaflight
+       * Configurator's colours (the 10.10 look: amber header, grey body,
+       * dark tab rail) instead of PDCS, drawn with our own layout and
+       * system fonts. Its palette lives on the screen so every part below
+       * reads it from there.
        */
       .screen-fc {
         --bf-accent: #ffbb00;
@@ -1219,111 +1219,106 @@
         --bf-text: #ffffff;
         --bf-muted: #c5c5c5;
         --bf-grey: #9c9c9c;
-        align-items: stretch;
-        justify-content: flex-start;
-        padding: 0;
-        background: var(--bf-bg);
-        color: var(--bf-text);
         font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--bf-text); background: var(--bf-bg);
+        padding: 0; align-items: stretch; justify-content: flex-start;
       }
-      .fc-head {
-        flex: 0 0 auto;
-        background: var(--bf-accent);
-        color: var(--bf-ink);
-        padding: 8px 14px 7px;
-        pointer-events: auto;
+      .fc-exit[hidden], .fc-pages[hidden], .fc-attitude[hidden] { display: none !important; }
+
+      /* Header, exit strip and status line: fixed strips around the body. */
+      .fc-head, .fc-exit, .fc-status { flex: 0 0 auto; pointer-events: auto; }
+      .fc-head { padding: 8px 14px 7px; color: var(--bf-ink); background: var(--bf-accent); }
+      .fc-status {
+        padding: 5px 14px; color: var(--bf-ink); background: var(--bf-accent);
+        font-size: 11px; font-weight: 650; letter-spacing: 0.04em;
       }
-      .fc-brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-      .fc-wordmark { font-size: 22px; font-weight: 800; letter-spacing: 0.14em; line-height: 1; }
-      .fc-fw, .fc-conn {
-        font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      }
+      .fc-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+      .fc-wordmark { font-size: 22px; line-height: 1; font-weight: 800; letter-spacing: 0.14em; }
+      .fc-fw, .fc-conn, .fc-dirty { text-transform: uppercase; }
+      .fc-fw, .fc-conn { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
       .fc-dirty {
         margin-left: auto; color: var(--bf-ink);
-        font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
       }
       .fc-dirty:empty { display: none; }
-      .fc-homage { margin: 4px 0 0; max-width: 86em; color: #3a3208; font-size: 11px; line-height: 1.4; }
-      .fc-homage a { color: var(--bf-ink); font-weight: 700; pointer-events: auto; }
+      .fc-homage { max-width: 86em; margin: 4px 0 0; font-size: 11px; line-height: 1.4; color: #3a3208; }
+      .fc-homage a { pointer-events: auto; font-weight: 700; color: var(--bf-ink); }
+
       .fc-exit {
-        flex: 0 0 auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        padding: 8px 14px; background: #2a2a2a; border-bottom: 1px solid #1a1a1a;
-        pointer-events: auto;
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+        padding: 8px 14px; background: #2a2a2a; border-bottom: 1px solid var(--bf-ink);
       }
-      .fc-exit[hidden] { display: none !important; }
-      .fc-exit-btn {
-        border: 0; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 800;
-        letter-spacing: 0.02em; padding: 8px 14px; cursor: pointer;
-      }
-      .fc-exit-save { background: var(--bf-accent); color: var(--bf-ink); }
-      .fc-exit-save:hover, .fc-exit-save:focus-visible { background: #ffd24d; outline: none; }
+      /* The strip's buttons, the tab rail and the page strip are bare
+         buttons in the page's face. */
+      .fc-exit-btn, .fc-tab, .fc-page { font: inherit; font-size: 13px; border: 0; cursor: pointer; }
+      .fc-tab, .fc-page { background: transparent; }
+      .fc-exit-btn { padding: 8px 14px; border-radius: 4px; font-weight: 800; letter-spacing: 0.02em; }
+      .fc-exit-save { color: var(--bf-ink); background: var(--bf-accent); }
       .fc-exit-save[hidden] { display: none; }
-      .fc-exit-leave { background: #5c5c5c; color: #fff; }
-      .fc-exit-leave:hover, .fc-exit-leave:focus-visible { background: #6e6e6e; outline: none; }
+      .fc-exit-leave { color: var(--bf-text); background: #5c5c5c; }
+      .fc-exit-save:hover, .fc-exit-save:focus-visible { outline: none; background: #ffd24d; }
+      .fc-exit-leave:hover, .fc-exit-leave:focus-visible { outline: none; background: #6e6e6e; }
       .fc-exit-hint {
-        margin-left: auto; display: flex; align-items: center; gap: 8px;
-        color: var(--bf-muted); font-size: 13px; font-weight: 650;
+        display: flex; align-items: center; gap: 8px; margin-left: auto;
+        font-size: 13px; font-weight: 650; color: var(--bf-muted);
       }
       .fc-exit-hint kbd {
-        display: inline-block; min-width: 1.6em; padding: 2px 6px; border-radius: 3px;
-        background: #1a1a1a; color: var(--bf-accent);
-        font: 700 12px/1.2 ui-monospace, "Cascadia Mono", monospace;
-        text-align: center; box-shadow: 0 1px 0 #000;
+        display: inline-block; min-width: 1.6em; padding: 2px 6px;
+        font: 700 12px/1.2 ui-monospace, "Cascadia Mono", monospace; text-align: center;
+        color: var(--bf-accent); background: var(--bf-ink);
+        border-radius: 3px; box-shadow: 0 1px 0 #000;
       }
-      .fc-body { display: flex; gap: 0; flex: 1 1 auto; min-height: 0; width: 100%; pointer-events: auto; }
+
+      .fc-body { display: flex; flex: 1 1 auto; gap: 0; width: 100%; min-height: 0; pointer-events: auto; }
+      .fc-tabs, .screen-fc .menu-scroll { scrollbar-color: var(--bf-accent) #2e2e2e; }
       .fc-tabs {
-        flex: 0 0 12.5em; overflow-y: auto; background: var(--bf-header); padding: 8px 0;
-        pointer-events: auto; scrollbar-width: thin; scrollbar-color: #ffbb00 #2e2e2e;
+        flex: 0 0 12.5em; padding: 8px 0; overflow-y: auto;
+        background: var(--bf-header); pointer-events: auto; scrollbar-width: thin;
       }
       .fc-tab {
-        display: block; width: 100%; text-align: left; border: 0; background: transparent;
-        color: var(--bf-text); font: inherit; font-size: 13px; padding: 7px 12px 7px 14px;
-        cursor: pointer; border-left: 3px solid transparent;
+        display: block; width: 100%; padding: 7px 12px 7px 14px; text-align: left;
+        color: var(--bf-text); border-left: 3px solid transparent;
       }
       .fc-tab:hover { background: rgba(255, 187, 0, 0.08); }
       .fc-tab.on {
+        font-weight: 650; color: var(--bf-accent);
         background: var(--bf-panel); border-left-color: var(--bf-accent);
-        color: var(--bf-accent); font-weight: 650;
       }
       .fc-tab.grey { color: var(--bf-grey); }
       .fc-tab.grey.on { color: var(--bf-muted); border-left-color: var(--bf-grey); }
+
       .fc-work {
-        flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
-        min-height: 0; background: var(--bf-panel); overflow: auto;
+        display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0;
+        overflow: auto; background: var(--bf-panel);
       }
       .fc-pages {
-        display: flex; gap: 0; flex: 0 0 auto; position: sticky; top: 0; z-index: 2;
+        position: sticky; top: 0; z-index: 2; display: flex; flex: 0 0 auto; gap: 0;
         background: var(--bf-header); border-bottom: 1px solid #2a2a2a;
       }
-      .fc-pages[hidden] { display: none !important; }
       .fc-page {
-        border: 0; background: transparent; color: var(--bf-muted); font: inherit;
-        font-size: 13px; font-weight: 650; letter-spacing: 0.03em;
-        padding: 8px 12px; cursor: pointer; border-bottom: 3px solid transparent;
+        padding: 8px 12px; font-weight: 650; letter-spacing: 0.03em;
+        color: var(--bf-muted); border-bottom: 3px solid transparent;
       }
-      .fc-page.on { color: var(--bf-accent); border-bottom-color: var(--bf-accent); background: var(--bf-panel); }
+      .fc-page.on { color: var(--bf-accent); background: var(--bf-panel); border-bottom-color: var(--bf-accent); }
+
+      /* The shared menu, laid out as the configurator's work area: rows on
+         the left, the help as a side panel. */
       .screen-fc .menu-stage {
-        display: grid;
-        grid-template-columns: 1fr minmax(14em, 22em);
-        align-items: stretch;
-        flex: 1 1 0;
-        min-height: 0;
-        width: 100%;
-        margin-top: 0;
+        display: grid; grid-template-columns: 1fr minmax(14em, 22em); align-items: stretch;
+        flex: 1 1 0; width: 100%; min-height: 0; margin-top: 0;
       }
       .screen-fc .menu-stage .menu {
-        grid-column: 1; background: var(--bf-box); border-top: 0; border-radius: 0;
-        box-shadow: none; min-width: 0; width: 100%; height: 100%; margin-top: 0;
-        /* A little air at the top. The header strip above overlaps the
-         * first row by about ten pixels, which never showed while the first
-         * row was a Tab picker under a page strip and does show the moment
-         * a confirm panel puts a real row against the ceiling. */
-        padding: 6px 0 12px;
+        grid-column: 1; width: 100%; min-width: 0; height: 100%;
+        /* 6 px at the top because the page strip overlaps the first row
+           by about that much, which shows once a confirm panel puts a
+           real row there. */
+        margin-top: 0; padding: 6px 0 12px;
+        background: var(--bf-box); border-top: 0; border-radius: 0; box-shadow: none;
       }
-      .screen-fc .menu-scroll { max-height: none; height: 100%; scrollbar-color: #ffbb00 #2e2e2e; }
+      .screen-fc .menu-scroll { height: 100%; max-height: none; }
       .screen-fc .menu-help {
-        grid-column: 2; color: var(--bf-muted); border-left: 1px solid #2a2a2a;
-        background: var(--bf-header); padding: 12px 14px; max-width: none;
+        grid-column: 2; max-width: none; padding: 12px 14px;
+        color: var(--bf-muted); background: var(--bf-header); border-left: 1px solid #2a2a2a;
       }
       .screen-fc .row { gap: 10px; padding: 7px 16px 7px 18px; font-size: 13px; color: var(--bf-text); }
       .screen-fc .row.on {
@@ -1331,62 +1326,38 @@
         background: linear-gradient(90deg, rgba(255, 187, 0, 0.16), rgba(255, 187, 0, 0) 48%);
       }
       .screen-fc .row-label { font-family: inherit; font-size: 13px; }
-      .screen-fc .row-value {
-        max-width: none; overflow: visible; text-overflow: clip; color: var(--bf-accent);
-      }
-      .screen-fc .row-grey { color: var(--bf-grey); }
-      .screen-fc .row-grey .row-value { color: var(--bf-grey); }
+      .screen-fc .row-value { max-width: none; overflow: visible; text-overflow: clip; color: var(--bf-accent); }
+      .screen-fc .row-grey, .screen-fc .row-grey .row-value { color: var(--bf-grey); }
       .screen-fc .row-gated .row-value { color: var(--bf-accent); }
       .screen-fc .fc-section {
-        color: var(--bf-accent); font-size: 11px; font-weight: 800;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        border-bottom: 1px solid #555; margin-top: 8px; pointer-events: none;
+        margin-top: 8px; pointer-events: none; border-bottom: 1px solid #555;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--bf-accent);
       }
-      /*
-       * PINNED. Save was a row inside the scrolling list, so after typing a
-       * value into the last live field of the PID Profile page a pilot had
-       * to arrow back up 96 rows to reach it. The bar is built into the
-       * list so it keeps its place in the cursor order, and sticky is what
-       * keeps it on screen without moving it out of that order.
-       */
+      /* Save and its neighbours stay in the row order (the cursor walks
+         them like rows) but stick to the top of the scroll, so a long PID
+         page never leaves them a hundred rows away. */
       .screen-fc .fc-bar {
-        display: flex; gap: 8px; padding: 10px 12px 6px; flex-wrap: wrap;
         position: sticky; top: 0; z-index: 2;
-        background: var(--bf-panel);
-        box-shadow: 0 6px 10px -6px rgba(0, 0, 0, 0.55);
+        display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px 6px;
+        background: var(--bf-panel); box-shadow: 0 6px 10px -6px rgba(0, 0, 0, 0.55);
       }
       .screen-fc .fc-btn {
-        background: var(--bf-accent); color: var(--bf-ink); font-weight: 700; margin: 0;
-        border-radius: 3px; border-left: 0; flex: 1 1 6em; justify-content: center;
-        padding: 8px 10px;
+        flex: 1 1 6em; justify-content: center; margin: 0; padding: 8px 10px;
+        font-weight: 700; color: var(--bf-ink); background: var(--bf-accent);
+        border-left: 0; border-radius: 3px;
       }
-      .screen-fc .fc-btn .row-label { color: var(--bf-ink); font-weight: 700; }
-      .screen-fc .fc-btn.on { background: #ffd24d; color: var(--bf-ink); border-left: 0; }
-      .fc-status {
-        flex: 0 0 auto; background: var(--bf-accent); color: var(--bf-ink);
-        font-size: 11px; font-weight: 650; letter-spacing: 0.04em; padding: 5px 14px;
-        pointer-events: auto;
-      }
+      .screen-fc .fc-btn .row-label { font-weight: 700; color: var(--bf-ink); }
+      .screen-fc .fc-btn.on { color: var(--bf-ink); background: #ffd24d; border-left: 0; }
       .fc-attitude {
-        display: block; margin: 12px 16px; width: 220px; height: 220px;
-        background: #2e2e2e; border: 1px solid #6b6b6b; pointer-events: none;
+        display: block; width: 220px; height: 220px; margin: 12px 16px;
+        pointer-events: none; background: #2e2e2e; border: 1px solid #6b6b6b;
       }
-      .fc-attitude[hidden] { display: none !important; }
       @media (max-width: 900px) {
+        .fc-wordmark { font-size: 16px; }
+        .fc-tabs { flex: 0 0 8.5em; }
         .screen-fc .menu-stage { grid-template-columns: minmax(0, 1fr); }
         .screen-fc .menu-help { grid-column: auto; max-width: none; border-left: none; }
-        .fc-tabs { flex: 0 0 8.5em; }
-        .fc-wordmark { font-size: 16px; }
-      }
-      .screen-maps {
-        justify-content: flex-start;
-        padding-top: 7vh;
-      }
-      .screen h1:not(.lockup) {
-        margin: 0; font-size: clamp(44px, 8vw, 104px); font-weight: 800;
-        letter-spacing: 0.08em; padding-left: 0.02em; color: var(--cream);
-        line-height: 0.92;
-        text-shadow: 3px 3px 0 rgba(10, 13, 14, 0.82), 0 10px 28px rgba(0, 0, 0, 0.32);
       }
       /*
        * THE NAME, as the owner's key art sets it: PARAGUAYAN thin and spaced
@@ -1554,7 +1525,7 @@
       .lockup-box .lockup-name > span { display: inline; }
       .lockup-box .lockup-name::before, .lockup-box .lockup-name::after {
         content: attr(data-text) / "";
-        position: absolute; left: 0; top: 0;
+        position: absolute; inset: 0 auto auto 0;
       }
       .lockup-box .lockup-name::before { transform: translateY(-0.04em); color: rgba(255, 255, 255, 0.85); }
       .lockup-box .lockup-name::after {
@@ -1585,143 +1556,102 @@
         .screen-title .lockup-over::after { display: none; }
         .screen-title .lockup-box { margin-top: 48px; }
       }
-      /* A page names itself the way the boot screen names a stage: spaced
-         capitals in the monospace, not a display face. */
+      /*
+       * PAGE HEADINGS. A plain h1 (the title's is the lockup, above) is a
+       * heavy display line with a hard offset shadow; a page's h2 is set
+       * like a boot stage, spaced capitals; an h3 is a small caption. The
+       * map picker hangs its h2 on the left with a short sakura rule.
+       */
+      .screen h1:not(.lockup) {
+        margin: 0; padding-left: 0.02em;
+        font-size: clamp(44px, 8vw, 104px); line-height: 0.92; font-weight: 800; letter-spacing: 0.08em;
+        color: var(--cream);
+        text-shadow: 3px 3px 0 rgba(10, 13, 14, 0.82), 0 10px 28px rgba(0, 0, 0, 0.32);
+      }
+      .screen h2, .screen h3 { font-weight: 500; text-transform: uppercase; }
       .screen h2 {
-        margin: 0 0 18px; font-size: clamp(18px, 1.9vw, 26px); font-weight: 500;
-        letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream);
+        margin: 0 0 18px; font-size: clamp(18px, 1.9vw, 26px); letter-spacing: 0.2em; color: var(--cream);
       }
-      .screen-maps h2 {
-        align-self: flex-start;
-        margin-bottom: 8px;
-      }
-      .screen-maps h2::after {
-        content: "";
-        display: block;
-        width: 36px; height: 2px;
-        background: var(--sakura);
-        margin-top: 10px;
-      }
-      .screen h3 {
-        margin: 0 0 10px; font-size: 12px; font-weight: 500; color: var(--slate);
-        letter-spacing: 0.16em; text-transform: uppercase;
-      }
-      .brand { text-align: center; margin-bottom: 34px; }
-      .screen-title .brand {
-        text-align: left;
-        margin-bottom: 0;
-        max-width: 36em;
-      }
+      .screen h3 { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.16em; color: var(--slate); }
+      .screen-maps { justify-content: flex-start; padding-top: 7vh; }
+      .screen-maps h2 { align-self: flex-start; margin-bottom: 8px; }
+      .screen-maps h2::after, .brand-sub::before { content: ""; width: 36px; height: 2px; background: var(--sakura); }
+      .screen-maps h2::after { display: block; margin-top: 10px; }
+
+      /*
+       * THE BRAND BLOCK under the name: the subtitle after its sakura
+       * dash, the pilot's record in a chip, the beta notice and the note
+       * about where progress is kept. Centred on a page, flush left on the
+       * title.
+       */
+      .brand { margin-bottom: 34px; text-align: center; }
+      .screen-title .brand { max-width: 36em; margin-bottom: 0; text-align: left; }
       .brand-sub {
-        display: flex; align-items: center; gap: 12px;
-        margin-top: 12px; font-size: clamp(13px, 1.4vw, 16px); color: #d7dddd;
-        letter-spacing: 0.28em; text-transform: uppercase;
+        display: flex; align-items: center; gap: 12px; margin-top: 12px;
+        font-size: clamp(13px, 1.4vw, 16px); letter-spacing: 0.28em; text-transform: uppercase; color: #d7dddd;
       }
-      .brand-sub:empty, .brand-best:empty { display: none; }
-      .brand-sub::before {
-        content: "";
-        width: 36px; height: 2px; flex: 0 0 auto;
-        background: var(--sakura);
-      }
+      .brand-sub::before { flex: 0 0 auto; }
       .brand-best {
-        display: inline-flex; align-items: center; gap: 8px;
-        margin-top: 16px; padding: 7px 14px; border-radius: 0;
-        font-size: 14px; color: var(--cream); letter-spacing: 0.05em;
-        background: rgba(10, 13, 14, 0.62);
+        display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 7px 14px;
+        font-size: 14px; letter-spacing: 0.05em; color: var(--cream);
+        background: rgba(10, 13, 14, 0.62); border-radius: 0;
         box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.45);
       }
-      .brand-best-time { color: var(--mint); font-weight: 650; }
-      /* The beta notice. Blue, the instrument's own colour, as the owner's
-         lockup sets the tag (2 October), and it keeps the same left edge as
-         everything else in the brand block so it reads as part of the title
-         rather than as a bolted on toast. */
-      .beta-note {
-        display: flex; align-items: baseline; gap: 10px;
-        max-width: 34em; margin: 14px 0 0;
-        font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em;
-        color: rgba(215, 221, 221, 0.78);
-      }
+      .brand-sub:empty, .brand-best:empty { display: none; }
+      .brand-best-time { font-weight: 650; color: var(--mint); }
+      .beta-note, .keep-note { max-width: 34em; margin: 14px 0 0; font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em; }
+      /* The beta line belongs to the title, so it keeps the brand's left
+         edge, and its tag is the instrument blue in brackets. */
+      .beta-note { display: flex; align-items: baseline; gap: 10px; color: rgba(215, 221, 221, 0.78); }
+      .keep-note { color: rgba(215, 221, 221, 0.72); }
       .beta-tag {
         flex: 0 0 auto;
-        font-family: var(--pdcs-mono);
-        font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
+        font-family: var(--pdcs-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
         text-transform: uppercase; color: var(--pdcs-blue);
       }
       .beta-tag::before { content: "[ "; color: var(--pdcs-blue-dim); }
       .beta-tag::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .screen-title .beta-note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
-      .keep-note {
-        max-width: 34em; margin: 14px 0 0; color: rgba(215, 221, 221, 0.72);
-        font-size: 13.5px; line-height: 1.6; letter-spacing: 0.01em;
-      }
-      /* First run swaps the storage warning, which is a returning pilot's
-         problem, for the one sentence that gets somebody airborne. */
-      /* :not(.first-note) because the first note IS a keep-note, so the
-         plain .keep-note hide below would match it at the same specificity
-         and, being later, win. */
+      .screen-title .beta-note, .screen-title .keep-note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
+      .screen-title .keep-note { margin-left: 0; margin-right: auto; }
+      .screen-title .brand-sub { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75); }
+
+      /*
+       * WHICH NOTES SHOW. A first visit trades the storage note and the
+       * record for the one line that gets somebody flying (the first note
+       * is itself a keep-note, hence the :not). The gate shows none of the
+       * seat's details, only the beta line, and it must come after the
+       * first visit rule: on a first visit's gate the first note goes too.
+       */
       .first-note { display: none; }
       .screen-title.is-first .first-note { display: block; }
       .screen-title.is-first .keep-note:not(.first-note),
-      .screen-title.is-first .brand-best { display: none; }
-      /* The gate. Everything about a seat comes off the screen, because
-         the pilot has not said yet whether they are flying it, and
-         everything about the product comes off too: the gate is one
-         question and the three cards under it are the whole answer. The
-         Beta line stays, because a pilot about to meet a bug should be told
-         before the lap and not after it. */
+      .screen-title.is-first .brand-best,
       .screen-title.is-gate .keep-note,
       .screen-title.is-gate .brand-sub,
       .screen-title.is-gate .brand-best { display: none; }
+
       /*
-       * THE GATE'S TWO CARDS.
-       *
-       * The first screen asks one question and these are the answer, so
-       * they are the only thing on it that is not the wordmark. They are a
-       * third child of `.title-copy` and `display: none` in every other
-       * state, which is what keeps the two child `space-between` contract
-       * the menu states depend on: a hidden flex child does not lay out.
-       *
-       * The pictures are assets/gate/*.jpg, frames of this renderer written
-       * by scripts/gatecards.js. Regenerate them, do not edit them.
-       *
-       * `.screen` is pointer-events: none and every clickable thing on it
-       * opts back in, so these do too.
+       * THE GATE. Its cards (and its rooms panel, below) exist in every
+       * title state but lay out only on the gate, so the other states keep
+       * the column's two children and its space-between. On the gate the
+       * copy column takes the full width and the cards take the menu's
+       * place at its foot: margin-top auto only uses free space, so a
+       * short window loses the gap, never the cards. The pictures come
+       * from scripts/gatecards.js; regenerate, never edit. The screen is
+       * pointer-events none, so the cards opt back in.
        */
       .gate-cards { display: none; }
-      /* The menu column is 36em of the window; the gate is the page, so it
-         takes the whole content width back: a capped column left six cards
-         huddled in the left two thirds of a wide screen. */
-      .screen-title.is-gate .title-copy {
-        width: 100%;
-        justify-content: flex-start;
-      }
+      .screen-title.is-gate .title-copy { width: 100%; justify-content: flex-start; }
       .screen-title.is-gate .gate-cards {
-        display: flex;
-        align-items: stretch;
-        gap: clamp(12px, 1.6vw, 24px);
-        width: 100%;
-        /* Pushed to the bottom of the column, which is where the menu is
-           on every other state of this screen: answering the gate then
-           swaps one block for another in the same place instead of moving
-           the page. Auto only ever takes free space, so on a short window
-           the gap closes to nothing rather than pushing the cards off. */
-        margin: auto 0 0;
-        pointer-events: auto;
+        display: flex; align-items: stretch; gap: clamp(12px, 1.6vw, 24px);
+        width: 100%; margin: auto 0 0; pointer-events: auto;
       }
-      /* An empty menu still paints its plate and its sakura top line, so
-         a title screen with no rows shows a bar that means nothing. The
-         gate is where that normally happens, because it has no rows unless
-         a radio is in trouble, and this rule used to be scoped to it. That
-         scope is what turned a wrong is-gate into the empty front page the
-         owner reported: the cards were hidden by their own rule and this
-         one did not fire, so a bare strip was the whole menu. Unscoped, an
-         empty menu is invisible in EVERY title state, whatever answered
-         which question, and the class of bug is ugly rather than fatal. */
-      .screen-title .menu:empty { display: none; }
-      /* The foot keeps its own auto margin in every other state, where it
-         is what pins the menu to the bottom. Here the cards are that block,
-         so the foot gives the space up rather than splitting it. */
       .screen-title.is-gate .title-foot { margin-top: 0; }
+      /* A menu with no rows would still paint its frame and top rule. This
+         holds in every title state, not only the gate's: scoped to the
+         gate, a wrongly set state once left a bare strip as the whole
+         front page. */
+      .screen-title .menu:empty { display: none; }
       /*
        * THE GATE'S ROOMS PANEL, beside the wordmark (src/ui/ui.js
        * renderTitleRooms). The brand and it share .title-top, which is a
@@ -1825,285 +1755,186 @@
         .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
       }
       /*
-       * A CARD IS A PANEL ON THE GROUND, the boot screen's visual area over
-       * its label: a hairline frame, an index, the mode's picture as a
-       * survey plate (the boot screen's map treatment: no colour, darkened,
-       * under a fine grid) with its line drawing over it, the name in the
-       * monospace, a line of what it is, and its tags in brackets. The
-       * cursor's card takes a full strength frame and a green index; no
-       * lift, no glow.
+       * A GATE CARD is a framed panel on the ground: a survey plate (the
+       * mode's picture greyed and darkened under a fine grid, its number in
+       * the corner and its plan drawing over it), then the name in the
+       * names' face, a gloss of three lines at most and its tags in
+       * brackets. The cursor's card gets a full frame in its accent and a
+       * rule along its top, drawn as an outline and a layer because the
+       * plate would cover an inset shadow. No lift, no glow.
        */
       .gate-cards { counter-reset: gate-card; }
+      .gate-card, .gate-card-body { display: flex; flex-direction: column; }
       .gate-card {
-        flex: 1 1 0;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        cursor: pointer;
-        overflow: hidden;
+        position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; cursor: pointer;
         counter-increment: gate-card;
-        background: var(--pdcs-panel);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+        background: var(--pdcs-panel); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         transition: box-shadow 0.14s ease;
       }
-      /* The cursor's card: a full blue frame and a heavier rule along its top,
-         the others left calm. */
-      .gate-card { position: relative; }
-      /* Over the plate, which would cover an inset shadow: the frame is an
-         outline and the rule a layer of its own. */
       .gate-card.on { outline: 1px solid var(--card-accent, var(--pdcs-blue-strong)); outline-offset: -1px; }
       .gate-card.on::after {
-        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
-        background: var(--card-accent, var(--pdcs-blue-strong)); pointer-events: none;
+        content: ""; position: absolute; inset: 0 0 auto; z-index: 2; height: 2px;
+        pointer-events: none; background: var(--card-accent, var(--pdcs-blue-strong));
       }
-      /*
-       * THE HUBS (src/ui/ui.js HUBS). Each hub card wears its hub's accent,
-       * and inside a hub every card does (decided 2026-10-02: one accent per
-       * hub over the same ground). Operations keeps the blue the cards
-       * always had.
-       */
+      /* After .on, so a keyboard focus shows its own ring on the cursor's card. */
+      .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
+      /* One accent per hub (src/ui/ui.js HUBS): its card on home, and every
+         card inside it. Operations keeps the default blue. */
       .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
       .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
-      /* A hub card's activities: each a press straight into its lobby. */
+      /* A hub card's activities, each a press straight into its lobby. */
       .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
       .gate-link {
+        padding: 5px 8px; pointer-events: auto; cursor: pointer;
         font: 600 12px/1.2 var(--type-mono); letter-spacing: 0.1em; text-transform: uppercase;
-        color: var(--pdcs-text); background: transparent; cursor: pointer;
-        padding: 5px 8px; border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
-        pointer-events: auto;
+        color: var(--pdcs-text); background: transparent;
+        border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
       }
       .gate-link:hover, .gate-link:focus-visible {
-        color: var(--pdcs-bg); background: var(--card-accent, var(--pdcs-blue-strong));
-        border-color: var(--card-accent, var(--pdcs-blue-strong)); outline: none;
+        outline: none; color: var(--pdcs-bg);
+        background: var(--card-accent, var(--pdcs-blue-strong)); border-color: var(--card-accent, var(--pdcs-blue-strong));
       }
-      .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
+
       .gate-card-art {
-        position: relative;
-        width: 100%;
-        /* Taller as the window is: the plates take the height a tall
-           window has to spare, and give it back below 720. */
+        position: relative; overflow: hidden; width: 100%;
+        /* The plates grow into the height a tall window can spare and give
+           it back below 720. */
         height: clamp(120px, calc(62vh - 300px), 400px);
-        background: var(--pdcs-plate);
-        border-bottom: 1px solid var(--pdcs-line-soft);
-        overflow: hidden;
+        background: var(--pdcs-plate); border-bottom: 1px solid var(--pdcs-line-soft);
       }
       .gate-card-shot {
-        width: 100%; height: 100%;
-        display: block; object-fit: cover;
-        filter: grayscale(1) contrast(1.1) brightness(0.7);
-        /* Its light over the plate's blue: a duotone, still mostly grey. */
-        mix-blend-mode: luminosity;
-        opacity: 0.5;
-        transition: opacity 0.14s ease;
+        display: block; width: 100%; height: 100%; object-fit: cover;
+        /* Luminosity over the plate's blue: a faint duotone, mostly grey. */
+        filter: grayscale(1) contrast(1.1) brightness(0.7); mix-blend-mode: luminosity;
+        opacity: 0.5; transition: opacity 0.14s ease;
       }
       .gate-card.on .gate-card-shot { opacity: 0.68; }
       .gate-card-art::after {
-        content: "";
-        position: absolute; inset: 0;
-        background: var(--pdcs-fine-grid);
-        background-size: 25px 25px;
+        content: ""; position: absolute; inset: 0;
+        background: var(--pdcs-fine-grid); background-size: 25px 25px;
       }
-      /* The index, in the plate's corner like the boot screen's step. */
       .gate-card-art::before {
         content: "[ " counter(gate-card, decimal-leading-zero) " ]";
         position: absolute; left: 10px; top: 8px; z-index: 1;
         font-size: 10.5px; letter-spacing: 0.16em; color: var(--slate);
       }
       .gate-card.on .gate-card-art::before { color: var(--pdcs-blue-strong); }
-      .gate-card-mark { z-index: 1; }
-      .gate-card-body {
-        display: flex; flex-direction: column; gap: 7px;
-        padding: 12px 16px 15px;
-      }
-      .gate-card-name {
-        font-family: var(--type-name); font-synthesis: none;
-        color: var(--cream);
-        font-size: clamp(15px, 1.3vw, 20px);
-        font-weight: 500;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        line-height: 1.2;
-      }
-      .gate-card.on .gate-card-name { color: var(--pdcs-bright); }
-      /* Three lines at most: the name and the tags are the answer, the
-         line is its gloss. */
-      .gate-card-blurb {
-        margin: 0;
-        color: var(--slate);
-        font-size: 13px; line-height: 1.5;
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        overflow: hidden;
-      }
-      /* What each mode actually gives you, in three words each, as status
-         tags in brackets. */
-      .gate-card-facts {
-        display: flex; flex-wrap: wrap; gap: 4px 12px;
-        margin-top: 2px;
-        font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
-        color: var(--slate);
-      }
-      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
-      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
-      /*
-       * The plan drawing over the corner of each picture, one box size on
-       * every card. See craftSvg in src/ui/ui.js.
-       */
+      /* The plan drawing (craftSvg in src/ui/ui.js), one box size on every card. */
       .gate-card-mark {
-        position: absolute;
-        left: 10px; bottom: 8px;
-        width: clamp(52px, 5.2vw, 76px);
-        height: clamp(52px, 5.2vw, 76px);
+        position: absolute; left: 10px; bottom: 8px; z-index: 1;
         display: grid; place-items: center;
+        width: clamp(52px, 5.2vw, 76px); height: clamp(52px, 5.2vw, 76px);
         pointer-events: none;
       }
       .craft-plan { width: 100%; height: 100%; color: var(--cream); }
 
-      .screen-title .brand-sub {
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
+      .gate-card-body { gap: 7px; padding: 12px 16px 15px; }
+      .gate-card-name {
+        font-family: var(--type-name); font-synthesis: none;
+        font-size: clamp(15px, 1.3vw, 20px); line-height: 1.2; font-weight: 500;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--cream);
       }
-      .screen-title .keep-note {
-        margin-left: 0;
-        margin-right: auto;
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+      .gate-card.on .gate-card-name { color: var(--pdcs-bright); }
+      .gate-card-blurb {
+        margin: 0; overflow: hidden;
+        font-size: 13px; line-height: 1.5; color: var(--slate);
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3;
+      }
+      .gate-card-facts {
+        display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px;
+        font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--slate);
+      }
+      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
+      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
+
+      /*
+       * THE MENU STAGE: three columns, the rows in the middle and the help
+       * note on the right, so a long note never pushes the list about.
+       * The side columns are equal so the panel sits under a centred
+       * heading. It is 100% of the screen's padded box, never vw: the
+       * screen already pads 6vw a side, and a stage sized in vw hung past
+       * the window's edge on a phone.
+       */
+      .menu-stage {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start;
+        width: 100%; max-width: 1600px; margin-top: 22px; pointer-events: none;
       }
 
-      /* The menu is a fixed-width centre column. Help text lives in the
-         right column so a long note cannot grow the list and shove the
-         whole screen around. 1fr / auto / 1fr keeps the rows centred.
-         The title pins the same note ABOVE the footer, out of flow, so
-         a longer hover line cannot drop the rows. */
-      /* SYMMETRIC, so the menu is centred where the heading says it is.
-         The columns used to be 1.7fr / auto / 0.65fr, which put the panel
-         195 px right of a centred h2 on a 1440 px screen: the heading and
-         the thing it names did not line up on Paused or How to fly. The
-         screens that fill column one (Settings' airframe studio) override
-         this below; nothing else was using the extra width. */
-      .menu-stage {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        /*
-         * 100% of the PADDED BOX, not a slice of the viewport.
-         *
-         * .screen already spends 6vw a side on padding, so a stage sized in
-         * vw is wider than the box holding it and hangs off the edge: at
-         * 390 px that is 8 px of the row list past the right of the window,
-         * on a device with no horizontal scrollbar to find it with. The
-         * Rates screen was pinned to 100% for exactly this reason and the
-         * comment there says so; the rest of the screens were not.
-         */
-        width: 100%;
-        max-width: 1600px;
-        align-items: start;
-        margin-top: 22px;
-        pointer-events: none;
-      }
       /*
-       * QUAD, not Pilot. These two rules and the block under them size the
-       * airframe showcase's column, and the showcase moved to the Quad room
-       * with the machine it is a picture of. Left on .screen-pilot they gave
-       * Pilot a 360 px first column with nothing in it, which is why its
-       * menu sat right of centre, and gave Quad no column for the quad.
+       * QUAD shows the airframe in the first column, so that column has a
+       * floor, and so does the help column: squeezed to 50 px the note
+       * once wrapped a word a line and ran 1451 px tall. The picture is
+       * square on the column's width, so it gets a height cap for wide,
+       * short windows, and the list may run as tall as the picture beside
+       * it (scripts/shell-check.js records this screen's overflow).
        */
       .screen-quad .menu-stage {
-        width: 100%;
-        max-width: 1600px;
-        /*
-         * The help column has a MINIMUM. At 1180 by 820 the first two
-         * columns took 360 and 628 and left it 50 px, so the note wrapped
-         * to one word per line and grew to 1451 px tall: the column that
-         * exists to explain the row became the reason the row was off the
-         * screen. A column that cannot do its job should push the layout to
-         * stack instead, which is what a minimum makes it do.
-         */
         grid-template-columns: minmax(360px, 1.7fr) auto minmax(210px, 0.65fr);
+        width: 100%; max-width: 1600px;
       }
-      /*
-       * The airframe is sized by the column's WIDTH and drawn square, so a
-       * wide short window makes it taller than the window. At 1180 by 820
-       * the first column is about 600 px, so the quad was 600 px tall in a
-       * box 700 px high and pushed the help column 373 px past the bottom.
-       * A height cap costs nothing on a tall window and is the whole fix on
-       * a short one.
-       */
       .screen-quad .craft-showcase-frame { max-height: min(46vh, 420px); }
-      /*
-       * THE QUAD LIST GETS THE ROOM THE COLUMN ALREADY HAS.
-       *
-       * The shared cap is min(58vh - bars, 34em), which on a 900 px window
-       * is about 520 px. This screen draws that list BESIDE a square
-       * airframe pose capped at 46vh, roughly 414 px, in a grid column of
-       * its own, so the list was stopping 100 px short of the picture next
-       * to it and scrolling for want of space nothing else wanted.
-       *
-       * The Aircraft row is what made anybody measure it: scripts/shell-check.js
-       * records this screen's overflow and fails when it grows, and one more
-       * row grew it by 45 px. The answer is not to take a control away and it
-       * is not to re-record the baseline. It is that a three column screen
-       * whose tallest element is 414 px should not cap its list at a height
-       * that makes it scroll while the column beside it has slack.
-       *
-       * 68vh is still under the picture plus the heading, the lede and the
-       * hint line on every window this screen draws three columns on, which
-       * is 1281 px wide and up.
-       */
       .screen-quad .menu-scroll { max-height: min(calc(68vh - var(--bars)), 40em); }
-      /* In a room the Fly with friends screen has Fly, the Game heading and
-         all three games' start rows to show before the first scroll (the
-         owner hosted and never saw combat). The lede is about making and
-         joining a room, so in one it goes and its height is the rows'. */
-      .screen-friends.in-room .rates-lede { display: none; }
-      /* The war's lobby (ui.js setWarLobby): it reads as a lobby, LOBBY and
-         the mission over the time in large and the pilots, the menu's rows
-         under it. The free flight heading and lede go while it is up. */
-      .screen-friends.war-lobby-on > h2, .screen-friends.war-lobby-on .rates-lede { display: none; }
+
       /*
-       * THE LOBBY as the boot screen's system check: a header strip (the
-       * stage in brackets, then the mission), the status as the boot
-       * screen's status line, and the pilots as its system rows, each
-       * READY in the sparse green or NOT READY dim.
+       * FLY WITH FRIENDS. In a room the lede (about making and joining one)
+       * gives its height to the rows: Fly, the games heading and every
+       * game's start row should show before any scroll. While the war's
+       * lobby is up (ui.js setWarLobby) the free flight heading goes too.
+       */
+      .screen-friends.in-room .rates-lede,
+      .screen-friends.war-lobby-on > h2,
+      .screen-friends.war-lobby-on .rates-lede { display: none; }
+      .screen-friends.in-room .menu-scroll { max-height: min(calc(76vh - var(--bars)), 44em); }
+
+      /*
+       * THE WAR LOBBY, set like the boot screen's system check: a header
+       * strip (the stage in brackets, then the mission), a status line, and
+       * one system row per pilot, READY in green or NOT READY dim.
        */
       .war-lobby { display: flex; flex-direction: column; gap: 12px; width: min(100%, 44em); margin: 0 auto 18px; }
       .war-lobby[hidden] { display: none; }
+      .war-lobby-head, .war-lobby-status { text-transform: uppercase; }
       .war-lobby-head {
-        display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap;
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px;
         padding-bottom: 10px; border-bottom: 1px solid var(--pdcs-blue-dim);
-        font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+        font-size: 12px; letter-spacing: 0.16em;
       }
       .war-lobby-title { color: var(--pdcs-blue); }
-      .war-lobby-title::before { content: "[ "; color: var(--pdcs-blue-dim); }
-      .war-lobby-title::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .war-lobby-mission { color: var(--cream); }
-      .war-lobby-status {
-        font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream);
-      }
+      .war-lobby-title::before, .war-lobby-host::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .war-lobby-title::after, .war-lobby-host::after { content: " ]"; color: var(--pdcs-blue-dim); }
+      .war-lobby-mission, .war-lobby-status, .war-lobby-name { color: var(--cream); }
+      .war-lobby-status { font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; }
       .war-lobby-status.go { color: var(--mint); animation: pdcs-blink 0.9s ease-in-out infinite alternate; }
       .war-lobby-last { font-family: var(--pdcs-read); font-size: 13.5px; color: var(--slate); }
       .war-lobby-pilots { display: flex; flex-direction: column; }
-      /* OPERATIONS' BRIEFING (src/ui/briefing.js) over the war room's
-         pilots: the line in the readable face, the facts in the mono, a
-         label column and a value column. */
-      .war-brief { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) 0; border-top: 1px solid var(--pdcs-line-soft); border-bottom: 1px solid var(--pdcs-line-soft); }
+      /* Operations' briefing (src/ui/briefing.js) above the pilots: the
+         line in the reading face, the facts as a label and value grid in
+         the mono. */
+      .war-brief {
+        display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) 0;
+        border-top: 1px solid var(--pdcs-line-soft); border-bottom: 1px solid var(--pdcs-line-soft);
+      }
       .war-brief-line { margin: 0; font-family: var(--type-read); font-size: 14px; line-height: 1.45; color: var(--pdcs-text); }
-      .war-brief-first { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); align-items: baseline; }
-      .war-brief-objective { font-family: var(--type-name); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pdcs-bright); }
+      .war-brief-first { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+      .war-brief-objective {
+        font-family: var(--type-name); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase;
+        color: var(--pdcs-bright);
+      }
       .war-brief-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; }
-      .war-brief-label { font-family: var(--type-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-muted); }
-      .war-brief-value { margin: 0; font-family: var(--type-mono); font-size: 12.5px; color: var(--pdcs-text); overflow-wrap: anywhere; }
+      .war-brief-label, .war-brief-value { font-family: var(--type-mono); }
+      .war-brief-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-muted); }
+      .war-brief-value { margin: 0; font-size: 12.5px; color: var(--pdcs-text); overflow-wrap: anywhere; }
       .war-lobby-pilot {
         display: flex; align-items: center; justify-content: space-between; gap: 16px;
         padding: 10px 0; border-bottom: 1px solid var(--pdcs-line-soft);
       }
-      .war-lobby-who { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; }
-      .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; color: var(--cream); overflow-wrap: anywhere; }
+      .war-lobby-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+      .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; overflow-wrap: anywhere; }
       .war-lobby-pilot.me .war-lobby-name { color: var(--pdcs-bright); }
-      .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; color: var(--slate); }
-      .war-lobby-host::before { content: "[ "; color: var(--pdcs-blue-dim); }
-      .war-lobby-host::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; color: var(--slate); }
-      .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; color: var(--slate); }
+      .war-lobby-host, .war-lobby-craft, .war-lobby-flag { color: var(--slate); }
+      .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; }
+      .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; }
+      .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; }
       .war-lobby-pilot.ready .war-lobby-flag { color: var(--mint); }
       @media (prefers-reduced-motion: reduce) {
         .war-lobby-status.go { animation: none; }
@@ -2113,403 +1944,282 @@
         .war-lobby-pilot { padding: 5px 9px; }
         .war-lobby-name { font-size: 15px; }
       }
-      .screen-friends.in-room .menu-scroll { max-height: min(calc(76vh - var(--bars)), 44em); }
-      /*
-       * The quad room on a laptop. Found by measuring the Rates screen
-       * beside it: below about 1100 px the three columns cannot fit their
-       * own minimums (360 for the quad plus 540 for the menu is already 900
-       * before the note column), so the stage overflowed and the menu slid
-       * off the right of the window entirely. One column, quad on top, same
-       * fallback Rates takes.
-       */
-      /*
-       * 1280, not 1100. Three columns need 360 for the quad, about 540 for
-       * the list and 210 for the note, plus the gaps: a shade over 1150
-       * before anything is comfortable. Stacking at 1100 meant a 1180 px
-       * tablet in landscape got three columns that did not fit.
-       */
+      /* Three columns need about 1150 px before they are comfortable, so
+         below 1280 the quad goes on top and everything stacks centred. */
       @media (max-width: 1280px) {
         .screen-quad .menu-stage { grid-template-columns: minmax(0, 1fr); }
         .screen-quad .craft-showcase {
-          grid-column: 1; grid-row: 1;
-          justify-self: center; width: min(100%, 420px); margin: 0 0 12px;
+          grid-row: 1; grid-column: 1; justify-self: center;
+          width: min(100%, 420px); margin: 0 0 12px;
         }
         .screen-quad .menu-stage .menu { grid-column: 1; justify-self: center; }
         .screen-quad .menu-help {
-          grid-column: 1; max-width: none; border-left: 0;
-          padding: 8px 14px 0; margin-top: 6px; text-align: center;
+          grid-column: 1; max-width: none; margin-top: 6px; padding: 8px 14px 0;
+          text-align: center; border-left: 0;
         }
       }
-      .title-foot {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: flex-end;
-        gap: 14px;
-        width: 100%;
-        margin-top: auto;
-        position: relative;
-        /* Shrinkable, so the menu inside it can be. Without this the
-         * column keeps its content height and the overflow just moves
-         * up a level. */
-        min-height: 0;
-      }
       /*
-       * ELEVEN ROWS AND A SHORT WINDOW. The title menu is taller than a
-       * laptop window can hold: measured at 1536 by 776 the menu ran to
-       * 914 px, so Leaderboard, Credits and the report row sat below the
-       * fold, invisible and unreachable by mouse. The column above it is
-       * fixed copy, so the menu is the part that yields: it shrinks and
-       * scrolls rather than running off the bottom. On a window with room
-       * for all of it nothing here changes anything, because a flex item
-       * only shrinks once it has to.
+       * THE TITLE'S FOOT holds its menu, pinned to the bottom of the copy
+       * column by an auto margin. The menu is the part that yields on a
+       * short window (eleven rows ran to 914 px on a 776 px laptop, the
+       * last ones out of reach): the foot, the stage and the menu may all
+       * shrink, and the menu scrolls. With room to spare nothing shrinks.
        */
+      .title-foot {
+        position: relative; display: flex; flex-direction: column; align-items: stretch;
+        justify-content: flex-end; gap: 14px;
+        width: 100%; min-height: 0; margin-top: auto;
+      }
       .screen-title .menu-stage {
-        display: flex;
-        flex-direction: column;
-        position: static;
-        width: 100%;
-        margin-top: 0;
-        flex: 0 1 auto;
-        min-height: 0;
+        position: static; display: flex; flex-direction: column; flex: 0 1 auto;
+        width: 100%; min-height: 0; margin-top: 0;
       }
       .screen-title .menu {
-        min-height: 0;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
+        min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
       }
-      /* A panel is a thin frame on the ground, the boot screen's rows in
-         a box: no plate, no glow, one brighter rule along the top. */
+
+      /* A panel is a hairline frame on the ground with one brighter rule
+         on top: the boot screen's rows in a box, no plate and no glow. */
       .menu {
-        min-width: min(540px, 82vw);
-        margin-top: 16px;
-        pointer-events: auto;
-        padding: 10px 0 12px;
+        min-width: min(540px, 82vw); margin-top: 16px; padding: 10px 0 12px; pointer-events: auto;
         background: rgba(10, 13, 14, 0.72);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
-        border-top: 1px solid var(--pdcs-line);
+        border-top: 1px solid var(--pdcs-line); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
-      .screen-title .menu { min-width: 0; width: 100%; margin-top: 0; background: rgba(10, 13, 14, 0.55); }
+      .screen-title .menu { width: 100%; min-width: 0; margin-top: 0; background: rgba(10, 13, 14, 0.55); }
       .menu-stage .menu { grid-column: 2; margin-top: 0; }
       .menu-scroll {
-        max-height: min(calc(58vh - var(--bars)), 34em);
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
+        max-height: min(calc(58vh - var(--bars)), 34em); overflow-y: auto; overscroll-behavior: contain;
+        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
       }
+
+      /* The help note: the stage's right column, a ruled side note. */
       .menu-help {
-        grid-column: 3;
-        padding: 12px 12px 8px 22px;
-        margin-top: 8px;
-        max-width: 26em;
-        color: rgba(215, 221, 221, 0.72);
-        font-size: 14px;
-        line-height: 1.55;
-        overflow-wrap: break-word;
+        grid-column: 3; max-width: 26em; margin-top: 8px; padding: 12px 12px 8px 22px;
+        font-size: 14px; line-height: 1.55; color: rgba(215, 221, 221, 0.72); overflow-wrap: break-word;
         border-left: 1px solid rgba(215, 221, 221, 0.16);
       }
-      .menu-help:empty { border-left-color: transparent; padding: 0; }
+      .menu-help:empty { padding: 0; border-left-color: transparent; }
+      /* On the title it floats out of flow just above the foot, so a
+         longer note grows upward and never moves the rows. */
       .screen-title .menu-help {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 100%;
-        width: auto;
-        max-width: none;
-        margin: 0;
-        padding: 0 4px 10px;
-        height: auto;
-        text-align: left;
-        border: none;
-        overflow: visible;
-        pointer-events: none;
-        grid-column: auto;
-        grid-row: auto;
+        position: absolute; left: 0; right: 0; bottom: 100%;
+        grid-row: auto; grid-column: auto;
+        width: auto; max-width: none; height: auto; margin: 0; padding: 0 4px 10px;
+        overflow: visible; pointer-events: none; text-align: left; border: none;
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
       }
-      .screen-title .menu-help:empty {
-        padding: 0;
-      }
-      /*
-       * The handoff between the two blocks of body copy in this column.
-       * The note above grows upward out of flow and used to be painted on
-       * top of the keep note; see syncCursor in src/ui/ui.js for the
-       * measurement. Opacity, not display, so nothing moves while it
-       * happens and the text stays where a screen reader can find it.
-       */
-      .screen-title .keep-note,
-      .screen-title .first-note {
-        transition: opacity 140ms ease;
-      }
-      .screen-title.has-help .keep-note,
-      .screen-title.has-help .first-note {
-        opacity: 0;
-      }
+      .screen-title .menu-help:empty { padding: 0; }
+      /* That floating note and the body copy under the brand share space:
+         while a note shows, the copy fades out (syncCursor in src/ui/ui.js
+         measures the overlap). Opacity rather than display, so nothing
+         reflows and a screen reader still finds the text. */
+      .screen-title .keep-note, .screen-title .first-note { transition: opacity 140ms ease; }
+      .screen-title.has-help .keep-note, .screen-title.has-help .first-note { opacity: 0; }
+
+      /* The airframe showcase, the first column on Quad. */
       .craft-showcase {
-        grid-column: 1;
-        justify-self: end;
-        align-self: center;
-        width: min(100%, 760px);
-        margin-right: 12px;
-        pointer-events: auto;
-        overflow: hidden;
-        border-radius: 0;
-        background: #0d1012;
+        grid-column: 1; justify-self: end; align-self: center;
+        width: min(100%, 760px); margin-right: 12px; overflow: hidden; pointer-events: auto;
+        background: #0d1012; border-radius: 0;
         box-shadow: 0 18px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(215, 221, 221, 0.10);
       }
-      /* ------------------------------------------------------------------
-         THE TRICK LIST. A picture of every trick the town will score, drawn
-         from the same definition the scorer matches against.
 
-         The film is a canvas rather than a video or a sprite sheet: it is
-         generated from the pattern, so it costs no asset, it can never fall
-         out of step with the catalogue, and it is sharp at any size. It is
-         also the only thing in this shell that asks for frames outside
-         flight, which is why it lives on one screen and stops when that
-         screen is left. See src/ui/trickfilm.js.
-         ------------------------------------------------------------------ */
+      /*
+       * THE TRICK LIST: a film of the chosen trick beside its name and
+       * notes. The film is a canvas drawn from the same pattern the scorer
+       * matches (src/ui/trickfilm.js), so it costs no asset and cannot
+       * drift from the catalogue.
+       *
+       * The film has a height budget, min(27vh, 280px), written as a WIDTH
+       * through its fixed ratio, because capping the height of a box at
+       * 100% width squashes the canvas instead of shrinking it. Unbounded,
+       * the film filled a 1920 px window 600 px tall and pushed every
+       * trick row off a page that does not scroll (bug-f105cf4a). The
+       * film's grid track uses the same expression so the words sit beside
+       * the picture, and the list below shares the window with it.
+       */
       .trick-stage {
-        display: grid;
-        /*
-         * The film's column is the FILM'S WIDTH, not a fraction of the
-         * page. It was 1.35fr, which was right while the film filled it,
-         * and once the film was given a height budget the column stayed
-         * the old width: the picture sat on the left, the words sat six
-         * hundred pixels away on the right, and the middle of the screen
-         * was empty. Naming the track with the same expression the film
-         * is sized by keeps the two together at every window size.
-         */
-        grid-template-columns: calc(min(27vh, 280px) * 1.6) minmax(0, 1fr);
-        gap: 22px;
-        align-items: start;
-        /* And the pair reads as one unit rather than as two things at
-           opposite edges of a 1900 pixel window. */
-        max-width: 1040px;
-        margin: 4px auto 14px;
+        display: grid; grid-template-columns: calc(min(27vh, 280px) * 1.6) minmax(0, 1fr);
+        gap: 22px; align-items: start; max-width: 1040px; margin: 4px auto 14px;
       }
+      .trick-film, .craft-showcase-frame { width: 100%; background: #0d1012; }
       .trick-film {
-        display: block;
-        width: 100%;
-        /*
-         * A HEIGHT BUDGET, AND IT IS WRITTEN AS A WIDTH CAP.
-         *
-         * This had none. The film is a 16:10 box at 100 percent of a
-         * column that is 1.35fr of the page, so on a 1920 wide window it
-         * drew itself 600 pixels tall, and the list of tricks underneath
-         * it started 867 pixels down a 919 pixel window. Measured at the
-         * reporter's size: NOT ONE trick row was fully on screen, and at
-         * 1080p only four of forty three were. The page does not scroll,
-         * so there was no way down to them at all.
-         *
-         *   bug-f105cf4a, Fernando: "solo sale un truco y no puedo bajar
-         *   con la ruedita del raton", only one trick appears and I cannot
-         *   go down with the mouse wheel. Both halves are this rule.
-         *
-         * It is a max-width rather than a max-height because the aspect
-         * ratio is fixed and the width is definite: capping the height of
-         * a box whose width is already 100 percent does not shrink it, it
-         * SQUASHES it, and the canvas inside would be drawn stretched.
-         * Capping the width lets the ratio carry the height down with it.
-         *
-         * The number is the same shape as the menu's cap below, so the two
-         * shrink together on a short window and the sum of film, list and
-         * hint stays inside the viewport at every size measured: 780, 900,
-         * 919 and 1080.
-         */
-        aspect-ratio: 16 / 10;
-        background: #0d1012;
-        /* The two pixel edge is the board's furniture and the town's ink:
-           a cel shaded picture is a fill with a line round it. */
+        display: block; aspect-ratio: 16 / 10;
+        /* A cel shaded picture is a fill with a line round it. */
         box-shadow: 0 0 0 2px rgba(11, 17, 22, 0.9), 0 0 0 3px rgba(215, 221, 221, 0.16);
       }
       .trick-side { min-width: 0; padding-top: 2px; }
-      .trick-name {
-        font-size: clamp(19px, 2.3vw, 27px); font-weight: 700;
-        letter-spacing: 0.02em; color: var(--cream); line-height: 1.1;
-      }
-      .trick-meta {
-        margin-top: 5px; font-size: 12px; letter-spacing: 0.13em;
-        text-transform: uppercase; color: var(--amber);
-      }
-      .trick-how {
-        margin: 11px 0 0; font-size: 14px; line-height: 1.5;
-        color: var(--cream); opacity: 0.92;
-      }
-      .trick-view {
-        margin-top: 9px; font-size: 12px; line-height: 1.45; color: var(--slate);
-      }
-      /* Narrow: the film goes above the words, and shortens, because on a
-         phone the list underneath is what the thumb is reaching for. */
+      .trick-name { font-size: clamp(19px, 2.3vw, 27px); line-height: 1.1; font-weight: 700; letter-spacing: 0.02em; color: var(--cream); }
+      .trick-meta { margin-top: 5px; font-size: 12px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--amber); }
+      .trick-how { margin: 11px 0 0; font-size: 14px; line-height: 1.5; color: var(--cream); opacity: 0.92; }
+      .trick-view { margin-top: 9px; font-size: 12px; line-height: 1.45; color: var(--slate); }
+      /* Narrow: the film goes above the words, wider and shorter, because
+         on a phone the list below is what the thumb is after. */
       @media (max-width: 900px) {
         .trick-stage { grid-template-columns: 1fr; gap: 12px; }
-        /* One column, so the film is bounded by the same budget directly
-           rather than by its track, and stays centred over the words. */
-        .trick-film {
-          aspect-ratio: 2 / 1;
-          max-width: calc(min(27vh, 280px) * 2);
-          margin: 0 auto;
-        }
+        .trick-film { max-width: calc(min(27vh, 280px) * 2); margin: 0 auto; aspect-ratio: 2 / 1; }
       }
-      /* 27vh rather than 34, so the film above and the list below share the
-         window instead of competing for it, and the pair still fits at 720.
-         See .trick-film. */
       .screen-tricks .menu-scroll { max-height: min(27vh, 300px); }
 
-      .craft-showcase-frame {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        background: #0d1012;
-      }
+      .craft-showcase-frame { position: relative; aspect-ratio: 1 / 1; }
       .craft-view {
-        position: absolute;
-        inset: 0;
-        display: block;
-        width: 100%;
-        height: 100%;
-        border: 0;
-        background: #0d1012;
-        touch-action: none;
+        position: absolute; inset: 0; display: block; width: 100%; height: 100%;
+        border: 0; background: #0d1012; touch-action: none;
       }
       .craft-showcase-cap {
-        margin-top: 4px;
-        padding: 0 10px 12px;
-        text-align: center;
-        font-size: 11px;
-        letter-spacing: 0.10em;
-        text-transform: uppercase;
-        color: #9aa3a7;
+        margin-top: 4px; padding: 0 10px 12px; text-align: center;
+        font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: #9aa3a7;
       }
-      /* ---- THE FRAME ---------------------------------------------------
-         Two bars outside every screen, in the same pixels on all of them.
-         Absolutely positioned and cleared by the screens' own padding, so a
-         bar can never render on top of a row. ------------------------------ */
+      /*
+       * THE FRAME: a bar across the top (where you are, and context chips)
+       * and one across the foot (the key legend and the one primary
+       * action), in the same pixels on every screen. Absolutely placed and
+       * cleared by each screen's padding, so a bar never lands on a row.
+       * The top fades out; the foot is the boot screen's, ruled.
+       */
       .frame-top, .frame-bot {
         position: absolute; left: 0; right: 0; z-index: 6;
         display: flex; align-items: center; gap: 14px;
-        padding: 0 clamp(14px, 3vw, 34px);
-        pointer-events: none;
+        padding: 0 clamp(14px, 3vw, 34px); pointer-events: none;
       }
-      .frame-top { top: 0; height: var(--bar-top);
-        background: linear-gradient(180deg, rgba(10, 13, 14, 0.86), rgba(10, 13, 14, 0)); }
-      /* The boot screen's footer: a hairline over the foot, not a fade. */
-      .frame-bot { bottom: 0; height: var(--bar-bot);
-        background: rgba(7, 9, 10, 0.82); border-top: 1px solid var(--pdcs-line-soft); box-sizing: border-box; }
+      .frame-top { top: 0; height: var(--bar-top); background: linear-gradient(180deg, rgba(10, 13, 14, 0.86), rgba(10, 13, 14, 0)); }
+      .frame-bot {
+        bottom: 0; height: var(--bar-bot); box-sizing: border-box;
+        background: rgba(7, 9, 10, 0.82); border-top: 1px solid var(--pdcs-line-soft);
+      }
       .frame-top[hidden], .frame-bot[hidden] { display: none; }
       .frame-gap { flex: 1; }
-      .crumb {
-        display: flex; align-items: center; gap: 9px;
-        font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase;
-      }
-      .crumb-sep { color: var(--slate); }
-      .crumb-up { color: var(--slate); }
-      .crumb-here { color: var(--cream); }
-      .frame-context { display: flex; align-items: center; gap: 8px; }
+      .crumb, .frame-context, .frame-chip, .frame-legend { display: flex; align-items: center; }
+      .crumb { gap: 9px; font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase; }
+      .crumb-sep, .crumb-up, .frame-chip-key { color: var(--slate); }
+      .crumb-here, .frame-chip b { color: var(--cream); }
+      .frame-context { gap: 8px; }
       .frame-chip {
-        display: flex; align-items: center; gap: 7px;
-        height: 26px; padding: 0 11px;
-        background: rgba(10, 13, 14, 0.72);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
-        font-size: 11px; letter-spacing: 0.08em; color: var(--slate); white-space: nowrap;
+        gap: 7px; height: 26px; padding: 0 11px;
+        font-size: 11px; letter-spacing: 0.08em; white-space: nowrap; color: var(--slate);
+        background: rgba(10, 13, 14, 0.72); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
-      .frame-chip b { color: var(--cream); font-weight: 600; }
-      .frame-chip-key { color: var(--slate); }
-      .frame-legend { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; overflow: hidden; }
+      .frame-chip b { font-weight: 600; }
+      .frame-legend { flex-wrap: nowrap; gap: 16px; overflow: hidden; }
       .frame-legend i, .frame-legend .legend-act {
         display: flex; align-items: center; gap: 6px;
-        font-style: normal; font-size: 12.5px; color: var(--slate);
+        font-size: 12.5px; font-style: normal; color: var(--slate);
       }
-      /* The one legend entry that is a control rather than a label. It
-       * reads exactly like its neighbours until it is pointed at, because
-       * a legend where one item shouts is a legend that has stopped being
-       * a legend. See legendFor: only entries carrying an action get this. */
+      /* An entry that carries an action (legendFor) is a button that
+         looks exactly like its neighbours until pointed at: a legend with
+         one shouting item has stopped being a legend. */
       .frame-legend .legend-act {
-        pointer-events: auto; appearance: none; background: none;
-        border: 0; padding: 0; margin: 0; font-family: inherit;
-        letter-spacing: inherit; cursor: pointer;
+        appearance: none; margin: 0; padding: 0; border: 0; background: none;
+        font-family: inherit; letter-spacing: inherit; cursor: pointer; pointer-events: auto;
       }
       .frame-legend .legend-act:hover { color: var(--pdcs-blue-strong); }
-      .frame-legend .legend-act:focus-visible {
-        outline: 2px solid var(--pdcs-blue); outline-offset: 3px;
-      }
+      .frame-legend .legend-act:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 3px; }
       .frame-primary {
-        pointer-events: auto; font: inherit; font-size: 13px; font-weight: 600;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        height: 32px; padding: 0 20px; border: 0;
-        background: var(--mint); color: var(--deep); cursor: pointer;
+        height: 32px; padding: 0 20px; border: 0; cursor: pointer; pointer-events: auto;
+        font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--deep); background: var(--mint);
       }
       .frame-primary[hidden] { display: none; }
       .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
-
-      /* ---- ROW GRAMMAR --------------------------------------------------
-         The kind of a row is visible before Enter is pressed. A value row
-         carries its control, a navigation row a chevron, a link row an
-         arrow. See rowKind() in src/ui/ui.js. ----------------------------- */
-      .row-nav::after {
-        content: "\203A"; margin-left: 10px; color: #4d5558;
-        font-size: 19px; line-height: 1;
-      }
-      .row-nav.on::after { color: var(--sakura); }
-      .row-link::after {
-        content: "\2197"; margin-left: 10px; color: #4d5558; font-size: 15px;
-      }
-      .row-link.on::after { color: var(--slate); }
-
-      /* Touch. Every target reaches 44 px on a coarse pointer, and the row
-         shrink below is removed there: on a phone the copy gets smaller, the
-         target never does. */
+      /* On a coarse pointer every target is at least 44 px: the copy may
+         shrink on a phone, the target never does. */
       @media (pointer: coarse) {
-        .row, .drop-opt, .fc-tab { min-height: 44px; }
-        .step, .row-num, .sw-seg { min-height: 44px; }
+        .row, .drop-opt, .fc-tab, .step, .row-num, .sw-seg { min-height: 44px; }
         .frame-primary { height: 44px; }
       }
 
+      /*
+       * ROWS. The cursor's row gets a 2 px blue edge and a faint wash, a
+       * step brighter, not a slab. Its focus ring shows for the keyboard
+       * only: script focus during arrow travel is not :focus-visible, so
+       * the arrows keep the bar alone and Tab adds the ring.
+       */
       .row {
-        display: flex; justify-content: space-between; align-items: center; gap: 16px;
-        padding: 10px 22px 10px 28px; border-left: 2px solid transparent;
-        color: rgba(215, 221, 221, 0.8);
-        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.03em; cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 10px 22px 10px 28px; cursor: pointer;
+        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.03em; color: rgba(215, 221, 221, 0.8);
+        border-left: 2px solid transparent;
       }
-      /* The cursor is a bar and a lift, not a slab: the boot screen's
-         green, which on every PDCS surface means the live thing, as a 2 px
-         edge, and the row a step brighter. */
       .row.on {
         color: var(--pdcs-bright); border-left-color: var(--pdcs-blue);
         background: linear-gradient(90deg, rgba(106, 163, 200, 0.14), rgba(106, 163, 200, 0.02) 60%);
       }
+      .row:focus { outline: none; }
+      .row:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: -2px; }
+      .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
+
+      /* A row shows its kind before Enter (rowKind in src/ui/ui.js): a
+         value row its control, a page a chevron, a link an arrow. */
+      .row-nav::after, .row-link::after { margin-left: 10px; color: #4d5558; }
+      .row-nav::after { content: "\203A"; font-size: 19px; line-height: 1; }
+      .row-link::after { content: "\2197"; font-size: 15px; }
+      .row-nav.on::after { color: var(--sakura); }
+      .row-link.on::after { color: var(--slate); }
+      .row-info { cursor: default; }
+      /* A reading off the hardware (padTroubleItem), so amber, and a row
+         rather than a banner so a radio pilot can reach it. */
+      .row-warn {
+        color: var(--amber); border-left-color: rgba(217, 180, 108, 0.55);
+        background: linear-gradient(90deg, rgba(217, 180, 108, 0.1), rgba(217, 180, 108, 0) 52%);
+      }
+      .row-warn::before {
+        content: "!"; flex: 0 0 auto; display: grid; place-items: center;
+        width: 1.25em; height: 1.25em; margin-right: 2px; border-radius: 50%;
+        font-size: 0.7em; font-weight: 800; color: #07090a; background: var(--amber);
+      }
+      .row-warn.on {
+        color: var(--amber); border-left-color: var(--amber);
+        background: linear-gradient(90deg, rgba(217, 180, 108, 0.22), rgba(217, 180, 108, 0) 52%);
+      }
+      .row-grey { cursor: default; color: rgba(154, 163, 167, 0.62); }
+      .row-grey .row-value, .row-grey .drop-btn { opacity: 0.85; color: var(--slate); }
+      .row-grey.on {
+        color: rgba(154, 163, 167, 0.92); border-left-color: rgba(154, 163, 167, 0.55);
+        background: linear-gradient(90deg, rgba(154, 163, 167, 0.10), rgba(154, 163, 167, 0) 48%);
+      }
       /*
-       * THE STANDINGS TABLE. Drawn above the actions, not as menu rows: a
-       * leaderboard is read, and forty times as forty rows would make the
-       * cursor walk all of them to reach Back. Three columns, because rank,
-       * pilot and lap is what a standings table is.
+       * THE PRIMARY, one per list: mint type in a mint outline, and filled
+       * only under the cursor. A primary filled all the time looked
+       * selected while the real cursor sat elsewhere; the one always
+       * filled mint thing on a screen is the command bar's button.
+       */
+      .row-primary {
+        margin: 4px 10px 8px; padding: 12px 18px;
+        font-weight: 600; letter-spacing: 0.1em; color: var(--mint);
+        background: rgba(111, 207, 162, 0.06);
+        border-left: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.5);
+      }
+      .row-primary .row-label { font-weight: 600; color: var(--mint); }
+      .row-primary.on { color: var(--deep); background: var(--mint); border-left-color: var(--mint); box-shadow: none; }
+      /* The value too: sakura on the mint fill was unreadable. */
+      .row-primary.on .row-label, .row-primary.on .row-value { color: var(--deep); }
+
+      /*
+       * STANDINGS, above the actions rather than as rows: a leaderboard is
+       * read, and forty rows would make the cursor walk all of them to
+       * reach Back. Rank, pilot, lap; a record in mint, the reader's own
+       * row marked in sakura.
        */
       .standings-table {
         grid-column: 1 / -1; justify-self: center;
-        width: min(100%, 560px); margin: 0 0 14px;
-        max-height: min(38vh, 20em); overflow-y: auto;
-        pointer-events: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
+        width: min(100%, 560px); max-height: min(38vh, 20em); margin: 0 0 14px;
+        overflow-y: auto; pointer-events: auto;
+        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
       }
       .standings-row {
-        display: grid; grid-template-columns: 2.4em 1fr auto;
-        align-items: baseline; gap: 12px;
-        padding: 6px 14px;
-        font-size: 15px; color: rgba(215, 221, 221, 0.82);
+        display: grid; grid-template-columns: 2.4em 1fr auto; align-items: baseline; gap: 12px;
+        padding: 6px 14px; font-size: 15px; color: rgba(215, 221, 221, 0.82);
       }
       .standings-head {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); padding-bottom: 2px;
+        padding-bottom: 2px;
+        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
       }
-      .standings-rank { color: var(--slate); font-variant-numeric: tabular-nums; }
-      .standings-pilot { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .standings-lap { font-variant-numeric: tabular-nums; color: var(--cream); font-weight: 600; }
-      /* Mint is what this product paints a record in, on the board and here. */
+      .standings-rank, .standings-lap { font-variant-numeric: tabular-nums; }
+      .standings-rank { color: var(--slate); }
+      .standings-pilot { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .standings-lap { font-weight: 600; color: var(--cream); }
       .standings-row.is-record .standings-lap { color: var(--mint); }
-      /* The one row a person looks for in a leaderboard is their own. */
       .standings-row.is-me {
         background: linear-gradient(90deg, rgba(215, 221, 221, 0.14), rgba(215, 221, 221, 0) 70%);
         box-shadow: inset 3px 0 0 var(--sakura);
@@ -2518,115 +2228,16 @@
       .standings-ghost {
         margin-left: 8px; padding: 1px 6px; border-radius: 0;
         font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-        background: rgba(154, 163, 167, 0.18); color: var(--slate);
+        color: var(--slate); background: rgba(154, 163, 167, 0.18);
       }
-      .standings-note {
-        padding: 10px 14px; color: var(--slate); font-size: 14px;
-      }
-      .row-info { cursor: default; }
-      /*
-       * The browser's focus ring is redundant with the cursor bar and lands
-       * in the same place, so it is suppressed for a POINTER focus and kept
-       * for a keyboard one. :focus-visible is exactly that distinction, and
-       * a row focused by script during arrow travel is not focus-visible,
-       * so arrow keys keep the bar alone and Tab gets the ring as well.
-       */
-      .row:focus { outline: none; }
-      .row:focus-visible {
-        outline: 2px solid var(--pdcs-blue); outline-offset: -2px;
-      }
-      .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
-      /*
-       * AMBER, which is the instrument colour, because this row is a reading
-       * off the hardware rather than a thing the product wants you to do.
-       * It is a row and not a floating panel so that it gets the cursor, the
-       * help column and Enter for free: a banner a radio pilot cannot focus
-       * would be the same joke twice. See padTroubleItem.
-       */
-      .row-warn {
-        color: var(--amber);
-        border-left-color: rgba(217, 180, 108, 0.55);
-        background: linear-gradient(90deg, rgba(217, 180, 108, 0.1), rgba(217, 180, 108, 0) 52%);
-      }
-      .row-warn::before {
-        content: "!"; flex: 0 0 auto; margin-right: 2px;
-        width: 1.25em; height: 1.25em; border-radius: 50%;
-        display: grid; place-items: center;
-        font-size: 0.7em; font-weight: 800;
-        background: var(--amber); color: #07090a;
-      }
-      .row-warn.on {
-        color: var(--amber); border-left-color: var(--amber);
-        background: linear-gradient(90deg, rgba(217, 180, 108, 0.22), rgba(217, 180, 108, 0) 52%);
-      }
-      .row-grey {
-        color: rgba(154, 163, 167, 0.62);
-        cursor: default;
-      }
-      .row-grey .row-value, .row-grey .drop-btn { color: var(--slate); opacity: 0.85; }
-      .row-grey.on {
-        color: rgba(154, 163, 167, 0.92);
-        border-left-color: rgba(154, 163, 167, 0.55);
-        background: linear-gradient(90deg, rgba(154, 163, 167, 0.10), rgba(154, 163, 167, 0) 48%);
-      }
-      /*
-       * The one thing to press.
-       *
-       * Every row on every screen used to be the same size, weight and
-       * colour, so Fly and Credits were typographic equals and the only
-       * hierarchy was a 4 px cursor bar. Mint on dark ink is the treatment
-       * the old track builder page gave Fly this track, and its rule was
-       * one green button per screen, so there is exactly one of these in
-       * any list.
-       */
-      /*
-       * TWO HIGHLIGHTS, ONE CURSOR.
-       *
-       * This used to paint a filled mint slab whether or not the cursor was
-       * on it, so the title screen showed Fly looking selected while the real
-       * cursor sat three rows down on Track. Two things looked selected and
-       * only one of them answered Enter. The primary now reads as the primary
-       * (mint type, a mint edge) without claiming the selection, and the
-       * command bar carries the filled button. Exactly one thing on any
-       * screen is filled mint, and it is never a row.
-       */
-      .row-primary {
-        margin: 4px 10px 8px;
-        padding: 12px 18px;
-        border-left: 2px solid transparent;
-        background: rgba(111, 207, 162, 0.06);
-        box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.5);
-        color: var(--mint);
-        font-weight: 600;
-        letter-spacing: 0.1em;
-      }
-      .row-primary .row-label { font-weight: 600; color: var(--mint); }
-      /* Selected, and only then, it fills. The cursor is the thing that
-         decides, which is the whole point. */
-      .row-primary.on {
-        border-left-color: var(--mint);
-        background: var(--mint);
-        color: var(--deep);
-        box-shadow: none;
-      }
-      .row-primary.on .row-label { color: var(--deep); }
-      /* Its value too, like its label: sakura on the mint fill was nearly
-         unreadable (a room's "1 of 16" in the room browser). */
-      .row-primary.on .row-value { color: var(--deep); }
+      .standings-note { padding: 10px 14px; font-size: 14px; color: var(--slate); }
 
-      /* A group heading in a long settings list. Not a row: no cursor, no
-         hover, no click. Twenty flat rows in one scroll is a list you read
-         rather than a panel you operate. */
+      /* A group heading in a long list: not a row, so no cursor, hover or
+         click, just a bracketed caption over a hairline. */
       .menu-section {
-        margin: 14px 0 2px;
-        padding: 0 22px 5px 28px;
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: var(--slate);
+        margin: 14px 0 2px; padding: 0 22px 5px 28px; pointer-events: none;
+        font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate);
         border-bottom: 1px solid var(--pdcs-line-soft);
-        pointer-events: none;
       }
       .menu-section::before { content: "[ "; color: var(--pdcs-blue-dim); }
       .menu-section::after { content: " ]"; color: var(--pdcs-blue-dim); }
