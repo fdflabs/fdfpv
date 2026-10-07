@@ -163,6 +163,7 @@ jobs:
       - run: npm run trick:golden
       - run: npm run trickfilm:golden
       - run: npm run loading:golden
+      - run: npm run boot:wiring
       - run: npm run obstacles:golden
       - run: npm run track:golden
       - run: npm run guide:golden
