@@ -71,7 +71,10 @@ seats fresh parts and a full pack and never accrues wear. One function,
 
 ### Data (stored player data, versioned)
 
-Two new synced sections, `keyed`, merged per key like `parts`:
+One new synced section, `packs` (`keyed`, merged per key), and the parts'
+wear on the airframe's existing `parts` entry, beside its crash damage.
+The wear record is the LEAD'S DECISION of 2026-10-07 (the training lane's
+shape), which replaced this lane's first `settings.wear` section:
 
 ```
 settings.packs[packId] = { v: 1,           // per pilot, shared by airframes
@@ -80,29 +83,35 @@ settings.packs[packId] = { v: 1,           // per pilot, shared by airframes
   health: 912,        // per mille, 1000 new, integer
   charge: 'full' | 'storage' | 'flat',
   from: 'sky1800' | null }                 // the airframe a starter pack came with
-settings.wear[airframeId] = { v: 1,
-  motor: 1000, prop: 1000,                 // per mille, integers
-  parts: { [i]: 870 },                     // structure by crash part index, worn ones only
-  flights: 12 }
+settings.parts[airframeId].wear = { v: 1,
+  parts: { [i]: 0.13 } }                   // w by crash part index, worn ones only
 ```
 
+`i` is the crash part table's index, the one the saved damage uses; `w` is
+how worn, above 0 to 1 spent (a new part is left out), stored in steps of
+0.001 so it reads back to whole per mille. Which index is a motor or a prop
+is the module's part table (`kinds`), so the plant's motor and prop wear is
+the worst worn motor's and prop's. Like the damage, the wear is the
+airframe's and not a build's: a build's fit never carries it. A quad gets a
+parts entry for its wear alone (configs/hangar-parts.js).
+
 Keyed by pack id so the account's keyed merge handles each pack on its own;
-starter packs are `<airframe>-1` and `-2`, so two computers granting them
+starter packs are `<airframe>-<spec>-1` and `-2`, so two computers granting them
 grant the same keys. The charger has no stored state: two channels
 (`CHARGER_CHANNELS`) until the economy sells more.
 
 Integers per mille keep the merge exact and every multiplier below a
 rational of small integers, so the block is the same double in Node and
 every browser. Ownership of packs and chargers is the economy lane's (item
-25, server granted); until it lands every realism airframe owns two packs
-of its default spec and one two-channel charger, granted once. A migration
-(`v` 1) seeds an empty section from nothing; the check seeds an old
-settings blob without either section and proves the result.
+25, server granted); until it lands a realism airframe comes with two
+packs of each spec it is flown on and one two-channel charger, granted
+once. Old settings have no `packs` and no `wear` on any entry, which reads
+as nothing owned and nothing worn; the check loads such a blob.
 
 ### What wear does to the flight (through the plant's own inputs only)
 
 Applied at the seat, once, to the block the shell already builds; never
-during a flight. h = health / 1000.
+during a flight. h = health / 1000 = 1 - w.
 
 | Wear | Plane (`sim_set_power`) | Quad |
 | --- | --- | --- |
@@ -111,7 +120,7 @@ during a flight. h = health / 1000.
 | pack charge 'storage' | PACK_C x 0.6 (flown from 3.85 V a cell) | sag only, cells start lower (needs ABI: deferred) |
 | motor | THRUST x (0.9 + 0.1 h), CURRENT unchanged | `sim_set_motors` R x (1.2 - 0.2 h) |
 | prop | THRUST x (0.85 + 0.15 h) | KT x (0.85 + 0.15 h) |
-| structure (`parts[i]`) | none in the plant (crash damage stays the existing taped and broken parts) | same |
+| any other part (`parts[i]`) | none in the plant (crash damage stays the existing taped and broken parts) | same |
 
 Sources the PR must cite: LiPo end of life at 80 percent capacity with
 internal resistance about doubled (maker cycle-life figures), so
@@ -124,19 +133,17 @@ shelf says so; it can still be flown).
 state after and a DELTA out. The flight summary is read once at the end:
 
 ```
-flight = { airframe, packId, drawnC, capacityC, minCellV, lvcV,
-           fullThrottleS, impacts: [ { kind: 'prop'|'motor'|'structure', i, energyJ } ] }
+flight = { airframe, kinds, packId, drawnC, capacityC, minCellV, lvcV,
+           fullThrottleS, impacts: [ { i, energyJ } ] }
 ```
 
 - A pack loses health by its depth of discharge (drawnC / capacityC, one
   full equivalent cycle = 1), more below the LVC, and its charge becomes
   'flat'.
-- The motor wears by seconds at full throttle; the prop and the motor by
-  impacts (the crash events `sim_damage_events` already reports: prop
-  chip, prop lost, motor lost); a structural part, by its crash part table
-  index `i` (the index `settings.parts` damage already uses), by impact
-  energy.
-- Everything rounds to integer per mille, so accruing the same flight twice
+- Every motor wears by seconds at full throttle; a hit part (its crash
+  part index, from the parts state) by what it is: a prop or a motor a
+  fixed step, anything else by the impact's energy.
+- Everything rounds to whole per mille, so accruing the same flight twice
   gives the same state on any machine.
 
 ### THE SHARED SHAPE with the training lane (items 18 and 19)
@@ -147,21 +154,19 @@ nothing else:
 
 ```
 delta = { airframe,
-          pack: { id, spec, before, after, cycles, charge } | null,
-          parts: [ { part: 'motor'|'prop'|'structure'|'pack', i?, before, after,
-                     cause: 'cycle'|'heat'|'impact'|'overdischarge' } ],
+          pack: { id, spec, before, after, cycles, charge, overdischarged } | null,
+          parts: [ { i, part: 'motor'|'prop'|'structure', before, after,
+                     cause: 'heat'|'impact' } ],      // before, after: w
           retired: [packId] }
 ```
 
-and in flight it may read `wearOf(settings, airframeId)` (the seated
-state, per mille) for a HUD line. The training lane proposed per part
-index wear as 0..1 with bands (good under 0.5, worn under 0.85, repair at
-0.85 and over): that is `parts[i]` here, and `wearLevel(health)` gives
-their 0..1 (0 new). Agreed in the plan file; changes go through it.
+(pack health per mille.) In flight it reads the record itself,
+`settings.parts[id].wear`, with its bands: good below 0.5, worn to 0.85,
+repair from 0.85 (lead decision 2026-10-07).
 
 ### Repair, charging and the furniture hooks
 
-- **Repair**: on the bench, each worn part back to 1000. Free until the
+- **Repair**: on the bench, each worn part back to new (out of the record). Free until the
   economy lane (item 25) prices it; then it costs soft currency. Packs are
   not repaired; they are replaced (economy) or flown retired.
 - **Charging**: a flown pack is 'flat'. Between realism flights the
