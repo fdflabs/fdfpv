@@ -296,6 +296,8 @@ jobs:
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
+      - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
       # A rate change mid run keeps the run, tune loads are generation
