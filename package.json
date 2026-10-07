@@ -48,6 +48,7 @@
     "session:golden": "node scripts/session-golden.js",
     "cards:golden": "node scripts/cards-check.js",
     "actions:golden": "node scripts/actions-golden.js",
+    "uirest:golden": "node scripts/uirest-golden.js",
     "lint:input": "node scripts/input-check.js",
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
