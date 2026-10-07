@@ -843,7 +843,22 @@ export async function boot({
   /* The debrief over the squad's stills (src/ui/debrief.js), when the
    * room ends a match. */
   const debrief = new Debrief(uiRoot, {
-    close: () => {},
+    /* Continue ends the run and stands the pilot in the room's screen,
+     * where the host may start again; the way a lobby game's round ends
+     * (gameLobbyFrame). Closing the card alone left a dead aircraft and
+     * no menu. */
+    close: () => {
+      if (!ui.inRoom()) {
+        return;
+      }
+      if (mode === 'flight' || mode === 'paused') {
+        ui.returnTo = 'title';
+        ui.show('friends');
+        ui.onAction('title');
+      } else {
+        ui.show('friends');
+      }
+    },
     again: () => roomOps.start(roomOps.view().mission, { from: 'checkpoint' }),
   }, (seat) => opsSeatName(seat));
   function opsDebrief() {
@@ -14565,7 +14580,7 @@ export async function boot({
   const mouseLocked = () => document.pointerLockElement === shell.canvas;
   function mouseWantsLock() {
     return input.mouseEnabled && mode === 'flight' && ui.screen === 'flight'
-      && !(build && build.active && !build.racing);
+      && !(build && build.active && !build.racing) && !debrief.isOpen;
   }
   function askMouseLock() {
     mouseLockAsks += 1;
