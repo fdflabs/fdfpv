@@ -63,7 +63,6 @@ src/share/board.js
 src/share/bugs.js
 src/share/flightlog.js
 src/share/ghostdata.js
-src/share/listing.js
 src/share/orbitcache.js
 src/share/orbit.html
 src/share/orbit.js

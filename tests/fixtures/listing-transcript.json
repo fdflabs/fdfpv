@@ -2158,6 +2158,52 @@
   "storage": {}
  },
  {
+  "name": "an element with no type is a gate, and the first of two with one id counts",
+  "returned": {
+   "name": "Dup",
+   "gates": 1,
+   "elements": 3,
+   "author": "",
+   "shareId": "a",
+   "board": "",
+   "kind": "community",
+   "published": true,
+   "owned": false,
+   "canPostTime": true,
+   "canUpdateListing": false,
+   "layoutDrift": false,
+   "nameDrift": false,
+   "authorDrift": false,
+   "doc": {
+    "id": "a",
+    "name": "Dup",
+    "elements": [
+     {
+      "id": "e1"
+     },
+     {
+      "id": "e2",
+      "type": "waypoint"
+     },
+     {
+      "id": "e2",
+      "type": "gate"
+     }
+    ],
+    "sequence": [
+     {
+      "elementId": "e1"
+     },
+     {
+      "elementId": "e2"
+     }
+    ]
+   }
+  },
+  "requests": [],
+  "storage": {}
+ },
+ {
   "name": "a document with no sequence or elements",
   "returned": {
    "name": "<undefined>",
@@ -8232,6 +8278,606 @@
   }
  },
  {
+  "name": "a fork of a course with no name is a remix",
+  "returned": {
+   "posted": {
+    "id": "trk-9a035600",
+    "name": "Untitled track remix",
+    "editKey": "ek-fork"
+   },
+   "doc": {
+    "schemaVersion": 4,
+    "id": "trk-9a035600",
+    "name": "Untitled track remix",
+    "createdUtc": "<time>",
+    "modifiedUtc": "<time>",
+    "trackClass": "full",
+    "map": "swiss2",
+    "field": {
+     "width": 60,
+     "depth": 40,
+     "gridSize": 1
+    },
+    "settings": {
+     "tangentScale": 1.1,
+     "minCurveRadius": 2.5,
+     "samplesPerSegment": 48
+    },
+    "branding": {
+     "logos": []
+    },
+    "credit": null,
+    "elements": [
+     {
+      "id": "el-1",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 0,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-2",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 5,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-3",
+      "type": "waypoint",
+      "name": "",
+      "position": {
+       "x": 10,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "height": 1.6,
+       "poleRadius": 0.02,
+       "clearance": 0
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-4",
+      "type": "gate",
+      "name": "",
+      "position": {
+       "x": 15,
+       "y": 0,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "levels": 1,
+       "sillH": 0,
+       "clearW": 1.524,
+       "clearH": 1.524,
+       "levelPitch": 1.557401
+      },
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     },
+     {
+      "id": "el-5",
+      "type": "groundLogo",
+      "name": "",
+      "position": {
+       "x": 1,
+       "y": 1,
+       "z": 0
+      },
+      "yaw": 0,
+      "pitch": 0,
+      "yawOverridden": false,
+      "dims": {
+       "width": 10,
+       "depth": 4
+      },
+      "logoId": "",
+      "orientation": {
+       "w": 1,
+       "x": 0,
+       "y": 0,
+       "z": 0
+      }
+     }
+    ],
+    "sequence": [
+     {
+      "id": "sq-1",
+      "elementId": "el-1",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     },
+     {
+      "id": "sq-2",
+      "elementId": "el-2",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     },
+     {
+      "id": "sq-3",
+      "elementId": "el-3",
+      "apertureIndex": null,
+      "entry": null,
+      "passSide": "left",
+      "clearance": 0,
+      "overridden": false
+     },
+     {
+      "id": "sq-4",
+      "elementId": "el-4",
+      "apertureIndex": 0,
+      "entry": 0,
+      "passSide": null,
+      "clearance": null,
+      "overridden": false
+     }
+    ]
+   },
+   "forked": true
+  },
+  "requests": [
+   {
+    "method": "POST",
+    "url": "https://board.example/api/tracks",
+    "body": {
+     "author": "Ada",
+     "document": {
+      "schemaVersion": 4,
+      "id": "trk-556aa600",
+      "name": "",
+      "createdUtc": "<time>",
+      "modifiedUtc": "<time>",
+      "trackClass": "full",
+      "map": "swiss2",
+      "field": {
+       "width": 60,
+       "depth": 40,
+       "gridSize": 1
+      },
+      "settings": {
+       "tangentScale": 1.1,
+       "minCurveRadius": 2.5,
+       "samplesPerSegment": 48
+      },
+      "branding": {
+       "logos": []
+      },
+      "credit": null,
+      "elements": [
+       {
+        "id": "el-1",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-2",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 5,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-3",
+        "type": "waypoint",
+        "name": "",
+        "position": {
+         "x": 10,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "height": 1.6,
+         "poleRadius": 0.02,
+         "clearance": 0
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-4",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 15,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-5",
+        "type": "groundLogo",
+        "name": "",
+        "position": {
+         "x": 1,
+         "y": 1,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "width": 10,
+         "depth": 4
+        },
+        "logoId": "",
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       }
+      ],
+      "sequence": [
+       {
+        "id": "sq-1",
+        "elementId": "el-1",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-2",
+        "elementId": "el-2",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-3",
+        "elementId": "el-3",
+        "apertureIndex": null,
+        "entry": null,
+        "passSide": "left",
+        "clearance": 0,
+        "overridden": false
+       },
+       {
+        "id": "sq-4",
+        "elementId": "el-4",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       }
+      ]
+     }
+    }
+   },
+   {
+    "method": "POST",
+    "url": "https://board.example/api/tracks",
+    "body": {
+     "author": "Ada",
+     "document": {
+      "schemaVersion": 4,
+      "id": "trk-9a035600",
+      "name": "Untitled track remix",
+      "createdUtc": "<time>",
+      "modifiedUtc": "<time>",
+      "trackClass": "full",
+      "map": "swiss2",
+      "field": {
+       "width": 60,
+       "depth": 40,
+       "gridSize": 1
+      },
+      "settings": {
+       "tangentScale": 1.1,
+       "minCurveRadius": 2.5,
+       "samplesPerSegment": 48
+      },
+      "branding": {
+       "logos": []
+      },
+      "credit": null,
+      "elements": [
+       {
+        "id": "el-1",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 0,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-2",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 5,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-3",
+        "type": "waypoint",
+        "name": "",
+        "position": {
+         "x": 10,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "height": 1.6,
+         "poleRadius": 0.02,
+         "clearance": 0
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-4",
+        "type": "gate",
+        "name": "",
+        "position": {
+         "x": 15,
+         "y": 0,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "levels": 1,
+         "sillH": 0,
+         "clearW": 1.524,
+         "clearH": 1.524,
+         "levelPitch": 1.557401
+        },
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       },
+       {
+        "id": "el-5",
+        "type": "groundLogo",
+        "name": "",
+        "position": {
+         "x": 1,
+         "y": 1,
+         "z": 0
+        },
+        "yaw": 0,
+        "pitch": 0,
+        "yawOverridden": false,
+        "dims": {
+         "width": 10,
+         "depth": 4
+        },
+        "logoId": "",
+        "orientation": {
+         "w": 1,
+         "x": 0,
+         "y": 0,
+         "z": 0
+        }
+       }
+      ],
+      "sequence": [
+       {
+        "id": "sq-1",
+        "elementId": "el-1",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-2",
+        "elementId": "el-2",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       },
+       {
+        "id": "sq-3",
+        "elementId": "el-3",
+        "apertureIndex": null,
+        "entry": null,
+        "passSide": "left",
+        "clearance": 0,
+        "overridden": false
+       },
+       {
+        "id": "sq-4",
+        "elementId": "el-4",
+        "apertureIndex": 0,
+        "entry": 0,
+        "passSide": null,
+        "clearance": null,
+        "overridden": false
+       }
+      ]
+     }
+    }
+   }
+  ],
+  "storage": {
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"},\"trk-9a035600\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Untitled track remix\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\",\"trk-9a035600\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+  }
+ },
+ {
   "name": "the fork is refused too",
   "threw": {
    "error": "Still not yours.",
@@ -8442,7 +9088,7 @@
      "author": "Ada",
      "document": {
       "schemaVersion": 4,
-      "id": "trk-9a035600",
+      "id": "trk-1b9ffe00",
       "name": "Taken",
       "createdUtc": "<time>",
       "modifiedUtc": "<time>",
@@ -8633,10 +9279,10 @@
    }
   ],
   "storage": {
-   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
-   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
-   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
-   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"},\"trk-9a035600\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Untitled track remix\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\",\"trk-9a035600\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
   }
  },
  {
@@ -8845,10 +9491,10 @@
    }
   ],
   "storage": {
-   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
-   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
-   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
-   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"},\"trk-9a035600\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Untitled track remix\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\",\"trk-9a035600\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
   }
  },
  {
@@ -8858,10 +9504,10 @@
   },
   "requests": [],
   "storage": {
-   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"}}",
-   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\"}",
-   "webfpv.share.import.v1": "{\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
-   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-40fd0e00\",\"name\":\"Taken\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
+   "webfpv.share.bind.v1": "{\"trk-40fd0e00\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Taken\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"Taken\",\"sourceAuthor\":\"\"},\"trk-9a035600\":{\"board\":\"https://board.example\",\"author\":\"Ada\",\"nameOnBoard\":\"Untitled track remix\",\"layoutFingerprint\":\"{\\\"map\\\":\\\"swiss2\\\",\\\"field\\\":{\\\"width\\\":60,\\\"depth\\\":40,\\\"gridSize\\\":1},\\\"elements\\\":[{\\\"id\\\":\\\"el-1\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-2\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":5,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-3\\\",\\\"type\\\":\\\"waypoint\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":10,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"height\\\":1.6,\\\"poleRadius\\\":0.02,\\\"clearance\\\":0},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}},{\\\"id\\\":\\\"el-4\\\",\\\"type\\\":\\\"gate\\\",\\\"name\\\":\\\"\\\",\\\"position\\\":{\\\"x\\\":15,\\\"y\\\":0,\\\"z\\\":0},\\\"yaw\\\":0,\\\"pitch\\\":0,\\\"yawOverridden\\\":false,\\\"dims\\\":{\\\"levels\\\":1,\\\"sillH\\\":0,\\\"clearW\\\":1.524,\\\"clearH\\\":1.524,\\\"levelPitch\\\":1.557401},\\\"orientation\\\":{\\\"w\\\":1,\\\"x\\\":0,\\\"y\\\":0,\\\"z\\\":0}}],\\\"sequence\\\":[{\\\"id\\\":\\\"sq-1\\\",\\\"elementId\\\":\\\"el-1\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-2\\\",\\\"elementId\\\":\\\"el-2\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-3\\\",\\\"elementId\\\":\\\"el-3\\\",\\\"apertureIndex\\\":null,\\\"entry\\\":null,\\\"passSide\\\":\\\"left\\\",\\\"clearance\\\":0,\\\"overridden\\\":false},{\\\"id\\\":\\\"sq-4\\\",\\\"elementId\\\":\\\"el-4\\\",\\\"apertureIndex\\\":0,\\\"entry\\\":0,\\\"passSide\\\":null,\\\"clearance\\\":null,\\\"overridden\\\":false}]}\",\"owned\":true,\"sourceId\":\"trk-556aa600\",\"sourceName\":\"\",\"sourceAuthor\":\"\"}}",
+   "webfpv.share.editkeys.v1": "{\"trk-40fd0e00\":\"ek-fork\",\"trk-9a035600\":\"ek-fork\"}",
+   "webfpv.share.import.v1": "{\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"author\":\"Ada\",\"board\":\"https://board.example\",\"document\":{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]},\"local\":false,\"importedUtc\":\"<time>\"}",
+   "webfpv.trackbuilder.autosave.map.swiss2.v1": "{\"schemaVersion\":4,\"id\":\"trk-9a035600\",\"name\":\"Untitled track remix\",\"createdUtc\":\"<time>\",\"modifiedUtc\":\"<time>\",\"trackClass\":\"full\",\"map\":\"swiss2\",\"field\":{\"width\":60,\"depth\":40,\"gridSize\":1},\"settings\":{\"tangentScale\":1.1,\"minCurveRadius\":2.5,\"samplesPerSegment\":48},\"branding\":{\"logos\":[]},\"credit\":null,\"elements\":[{\"id\":\"el-1\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":0,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-2\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":5,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-3\",\"type\":\"waypoint\",\"name\":\"\",\"position\":{\"x\":10,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"height\":1.6,\"poleRadius\":0.02,\"clearance\":0},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-4\",\"type\":\"gate\",\"name\":\"\",\"position\":{\"x\":15,\"y\":0,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"levels\":1,\"sillH\":0,\"clearW\":1.524,\"clearH\":1.524,\"levelPitch\":1.557401},\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}},{\"id\":\"el-5\",\"type\":\"groundLogo\",\"name\":\"\",\"position\":{\"x\":1,\"y\":1,\"z\":0},\"yaw\":0,\"pitch\":0,\"yawOverridden\":false,\"dims\":{\"width\":10,\"depth\":4},\"logoId\":\"\",\"orientation\":{\"w\":1,\"x\":0,\"y\":0,\"z\":0}}],\"sequence\":[{\"id\":\"sq-1\",\"elementId\":\"el-1\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-2\",\"elementId\":\"el-2\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false},{\"id\":\"sq-3\",\"elementId\":\"el-3\",\"apertureIndex\":null,\"entry\":null,\"passSide\":\"left\",\"clearance\":0,\"overridden\":false},{\"id\":\"sq-4\",\"elementId\":\"el-4\",\"apertureIndex\":0,\"entry\":0,\"passSide\":null,\"clearance\":null,\"overridden\":false}]}"
   }
  }
 ]

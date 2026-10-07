@@ -232,6 +232,10 @@ console.log('inspectCourse');
     share: { id: 'a', document: { id: 'a', name: 'Odd', elements: [{ id: 'e1', type: 'gate' }], sequence: [{ elementId: 'e1' }, { elementId: 'gone' }] } },
     editKeyFor: () => null, bindFor: () => null, pilotName: null,
   }));
+  await row('an element with no type is a gate, and the first of two with one id counts', () => listing.inspectCourse({
+    share: { id: 'a', document: { id: 'a', name: 'Dup', elements: [{ id: 'e1' }, { id: 'e2', type: 'waypoint' }, { id: 'e2', type: 'gate' }], sequence: [{ elementId: 'e1' }, { elementId: 'e2' }] } },
+    editKeyFor: () => null, bindFor: () => null, pilotName: null,
+  }));
   await row('a document with no sequence or elements', () => listing.inspectCourse({
     share: { id: 'a', document: { id: 'a' } }, editKeyFor: () => null, bindFor: () => null, pilotName: null,
   }));
@@ -402,6 +406,8 @@ console.log('publishCurrentCourse');
     return tries === 1 ? [409, { error: 'Not yours.' }] : [201, { id: body.document.id, name: body.document.name, editKey: 'ek-fork' }];
   };
   await row('someone else holds the id: a fork', () => listing.publishCurrentCourse({ doc: taken, author: 'Ada', origin: ORIGIN }));
+  tries = 0;
+  await row('a fork of a course with no name is a remix', () => listing.publishCurrentCourse({ doc: { ...taken, name: '' }, author: 'Ada', origin: ORIGIN }));
   board.publish = () => [409, { conflict: true, error: 'Still not yours.' }];
   await row('the fork is refused too', () => listing.publishCurrentCourse({ doc: taken, author: 'Ada', origin: ORIGIN }));
   board.publish = () => [500, { error: 'Down.' }];
