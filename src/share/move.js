@@ -101,6 +101,7 @@ export const EXCLUDED = new Set([
   'fdfpv.rooms',
   'webfpv.tracks.origin',
   'webfpv.board.origin',
+  'fdfpv.board.origin',
   'webfpv.account.v1',
   'webfpv.account.synced.v1',
   'webfpv.probe',
