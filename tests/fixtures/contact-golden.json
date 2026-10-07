@@ -1,0 +1,390 @@
+{
+ "quad-wall": {
+  "what": "the interceptor into the face of an Alps wall at 25 m/s",
+  "steps": 1500,
+  "pre": "defc919f8cd08d01afe397ed",
+  "plane": "d3702adc3893048d1419014e",
+  "post": "22696ae143e1d5e7b363b4ab",
+  "throw": {
+   "x": 44,
+   "y": 1.6,
+   "z": -53.5,
+   "yaw": 0,
+   "pitch": -25,
+   "vx": 0,
+   "vy": 0,
+   "vz": -25
+  },
+  "met": {
+   "obstacleEvents": 14,
+   "contactEvents": 29,
+   "damage": [
+    "battery:crack",
+    "antenna left:knock",
+    "arm front right:break",
+    "arm front left:break",
+    "camera:break",
+    "frame:crush",
+    "battery:crack",
+    "battery:break",
+    "arm rear right:break",
+    "arm rear left:break",
+    "arm front right:settle",
+    "arm front left:settle",
+    "camera:settle"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 29,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 16,
+    "outbound": 13,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-wall-glance": {
+  "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up",
+  "steps": 1500,
+  "pre": "ee2df5c979a1aed2ec35e629",
+  "plane": "53df2b9fcf761a7d8c6be8ea",
+  "post": "b74a5236f83c7d892ed7fe3f",
+  "throw": {
+   "x": 26,
+   "y": 2,
+   "z": -57.5,
+   "yaw": -80,
+   "pitch": -10,
+   "vx": 12,
+   "vy": 0,
+   "vz": -1.5
+  },
+  "met": {
+   "obstacleEvents": 37,
+   "contactEvents": 49,
+   "damage": [
+    "prop front right:chip",
+    "prop front right:chip",
+    "prop front right:chip",
+    "prop front right:chip",
+    "prop front right:chip",
+    "prop front left:chip",
+    "prop front right:chip",
+    "prop front left:chip",
+    "prop front left:chip",
+    "prop front right:chip",
+    "prop front left:chip",
+    "battery:crack",
+    "arm front right:bend",
+    "prop front left:chip",
+    "camera:knock",
+    "motor front right:break",
+    "prop front left:chip",
+    "prop front left:chip",
+    "prop front left:chip",
+    "battery:crack",
+    "arm front left:break",
+    "camera:break",
+    "prop rear right:chip",
+    "prop rear right:chip",
+    "battery:crack",
+    "arm rear right:break",
+    "prop rear left:chip",
+    "prop rear left:chip",
+    "prop rear left:chip",
+    "motor front right:settle",
+    "camera:settle",
+    "arm front left:settle"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 49,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 25,
+    "outbound": 20,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-pole": {
+  "what": "the interceptor into a swiss2 power pole at 15 m/s",
+  "steps": 1500,
+  "pre": "67212cb013525a7f6fe41727",
+  "plane": "aaad5626cca1a4838740d512",
+  "post": "abd59b06c22748ab88644c97",
+  "throw": {
+   "x": 41,
+   "y": 2.2,
+   "z": 110.5,
+   "yaw": -90,
+   "pitch": -20,
+   "vx": 15,
+   "vy": 0,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 64,
+   "contactEvents": 0,
+   "damage": [
+    "prop front right:chip",
+    "prop front left:chip",
+    "frame:crush",
+    "battery:crack",
+    "antenna left:knock",
+    "arm front right:break",
+    "arm front left:break",
+    "camera:break",
+    "battery:crack"
+   ],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-roof": {
+  "what": "the interceptor dropped onto a swiss2 roof at 8 m/s, 35 degrees down",
+  "steps": 1500,
+  "pre": "3a8669b9f52993b5f9d37c3d",
+  "plane": "a956f3f667e439d6f8bd6b44",
+  "post": "1f213e4f5ecf203816c8f893",
+  "throw": {
+   "x": -48.41424594319382,
+   "y": 3.863259449943706,
+   "z": 94.3257721629803,
+   "yaw": -90,
+   "pitch": -35,
+   "vx": 6.553216354311934,
+   "vy": -4.588611490808368,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-ground-skid": {
+  "what": "the interceptor skidding into the swiss2 grass at 18 m/s, 15 degrees down",
+  "steps": 1500,
+  "pre": "e485cd57ac6859f2306f729d",
+  "plane": "b814181ee03d8b2ca9c30f4b",
+  "post": "dd1b4e8dd227194108343c66",
+  "throw": {
+   "x": 25,
+   "y": 1.5,
+   "z": 52,
+   "yaw": 90,
+   "pitch": -15,
+   "vx": -17.38666487320323,
+   "vy": -4.658742811845373,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 0,
+   "damage": [],
+   "pass": {
+    "resolved": 0,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 0,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-wall-skate-nodamage": {
+  "what": "the interceptor skating along an Alps wall, 4 degrees into it at 10 m/s, rolled into it, crash damage off",
+  "steps": 899,
+  "pre": "fc43af61e18c9f5275e1a9ce",
+  "plane": "e18d4af9a303b37a1c30cda0",
+  "post": "f3d9881db30df509abf8715e",
+  "throw": {
+   "x": 30.5,
+   "y": 1.5,
+   "z": -57,
+   "yaw": -86.00000000000001,
+   "pitch": -15,
+   "roll": 25,
+   "vx": 9.975640502598242,
+   "vy": 0,
+   "vz": -0.697564737441253
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 54,
+   "damage": [],
+   "pass": {
+    "resolved": 53,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 53,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-corner-nodamage": {
+  "what": "the interceptor into the corner of an Alps building on the diagonal at 12 m/s, crash damage off",
+  "steps": 599,
+  "pre": "5c274498bb59223e9975240d",
+  "plane": "71e9ce26b590b6d65174e826",
+  "post": "082e134c0096a86f2a919391",
+  "throw": {
+   "x": -47.093159483779154,
+   "y": 1.6,
+   "z": 101.85445709336929,
+   "yaw": 45,
+   "pitch": -20,
+   "vx": -8.485281374238571,
+   "vy": 0,
+   "vz": -8.485281374238571
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 25,
+   "damage": [],
+   "pass": {
+    "resolved": 25,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 25,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-wall-nodamage": {
+  "what": "the interceptor into the face of an Alps wall at 25 m/s, crash damage off",
+  "steps": 1500,
+  "pre": "86e8f66c7be6f181de30c32b",
+  "plane": "88c4a6e0fc5b95e325c8bb73",
+  "post": "7ec7f809bb8d4454ef6678b9",
+  "throw": {
+   "x": 44,
+   "y": 1.6,
+   "z": -53.5,
+   "yaw": 0,
+   "pitch": -25,
+   "vx": 0,
+   "vy": 0,
+   "vz": -25
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 2,
+   "damage": [],
+   "pass": {
+    "resolved": 2,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 2,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-wall-glance-nodamage": {
+  "what": "the interceptor glancing along an Alps wall at 12 m/s, throttle up, crash damage off",
+  "steps": 766,
+  "pre": "536f8d2beb2d6d75924cbd2b",
+  "plane": "740276654c916c1d69946710",
+  "post": "c487b1de8f2af7aaeb389302",
+  "throw": {
+   "x": 26,
+   "y": 2,
+   "z": -57.5,
+   "yaw": -80,
+   "pitch": -10,
+   "vx": 12,
+   "vy": 0,
+   "vz": -1.5
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 3,
+   "damage": [],
+   "pass": {
+    "resolved": 3,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 3,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ },
+ "quad-pole-nodamage": {
+  "what": "the interceptor into a swiss2 power pole at 15 m/s, crash damage off",
+  "steps": 499,
+  "pre": "0fbb79446fc5485484f2124f",
+  "plane": "3e1c372b8aca10d8ca13a2b3",
+  "post": "22c36a33b7f73a2edadd21a5",
+  "throw": {
+   "x": 41,
+   "y": 2.2,
+   "z": 110.5,
+   "yaw": -90,
+   "pitch": -20,
+   "vx": 15,
+   "vy": 0,
+   "vz": 0
+  },
+  "met": {
+   "obstacleEvents": 0,
+   "contactEvents": 33,
+   "damage": [],
+   "pass": {
+    "resolved": 33,
+    "resting": 0,
+    "buried": 0,
+    "sepFail": 0,
+    "dvZero": 0,
+    "inbound": 33,
+    "outbound": 0,
+    "plantHeld": 0,
+    "unheld": 0
+   }
+  }
+ }
+}
