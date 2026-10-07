@@ -56,7 +56,7 @@ import { createPeerSample, samplePeers } from './peers.js';
 import {
   COMBAT_BUS, INTRO_BUS, warMusicUrl, warVoiceUrl,
 } from '../render/warradio.js';
-import { TRACKS, trackGain, trackUrl } from '../render/tracks.js';
+import { trackById, trackGain, trackUrl } from '../render/tracks.js';
 import { engineSpecFor } from '../render/enginespec.js';
 import { airframeById } from '../../configs/airframes.js';
 
@@ -337,8 +337,13 @@ export async function renderSoundtrack({
   }
   for (const b of sp.beds) {
     const war = b.name === 'bed';
+    const record = war ? null : trackById(b.id);
+    /* A record no longer in the crate is left out, not swapped for another. */
+    if (!war && !record) {
+      continue;
+    }
     const url = war ? warMusicUrl(b.id, ext) : trackUrl(b.id, ext);
-    const level = music * (war ? (b.id === 'intro' ? INTRO_BUS : COMBAT_BUS) : trackGain(TRACKS.find((x) => x.id === b.id) || TRACKS[0]));
+    const level = music * (war ? (b.id === 'intro' ? INTRO_BUS : COMBAT_BUS) : trackGain(record));
     /* The intro runs out into the fight's loop (warradio.js), which loops;
      * a record loops when pinned, and a piece ends at its next change. */
     jobs.push(play(url, a.music.duck, level, b.m, b.at, b.rate, b.dur, b.id !== 'intro'));
