@@ -516,7 +516,7 @@ const ROWS = [
   { label: 'Segmented', options: [{ label: 'a' }, { label: 'b' }], action: 'noop' },
   { label: 'Stepper', step: 1, action: 'noop' },
   { label: 'Adjustable', adjust: true, action: 'noop' },
-  { label: 'Course card', course: localCard.course, card: 'local:trk-local0001', action: 'card-fly' },
+  { label: 'Track card', course: localCard.course, card: 'local:trk-local0001', action: 'card-fly' },
   { label: 'Hub card', card: 'hub-club', hub: 'club', action: 'hub-club' },
   { label: 'Way card', card: 'way-race-5inch', action: 'way-race-5inch' },
   { label: 'Hangar card', card: 'hangar-sticks', action: 'calibrate' },
