@@ -40,6 +40,7 @@ jobs:
       - run: npm run trickslist:golden
       - run: npm run keys:golden
       - run: npm run menucontrols:golden
+      - run: npm run nav:golden
       - run: npm run dialogs:golden
       - run: npm run overlay:golden
       - run: npm run items:golden
