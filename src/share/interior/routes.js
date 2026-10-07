@@ -180,8 +180,12 @@ for (const [id, r] of Object.entries(OUT)) {
 }
 ROUTES['pair-out-a'] = { pts: km(PAIR_OUT), speed: WALK, end: 'gone', segments: [{ from: 0, to: PAIR_OUT.length - 1, action: 'carryLong' }] };
 ROUTES['pair-out-b'] = { pts: beside(km(PAIR_OUT)), speed: WALK, end: 'gone' };
+/* The motorcycle rides the road out and back for the whole stage: a
+ * single pass is over in ten minutes, before a pilot who surveys Alpha
+ * first ever looks at Bravo (owner's flight, 2026-10-07: never found). */
+const BRAVO_MOTO_RIDE = [...BRAVO_MOTO, ...BRAVO_MOTO.slice(0, -1).reverse()];
 ROUTES['bravo-moto'] = {
-  pts: km(BRAVO_MOTO), speed: 11, end: 'gone', segments: [{ from: 0, to: BRAVO_MOTO.length - 1, action: 'drive' }], vehicle: 'motorcycle',
+  pts: km(BRAVO_MOTO_RIDE), speed: 11, loop: true, segments: [{ from: 0, to: BRAVO_MOTO_RIDE.length - 1, action: 'drive' }], vehicle: 'motorcycle',
 };
 ROUTES['colonia-pickup'] = {
   pts: km([[9.18, 6.17], [9.18, 6.17]]), speed: 1, end: 'stay', dwell: [{ i: 0, s: 1, action: 'park' }], vehicle: 'pickup',

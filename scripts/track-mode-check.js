@@ -58,20 +58,20 @@
  * Pictures land in OUT_DIR (tmp/track-mode-check by default). They are
  * evidence for one look, not for the repository: delete them after.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -88,7 +88,7 @@ import { DEFAULT_WING_HOTBAR } from '../src/builder/course.js';
 import { str } from '../src/strings/index.js';
 import { MAPS } from '../src/maps/registry.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const opts = {};
 const positional = [];
 for (const a of process.argv.slice(2)) {
