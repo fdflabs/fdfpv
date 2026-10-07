@@ -1,0 +1,347 @@
+{
+ "gpu-software-auto-high": {
+  "gpu": {
+   "software": true,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "low",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "low",
+    "graphicsAuto": true
+   }
+  },
+  "view": "low"
+ },
+ "gpu-software-auto-medium": {
+  "gpu": {
+   "software": true,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "low",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "low",
+    "graphicsAuto": true
+   }
+  },
+  "view": "low"
+ },
+ "gpu-software-chosen-high": {
+  "gpu": {
+   "software": true,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "high",
+    "graphicsAuto": false
+   },
+   "stored": {
+    "graphics": "high",
+    "graphicsAuto": false
+   }
+  },
+  "view": "high"
+ },
+ "gpu-integrated-auto-high": {
+  "gpu": {
+   "software": false,
+   "integrated": true
+  },
+  "settings": {
+   "live": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   }
+  },
+  "view": "medium"
+ },
+ "gpu-integrated-auto-medium": {
+  "gpu": {
+   "software": false,
+   "integrated": true
+  },
+  "settings": {
+   "live": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   }
+  },
+  "view": "medium"
+ },
+ "gpu-integrated-chosen-high": {
+  "gpu": {
+   "software": false,
+   "integrated": true
+  },
+  "settings": {
+   "live": {
+    "graphics": "high",
+    "graphicsAuto": false
+   },
+   "stored": {
+    "graphics": "high",
+    "graphicsAuto": false
+   }
+  },
+  "view": "high"
+ },
+ "gpu-discrete-auto-high": {
+  "gpu": {
+   "software": false,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "high",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "high",
+    "graphicsAuto": true
+   }
+  },
+  "view": "high"
+ },
+ "gpu-discrete-auto-medium": {
+  "gpu": {
+   "software": false,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   },
+   "stored": {
+    "graphics": "medium",
+    "graphicsAuto": true
+   }
+  },
+  "view": "medium"
+ },
+ "gpu-discrete-chosen-high": {
+  "gpu": {
+   "software": false,
+   "integrated": false
+  },
+  "settings": {
+   "live": {
+    "graphics": "high",
+    "graphicsAuto": false
+   },
+   "stored": {
+    "graphics": "high",
+    "graphicsAuto": false
+   }
+  },
+  "view": "high"
+ },
+ "title": {
+  "best": {
+   "lastBestMs": "<undefined>",
+   "osdMode": "<undefined>",
+   "view": "swiss2",
+   "viewMode": "freestyle"
+  },
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "alps"
+   }
+  },
+  "rows": {
+   "sys-online": "na",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  },
+  "banners": []
+ },
+ "url-map": {
+  "best": {
+   "lastBestMs": null,
+   "osdMode": "freestyle",
+   "view": "alps",
+   "viewMode": "freestyle"
+  },
+  "flown": {
+   "lastBestMs": null,
+   "osdMode": "freestyle",
+   "view": "alps",
+   "viewMode": "freestyle"
+  },
+  "settings": {
+   "live": {
+    "map": "alps"
+   },
+   "stored": {
+    "map": "swiss2"
+   }
+  }
+ },
+ "share-ghost": {
+  "settings": {
+   "live": {
+    "map": "track"
+   },
+   "stored": {
+    "map": "alps"
+   }
+  },
+  "seat": {
+   "id": "trk-golden01",
+   "name": "Golden",
+   "board": true,
+   "map": "swiss2"
+  },
+  "rows": {
+   "sys-online": "ready",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  },
+  "ghost": "board:tm-0123abcd",
+  "view": {
+   "id": "swiss2",
+   "mode": "race",
+   "gates": 4
+  },
+  "filed": [
+   "interceptor/race"
+  ],
+  "asked": [
+   "GET /api/tracks/trk-golden01",
+   "GET /api/tracks/trk-golden01/document",
+   "GET /api/tracks/trk-golden01/times/tm-0123abcd/ghost"
+  ]
+ },
+ "share-bad-ghost": {
+  "ghost": "best",
+  "asked": [
+   "GET /api/tracks/trk-golden01",
+   "GET /api/tracks/trk-golden01/document"
+  ]
+ },
+ "share-missing": {
+  "settings": {
+   "live": {
+    "map": "track"
+   },
+   "stored": {
+    "map": "alps"
+   }
+  },
+  "rows": {
+   "sys-online": "fail",
+   "sys-physics": "ready",
+   "sys-flight": "ready",
+   "sys-audio": "standby"
+  },
+  "banners": [
+   "Could not open that published track.\nnot here"
+  ]
+ },
+ "stats": {
+  "words": [
+   "{\"kind\":\"flush\",\"craft\":\"interceptor\",\"map\":\"custom\"}",
+   "{\"kind\":\"session\",\"craft\":\"interceptor\",\"map\":\"custom\",\"input\":\"keyboard\"}",
+   "{\"kind\":\"visit\"}"
+  ],
+  "filed": [
+   "interceptor/free"
+  ]
+ },
+ "touch": {
+  "flying": {
+   "screen": "flight",
+   "visible": true
+  },
+  "paused": {
+   "screen": "paused",
+   "visible": false
+  },
+  "swapped": {
+   "screen": "paused",
+   "visible": false,
+   "picker": true
+  }
+ },
+ "surface": {
+  "start": {
+   "w": 1280,
+   "h": 720,
+   "cssW": 1280,
+   "cssH": 720,
+   "dpr": 1
+  },
+  "resized": {
+   "w": 1000,
+   "h": 560,
+   "cssW": 1000,
+   "cssH": 560,
+   "dpr": 1
+  },
+  "dpr2": {
+   "w": 960,
+   "h": 540,
+   "cssW": 480,
+   "cssH": 270,
+   "dpr": 2
+  },
+  "dpr1": {
+   "w": 1000,
+   "h": 560,
+   "cssW": 1000,
+   "cssH": 560,
+   "dpr": 1
+  },
+  "set": {
+   "w": 640,
+   "h": 360,
+   "restore": "function"
+  },
+  "second": "an export surface is already set",
+  "heldThroughResize": {
+   "w": 640,
+   "h": 360,
+   "cssW": 900,
+   "cssH": 500,
+   "dpr": 1
+  },
+  "restored": {
+   "w": 900,
+   "h": 500
+  },
+  "restoredTwice": {
+   "r": "<undefined>",
+   "w": 900,
+   "h": 500
+  },
+  "after": {
+   "w": 900,
+   "h": 500,
+   "cssW": 900,
+   "cssH": 500,
+   "dpr": 1
+  },
+  "errors": []
+ }
+}
