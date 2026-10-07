@@ -19738,14 +19738,6 @@ export async function boot({
   window.__canopyTop = (top) => {
     view.canopyAt = () => top;
   };
-  /* The shadow pass on or off, to split draw calls between it and the
-   * colour pass in the cost ledger. */
-  window.__shadows = (on) => {
-    const shadows = shell.renderer.shadowMap;
-    shadows.enabled = !!on;
-    shadows.needsUpdate = true;
-    return shadows.enabled;
-  };
   /* Load a world as ?map= would at the title, which ends the title's own. */
   window.__setMap = (id) => {
     titleWorld = null;
