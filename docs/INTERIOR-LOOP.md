@@ -256,3 +256,92 @@ against the golden-hour mock (the shaded clearing is still far darker than
 the mock's, and the camp reads sparse in the middle); (H) the survey views:
 the river's water at range, field texture variety at 600 to 1800 m, and
 the haze's glow toward the sun.
+
+### Round 4, the clearing and the survey views (2026-10-06)
+
+- **4G, the camp (#473):** the clearing's fill light against the
+  golden-hour mock, fires, lanterns and bulbs, more dressing in the
+  middle of the camp. low-camp 3.75 to 4, zoom-camp-600 3.75 to 4.
+- **4H, the survey views (#474):** the river's water at range, field
+  texture variety, ranch tracks, the horizon's dashes gone.
+  survey-charlie-1200 3.5 to 3.75, survey-bridge-800 3.25 to 3.5,
+  survey-alpha-600 3 to 3.25, survey-wide-1800 3 to 3.25.
+
+Mean about 3.25 to about 3.36. Sheets: `r4-camp-sheet.png`,
+`r4-survey-sheet.png`.
+
+### Round 5, the low views (2026-10-06)
+
+- **5, the low views (#476):** ruts on the strip, a pasture paint fix,
+  near-field grass, reeds and shrubs under 50 m, crown and bark detail.
+  low-pista 2 to 2.75, low-bridge 3 to 3.25.
+
+Mean 3.375 on the per-view scores (the plan rounded it to about 3.41).
+About +0.05 a round: the lead held further look rounds for the owner's
+flight. Sheet: `r5-low-sheet.png`.
+
+| View | Round 5 |
+| --- | --- |
+| survey-alpha-600 | 3.25 |
+| survey-bridge-800 | 3.5 |
+| survey-bravo-1000 | 3.25 |
+| survey-charlie-1200 | 3.75 |
+| survey-wide-1800 | 3.25 |
+| survey-nadir-1800 | 2.5 |
+| camp-orbit-0 to 315 (8) | 3.75 each |
+| low-bridge | 3.25 |
+| low-colonia | 2.75 |
+| low-pista | 2.75 |
+| low-canada | 2.5 |
+| low-camp | 4 |
+| zoom-camp-600 | 4 |
+| zoom-colonia-500 | 3 |
+| zoom-motorcycle-400 | 2.5 |
+
+### Round 6, air, canopy and ground (2026-10-07)
+
+Round 6's baseline was main at a3098c84 (`round-6`): the look files had
+not changed since round 5, so its scores are round 5's. Three targets,
+three agents (record: `~/Desktop/fdfpv-loop/interior/GRAPHICS-PASS-2026-10-07.md`):
+
+- **6 air (#631):** distance reads as air, the horizon and far land
+  blue-grey instead of a beige wash; the river at range a lighter band
+  with the sky's sheen against dark banks (look.js, `waterMaterial()`).
+- **6 canopy (#630):** the forest deeper and bluer-green with shade
+  between the crowns, stands that differ over about 200 m, tall crowns
+  against darker neighbours (trees.js only; canopy digest unchanged).
+- **6 ground (#629):** crop rows that bend and break, worn patches and
+  damp hollows, trodden yards with grass and paths, browner roads with
+  wheel tracks, a paler crown and soft verges.
+
+Scored by the lead on the merged render (main at 2adc4909, all three
+in), against round 6: `round-6-merged`, sheet
+`round-6-merged-sheet.png`. Every view within the budget (worst
+low-camp 2.33 M triangles, 149 calls at low-pista).
+
+| View | Round 6 | Merged |
+| --- | --- | --- |
+| survey-alpha-600 | 3.25 | 3.75 |
+| survey-bridge-800 | 3.5 | 3.75 |
+| survey-bravo-1000 | 3.25 | 3.5 |
+| survey-charlie-1200 | 3.75 | 3.75 |
+| survey-wide-1800 | 3.25 | 3.5 |
+| survey-nadir-1800 | 2.5 | 3 |
+| camp-orbit-0 to 315 (8) | 3.75 each | 4 each |
+| low-bridge | 3.25 | 3.25 |
+| low-colonia | 2.75 | 3 |
+| low-pista | 2.75 | 3 |
+| low-canada | 2.5 | 2.5 |
+| low-camp | 4 | 4 |
+| zoom-camp-600 | 4 | 4 |
+| zoom-colonia-500 | 3 | 3.5 |
+| zoom-motorcycle-400 | 2.5 | 3 |
+
+Mean 3.375 to 3.61. No view lower. The canopy agent read the orbits at
+4.25; on the merged render the air's haze darkens and flattens the far
+side of every orbit and the clearing reads with less contrast against
+the crowns, so they score 4. Still costing the most: the river at
+charlie and wide is a tan band, not the references' dark reflective
+water; low-canada's creek and the sky's cut-out clouds at low-pista
+and low-canada; the camp at the orbits is a pale spot, not the mock's
+lit clearing.
