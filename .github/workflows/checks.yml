@@ -194,6 +194,7 @@ jobs:
       - run: npm run genbaseline:selftest
       - run: npm run score:golden
       - run: npm run scorehud:golden
+      - run: npm run debrief:selftest
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
@@ -279,9 +280,13 @@ jobs:
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check
+      # The lessons: data that exists, words in en and es, each judge.
+      - run: npm run training:selftest
       - run: npm run progress:selftest
       # Best laps synced to the account, lower wins (src/share/records.js).
       - run: npm run records:selftest
+      # The condition the player reads and its OSD line.
+      - run: npm run damage:selftest
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest
@@ -294,6 +299,8 @@ jobs:
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
+      - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
       # A rate change mid run keeps the run, tune loads are generation

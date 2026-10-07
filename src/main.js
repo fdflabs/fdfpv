@@ -267,7 +267,9 @@ import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/sim
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { KINDS, TURNED } from './game/collide.js';
-import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
+import {
+  conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
+} from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
 import { collectTrees, groundSurface, kindMaterial, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
 import {
@@ -11017,6 +11019,7 @@ export async function boot({
       runDamage,
       flags: crashFlags,
       flagNames: names,
+      condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
       wrecked,
       powered: wreckPowered(),
       down: wreckDown(performance.now()),
@@ -16851,6 +16854,8 @@ export async function boot({
       armed: fr.motorsTurning,
       flown: flownThisRun,
       crashFlip: crashflipOn || turtleWait || turtleFlip.active,
+      condition: conditionOf(crashFlags, airframeById(runAirframe).fixedWing),
+      damagedPart: damagedPart(crashFlags),
       banner: ui.bannerText,
       replayKey: crashCam ? crashCam.promptKey() : null,
     };

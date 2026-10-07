@@ -115,6 +115,7 @@ export function createFlightTelemetry() {
     nav: { source: 'GNSS', sinceFixS: 0 },
     compute: { load: 0, tempC: AMBIENT_C },
     video: { snow: 0, lost: false },
+    airframe: { condition: 'operational', part: null },
   };
   const endurance = { remainS: 0, totalS: 0 };
   const denied = { gnss: false, vio: false };
@@ -185,6 +186,8 @@ export function createFlightTelemetry() {
     state.armed = Boolean(x.armed);
     state.fixedWing = Boolean(x.fixedWing);
     state.flightMode = v.flightMode;
+    state.airframe.condition = x.condition ?? 'operational';
+    state.airframe.part = x.damagedPart ?? null;
 
     attitudeOf(x.quat, att);
     state.attitude.pitch = att.pitch * DEG;
