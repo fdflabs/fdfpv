@@ -1,5 +1,5 @@
 /*
- * og.js: the share card, drawn by the thing it advertises.
+ * og.js: the share card, drawn by the very game it advertises.
  *
  * Every link to paraguayandronecombatsimulator.com posted anywhere renders
  * a 1200 by 630 image, and a made-up one would drift out of date the first
@@ -46,26 +46,27 @@
  * own median cut and octree leave in it. index.html's meta tags declare
  * image/png, so it stays a PNG.
  *
- * REGENERATE, DO NOT EDIT, the same rule as the icons:
+ * The card is generated, never edited by hand, the same rule the icons
+ * follow. Run it again whenever the world or the name changes:
  *
- *     npm run gen:og                                  # this repo
+ *     npm run gen:og                       this repo
  *     node scripts/og.js . ../fdfpv-landing \
  *                          ../fdfpv-leaderboard/public
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -75,9 +76,9 @@ import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/* Facebook, X and LinkedIn all read 1.91:1 and all crop anything else. */
+/* Facebook, X and LinkedIn all read a 1.91:1 card and crop anything else. */
 const W = 1200;
 const H = 630;
 
@@ -139,13 +140,12 @@ async function stampPage(card) {
   console.log(`index.html -> og.png?h=${v}`);
 }
 
-const targets = (process.argv.slice(2).length ? process.argv.slice(2) : ['.'])
-  .map((d) => resolve(root, d));
-
+const args = process.argv.slice(2);
+const targets = (args.length > 0 ? args : ['.']).map((dir) => resolve(root, dir));
 const out = await mkdtemp(join(tmpdir(), 'fdfpv-og-'));
 try {
-  const run = spawnSync('node', [
-    join(root, 'scripts/shots.js'),
+  const shots = spawnSync('node', [
+    join(root, 'scripts', 'shots.js'),
     `--out=${out}`,
     `--w=${W}`,
     `--h=${H}`,
@@ -178,9 +178,8 @@ try {
     `expect:getComputedStyle(document.getElementById("og-picture")).backgroundImage.includes(${JSON.stringify(ART)})`,
     'shot:og',
   ], { cwd: root, stdio: 'inherit' });
-
-  if (run.status !== 0) {
-    throw new Error(`shots.js exited ${run.status}`);
+  if (shots.status !== 0) {
+    throw new Error(`shots.js exited ${shots.status}`);
   }
 
   const card = join(out, 'og-256.png');

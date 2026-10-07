@@ -1,0 +1,7796 @@
+{
+ "en": {
+  "rates": {
+   "result": {
+    "noPanel": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 1,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "offScreen": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0.5,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "pausedHint": "Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. A change reaches the quad at once, and puts it back on the start line.",
+    "titleHint": "Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. Changes are stored and reach the quad at once.",
+    "onScreen": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": -1,
+      "pitch": 0.25,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paintStick {\"roll\":-1,\"pitch\":0.25,\"yaw\":0}",
+    "ratesPanel.paintStick {\"roll\":-1,\"pitch\":0.25,\"yaw\":0}"
+   ]
+  },
+  "pids": {
+   "result": {
+    "loading": "Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. A change reaches the quad at once, and puts it back on the start line.",
+    "hint": "Arrow keys move, left and right change a value, Enter types one. Escape leaves a field, then goes back. Changes are stored and reach the quad at once.",
+    "state": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {
+       "wing-acro": {
+        "mode": "expert"
+       }
+      }
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "pidsPanel.paint null Acro is loading.",
+    "pidsPanel.paint null Acro is loading.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, as it ships. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro through your sliders. Read back from the module; the notch is stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, PIDs set by hand. Read back from the module.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, as it ships. Read back from the module; the notch is stock 4.5.1.",
+    "renderMenu"
+   ]
+  },
+  "fcChrome": {
+   "result": {
+    "offScreen": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs"
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages"
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty"
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": true
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": true
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "returns"
+      ]
+     }
+    },
+    "setup": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "hidden": true
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": false,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty"
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": true
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "returns"
+      ]
+     }
+    },
+    "afterTab": {
+     "tab": "ports",
+     "cursor": 0
+    },
+    "pidDirty": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": false,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Unsaved"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit without saving"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "afterPage": {
+     "page": "filters",
+     "cursor": 0
+    },
+    "confirmLeave": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Unsaved"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit without saving"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "confirmSave": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Unsaved"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": true
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit without saving"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "bare": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": false,
+      "drawCalls": 36
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Unsaved"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Exit without saving"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "paintSetup": 18,
+    "paintTotal": 18,
+    "confirmAfterLeave": null
+   },
+   "log": [
+    "> click  <button.fc-tab.grey \"Ports\">",
+    "fc.setTab ports",
+    "renderMenu",
+    "< click  ",
+    "> click  <button.fc-page \"Filter Settings\">",
+    "renderMenu",
+    "< click  ",
+    "> click  <button.fc-tab \"Setup\">",
+    "< click  ",
+    "> click  <button.fc-page \"PID Profile Settings\">",
+    "< click  ",
+    "fc.stopMotors",
+    "show paused",
+    "fc.stopMotors",
+    "show quad",
+    "fc.stopMotors",
+    "show pids",
+    "fc.stopMotors",
+    "show title",
+    "fc.stopMotors",
+    "show title",
+    "fc.stopMotors",
+    "show title"
+   ]
+  },
+  "helpNode": {
+   "result": {
+    "title": "<titleHelp>",
+    "howto": "<howtoHelp>",
+    "tricks": "<trickHelp>",
+    "credits": "<creditsHelp>",
+    "courses": "<coursesHelp>",
+    "freestyle": "<freestyleHelp>",
+    "pilot": "<pilotHelp>",
+    "friends": "<friendsHelp>",
+    "rooms": "null",
+    "roomnew": "null",
+    "quad": "<quadHelp>",
+    "launch": "<launchHelp>",
+    "standings": "<standingsHelp>",
+    "rates": "<ratesHelp>",
+    "pids": "<pidsHelp>",
+    "fc": "<fcHelp>",
+    "paused": "<pausedHelp>",
+    "results": "<resultsHelp>",
+    "hangar": "null",
+    "bogus": "null",
+    "rooms+pages": "<roomsHelp>",
+    "roomnew+pages": "<roomnewHelp>"
+   },
+   "log": []
+  },
+  "syncCursor": {
+   "result": {
+    "first": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row on",
+       0,
+       "true"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "help": "note b",
+     "scrollTop": 0,
+     "state": {
+      "cursor": 1,
+      "focusId": "b",
+      "dropIndex": null,
+      "dropEl": null,
+      "numberFocusWanted": null,
+      "searchCaret": null,
+      "ratesStick": {
+       "roll": 0,
+       "pitch": 0,
+       "yaw": 0
+      },
+      "pidsLive": null,
+      "ptr": [
+       null,
+       null
+      ],
+      "lastCardKey": null,
+      "settings": {
+       "rates": {
+        "r": 1
+       },
+       "airframe": "quad",
+       "tune": "wing-acro",
+       "pids": {}
+      },
+      "active": "<body>"
+     }
+    },
+    "sameNote": 50,
+    "noId": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row on",
+       0,
+       "true"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "focusId": "b",
+     "help": "no id",
+     "scrollTop": 0
+    },
+    "emptyNote": "",
+    "focusFollows": "<row5>",
+    "fromInner": "<row1>",
+    "fromInput": "<input>",
+    "fromOutside": "<outside>",
+    "offset": [
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row on",
+      0,
+      "true"
+     ],
+     [
+      "menu-heading",
+      null,
+      null
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ]
+    ],
+    "past": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "help": ""
+    },
+    "titleWithNote": "screen screen-title has-help",
+    "titleNoNote": "screen screen-title",
+    "noHelp": "screen screen-title",
+    "menu": {
+     "tag": "DIV",
+     "name": "menu",
+     "children": [
+      {
+       "tag": "DIV",
+       "name": "row0",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      },
+      {
+       "tag": "DIV",
+       "name": "row1",
+       "cls": "row on",
+       "attrs": {
+        "aria-selected": "true"
+       },
+       "tabIndex": 0,
+       "children": [
+        {
+         "tag": "BUTTON",
+         "name": "inner"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "name": "row2",
+       "cls": "menu-heading"
+      },
+      {
+       "tag": "DIV",
+       "name": "row3",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1,
+       "children": [
+        {
+         "tag": "INPUT"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "name": "row4",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      },
+      {
+       "tag": "DIV",
+       "name": "row5",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      }
+     ]
+    }
+   },
+   "log": [
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row5> {\"block\":\"nearest\"}",
+    "focus <row5> {\"preventScroll\":true}",
+    "> blur  <row0>",
+    "< blur  ",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "focus <row1> {\"preventScroll\":true}",
+    "> blur  <inner>",
+    "< blur  ",
+    "markBars 6",
+    "scrollIntoView <row0> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "markBars 6",
+    "scrollIntoView <row0> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}"
+   ]
+  },
+  "focus": {
+   "result": {
+    "afterRow": "<row2>",
+    "afterOffset": "<row0>",
+    "focusInMenu": {
+     "body": false,
+     "none": false,
+     "row": true,
+     "button": true,
+     "input": false,
+     "textarea": false,
+     "outside": false
+    }
+   },
+   "log": [
+    "focus <row2> {\"preventScroll\":true}",
+    "focus <row0> {\"preventScroll\":true}",
+    "> blur  <row2>",
+    "< blur  "
+   ]
+  },
+  "restoreFocusRow": {
+   "result": {
+    "noId": 1,
+    "c": 4,
+    "a": 0,
+    "gapped": 5,
+    "gone": 2
+   },
+   "log": []
+  },
+  "pointer": {
+   "result": {
+    "moved": [
+     false,
+     false,
+     true,
+     true
+    ],
+    "state": {
+     "cursor": 2,
+     "focusId": "c",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      30,
+      40
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "noteInteraction",
+    "markBars 3"
+   ]
+  },
+  "setCursor": {
+   "result": {
+    "courses": {
+     "cursor": 2,
+     "focusId": "c",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": "mine:t9",
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "noCourse": "mine:t9",
+    "end": {
+     "cursor": 1,
+     "focusId": "b",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": "mine:t9",
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "noteInteraction",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markCards",
+    "markBars 3",
+    "noteInteraction",
+    "renderTricks",
+    "markBars 3",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}"
+   ]
+  },
+  "search": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-search",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-textfield",
+       "attrs": {
+        "aria-label": "Search"
+       },
+       "type": "text",
+       "value": "fai",
+       "autocomplete": "off",
+       "spellcheck": false,
+       "placeholder": "Find a setting"
+      }
+     ]
+    },
+    "bare": {
+     "tag": "DIV",
+     "cls": "row-control row-search",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-textfield",
+       "attrs": {
+        "aria-label": "Search"
+       },
+       "type": "text",
+       "value": "",
+       "autocomplete": "off",
+       "spellcheck": false,
+       "placeholder": ""
+      }
+     ]
+    },
+    "afterFocus": {
+     "cursor": 0,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    },
+    "pending": [
+     120
+    ],
+    "afterFlush": {
+     "cursor": 0,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": 3,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    },
+    "texts": [
+     "failsafe"
+    ],
+    "end": {
+     "cursor": 1,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    }
+   },
+   "log": [
+    "focus <input.row-num.row-textfield> ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> click  <input.row-num.row-textfield>",
+    "< click  stopped",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "timer 120",
+    "onText failsafe",
+    "renderMenu",
+    "focus <input.row-num.row-textfield> ",
+    "setSelectionRange <input.row-num.row-textfield> 3 3",
+    "focus <input.row-num.row-textfield> ",
+    "setSelectionRange <input.row-num.row-textfield> 8 8",
+    "focus <input.row-num.row-textfield> ",
+    "> keydown ArrowDown <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move 1",
+    "focus <row1> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row1>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown ArrowUp <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move -1",
+    "focus <row0> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row0>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown Enter <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move 1",
+    "focus <row1> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row1>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown Escape <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown d <input.row-num.row-textfield>",
+    "< keydown  stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> keydown a <input.row-num.row-textfield>",
+    "< keydown  stopped",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "timer 120"
+   ]
+  },
+  "switches": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Air mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "Off"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "On"
+       ]
+      }
+     ]
+    },
+    "treeOn": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Air mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Off"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "On"
+       ]
+      }
+     ]
+    },
+    "afterClick": {
+     "cursor": 1,
+     "focusId": "sw",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "air": true
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <button.sw-seg.on \"Off\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"On\">",
+    "markBars 2",
+    "it.adjust 1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "< click  stopped",
+    "it.adjust -1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "it.adjust 1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  },
+  "segments": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Flight mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Acro"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "Angle"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Horizon"
+       ]
+      }
+     ]
+    },
+    "state": {
+     "cursor": 0,
+     "focusId": "mode",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "mode": "h"
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <button.sw-seg.on \"Angle\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Horizon\">",
+    "markBars 2",
+    "it.pick h",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Acro\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Horizon\">",
+    "markBars 2",
+    "< click  stopped"
+   ]
+  },
+  "stepper": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "SPAN",
+       "cls": "row-value",
+       "children": [
+        "4S"
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Increase Cells"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Decrease Cells"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "state": {
+     "cursor": 1,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <span.row-value \"4S\">",
+    "adjust 1",
+    "< click  stopped",
+    "> click  <button.step \"▲\">",
+    "adjust 1",
+    "< click  stopped",
+    "> click  <button.step \"▼\">",
+    "adjust -1",
+    "< click  stopped"
+   ]
+  },
+  "number": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num",
+       "attrs": {
+        "aria-label": "Roll rate"
+       },
+       "type": "text",
+       "value": "670",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "row-num-unit",
+       "children": [
+        "deg/s"
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Increase Roll rate"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Decrease Roll rate"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "noUnit": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num",
+       "attrs": {
+        "aria-label": "Pitch rate"
+       },
+       "type": "text",
+       "value": "500",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Increase Pitch rate"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Decrease Pitch rate"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "afterMousedown": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    },
+    "handoff": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": 2,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<body \"deg/s▲▼▲▼\">"
+    },
+    "escaped": {
+     "value": "500",
+     "active": "<body \"deg/s▲▼▲▼\">"
+    },
+    "end": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    }
+   },
+   "log": [
+    "> mousedown  <input.row-num>",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "< mousedown prevented ",
+    "> mousedown  <input.row-num>",
+    "< mousedown  ",
+    "> click  <input.row-num>",
+    "< click  stopped",
+    "> input  <input.row-num>",
+    "< input  ",
+    "> input  <input.row-num>",
+    "set 800",
+    "ratesPanel.paint rates rate 800",
+    "set 670",
+    "< input  ",
+    "> input  <input.row-num>",
+    "< input  ",
+    "> mousedown  <input.row-num>",
+    "blur <input.row-num>",
+    "> blur  <input.row-num>",
+    "renderMenu",
+    "< blur  ",
+    "< mousedown prevented ",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "> keydown Enter <input.row-num>",
+    "renderMenu",
+    "< keydown prevented stopped",
+    "> keydown Escape <input.row-num>",
+    "ratesPanel.paint rates rate 670",
+    "blur <input.row-num>",
+    "> blur  <input.row-num>",
+    "renderMenu",
+    "< blur  ",
+    "< keydown prevented stopped",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "> keydown ArrowDown <input.row-num>",
+    "set 700",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "move 1",
+    "< keydown prevented stopped",
+    "> keydown ArrowUp <input.row-num>",
+    "renderMenu",
+    "move -1",
+    "< keydown prevented stopped",
+    "> keydown a <input.row-num>",
+    "< keydown  ",
+    "> keydown ArrowLeft <input.row-num>",
+    "< keydown  ",
+    "> blur  <input.row-num>",
+    "set 999",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "< blur  ",
+    "> blur  <input.row-num>",
+    "< blur  ",
+    "> mousedown  <button.step \"▲\">",
+    "< mousedown prevented ",
+    "> click  <button.step \"▲\">",
+    "set 1000",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "< click  stopped",
+    "> mousedown  <button.step \"▼\">",
+    "< mousedown prevented ",
+    "> click  <button.step \"▼\">",
+    "set 669",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "< click  stopped",
+    "> click  <button.step \"▼\">",
+    "set 0",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "< click  stopped"
+   ]
+  },
+  "slider": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-slider",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-range",
+       "attrs": {
+        "aria-label": "Master"
+       },
+       "type": "range",
+       "min": "20",
+       "max": "200",
+       "step": "1",
+       "value": "100"
+      },
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-range-num",
+       "attrs": {
+        "aria-label": "Master value"
+       },
+       "type": "text",
+       "value": "100",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "row-num-unit",
+       "children": [
+        "%"
+       ]
+      }
+     ]
+    },
+    "noUnit": {
+     "tag": "DIV",
+     "cls": "row-control row-slider",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-range",
+       "attrs": {
+        "aria-label": "Master"
+       },
+       "type": "range",
+       "min": "20",
+       "max": "200",
+       "step": "1",
+       "value": "100"
+      },
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-range-num",
+       "attrs": {
+        "aria-label": "Master value"
+       },
+       "type": "text",
+       "value": "100",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      }
+     ]
+    },
+    "dragged": "1.50",
+    "focused": {
+     "cursor": 1,
+     "focusId": "master",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 90
+     },
+     "active": "<input.row-num.row-range-num>"
+    },
+    "escaped": "100",
+    "end": {
+     "cursor": 1,
+     "focusId": "master",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 90
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> pointerdown  <input.row-range>",
+    "markBars 2",
+    "< pointerdown  stopped",
+    "> click  <input.row-range>",
+    "< click  stopped",
+    "> input  <input.row-range>",
+    "< input  ",
+    "> change  <input.row-range>",
+    "set 150",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "< change  ",
+    "> change  <input.row-range>",
+    "< change  ",
+    "> change  <input.row-range>",
+    "< change  ",
+    "> pointerdown  <input.row-num.row-range-num>",
+    "< pointerdown  stopped",
+    "> click  <input.row-num.row-range-num>",
+    "< click  stopped",
+    "focus <input.row-num.row-range-num> ",
+    "> focus  <input.row-num.row-range-num>",
+    "markBars 2",
+    "select <input.row-num.row-range-num>",
+    "< focus  ",
+    "> keydown Enter <input.row-num.row-range-num>",
+    "set 120",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "< keydown prevented stopped",
+    "> keydown Escape <input.row-num.row-range-num>",
+    "blur <input.row-num.row-range-num>",
+    "> blur  <input.row-num.row-range-num>",
+    "renderMenu",
+    "< blur  ",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-range-num> ",
+    "> focus  <input.row-num.row-range-num>",
+    "markBars 2",
+    "select <input.row-num.row-range-num>",
+    "< focus  ",
+    "> keydown ArrowDown <input.row-num.row-range-num>",
+    "< keydown  ",
+    "blur <input.row-num.row-range-num>",
+    "> blur  <input.row-num.row-range-num>",
+    "set 90",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "< blur  ",
+    "> blur  <input.row-num.row-range-num>",
+    "< blur  "
+   ]
+  },
+  "numberHelpers": {
+   "result": {
+    "afterPreview": 670,
+    "end": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    }
+   },
+   "log": [
+    "focus <input.row-num> ",
+    "focus <input.row-num> ",
+    "set 700",
+    "ratesPanel.paint rate 700",
+    "set 670",
+    "set 710",
+    "ratesPanel.paint threw",
+    "set 670",
+    "caught boom",
+    "renderMenu",
+    "renderMenu",
+    "set 671",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "set 671",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "set 4",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "set 1000",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "set 0",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  },
+  "drop": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "drop-btn",
+       "attrs": {
+        "aria-haspopup": "listbox",
+        "aria-label": "Craft"
+       },
+       "type": "button",
+       "children": [
+        "Beta"
+       ]
+      }
+     ]
+    },
+    "opened": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": 1,
+     "dropEl": {
+      "tag": "DIV",
+      "cls": "drop-list",
+      "attrs": {
+       "role": "listbox"
+      },
+      "style": {
+       "left": "1040px",
+       "minWidth": "148px",
+       "top": "134px"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Alpha"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt on",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Beta"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Gamma"
+        ]
+       }
+      ]
+     },
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"BetaAlphaBetaGamma\">"
+    },
+    "wrapped": {
+     "tag": "DIV",
+     "cls": "drop-list",
+     "attrs": {
+      "role": "listbox"
+     },
+     "style": {
+      "left": "1040px",
+      "minWidth": "148px",
+      "top": "134px"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt on",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Alpha"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Beta"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Gamma"
+       ]
+      }
+     ]
+    },
+    "closed": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "flipped": {
+     "cursor": 2,
+     "focusId": "nc",
+     "dropIndex": 2,
+     "dropEl": {
+      "tag": "DIV",
+      "cls": "drop-list",
+      "attrs": {
+       "role": "listbox"
+      },
+      "style": {
+       "left": "8px",
+       "minWidth": "300px",
+       "top": "556px"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt on",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Alpha"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Beta"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Gamma"
+        ]
+       }
+      ]
+     },
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"BetaAlphaBetaGamma\">"
+    },
+    "confirmed": {
+     "cursor": 2,
+     "focusId": "nc",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "opener": {
+     "cursor": 3,
+     "focusId": "op",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "optionClick": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "end": {
+     "cursor": 4,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    }
+   },
+   "log": [
+    "> click  <button.drop-btn \"Beta\">",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
+    "< click  stopped",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "scrollIntoView <button.drop-opt.on \"Alpha\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "> click  <button.drop-btn \"Beta\">",
+    "< click  stopped",
+    "sound select",
+    "markBars 6",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Alpha\"> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "it.pick 3",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "sound select",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "it.open",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
+    "> click  <button.drop-opt \"Gamma\">",
+    "it.pick 3",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "< click  stopped",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}"
+   ]
+  },
+  "pick": {
+   "result": {
+    "cursor": 5,
+    "focusId": null,
+    "dropIndex": null,
+    "dropEl": null,
+    "numberFocusWanted": null,
+    "searchCaret": null,
+    "ratesStick": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0
+    },
+    "pidsLive": null,
+    "ptr": [
+     null,
+     null
+    ],
+    "lastCardKey": null,
+    "settings": {
+     "rates": {
+      "r": 1
+     },
+     "airframe": "quad",
+     "tune": "wing-acro",
+     "pids": {},
+     "p": "quiet"
+    },
+    "active": "<body>"
+   },
+   "log": [
+    "it.pick 7",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "it.pick quiet",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":\"quiet\"}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  }
+ },
+ "es": {
+  "rates": {
+   "result": {
+    "noPanel": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 1,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "offScreen": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0.5,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "pausedHint": "Las flechas mueven, izquierda y derecha cambian un valor, Enter escribe uno. Escape sale de un campo, y luego vuelve. Un cambio llega al quad al instante, y lo pone de vuelta en la línea de salida.",
+    "titleHint": "Las flechas mueven, izquierda y derecha cambian un valor, Enter escribe uno. Escape sale de un campo, y luego vuelve. Los cambios se guardan y llegan al quad al instante.",
+    "onScreen": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": -1,
+      "pitch": 0.25,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paint {\"r\":1} {\"roll\":0,\"pitch\":0,\"yaw\":0} quad",
+    "ratesPanel.paintStick {\"roll\":-1,\"pitch\":0.25,\"yaw\":0}",
+    "ratesPanel.paintStick {\"roll\":-1,\"pitch\":0.25,\"yaw\":0}"
+   ]
+  },
+  "pids": {
+   "result": {
+    "loading": "Las flechas mueven, izquierda y derecha cambian un valor, Enter escribe uno. Escape sale de un campo, y luego vuelve. Un cambio llega al quad al instante, y lo pone de vuelta en la línea de salida.",
+    "hint": "Las flechas mueven, izquierda y derecha cambian un valor, Enter escribe uno. Escape sale de un campo, y luego vuelve. Los cambios se guardan y llegan al quad al instante.",
+    "state": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {
+       "wing-acro": {
+        "mode": "expert"
+       }
+      }
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "pidsPanel.paint null Acro se está cargando.",
+    "pidsPanel.paint null Acro se está cargando.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro a través de tus sliders. Leído de vuelta desde el módulo; la muesca es el stock 4.5.1.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, PIDs fijados a mano. Leídos de vuelta desde el módulo.",
+    "pidsPanel.paint {\"tune\":\"wing-acro\",\"roll\":[1]} Acro, tal como viene. Leído desde el módulo; el notch es el de fábrica de 4.5.1.",
+    "renderMenu"
+   ]
+  },
+  "fcChrome": {
+   "result": {
+    "offScreen": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs"
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages"
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty"
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": true
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": true
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "returns"
+      ]
+     }
+    },
+    "setup": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "hidden": true
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": false,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty"
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": true
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "returns"
+      ]
+     }
+    },
+    "afterTab": {
+     "tab": "ports",
+     "cursor": 0
+    },
+    "pidDirty": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": false,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Sin guardar"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir sin guardar"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "afterPage": {
+     "page": "filters",
+     "cursor": 0
+    },
+    "confirmLeave": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Sin guardar"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir sin guardar"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "confirmSave": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": true,
+      "drawCalls": 18
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Sin guardar"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": true
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir sin guardar"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "bare": {
+     "fcTabs": {
+      "tag": "NAV",
+      "name": "fcTabs",
+      "dataset": {
+       "ready": "1"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab on",
+        "dataset": {
+         "id": "setup"
+        },
+        "type": "button",
+        "children": [
+         "Setup"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "ports"
+        },
+        "type": "button",
+        "children": [
+         "Ports"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "configuration"
+        },
+        "type": "button",
+        "children": [
+         "Configuration"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Tuning"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "receiver"
+        },
+        "type": "button",
+        "children": [
+         "Receiver"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "modes"
+        },
+        "type": "button",
+        "children": [
+         "Modes"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "adjustments"
+        },
+        "type": "button",
+        "children": [
+         "Adjustments"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "servos"
+        },
+        "type": "button",
+        "children": [
+         "Servos"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "motors"
+        },
+        "type": "button",
+        "children": [
+         "Motors"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "osd"
+        },
+        "type": "button",
+        "children": [
+         "OSD"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "vtx"
+        },
+        "type": "button",
+        "children": [
+         "VTX"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "led"
+        },
+        "type": "button",
+        "children": [
+         "LED Strip"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "gps"
+        },
+        "type": "button",
+        "children": [
+         "GPS"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "failsafe"
+        },
+        "type": "button",
+        "children": [
+         "Failsafe"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "blackbox-viewer"
+        },
+        "type": "button",
+        "children": [
+         "Blackbox viewer"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "power"
+        },
+        "type": "button",
+        "children": [
+         "Power"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab",
+        "dataset": {
+         "id": "presets"
+        },
+        "type": "button",
+        "children": [
+         "Presets"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flasher"
+        },
+        "type": "button",
+        "children": [
+         "Firmware flasher"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "autotune"
+        },
+        "type": "button",
+        "children": [
+         "Autotune"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "flight-plan"
+        },
+        "type": "button",
+        "children": [
+         "Flight plan"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-profile"
+        },
+        "type": "button",
+        "children": [
+         "User cloud profile"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-tab grey",
+        "dataset": {
+         "id": "cloud-backups"
+        },
+        "type": "button",
+        "children": [
+         "Backups to cloud"
+        ]
+       }
+      ]
+     },
+     "fcPages": {
+      "tag": "NAV",
+      "name": "fcPages",
+      "dataset": {
+       "ready": "1"
+      },
+      "hidden": true,
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "pid"
+        },
+        "type": "button",
+        "children": [
+         "PID Profile Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "filters"
+        },
+        "type": "button",
+        "children": [
+         "Filter Settings"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "fc-page",
+        "dataset": {
+         "id": "rates"
+        },
+        "type": "button",
+        "children": [
+         "Rateprofile Settings"
+        ]
+       }
+      ]
+     },
+     "fcAttitude": {
+      "tag": "CANVAS",
+      "name": "fcAttitude",
+      "hidden": false,
+      "drawCalls": 36
+     },
+     "fcDirty": {
+      "tag": "SPAN",
+      "name": "fcDirty",
+      "children": [
+       "Sin guardar"
+      ]
+     },
+     "fcExit": {
+      "tag": "DIV",
+      "name": "fcExit",
+      "hidden": false
+     },
+     "fcSaveExit": {
+      "tag": "BUTTON",
+      "name": "fcSaveExit",
+      "hidden": false
+     },
+     "fcLeave": {
+      "tag": "BUTTON",
+      "name": "fcLeave",
+      "children": [
+       "Salir sin guardar"
+      ]
+     },
+     "fcExitCopy": {
+      "tag": "SPAN",
+      "name": "fcExitCopy",
+      "children": [
+       "exits without saving"
+      ]
+     }
+    },
+    "paintSetup": 18,
+    "paintTotal": 18,
+    "confirmAfterLeave": null
+   },
+   "log": [
+    "> click  <button.fc-tab.grey \"Ports\">",
+    "fc.setTab ports",
+    "renderMenu",
+    "< click  ",
+    "> click  <button.fc-page \"Filter Settings\">",
+    "renderMenu",
+    "< click  ",
+    "> click  <button.fc-tab \"Setup\">",
+    "< click  ",
+    "> click  <button.fc-page \"PID Profile Settings\">",
+    "< click  ",
+    "fc.stopMotors",
+    "show paused",
+    "fc.stopMotors",
+    "show quad",
+    "fc.stopMotors",
+    "show pids",
+    "fc.stopMotors",
+    "show title",
+    "fc.stopMotors",
+    "show title",
+    "fc.stopMotors",
+    "show title"
+   ]
+  },
+  "helpNode": {
+   "result": {
+    "title": "<titleHelp>",
+    "howto": "<howtoHelp>",
+    "tricks": "<trickHelp>",
+    "credits": "<creditsHelp>",
+    "courses": "<coursesHelp>",
+    "freestyle": "<freestyleHelp>",
+    "pilot": "<pilotHelp>",
+    "friends": "<friendsHelp>",
+    "rooms": "null",
+    "roomnew": "null",
+    "quad": "<quadHelp>",
+    "launch": "<launchHelp>",
+    "standings": "<standingsHelp>",
+    "rates": "<ratesHelp>",
+    "pids": "<pidsHelp>",
+    "fc": "<fcHelp>",
+    "paused": "<pausedHelp>",
+    "results": "<resultsHelp>",
+    "hangar": "null",
+    "bogus": "null",
+    "rooms+pages": "<roomsHelp>",
+    "roomnew+pages": "<roomnewHelp>"
+   },
+   "log": []
+  },
+  "syncCursor": {
+   "result": {
+    "first": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row on",
+       0,
+       "true"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "help": "note b",
+     "scrollTop": 0,
+     "state": {
+      "cursor": 1,
+      "focusId": "b",
+      "dropIndex": null,
+      "dropEl": null,
+      "numberFocusWanted": null,
+      "searchCaret": null,
+      "ratesStick": {
+       "roll": 0,
+       "pitch": 0,
+       "yaw": 0
+      },
+      "pidsLive": null,
+      "ptr": [
+       null,
+       null
+      ],
+      "lastCardKey": null,
+      "settings": {
+       "rates": {
+        "r": 1
+       },
+       "airframe": "quad",
+       "tune": "wing-acro",
+       "pids": {}
+      },
+      "active": "<body>"
+     }
+    },
+    "sameNote": 50,
+    "noId": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row on",
+       0,
+       "true"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "focusId": "b",
+     "help": "no id",
+     "scrollTop": 0
+    },
+    "emptyNote": "",
+    "focusFollows": "<row5>",
+    "fromInner": "<row1>",
+    "fromInput": "<input>",
+    "fromOutside": "<outside>",
+    "offset": [
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row on",
+      0,
+      "true"
+     ],
+     [
+      "menu-heading",
+      null,
+      null
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ],
+     [
+      "row",
+      -1,
+      "false"
+     ]
+    ],
+    "past": {
+     "rows": [
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "menu-heading",
+       null,
+       null
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ],
+      [
+       "row",
+       -1,
+       "false"
+      ]
+     ],
+     "help": ""
+    },
+    "titleWithNote": "screen screen-title has-help",
+    "titleNoNote": "screen screen-title",
+    "noHelp": "screen screen-title",
+    "menu": {
+     "tag": "DIV",
+     "name": "menu",
+     "children": [
+      {
+       "tag": "DIV",
+       "name": "row0",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      },
+      {
+       "tag": "DIV",
+       "name": "row1",
+       "cls": "row on",
+       "attrs": {
+        "aria-selected": "true"
+       },
+       "tabIndex": 0,
+       "children": [
+        {
+         "tag": "BUTTON",
+         "name": "inner"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "name": "row2",
+       "cls": "menu-heading"
+      },
+      {
+       "tag": "DIV",
+       "name": "row3",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1,
+       "children": [
+        {
+         "tag": "INPUT"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "name": "row4",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      },
+      {
+       "tag": "DIV",
+       "name": "row5",
+       "cls": "row",
+       "attrs": {
+        "aria-selected": "false"
+       },
+       "tabIndex": -1
+      }
+     ]
+    }
+   },
+   "log": [
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row5> {\"block\":\"nearest\"}",
+    "focus <row5> {\"preventScroll\":true}",
+    "> blur  <row0>",
+    "< blur  ",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "focus <row1> {\"preventScroll\":true}",
+    "> blur  <inner>",
+    "< blur  ",
+    "markBars 6",
+    "scrollIntoView <row0> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "markBars 6",
+    "scrollIntoView <row0> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}"
+   ]
+  },
+  "focus": {
+   "result": {
+    "afterRow": "<row2>",
+    "afterOffset": "<row0>",
+    "focusInMenu": {
+     "body": false,
+     "none": false,
+     "row": true,
+     "button": true,
+     "input": false,
+     "textarea": false,
+     "outside": false
+    }
+   },
+   "log": [
+    "focus <row2> {\"preventScroll\":true}",
+    "focus <row0> {\"preventScroll\":true}",
+    "> blur  <row2>",
+    "< blur  "
+   ]
+  },
+  "restoreFocusRow": {
+   "result": {
+    "noId": 1,
+    "c": 4,
+    "a": 0,
+    "gapped": 5,
+    "gone": 2
+   },
+   "log": []
+  },
+  "pointer": {
+   "result": {
+    "moved": [
+     false,
+     false,
+     true,
+     true
+    ],
+    "state": {
+     "cursor": 2,
+     "focusId": "c",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      30,
+      40
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "noteInteraction",
+    "markBars 3"
+   ]
+  },
+  "setCursor": {
+   "result": {
+    "courses": {
+     "cursor": 2,
+     "focusId": "c",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": "mine:t9",
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    },
+    "noCourse": "mine:t9",
+    "end": {
+     "cursor": 1,
+     "focusId": "b",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": "mine:t9",
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "noteInteraction",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markCards",
+    "markBars 3",
+    "noteInteraction",
+    "renderTricks",
+    "markBars 3",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "sound move",
+    "noteInteraction",
+    "markBars 3",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}"
+   ]
+  },
+  "search": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-search",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-textfield",
+       "attrs": {
+        "aria-label": "Search"
+       },
+       "type": "text",
+       "value": "fai",
+       "autocomplete": "off",
+       "spellcheck": false,
+       "placeholder": "Find a setting"
+      }
+     ]
+    },
+    "bare": {
+     "tag": "DIV",
+     "cls": "row-control row-search",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-textfield",
+       "attrs": {
+        "aria-label": "Search"
+       },
+       "type": "text",
+       "value": "",
+       "autocomplete": "off",
+       "spellcheck": false,
+       "placeholder": ""
+      }
+     ]
+    },
+    "afterFocus": {
+     "cursor": 0,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    },
+    "pending": [
+     120
+    ],
+    "afterFlush": {
+     "cursor": 0,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": 3,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    },
+    "texts": [
+     "failsafe"
+    ],
+    "end": {
+     "cursor": 1,
+     "focusId": "q",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<input.row-num.row-textfield>"
+    }
+   },
+   "log": [
+    "focus <input.row-num.row-textfield> ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> click  <input.row-num.row-textfield>",
+    "< click  stopped",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "timer 120",
+    "onText failsafe",
+    "renderMenu",
+    "focus <input.row-num.row-textfield> ",
+    "setSelectionRange <input.row-num.row-textfield> 3 3",
+    "focus <input.row-num.row-textfield> ",
+    "setSelectionRange <input.row-num.row-textfield> 8 8",
+    "focus <input.row-num.row-textfield> ",
+    "> keydown ArrowDown <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move 1",
+    "focus <row1> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row1>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown ArrowUp <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move -1",
+    "focus <row0> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row0>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown Enter <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "move 1",
+    "focus <row1> {\"preventScroll\":true}",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> blur  <row1>",
+    "< blur  ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown Escape <input.row-num.row-textfield>",
+    "blur <input.row-num.row-textfield>",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> focus  <input.row-num.row-textfield>",
+    "markBars 4",
+    "< focus  ",
+    "> keydown d <input.row-num.row-textfield>",
+    "< keydown  stopped",
+    "focus <input.row-num.row-textfield> ",
+    "> keydown a <input.row-num.row-textfield>",
+    "< keydown  stopped",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "> input  <input.row-num.row-textfield>",
+    "< input  ",
+    "timer 120"
+   ]
+  },
+  "switches": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Air mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "Off"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "On"
+       ]
+      }
+     ]
+    },
+    "treeOn": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Air mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Off"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "On"
+       ]
+      }
+     ]
+    },
+    "afterClick": {
+     "cursor": 1,
+     "focusId": "sw",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "air": true
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <button.sw-seg.on \"Off\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"On\">",
+    "markBars 2",
+    "it.adjust 1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "< click  stopped",
+    "it.adjust -1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":false}",
+    "it.adjust 1",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"air\":true}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  },
+  "segments": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-switch",
+     "attrs": {
+      "aria-label": "Flight mode",
+      "role": "group"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Acro"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg on",
+       "attrs": {
+        "aria-pressed": "true"
+       },
+       "type": "button",
+       "children": [
+        "Angle"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "sw-seg",
+       "attrs": {
+        "aria-pressed": "false"
+       },
+       "type": "button",
+       "children": [
+        "Horizon"
+       ]
+      }
+     ]
+    },
+    "state": {
+     "cursor": 0,
+     "focusId": "mode",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "mode": "h"
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <button.sw-seg.on \"Angle\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Horizon\">",
+    "markBars 2",
+    "it.pick h",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"mode\":\"h\"}",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Acro\">",
+    "markBars 2",
+    "< click  stopped",
+    "> click  <button.sw-seg \"Horizon\">",
+    "markBars 2",
+    "< click  stopped"
+   ]
+  },
+  "stepper": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "SPAN",
+       "cls": "row-value",
+       "children": [
+        "4S"
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Subir Cells"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Bajar Cells"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "state": {
+     "cursor": 1,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {}
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> click  <span.row-value \"4S\">",
+    "adjust 1",
+    "< click  stopped",
+    "> click  <button.step \"▲\">",
+    "adjust 1",
+    "< click  stopped",
+    "> click  <button.step \"▼\">",
+    "adjust -1",
+    "< click  stopped"
+   ]
+  },
+  "number": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num",
+       "attrs": {
+        "aria-label": "Roll rate"
+       },
+       "type": "text",
+       "value": "670",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "row-num-unit",
+       "children": [
+        "deg/s"
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Subir Roll rate"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Bajar Roll rate"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "noUnit": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-num",
+       "attrs": {
+        "aria-label": "Pitch rate"
+       },
+       "type": "text",
+       "value": "500",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "step-col",
+       "children": [
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Subir Pitch rate"
+         },
+         "type": "button",
+         "children": [
+          "▲"
+         ]
+        },
+        {
+         "tag": "BUTTON",
+         "cls": "step",
+         "attrs": {
+          "aria-label": "Bajar Pitch rate"
+         },
+         "type": "button",
+         "children": [
+          "▼"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "afterMousedown": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    },
+    "handoff": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": 2,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<body \"deg/s▲▼▲▼\">"
+    },
+    "escaped": {
+     "value": "500",
+     "active": "<body \"deg/s▲▼▲▼\">"
+    },
+    "end": {
+     "cursor": 1,
+     "focusId": "rate",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    }
+   },
+   "log": [
+    "> mousedown  <input.row-num>",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "< mousedown prevented ",
+    "> mousedown  <input.row-num>",
+    "< mousedown  ",
+    "> click  <input.row-num>",
+    "< click  stopped",
+    "> input  <input.row-num>",
+    "< input  ",
+    "> input  <input.row-num>",
+    "set 800",
+    "ratesPanel.paint rates rate 800",
+    "set 670",
+    "< input  ",
+    "> input  <input.row-num>",
+    "< input  ",
+    "> mousedown  <input.row-num>",
+    "blur <input.row-num>",
+    "> blur  <input.row-num>",
+    "renderMenu",
+    "< blur  ",
+    "< mousedown prevented ",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "> keydown Enter <input.row-num>",
+    "renderMenu",
+    "< keydown prevented stopped",
+    "> keydown Escape <input.row-num>",
+    "ratesPanel.paint rates rate 670",
+    "blur <input.row-num>",
+    "> blur  <input.row-num>",
+    "renderMenu",
+    "< blur  ",
+    "< keydown prevented stopped",
+    "focus <input.row-num> ",
+    "> focus  <input.row-num>",
+    "markBars 3",
+    "select <input.row-num>",
+    "< focus  ",
+    "> keydown ArrowDown <input.row-num>",
+    "set 700",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":700}",
+    "move 1",
+    "< keydown prevented stopped",
+    "> keydown ArrowUp <input.row-num>",
+    "renderMenu",
+    "move -1",
+    "< keydown prevented stopped",
+    "> keydown a <input.row-num>",
+    "< keydown  ",
+    "> keydown ArrowLeft <input.row-num>",
+    "< keydown  ",
+    "> blur  <input.row-num>",
+    "set 999",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":999}",
+    "< blur  ",
+    "> blur  <input.row-num>",
+    "< blur  ",
+    "> mousedown  <button.step \"▲\">",
+    "< mousedown prevented ",
+    "> click  <button.step \"▲\">",
+    "set 1000",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "< click  stopped",
+    "> mousedown  <button.step \"▼\">",
+    "< mousedown prevented ",
+    "> click  <button.step \"▼\">",
+    "set 669",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":669}",
+    "< click  stopped",
+    "> click  <button.step \"▼\">",
+    "set 0",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "< click  stopped"
+   ]
+  },
+  "slider": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control row-slider",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-range",
+       "attrs": {
+        "aria-label": "Master"
+       },
+       "type": "range",
+       "min": "20",
+       "max": "200",
+       "step": "1",
+       "value": "100"
+      },
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-range-num",
+       "attrs": {
+        "aria-label": "Valor de Master"
+       },
+       "type": "text",
+       "value": "100",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      },
+      {
+       "tag": "SPAN",
+       "cls": "row-num-unit",
+       "children": [
+        "%"
+       ]
+      }
+     ]
+    },
+    "noUnit": {
+     "tag": "DIV",
+     "cls": "row-control row-slider",
+     "children": [
+      {
+       "tag": "INPUT",
+       "cls": "row-range",
+       "attrs": {
+        "aria-label": "Master"
+       },
+       "type": "range",
+       "min": "20",
+       "max": "200",
+       "step": "1",
+       "value": "100"
+      },
+      {
+       "tag": "INPUT",
+       "cls": "row-num row-range-num",
+       "attrs": {
+        "aria-label": "Valor de Master"
+       },
+       "type": "text",
+       "value": "100",
+       "inputMode": "decimal",
+       "autocomplete": "off",
+       "spellcheck": false
+      }
+     ]
+    },
+    "dragged": "1.50",
+    "focused": {
+     "cursor": 1,
+     "focusId": "master",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 90
+     },
+     "active": "<input.row-num.row-range-num>"
+    },
+    "escaped": "100",
+    "end": {
+     "cursor": 1,
+     "focusId": "master",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 90
+     },
+     "active": "<body>"
+    }
+   },
+   "log": [
+    "> pointerdown  <input.row-range>",
+    "markBars 2",
+    "< pointerdown  stopped",
+    "> click  <input.row-range>",
+    "< click  stopped",
+    "> input  <input.row-range>",
+    "< input  ",
+    "> change  <input.row-range>",
+    "set 150",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":150}",
+    "< change  ",
+    "> change  <input.row-range>",
+    "< change  ",
+    "> change  <input.row-range>",
+    "< change  ",
+    "> pointerdown  <input.row-num.row-range-num>",
+    "< pointerdown  stopped",
+    "> click  <input.row-num.row-range-num>",
+    "< click  stopped",
+    "focus <input.row-num.row-range-num> ",
+    "> focus  <input.row-num.row-range-num>",
+    "markBars 2",
+    "select <input.row-num.row-range-num>",
+    "< focus  ",
+    "> keydown Enter <input.row-num.row-range-num>",
+    "set 120",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":120}",
+    "< keydown prevented stopped",
+    "> keydown Escape <input.row-num.row-range-num>",
+    "blur <input.row-num.row-range-num>",
+    "> blur  <input.row-num.row-range-num>",
+    "renderMenu",
+    "< blur  ",
+    "< keydown prevented stopped",
+    "focus <input.row-num.row-range-num> ",
+    "> focus  <input.row-num.row-range-num>",
+    "markBars 2",
+    "select <input.row-num.row-range-num>",
+    "< focus  ",
+    "> keydown ArrowDown <input.row-num.row-range-num>",
+    "< keydown  ",
+    "blur <input.row-num.row-range-num>",
+    "> blur  <input.row-num.row-range-num>",
+    "set 90",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":90}",
+    "< blur  ",
+    "> blur  <input.row-num.row-range-num>",
+    "< blur  "
+   ]
+  },
+  "numberHelpers": {
+   "result": {
+    "afterPreview": 670,
+    "end": {
+     "cursor": 0,
+     "focusId": null,
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "rate": 0
+     },
+     "active": "<input.row-num>"
+    }
+   },
+   "log": [
+    "focus <input.row-num> ",
+    "focus <input.row-num> ",
+    "set 700",
+    "ratesPanel.paint rate 700",
+    "set 670",
+    "set 710",
+    "ratesPanel.paint threw",
+    "set 670",
+    "caught boom",
+    "renderMenu",
+    "renderMenu",
+    "set 671",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "set 671",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":671}",
+    "set 4",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":4}",
+    "set 1000",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":1000}",
+    "set 0",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"rate\":0}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  },
+  "drop": {
+   "result": {
+    "tree": {
+     "tag": "DIV",
+     "cls": "row-control",
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "drop-btn",
+       "attrs": {
+        "aria-haspopup": "listbox",
+        "aria-label": "Craft"
+       },
+       "type": "button",
+       "children": [
+        "Beta"
+       ]
+      }
+     ]
+    },
+    "opened": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": 1,
+     "dropEl": {
+      "tag": "DIV",
+      "cls": "drop-list",
+      "attrs": {
+       "role": "listbox"
+      },
+      "style": {
+       "left": "1040px",
+       "minWidth": "148px",
+       "top": "134px"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Alpha"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt on",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Beta"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Gamma"
+        ]
+       }
+      ]
+     },
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"BetaAlphaBetaGamma\">"
+    },
+    "wrapped": {
+     "tag": "DIV",
+     "cls": "drop-list",
+     "attrs": {
+      "role": "listbox"
+     },
+     "style": {
+      "left": "1040px",
+      "minWidth": "148px",
+      "top": "134px"
+     },
+     "children": [
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt on",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Alpha"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Beta"
+       ]
+      },
+      {
+       "tag": "BUTTON",
+       "cls": "drop-opt",
+       "attrs": {
+        "role": "option"
+       },
+       "type": "button",
+       "children": [
+        "Gamma"
+       ]
+      }
+     ]
+    },
+    "closed": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "flipped": {
+     "cursor": 2,
+     "focusId": "nc",
+     "dropIndex": 2,
+     "dropEl": {
+      "tag": "DIV",
+      "cls": "drop-list",
+      "attrs": {
+       "role": "listbox"
+      },
+      "style": {
+       "left": "8px",
+       "minWidth": "300px",
+       "top": "556px"
+      },
+      "children": [
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt on",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Alpha"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Beta"
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "drop-opt",
+        "attrs": {
+         "role": "option"
+        },
+        "type": "button",
+        "children": [
+         "Gamma"
+        ]
+       }
+      ]
+     },
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"BetaAlphaBetaGamma\">"
+    },
+    "confirmed": {
+     "cursor": 2,
+     "focusId": "nc",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "opener": {
+     "cursor": 3,
+     "focusId": "op",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "optionClick": {
+     "cursor": 1,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    },
+    "end": {
+     "cursor": 4,
+     "focusId": "dd",
+     "dropIndex": null,
+     "dropEl": null,
+     "numberFocusWanted": null,
+     "searchCaret": null,
+     "ratesStick": {
+      "roll": 0,
+      "pitch": 0,
+      "yaw": 0
+     },
+     "pidsLive": null,
+     "ptr": [
+      null,
+      null
+     ],
+     "lastCardKey": null,
+     "settings": {
+      "rates": {
+       "r": 1
+      },
+      "airframe": "quad",
+      "tune": "wing-acro",
+      "pids": {},
+      "choice": 3
+     },
+     "active": "<body \"Beta\">"
+    }
+   },
+   "log": [
+    "> click  <button.drop-btn \"Beta\">",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
+    "< click  stopped",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "scrollIntoView <button.drop-opt.on \"Alpha\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "> click  <button.drop-btn \"Beta\">",
+    "< click  stopped",
+    "sound select",
+    "markBars 6",
+    "scrollIntoView <row2> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Alpha\"> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Gamma\"> {\"block\":\"nearest\"}",
+    "sound move",
+    "it.pick 3",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "sound select",
+    "markBars 6",
+    "scrollIntoView <row3> {\"block\":\"nearest\"}",
+    "it.open",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}",
+    "> click  <button.drop-opt \"Gamma\">",
+    "it.pick 3",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"choice\":3}",
+    "< click  stopped",
+    "markBars 6",
+    "scrollIntoView <row1> {\"block\":\"nearest\"}",
+    "scrollIntoView <button.drop-opt.on \"Beta\"> {\"block\":\"nearest\"}"
+   ]
+  },
+  "pick": {
+   "result": {
+    "cursor": 5,
+    "focusId": null,
+    "dropIndex": null,
+    "dropEl": null,
+    "numberFocusWanted": null,
+    "searchCaret": null,
+    "ratesStick": {
+     "roll": 0,
+     "pitch": 0,
+     "yaw": 0
+    },
+    "pidsLive": null,
+    "ptr": [
+     null,
+     null
+    ],
+    "lastCardKey": null,
+    "settings": {
+     "rates": {
+      "r": 1
+     },
+     "airframe": "quad",
+     "tune": "wing-acro",
+     "pids": {},
+     "p": "quiet"
+    },
+    "active": "<body>"
+   },
+   "log": [
+    "it.pick 7",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "renderMenu",
+    "refreshBest",
+    "sound adjust",
+    "onSettings {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":7}",
+    "it.pick quiet",
+    "store {\"rates\":{\"r\":1},\"airframe\":\"quad\",\"tune\":\"wing-acro\",\"pids\":{},\"p\":\"quiet\"}",
+    "renderMenu",
+    "refreshBest"
+   ]
+  }
+ }
+}
