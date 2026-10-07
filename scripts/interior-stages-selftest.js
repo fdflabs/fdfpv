@@ -42,6 +42,9 @@
  *   camp gone  the camp dispersing on its timer before anything is
  *              documented: nobody walks back into it, the pair keeps its
  *              way out, the mark still opens
+ *   restart    a checkpoint restart in stage 4 or 5 from Pista Cero's
+ *              rail: the stage's clocks wait for a first timer to fly
+ *              back out (no loss line on the way, the camp still there)
  *   light      a first timer at 18, 22 and 25 m/s (a longer track, a
  *              search, time lining up each still) lands with at least
  *              5 min of light left; a dawdler loses it at sunset
@@ -877,6 +880,84 @@ console.log('the camp gone first: the way home shown at once, nobody goes back i
   check('its people gone before they were captured: DOCUMENT THE SITE missed, not left open', doc?.state === 'failed', JSON.stringify(doc));
   home(e, c);
   check('home: won, landed', e.view(0).state === 'won' && e.view(0).why === 'landed', `${e.view(0).state} ${e.view(0).why}`);
+}
+
+/* ----------------------------------------------------------- restart */
+
+/* Lost in stage `id` (the ISR down, nobody else up), then played again
+ * from its checkpoint: the aircraft starts on Pista Cero's rail, 8 to 9
+ * km from the action, and a first timer flies there at 18 m/s. Returns
+ * the room and the new pilot at the go. */
+function restartIn(id) {
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  let c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  if (id === 'M1_CP_CAMP_FOUND') {
+    follow(e, c);
+    until(e, stageIs(e, id), 1800000, 'stage 5');
+  }
+  c.crashed = true;
+  c.air = false;
+  until(e, () => e.view(0).state === 'lost', 5000, `lost in ${id}`);
+  check(`lost in ${id}: its checkpoint`, e.view(0).checkpoint?.stage === id, JSON.stringify(e.view(0).checkpoint));
+  e.say(0, {
+    type: 'ops', op: 'start', mission: 'interior-1', from: 'checkpoint',
+  });
+  c = pilot(e, 0, BASE, { v: 18 });
+  until(e, () => e.view(0).state === 'live', 10000, 'the restart live');
+  return { e, c, goAt: e.view(0).goAt };
+}
+
+console.log('restart: the stage waits for a first timer flying back out from Pista Cero');
+{
+  const { e, c, goAt } = restartIn('M1_CP_CAMP_FOUND');
+  c.air = true;
+  c.target = STANDOFF;
+  until(e, () => dist(c.p, STANDOFF) < 2, 1200000, 'the standoff after the restart');
+  const gone = e.r.ops.match.choices?.dispersal;
+  const at = e.clock;
+  check(`stage 5 again, back at standoff ${Math.round((at - goAt) / 1000)} s after the go: the camp still there, "No low pass" said no sooner than the transit`,
+    !gone && e.view(0).state === 'live' && !e.cues(0).some((x) => [x.radio].flat().includes('int1-s5-nolow') && x.at < at - 120000),
+    JSON.stringify({ gone, nolow: e.cues(0).filter((x) => [x.radio].flat().includes('int1-s5-nolow')).map((x) => x.at - goAt) }));
+  until(e, () => e.r.ops.match.choices?.dispersal, 900000, 'the dispersal after the restart');
+  const t = e.r.ops.match.choices?.dispersal?.t ?? Infinity;
+  check(`and most of the 8 min of observation still to come there: the dispersal ${Math.round((t - at) / 1000)} s after arriving`, t - at >= 300000, `${t - at}`);
+}
+{
+  const { e, c } = restartIn('M1_CP_CONTACT_FOUND');
+  const near = () => {
+    const k = contact(e, 'pair-a');
+    const q = W.poseOnRoute(k.route, e.clock - k.t0);
+    return q && Math.hypot(q.x - c.p[0], q.y - c.p[1]) < 1500;
+  };
+  /* Lost again at once and restarted again: the same lead, not two. */
+  const pairAt = (x) => x.r.ops.match.contacts.filter((k) => k.group === 'pair').map((k) => [k.id, k.route, k.t0 - x.view(0).goAt, k.lastIn - x.view(0).goAt]);
+  const first = JSON.stringify(pairAt(e));
+  c.crashed = true;
+  c.air = false;
+  until(e, () => e.view(0).state === 'lost', 5000, 'lost again');
+  e.say(0, {
+    type: 'ops', op: 'start', mission: 'interior-1', from: 'checkpoint',
+  });
+  c.crashed = false;
+  c.p = BASE.slice();
+  c.target = BASE.slice();
+  until(e, () => e.view(0).state === 'live', 10000, 'the second restart live');
+  check('restarted twice from stage 4: the pair held for the same lead after the go both times', JSON.stringify(pairAt(e)) === first, `${first} vs ${JSON.stringify(pairAt(e))}`);
+  const goAt2 = e.view(0).goAt;
+  c.air = true;
+  follow(e, c);
+  until(e, near, 1200000, 'near the pair after the restart');
+  const lines = ['int1-s4-welcome', 'int1-s4-lost', 'int1-s4-hard', 'int1-s4-hard-b'];
+  const early = e.cues(0).filter((x) => x.at >= goAt2 && [x.radio].flat().some((r) => lines.includes(r))).map((x) => `${[x.radio].flat()[0]}@${Math.round((x.at - goAt) / 1000)}`);
+  check(`stage 4 again, within 1.5 km of the pair ${Math.round((e.clock - goAt2) / 1000)} s after the go: no loss line on the way and no hard threshold`,
+    !early.length && contact(e, 'pair-a').hards === 0 && !contact(e, 'pair-a').route.includes('-alt-'), JSON.stringify({ early, pair: contact(e, 'pair-a') }));
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5 after the restart');
+  check('and followed from there to the camp', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND' && e.view(0).state === 'live', `${e.view(0).state} ${e.view(0).why}`);
 }
 
 /* ------------------------------------------------------------ light */
