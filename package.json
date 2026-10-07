@@ -333,6 +333,7 @@
     "bugs:selftest": "node scripts/bugs-selftest.js",
     "summary:selftest": "node scripts/summary-selftest.js",
     "listing:selftest": "node scripts/listing-selftest.js",
+    "session:selftest": "node scripts/session-selftest.js",
     "move:check": "node scripts/move-check.js",
     "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",

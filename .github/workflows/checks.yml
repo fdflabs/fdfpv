@@ -200,6 +200,9 @@ jobs:
       # How a seated track relates to the board (src/share/listing.js),
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
+      # The share seat, edit keys, binds and lap bookkeeping kept in this
+      # browser (src/share/session.js), against a pinned transcript.
+      - run: npm run session:selftest
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
