@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB,
+  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB, BED_FADE_MS,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -268,6 +268,51 @@ console.log('under voice chat');
     quiet.duck(false, k * 16);
   }
   check('with nobody talking the radio is never touched', quiet.voice.el.volume === before && quiet.status().duckDb === 0);
+}
+
+console.log('a bed asked to stop fades out');
+{
+  /* A room tone running, then silence asked for: the element's volume
+   * steps down over BED_FADE_MS and only then is it paused and unloaded;
+   * a track asked for during the fade cuts it short. */
+  const stub = () => {
+    const el = {
+      volume: 0, paused: false, loop: false, src: 'x', currentTime: 0, calls: [],
+      pause() { this.paused = true; this.calls.push('pause'); },
+      play() { this.paused = false; this.calls.push('play'); return null; },
+      load() { this.calls.push('load'); },
+      removeAttribute() { this.src = ''; },
+      addEventListener() {},
+    };
+    return el;
+  };
+  const r = new WarRadio();
+  r.bed = { el: stub() };
+  r.track = 'room';
+  r.setOutput(0.8);
+  r.setMusicLevel(1);
+  const v0 = r.bed.el.volume;
+  r.music('');
+  const atOnce = { paused: r.bed.el.paused, volume: r.bed.el.volume };
+  await new Promise((res) => { setTimeout(res, BED_FADE_MS / 2); });
+  const mid = { paused: r.bed.el.paused, volume: r.bed.el.volume };
+  await new Promise((res) => { setTimeout(res, BED_FADE_MS / 2 + 200); });
+  const after = { paused: r.bed.el.paused, volume: r.bed.el.volume, src: r.bed.el.src };
+  check('the bed keeps playing and is quieter half way through the fade', !atOnce.paused && !mid.paused && mid.volume < v0 * 0.7 && mid.volume > v0 * 0.2,
+    `at once ${JSON.stringify(atOnce)}, half way ${JSON.stringify(mid)} of ${v0.toFixed(3)}`);
+  check('and is paused and unloaded once the fade is over', after.paused && after.volume < 0.05 && after.src === '', JSON.stringify(after));
+  const r2 = new WarRadio();
+  r2.bed = { el: stub() };
+  r2.track = 'room';
+  r2.setOutput(0.8);
+  r2.setMusicLevel(1);
+  r2.music('');
+  await new Promise((res) => { setTimeout(res, 200); });
+  r2.music('interior');
+  const v2 = r2.bed.el.volume;
+  await new Promise((res) => { setTimeout(res, BED_FADE_MS); });
+  check('a track asked for during the fade plays at full level and is never paused by it', !r2.bed.el.paused && r2.bed.el.calls.filter((c) => c === 'pause').length === 0 && Math.abs(r2.bed.el.volume - v2) < 1e-9 && v2 > 0.1,
+    JSON.stringify({ v2, el: r2.bed.el }));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
