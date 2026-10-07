@@ -22,8 +22,6 @@ scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
 scripts/drone-wireframe.js
-scripts/fc-catalog-lint.js
-scripts/fc-trace.js
 scripts/flightcheck.js
 scripts/flight-report.js
 scripts/floats-shell.js
@@ -38,7 +36,6 @@ scripts/og-check.js
 scripts/og.js
 scripts/pixels.js
 scripts/posters.js
-scripts/preset-lint.js
 scripts/quality-check.js
 scripts/responsive-check.js
 scripts/run-bash.js
