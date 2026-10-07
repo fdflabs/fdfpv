@@ -8317,75 +8317,46 @@ export async function boot({
     }
   }
   /*
-   * Milliseconds the INTEGRATOR has actually stepped since reset: a mirror
-   * of the module's own step_index, and the only valid timebase for input
-   * timestamps. simTimeMs is the LAP clock and keeps running while the
-   * craft sits landed with the integrator frozen, so the two diverge by
-   * exactly the time spent parked. Stamping stick samples with the lap
-   * clock put them that far into the sim's future, and sim_step consumes a
-   * sample only when step_index reaches its timestamp, so every second on
-   * the pad became a second of stick lag for the whole rest of the run.
-   * The owner reported it as 1 to 2 seconds of input lag, unflyable, and
-   * it was: the lag equalled the time between entering flight and pushing
-   * the throttle up. Invisible before the takeoff fix, because at 60 fps
-   * every takeoff crashed and the crash reset re-zeroed both clocks.
+   * THE RC GRID, and the step count it hangs off.
+   *
+   * simStepIdx counts the plant's 1 ms steps since its last sim_init or
+   * sim_reset and has to equal the module's own step_index at every frame
+   * boundary: Betaflight takes a stick sample only once step_index reaches
+   * its timestamp, so a sample stamped ahead of the module is lag, one
+   * millisecond for every millisecond of skew. simTimeMs cannot stand in
+   * for it, because the lap clock keeps running while a landed craft is
+   * held unstepped. acc is the frame time not yet spent on steps, rcNextMs
+   * the step the next RC frame is due on and lastTs, in seconds, the stamp
+   * of the last sample handed to the module.
    */
   let simStepIdx = 0;
   let acc = 0;
   let lastTs = 0;
   let rcNextMs = 0;
-  /*
-   * The radio. Default is 'perfect', which is the behaviour this shell has
-   * always had: turning a real link on has to be a choice, so that a lap
-   * time never changes underneath a pilot who did not ask for it.
-   */
+  /* Starts as a perfect link (no radio) so a lap time only moves for a
+   * pilot who chose a real one. */
   const rcLink = new RcLink(LINK_DEFAULT);
-  /*
-   * The flight recorder. Off unless the pilot turns it on, because it holds
-   * every frame of the run in memory and nobody should pay for that without
-   * asking. Written out as blackbox_decode CSV so a sim flight and a real
-   * quad's log go through the same parser and the same report.
-   */
+  /* Off until the pilot turns it on: it keeps every frame of the run. */
   const flightLog = new FlightRecorder();
-  /*
-   * Stick samples waiting for an RC slot, and the value currently held.
-   *
-   * The old code took `samples[samples.length - 1]` and used it for every RC
-   * frame in the render frame, which threw away every other sample and turned
-   * the stick into a staircase at frame rate. Now the pad is polled on its
-   * own timer (src/input/input.js) and each sample carries the wall clock time
-   * it was taken at, so a slot gets the sample that was actually current when
-   * that slot happened. Held between slots, which is what a receiver does.
-   */
+  /* Stick samples, each stamped with the wall time it was read at, waiting
+   * for the RC slot they belong to; rcHeld is the one the receiver holds
+   * between slots. */
   const rcPending = [];
   let rcHeld = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
   /*
-   * Re-seat the RC grid on the sim clock and throw away stick samples that
-   * belong to a stretch of time the integrator never ran. Called wherever the
-   * grid is pinned: reset, and the moment a parked craft takes off again.
-   * Without the second half, a craft that sat landed for six seconds would
-   * hand six seconds of queued samples to the first six milliseconds of
-   * flight.
+   * Starts the grid again on the step the plant is on. The radio restarts
+   * with it, so the same session replays the same jitter, and the queue
+   * keeps only its newest sample: anything older was read while the plant
+   * stood still (parked, or before a reset) and would otherwise be fed to
+   * the first few steps as if the stick had moved then.
    */
   function pinRcGrid() {
     rcNextMs = simStepIdx * MS_PER_STEP;
     lastTs = rcNextMs / 1000;
-    /* The radio restarts with the grid it feeds, so a reset is a reset and
-     * a replay of the same session draws the same jitter. */
     rcLink.reset(rcNextMs);
-    if (rcPending.length > 1) {
-      rcPending.splice(0, rcPending.length - 1);
-    }
+    rcPending.splice(0, Math.max(0, rcPending.length - 1));
   }
 
-  /*
-   * JS RC time follows the module, never the other way around. sim_init and
-   * sim_reset restart the input stream at t = 0. Stamping sim.input from a
-   * leftover lastTs puts every sample in the queue's future: sim_step only
-   * consumes a sample once step_index reaches its timestamp, so the lag
-   * equals the leftover. That was round 16b (lap clock) and the tune-swap
-   * lag (async sim_init). Read the module every time the stream can restart.
-   */
   /*
    * The wing's take off is a hand throw: ten metres a second along its
    * own nose from a metre and a bit up, the way a hand does it. Only from
@@ -8697,103 +8668,96 @@ export async function boot({
     }
   }
 
+  /*
+   * The module owns the clock. sim_init and sim_reset start its step index
+   * again from zero, and an async tune load can do that between two
+   * frames, so after anything that may have restarted it the shell reads
+   * the index back rather than trusting its own count, and puts the RC
+   * grid on it. frameBody relies on the two agreeing.
+   */
   function adoptSimClock() {
-    const st = readState();
-    simStepIdx = Math.round(st[0] * SIM_HZ);
+    simStepIdx = Math.round(readState()[0] * SIM_HZ);
     pinRcGrid();
   }
 
   /*
-   * PUT THE CRAFT BACK WHERE IT WAS AFTER A CONFIG SWAP, instead of putting
-   * the run back on the start line.
+   * A RATE CHANGE KEEPS THE RUN. Rates live in the config text, so a new
+   * rate means sim_init, and sim_init is a full reset of the plant's
+   * dynamic state (src/native/sim_abi.h). A tune is a different machine
+   * and resets the run; a rate only changes the pilot's sticks, and the
+   * owner wants it tunable mid run against the corner it is for. So the
+   * craft goes back to the pose read before the init (`before`, a state
+   * array: position 1 to 3, attitude 7 to 10). sim_set_pose is the only
+   * writer the ABI has, so velocity, body rates and rotor speed stay at
+   * the zero init left them: the craft resumes at rest where it was,
+   * which from the pause menu, the usual way here, is how it was anyway.
    *
-   * WHY THIS EXISTS. Rates are part of the config text, so changing one has
-   * to go through sim_init, and sim_init is a full reset: "dynamic state
-   * zeroed as in sim_reset", per src/native/sim_abi.h. Every rate change
-   * therefore used to end in reset(), which zeroes the LAP clock and drops
-   * the quad on the start line. That is right for a tune, which changes the
-   * machine, and wrong for rates, which change the pilot: the owner asked
-   * for a rate change mid run to leave the run alone, and a pilot tuning
-   * stick feel against a corner cannot do it if every nudge costs the lap.
-   *
-   * WHAT IT CAN AND CANNOT CARRY. Position and attitude go back through
-   * sim_set_pose, which is the only writer the ABI exposes. VELOCITY,
-   * ANGULAR RATE AND MOTOR RPM CANNOT FOLLOW: sim_init zeroes them, no
-   * export writes them, and this container has no Emscripten to add one. So
-   * the quad resumes stationary where it was rather than carrying its
-   * momentum through. That is the honest limit of this change and it is
-   * nearly invisible in the path the request describes, where the pilot is
-   * on the pause menu and the craft is holding still anyway.
-   *
-   * WHAT HAS TO BE PUT BACK BY HAND is what sim_init wiped and the shell
-   * still believes: the pack, and crashflip. The airframe and the flight
-   * style are MODES and survive init by ABI contract; the ground plane is
-   * written every frame by the contact loop; angle mode is re-applied by
-   * syncAngleMode at the tail of applySettings, which runs after this.
-   *
-   * The RC grid is re-pinned and the queue dropped for the same reason
-   * resetCraft does it: the module's step index went back to zero, and a
-   * stick sample stamped on the old clock would land in the integrator's
-   * future.
+   * Put back by hand: the pack voltage and the crashflip flag, the two
+   * things init forgets that the shell still holds. The airframe and the
+   * flight style are modes and outlive init; the ground plane is written
+   * every frame, and angle mode by applySettings after this. The step
+   * index is zero again, so the grid is re-read and the stick queue
+   * emptied, as resetCraft does.
    */
   function reseatAfterConfigSwap(before) {
     sim.setCellVoltage(runVoltage);
     sim.e.sim_set_crashflip(crashflipOn ? 1 : 0);
-    const code = sim.e.sim_set_pose(
-      before[1], before[2], before[3],
-      before[7], before[8], before[9], before[10],
-    );
-    if (code !== SIM_OK) {
-      /* The pose refused, so there is nowhere honest to put the craft back.
-       * Fall back to the old behaviour rather than flying from wherever
-       * init happened to leave it. */
+    const [, px, py, pz, , , , qw, qx, qy, qz] = before;
+    if (sim.e.sim_set_pose(px, py, pz, qw, qx, qy, qz) !== SIM_OK) {
+      /* No pose to give back means no honest place to resume: start over. */
       reset();
       return;
     }
-    acc = 0;
     rcPending.length = 0;
+    acc = 0;
     adoptSimClock();
-    stateCurr = readState();
-    statePrev = stateCurr;
+    statePrev = stateCurr = readState();
   }
 
+  /*
+   * Config loads are generation counted (configGen, configLoadWait). Each
+   * new pick takes the next generation, and a load that finds its
+   * generation overtaken when its fetch lands drops its text unflown.
+   */
   function bumpConfigGen() {
-    configGen += 1;
-    return configGen;
+    return (configGen += 1);
   }
 
   function isLiveConfigLoad(gen) {
-    return gen === configGen;
+    return configGen === gen;
   }
 
-  function whenConfigReady(fn) {
-    const gen = configGen;
-    configLoadWait.then(() => {
-      if (configGen !== gen) {
-        whenConfigReady(fn);
-        return;
-      }
-      fn();
-    }, () => {
-      if (configGen !== gen) {
-        whenConfigReady(fn);
-        return;
-      }
-      fn();
-    });
+  /*
+   * Runs fn once the config load that is current has settled, so Fly and
+   * Resume never start a run that a sim_init still in flight would zero
+   * under it. A pick made while waiting replaces configLoadWait and bumps
+   * the generation, and the wait moves on to that load. A load that failed
+   * counts as settled: the pilot has been told and flies what is loaded.
+   * fn always runs in a later microtask, even with nothing loading.
+   */
+  async function whenConfigReady(fn) {
+    let gen;
+    do {
+      gen = configGen;
+      await configLoadWait.catch(() => {});
+    } while (gen !== configGen);
+    fn();
   }
   let crashed = false;
   let clipCrashUntil = 0;
   let clipCrashKind = '';
   let clipGraceUntil = 0;
-  /* Wall clock of the last land or takeoff blip. See GROUND_CUE_GAP_MS. */
+  /* Wall times: the last land or takeoff blip (GROUND_CUE_GAP_MS) and the
+   * end of the departure window (TAKEOFF_WINDOW_MS). */
   let groundCueAtWall = -1e9;
-  /* Wall clock the departure window closes at. See TAKEOFF_WINDOW_MS. */
   let takeoffUntil = 0;
   const clipWatch = makeClipWatch();
-  /* Turtle is a shell pose flip, not the crashflip mixer. crashflipOn
-   * is true while waiting inverted or while the flip is playing, so OSD
-   * and the banner can keep saying Turtle. The mixer stays off. */
+  /*
+   * The scripted turtle, a pose flip the shell draws. Betaflight's
+   * crashflip mixer stays off through it; crashflipOn only says, for the
+   * OSD and the banner, that the shell's wait or flip is on. The flip's
+   * fields are the start and end attitudes and the surface it turns on.
+   */
   let crashflipOn = false;
   let turtleWait = false;
   const turtleFlip = {
@@ -8804,118 +8768,105 @@ export async function boot({
     wx: 0, wz: 0, surfaceY: 0,
   };
   const turtleQ = [0, 0, 0, 0];
-  /* After the flip, ignore pitch/roll until the stick recentres.
-   * Otherwise airmode inherits the poke and yanks the hull. */
+  /* Upright again but the poke still held: roll and pitch wait for the
+   * stick to centre, or airmode would act on the poke and throw the hull. */
   let turtleRecover = false;
   let turtleResumeGate = false;
-  /* Obstacle roofs (train, deck) are not sim_ground_contacts. */
+  /* Resting on an obstacle roof (a train, a deck), which the plant's own
+   * ground contact cannot see. */
   let turtleOnSupport = false;
-  /* sim_motor_override(all, 0) while parked, cleared on unpark. rest()
-   * does not zero motor_omega, and hot rotors yank when the wait ends. */
+  /* The rotors held at zero (sim_motor_override) while parked: rest()
+   * leaves motor_omega spinning, and the wait would end with a jolt. */
   let turtleParkMotors = false;
-  /* -1: FPV. 0..INTRO_TOTAL: orbit, approach, then zoom at the start of a run. */
+  /* The pad shot at the start of a run, ms into it (orbit, approach, zoom
+   * up to INTRO_TOTAL); -1 is the pilot's own view. */
   let introMs = -1;
-  /*
-   * The craft starts ON THE GROUND, landed, not hanging in mid air.
-   *
-   * This was a game breaking bug and it deserves the space. The craft used to
-   * spawn at SPAWN_ALT with its motors at zero rpm and physics frozen until
-   * the throttle passed 0.05. The instant a pilot touched the throttle the
-   * integrator unfroze in free air with dead motors, and the quad fell the
-   * 0.71 m to the ground and arrived at 3.4 m/s, which is past the 2.0 m/s
-   * landing gate, so it crashed. Then resetCraft put it back at 0.9 m in mid
-   * air and the same thing happened again, forever. A reviewer measured the
-   * whole loop: "crash, 1.4 s lockout, back to 0.9 m in mid air, touch
-   * throttle, crash". Anywhere between the launch threshold and hover the
-   * quad fell out of the sky.
-   *
-   * Starting landed hands the craft to the on ground branch below, which
-   * already holds it, already keeps the lap clock honest and already gates
-   * liftoff on TAKEOFF_THROTTLE. A real quad sits on the ground before a run.
-   *
-   * There used to be a `launched` flag here as well. It was initialised true
-   * and never assigned anything but true, because setting it false on a
-   * respawn was what made every recovery repeat the takeoff trap, so every
-   * test of it was a constant and the takeoff hint it gated could not
-   * appear. What the banner actually wants is "has this run left the ground
-   * yet", which is a render question, not a flight one: nothing below reads
-   * this, so it cannot gate the integrator or the RC grid the way the old
-   * flag could.
-   */
+  /* Whether this run has left the ground yet, for the banner. Rendering
+   * only: nothing in the integrator or the RC grid reads it. */
   let flownThisRun = false;
-  /* On the ground, upright, intact, physics frozen. Position is not
-   * writable through the ABI, so the craft is held by not stepping it;
-   * sim_rest zeroes the velocity at each judged touchdown so the frozen
-   * state is a true rest state rather than a falling one. */
+  /*
+   * Every run starts on the ground. Spawning in the air with the rotors
+   * stopped meant the first touch of throttle dropped the craft onto the
+   * ground faster than the landing gate allows, a crash, a respawn in the
+   * air and the same again. While landed the craft is upright, intact and
+   * not stepped at all (the ABI cannot write a position, so holding it is
+   * not stepping it), sim_rest having zeroed its velocity at touchdown;
+   * TAKEOFF_THROTTLE releases it.
+   */
   let landed = true;
-  /* landed on the previous frame, for the landing edge that holds a pad's
-   * throttle. See input.holdThrottleLow. */
+  /* Last frame's landed, for the touchdown edge (input.holdThrottleLow). */
   let landedWas = true;
-  /* The run the challenges are judging (progressRun's key), and the
-   * hangar's rev while it plays (ui.onHangarTry). */
+  /* progressRun's key for the run being judged, and the hangar rev on
+   * test (ui.onHangarTry). */
   let progressKey = '';
   let hangarRev = null;
-  /* Capture hold: keep the plant pose and FPV lens as seated, without
-   * the parked overlay or the intro orbit. Used by __seatCraft so a
-   * camera-down crash can be photographed before the hull tumbles. */
+  /* __seatCraft's hold: the pose and lens stay as seated, with no parked
+   * overlay or intro, so a capture can photograph a seat before it moves. */
   let poseLock = false;
-  /* An air start's countdown, milliseconds of the flight screen still to
-   * hold it for, and the wall time its GO leaves the banner. See airStart. */
+  /* An air start: flight screen ms left on its countdown, and the wall
+   * time its GO comes off the banner. */
   let airHoldMs = 0;
   let airGoUntil = 0;
   /*
-   * Between committing to a takeoff and getting the collision sphere clear
-   * of the surface. While this is set, ground contact does not re-land the
-   * craft: the parked pose already sits inside contact (the sphere reaches
-   * 17 cm below a centre parked 7.5 cm up), so during the motor spool the
-   * contact test fires on EVERY frame, and judging each one flipped the
-   * craft landed and flying at frame rate: measured at a simulated 60 fps,
-   * 96 to 346 freeze cycles per gentle takeoff, each one a land sound, a
-   * takeoff sound and a render pose flick. A takeoff ends the hold by
-   * climbing clear; an abort (throttle back below the gate, or sinking
-   * 5 cm into the surface because the pack cannot hover this throttle)
-   * ends it by resting the craft where it is.
+   * A takeoff under way, its contact sphere not yet clear of the surface.
+   * A parked craft already sits inside the sphere's reach, so through the
+   * spool up every frame registers ground contact; judged as landings they
+   * flickered the craft between landed and flying at frame rate (hundreds
+   * of cycles per takeoff at 60 fps, a land and a takeoff sound each). The
+   * hold ends when the craft climbs clear, or on an abort (throttle back
+   * under the gate, or 5 cm sunk because the pack cannot hover it), which
+   * rests the craft where it is.
    */
   let takingOff = false;
   let statePrev = null;
   let stateCurr = null;
-  /* The sim clock at the drawn pose, between the two states, s: what the
-   * water is drawn at, so the waves on screen are the ones under the
-   * drawn floats. */
+  /* The sim time of the drawn pose, between the two states, seconds; the
+   * water's waves are drawn at it so they match the drawn floats. */
   let renderSimT = 0;
-  /* Ground sweep state. groundPrev is where the craft was last frame, so the
-   * terrain test can be a segment rather than a point. */
+  /* Last frame's position for the terrain sweep, so ground contact is
+   * tested along a segment. */
   const groundPrev = new THREE.Vector3();
   let groundHasPrev = false;
   let groundY = 0;
-  /* Published through __craftState so a capture can ASSERT a landing rather
-   * than describe one. */
+  /* Readbacks for __craftState: a capture asserts what happened from
+   * these. lastHitIndex tells one building's wall from the next
+   * (scripts/roof-check.js). */
   let lastDescent = 0;
   let lastTiltDeg = 0;
   let lastHitKind = 'none';
   let lastHitIndex = -1;
   let lastGroundHits = 0;
-  /* Every 1 ms step that ended with the hull on the ground plane or a
-   * wheel loaded on it, since the page loaded: a touch too short for a
-   * frame's own count to see, and gear rolling, which the hull count does
-   * not see at all. Harness only, through window.__ground. */
+  /* Harness (__ground): 1 ms steps since load that ended with the hull on
+   * the ground plane or a wheel loaded, which catches a touch shorter
+   * than a frame and a roll on the gear the hull count misses. */
   let groundContactSteps = 0;
+  /* sim_wheel_loads' four doubles in the module heap, and a view of them. */
   let wheelPtr = 0;
   let wheelLoads = null;
+  /*
+   * Whether any wheel carries weight. Called every step, so it allocates
+   * nothing: the heap slot is taken once, and the view is remade only
+   * when the module's memory has grown under it. A plant built without
+   * the export has no gear to load.
+   */
   function wheelsLoaded() {
-    if (typeof sim.e.sim_wheel_loads !== 'function') {
+    const mod = sim.e;
+    if (typeof mod.sim_wheel_loads !== 'function') {
       return false;
     }
-    /* A view kept across steps, remade only when the module's memory
-     * grows, so the step loop allocates nothing. */
-    if (!wheelPtr) {
-      wheelPtr = sim.e.malloc(4 * 8);
+    if (wheelPtr === 0) {
+      wheelPtr = mod.malloc(Float64Array.BYTES_PER_ELEMENT * 4);
     }
-    if (!wheelLoads || wheelLoads.buffer !== sim.e.memory.buffer) {
-      wheelLoads = new Float64Array(sim.e.memory.buffer, wheelPtr, 4);
+    if (wheelLoads === null || wheelLoads.buffer !== mod.memory.buffer) {
+      wheelLoads = new Float64Array(mod.memory.buffer, wheelPtr, 4);
     }
-    sim.e.sim_wheel_loads(wheelPtr);
-    return wheelLoads[0] > 0 || wheelLoads[1] > 0 || wheelLoads[2] > 0 || wheelLoads[3] > 0;
+    mod.sim_wheel_loads(wheelPtr);
+    for (let i = 0; i < wheelLoads.length; i += 1) {
+      if (wheelLoads[i] > 0) {
+        return true;
+      }
+    }
+    return false;
   }
   let lastClearance = 1;
   let lastUpz = 1;
@@ -8925,41 +8876,29 @@ export async function boot({
   let lastCamFwdY = 0;
   let lastCamUpY = 0;
   let lastClosing = 0;
-  /* How square the last contact was to the craft's disc plane, 0 edge on
-   * and 1 belly on. Readback only: the impulse the solver applied is what
-   * sizes the sound and the shake now, not a speed threshold. */
+  /* The last contact's normal against the disc axis, 0 edge on to 1 flat
+   * on. A readback: sound and shake follow the solver's impulse. */
   let lastUpDot = 0;
   let speedNow = 0;
-  /* How many contacts this run has bounced off, for the readback and for
-   * nothing else. It used to be a count DOWN from three lives; there is no
-   * damage model any more, so it counts up and costs nothing. */
+  /* Contacts bounced off this run, counted up; a readback, nothing spends
+   * it. */
   let bounceCount = 0;
   let bounceAtWall = 0;
-  /* Real Betaflight crashflip, held by the pilot. Distinct from
-   * crashflipOn, which belongs to the scripted turtle. */
+  /* T held: Betaflight's own crashflip, not the scripted turtle's flag. */
   let manualFlip = false;
   /*
-   * How often the solid world is resolved, in SIM milliseconds.
-   *
-   * Four is 250 Hz. It is a count of 1 ms plant steps and never a frame
-   * delta, so the cadence, and therefore the trajectory, is the same
-   * whether the host delivered those steps in one batch of sixteen or in
-   * four batches of four. That is the whole point: CLAUDE.md says a
-   * dropped frame must change nothing about the trajectory, and while
-   * contact ran per frame it changed everything about it.
-   *
-   * Four rather than one because the query is not free and one buys
-   * nothing: the sweep is exact, so it cannot tunnel at 250 Hz any more
-   * than at 1000 Hz, and 4 ms of travel at racing speed is 12 cm, well
-   * inside the swept test. Four rather than sixteen because the slide
-   * continuation and the depenetration both get finer as the step
-   * shrinks, and 250 Hz is where that stopped being visible.
+   * The solid world is resolved every OBSTACLE_STEP plant steps (sim ms),
+   * counted in steps and never in frames, so the trajectory does not
+   * depend on how a frame batched them (CLAUDE.md: a dropped frame changes
+   * nothing). 4 ms is 250 Hz: the sweep is exact, so a finer cadence
+   * catches nothing more, and 4 ms at racing speed is about 12 cm, inside
+   * the swept test; a coarser one made the slide and the depenetration
+   * visibly stepped.
    */
   const OBSTACLE_STEP = 4;
   let obsPhase = 0;
-  /* Facts the contact pass accumulates for the frame that contains it:
-   * the shell reads these once, after stepping, for the clip watch, the
-   * sound and the shake. */
+  /* What this frame's contact passes found, read once after stepping by
+   * the clip watch, the sound and the shake. */
   let obsResolved = false;
   let obsContact = false;
   let obsLeftover = false;
@@ -8967,73 +8906,36 @@ export async function boot({
   let obsRoof = false;
   let obsImpulse = 0;
   let obsImpulseKind = '';
-  /* The collider kind of the contact being resolved, for its material. */
+  /* The kind of collider in the contact being resolved, for its material. */
   let obsKindIndex = -1;
   /*
-   * THE HULL MET A SOLID, and how fast it was closing when it did.
-   *
-   * obsImpulse is what the SOLVER changed, and on a vertical face that is
-   * not the same question. Measured on the training wall, flown into it
-   * head on: a 4.0 m/s approach resolved to a dv of 0.09 m/s and a 9.7
-   * m/s approach to nothing at all, because the sweep clamps the travel
-   * at the face and there is little normal velocity left by the time
-   * sim_contact_at runs. A tap keyed off that number is a tap that never
-   * happens, which is why no wall trick in the catalogue could fire.
-   *
-   * obsTouched is set by the sweep itself, so it is true whenever the hull
-   * actually reached a solid, and obsClosing is the approach speed along
-   * the face normal, which is the number GRAZE_SPEED_MAX was written
-   * about: a deliberate tap is slow, a smack is not.
+   * The sweep reached a solid, and the closing speed along its normal.
+   * Separate from obsImpulse because the sweep stops the craft at a face
+   * before the solver sees it, so a head on wall hit can resolve to almost
+   * no impulse at all; a wall tap is judged on the approach speed
+   * (GRAZE_SPEED_MAX), slow for a tap and fast for a smack.
    */
   let obsTouched = false;
   let obsClosing = 0;
-  /*
-   * THE CRAFT IS HOLDING ITSELF ON A FACE WITH ITS OWN THRUST.
-   *
-   * Two counters on the sim clock, both advanced by the contact pass and
-   * both in milliseconds. pressHeldMs is how long the hold has run,
-   * pressIdleMs is how long since the last contact that had the thrust
-   * axis into the face. See PRESS_UP_DOT in collide.js for why a rotor
-   * pressed onto masonry has to lose speed, and for the measurements.
-   */
+  /* Holding itself on a face with its own thrust (PRESS_UP_DOT in
+   * collide.js): sim ms the hold has lasted, and sim ms since a contact
+   * last had the thrust axis into the face. */
   let pressHeldMs = 0;
   let pressIdleMs = 0;
   let pressing = false;
-  /* Harness: skip the draw so a probe can fly at frame rate rather than at
-   * the town's draw rate. See window.__drawOff. */
+  /* __drawOff: skip the draw so a probe runs at frame rate. */
   let harnessNoDraw = false;
-  /*
-   * Its own cooldown, so the recogniser's window is not shared with the
-   * audio cue's and one cannot swallow the other.
-   *
-   * ON THE SIM CLOCK, not the wall clock. Everything downstream of this is a
-   * game rule: it decides whether a contact reaches the recogniser at all,
-   * and therefore whether a Wall Tap is a Wall Tap. A cooldown measured in
-   * wall milliseconds spends a different number of contacts on a machine
-   * running at 30 fps and one running at 144, which is exactly the frame
-   * rate dependence CLAUDE.md keeps out of the game. The audio cue below
-   * stays on the wall clock, because a cue is a cue.
-   */
+  /* The trick recogniser's contact cooldown, apart from the sound's so one
+   * cannot swallow the other, and on the sim clock because it decides
+   * what counts as a trick, which must not depend on the frame rate. */
   let trickTouchAtSimMs = -1e9;
   /*
-   * WHICH BRANCH OF THE CONTACT PASS A HIT TOOK. Three integers on a path
-   * that only runs when something was actually touched. They exist because
-   * a craft flown into the training wall at 11 m/s stopped dead and the
-   * game saw nothing at all: no bounce, no impulse, no bump, no crash, and
-   * therefore no Wall Tap. Telling "never swept the wall" from "swept it
-   * and took the buried branch" needs the counters, not a guess.
-   */
-  /*
-   * `inbound` and `outbound` count the sign of the contact normal against the
-   * plant's own velocity, in the PLANT's frame, which is the only place the
-   * conversion can be checked. A healthy run is nearly all inbound: a normal
-   * points out of the solid, so it opposes a craft arriving at it. A run that
-   * is mostly outbound is the spawn rotation missing from a direction, which
-   * is what welded the craft to the town's walls. See worldDirToSim.
-   *
-   * `resting` is a contact the plant declined because there was no approach
-   * speed left to solve, which is the ordinary state of a hull sliding along
-   * a face. It is not a failure and it no longer ends the pass.
+   * Per branch counts of the contact pass, read by __contacts, so a hit
+   * the game failed to register can be traced to the branch it took. The
+   * normal's sign against the plant's velocity is counted in the plant's
+   * frame: a sound run is nearly all inbound, and outbound ones mean a
+   * frame conversion lost the spawn rotation (worldDirToSim). resting is
+   * a contact with no approach speed to solve, a hull sliding on a face.
    */
   const passStats = {
     buried: 0,
@@ -9055,231 +8957,215 @@ export async function boot({
   };
   let obsHasPrev = false;
   /*
-   * Harness only: the obstacle contacts since the last throw, where each
-   * met the craft (the arm, plant body frame, from the CG) and on which
-   * part when the hull is a fixed wing's parts (-1 for the discs), so a
-   * capture can say what a pole struck. Kept only once a capture has
-   * thrown the craft (window.__crashThrow), and bounded, so a pilot's
-   * flight allocates nothing for it; window.__contacts().log.
+   * Harness logs, __contacts().log and .obstacle: kept only after a
+   * capture has thrown the craft (__crashThrow sets contactLogOn) and
+   * capped, so a pilot's flight never grows them.
    */
   const contactLog = [];
   const CONTACT_LOG_MAX = 64;
   let contactLogOn = false;
-  function logContact(st, arm) {
-    if (!contactLogOn || contactLog.length >= CONTACT_LOG_MAX) {
-      return;
-    }
+
+  /* v rotated by the inverse of state st's attitude: world into body. */
+  function intoBodyFrame(st, v) {
     const w = st[7];
     const x = st[8];
     const y = st[9];
     const z = st[10];
+    const r0 = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+    const r1 = [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)];
+    const r2 = [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)];
+    return [r0, r1, r2].map((r) => r[0] * v.x + r[1] * v.y + r[2] * v.z);
+  }
+
+  /* A shell contact: when, on what (the moving box met, or -1 for a static
+   * solid; the wing part, or -1 for a quad's discs) and where on the
+   * craft, `arm` from the CG turned into the body frame. */
+  function logContact(st, arm) {
+    if (!contactLogOn || contactLog.length >= CONTACT_LOG_MAX) {
+      return;
+    }
+    const col = view.colliders;
     contactLog.push({
       t: st[0],
       kind: lastHitKind,
-      /* The moving box met (a car, a cabin), or -1 for a static solid. */
-      moving: view.colliders.hitMoving,
-      part: view.colliders.hitArm ? view.colliders.hitPart : -1,
-      arm: [
-        (1 - 2 * (y * y + z * z)) * arm.x + 2 * (x * y + w * z) * arm.y + 2 * (x * z - w * y) * arm.z,
-        2 * (x * y - w * z) * arm.x + (1 - 2 * (x * x + z * z)) * arm.y + 2 * (y * z + w * x) * arm.z,
-        2 * (x * z + w * y) * arm.x + 2 * (y * z - w * x) * arm.y + (1 - 2 * (x * x + y * y)) * arm.z,
-      ],
+      moving: col.hitMoving,
+      part: col.hitArm ? col.hitPart : -1,
+      arm: intoBodyFrame(st, arm),
     });
   }
+
   /*
-   * Harness only, kept with the contact log above: the steps on which the
-   * plant's parts met a solid it holds (sim_obstacle_contacts), and which
-   * held solid was nearest the craft then. Since the plant resolves the
-   * solids it holds (#79) the shell's own sweep drops those contacts, so
-   * lastHitKind stays empty through a hit the plant took; this is where a
-   * capture reads what the craft met instead. window.__contacts().obstacle.
+   * A step on which the plant's own parts touched a solid it holds
+   * (sim_obstacle_contacts). Since #79 the plant resolves those itself and
+   * the shell's sweep skips them, so lastHitKind stays empty through such
+   * a hit; this log names the held solid nearest the craft instead.
    */
   const obstacleLog = [];
+  function nearestHeldSolid(px, py, pz) {
+    const col = view.colliders;
+    let index = -1;
+    let gap = Infinity;
+    for (const i of crashKnownList) {
+      let d;
+      if (col.fbox[i]) {
+        d = col.boxGap(i, px, py, pz);
+      } else {
+        /* axisToPoint leaves the vector from the solid's axis in nx..nz. */
+        col.axisToPoint(i, px, py, pz);
+        d = Math.sqrt(col.nx * col.nx + col.ny * col.ny + col.nz * col.nz) - col.fr[i];
+      }
+      if (d < gap) {
+        gap = d;
+        index = i;
+      }
+    }
+    return { index, gap };
+  }
   function logObstacleStep(st) {
-    if (!contactLogOn || obstacleLog.length >= CONTACT_LOG_MAX || sim.e.sim_obstacle_contacts() <= 0) {
+    if (!contactLogOn || obstacleLog.length >= CONTACT_LOG_MAX) {
+      return;
+    }
+    const parts = sim.e.sim_obstacle_contacts();
+    if (parts <= 0) {
       return;
     }
     poseFromState(st, pProbe);
+    const { index, gap } = nearestHeldSolid(pProbe.x, pProbe.y, pProbe.z);
     const col = view.colliders;
-    let best = -1;
-    let bestGap = Infinity;
-    for (const i of crashKnownList) {
-      let gap;
-      if (col.fbox[i]) {
-        gap = col.boxGap(i, pProbe.x, pProbe.y, pProbe.z);
-      } else {
-        col.axisToPoint(i, pProbe.x, pProbe.y, pProbe.z);
-        gap = Math.sqrt(col.nx * col.nx + col.ny * col.ny + col.nz * col.nz) - col.fr[i];
-      }
-      if (gap < bestGap) {
-        bestGap = gap;
-        best = i;
-      }
-    }
+    const found = index >= 0;
     obstacleLog.push({
       t: st[0],
-      parts: sim.e.sim_obstacle_contacts(),
-      index: best,
-      kind: best >= 0 ? col.kindName(col.fkind[best]) : 'none',
-      built: best >= col.baseCount,
-      solid: best >= 0 ? {
-        a: [col.fax[best], col.fay[best], col.faz[best]], b: [col.fbx[best], col.fby[best], col.fbz[best]], r: col.fr[best], box: Boolean(col.fbox[best]),
+      parts,
+      index,
+      kind: found ? col.kindName(col.fkind[index]) : 'none',
+      built: index >= col.baseCount,
+      solid: found ? {
+        a: [col.fax[index], col.fay[index], col.faz[index]],
+        b: [col.fbx[index], col.fby[index], col.fbz[index]],
+        r: col.fr[index],
+        box: Boolean(col.fbox[index]),
       } : null,
-      gap: bestGap,
+      gap,
       at: [pProbe.x, pProbe.y, pProbe.z],
     });
   }
-  /* The last impulse announced, so a harder hit inside the cooldown is
-   * still heard: a graze followed by the wall behind it is two events. */
+  /* The impulse last announced, so a harder hit inside the cooldown still
+   * sounds: a graze and then the wall behind it are two hits. */
   let lastImpulse = 0;
-  /* Previous frame's sim clock, for anything measured in sim milliseconds
-   * rather than wall ones. See the clip watch. */
+  /* Last frame's sim clock, for things timed in sim ms (the clip watch). */
   let simClockPrevMs = 0;
-  /* Wall clock until which a recover-in-place is allowed to settle. */
+  /* Wall time a recover in place may settle until. */
   let recoverGraceUntil = 0;
-  /* The last ground skip, so a craft sliding along the grass reports one
-   * bounce rather than one a frame. */
+  /* The last ground skip's wall time: one bounce per skid, not per frame. */
   let groundBounceAtWall = 0;
-  /* The craft's tilt-aware vertical half extent, written by the physics
-   * branch each frame and read by the obstacle query later in the same
-   * frame. Starts level. */
+  /* The craft's vertical half height for its tilt, set by the physics
+   * branch and read by the obstacle query in the same frame; level at
+   * first. */
   let vHalfFrame = craftVerticalHalf(0);
   let airtimeMs = 0;
-  /* The freestyle run's clock, as the OSD reads it. Written once a frame
-   * from score.view() just above setOsd, so the readout is this frame's
-   * rather than the previous one's. */
+  /* The freestyle clock for the OSD, from score.view() just before setOsd,
+   * so the readout is this frame's. */
   let scoreState = 'ready';
   let scoreRemainMs = 0;
   let fps = 0;
   let camTilt = ui.settings.cameraAngle;
+  /* The pack and the flight style this run flies on. Both change only
+   * between runs, so a settings visit mid run leaves the lap's physics
+   * alone. */
   let runVoltage = ui.settings.packVoltage;
-  /* The flight style the CURRENT run is flown on. Applied only between
-   * runs, same rule as the pack voltage, so a mid run settings visit
-   * cannot change the physics under a lap in progress. */
   let runStyle = ui.settings.flightStyle === 'arcade' ? 'arcade' : 'expert';
   /*
-   * THE WEIGHT THE RUN IS FLOWN AT, and it is the one setting here that does
-   * NOT wait for the next run.
+   * The run's weight, the one setting applied mid flight: the slider sits
+   * on the flight screen so the pilot can feel it in the air, and a lap it
+   * changes under is voided, flown at two weights.
    *
-   * Pack charge, flight style and the airframe all wait, because a pilot
-   * changing them is in a menu and the run can start again around them. This
-   * slider is on the flight screen, under the pilot's hands, for the express
-   * purpose of being felt while the craft is in the air: a knob that took
-   * effect next time would answer the question it was built for with a shrug.
-   * So it applies at once, and the cost is paid where it belongs, on the lap:
-   * a lap the change lands in the middle of is voided, because a lap flown
-   * at two weights is not a lap flown at either.
-   *
-   * TWO NUMBERS, because the module and the menu no longer agree at rest.
-   * runWeight is the slider value the run is flown at, 100 by default.
-   * runGravityScale is the multiple of 9.80665 the module is actually
-   * holding, which starts at 1.0 because that is the module's own default
-   * and the machine every harness replay flies; the shell's normal is
-   * configs/airframes.js gravityBase, 1.62. So at boot the two disagree by
-   * construction, applySettings sees it and pushes the base through the ONE
-   * path that talks to sim_set_gravity, and the record key is built from the
-   * scale the plant is holding rather than from the slider, so it survives
-   * the base moving again. Same trick runAirframe below uses for the same
-   * reason: boot must not grow a second path of its own.
+   * runWeight is the slider (100 is stock); runGravityScale is the multiple
+   * of 9.80665 the module holds. That starts at the module's own 1.0, the
+   * machine every harness replay flies, so at boot it differs from the
+   * shell's normal (configs/airframes.js gravityBase) and applySettings
+   * sends it through the one path to sim_set_gravity. The record key is
+   * built from the module's scale, not the slider, so it survives a new
+   * base.
    */
   let runWeight = WEIGHT_STOCK;
   let runGravityScale = 1;
   /*
-   * The aircraft the RUN is on, which starts as the one buildShell drew and
-   * NOT as the stored setting. That is deliberate: applySettings below is
-   * called once at boot, sees the two disagree, and does the swap through
-   * the one code path that swaps an aircraft, instead of boot having a
-   * second path of its own that would drift from it. buildShell draws
-   * DEFAULT_AIRFRAME; the module starts on plant 0, which no aircraft
-   * seats (runSimId), so every boot takes the swap and sim_set_airframe.
+   * The aircraft this run is on, starting as the one buildShell drew
+   * (DEFAULT_AIRFRAME) rather than the stored choice. The module boots on
+   * plant 0, which no aircraft seats, so the boot applySettings always
+   * finds a mismatch and seats the stored aircraft through the same swap
+   * as any later change, with no boot only path to drift.
    */
   let runAirframe = DEFAULT_AIRFRAME;
-  /* The model the scene draws: TITLE_CRAFT on the title, the seated
-   * aircraft everywhere else. */
+  /* The model drawn: TITLE_CRAFT on the title, else the seated aircraft. */
   let drawnCraft = DEFAULT_AIRFRAME;
   let drawnCombat = null;
-  /* Where the seated aircraft bolts its camera, in its own frame. The quad's
-   * numbers are lens.js's; the wing's are in the nose of its pod. */
+  /* The camera mount in the seated aircraft's frame: lens.js's for the
+   * quad, the pod's nose for a wing. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
   let camMountUp = CAMERA_MOUNT_UP;
-  /* The seated airframe's cell count, for the pack gauge. */
+  /* The seated pack's cells, for the gauge. */
   let runCells = airframeById(runAirframe).cells;
-  /* Which aircraft the Settings studio last built, so it is rebuilt when
-   * the aircraft changes rather than posing the old one. */
+  /* The aircraft the Settings studio was built for; a new one rebuilds it. */
   let showcaseCraft = DEFAULT_AIRFRAME;
-  /* Ten doubles for sim_float_state, for the harness's reading, taken once. */
+  /* Heap slots taken once: ten doubles for sim_float_state, four for
+   * sim_plane_surfaces. */
   let floatStatePtr = 0;
-  /* Four doubles in the module's heap for sim_plane_surfaces, taken once. */
   let wingSurfPtr = 0;
-  /* What the module was last told about the wing's stabiliser. */
+  /* The stabiliser setting last sent to the module. */
   let wingStabApplied = -1;
   /*
-   * THE FLAPS' SWITCH, on an aircraft that has them (airframes.js `flaps`):
-   * 0 up, 1 half, 2 full, stepped by F in that order and round again, as a
-   * radio's three position flap switch is flipped. The plant keeps the
-   * notch across resets and moves the flaps there at the servo's own rate;
-   * this is the shell's copy for the OSD and the key, and it goes back to
-   * up whenever the airframe changes, as the plant's does.
+   * The flap switch on an aircraft with flaps (airframes.js `flaps`): 0
+   * up, 1 half, 2 full, F stepping round them like a three position
+   * switch. The plant holds the notch across resets and drives the flaps
+   * at servo speed; this copy is for the OSD and the key, and goes back
+   * to up with the plant's on a new airframe.
    */
   let flapNotch = 0;
+  /* Moves the switch; false, and the copy unchanged, if the plant has no
+   * flaps or refused the notch. */
   function setFlapNotch(n) {
-    if (typeof sim.e.sim_wing_set_flaps !== 'function' || sim.e.sim_wing_set_flaps(n) !== SIM_OK) {
-      return false;
+    const plantHasFlaps = typeof sim.e.sim_wing_set_flaps === 'function';
+    if (plantHasFlaps && sim.e.sim_wing_set_flaps(n) === SIM_OK) {
+      flapNotch = n;
+      return true;
     }
-    flapNotch = n;
-    return true;
+    return false;
   }
   /*
-   * A catapult, once the aircraft has left it: the launcher's
-   * world matrix, held so it stays at the spawn while the aircraft it is
-   * parented to flies away (it is part of the craft's model, so it is
-   * built, swapped and disposed with it and needs no scene of its own).
-   * Null while it stands under a parked aircraft.
+   * A catapult's world matrix once its aircraft is off it, so the launcher
+   * stays at the spawn although it is part of the craft's model (which
+   * builds, swaps and disposes it). Null while it stands under a parked
+   * aircraft.
    */
   let launcherLeft = null;
   const launcherInv = new THREE.Matrix4();
-  /* Where the canopy last hung, craft frame, for when the aircraft stops
-   * under it and there is no air to say. */
+  /* The canopy's last direction, craft frame, for when the aircraft stops
+   * under it and no airflow says where it hangs. */
   const chuteDir = [0, 1, 0];
-  /* Whether the pilot has been told the aircraft is down under its chute. */
+  /* Whether the pilot has heard the aircraft is down under its chute. */
   let chuteDownSaid = false;
   let notice = null; /* { text, untilMs } for one off shell messages */
-  /* The seated world's own note, waiting for a flight to be said over. See
-   * showCourseNotes. */
+  /* The seated world's note, held for the next flight. See showCourseNotes. */
   let heldNotes = null;
   let padPickReturn = 'title';
-  /* How many laps THIS run lasts. Settings.laps can change from pause, and
-   * reading it live used to end a 5 lap run the moment someone dropped the
-   * setting to 1. */
+  /* The laps this run lasts, fixed at its start: settings.laps can change
+   * from pause and must not end a run early. */
   let runLaps = ui.settings.laps;
   race.setRecordKey(recordKey());
   paintBest();
 
   /*
-   * The world's own note, as a timed banner, and NOT OVER A MENU.
-   *
-   * This is the second go at that rule. The first said not over the GATE,
-   * because on a browser with nothing built the note printed "Nothing has
-   * been built yet, open the track builder" across the two cards before the
-   * pilot had chosen to race at all. Holding it until the gate was answered
-   * moved the problem one screen along rather than fixing it: it landed on
-   * the title menu, and on the Freestyle picker, in amber, across four world
-   * cards. Reported twice, with a screenshot of each.
-   *
-   * A BANNER IS A FLIGHT MESSAGE. The frame loop already says so and blanks
-   * the banner on any screen that is up. Every other thing that reaches the
-   * banner is raised BY a pilot doing something on the screen they are
-   * looking at, and belongs there: a publish, an upload, a tune that would
-   * not load. This one is raised when a WORLD LOADS, which is nobody asking
-   * a question, and it was the only thing jumping that queue.
-   *
-   * So it is held until there is a flight to say it over, and its clock
-   * starts then rather than when the world loaded. Held rather than dropped,
-   * because the note is worth saying to the pilot about to fly that world
-   * and worth nothing at all to the one reading a menu.
+   * The world's note goes in the flight banner, never over a menu. It is
+   * raised by a world loading rather than by anything the pilot did on the
+   * screen in front of them, and shown at once it landed on the gate, the
+   * title and the world picker, across the cards. So it is held here and
+   * the frame loop shows it, timed from then, once the pilot is flying
+   * that world.
    */
   function showCourseNotes() {
-    heldNotes = view.notes && view.notes.length ? view.notes.join('\n') : null;
+    const notes = view.notes ?? [];
+    heldNotes = notes.length > 0 ? notes.join('\n') : null;
   }
   showCourseNotes();
 
