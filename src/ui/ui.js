@@ -4925,56 +4925,51 @@ export class Ui {
   }
 
   /*
-   * WRITE ONLY WHAT CHANGED.
-   *
-   * These three exist because setOsd runs on every flight frame and used to
-   * assign textContent and className to about a dozen nodes whether or not
-   * the value had moved. Assigning the string a node already holds still
-   * replaces its Text child and still invalidates style, and this overlay is
-   * composited above the WebGL canvas, which is the arrangement an
-   * integrated GPU pays for most. Measured with a MutationObserver: 17
-   * records per frame in flight, 3 per frame sitting on the title.
-   *
-   * scorehud.js has done it this way since it was written and says why at
-   * the top of the file. This is the same guard, in the file that needed it
-   * more. The last value is cached on the node itself so nothing has to keep
-   * a map in step with a DOM that screens rebuild.
+   * The overlay's three write guards. setOsd runs every flight frame, and
+   * assigning a node the string it already holds still replaces its text
+   * child and invalidates style, on an overlay composited above the WebGL
+   * canvas: 17 mutation records a frame in flight before these, 3 on the
+   * title. The last value lives on the node, so no map has to follow a
+   * DOM the screens rebuild. scorehud.js keeps the same guard.
    */
   static text(el, value) {
     if (!el) {
       return;
     }
-    const v = value == null ? '' : String(value);
-    if (el.__wfText !== v) {
-      el.__wfText = v;
-      el.textContent = v;
+    const next = value == null ? '' : String(value);
+    if (el.__lastText === next) {
+      return;
     }
+    el.__lastText = next;
+    el.textContent = next;
   }
 
   static klass(el, value) {
     if (!el) {
       return;
     }
-    const v = value == null ? '' : String(value);
-    if (el.__wfClass !== v) {
-      el.__wfClass = v;
-      el.className = v;
+    const next = value == null ? '' : String(value);
+    if (el.__lastClass === next) {
+      return;
     }
+    el.__lastClass = next;
+    el.className = next;
   }
 
-  /* Bars are a width in per cent. Rounded to one decimal before the compare,
-   * because a battery that drains by a ten thousandth of a per cent per frame
-   * would otherwise defeat the guard entirely while moving nothing a pilot
-   * can see. */
+  /* A width in per cent, to one decimal before the compare: a pack that
+   * drains a ten thousandth of a per cent a frame would otherwise write
+   * every frame and move nothing a pilot can see. */
   static bar(el, frac) {
     if (!el) {
       return;
     }
-    const pct = Math.round(Math.max(0, Math.min(1, frac)) * 1000) / 10;
-    if (el.__wfBar !== pct) {
-      el.__wfBar = pct;
-      el.style.width = `${pct}%`;
+    const clamped = Math.max(0, Math.min(1, frac));
+    const pct = Math.round(clamped * 1000) / 10;
+    if (el.__lastBar === pct) {
+      return;
     }
+    el.__lastBar = pct;
+    el.style.width = `${pct}%`;
   }
 
   /* The scrolling box for the screen the cursor is on, or null when the
