@@ -43,6 +43,7 @@
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "lint:boot": "node scripts/boot-check.js",
+    "boot:wiring": "node scripts/boot-wiring-golden.js",
     "boot:entry": "node scripts/boot-entry-check.js",
     "contact:golden": "node scripts/contact-golden.js",
     "probe:golden": "node scripts/probe-golden.js",
