@@ -36,6 +36,9 @@ jobs:
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
       - run: npm run dump:selftest
+      # The flight controller bench, src/ui/fc.js: rows, closures, DOM strips
+      # and the horizon, over a pinned module dump (scripts/fc-bench-selftest.js).
+      - run: npm run fc-bench:selftest
       # The firmware's name only in its Credits attribution: string tables,
       # script literals and the served pages (scripts/brand-lint.js).
       - run: npm run lint:bf

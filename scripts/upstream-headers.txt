@@ -84,7 +84,6 @@ src/ui/accountui.js
 src/ui/campaign.js
 src/ui/carousel.js
 src/ui/credits.js
-src/ui/fc.js
 src/ui/hangar-combat.js
 src/ui/hangar.js
 src/ui/hangar-paint.js

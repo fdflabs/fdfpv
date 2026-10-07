@@ -19,6 +19,7 @@
     "combat:derive": "node scripts/combat-derive.js",
     "combat:gates": "node scripts/combat-gates.js",
     "dump:selftest": "node scripts/dump-selftest.js",
+    "fc-bench:selftest": "node scripts/fc-bench-selftest.js",
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
     "pids:selftest": "node scripts/pids-selftest.js",
