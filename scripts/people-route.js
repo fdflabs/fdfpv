@@ -21,7 +21,10 @@
  *   in the map     every pose inside the played square;
  *   no jumps       no pose further from the last than its speed allows;
  *   actions        every action one of routes.js ACTIONS, and a route's
- *                  first pose at its first point (ms is route local).
+ *                  first pose at its first point (ms is route local);
+ *   long objects   the pair carries them only from the narrow opening on
+ *                  (the script's M1_06 reveal), on its routes and its
+ *                  alternates.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -50,7 +53,9 @@ import {
   BRIDGES, BUILDINGS, landEdit, nearestOnLine,
 } from '../src/share/interior/places.js';
 import { RIVER } from '../src/share/interior/hydro.js';
-import { makeRoutes, ACTIONS, ROUTES } from '../src/share/interior/routes.js';
+import {
+  makeRoutes, ACTIONS, ROUTES, ALT_POINTS, CONCEAL_POINTS,
+} from '../src/share/interior/routes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const STEP_MS = 500;
@@ -178,6 +183,21 @@ for (const id of routes.ids) {
         }
       }
     }
+  }
+}
+/* Within this of the stretch from the opening on, metres. */
+const ON_M = 0.01;
+for (const id of routes.ids.filter((x) => /^conceal-/.test(x))) {
+  const pts = ROUTES[id].pts.slice(id.includes('-alt-') ? ALT_POINTS.opening : CONCEAL_POINTS.opening);
+  const onTail = (x, z) => pts.slice(1).some(([bx, bz], k) => {
+    const [ax, az] = pts[k];
+    const l2 = (bx - ax) ** 2 + (bz - az) ** 2;
+    const u = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (z - az) * (bz - az)) / l2));
+    return Math.hypot(x - (ax + u * (bx - ax)), z - (az + u * (bz - az))) < ON_M;
+  });
+  const early = first.poses[id].findIndex((p) => p && p.action === 'carryLong' && !onTail(p.x, p.z));
+  if (early >= 0) {
+    fail(`${id}: carries the long objects at ${early * STEP_MS} ms, before the narrow opening`);
   }
 }
 console.log(`walked every ${STEP_MS} ms: ${Object.values(first.poses).reduce((a, p) => a + p.length, 0)} poses`);
