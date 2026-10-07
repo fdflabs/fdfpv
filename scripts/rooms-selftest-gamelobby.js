@@ -114,7 +114,7 @@ function lobbyRoom({
 export function warLobbySection(check) {
   console.log('war: the lobby');
   {
-    const e = lobbyRoom();
+    const e = lobbyRoom({ dev: true });
     const w = e.socks[0].got.find((m) => m.type === 'welcome');
     check('a room made for the war welcomes with its lobby: the mission, nobody ready, no times',
       JSON.stringify(w.lobby) === '{"mission":"itaipu-1","ready":{},"countdownAt":null,"deadlineAt":null}', JSON.stringify(w.lobby));
@@ -151,7 +151,7 @@ export function warLobbySection(check) {
       && e.r.gameLobby.open(e.r));
   }
   {
-    const e = lobbyRoom({ n: 3 });
+    const e = lobbyRoom({ n: 3, dev: true });
     e.at(500);
     e.ready(1);
     e.at(500 + LOBBY_DEADLINE_MS - 100);
@@ -160,7 +160,7 @@ export function warLobbySection(check) {
     check('at 45 s it starts with whoever is ready', e.war().state === 'briefing', e.war().state);
   }
   {
-    const e = lobbyRoom();
+    const e = lobbyRoom({ dev: true });
     e.at(500);
     e.ready(0);
     e.ready(0, false);
@@ -171,21 +171,26 @@ export function warLobbySection(check) {
   {
     /* The release gate (src/game/campaign.js ACT1 release): the VM's
      * room never takes a mission in development, by its word, and a room
-     * stored set to one before the gate is mission 1 again, not a lobby
-     * whose every start is refused. */
+     * stored set to one before the gate is the first it may start again,
+     * not a lobby whose every start is refused. With every mission of Act
+     * 1 held (the owner, 2026-10-07) that is the drill, which no campaign
+     * holds back (campaign.js released); a check's own room (dev) is
+     * mission 1. */
     const e = lobbyRoom();
+    check('with mission 1 held, a room made for it says the drill in its lobby', e.lobby(0).mission === 'itaipu-drill', JSON.stringify(e.lobby(0)));
     e.say(0, { type: 'lobby', op: 'mission', mission: 'itaipu-2' });
-    check('the host cannot set mission 2 while it is in development: refused, said why, the room keeps mission 1',
-      e.socks[0].got.some((m) => m.type === 'refused' && m.why === 'war_unreleased') && e.lobby(1).mission === 'itaipu-1' && e.r.meta.mission === 'itaipu-1',
-      JSON.stringify(e.lobby(1)));
+    check('the host cannot set mission 2 while it is in development: refused, said why, the lobby keeps the drill',
+      e.socks[0].got.some((m) => m.type === 'refused' && m.why === 'war_unreleased') && e.lobby(1).mission === 'itaipu-drill'
+      && e.r.meta.mission === 'itaipu-1', JSON.stringify(e.lobby(1)));
     const stored = lobbyRoom({ mission: 'itaipu-3' });
-    check('a room stored set to mission 3 says mission 1 in its lobby', stored.lobby(0).mission === 'itaipu-1', JSON.stringify(stored.lobby(0)));
+    check('a room stored set to mission 3 says the drill in its lobby', stored.lobby(0).mission === 'itaipu-drill', JSON.stringify(stored.lobby(0)));
     stored.at(100);
     stored.ready(0);
     stored.ready(1);
     stored.at(100 + LOBBY_COUNTDOWN_MS + 100);
-    check('and its lobby starts mission 1', stored.war().state === 'briefing' && stored.war().mission === 'itaipu-1',
+    check('and its lobby starts the drill', stored.war().state === 'briefing' && stored.war().mission === 'itaipu-drill',
       JSON.stringify({ state: stored.war().state, mission: stored.war().mission }));
+    check('a check\'s own room (dev) made for mission 1 says mission 1', lobbyRoom({ dev: true }).lobby(0).mission === 'itaipu-1');
   }
   {
     const e = lobbyRoom({ dev: true });
@@ -205,7 +210,7 @@ export function warLobbySection(check) {
     /* The owner, 2 Oct: a lost mission restarts from the stage it was
      * lost in. The loss is put on the match by hand here; war:stages
      * plays one through. */
-    const e = lobbyRoom();
+    const e = lobbyRoom({ dev: true });
     e.at(100);
     e.ready(0);
     e.ready(1);
@@ -283,7 +288,7 @@ export function warLobbySection(check) {
     }
   }
   {
-    const e = lobbyRoom();
+    const e = lobbyRoom({ dev: true });
     e.at(100);
     e.ready(0);
     e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1', intro: true });
@@ -292,7 +297,7 @@ export function warLobbySection(check) {
       && e.lobby(1).deadlineAt === null);
   }
   {
-    const e = lobbyRoom();
+    const e = lobbyRoom({ dev: true });
     e.at(100);
     e.ready(0);
     e.leave(1);
@@ -301,7 +306,7 @@ export function warLobbySection(check) {
   {
     /* The owner, 2026-10-01: a non-host left on the end banner, "waiting
      * for the host", with no way forward. Nobody waits on the host here. */
-    const e = lobbyRoom({ n: 3 });
+    const e = lobbyRoom({ n: 3, dev: true });
     e.at(100);
     e.leave(0);
     e.ready(1);
@@ -467,7 +472,7 @@ export function gameLobbySection(check) {
 export function emptyRoomSection(check) {
   console.log('an empty room: its game paused, a finished one closed');
   {
-    const e = lobbyRoom({ n: 1 });
+    const e = lobbyRoom({ n: 1, dev: true });
     e.at(100);
     e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1' });
     e.at(e.war().goAt + 30000);
@@ -496,7 +501,7 @@ export function emptyRoomSection(check) {
       `${e.r.combat.round.endsAt - e.r.roomMs(e.clock)} ${left}`);
   }
   {
-    const e = lobbyRoom({ n: 1 });
+    const e = lobbyRoom({ n: 1, dev: true });
     e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1' });
     e.at(e.war().goAt + 1000);
     e.say(0, { type: 'war', op: 'end' });
