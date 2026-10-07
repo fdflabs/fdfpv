@@ -1,0 +1,2661 @@
+{
+ "consts": {
+  "SEGMENT_MAX": 4,
+  "SEGMENT_CHARS": 24
+ },
+ "fitsAsSegments": [
+  false,
+  false,
+  false,
+  false,
+  false,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  false,
+  true,
+  false,
+  true
+ ],
+ "slugify": [
+  "row",
+  "off",
+  "acro",
+  "low",
+  "betaflight-default",
+  "karate-race-6s",
+  "xxxxxxxxxxxxxxxxxxxxxxxxx",
+  "row",
+  "row",
+  "0",
+  "n-code-label",
+  "pilot-s-1-2-deg",
+  "a-b",
+  "row",
+  "42",
+  "a-b",
+  "multi-space"
+ ],
+ "cycle": [
+  "c",
+  "b",
+  "a",
+  "c",
+  "b",
+  "a",
+  "c",
+  "b",
+  4,
+  2,
+  1,
+  3,
+  2,
+  4,
+  3,
+  1,
+  4,
+  2,
+  false,
+  false,
+  true,
+  true,
+  false,
+  false,
+  "solo",
+  "solo",
+  "solo",
+  "solo"
+ ],
+ "stampIds": [
+  [
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "title:a-fly"
+   },
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "title:a-fly~2"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "title:s-heading"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "title:s-heading~2"
+   },
+   {
+    "label": "Keyed",
+    "key": "roll_rate",
+    "id": "title:k-roll_rate"
+   },
+   {
+    "label": "Plain row",
+    "id": "title:plain-row"
+   },
+   {
+    "label": "Plain row",
+    "id": "title:plain-row~2"
+   },
+   {
+    "label": "Plain row",
+    "id": "title:plain-row~3"
+   },
+   {
+    "label": "Has id",
+    "id": "given"
+   },
+   null,
+   "string",
+   7,
+   {
+    "label": "",
+    "id": "title:row"
+   },
+   {
+    "label": "!!!",
+    "id": "title:row~2"
+   },
+   {
+    "action": "fly",
+    "key": "k",
+    "section": true,
+    "label": "all",
+    "id": "title:a-fly~3"
+   }
+  ],
+  [
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly"
+   },
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly~2"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading~2"
+   },
+   {
+    "label": "Keyed",
+    "key": "roll_rate",
+    "id": "k-roll_rate"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~2"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~3"
+   },
+   {
+    "label": "Has id",
+    "id": "given"
+   },
+   null,
+   "string",
+   7,
+   {
+    "label": "",
+    "id": "row"
+   },
+   {
+    "label": "!!!",
+    "id": "row~2"
+   },
+   {
+    "action": "fly",
+    "key": "k",
+    "section": true,
+    "label": "all",
+    "id": "a-fly~3"
+   }
+  ],
+  [
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly"
+   },
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly~2"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading~2"
+   },
+   {
+    "label": "Keyed",
+    "key": "roll_rate",
+    "id": "k-roll_rate"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~2"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~3"
+   },
+   {
+    "label": "Has id",
+    "id": "given"
+   },
+   null,
+   "string",
+   7,
+   {
+    "label": "",
+    "id": "row"
+   },
+   {
+    "label": "!!!",
+    "id": "row~2"
+   },
+   {
+    "action": "fly",
+    "key": "k",
+    "section": true,
+    "label": "all",
+    "id": "a-fly~3"
+   }
+  ],
+  [
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly"
+   },
+   {
+    "label": "Fly",
+    "action": "fly",
+    "id": "a-fly~2"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading"
+   },
+   {
+    "label": "Heading",
+    "section": true,
+    "id": "s-heading~2"
+   },
+   {
+    "label": "Keyed",
+    "key": "roll_rate",
+    "id": "k-roll_rate"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~2"
+   },
+   {
+    "label": "Plain row",
+    "id": "plain-row~3"
+   },
+   {
+    "label": "Has id",
+    "id": "given"
+   },
+   null,
+   "string",
+   7,
+   {
+    "label": "",
+    "id": "row"
+   },
+   {
+    "label": "!!!",
+    "id": "row~2"
+   },
+   {
+    "action": "fly",
+    "key": "k",
+    "section": true,
+    "label": "all",
+    "id": "a-fly~3"
+   }
+  ]
+ ],
+ "stampIdsReturnsSame": true,
+ "choice": [
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "acro",
+    "current": "acro",
+    "options": [
+     {
+      "value": "acro",
+      "label": "acro"
+     },
+     {
+      "value": "angle",
+      "label": "angle"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      "angle"
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      "angle"
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [
+      "acro"
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [
+      "angle"
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "ANGLE",
+    "current": "angle",
+    "options": [
+     {
+      "value": "acro",
+      "label": "ACRO"
+     },
+     {
+      "value": "angle",
+      "label": "ANGLE"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      "acro"
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      "acro"
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [
+      "acro"
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [
+      "angle"
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "3 laps",
+    "current": 3,
+    "options": [
+     {
+      "value": 1,
+      "label": "1 laps"
+     },
+     {
+      "value": 3,
+      "label": "3 laps"
+     },
+     {
+      "value": 5,
+      "label": "5 laps"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      5
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [
+      3
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [
+      3
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "4",
+    "current": 4,
+    "options": [
+     {
+      "value": 1,
+      "label": "1"
+     },
+     {
+      "value": 3,
+      "label": "3"
+     },
+     {
+      "value": 5,
+      "label": "5"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      5
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      3
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [
+      3
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [
+      3
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "false",
+    "current": false,
+    "options": [
+     {
+      "value": true,
+      "label": "true"
+     },
+     {
+      "value": false,
+      "label": "false"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [
+      false
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "x",
+    "current": "x",
+    "options": []
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      "<undefined>"
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      "<undefined>"
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Label",
+    "note": "Note",
+    "value": "3.80",
+    "current": 3.8,
+    "options": [
+     {
+      "value": 4.2,
+      "label": "4.20"
+     },
+     {
+      "value": 3.8,
+      "label": "3.80"
+     },
+     {
+      "value": 3.5,
+      "label": "3.50"
+     }
+    ]
+   },
+   "functions": [
+    "adjust",
+    "pick"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      4.2
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      3.5
+     ],
+     "returned": 1
+    },
+    "pick(\"acro\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"angle\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"3\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(3)": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"4.2\")": {
+     "set": [
+      4.2
+     ],
+     "returned": "<undefined>"
+    },
+    "pick(\"false\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(\"nope\")": {
+     "set": [],
+     "returned": "<undefined>"
+    },
+    "pick(undefined)": {
+     "set": [],
+     "returned": "<undefined>"
+    }
+   }
+  }
+ ],
+ "toggle": [
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": true,
+    "value": "On",
+    "current": true
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": false,
+    "value": "Off",
+    "current": false
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": true,
+    "value": "On",
+    "current": true
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": false,
+    "value": "Off",
+    "current": false
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": false,
+    "value": "Off",
+    "current": false
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": true,
+    "value": "On",
+    "current": true
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Sound",
+    "note": "Note",
+    "sw": true,
+    "on": false,
+    "value": "Off",
+    "current": false
+   },
+   "functions": [
+    "adjust",
+    "flip"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    },
+    "adjust(0)": {
+     "set": [
+      false
+     ],
+     "returned": 1
+    },
+    "flip(undefined)": {
+     "set": [
+      true
+     ],
+     "returned": 1
+    }
+   }
+  }
+ ],
+ "number": [
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Centre sensitivity",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity."
+     },
+     "cli": 1,
+     "text": "10",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      2
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Centre sensitivity",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity."
+     },
+     "cli": 200,
+     "text": "2000",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      199
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      200
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Centre sensitivity",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity."
+     },
+     "cli": 101,
+     "text": "1010",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      100
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      102
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC rate",
+      "cliMin": 1,
+      "cliMax": 255,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "The linear part of the curve, and the whole of it when Super rate is zero. 1.00 is 200 deg/s at full stick."
+     },
+     "cli": 1,
+     "text": "0.01",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      2
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 255
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC rate",
+      "cliMin": 1,
+      "cliMax": 255,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "The linear part of the curve, and the whole of it when Super rate is zero. 1.00 is 200 deg/s at full stick."
+     },
+     "cli": 255,
+     "text": "2.55",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      254
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      255
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 255
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC rate",
+      "cliMin": 1,
+      "cliMax": 255,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "The linear part of the curve, and the whole of it when Super rate is zero. 1.00 is 200 deg/s at full stick."
+     },
+     "cli": 128,
+     "text": "1.28",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      127
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      129
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 255
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 255
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Max rate",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle."
+     },
+     "cli": 1,
+     "text": "10",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      2
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Max rate",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle."
+     },
+     "cli": 200,
+     "text": "2000",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      199
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      200
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Max rate",
+      "cliMin": 1,
+      "cliMax": 200,
+      "scale": 10,
+      "decimals": 0,
+      "unit": "deg/s",
+      "note": "What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle."
+     },
+     "cli": 101,
+     "text": "1010",
+     "unit": "deg/s"
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      100
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      102
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 150
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 1
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 7
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 200
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Super rate",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How hard the ends of the travel are stretched. Zero is a straight line; every step up adds rate at the stop without touching the middle, and the top of the range is where a small stick move near the stop is worth a great deal."
+     },
+     "cli": 0,
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      0
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Super rate",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How hard the ends of the travel are stretched. Zero is a straight line; every step up adds rate at the stop without touching the middle, and the top of the range is where a small stick move near the stop is worth a great deal."
+     },
+     "cli": 100,
+     "text": "1.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      99
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      100
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Super rate",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How hard the ends of the travel are stretched. Zero is a straight line; every step up adds rate at the stop without touching the middle, and the top of the range is where a small stick move near the stop is worth a great deal."
+     },
+     "cli": 50,
+     "text": "0.50",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      49
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      51
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it."
+     },
+     "cli": 0,
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      0
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it."
+     },
+     "cli": 100,
+     "text": "1.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      99
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      100
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "Expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "How much of the travel is spent near the middle. Zero is a straight line from centre sensitivity to the stop. Higher softens the middle and keeps the same maximum, which is why the ends of the curve do not move when you change it."
+     },
+     "cli": 50,
+     "text": "0.50",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      49
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      51
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "Softens the middle of the stick and leaves the ends alone. Zero is linear."
+     },
+     "cli": 0,
+     "text": "0.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      0
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "Softens the middle of the stick and leaves the ends alone. Zero is linear."
+     },
+     "cli": 100,
+     "text": "1.00",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      99
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      100
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  },
+  {
+   "plain": {
+    "label": "Rate",
+    "note": "Note",
+    "num": {
+     "spec": {
+      "label": "RC expo",
+      "cliMin": 0,
+      "cliMax": 100,
+      "scale": 0.01,
+      "decimals": 2,
+      "unit": "",
+      "note": "Softens the middle of the stick and leaves the ends alone. Zero is linear."
+     },
+     "cli": 50,
+     "text": "0.50",
+     "unit": ""
+    }
+   },
+   "functions": [
+    "adjust",
+    "set",
+    "typed"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      49
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      51
+     ],
+     "returned": 1
+    },
+    "typed(\"\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"  \")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"1\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"1500\")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(\"-5\")": {
+     "set": [],
+     "returned": 0
+    },
+    "typed(\"abc\")": {
+     "set": [],
+     "returned": null
+    },
+    "typed(\"0.42\")": {
+     "set": [],
+     "returned": 42
+    },
+    "typed(\" 70 \")": {
+     "set": [],
+     "returned": 100
+    },
+    "typed(1000000000)": {
+     "set": [],
+     "returned": 100
+    },
+    "set(7)": {
+     "set": [
+      7
+     ],
+     "returned": 1
+    }
+   }
+  }
+ ],
+ "stepper": [
+  {
+   "plain": {
+    "label": "Volume",
+    "note": "Note",
+    "value": "6",
+    "step": true
+   },
+   "functions": [
+    "adjust"
+   ],
+   "effects": {
+    "adjust(-1)": {
+     "set": [
+      -1
+     ],
+     "returned": 1
+    },
+    "adjust(1)": {
+     "set": [
+      1
+     ],
+     "returned": 1
+    }
+   }
+  }
+ ]
+}

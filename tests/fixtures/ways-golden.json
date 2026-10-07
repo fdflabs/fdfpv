@@ -1,0 +1,581 @@
+{
+ "boardCraft": {
+  "10inch": "10inch",
+  "7inch": "7inch",
+  "bombshell1118": "wing",
+  "bramor2300": "wing",
+  "cub1400": "wing",
+  "cub1400f": "wing",
+  "f16878": "wing",
+  "interceptor": "interceptor",
+  "kadet1981": "wing",
+  "nrj1490": "wing",
+  "p51d1450": "wing",
+  "radian2000": "wing",
+  "sky1800": "wing",
+  "slowstick1180": "wing",
+  "striker2500": "wing",
+  "tigermoth1803": "wing",
+  "timber1500": "wing",
+  "timber1500f": "wing",
+  "uglystik1567": "wing",
+  "zagi1219": "wing"
+ },
+ "craftSvg": {
+  "10inch": "<svg viewBox=\"0 0 569 569\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"284.5\" y1=\"284.5\" x2=\"432.99242404917493\" y2=\"432.99242404917493\" stroke=\"currentColor\" stroke-width=\"25.400000000000002\" stroke-opacity=\"0.55\"/><line x1=\"284.5\" y1=\"284.5\" x2=\"432.99242404917493\" y2=\"136.00757595082504\" stroke=\"currentColor\" stroke-width=\"25.400000000000002\" stroke-opacity=\"0.55\"/><line x1=\"284.5\" y1=\"284.5\" x2=\"136.00757595082504\" y2=\"432.99242404917493\" stroke=\"currentColor\" stroke-width=\"25.400000000000002\" stroke-opacity=\"0.55\"/><line x1=\"284.5\" y1=\"284.5\" x2=\"136.00757595082504\" y2=\"136.00757595082504\" stroke=\"currentColor\" stroke-width=\"25.400000000000002\" stroke-opacity=\"0.55\"/><rect x=\"262.5\" y=\"246.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"432.99242404917493\" cy=\"432.99242404917493\" r=\"127\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"432.99242404917493\" cy=\"136.00757595082504\" r=\"127\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"136.00757595082504\" cy=\"432.99242404917493\" r=\"127\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"136.00757595082504\" cy=\"136.00757595082504\" r=\"127\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>",
+  "7inch": "<svg viewBox=\"0 0 419 419\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"209.5\" y1=\"209.5\" x2=\"320.8693180368812\" y2=\"320.8693180368812\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"209.5\" y1=\"209.5\" x2=\"320.8693180368812\" y2=\"98.13068196311878\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"209.5\" y1=\"209.5\" x2=\"98.13068196311878\" y2=\"320.8693180368812\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"209.5\" y1=\"209.5\" x2=\"98.13068196311878\" y2=\"98.13068196311878\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><rect x=\"187.5\" y=\"171.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"320.8693180368812\" cy=\"320.8693180368812\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"320.8693180368812\" cy=\"98.13068196311878\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.13068196311878\" cy=\"320.8693180368812\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.13068196311878\" cy=\"98.13068196311878\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>",
+  "bombshell1118": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "bramor2300": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "cub1400": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "cub1400f": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "f16878": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "interceptor": "<svg viewBox=\"0 0 417 417\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"318.95007922133874\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"318.95007922133874\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><line x1=\"208.5\" y1=\"208.5\" x2=\"98.04992077866127\" y2=\"98.04992077866127\" stroke=\"currentColor\" stroke-width=\"17.78\" stroke-opacity=\"0.55\"/><rect x=\"186.5\" y=\"170.5\" width=\"44\" height=\"76\" rx=\"10\" fill=\"currentColor\" fill-opacity=\"0.30\"/><circle cx=\"318.95007922133874\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"318.95007922133874\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"318.95007922133874\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/><circle cx=\"98.04992077866127\" cy=\"98.04992077866127\" r=\"88.9\" fill=\"currentColor\" fill-opacity=\"0.16\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.8\"/></svg>",
+  "kadet1981": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "nrj1490": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "p51d1450": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "radian2000": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "sky1800": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "slowstick1180": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "striker2500": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "tigermoth1803": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "timber1500": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "timber1500f": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "uglystik1567": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+  "zagi1219": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>"
+ },
+ "gateWays": [
+  "race-5inch",
+  "freestyle-wing1000",
+  "combat",
+  "ace",
+  "campaign",
+  "interior"
+ ],
+ "hubOfAction": {
+  "fly": null,
+  "way-ace": "club",
+  "way-campaign": "ops",
+  "way-combat": "club",
+  "way-freestyle-wing1000": "club",
+  "way-friends": null,
+  "way-interior": "ops",
+  "way-nope": null,
+  "way-race-5inch": "club",
+  "way-war": null
+ },
+ "hubWays": {
+  "club": [
+   "race-5inch",
+   "freestyle-wing1000",
+   "combat",
+   "ace"
+  ],
+  "hangar": [],
+  "nope": [],
+  "ops": [
+   "campaign",
+   "interior"
+  ]
+ },
+ "hubs": [
+  {
+   "art": "assets/posters/swiss2.jpg",
+   "blurb": "hub.club_blurb",
+   "category": "flightclub",
+   "id": "club",
+   "label": "hub.club"
+  },
+  {
+   "art": "assets/posters/itaipu.jpg",
+   "blurb": "hub.ops_blurb",
+   "category": "operations",
+   "id": "ops",
+   "label": "hub.ops"
+  },
+  {
+   "art": "assets/gate/hangar.jpg",
+   "blurb": "hub.hangar_blurb",
+   "category": null,
+   "id": "hangar",
+   "label": "hub.hangar"
+  }
+ ],
+ "openActions": [
+  "back",
+  "card-back",
+  "credits",
+  "leaderboard",
+  "mode-gate",
+  "noop",
+  "pause",
+  "paused",
+  "reportbug",
+  "resume",
+  "room-bar",
+  "title",
+  "update-reload"
+ ],
+ "reticleSvg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>",
+ "seatedWay": {
+  "10inch/freestyle": "friends",
+  "10inch/nope": "race-5inch",
+  "10inch/null": "race-5inch",
+  "10inch/race": "race-5inch",
+  "7inch/freestyle": "friends",
+  "7inch/nope": "race-5inch",
+  "7inch/null": "race-5inch",
+  "7inch/race": "race-5inch",
+  "bombshell1118/freestyle": "freestyle-wing1000",
+  "bombshell1118/nope": "freestyle-wing1000",
+  "bombshell1118/null": "freestyle-wing1000",
+  "bombshell1118/race": "race-5inch",
+  "bramor2300/freestyle": "freestyle-wing1000",
+  "bramor2300/nope": "freestyle-wing1000",
+  "bramor2300/null": "freestyle-wing1000",
+  "bramor2300/race": "race-5inch",
+  "cub1400/freestyle": "freestyle-wing1000",
+  "cub1400/nope": "freestyle-wing1000",
+  "cub1400/null": "freestyle-wing1000",
+  "cub1400/race": "race-5inch",
+  "cub1400f/freestyle": "freestyle-wing1000",
+  "cub1400f/nope": "freestyle-wing1000",
+  "cub1400f/null": "freestyle-wing1000",
+  "cub1400f/race": "race-5inch",
+  "f16878/freestyle": "freestyle-wing1000",
+  "f16878/nope": "freestyle-wing1000",
+  "f16878/null": "freestyle-wing1000",
+  "f16878/race": "race-5inch",
+  "interceptor/freestyle": "friends",
+  "interceptor/nope": "race-5inch",
+  "interceptor/null": "race-5inch",
+  "interceptor/race": "race-5inch",
+  "kadet1981/freestyle": "freestyle-wing1000",
+  "kadet1981/nope": "freestyle-wing1000",
+  "kadet1981/null": "freestyle-wing1000",
+  "kadet1981/race": "race-5inch",
+  "nrj1490/freestyle": "freestyle-wing1000",
+  "nrj1490/nope": "freestyle-wing1000",
+  "nrj1490/null": "freestyle-wing1000",
+  "nrj1490/race": "race-5inch",
+  "p51d1450/freestyle": "freestyle-wing1000",
+  "p51d1450/nope": "freestyle-wing1000",
+  "p51d1450/null": "freestyle-wing1000",
+  "p51d1450/race": "race-5inch",
+  "radian2000/freestyle": "freestyle-wing1000",
+  "radian2000/nope": "freestyle-wing1000",
+  "radian2000/null": "freestyle-wing1000",
+  "radian2000/race": "race-5inch",
+  "sky1800/freestyle": "freestyle-wing1000",
+  "sky1800/nope": "freestyle-wing1000",
+  "sky1800/null": "freestyle-wing1000",
+  "sky1800/race": "race-5inch",
+  "slowstick1180/freestyle": "freestyle-wing1000",
+  "slowstick1180/nope": "freestyle-wing1000",
+  "slowstick1180/null": "freestyle-wing1000",
+  "slowstick1180/race": "race-5inch",
+  "striker2500/freestyle": "freestyle-wing1000",
+  "striker2500/nope": "freestyle-wing1000",
+  "striker2500/null": "freestyle-wing1000",
+  "striker2500/race": "race-5inch",
+  "tigermoth1803/freestyle": "freestyle-wing1000",
+  "tigermoth1803/nope": "freestyle-wing1000",
+  "tigermoth1803/null": "freestyle-wing1000",
+  "tigermoth1803/race": "race-5inch",
+  "timber1500/freestyle": "freestyle-wing1000",
+  "timber1500/nope": "freestyle-wing1000",
+  "timber1500/null": "freestyle-wing1000",
+  "timber1500/race": "race-5inch",
+  "timber1500f/freestyle": "freestyle-wing1000",
+  "timber1500f/nope": "freestyle-wing1000",
+  "timber1500f/null": "freestyle-wing1000",
+  "timber1500f/race": "race-5inch",
+  "uglystik1567/freestyle": "freestyle-wing1000",
+  "uglystik1567/nope": "freestyle-wing1000",
+  "uglystik1567/null": "freestyle-wing1000",
+  "uglystik1567/race": "race-5inch",
+  "zagi1219/freestyle": "freestyle-wing1000",
+  "zagi1219/nope": "freestyle-wing1000",
+  "zagi1219/null": "freestyle-wing1000",
+  "zagi1219/race": "race-5inch"
+ },
+ "wayFilter": {
+  "ace": "all",
+  "campaign": "all",
+  "combat": "all",
+  "freestyle-wing1000": "plane",
+  "friends": "all",
+  "interior": "plane",
+  "race-5inch": "all",
+  "war": "all"
+ },
+ "ways": [
+  {
+   "action": "way-race-5inch",
+   "airframes": [
+    "interceptor",
+    "7inch",
+    "10inch",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/race.jpg",
+   "blurb": "Gates against the clock, on your own track or one from the board.",
+   "facts": [
+    "Gates",
+    "The clock",
+    "The board"
+   ],
+   "id": "race-5inch",
+   "label": "Track Day",
+   "lobby": "race",
+   "mode": "race"
+  },
+  {
+   "action": "way-freestyle-wing1000",
+   "airframes": [
+    "bramor2300",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/flight.jpg",
+   "blurb": "Every fixed wing, picked under Plane, free in the Swiss valley.",
+   "facts": [
+    "Every plane",
+    "The Swiss valley"
+   ],
+   "home": "swiss2",
+   "id": "freestyle-wing1000",
+   "label": "Free Flight",
+   "lobby": null,
+   "mode": "freestyle"
+  },
+  {
+   "action": "way-friends",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/friends.jpg",
+   "blurb": "Join a room from the list or make your own, then fly together.",
+   "facts": [
+    "Public rooms",
+    "Invite code",
+    "Planes and quads"
+   ],
+   "gate": false,
+   "home": "swiss2",
+   "id": "friends",
+   "label": "Fly with friends",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><g transform=\"translate(4 20) scale(0.56)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g><g transform=\"translate(128 112) scale(0.56)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
+  },
+  {
+   "action": "way-combat",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/combat.jpg",
+   "blurb": "Everybody tows a streamer of toilet paper. Cut theirs, keep yours.",
+   "facts": [
+    "Cut the paper",
+    "3 or 5 minutes",
+    "Invite code"
+   ],
+   "game": "combat",
+   "home": "swiss2",
+   "id": "combat",
+   "label": "Streamer Combat",
+   "lobby": "combat",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><g transform=\"translate(78 4) scale(0.48)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g><path d=\"M 150 132 C 120 170, 190 190, 150 222 S 110 262, 150 294\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"12\" stroke-opacity=\"0.7\" stroke-linecap=\"round\"/></svg>"
+  },
+  {
+   "action": "way-ace",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/ace.jpg",
+   "blurb": "The Ace wears the crown and scores. Fly into its bubble to take it.",
+   "facts": [
+    "The crown",
+    "Enter its bubble",
+    "Invite code"
+   ],
+   "game": "tag",
+   "home": "swiss2",
+   "id": "ace",
+   "label": "Catch the Ace!",
+   "lobby": "tag",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z\" fill=\"currentColor\" fill-opacity=\"0.45\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><rect x=\"50\" y=\"222\" width=\"200\" height=\"26\" rx=\"6\" fill=\"currentColor\" fill-opacity=\"0.7\"/></svg>"
+  },
+  {
+   "action": "way-war",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/posters/itaipu.jpg",
+   "blurb": "Attack drones are coming for Itaipu. Bring your squad and hold the dam.",
+   "facts": [
+    "Hold the dam",
+    "Warheads",
+    "Invite code"
+   ],
+   "game": "war",
+   "gate": false,
+   "home": "itaipu",
+   "id": "war",
+   "label": "Defend the Paraná",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
+  },
+  {
+   "action": "way-campaign",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/posters/itaipu.jpg",
+   "blurb": "Seven missions at Itaipu, three stars each, opened one at a time. Credits buy warheads and more.",
+   "campaign": true,
+   "facts": [
+    "Act 1",
+    "7 missions",
+    "Upgrade shop"
+   ],
+   "game": "war",
+   "home": "itaipu",
+   "id": "campaign",
+   "label": "Defend the Paraná",
+   "lobby": "war",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><g transform=\"translate(93 93) scale(0.38)\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></g></svg>"
+  },
+  {
+   "action": "way-interior",
+   "airframes": [
+    "bramor2300"
+   ],
+   "blurb": "Survey a quiet region from the air. Notice, follow, record. Unknown means unknown.",
+   "category": "operations",
+   "facts": [
+    "Five missions",
+    "Co-op roles, any squad",
+    "Camera ball, quiet HUD"
+   ],
+   "id": "interior",
+   "label": "The Interior",
+   "mode": "freestyle",
+   "opsCampaign": "interior",
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><circle cx=\"150\" cy=\"150\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.7\"/><circle cx=\"150\" cy=\"150\" r=\"14\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
+  }
+ ],
+ "waysEs": [
+  {
+   "blurb": "Puertas contra el reloj, en tu propia pista o en una del tablero.",
+   "facts": [
+    "Puertas",
+    "El reloj",
+    "El tablero"
+   ],
+   "id": "race-5inch",
+   "label": "Día de pista"
+  },
+  {
+   "blurb": "Todas las alas fijas, a elegir en Avión, libres en el valle suizo.",
+   "facts": [
+    "Todos los aviones",
+    "El valle suizo"
+   ],
+   "id": "freestyle-wing1000",
+   "label": "Vuelo Libre"
+  },
+  {
+   "blurb": "Únete a una sala de la lista o crea la tuya, y vuelen juntos.",
+   "facts": [
+    "Salas públicas",
+    "Código de invitación",
+    "Aviones y quads"
+   ],
+   "id": "friends",
+   "label": "Volar con amigos"
+  },
+  {
+   "blurb": "Todos arrastran una cinta de papel higiénico. Corta la ajena, cuida la tuya.",
+   "facts": [
+    "Corta el papel",
+    "3 o 5 minutos",
+    "Código de invitación"
+   ],
+   "id": "combat",
+   "label": "Combate de serpentinas"
+  },
+  {
+   "blurb": "El As lleva la corona y suma puntos. Entra en su burbuja para quitársela.",
+   "facts": [
+    "La corona",
+    "Entra en su burbuja",
+    "Código de invitación"
+   ],
+   "id": "ace",
+   "label": "¡Atrapa al As!"
+  },
+  {
+   "blurb": "Drones de ataque vienen por Itaipú. Trae a tu escuadrón y defiende la represa.",
+   "facts": [
+    "Defiende la represa",
+    "Ojivas",
+    "Código de invitación"
+   ],
+   "id": "war",
+   "label": "Defender el Paraná"
+  },
+  {
+   "blurb": "Siete misiones en Itaipú, tres estrellas cada una, que se abren de a una. Los créditos compran ojivas y más.",
+   "facts": [
+    "Acto 1",
+    "7 misiones",
+    "Tienda de mejoras"
+   ],
+   "id": "campaign",
+   "label": "Defender el Paraná"
+  },
+  {
+   "blurb": "Relevan una región tranquila desde el aire. Noten, sigan, registren. Desconocido significa desconocido.",
+   "facts": [
+    "Cinco misiones",
+    "Roles en cooperativo, cualquier escuadrón",
+    "Torreta, HUD silencioso"
+   ],
+   "id": "interior",
+   "label": "El Interior"
+  }
+ ]
+}
