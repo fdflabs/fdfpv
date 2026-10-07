@@ -4744,7 +4744,26 @@ export async function boot({
   function inWarRoom() {
     return roomWar.view().state !== 'lobby' || lobbyGame() === 'war';
   }
-  ui.craftLimit = () => (inWarRoom() ? WAR_AIRFRAMES : null);
+  /* An ops mission flies the aircraft its role names (the role's
+   * platforms, interior-1.js roles: the Bramor carries the camera ball the
+   * mission is flown through), so in its room the pickers, the swap and
+   * the [ ] cycle offer only those: the owner, 2026-10-07, flew Mission 1
+   * in a Shahed with no camera. Before a role is dealt, every role's
+   * platforms. */
+  function opsCrafts() {
+    const mission = roomOps.room() ? roomOps.mission() : null;
+    if (!mission) {
+      return null;
+    }
+    const v = roomOps.view();
+    const mine = v ? opsRoleCraft(v) : null;
+    if (mine) {
+      return [mine];
+    }
+    const all = [...new Set((mission.roles || []).flatMap((r) => r.platforms || []))];
+    return all.length ? all : null;
+  }
+  ui.craftLimit = () => opsCrafts() ?? (inWarRoom() ? WAR_AIRFRAMES : null);
   /* The aircraft a war seats this pilot in: its own when it is the war's,
    * else the war aircraft flown last, else the Striker. */
   function warCraftOf(s) {
