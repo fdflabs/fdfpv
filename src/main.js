@@ -72,7 +72,7 @@ import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
-import { createRoute, fromRace, replayState } from './game/debrief.js';
+import { createRoute, fromFree, fromRace, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -12865,7 +12865,20 @@ export async function boot({
    */
   function endFreestyleRun() {
     leaveFlightForResults();
-    ui.showFreestyleResults(score.summary());
+    const summary = score.summary();
+    const fixedWing = Boolean(airframeById(runAirframe).fixedWing);
+    ui.showFreestyleResults(summary, fromFree({
+      aircraft: runAirframe,
+      fixedWing,
+      summary,
+      flightMs: runAirMs,
+      totalS: aircraftSecondsNow(),
+      route: runRoute.snapshot(),
+      replay: replayState(crashCam ? crashCam.span() : null, false),
+      /* Down and whole when the run ends: a plane put on the ground, not
+       * one still in the air or in pieces when the horn went. */
+      landed: fixedWing ? landed && !crashed && !wrecked : null,
+    }));
   }
 
   /* Puts the flight down. A craft left parked upside down (waiting for the

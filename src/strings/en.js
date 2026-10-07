@@ -3695,6 +3695,7 @@ export default {
   "debrief.record_first": "{now}, the first on this track",
   "debrief.record_beat": "{now}, beat {before}",
   "debrief.record_stands": "{before} still stands",
+  "debrief.board_best_new": "{now}, your best on the board now",
   "debrief.run_best": "Your board best",
   "debrief.aircraft_time": "This aircraft, every flight",
   "debrief.hours": "{h} h {m} min",

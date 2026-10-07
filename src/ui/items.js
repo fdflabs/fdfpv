@@ -781,11 +781,12 @@ function resultsRows(ui, s) {
   if (ui.osdMode === 'freestyle') {
     return [
       again,
+      replayRow(ui.resultsDebrief),
       postRunRow(ui),
       { label: str('ui.open_tracks_and_statistics'), action: 'leaderboard', note: str('ui.every_published_track_and_the_times') },
       feelRow(),
       titleRow(),
-    ];
+    ].filter(Boolean);
   }
   /* A free world has no listing; its track rows would all be grey. */
   const listing = s.map === 'track' ? liveListing() : null;

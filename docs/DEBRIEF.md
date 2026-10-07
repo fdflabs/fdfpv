@@ -53,7 +53,7 @@ gets the facts block above its table.
 | --- | --- | --- |
 | race | `race`, solo | `ui.showResults(race.log, ...)` |
 | freestyle | `free`, scored or free flight | `ui.showFreestyleResults(score.summary())` |
-| wing | not a mode: a fixed wing airframe in `race` or `free`; adds a landing line to Result | the two above |
+| wing | not a mode: a fixed wing airframe in `race` or `free`; adds a landing line (down and whole when the run ends) in `free`, where the pilot ends the flight; a race ends at the line, in the air | the two above |
 | war | `war`, the room's round | warround.js card |
 | ops | the Interior campaign over a `war` room | `debrief.show(...)` |
 | Flight Club | room results: `race` room, `tag`, `combat` | `ui.showRoomResults(view)`, combathud |
