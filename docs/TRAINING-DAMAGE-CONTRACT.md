@@ -25,6 +25,10 @@ with any of this on or off, and the PRs that touch src/main.js run both.
   its REPLAY prompt, so DESTROYED adds no new text in flight. The damaged
   line sits under every power and link warning (LAND NOW outranks it) and
   over BATT < FULL; it does not blink.
+- On the Avionics HUD (the combat drones' default), a DMG row in the health
+  panel: OK, IMPAIRED with the part, or DESTROYED, coloured as the panel
+  colours link and navigation. The Game HUD draws no warnings at all today,
+  so it gets none here; giving it a warning line is a separate decision.
 - In the hangar: unchanged here; the parts lane owns the parts bench
   (src/ui/hangar-parts.js), repair and wear.
 - In the debrief: the debrief lane (item 16) renders it; this lane hands
