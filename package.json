@@ -86,6 +86,7 @@
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "flightlog:selftest": "node scripts/flightlog-selftest.js",
     "ghostdata:selftest": "node scripts/ghostdata-selftest.js",
+    "harness:selftest": "node scripts/harness-selftest.js",
     "table:selftest": "node scripts/table-selftest.js",
     "ghost:golden": "node scripts/ghost-golden.js",
     "board:post": "node scripts/board-post-check.js",
