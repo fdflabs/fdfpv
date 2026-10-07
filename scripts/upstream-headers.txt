@@ -14,15 +14,12 @@ scripts/build-selftest.js
 scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
-scripts/frame-check.js
 scripts/gatecards.js
 scripts/icons.js
 scripts/memory-check.js
-scripts/noun-lint.js
 scripts/og.js
 scripts/pixels.js
 scripts/posters.js
-scripts/quality-check.js
 scripts/responsive-check.js
 scripts/shots.js
 src/game/airframehull.js
