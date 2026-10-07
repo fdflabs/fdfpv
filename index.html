@@ -1847,140 +1847,94 @@
       .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
       .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
 
-      /* The menu is a fixed-width centre column. Help text lives in the
-         right column so a long note cannot grow the list and shove the
-         whole screen around. 1fr / auto / 1fr keeps the rows centred.
-         The title pins the same note ABOVE the footer, out of flow, so
-         a longer hover line cannot drop the rows. */
-      /* SYMMETRIC, so the menu is centred where the heading says it is.
-         The columns used to be 1.7fr / auto / 0.65fr, which put the panel
-         195 px right of a centred h2 on a 1440 px screen: the heading and
-         the thing it names did not line up on Paused or How to fly. The
-         screens that fill column one (Settings' airframe studio) override
-         this below; nothing else was using the extra width. */
-      .menu-stage {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        /*
-         * 100% of the PADDED BOX, not a slice of the viewport.
-         *
-         * .screen already spends 6vw a side on padding, so a stage sized in
-         * vw is wider than the box holding it and hangs off the edge: at
-         * 390 px that is 8 px of the row list past the right of the window,
-         * on a device with no horizontal scrollbar to find it with. The
-         * Rates screen was pinned to 100% for exactly this reason and the
-         * comment there says so; the rest of the screens were not.
-         */
-        width: 100%;
-        max-width: 1600px;
-        align-items: start;
-        margin-top: 22px;
-        pointer-events: none;
-      }
       /*
-       * QUAD, not Pilot. These two rules and the block under them size the
-       * airframe showcase's column, and the showcase moved to the Quad room
-       * with the machine it is a picture of. Left on .screen-pilot they gave
-       * Pilot a 360 px first column with nothing in it, which is why its
-       * menu sat right of centre, and gave Quad no column for the quad.
+       * THE MENU STAGE: three columns, the rows in the middle and the help
+       * note on the right, so a long note never pushes the list about.
+       * The side columns are equal so the panel sits under a centred
+       * heading. It is 100% of the screen's padded box, never vw: the
+       * screen already pads 6vw a side, and a stage sized in vw hung past
+       * the window's edge on a phone.
+       */
+      .menu-stage {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start;
+        width: 100%; max-width: 1600px; margin-top: 22px; pointer-events: none;
+      }
+
+      /*
+       * QUAD shows the airframe in the first column, so that column has a
+       * floor, and so does the help column: squeezed to 50 px the note
+       * once wrapped a word a line and ran 1451 px tall. The picture is
+       * square on the column's width, so it gets a height cap for wide,
+       * short windows, and the list may run as tall as the picture beside
+       * it (scripts/shell-check.js records this screen's overflow).
        */
       .screen-quad .menu-stage {
-        width: 100%;
-        max-width: 1600px;
-        /*
-         * The help column has a MINIMUM. At 1180 by 820 the first two
-         * columns took 360 and 628 and left it 50 px, so the note wrapped
-         * to one word per line and grew to 1451 px tall: the column that
-         * exists to explain the row became the reason the row was off the
-         * screen. A column that cannot do its job should push the layout to
-         * stack instead, which is what a minimum makes it do.
-         */
         grid-template-columns: minmax(360px, 1.7fr) auto minmax(210px, 0.65fr);
+        width: 100%; max-width: 1600px;
       }
-      /*
-       * The airframe is sized by the column's WIDTH and drawn square, so a
-       * wide short window makes it taller than the window. At 1180 by 820
-       * the first column is about 600 px, so the quad was 600 px tall in a
-       * box 700 px high and pushed the help column 373 px past the bottom.
-       * A height cap costs nothing on a tall window and is the whole fix on
-       * a short one.
-       */
       .screen-quad .craft-showcase-frame { max-height: min(46vh, 420px); }
-      /*
-       * THE QUAD LIST GETS THE ROOM THE COLUMN ALREADY HAS.
-       *
-       * The shared cap is min(58vh - bars, 34em), which on a 900 px window
-       * is about 520 px. This screen draws that list BESIDE a square
-       * airframe pose capped at 46vh, roughly 414 px, in a grid column of
-       * its own, so the list was stopping 100 px short of the picture next
-       * to it and scrolling for want of space nothing else wanted.
-       *
-       * The Aircraft row is what made anybody measure it: scripts/shell-check.js
-       * records this screen's overflow and fails when it grows, and one more
-       * row grew it by 45 px. The answer is not to take a control away and it
-       * is not to re-record the baseline. It is that a three column screen
-       * whose tallest element is 414 px should not cap its list at a height
-       * that makes it scroll while the column beside it has slack.
-       *
-       * 68vh is still under the picture plus the heading, the lede and the
-       * hint line on every window this screen draws three columns on, which
-       * is 1281 px wide and up.
-       */
       .screen-quad .menu-scroll { max-height: min(calc(68vh - var(--bars)), 40em); }
-      /* In a room the Fly with friends screen has Fly, the Game heading and
-         all three games' start rows to show before the first scroll (the
-         owner hosted and never saw combat). The lede is about making and
-         joining a room, so in one it goes and its height is the rows'. */
-      .screen-friends.in-room .rates-lede { display: none; }
-      /* The war's lobby (ui.js setWarLobby): it reads as a lobby, LOBBY and
-         the mission over the time in large and the pilots, the menu's rows
-         under it. The free flight heading and lede go while it is up. */
-      .screen-friends.war-lobby-on > h2, .screen-friends.war-lobby-on .rates-lede { display: none; }
+
       /*
-       * THE LOBBY as the boot screen's system check: a header strip (the
-       * stage in brackets, then the mission), the status as the boot
-       * screen's status line, and the pilots as its system rows, each
-       * READY in the sparse green or NOT READY dim.
+       * FLY WITH FRIENDS. In a room the lede (about making and joining one)
+       * gives its height to the rows: Fly, the games heading and every
+       * game's start row should show before any scroll. While the war's
+       * lobby is up (ui.js setWarLobby) the free flight heading goes too.
+       */
+      .screen-friends.in-room .rates-lede,
+      .screen-friends.war-lobby-on > h2,
+      .screen-friends.war-lobby-on .rates-lede { display: none; }
+      .screen-friends.in-room .menu-scroll { max-height: min(calc(76vh - var(--bars)), 44em); }
+
+      /*
+       * THE WAR LOBBY, set like the boot screen's system check: a header
+       * strip (the stage in brackets, then the mission), a status line, and
+       * one system row per pilot, READY in green or NOT READY dim.
        */
       .war-lobby { display: flex; flex-direction: column; gap: 12px; width: min(100%, 44em); margin: 0 auto 18px; }
       .war-lobby[hidden] { display: none; }
+      .war-lobby-head, .war-lobby-status { text-transform: uppercase; }
       .war-lobby-head {
-        display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap;
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px;
         padding-bottom: 10px; border-bottom: 1px solid var(--pdcs-blue-dim);
-        font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+        font-size: 12px; letter-spacing: 0.16em;
       }
       .war-lobby-title { color: var(--pdcs-blue); }
-      .war-lobby-title::before { content: "[ "; color: var(--pdcs-blue-dim); }
-      .war-lobby-title::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .war-lobby-mission { color: var(--cream); }
-      .war-lobby-status {
-        font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream);
-      }
+      .war-lobby-title::before, .war-lobby-host::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .war-lobby-title::after, .war-lobby-host::after { content: " ]"; color: var(--pdcs-blue-dim); }
+      .war-lobby-mission, .war-lobby-status, .war-lobby-name { color: var(--cream); }
+      .war-lobby-status { font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; }
       .war-lobby-status.go { color: var(--mint); animation: pdcs-blink 0.9s ease-in-out infinite alternate; }
       .war-lobby-last { font-family: var(--pdcs-read); font-size: 13.5px; color: var(--slate); }
       .war-lobby-pilots { display: flex; flex-direction: column; }
-      /* OPERATIONS' BRIEFING (src/ui/briefing.js) over the war room's
-         pilots: the line in the readable face, the facts in the mono, a
-         label column and a value column. */
-      .war-brief { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) 0; border-top: 1px solid var(--pdcs-line-soft); border-bottom: 1px solid var(--pdcs-line-soft); }
+      /* Operations' briefing (src/ui/briefing.js) above the pilots: the
+         line in the reading face, the facts as a label and value grid in
+         the mono. */
+      .war-brief {
+        display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) 0;
+        border-top: 1px solid var(--pdcs-line-soft); border-bottom: 1px solid var(--pdcs-line-soft);
+      }
       .war-brief-line { margin: 0; font-family: var(--type-read); font-size: 14px; line-height: 1.45; color: var(--pdcs-text); }
-      .war-brief-first { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); align-items: baseline; }
-      .war-brief-objective { font-family: var(--type-name); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pdcs-bright); }
+      .war-brief-first { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+      .war-brief-objective {
+        font-family: var(--type-name); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase;
+        color: var(--pdcs-bright);
+      }
       .war-brief-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; }
-      .war-brief-label { font-family: var(--type-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-muted); }
-      .war-brief-value { margin: 0; font-family: var(--type-mono); font-size: 12.5px; color: var(--pdcs-text); overflow-wrap: anywhere; }
+      .war-brief-label, .war-brief-value { font-family: var(--type-mono); }
+      .war-brief-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-muted); }
+      .war-brief-value { margin: 0; font-size: 12.5px; color: var(--pdcs-text); overflow-wrap: anywhere; }
       .war-lobby-pilot {
         display: flex; align-items: center; justify-content: space-between; gap: 16px;
         padding: 10px 0; border-bottom: 1px solid var(--pdcs-line-soft);
       }
-      .war-lobby-who { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; }
-      .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; color: var(--cream); overflow-wrap: anywhere; }
+      .war-lobby-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+      .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; overflow-wrap: anywhere; }
       .war-lobby-pilot.me .war-lobby-name { color: var(--pdcs-bright); }
-      .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; color: var(--slate); }
-      .war-lobby-host::before { content: "[ "; color: var(--pdcs-blue-dim); }
-      .war-lobby-host::after { content: " ]"; color: var(--pdcs-blue-dim); }
-      .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; color: var(--slate); }
-      .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; color: var(--slate); }
+      .war-lobby-host, .war-lobby-craft, .war-lobby-flag { color: var(--slate); }
+      .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; }
+      .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; }
+      .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; }
       .war-lobby-pilot.ready .war-lobby-flag { color: var(--mint); }
       @media (prefers-reduced-motion: reduce) {
         .war-lobby-status.go { animation: none; }
@@ -1990,31 +1944,18 @@
         .war-lobby-pilot { padding: 5px 9px; }
         .war-lobby-name { font-size: 15px; }
       }
-      .screen-friends.in-room .menu-scroll { max-height: min(calc(76vh - var(--bars)), 44em); }
-      /*
-       * The quad room on a laptop. Found by measuring the Rates screen
-       * beside it: below about 1100 px the three columns cannot fit their
-       * own minimums (360 for the quad plus 540 for the menu is already 900
-       * before the note column), so the stage overflowed and the menu slid
-       * off the right of the window entirely. One column, quad on top, same
-       * fallback Rates takes.
-       */
-      /*
-       * 1280, not 1100. Three columns need 360 for the quad, about 540 for
-       * the list and 210 for the note, plus the gaps: a shade over 1150
-       * before anything is comfortable. Stacking at 1100 meant a 1180 px
-       * tablet in landscape got three columns that did not fit.
-       */
+      /* Three columns need about 1150 px before they are comfortable, so
+         below 1280 the quad goes on top and everything stacks centred. */
       @media (max-width: 1280px) {
         .screen-quad .menu-stage { grid-template-columns: minmax(0, 1fr); }
         .screen-quad .craft-showcase {
-          grid-column: 1; grid-row: 1;
-          justify-self: center; width: min(100%, 420px); margin: 0 0 12px;
+          grid-row: 1; grid-column: 1; justify-self: center;
+          width: min(100%, 420px); margin: 0 0 12px;
         }
         .screen-quad .menu-stage .menu { grid-column: 1; justify-self: center; }
         .screen-quad .menu-help {
-          grid-column: 1; max-width: none; border-left: 0;
-          padding: 8px 14px 0; margin-top: 6px; text-align: center;
+          grid-column: 1; max-width: none; margin-top: 6px; padding: 8px 14px 0;
+          text-align: center; border-left: 0;
         }
       }
       .title-foot {
