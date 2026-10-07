@@ -54,7 +54,7 @@ const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
   check('route: ends at the end', near(e[0], 50, 1e-6) && near(e[1], 0, 1e-6), JSON.stringify(e));
   const truth = Math.hypot(2 * Math.PI * 50, 30);
   check('route: distance from every frame', near(s.distanceM, truth, 0.01), `${s.distanceM} vs ${truth}`);
-  check('route: top', near(s.topM, 30));
+  check('route: top over the start', near(s.topM, 30));
   check('route: marks copied', JSON.stringify(s.marks) === '[[1,2]]');
   check('route: JSON safe', JSON.stringify(JSON.parse(JSON.stringify(s))) === JSON.stringify(s));
   const gaps = [];
@@ -68,11 +68,12 @@ const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
   check('route: reset empties', r.snapshot() === null);
   /* Three frames inside one step: only the first is kept, so the end must
    * be added for the line to reach where the craft stopped. */
-  r.add(0, 0, 1, 0);
-  r.add(100, 3, 1, 4);
-  r.add(200, 6, 1, 8);
+  r.add(0, 0, 101, 0);
+  r.add(100, 3, 101, 4);
+  r.add(200, 6, 101, 8);
   const short = r.snapshot();
   check('route: a short hop ends where it stopped', JSON.stringify(short.points) === '[[0,0],[6,8]]' && near(short.distanceM, 10), JSON.stringify(short));
+  check('route: a level hop high in the world climbed nothing', short.topM === 0, String(short.topM));
   r.reset();
   check('route: reset empties again', r.snapshot() === null);
 }

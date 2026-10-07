@@ -37,7 +37,8 @@ const ROUTE_STEP_MS = 500;
  * clock every frame; it keeps a point per step and, when full, drops every
  * other one and doubles the step. Distance and the highest point are
  * counted on every frame, not on the kept points, so thinning never
- * shortens the flight.
+ * shortens the flight. The highest point is over the first position, so it
+ * reads the same on every map whatever the world's own zero.
  */
 export function createRoute() {
   let points = [];
@@ -45,7 +46,8 @@ export function createRoute() {
   let nextMs = 0;
   let last = null;
   let distanceM = 0;
-  let topM = -Infinity;
+  let y0 = null;
+  let topM = 0;
   let end = null;
   return {
     reset() {
@@ -54,7 +56,8 @@ export function createRoute() {
       nextMs = 0;
       last = null;
       distanceM = 0;
-      topM = -Infinity;
+      y0 = null;
+      topM = 0;
       end = null;
     },
     /* x, y (up), z in metres; simMs the sim clock. */
@@ -66,7 +69,8 @@ export function createRoute() {
         distanceM += Math.hypot(x - last[0], y - last[1], z - last[2]);
       }
       last = [x, y, z];
-      topM = Math.max(topM, y);
+      y0 ??= y;
+      topM = Math.max(topM, y - y0);
       end = [x, z];
       if (points.length && simMs < nextMs) {
         return;
