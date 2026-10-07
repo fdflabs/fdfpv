@@ -19,20 +19,20 @@
  * in Node, and three.js is an import map away from Node, so nothing on
  * this side may import it.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
@@ -40,6 +40,7 @@ import { currentLocale, str } from '../strings/index.js';
 import { propulsionOf } from '../../configs/combat.js';
 import { BUILD_PREFIX, customisable } from './builds.js';
 import { splitDuration } from '../share/flighttime.js';
+import { el, padLevels } from './dom.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -148,17 +149,8 @@ const DRAG_SLOP = 6;
  * dozens of small deltas: this much wheel is one place, so a notch is one
  * aircraft and a trackpad swipe is a few. */
 const WHEEL_STEP = 100;
-
-function el(tag, cls, text) {
-  const n = document.createElement(tag);
-  if (cls) {
-    n.className = cls;
-  }
-  if (text != null) {
-    n.textContent = text;
-  }
-  return n;
-}
+/* What pollPad edge triggers on: alt is a standard pad's X, floats its Y. */
+const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'floats'];
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -884,23 +876,14 @@ export class Carousel {
    * sticks are, because the press that opened this is usually still held.
    */
   pollPad(nav) {
-    const now = {
-      up: Boolean(nav.up),
-      down: Boolean(nav.down),
-      left: Boolean(nav.left),
-      right: Boolean(nav.right),
-      select: Boolean(nav.select),
-      back: Boolean(nav.back),
-      alt: Boolean(nav.alt),
-      floats: Boolean(nav.floats),
-    };
+    const now = padLevels(nav, PAD_KEYS);
     const prev = this.padPrev;
     this.padPrev = now;
     if (!prev) {
       return;
     }
     const edge = (k) => now[k] && !prev[k];
-    if (['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'floats'].some(edge) && this.hintKind !== 'pad') {
+    if (PAD_KEYS.some(edge) && this.hintKind !== 'pad') {
       this.hintKind = 'pad';
       this.paintHint();
     }
