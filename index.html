@@ -4146,6 +4146,15 @@
       .hangar-spec .hangar-stat-value { font-size: 15px; }
       .hangar-spec .hangar-stat-delta { display: none; }
       .hangar-stage { position: relative; min-height: 0; cursor: grab; }
+      /* Flip, in the stage's lower corner, clear of the spec sheet. */
+      .hangar-flip {
+        position: absolute; left: 0; bottom: 0; padding: 8px 14px; cursor: pointer;
+        font: 600 13px/1 var(--ui-font); letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--cream); background: rgba(10, 13, 14, 0.66); backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+      .hangar-flip:hover, .hangar-flip:focus-visible { border-color: var(--cream); }
+      .hangar-flip.on { color: var(--deep); background: var(--cream); }
       .hangar-stage:active { cursor: grabbing; }
       .hangar-side {
         min-height: 0; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; padding: 16px 18px 18px;
