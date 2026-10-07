@@ -3517,9 +3517,9 @@ export class Ui {
        * record, so it is not the answer to this question even when it is
        * pinned. Which of the two is a roll on the player, so this is
        * MENU_TRACKS[0] rather than a second roll that would disagree with
-       * it for one frame.
+       * it for one frame. An empty menu crate names nothing.
        */
-      const tr = MENU_TRACKS[0];
+      const tr = MENU_TRACKS[0] ?? { id: '', name: '' };
       this.musicNow = {
         id: tr.id,
         name: tr.name,
@@ -5438,7 +5438,10 @@ export class Ui {
       return;
     }
     const dialog = this.nameDialog && !this.nameDialog.hidden;
-    const hide = dialog
+    const name = (this.musicNow && this.musicNow.name) || MENU_TRACKS[0]?.name || '';
+    /* With no record playing there is nothing to name, skip or mute. */
+    const hide = !name
+      || dialog
       || this.screen === 'calibrate'
       || this.screen === 'padpick'
       || (this.warState != null && this.warState !== 'lobby')
@@ -5447,7 +5450,6 @@ export class Ui {
     this.musicDock.classList.toggle('on-flight', this.flying());
     const muted = this.settings.musicLevel <= 0;
     this.musicDock.classList.toggle('is-muted', muted);
-    const name = (this.musicNow && this.musicNow.name) || MENU_TRACKS[0].name;
     this.musicTitle.textContent = name;
     /* The name, because it ellipsises, and then what the click does. */
     this.musicTitle.title = muted ? str('ui.click_to_unmute', { name }) : str('ui.click_to_mute', { name });

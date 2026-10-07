@@ -1,6 +1,7 @@
 /*
- * render-golden/tracks.js: src/render/tracks.js's crates, levels, lookups,
- * picks under a seeded random and media URLs.
+ * render-golden/tracks.js: src/render/tracks.js's crates, levels, lookups
+ * and media URLs. The random picks moved into music.js, whose golden
+ * seeds them.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -20,20 +21,6 @@
 
 import * as tracks from '../../../src/render/tracks.js';
 
-function seeded(fn) {
-  const real = Math.random;
-  let i = 0;
-  Math.random = () => {
-    i += 1;
-    return ((i * 0.6180339887498949) % 1);
-  };
-  try {
-    return fn();
-  } finally {
-    Math.random = real;
-  }
-}
-
 export function cases() {
   const { TRACKS, MENU_TRACKS } = tracks;
   return {
@@ -41,16 +28,10 @@ export function cases() {
     constants: () => ({ MUSIC_REV: tracks.MUSIC_REV, MUSIC_REF_LUFS: tracks.MUSIC_REF_LUFS }),
     crates: () => ({ TRACKS, MENU_TRACKS }),
     gains: () => [...TRACKS, ...MENU_TRACKS, { lufs: -20 }, { lufs: -17.2 }, { lufs: 0 }].map((t) => tracks.trackGain(t)),
+    /* Since 2026-10-06 an unknown id is null, not the first record. */
     byId: () => ['prop-wash', 'neon-gate', 'nope', '', undefined, 'tarmac-pulse'].map((id) => {
       const t = tracks.trackById(id);
-      return [String(id), t.id, t === TRACKS.find((x) => x.id === t.id)];
-    }),
-    picks: () => seeded(() => {
-      const rows = [];
-      for (let i = 0; i < 40; i++) {
-        rows.push([tracks.pickTrack().id, tracks.pickMenuTrack().id]);
-      }
-      return rows;
+      return [String(id), t ? t.id : null, t === null || t === TRACKS.find((x) => x.id === t.id)];
     }),
     ids: () => tracks.musicIds(),
     /* The page's origin changes run to run; the path and query do not. */

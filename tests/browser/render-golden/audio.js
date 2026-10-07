@@ -40,6 +40,7 @@ import {
   MotorAudio, VOICES, ENGINE_MODELS, PEER_VOICES, engineModelFor, engineModelForCraft,
 } from '../../../src/render/audio.js';
 import { Music } from '../../../src/render/music.js';
+import { FLIGHT, MENU } from '../../fixtures/music-crates.js';
 import { WarRadio } from '../../../src/render/warradio.js';
 import { ReplayBeds } from '../../../src/render/replaybeds.js';
 
@@ -493,6 +494,10 @@ async function session(steps, opts = {}) {
   const last = {};
   try {
     const a = new MotorAudio();
+    /* The real crates are empty (NOTICE); the bed runs on the crates as
+     * they were recorded. Made before any step and with no random drawn
+     * in between, so the seeded picks are the ones recorded. */
+    a.music = new Music({ menu: MENU, flight: FLIGHT });
     w.a = a;
     for (const [label, act] of steps) {
       let ret;

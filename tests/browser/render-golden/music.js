@@ -32,6 +32,9 @@
  */
 
 import { Music } from '../../../src/render/music.js';
+/* The real crates are empty (NOTICE); the session walks the crates as
+ * they were recorded. */
+import { FLIGHT, MENU } from '../../fixtures/music-crates.js';
 
 const path = (u) => {
   if (!u) {
@@ -244,7 +247,7 @@ async function session(steps, { answer = () => 'probably', hold = true, mediaSou
   Object.defineProperty(Navigator.prototype, 'connection', { configurable: true, get: () => ({ saveData }) });
   const log = [];
   try {
-    const m = new Music();
+    const m = new Music({ menu: MENU, flight: FLIGHT });
     const ctx = fakeContext({ hold, mediaSource });
     const kept = [];
     const announced = [];
@@ -410,7 +413,7 @@ export function cases() {
         }
       };
       try {
-        const m = new Music();
+        const m = new Music({ menu: MENU, flight: FLIGHT });
         m.attach(fakeContext(), {}, (n) => n);
         /* Which records the unseeded picks land on is not the question. */
         return { asked, ext: m.ext };

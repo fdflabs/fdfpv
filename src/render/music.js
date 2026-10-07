@@ -43,10 +43,10 @@
  */
 
 import { str } from '../strings/index.js';
-import { TRACKS, MENU_TRACKS, pickTrack, pickMenuTrack, trackById, trackUrl, trackGain } from './tracks.js';
+import { TRACKS, MENU_TRACKS, trackUrl, trackGain } from './tracks.js';
 
 /*
- * Each crate: its records and its bus gain at a Music setting of ten.
+ * Each crate's bus gain at a Music setting of ten.
  * Records arrive levelled to -17.2 LUFS (trackGain, on the element). In
  * flight 0.90 puts the bed at -30 LUFS at the default Volume 6 and Music 5
  * (docs/AUDIO.md), under four motors and the wind. The menus have nothing
@@ -57,10 +57,10 @@ import { TRACKS, MENU_TRACKS, pickTrack, pickMenuTrack, trackById, trackUrl, tra
  * live audio-bed check taps a key on the title, so it reads the menu
  * figure (0.15 at defaults against its 0.05 floor).
  */
-const CRATE = {
-  menu: { records: MENU_TRACKS, bus: 0.30 },
-  flight: { records: TRACKS, bus: 0.90 },
-};
+const BUS = { menu: 0.30, flight: 0.90 };
+
+/* A random record of a crate, or null for an empty one. */
+const anyOf = (records) => (records.length ? records[Math.floor(Math.random() * records.length)] : null);
 
 const SECONDS = {
   /* In flight, the next record warms within this of the end: time for
@@ -91,7 +91,11 @@ function rampFrom(param, now, value, seconds) {
 }
 
 export class Music {
-  constructor() {
+  /* `crates` is tracks.js's, except where a test drives the class through
+   * records of its own: the crates being empty must not leave the walk,
+   * skip and warm paths unexercised. */
+  constructor(crates = { menu: MENU_TRACKS, flight: TRACKS }) {
+    this.records = crates;
     this.ctx = null;
     this.enabled = false;
     this.level = 0.5;
@@ -102,7 +106,7 @@ export class Music {
     /* Where each crate is, kept while the other plays. The flight crate
      * starts somewhere random and walks on; the menu crate is rolled again
      * on every return to the menus. */
-    this.place = { flight: TRACKS.indexOf(pickTrack()), menu: MENU_TRACKS.indexOf(pickMenuTrack()) };
+    this.place = { flight: crates.flight.indexOf(anyOf(crates.flight)), menu: crates.menu.indexOf(anyOf(crates.menu)) };
     /* A crate change in progress: where it is going ('' for none) and
      * when its fade down has run. */
     this.fade = { toward: '', landsAt: 0 };
@@ -138,9 +142,10 @@ export class Music {
     return this.fade.toward;
   }
 
-  /* The record the element plays: the up crate's at its place. */
+  /* The record the element plays: the up crate's at its place, or null
+   * when that crate has none. */
   get track() {
-    return CRATE[this.context].records[this.place[this.context]];
+    return this.records[this.context][this.place[this.context]] ?? null;
   }
 
   /*
@@ -221,14 +226,14 @@ export class Music {
 
   setGain() {
     if (this.gain) {
-      this.gain.gain.value = this.enabled ? this.level * CRATE[this.context].bus : 0;
+      this.gain.gain.value = this.enabled ? this.level * BUS[this.context] : 0;
     }
   }
 
   /* `context` says which crate the record is from: the dock shows any
    * record, but the Music track setting only lists flight ones. */
   status() {
-    const { id, name } = this.track;
+    const { id, name } = this.track ?? { id: '', name: '' };
     return { id, name, selection: this.selection, index: this.place[this.context], context: this.context };
   }
 
@@ -270,7 +275,7 @@ export class Music {
       this.notePlace();
       this.context = next;
       if (next === 'menu') {
-        this.place.menu = MENU_TRACKS.indexOf(pickMenuTrack());
+        this.place.menu = this.records.menu.indexOf(anyOf(this.records.menu));
       }
       this.setGain();
       /* A warm was for the crate that just left. */
@@ -318,9 +323,10 @@ export class Music {
    * every setting on every press and must not restart the bed.
    */
   setTrack(sel) {
-    const known = TRACKS.some((t) => t.id === sel);
+    const flight = this.records.flight;
+    const known = flight.some((t) => t.id === sel);
     const next = sel === 'rotation' || known ? sel : 'rotation';
-    const place = next === 'rotation' ? this.place.flight : TRACKS.indexOf(trackById(next));
+    const place = next === 'rotation' ? this.place.flight : flight.findIndex((t) => t.id === next);
     if (next === this.selection && place === this.place.flight) {
       return;
     }
@@ -337,7 +343,10 @@ export class Music {
    * two menu records, a toggle. Skipping off a pinned flight record pins
    * the one it lands on. */
   skip(dir) {
-    const count = CRATE[this.context].records.length;
+    const count = this.records[this.context].length;
+    if (count === 0) {
+      return;
+    }
     this.notePlace();
     this.place[this.context] = (this.place[this.context] + (dir < 0 ? count - 1 : 1)) % count;
     if (this.context === 'flight' && this.selection !== 'rotation') {
@@ -378,7 +387,7 @@ export class Music {
       return;
     }
     this.failures += 1;
-    if (this.failures < CRATE[this.context].records.length) {
+    if (this.failures < this.records[this.context].length) {
       this.skip(1);
     }
   }
@@ -396,6 +405,17 @@ export class Music {
       return;
     }
     const record = this.track;
+    if (!record) {
+      /* No record: the element lets go of whatever it held and fetches
+       * nothing. */
+      el.pause();
+      if (this.pointedAt) {
+        this.pointedAt = '';
+        el.removeAttribute('src');
+        el.load();
+      }
+      return;
+    }
     const url = trackUrl(record.id, this.ext);
     el.loop = this.context === 'flight' && this.selection !== 'rotation';
     if (url !== this.pointedAt) {
@@ -428,7 +448,7 @@ export class Music {
       return;
     }
     this.intent.play = true;
-    if (!this.el) {
+    if (!this.el || !this.track) {
       return;
     }
     this.intent.starting = true;
@@ -486,15 +506,15 @@ export class Music {
     const { duration, currentTime, buffered } = this.el;
     const arrived = buffered.length ? buffered.end(buffered.length - 1) : null;
     const nearEnd = Number.isFinite(duration) && duration > SECONDS.warmLead && duration - currentTime <= SECONDS.warmLead;
-    const after = (records, i) => records[(i + 1) % records.length].id;
+    const after = (records, i) => records[(i + 1) % records.length]?.id ?? '';
     if (this.context === 'menu') {
       if (nearEnd) {
-        return after(MENU_TRACKS, this.place.menu);
+        return after(this.records.menu, this.place.menu);
       }
-      return (arrived === null ? 0 : arrived - currentTime) >= SECONDS.menuAhead ? TRACKS[this.place.flight].id : '';
+      return (arrived === null ? 0 : arrived - currentTime) >= SECONDS.menuAhead ? this.records.flight[this.place.flight]?.id ?? '' : '';
     }
     const ready = this.selection === 'rotation' && nearEnd && arrived !== null && arrived >= duration - 0.5;
-    return ready ? after(TRACKS, this.place.flight) : '';
+    return ready ? after(this.records.flight, this.place.flight) : '';
   }
 
   /* Warms a record into the HTTP cache through a second, muted element
@@ -506,7 +526,7 @@ export class Music {
       return;
     }
     const id = this.nextToWarm();
-    if (!id || id === this.warmId || id === this.track.id) {
+    if (!id || id === this.warmId || id === this.track?.id) {
       return;
     }
     this.dropWarm();
