@@ -1,49 +1,45 @@
 /*
- * fc.js: the flight-controller screen, restored.
+ * fc.js: the flight controller bench, a Configurator-shaped screen over
+ * the running module's CLI dump.
  *
- * Configurator-shaped tabs and fields. The UI never writes a PID. It edits
- * a CLI dump of the running module. Save is sim.init of that dump, and the
- * shell then adopts the result as the pilot's own tune, "Your edits" on
- * the Tune row, alongside the shipped three.
+ * Nothing here writes a PID directly. The bench keeps a draft copy of the
+ * dump, every control edits that draft through setCliValue within the
+ * firmware's bounds, and Save hands the draft to sim.init. The shell then
+ * keeps the result as the pilot's own tune, "Your edits" on the Tune row.
  *
- * HISTORY, because this file has been deleted once and that record is the
- * reason it looks the way it does. The first flight-controller screen was
- * removed for being unusable, and its jobs were split into the screens
- * that still exist: Rates, PIDs and the Tune row. The owner then asked for
- * the full surface back, minus exactly one thing: THERE IS NO WAY TO PASTE
- * OR UPLOAD CLI TEXT HERE. The CLI tab, the textarea and the drop-a-diff
- * import from the first version did not come back. Every field is edited
- * through a control with firmware bounds, and every edit still travels as
- * CLI through setCliValue, so the honesty of the first version survives
- * without its foot-gun.
+ * Owner rules this screen exists under:
+ * - There is no way to paste or upload CLI text. The first bench had a CLI
+ *   tab, a textarea and a drop-a-diff import, and was removed as unusable;
+ *   it came back on the condition that that door stays shut. Export, the
+ *   other direction, is allowed.
+ * - Rates belong to the Rates screen. The Rateprofile page signposts it and
+ *   shows only what is left, and Save routes rate keys back into the
+ *   pilot's rate profile. PIDs edited here become part of the saved dump,
+ *   which is the "custom" tune the PIDs screen then shows as its baseline.
+ * - The firmware's own name for the rates type stays off the screen
+ *   (2 Oct 2026): it reads as the Rates screen's Classic. Only the label
+ *   changes; the value written and exported is the firmware's.
  *
- * OWNERSHIP, so this screen and the simple ones cannot fight. Rates
- * belong to the Rates screen: the Rateprofile page here is a signpost plus
- * the leftovers, and Save routes any rate keys in the dump back INTO the
- * pilot's rate profile rather than around it. PIDs edited here become part
- * of the saved dump, which becomes the "custom" tune, whose baseline is
- * exactly what the PIDs screen then shows.
+ * Tab names and colours follow Betaflight Configurator 10.10 (firmware
+ * 4.5.1) as a homage. It is not that app: no MSP, no Vue, no iframe.
  *
- * Colours and tab names are a homage of Betaflight Configurator 10.10
- * (firmware 4.5.1). This is not that app: no Vue, no MSP, no iframe.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { keyNote, hasKeyNote } from '../fc/keynotes.js';
+import { keyNote } from '../fc/keynotes.js';
 import { normaliseRates, RATE_DEFAULTS } from '../../configs/rates.js';
 import { TUNES, tunePath } from '../../configs/registry.js';
 import { str } from '../strings/index.js';
@@ -69,231 +65,167 @@ import {
   setFeatureLine,
 } from '../fc/dump.js';
 
-/* Configurator's tab list from the catalog, minus CLI: pasting a dump is
- * the one door the owner asked to keep shut. */
-const TABS_SHOWN = TABS.filter((t) => t.id !== 'cli');
+const BENCH_TABS = TABS.filter((tab) => tab.id !== 'cli');
+const BENCH_TAB_IDS = BENCH_TABS.map((tab) => tab.id);
 
-/* Measured, not chosen: a full teardown render of 690 rows costs about 57 ms
- * per keystroke on this container. Sixty results is a screenful and a half
- * and renders inside a frame. See `this.search` in the constructor. */
-const SEARCH_CAP = 60;
+const FIELD_BY_KEY = new Map();
+for (const f of FIELDS) {
+  if (!FIELD_BY_KEY.has(f.key)) FIELD_BY_KEY.set(f.key, f);
+}
 
+/* Configurator splits PID Tuning into three sub-tabs. The labels resolve
+ * once, when the module loads, which is when the Page row and the page
+ * strip have always read them. */
 const PID_PAGES = [
-  { id: 'pid', label: str('fc.pid_profile_settings') },
-  { id: 'filters', label: str('fc.filter_settings') },
-  { id: 'rates', label: str('fc.rateprofile_settings') },
-];
+  ['pid', str('fc.pid_profile_settings')],
+  ['filters', str('fc.filter_settings')],
+  ['rates', str('fc.rateprofile_settings')],
+].map(([id, label]) => ({ id, label }));
+const PID_PAGE_IDS = PID_PAGES.map((p) => p.id);
 
-/* Step through a list with wraparound. */
-export function cycle(list, value, dir) {
-  const i = list.indexOf(value);
-  const n = list.length;
-  return list[((i < 0 ? 0 : i) + dir + n) % n];
-}
+/* A full re-render of about 690 rows measured 57 ms per keystroke, so
+ * search results stop here and a row says how many more matched. */
+const SEARCH_LIMIT = 60;
 
-function clamp(n, lo, hi) {
-  return Math.min(hi, Math.max(lo, n));
-}
-
-function formatField(field, raw) {
-  if (raw == null || raw === '') {
-    return 'unset';
-  }
-  if (field.units) {
-    return `${raw} ${field.units}`;
-  }
-  return String(raw);
-}
-
-/* Lookup values show as the CLI prints them, but for the rates type the
- * CLI calls by the firmware's own name: the owner's rule (2 Oct 2026)
- * keeps that name off the screen, so it shows as the Rates screen's
- * Classic. Only the label: the value written and exported is unchanged. */
+/* Display labels for lookup values, keyed by the firmware's value. */
 const LOOKUP_LABEL = { BETAFLIGHT: 'CLASSIC' };
+const shownLookup = (value) => LOOKUP_LABEL[value] ?? value;
 
-function lookupLabel(value) {
-  return LOOKUP_LABEL[value] ?? value;
+/*
+ * Configurator's groupings, as a table per scope: the first pattern a key
+ * matches names its section heading and, on the two PID Tuning pages that
+ * reorder live keys, its place in the list. A scope is a PID page while
+ * the PID tab is open and the field's own tab otherwise. `text` is shown
+ * as written, `say` is a string table key looked up when the row is drawn.
+ */
+const ANY = /(?:)/;
+const GROUPS = {
+  'pid:pid': [
+    { re: /^simplified_/, say: 'fc.simplified_tuning', order: 0 },
+    { re: /^[pidf]_|^d_min/, text: 'PID', order: 1 },
+    { re: /^iterm_/, say: 'fc.iterm_relax', order: 2 },
+    { re: /^anti_gravity/, say: 'fc.anti_gravity', order: 2 },
+    { re: /^tpa_|^throttle_boost/, text: 'TPA', order: 2 },
+    { re: /^feedforward_/, text: 'Feedforward', order: 2 },
+    { re: /^angle_|^horizon_|^level_/, text: 'Angle', order: 2 },
+    { re: ANY, text: 'Advanced', order: 2 },
+  ],
+  'pid:filters': [
+    { re: /^simplified_/, say: 'fc.simplified_filters', order: 0 },
+    { re: /^gyro_lpf/, say: 'fc.gyro_lowpass', order: 1 },
+    { re: /^dyn_notch/, say: 'fc.dynamic_gyro_notch', order: 2 },
+    { re: /^dterm_|^yaw_lowpass/, say: 'fc.d_term', order: 3 },
+    { re: /^rpm_/, say: 'fc.rpm_filter', order: 4 },
+    { re: ANY, text: 'Filters', order: 5 },
+  ],
+  'pid:rates': [{ re: ANY, say: 'fc.throttle_and_limits', order: 0 }],
+  receiver: [
+    { re: /^rc_smoothing/, say: 'fc.rc_smoothing', order: 0 },
+    { re: /check$|mid_rc|airmode_start/, text: 'Receiver', order: 0 },
+    { re: ANY, say: 'ui.radio_link', order: 0 },
+  ],
+  motors: [
+    { re: /^dshot_|^motor_poles|^bidir/, text: 'DShot', order: 0 },
+    { re: ANY, text: 'Mixer', order: 0 },
+  ],
+  configuration: [{ re: ANY, text: 'Configuration', order: 0 }],
+};
+
+function groupOf(field, scope) {
+  const table = GROUPS[scope];
+  return table ? table.find((g) => g.re.test(field.key)) : undefined;
 }
 
-function sectionFor(field, page) {
-  const k = field.key;
-  if (page === 'pid') {
-    if (k.startsWith('simplified_')) {
-      return str('fc.simplified_tuning');
-    }
-    if (/^[pidf]_/.test(k) || k.startsWith('d_min')) {
-      return 'PID';
-    }
-    if (k.startsWith('iterm_')) {
-      return str('fc.iterm_relax');
-    }
-    if (k.startsWith('anti_gravity')) {
-      return str('fc.anti_gravity');
-    }
-    if (k.startsWith('tpa_') || k.startsWith('throttle_boost')) {
-      return 'TPA';
-    }
-    if (k.startsWith('feedforward_')) {
-      return 'Feedforward';
-    }
-    if (k.startsWith('angle_') || k.startsWith('horizon_') || k.startsWith('level_')) {
-      return 'Angle';
-    }
-    return 'Advanced';
-  }
-  if (page === 'filters') {
-    if (k.startsWith('simplified_')) {
-      return str('fc.simplified_filters');
-    }
-    if (k.startsWith('gyro_lpf')) {
-      return str('fc.gyro_lowpass');
-    }
-    if (k.startsWith('dyn_notch')) {
-      return str('fc.dynamic_gyro_notch');
-    }
-    if (k.startsWith('dterm_') || k.startsWith('yaw_lowpass')) {
-      return str('fc.d_term');
-    }
-    if (k.startsWith('rpm_')) {
-      return str('fc.rpm_filter');
-    }
-    return 'Filters';
-  }
-  if (page === 'rates') {
-    return str('fc.throttle_and_limits');
-  }
-  if (field.tab === 'receiver') {
-    if (k.startsWith('rc_smoothing')) {
-      return str('fc.rc_smoothing');
-    }
-    if (/check$|mid_rc|airmode_start/.test(k)) {
-      return 'Receiver';
-    }
-    return str('ui.radio_link');
-  }
-  if (field.tab === 'motors') {
-    if (/^dshot_|^motor_poles|^bidir/.test(k)) {
-      return 'DShot';
-    }
-    return 'Mixer';
-  }
-  if (field.tab === 'configuration') {
-    return 'Configuration';
-  }
-  return '';
+function headingOf(group) {
+  if (!group) return '';
+  return group.say ? str(group.say) : group.text;
 }
 
-function fieldRank(field, page) {
-  const k = field.key;
-  if (page === 'pid') {
-    if (k.startsWith('simplified_')) {
-      return 0;
-    }
-    if (/^[pidf]_/.test(k) || k.startsWith('d_min')) {
-      return 1;
-    }
-    return 2;
-  }
-  if (page === 'filters') {
-    if (k.startsWith('simplified_')) {
-      return 0;
-    }
-    if (k.startsWith('gyro_lpf')) {
-      return 1;
-    }
-    if (k.startsWith('dyn_notch')) {
-      return 2;
-    }
-    if (k.startsWith('dterm_') || k.startsWith('yaw_lowpass')) {
-      return 3;
-    }
-    if (k.startsWith('rpm_')) {
-      return 4;
-    }
-    return 5;
-  }
-  return 0;
+/* Only the two PID Tuning pages reorder their live keys. */
+function orderOf(field, page) {
+  if (page !== 'pid' && page !== 'filters') return 0;
+  return groupOf(field, `pid:${page}`).order;
 }
 
-function fieldNote(field, session) {
-  const look = (key) => session.cliValue(key);
-  if (field.key === 'gyro_lpf1_static_hz' && Number(look('gyro_lpf1_dyn_min_hz')) > 0) {
-    return str('fc.firmware_inits_lpf1_from_gyro_lpf1');
-  }
-  if (field.status === STATUS.GATED) {
-    return field.reason;
-  }
-  if (!fieldEnabled(field)) {
-    return field.reason;
-  }
-  if (field.key.startsWith('simplified_')) {
-    return str('fc.writes_the_slider_then_simplified_tuning');
-  }
-  /*
-   * This used to be `return field.key`, so the help column beside 115 typed
-   * rows read the key name back at a pilot who had just moved the cursor
-   * onto a row labelled with that key name. See src/fc/keynotes.js, which
-   * also explains why the sentences do not live in the generated catalog.
-   */
-  return keyNote(field);
+const limit = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/* The next item in a list, wrapping at both ends. A value not in the list
+ * counts as the first item. */
+export function cycle(list, value, dir) {
+  const n = list.length;
+  const from = Math.max(0, list.indexOf(value));
+  return list[(from + dir + n) % n];
 }
 
-function ratesForCompose(draft) {
-  return normaliseRates(ratesFromDump(draft));
+function shownValue(field, raw) {
+  if (raw === null || raw === undefined || raw === '') return 'unset';
+  return field.units ? `${raw} ${field.units}` : String(raw);
+}
+
+const onOff = (on) => (on ? 'On' : 'Off');
+
+/* A row that explains something and can be landed on but never changed. */
+function greyRow(label, value, note) {
+  const row = { label };
+  if (value !== undefined) row.value = value;
+  return Object.assign(row, {
+    note, info: true, disabled: true, rowClass: 'row-grey',
+  });
+}
+
+function heading(label, note) {
+  return {
+    label, info: true, disabled: true, rowClass: 'fc-section', note,
+  };
+}
+
+function toggleRow(label, on, set, note, extra = {}) {
+  return {
+    label,
+    ...extra,
+    note,
+    sw: true,
+    on,
+    value: onOff(on),
+    current: on,
+    adjust: (d) => set(d > 0),
+    flip: () => set(!on),
+  };
+}
+
+function button(label, action, note) {
+  return {
+    label, action, rowClass: 'fc-btn', note,
+  };
+}
+
+/* Typed text to a whole firmware unit inside the bounds, or null for text
+ * that is not a number. */
+function parseTyped(text, min, max) {
+  const t = String(text).trim();
+  if (t === '') return null;
+  const v = Math.round(Number(t));
+  return Number.isFinite(v) ? limit(v, min, max) : null;
 }
 
 export class FcSession {
   constructor() {
     this.snapshot = '';
     this.draft = '';
-    /* See cliMapCached: the parsed draft and the text it was parsed from. */
-    this.cliCache = null;
-    this.cliCacheText = null;
+    this.parsed = { text: null, map: null };
     this.tab = 'pid';
     this.page = 'pid';
     this.runActive = false;
-    /*
-     * Walk every key, including the ones this build does not implement.
-     *
-     * Off by default, so Up and Down travel only the live rows: the
-     * Configuration tab has 141 stops and 3 things you can change, and
-     * walking the other 138 to reach Save is the defect. On, the arrows
-     * stop everywhere, which is what a pilot who has read a guide naming
-     * a key needs in order to find it and read why it is not here.
-     *
-     * It is a row rather than a hidden key because a mode nobody can see
-     * is a mode nobody uses, and because the row itself is the place to
-     * explain what the greyed keys are.
-     */
+    /* Off: Up and Down skip the keys this build does not implement, which
+     * on Configuration is all but a handful of 141. On: they stop on every
+     * key, for a pilot looking up a key a guide named to read why it is
+     * missing. A visible row rather than a hidden key, so it gets used. */
     this.walkAll = false;
-    /*
-     * SEARCH, and the reason it is a mode this screen owns rather than a
-     * text field in the list.
-     *
-     * The sidebar is 23 flat tabs with no grouping and no cross-tab search,
-     * which is a memory test: a pilot who has read a guide naming
-     * `failsafe_procedure` has to know which tab Betaflight files it under
-     * before they can go and find out that this build does not have it.
-     * Travel is one arrow press per row and there are 696 keys.
-     *
-     * A field inside the scrolling list would take the cursor with it and
-     * fight the arrow keys, which is the same mistake as putting Save in
-     * the list. This is a mode: `/` turns the whole body into results
-     * across every tab, Escape leaves it, and the arrow keys keep meaning
-     * what they meant.
-     *
-     * CAPPED, honestly. A full teardown render of 690 rows costs about
-     * 57 ms per keystroke on this container, which is a menu that feels
-     * broken. So results stop at SEARCH_CAP and the row underneath says how
-     * many more there were, rather than quietly pretending the rest do not
-     * exist.
-     */
+    /* null when off. A string, possibly empty, while `/` search is on: the
+     * body becomes matches across every tab, because the sidebar has no
+     * grouping and a pilot should not need to know where Betaflight files
+     * a key to find it. */
     this.search = null;
-    /*
-     * SHOW ONLY WHAT I CHANGED. The other half of the same problem: a pilot
-     * who has been editing for ten minutes has no way to see what they are
-     * about to save except by walking every tab.
-     */
     this.onlyModified = false;
     this.confirm = null;
     this.presetId = '';
@@ -301,13 +233,14 @@ export class FcSession {
     this.attitude = {
       w: 1, x: 0, y: 0, z: 0,
     };
+    this.exitAfterSave = false;
+    /* The shell replaces these with its own settings and motor override. */
     this.getFlightMode = () => 'acro';
     this.setFlightMode = () => {};
     this.getLaunchControl = () => false;
     this.setLaunchControl = () => {};
     this.motorTestAllowed = () => false;
     this.onMotorTest = () => {};
-    this.exitAfterSave = false;
   }
 
   open(dumpText, opts = {}) {
@@ -322,22 +255,19 @@ export class FcSession {
     this.motorDuty = [0, 0, 0, 0];
   }
 
-  /*
-   * The parsed draft, built at most once per distinct draft text. cliMap
-   * scans the whole 20 kB dump; items() runs per keystroke; without this
-   * the Configuration tab fell below a readable frame rate. Keyed on the
-   * string itself, so it can never go stale.
-   */
-  cliMapCached() {
-    if (!this.cliCache || this.cliCacheText !== this.draft) {
-      this.cliCache = cliMap(this.draft);
-      this.cliCacheText = this.draft;
+  /* The draft parsed, reused while the draft text is unchanged. Keyed on
+   * the text itself because main.js assigns draft directly after a save,
+   * and rows are rebuilt on every keystroke, which a reparse of the whole
+   * dump each time made too slow on the Configuration tab. */
+  draftMap() {
+    if (this.parsed.text !== this.draft) {
+      this.parsed = { text: this.draft, map: cliMap(this.draft) };
     }
-    return this.cliCache;
+    return this.parsed.map;
   }
 
   cliValue(key) {
-    return this.cliMapCached().get(key) ?? null;
+    return this.draftMap().get(key) ?? null;
   }
 
   dirty() {
@@ -353,271 +283,311 @@ export class FcSession {
 
   setTab(id) {
     this.tab = id;
-    if (id === 'pid' && !PID_PAGES.some((p) => p.id === this.page)) {
-      this.page = 'pid';
-    }
+    if (id === 'pid' && !PID_PAGE_IDS.includes(this.page)) this.page = 'pid';
   }
 
   setValue(key, value) {
-    const f = FIELDS.find((row) => row.key === key);
-    if (!f || !fieldEnabled(f)) {
-      return;
-    }
+    const field = FIELD_BY_KEY.get(key);
+    if (!field || !fieldEnabled(field)) return;
     this.draft = setCliValue(this.draft, key, value);
     this.presetId = '';
   }
 
   setFeature(name, on) {
-    const row = FEATURES.find((f) => f.name === name);
-    if (!row || row.status !== STATUS.LIVE) {
-      return;
-    }
+    const feature = FEATURES.find((f) => f.name === name);
+    if (feature?.status !== STATUS.LIVE) return;
     this.draft = setFeatureLine(this.draft, name, on);
     this.presetId = '';
   }
 
-  /*
-   * A registry tune into the draft, through the same composeConfig the
-   * shell inits from, with the rates the DRAFT currently carries kept:
-   * choosing a preset here changes the tune, never the stick. Save is
-   * still required, exactly as Configurator's presets stage before Save.
-   */
+  /* Stages a registry tune in the draft through the same composeConfig the
+   * shell boots from, keeping whatever rates the draft holds: a preset
+   * changes the tune, never the stick feel. Save is still needed. */
   async applyPreset(id) {
-    const path = tunePath(id);
-    const res = await fetch(path);
-    if (!res.ok) {
-      throw new Error(`preset ${id} HTTP ${res.status}`);
-    }
-    const text = await res.text();
-    this.draft = composeConfig(text, ratesForCompose(this.draft), RATES_KEEP);
+    const res = await fetch(tunePath(id));
+    if (!res.ok) throw new Error(`preset ${id} HTTP ${res.status}`);
+    const tune = await res.text();
+    const rates = normaliseRates(ratesFromDump(this.draft));
+    this.draft = composeConfig(tune, rates, RATES_KEEP);
     this.presetId = id;
     this.tab = 'pid';
     this.page = 'pid';
   }
 
-  /* Betaflight 4.5.1's own ACTUAL profile, the same numbers the Rates
-   * screen's revert row writes, so the two doors agree about "default". */
+  /* The firmware's ACTUAL defaults, the same numbers the Rates screen's
+   * revert writes, so both screens mean the same thing by default. */
   resetRatesToDefault() {
     const d = RATE_DEFAULTS;
     this.setValue('rates_type', d.type);
-    this.setValue('roll_rc_rate', String(d.roll.rcRate));
-    this.setValue('pitch_rc_rate', String(d.pitch.rcRate));
-    this.setValue('yaw_rc_rate', String(d.yaw.rcRate));
-    this.setValue('roll_srate', String(d.roll.srate));
-    this.setValue('pitch_srate', String(d.pitch.srate));
-    this.setValue('yaw_srate', String(d.yaw.srate));
-    this.setValue('roll_expo', String(d.roll.expo));
-    this.setValue('pitch_expo', String(d.pitch.expo));
-    this.setValue('yaw_expo', String(d.yaw.expo));
+    for (const [suffix, prop] of [['rc_rate', 'rcRate'], ['srate', 'srate'], ['expo', 'expo']]) {
+      for (const axis of ['roll', 'pitch', 'yaw']) {
+        this.setValue(`${axis}_${suffix}`, String(d[axis][prop]));
+      }
+    }
   }
 
+  /* onMotorTest(motor, duty): motor -1 means all four, duty -1 releases
+   * the override. */
   stopMotors() {
     this.motorDuty = [0, 0, 0, 0];
     this.onMotorTest(-1, -1);
   }
 
   setMotorDuty(index, duty) {
-    if (!this.motorTestAllowed()) {
+    if (!this.motorTestAllowed()) return;
+    const d = limit(duty, 0, 1);
+    const sent = d > 0 ? d : -1;
+    if (index >= 0) {
+      this.motorDuty[index] = d;
+      this.onMotorTest(index, sent);
       return;
     }
-    const d = clamp(duty, 0, 1);
-    if (index < 0) {
-      this.motorDuty = [d, d, d, d];
-      this.onMotorTest(-1, d > 0 ? d : -1);
-      if (d === 0) {
-        this.onMotorTest(-1, -1);
-      }
-      return;
-    }
-    this.motorDuty[index] = d;
-    this.onMotorTest(index, d > 0 ? d : -1);
+    this.motorDuty = [d, d, d, d];
+    this.onMotorTest(-1, sent);
+    /* All four at zero releases twice, the second as an explicit stop. */
+    if (d === 0) this.onMotorTest(-1, -1);
   }
 
   exportText() {
     return exportCli(this.draft);
   }
 
-  /* How many keys on the current tab this build does not implement. The
-   * same predicate fieldItem uses, so the count and the rows cannot drift. */
-  skippedOnTab() {
-    const tab = TABS_SHOWN.find((t) => t.id === this.tab) ?? TABS_SHOWN[0];
-    let n = 0;
-    for (const field of this.visibleFields()) {
-      const dynMinOn = field.key === 'gyro_lpf1_static_hz'
-        && Number(this.cliValue('gyro_lpf1_dyn_min_hz')) > 0;
-      if (tab.grey || !fieldEnabled(field) || dynMinOn) {
-        n += 1;
-      }
-    }
-    return n;
+  currentTab() {
+    return BENCH_TABS.find((tab) => tab.id === this.tab) ?? BENCH_TABS[0];
   }
 
-  items() {
+  /* The firmware initialises gyro LPF1 from its dynamic range whenever the
+   * dynamic minimum is above zero, so the static cutoff is inert then. */
+  lpf1Inert(field) {
+    return field.key === 'gyro_lpf1_static_hz' && Number(this.cliValue('gyro_lpf1_dyn_min_hz')) > 0;
+  }
+
+  editable(field, tabGrey) {
+    return !tabGrey && fieldEnabled(field) && !this.lpf1Inert(field);
+  }
+
+  /* How many shown keys the arrows skip. The same test fieldItem uses. */
+  skippedOnTab() {
+    const grey = Boolean(this.currentTab().grey);
+    return this.visibleFields().filter((f) => !this.editable(f, grey)).length;
+  }
+
+  /* Ranked key matches across every tab: live keys before keys this build
+   * lacks (a key you can change is the likelier answer, a missing one is
+   * still an answer), then exact, prefix, anywhere, then shorter, then by
+   * name. Shorter first is what puts d_min_roll above
+   * simplified_d_min_ratio. */
+  searchHits(query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return { hits: [], total: 0 };
+    const found = [];
+    for (const field of FIELDS) {
+      if (field.key.startsWith('#')) continue;
+      const name = field.key.toLowerCase();
+      const pos = name.indexOf(q);
+      if (pos === -1) continue;
+      let match = 2;
+      if (name === q) match = 0;
+      else if (pos === 0) match = 1;
+      found.push([fieldEnabled(field) ? 0 : 1, match, name.length, field]);
+    }
+    found.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || (a[3].key < b[3].key ? -1 : 1));
+    return { hits: found.slice(0, SEARCH_LIMIT).map((x) => x[3]), total: found.length };
+  }
+
+  /* Keys whose draft value differs from the dump the bench opened on. */
+  modifiedKeys() {
+    const opened = cliMap(this.snapshot);
+    const changed = new Set();
+    for (const [key, value] of this.draftMap()) {
+      if (String(opened.get(key) ?? '') !== String(value ?? '')) changed.add(key);
+    }
+    return changed;
+  }
+
+  visibleFields() {
+    if (this.search) return this.searchHits(this.search).hits;
+    if (this.tab === 'presets' || this.tab === 'modes') return [];
+    const onPid = this.tab === 'pid';
+    let list = tabFields(this.tab);
+    if (onPid) list = list.filter((f) => f.page === this.page);
+    /* The Rates screen owns these; offering them twice as raw CLI is how
+     * the menu and the module once came to disagree. */
+    if (onPid && this.page === 'rates') list = list.filter((f) => !RATE_KEYS.has(f.key));
+    const page = onPid ? this.page : '';
+    const live = list.filter((f) => !f.key.startsWith('#') && fieldEnabled(f));
+    const rest = list.filter((f) => f.key.startsWith('#') || !fieldEnabled(f));
+    live.sort((a, b) => orderOf(a, page) - orderOf(b, page));
+    const shown = live.concat(rest);
+    if (!this.onlyModified) return shown;
+    const changed = this.modifiedKeys();
+    return shown.filter((f) => changed.has(f.key));
+  }
+
+  noteFor(field) {
+    if (this.lpf1Inert(field)) return str('fc.firmware_inits_lpf1_from_gyro_lpf1');
+    if (field.status === STATUS.GATED || !fieldEnabled(field)) return field.reason;
+    if (field.key.startsWith('simplified_')) return str('fc.writes_the_slider_then_simplified_tuning');
+    return keyNote(field);
+  }
+
+  fieldItem(field, tabGrey) {
+    const { key } = field;
+    const raw = this.cliValue(key);
+    const note = this.noteFor(field);
+    if (!this.editable(field, tabGrey)) {
+      /* Still drawn, and still reachable by click, PageUp, PageDown, Home
+       * and End, because the note says why this build leaves it out. Only
+       * the arrows step over it, unless walkAll is on. */
+      return {
+        label: key,
+        key,
+        value: shownValue(field, raw),
+        note,
+        info: true,
+        disabled: true,
+        skip: !this.walkAll,
+        rowClass: 'row-grey',
+      };
+    }
+    const rowClass = field.status === STATUS.GATED ? 'row-gated' : '';
+    const set = (v) => this.setValue(key, v);
+    const choices = field.lookup ? lookupValues(field.lookup) : null;
+    if (choices && choices.length) {
+      const current = choices.includes(raw) ? raw : (raw ?? choices[0]);
+      return {
+        label: key,
+        key,
+        note,
+        value: shownValue(field, shownLookup(current)),
+        current,
+        options: choices.map((value) => ({ value, label: shownLookup(value) })),
+        pick: (v) => set(v),
+        adjust: (d) => set(cycle(choices, current, d)),
+        rowClass,
+      };
+    }
+    /*
+     * A typed number with one-unit arrows, the control the Rates screen
+     * uses: a cutoff spanning a thousand units is not something to reach
+     * by arrow presses, and pasting CLI is not on offer. Commit is on blur
+     * or Enter. The simplified tuning keys also get a slider, since a
+     * sweep is their whole point.
+     */
+    const { min, max } = fieldBounds(field);
+    const n = Number(raw);
+    const cur = Number.isFinite(n) ? n : min;
+    const row = {
+      label: key,
+      key,
+      note,
+      num: {
+        spec: {
+          cliMin: min, cliMax: max, scale: 1, decimals: 0, unit: '',
+        },
+        cli: cur,
+        text: String(cur),
+        unit: '',
+      },
+      adjust: (d) => set(String(limit(cur + d, min, max))),
+      typed: (text) => parseTyped(text, min, max),
+      set: (v) => set(String(v)),
+      rowClass,
+    };
+    if (key.startsWith('simplified_') && key !== 'simplified_pids_mode') row.range = { min, max };
+    return row;
+  }
+
+  confirmRows() {
     if (this.confirm === 'save-run') {
       return [
-        {
-          label: str('fc.save_and_restart_the_run'),
-          action: 'fc-save-restart',
-          note: str('fc.save_writes_the_dump_through_sim'),
-        },
-        {
-          label: str('fc.wait_until_the_result_screen'),
-          action: 'fc-wait',
-          note: str('fc.keeps_the_draft_save_when_the'),
-        },
+        { label: str('fc.save_and_restart_the_run'), action: 'fc-save-restart', note: str('fc.save_writes_the_dump_through_sim') },
+        { label: str('fc.wait_until_the_result_screen'), action: 'fc-wait', note: str('fc.keeps_the_draft_save_when_the') },
       ];
     }
-
-    /*
-     * Escape with unsaved edits asks first. Three rows rather than two,
-     * because "save it" is what a pilot who pressed Escape by accident
-     * usually wants and making them cancel, find Save and press again is
-     * the kind of friction that teaches people to fear the key.
-     */
+    /* Escape with unsaved edits. Save is offered here too, because saving
+     * is usually what a pilot who hit Escape by accident wanted. */
     if (this.confirm === 'leave') {
       return [
-        {
-          label: str('ui.keep_editing'),
-          action: 'fc-keep-editing',
-          note: str('fc.stays_here_with_the_draft_intact'),
-        },
+        { label: str('ui.keep_editing'), action: 'fc-keep-editing', note: str('fc.stays_here_with_the_draft_intact') },
         {
           label: str('fc.save_and_leave'),
           action: 'fc-save-exit',
-          note: this.runActive
-            ? str('fc.writes_the_dump_then_asks_whether')
-            : str('fc.writes_the_draft_through_sim_init'),
+          note: str(this.runActive ? 'fc.writes_the_dump_then_asks_whether' : 'fc.writes_the_draft_through_sim_init'),
         },
-        {
-          label: str('fc.discard_and_leave'),
-          action: 'fc-discard-leave',
-          note: str('fc.throws_the_draft_away_and_restores'),
-        },
+        { label: str('fc.discard_and_leave'), action: 'fc-discard-leave', note: str('fc.throws_the_draft_away_and_restores') },
       ];
     }
+    return null;
+  }
 
-    const tab = TABS_SHOWN.find((t) => t.id === this.tab) ?? TABS_SHOWN[0];
-    const rows = [];
-
-    /*
-     * SEARCH REPLACES THE TAB STRIP while it is on, because the whole point
-     * of it is that a pilot does not have to know which of 23 tabs
-     * Betaflight files a key under. Tab, Page and Walk every key are all
-     * about a tab, so none of them is offered here.
-     */
-    if (this.search != null) {
-      const found = this.searchHits(this.search);
-      rows.push({
-        label: str('fc.search'),
-        key: 'fc-search',
-        note: this.search
-          ? str('fc.key_s_match_across_every_tab', { total: found.total, label: tab.label })
-          : str('fc.type_part_of_a_key_name'),
-        /*
-         * Its own control, not the typed number row's. That one commits on
-         * blur, carries stepper arrows and declares a decimal input mode,
-         * and all three are wrong for a name being typed a letter at a
-         * time. See makeSearch in ui.js.
-         */
-        text: { value: this.search, placeholder: str('fc.part_of_a_key_name') },
-        onText: (v) => { this.search = String(v == null ? '' : v); },
-      });
-      if (!this.search) {
-        rows.push({
-          label: str('fc.nothing_typed_yet'),
-          info: true,
-          disabled: true,
-          rowClass: 'row-grey',
-          note: str('fc.every_key_in_the_catalog_is'),
-        });
-        return rows;
-      }
-      if (!found.total) {
-        rows.push({
-          label: str('fc.no_key_contains', { search: this.search }),
-          info: true,
-          disabled: true,
-          rowClass: 'row-grey',
-          note: str('fc.not_in_betaflight_4_5_1'),
-        });
-        return rows;
-      }
-      for (const field of found.hits) {
-        rows.push(this.fieldItem(field, false));
-      }
-      if (found.total > found.hits.length) {
-        /*
-         * The honest line. A full teardown render of 690 rows costs about
-         * 57 ms per keystroke, so the cap is real; pretending the rest do
-         * not exist would be the kind of lie that makes a pilot conclude
-         * the key is missing.
-         */
-        rows.push({
-          label: str('fc.more_not_shown', { v1: found.total - found.hits.length }),
-          info: true,
-          disabled: true,
-          rowClass: 'row-grey',
-          note: str('fc.keys_match_and_the_first_are', { total: found.total, length: found.hits.length }),
-        });
-      }
+  searchRows(tab) {
+    const query = this.search;
+    const found = this.searchHits(query);
+    const rows = [{
+      label: str('fc.search'),
+      key: 'fc-search',
+      note: query
+        ? str('fc.key_s_match_across_every_tab', { total: found.total, label: tab.label })
+        : str('fc.type_part_of_a_key_name'),
+      /* A plain text control, see makeSearch in ui.js: the number row's
+       * commit on blur, steppers and decimal keypad are all wrong for a
+       * name typed a letter at a time. */
+      text: { value: query, placeholder: str('fc.part_of_a_key_name') },
+      onText: (v) => { this.search = String(v ?? ''); },
+    }];
+    if (!query) {
+      rows.push(greyRow(str('fc.nothing_typed_yet'), undefined, str('fc.every_key_in_the_catalog_is')));
       return rows;
     }
+    if (found.total === 0) {
+      rows.push(greyRow(str('fc.no_key_contains', { search: query }), undefined, str('fc.not_in_betaflight_4_5_1')));
+      return rows;
+    }
+    for (const field of found.hits) rows.push(this.fieldItem(field, false));
+    const hidden = found.total - found.hits.length;
+    if (hidden > 0) {
+      rows.push(greyRow(
+        str('fc.more_not_shown', { v1: hidden }),
+        undefined,
+        str('fc.keys_match_and_the_first_are', { total: found.total, length: found.hits.length }),
+      ));
+    }
+    return rows;
+  }
 
-    rows.push({
+  /* Tab, the view switches and Page: the rows that decide what the body
+   * below them shows. */
+  controlRows(tab) {
+    const rows = [{
       label: 'Tab',
       note: tab.grey ? tab.reason : str('fc.configurator_tabs_grey_tabs_can_be'),
       value: tab.label,
       current: tab.id,
-      options: TABS_SHOWN.map((t) => ({ value: t.id, label: t.label })),
+      options: BENCH_TABS.map((t) => ({ value: t.id, label: t.label })),
       pick: (v) => this.setTab(v),
-      adjust: (d) => this.setTab(cycle(TABS_SHOWN.map((t) => t.id), this.tab, d)),
-    });
-
-    /*
-     * Sits directly under Tab, because it changes what Tab lands you in.
-     * The count is the honest part: it says how many keys on THIS tab are
-     * in Betaflight 4.5.1 and not in this build, so the number a pilot
-     * sees is the number they would have had to walk.
-     */
+      adjust: (d) => this.setTab(cycle(BENCH_TAB_IDS, this.tab, d)),
+    }];
     const skipped = this.skippedOnTab();
     if (skipped > 0) {
-      rows.push({
-        /* A switch, not a two item popup. See toggle() in ui.js. */
-        label: str('fc.walk_every_key'),
-        sw: true,
-        on: this.walkAll,
-        value: this.walkAll ? 'On' : 'Off',
-        current: this.walkAll,
-        adjust: (d) => { this.walkAll = d > 0; },
-        flip: () => { this.walkAll = !this.walkAll; },
-        note: this.walkAll
-          ? str('fc.up_and_down_stop_on_all', { skipped })
-          : str('fc.up_and_down_skip_the_key', { skipped }),
-      });
+      rows.push(toggleRow(
+        str('fc.walk_every_key'),
+        this.walkAll,
+        (on) => { this.walkAll = on; },
+        str(this.walkAll ? 'fc.up_and_down_stop_on_all' : 'fc.up_and_down_skip_the_key', { skipped }),
+      ));
     }
-
-    /*
-     * SHOW ONLY WHAT I CHANGED. A pilot ten minutes into an edit had no way
-     * to see what they were about to save except by walking every tab, and
-     * Save says only how many. Offered only when there is something to
-     * show, so it is not a permanent row that reads Off forever.
-     */
+    /* Offered once there is something to show, so it is not a row that
+     * reads Off forever on a clean draft. */
     const changedCount = this.modifiedKeys().size;
     if (changedCount > 0 || this.onlyModified) {
-      rows.push({
-        label: str('fc.only_what_i_changed'),
-        sw: true,
-        on: this.onlyModified,
-        value: this.onlyModified ? 'On' : 'Off',
-        current: this.onlyModified,
-        adjust: (d) => { this.onlyModified = d > 0; },
-        flip: () => { this.onlyModified = !this.onlyModified; },
-        note: this.onlyModified
-          ? str('fc.showing_only_the_key_s_this', { changedCount })
-          : str('fc.key_s_differ_from_the_dump', { changedCount }),
-      });
+      rows.push(toggleRow(
+        str('fc.only_what_i_changed'),
+        this.onlyModified,
+        (on) => { this.onlyModified = on; },
+        str(this.onlyModified ? 'fc.showing_only_the_key_s_this' : 'fc.key_s_differ_from_the_dump', { changedCount }),
+      ));
     }
-
     if (this.tab === 'pid') {
       const page = PID_PAGES.find((p) => p.id === this.page) ?? PID_PAGES[0];
       rows.push({
@@ -627,588 +597,234 @@ export class FcSession {
         current: page.id,
         options: PID_PAGES.map((p) => ({ value: p.id, label: p.label })),
         pick: (v) => { this.page = v; },
-        adjust: (d) => { this.page = cycle(PID_PAGES.map((p) => p.id), this.page, d); },
+        adjust: (d) => { this.page = cycle(PID_PAGE_IDS, this.page, d); },
       });
     }
+    return rows;
+  }
 
-    rows.push({
-      label: str('ui.save'),
-      action: 'fc-save',
-      rowClass: 'fc-btn',
-      note: this.dirty()
-        ? str('fc.writes_the_draft_dump_through_sim')
-        : str('fc.no_edits_save_does_not_re'),
-    });
-    if (this.dirty()) {
-      rows.push({
-        label: str('ui.save_and_exit'),
-        action: 'fc-save-exit',
-        rowClass: 'fc-btn',
-        note: this.runActive
-          ? str('fc.writes_the_dump_then_asks_whether')
-          : str('fc.writes_the_dump_through_sim_init'),
-      });
+  buttonRows() {
+    const dirty = this.dirty();
+    const rows = [button(str('ui.save'), 'fc-save', str(dirty ? 'fc.writes_the_draft_dump_through_sim' : 'fc.no_edits_save_does_not_re'))];
+    if (dirty) {
+      rows.push(button(str('ui.save_and_exit'), 'fc-save-exit',
+        str(this.runActive ? 'fc.writes_the_dump_then_asks_whether' : 'fc.writes_the_dump_through_sim_init')));
     }
-    rows.push({
-      label: str('ui.discard'),
-      action: 'fc-discard',
-      rowClass: 'fc-btn',
-      note: str('fc.restores_the_dump_that_was_live'),
-    });
-    rows.push({
-      label: str('fc.export'),
-      action: 'fc-export',
-      rowClass: 'fc-btn',
-      note: str('fc.downloads_cli_text_a_4_5'),
-    });
-    rows.push({
-      label: this.dirty() ? str('ui.exit_without_saving') : 'Exit',
-      action: 'fc-back',
-      rowClass: 'fc-btn',
-      note: this.dirty()
-        ? str('fc.leaves_and_restores_the_dump_that')
-        : str('fc.leaves_this_screen_escape_does_the'),
-    });
+    rows.push(
+      button(str('ui.discard'), 'fc-discard', str('fc.restores_the_dump_that_was_live')),
+      button(str('fc.export'), 'fc-export', str('fc.downloads_cli_text_a_4_5')),
+      button(dirty ? str('ui.exit_without_saving') : 'Exit', 'fc-back',
+        str(dirty ? 'fc.leaves_and_restores_the_dump_that' : 'fc.leaves_this_screen_escape_does_the')),
+    );
+    return rows;
+  }
 
-    if (this.tab === 'pid' && this.page === 'rates') {
-      rows.push({
-        label: str('ui.rates'),
-        value: str('fc.on_the_rates_screen'),
-        note: str('fc.rates_belong_to_you_not_to'),
-        info: true,
-      });
-      rows.push({
-        label: str('fc.open_the_rates_screen'),
-        action: 'rates',
-        note: str('fc.leaves_the_flight_controller_unsaved_edits'),
-      });
-    }
+  presetRows() {
+    const rows = TUNES.map((tune) => ({
+      label: tune.name,
+      action: `fc-preset:${tune.id}`,
+      note: str('fc.keep_mine_rates_save_still_required', { note: tune.note }),
+    }));
+    rows.push(greyRow('firmware-presets', 'Unavailable', str('fc.optional_later_fetch_from_betaflight_firmware')));
+    return rows;
+  }
 
-    if (this.tab === 'presets') {
-      for (const t of TUNES) {
-        rows.push({
-          label: t.name,
-          action: `fc-preset:${t.id}`,
-          note: str('fc.keep_mine_rates_save_still_required', { note: t.note }),
-        });
-      }
-      rows.push({
-        label: 'firmware-presets',
-        value: 'Unavailable',
-        note: str('fc.optional_later_fetch_from_betaflight_firmware'),
-        info: true,
-        disabled: true,
-        rowClass: 'row-grey',
-      });
-      return rows;
-    }
-
-    if (this.tab === 'modes') {
-      const angle = this.getFlightMode() === 'angle';
-      rows.push({
-        label: str('fc.arm'),
-        value: str('fc.always_on'),
-        note: str('fc.the_sim_is_always_armed_a'),
-        info: true,
-        disabled: true,
-        rowClass: 'row-grey',
-      });
-      rows.push({
-        label: str('fc.angle'),
-        note: str('fc.on_or_off_same_sim_set'),
-        sw: true,
-        on: angle,
-        value: angle ? 'On' : 'Off',
-        current: angle,
-        adjust: (d) => this.setFlightMode(d > 0),
-        flip: () => this.setFlightMode(!angle),
-      });
-      rows.push({
-        label: str('fc.launch_control'),
-        note: str('fc.on_or_off_same_launch_control'),
-        sw: true,
-        on: this.getLaunchControl(),
-        value: this.getLaunchControl() ? 'On' : 'Off',
-        current: this.getLaunchControl(),
-        adjust: (d) => this.setLaunchControl(d > 0),
+  modeRows() {
+    const angle = this.getFlightMode() === 'angle';
+    const launch = this.getLaunchControl();
+    return [
+      greyRow(str('fc.arm'), str('fc.always_on'), str('fc.the_sim_is_always_armed_a')),
+      toggleRow(str('fc.angle'), angle, (on) => this.setFlightMode(on), str('fc.on_or_off_same_sim_set')),
+      {
+        ...toggleRow(str('fc.launch_control'), launch, (on) => this.setLaunchControl(on), str('fc.on_or_off_same_launch_control')),
+        /* Read at the press, so a flip always inverts what the shell has. */
         flip: () => this.setLaunchControl(!this.getLaunchControl()),
-      });
-      rows.push({
-        label: str('fc.horizon'),
-        value: 'Unavailable',
-        note: str('fc.no_aux_channels_until_they_are'),
-        info: true,
-        disabled: true,
-        rowClass: 'row-grey',
-      });
-      rows.push({
-        label: str('fc.gps_rescue'),
-        value: 'Unavailable',
-        note: str('fc.no_gps_sensor_in_the_plant'),
-        info: true,
-        disabled: true,
-        rowClass: 'row-grey',
-      });
-      return rows;
-    }
+      },
+      greyRow(str('fc.horizon'), 'Unavailable', str('fc.no_aux_channels_until_they_are')),
+      greyRow(str('fc.gps_rescue'), 'Unavailable', str('fc.no_gps_sensor_in_the_plant')),
+    ];
+  }
 
-    if (this.tab === 'setup') {
-      rows.push({
-        label: str('ui.attitude'),
-        value: 'Live',
-        note: str('fc.horizon_from_the_plant_quaternion_sim'),
-        info: true,
-      });
-    }
-
-    if (this.tab === 'configuration') {
-      rows.push({
-        label: str('fc.features'),
-        info: true,
-        disabled: true,
-        rowClass: 'fc-section',
-        note: str('fc.feature_lines_in_the_dump_same'),
-      });
-      for (const feat of FEATURES) {
-        const live = feat.status === STATUS.LIVE;
-        const on = featureEnabled(this.draft, feat.name);
-        const shown = on == null ? (live ? 'unset' : 'Off') : (on ? 'On' : 'Off');
-        if (!live) {
-          rows.push({
-            label: str('fc.feature', { name: feat.name }),
-            value: shown,
-            note: feat.reason,
-            info: true,
-            disabled: true,
-            rowClass: 'row-grey',
-          });
-          continue;
-        }
-        const current = Boolean(on);
-        rows.push({
-          label: str('fc.feature', { name: feat.name }),
-          key: `feature ${feat.name}`,
-          note: feat.reason,
-          sw: true,
-          on: current,
-          value: current ? 'On' : 'Off',
-          current,
-          adjust: (d) => this.setFeature(feat.name, d > 0),
-          flip: () => this.setFeature(feat.name, !current),
-        });
+  featureRows() {
+    const rows = [heading(str('fc.features'), str('fc.feature_lines_in_the_dump_same'))];
+    for (const feat of FEATURES) {
+      const label = str('fc.feature', { name: feat.name });
+      const on = featureEnabled(this.draft, feat.name);
+      if (feat.status !== STATUS.LIVE) {
+        rows.push(greyRow(label, onOff(on), feat.reason));
+        continue;
       }
+      rows.push(toggleRow(label, Boolean(on), (v) => this.setFeature(feat.name, v), feat.reason, { key: `feature ${feat.name}` }));
     }
+    return rows;
+  }
 
-    if (this.tab === 'motors') {
-      const allowed = this.motorTestAllowed();
-      if (!allowed) {
-        rows.push({
-          label: str('fc.motor_test'),
-          value: 'Unavailable',
-          note: str('fc.motor_test_uses_sim_motor_override'),
-          info: true,
-          disabled: true,
-          rowClass: 'row-grey',
-        });
-      } else {
-        rows.push({
-          label: str('fc.all_motors'),
-          note: str('fc.title_only_sim_motor_override_the'),
-          value: `${Math.round(this.motorDuty[0] * 100)} %`,
-          step: true,
-          adjust: (d) => this.setMotorDuty(-1, this.motorDuty[0] + d * 0.05),
-        });
-        for (let i = 0; i < 4; i += 1) {
-          rows.push({
-            label: str('fc.motor', { v1: i + 1 }),
-            note: str('fc.betaflight_order_1_rear_right_2'),
-            value: `${Math.round(this.motorDuty[i] * 100)} %`,
-            step: true,
-            adjust: (d) => this.setMotorDuty(i, this.motorDuty[i] + d * 0.05),
-          });
-        }
-        rows.push({
-          label: str('fc.stop_motors'),
-          action: 'fc-motors-stop',
-          note: str('fc.clears_sim_motor_override'),
-        });
-      }
+  motorRows() {
+    if (!this.motorTestAllowed()) {
+      return [greyRow(str('fc.motor_test'), 'Unavailable', str('fc.motor_test_uses_sim_motor_override'))];
     }
+    const percent = (duty) => `${Math.round(duty * 100)} %`;
+    const rows = [{
+      label: str('fc.all_motors'),
+      note: str('fc.title_only_sim_motor_override_the'),
+      value: percent(this.motorDuty[0]),
+      step: true,
+      adjust: (d) => this.setMotorDuty(-1, this.motorDuty[0] + d * 0.05),
+    }];
+    this.motorDuty.forEach((duty, i) => {
+      rows.push({
+        label: str('fc.motor', { v1: i + 1 }),
+        note: str('fc.betaflight_order_1_rear_right_2'),
+        value: percent(duty),
+        step: true,
+        adjust: (d) => this.setMotorDuty(i, this.motorDuty[i] + d * 0.05),
+      });
+    });
+    rows.push({ label: str('fc.stop_motors'), action: 'fc-motors-stop', note: str('fc.clears_sim_motor_override') });
+    return rows;
+  }
 
+  fieldRows(tab) {
     const fields = this.visibleFields();
-    if (tab.grey && fields.length === 0) {
-      rows.push({
-        label: tab.label,
-        value: 'Unavailable',
-        note: tab.reason,
-        info: true,
-        disabled: true,
-        rowClass: 'row-grey',
-      });
-    }
-    let lastSection = '';
+    const rows = [];
+    if (tab.grey && fields.length === 0) rows.push(greyRow(tab.label, 'Unavailable', tab.reason));
+    const page = this.tab === 'pid' ? this.page : '';
+    let open = '';
     for (const field of fields) {
-      const section = sectionFor(field, this.tab === 'pid' ? this.page : '');
-      if (section && section !== lastSection) {
-        lastSection = section;
-        rows.push({
-          label: section,
-          info: true,
-          disabled: true,
-          rowClass: 'fc-section',
-          note: str('fc.configurator_group_values_still_travel_as'),
-        });
+      const title = headingOf(groupOf(field, page ? `pid:${page}` : field.tab));
+      if (title && title !== open) {
+        open = title;
+        rows.push(heading(title, str('fc.configurator_group_values_still_travel_as')));
       }
       rows.push(this.fieldItem(field, tab.grey));
     }
     return rows;
   }
 
-  /*
-   * Every key whose name matches, across every tab, ranked so an exact hit
-   * comes first and a prefix beats a substring. Betaflight key names are
-   * long and share stems, so `d_min` has to put `d_min_roll` above
-   * `simplified_d_min_ratio` or the search is worse than the tabs.
-   */
-  searchHits(query) {
-    const q = String(query || '').trim().toLowerCase();
-    if (!q) {
-      return { hits: [], total: 0 };
-    }
-    const scored = [];
-    for (const f of FIELDS) {
-      if (f.key.startsWith('#')) {
-        continue;
-      }
-      const k = f.key.toLowerCase();
-      const at = k.indexOf(q);
-      if (at < 0) {
-        continue;
-      }
-      /* 0 exact, 1 prefix, 2 anywhere. Then shorter first, so the plain
-       * key outranks the one with three more words on the end. */
-      const rank = k === q ? 0 : (at === 0 ? 1 : 2);
-      /*
-       * LIVE KEYS FIRST, above the rank, because a key this build does not
-       * implement cannot be changed and a key it does can. Searching `gyro`
-       * put seven bus and alignment keys the sim has no hardware for above
-       * gyro_lpf1_type, which is the one a pilot searching for gyro almost
-       * certainly wants. The dead ones stay in the list, underneath, since
-       * finding out a key is missing is an answer too. It is the same
-       * ordering visibleFields already applies inside a tab.
-       */
-      scored.push({ f, live: fieldEnabled(f) ? 0 : 1, rank, len: k.length });
-    }
-    scored.sort((a, b) => a.live - b.live || a.rank - b.rank || a.len - b.len
-      || (a.f.key < b.f.key ? -1 : 1));
-    return { hits: scored.slice(0, SEARCH_CAP).map((x) => x.f), total: scored.length };
-  }
+  items() {
+    const asking = this.confirmRows();
+    if (asking) return asking;
+    const tab = this.currentTab();
+    if (this.search != null) return this.searchRows(tab);
 
-  /* Which keys the draft has moved off the snapshot it opened with. The
-   * same comparison `dirty()` makes, per key rather than in bulk. */
-  modifiedKeys() {
-    /* cliMapCached takes no argument: it always parses the draft, and its
-     * cache is keyed on the draft text. The snapshot has to go through
-     * cliMap directly or this would compare the draft with itself. */
-    const now = this.cliMapCached();
-    const was = cliMap(this.snapshot);
-    const out = new Set();
-    for (const [k, v] of now) {
-      if (String(was.get(k) ?? '') !== String(v ?? '')) {
-        out.add(k);
-      }
-    }
-    return out;
-  }
-
-  visibleFields() {
-    /* Search replaces the tab entirely: the whole point is that it does not
-     * matter which tab Betaflight files a key under. */
-    if (this.search) {
-      return this.searchHits(this.search).hits;
-    }
-    let list = tabFields(this.tab);
-    if (this.tab === 'pid') {
-      list = list.filter((f) => f.page === this.page);
-      if (this.page === 'rates') {
-        /* The Rates screen owns these; offering them here again as raw
-         * CLI steppers is how the menu and the module learned to disagree
-         * the first time round. */
-        list = list.filter((f) => !RATE_KEYS.has(f.key));
-      }
-    }
-    if (this.tab === 'presets' || this.tab === 'modes') {
-      return [];
-    }
-    const enabled = [];
-    const grey = [];
-    for (const f of list) {
-      if (f.key.startsWith('#')) {
-        grey.push(f);
-        continue;
-      }
-      if (fieldEnabled(f)) {
-        enabled.push(f);
-      } else {
-        grey.push(f);
-      }
-    }
-    const page = this.tab === 'pid' ? this.page : '';
-    enabled.sort((a, b) => fieldRank(a, page) - fieldRank(b, page));
-    const all = enabled.concat(grey);
-    if (this.onlyModified) {
-      const changed = this.modifiedKeys();
-      return all.filter((f) => changed.has(f.key));
-    }
-    return all;
-  }
-
-  fieldItem(field, tabGrey) {
-    const raw = this.cliValue(field.key);
-    const dynMinOn = field.key === 'gyro_lpf1_static_hz'
-      && Number(this.cliValue('gyro_lpf1_dyn_min_hz')) > 0;
-    const enabled = !tabGrey && fieldEnabled(field) && !dynMinOn;
-    const note = fieldNote(field, this);
-    const greyClass = enabled ? (field.status === STATUS.GATED ? 'row-gated' : '') : 'row-grey';
-    if (!enabled) {
-      return {
-        label: field.key,
-        /* The firmware key, unslugged, is this row's stable id. See
-         * stampIds in ui.js: a key is unique in the catalog by
-         * construction, and search is about to want to match on it. */
-        key: field.key,
-        value: formatField(field, raw),
-        note,
-        info: true,
-        disabled: true,
-        /*
-         * The arrows step over this row, PageUp, PageDown, Home, End and a
-         * click still land on it. The note above is the whole reason it is
-         * still rendered: it says which Betaflight subsystem this build
-         * leaves out and why, and that sentence is only readable when the
-         * cursor can rest here. See isSkip in ui.js.
-         */
-        skip: !this.walkAll,
-        rowClass: greyClass.trim(),
-      };
-    }
-    const lut = field.lookup ? lookupValues(field.lookup) : null;
-    if (lut && lut.length) {
-      const current = lut.includes(raw) ? raw : (raw ?? lut[0]);
-      return {
-        label: field.key,
-        key: field.key,
-        note,
-        value: formatField(field, lookupLabel(current)),
-        current,
-        options: lut.map((c) => ({ value: c, label: lookupLabel(c) })),
-        pick: (v) => this.setValue(field.key, v),
-        adjust: (d) => this.setValue(field.key, cycle(lut, current, d)),
-        rowClass: greyClass,
-      };
-    }
-    const { min, max } = fieldBounds(field);
-    const n = Number(raw);
-    const cur = Number.isFinite(n) ? n : min;
-    /*
-     * The simplified tuning keys draw as REAL SLIDERS, the control
-     * Configurator gives them: they are the one family here whose whole
-     * point is a sweep, and 0 to 200 percent is a track, not twelve arrow
-     * presses. Everything else keeps the stepper; a filter cutoff is a
-     * number you know, not a feel you drag toward.
-     */
-    if (field.key.startsWith('simplified_') && field.key !== 'simplified_pids_mode') {
-      const spec = {
-        cliMin: min, cliMax: max, scale: 1, decimals: 0, unit: '',
-      };
-      return {
-        label: field.key,
-        key: field.key,
-        note,
-        num: {
-          spec, cli: cur, text: String(cur), unit: '',
+    const rows = [...this.controlRows(tab), ...this.buttonRows()];
+    if (this.tab === 'pid' && this.page === 'rates') {
+      rows.push(
+        {
+          label: str('ui.rates'), value: str('fc.on_the_rates_screen'), note: str('fc.rates_belong_to_you_not_to'), info: true,
         },
-        range: { min, max },
-        adjust: (d) => {
-          this.setValue(field.key, String(clamp(cur + d, min, max)));
-        },
-        typed: (raw2) => {
-          const t = String(raw2).trim();
-          if (t === '') {
-            return null;
-          }
-          const v = Math.round(Number(t));
-          if (!Number.isFinite(v)) {
-            return null;
-          }
-          return clamp(v, min, max);
-        },
-        set: (v) => {
-          this.setValue(field.key, String(v));
-        },
-        rowClass: greyClass,
-      };
+        { label: str('fc.open_the_rates_screen'), action: 'rates', note: str('fc.leaves_the_flight_controller_unsaved_edits') },
+      );
     }
-    /*
-     * Every remaining field is a TYPED number row, the same control the
-     * Rates screen earned when its lists could not hold a pilot's own
-     * numbers. These were arrow steppers, and a board report made the
-     * arithmetic plain: a filter cutoff spanning 1000 at one press per
-     * unit is not a control, it is a punishment, and the alternative the
-     * report reached for was pasting CLI, which is the one door this
-     * screen does not have. The arrows stay, one firmware unit each,
-     * taking the typed text as their base; the field takes the number a
-     * pilot already knows. Commit is on blur or Enter, exactly as the
-     * Rates screen argues.
-     */
-    const spec = {
-      cliMin: min, cliMax: max, scale: 1, decimals: 0, unit: '',
-    };
-    return {
-      label: field.key,
-      key: field.key,
-      note,
-      num: {
-        spec, cli: cur, text: String(cur), unit: '',
-      },
-      adjust: (d) => {
-        this.setValue(field.key, String(clamp(cur + d, min, max)));
-      },
-      typed: (raw2) => {
-        const t = String(raw2).trim();
-        if (t === '') {
-          return null;
-        }
-        const v = Math.round(Number(t));
-        if (!Number.isFinite(v)) {
-          return null;
-        }
-        return clamp(v, min, max);
-      },
-      set: (v) => {
-        this.setValue(field.key, String(v));
-      },
-      rowClass: greyClass,
-    };
+    if (this.tab === 'presets') return rows.concat(this.presetRows());
+    if (this.tab === 'modes') return rows.concat(this.modeRows());
+    if (this.tab === 'setup') {
+      rows.push({
+        label: str('ui.attitude'), value: 'Live', note: str('fc.horizon_from_the_plant_quaternion_sim'), info: true,
+      });
+    }
+    if (this.tab === 'configuration') rows.push(...this.featureRows());
+    if (this.tab === 'motors') rows.push(...this.motorRows());
+    return rows.concat(this.fieldRows(tab));
   }
 }
 
-export function paintTabStrip(nav, session, onPick) {
-  if (!nav.dataset.ready) {
-    nav.textContent = '';
-    for (const t of TABS_SHOWN) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'fc-tab';
-      b.dataset.id = t.id;
-      b.textContent = t.label;
-      b.addEventListener('click', () => onPick(t.id));
-      nav.append(b);
-    }
-    nav.dataset.ready = '1';
+/* Builds a strip of buttons once, marking it ready in its dataset, so
+ * later paints only move the highlight. */
+function buildStrip(nav, entries, className, onPick) {
+  if (nav.dataset.ready) return;
+  nav.textContent = '';
+  for (const { id, label } of entries) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = className;
+    b.dataset.id = id;
+    b.textContent = label;
+    b.addEventListener('click', () => onPick(id));
+    nav.append(b);
   }
+  nav.dataset.ready = '1';
+}
+
+export function paintTabStrip(nav, session, onPick) {
+  buildStrip(nav, BENCH_TABS, 'fc-tab', onPick);
   for (const b of nav.children) {
-    const t = TABS_SHOWN.find((x) => x.id === b.dataset.id);
-    b.classList.toggle('on', session.tab === b.dataset.id);
-    b.classList.toggle('grey', Boolean(t && t.grey));
+    const tab = BENCH_TABS.find((t) => t.id === b.dataset.id);
+    b.classList.toggle('on', b.dataset.id === session.tab);
+    b.classList.toggle('grey', Boolean(tab?.grey));
   }
 }
 
 export function paintPageStrip(nav, session, onPick) {
-  if (!nav) {
-    return;
-  }
-  const show = session.tab === 'pid' && !session.confirm;
-  nav.hidden = !show;
-  if (!show) {
-    return;
-  }
-  if (!nav.dataset.ready) {
-    nav.textContent = '';
-    for (const p of PID_PAGES) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'fc-page';
-      b.dataset.id = p.id;
-      b.textContent = p.label;
-      b.addEventListener('click', () => onPick(p.id));
-      nav.append(b);
-    }
-    nav.dataset.ready = '1';
-  }
-  for (const b of nav.children) {
-    b.classList.toggle('on', session.page === b.dataset.id);
-  }
+  if (!nav) return;
+  const visible = session.tab === 'pid' && !session.confirm;
+  nav.hidden = !visible;
+  if (!visible) return;
+  buildStrip(nav, PID_PAGES, 'fc-page', onPick);
+  for (const b of nav.children) b.classList.toggle('on', b.dataset.id === session.page);
 }
 
+const SKY = '#3a81c5';
+const GROUND = '#6b4a2b';
+const MARK = '#ffbb00';
+
 /*
- * A Configurator-shaped horizon from the plant quaternion. Body-to-world,
- * z up. Not Betaflight's Three.js widget and not their assets.
+ * An attitude indicator from the plant quaternion (body to world, z up).
+ * Own drawing, not Betaflight's Three.js widget or its assets.
+ *
+ * Pitch sign: an aviation horizon assumes NED, y right and z down, while
+ * the plant is x forward, y left, z up, where a positive turn about body y
+ * lowers the nose. The pitch term is negated here, at the instrument. This
+ * is a drawing, not the render boundary, which stays in src/render/frame.js.
+ * Roll reads the same in both frames.
  */
 export function drawAttitude(canvas, q) {
-  if (!canvas) {
-    return;
-  }
-  const w = canvas.width;
-  const h = canvas.height;
+  if (!canvas) return;
+  const { width: w, height: h } = canvas;
   const ctx = canvas.getContext('2d');
-  if (!ctx || w < 8 || h < 8) {
-    return;
-  }
-  const qw = q.w;
-  const qx = q.x;
-  const qy = q.y;
-  const qz = q.z;
-  const sinr = 2 * (qw * qx + qy * qz);
-  const cosr = 1 - 2 * (qx * qx + qy * qy);
-  const roll = Math.atan2(sinr, cosr);
-  /*
-   * The sign is the whole point here. This instrument is drawn the way an
-   * aviation horizon is drawn, which assumes the aerospace NED frame: x
-   * forward, y RIGHT, z DOWN. The quaternion it is fed is the plant's, and
-   * that frame is x forward, y LEFT, z UP, so a positive rotation about
-   * body y is nose DOWN, not nose up. Negating the pitch term is the frame
-   * change, and it belongs here, at the instrument, because this is a
-   * drawing and not the render boundary: the one conversion physics is
-   * allowed lives in src/render/frame.js. Roll reads the same both ways.
-   */
-  const sinp = 2 * (qz * qx - qw * qy);
-  const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * (Math.PI / 2) : Math.asin(sinp);
-  ctx.fillStyle = '#3a81c5';
+  if (!ctx || w < 8 || h < 8) return;
+  const roll = Math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y));
+  const s = 2 * (q.z * q.x - q.w * q.y);
+  const pitch = Math.abs(s) >= 1 ? Math.sign(s) * (Math.PI / 2) : Math.asin(s);
+  /* Half a turn of pitch spans the canvas height. */
+  const horizon = pitch * (h / Math.PI);
+  const cx = w / 2;
+  const cy = h / 2;
+
+  ctx.fillStyle = SKY;
   ctx.fillRect(0, 0, w, h);
+
   ctx.save();
-  ctx.translate(w / 2, h / 2);
+  ctx.translate(cx, cy);
   ctx.rotate(-roll);
-  const y = pitch * (h / Math.PI);
-  ctx.fillStyle = '#6b4a2b';
-  ctx.fillRect(-w, y, w * 2, h * 2);
-  ctx.strokeStyle = '#ffbb00';
+  ctx.fillStyle = GROUND;
+  ctx.fillRect(-w, horizon, w * 2, h * 2);
+  ctx.strokeStyle = MARK;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-w, y);
-  ctx.lineTo(w, y);
+  ctx.moveTo(-w, horizon);
+  ctx.lineTo(w, horizon);
   ctx.stroke();
   ctx.restore();
-  ctx.strokeStyle = '#ffbb00';
+
+  /* The fixed aircraft symbol: two wings and a centre dot. */
+  ctx.strokeStyle = MARK;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(w * 0.2, h / 2);
-  ctx.lineTo(w * 0.45, h / 2);
-  ctx.moveTo(w * 0.55, h / 2);
-  ctx.lineTo(w * 0.8, h / 2);
-  ctx.moveTo(w / 2 - 6, h / 2);
-  ctx.lineTo(w / 2 + 6, h / 2);
+  for (const [x0, x1] of [[w * 0.2, w * 0.45], [w * 0.55, w * 0.8], [cx - 6, cx + 6]]) {
+    ctx.moveTo(x0, cy);
+    ctx.lineTo(x1, cy);
+  }
   ctx.stroke();
 }
 
 export function downloadCli(filename, text) {
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename || 'flight-controller.diff';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || 'flight-controller.diff';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
   URL.revokeObjectURL(url);
 }
