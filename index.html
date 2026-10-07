@@ -2071,133 +2071,155 @@
         margin-top: 4px; padding: 0 10px 12px; text-align: center;
         font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: #9aa3a7;
       }
-      /* ---- THE FRAME ---------------------------------------------------
-         Two bars outside every screen, in the same pixels on all of them.
-         Absolutely positioned and cleared by the screens' own padding, so a
-         bar can never render on top of a row. ------------------------------ */
+      /*
+       * THE FRAME: a bar across the top (where you are, and context chips)
+       * and one across the foot (the key legend and the one primary
+       * action), in the same pixels on every screen. Absolutely placed and
+       * cleared by each screen's padding, so a bar never lands on a row.
+       * The top fades out; the foot is the boot screen's, ruled.
+       */
       .frame-top, .frame-bot {
         position: absolute; left: 0; right: 0; z-index: 6;
         display: flex; align-items: center; gap: 14px;
-        padding: 0 clamp(14px, 3vw, 34px);
-        pointer-events: none;
+        padding: 0 clamp(14px, 3vw, 34px); pointer-events: none;
       }
-      .frame-top { top: 0; height: var(--bar-top);
-        background: linear-gradient(180deg, rgba(10, 13, 14, 0.86), rgba(10, 13, 14, 0)); }
-      /* The boot screen's footer: a hairline over the foot, not a fade. */
-      .frame-bot { bottom: 0; height: var(--bar-bot);
-        background: rgba(7, 9, 10, 0.82); border-top: 1px solid var(--pdcs-line-soft); box-sizing: border-box; }
+      .frame-top { top: 0; height: var(--bar-top); background: linear-gradient(180deg, rgba(10, 13, 14, 0.86), rgba(10, 13, 14, 0)); }
+      .frame-bot {
+        bottom: 0; height: var(--bar-bot); box-sizing: border-box;
+        background: rgba(7, 9, 10, 0.82); border-top: 1px solid var(--pdcs-line-soft);
+      }
       .frame-top[hidden], .frame-bot[hidden] { display: none; }
       .frame-gap { flex: 1; }
-      .crumb {
-        display: flex; align-items: center; gap: 9px;
-        font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase;
-      }
-      .crumb-sep { color: var(--slate); }
-      .crumb-up { color: var(--slate); }
-      .crumb-here { color: var(--cream); }
-      .frame-context { display: flex; align-items: center; gap: 8px; }
+      .crumb, .frame-context, .frame-chip, .frame-legend { display: flex; align-items: center; }
+      .crumb { gap: 9px; font-size: 11.5px; letter-spacing: 0.15em; text-transform: uppercase; }
+      .crumb-sep, .crumb-up, .frame-chip-key { color: var(--slate); }
+      .crumb-here, .frame-chip b { color: var(--cream); }
+      .frame-context { gap: 8px; }
       .frame-chip {
-        display: flex; align-items: center; gap: 7px;
-        height: 26px; padding: 0 11px;
-        background: rgba(10, 13, 14, 0.72);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
-        font-size: 11px; letter-spacing: 0.08em; color: var(--slate); white-space: nowrap;
+        gap: 7px; height: 26px; padding: 0 11px;
+        font-size: 11px; letter-spacing: 0.08em; white-space: nowrap; color: var(--slate);
+        background: rgba(10, 13, 14, 0.72); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
-      .frame-chip b { color: var(--cream); font-weight: 600; }
-      .frame-chip-key { color: var(--slate); }
-      .frame-legend { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; overflow: hidden; }
+      .frame-chip b { font-weight: 600; }
+      .frame-legend { flex-wrap: nowrap; gap: 16px; overflow: hidden; }
       .frame-legend i, .frame-legend .legend-act {
         display: flex; align-items: center; gap: 6px;
-        font-style: normal; font-size: 12.5px; color: var(--slate);
+        font-size: 12.5px; font-style: normal; color: var(--slate);
       }
-      /* The one legend entry that is a control rather than a label. It
-       * reads exactly like its neighbours until it is pointed at, because
-       * a legend where one item shouts is a legend that has stopped being
-       * a legend. See legendFor: only entries carrying an action get this. */
+      /* An entry that carries an action (legendFor) is a button that
+         looks exactly like its neighbours until pointed at: a legend with
+         one shouting item has stopped being a legend. */
       .frame-legend .legend-act {
-        pointer-events: auto; appearance: none; background: none;
-        border: 0; padding: 0; margin: 0; font-family: inherit;
-        letter-spacing: inherit; cursor: pointer;
+        appearance: none; margin: 0; padding: 0; border: 0; background: none;
+        font-family: inherit; letter-spacing: inherit; cursor: pointer; pointer-events: auto;
       }
       .frame-legend .legend-act:hover { color: var(--pdcs-blue-strong); }
-      .frame-legend .legend-act:focus-visible {
-        outline: 2px solid var(--pdcs-blue); outline-offset: 3px;
-      }
+      .frame-legend .legend-act:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 3px; }
       .frame-primary {
-        pointer-events: auto; font: inherit; font-size: 13px; font-weight: 600;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        height: 32px; padding: 0 20px; border: 0;
-        background: var(--mint); color: var(--deep); cursor: pointer;
+        height: 32px; padding: 0 20px; border: 0; cursor: pointer; pointer-events: auto;
+        font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+        color: var(--deep); background: var(--mint);
       }
       .frame-primary[hidden] { display: none; }
       .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
-
-      /* ---- ROW GRAMMAR --------------------------------------------------
-         The kind of a row is visible before Enter is pressed. A value row
-         carries its control, a navigation row a chevron, a link row an
-         arrow. See rowKind() in src/ui/ui.js. ----------------------------- */
-      .row-nav::after {
-        content: "\203A"; margin-left: 10px; color: #4d5558;
-        font-size: 19px; line-height: 1;
-      }
-      .row-nav.on::after { color: var(--sakura); }
-      .row-link::after {
-        content: "\2197"; margin-left: 10px; color: #4d5558; font-size: 15px;
-      }
-      .row-link.on::after { color: var(--slate); }
-
-      /* Touch. Every target reaches 44 px on a coarse pointer, and the row
-         shrink below is removed there: on a phone the copy gets smaller, the
-         target never does. */
+      /* On a coarse pointer every target is at least 44 px: the copy may
+         shrink on a phone, the target never does. */
       @media (pointer: coarse) {
-        .row, .drop-opt, .fc-tab { min-height: 44px; }
-        .step, .row-num, .sw-seg { min-height: 44px; }
+        .row, .drop-opt, .fc-tab, .step, .row-num, .sw-seg { min-height: 44px; }
         .frame-primary { height: 44px; }
       }
 
+      /*
+       * ROWS. The cursor's row gets a 2 px blue edge and a faint wash, a
+       * step brighter, not a slab. Its focus ring shows for the keyboard
+       * only: script focus during arrow travel is not :focus-visible, so
+       * the arrows keep the bar alone and Tab adds the ring.
+       */
       .row {
-        display: flex; justify-content: space-between; align-items: center; gap: 16px;
-        padding: 10px 22px 10px 28px; border-left: 2px solid transparent;
-        color: rgba(215, 221, 221, 0.8);
-        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.03em; cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 10px 22px 10px 28px; cursor: pointer;
+        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.03em; color: rgba(215, 221, 221, 0.8);
+        border-left: 2px solid transparent;
       }
-      /* The cursor is a bar and a lift, not a slab: the boot screen's
-         green, which on every PDCS surface means the live thing, as a 2 px
-         edge, and the row a step brighter. */
       .row.on {
         color: var(--pdcs-bright); border-left-color: var(--pdcs-blue);
         background: linear-gradient(90deg, rgba(106, 163, 200, 0.14), rgba(106, 163, 200, 0.02) 60%);
       }
+      .row:focus { outline: none; }
+      .row:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: -2px; }
+      .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
+
+      /* A row shows its kind before Enter (rowKind in src/ui/ui.js): a
+         value row its control, a page a chevron, a link an arrow. */
+      .row-nav::after, .row-link::after { margin-left: 10px; color: #4d5558; }
+      .row-nav::after { content: "\203A"; font-size: 19px; line-height: 1; }
+      .row-link::after { content: "\2197"; font-size: 15px; }
+      .row-nav.on::after { color: var(--sakura); }
+      .row-link.on::after { color: var(--slate); }
+      .row-info { cursor: default; }
+      /* A reading off the hardware (padTroubleItem), so amber, and a row
+         rather than a banner so a radio pilot can reach it. */
+      .row-warn {
+        color: var(--amber); border-left-color: rgba(217, 180, 108, 0.55);
+        background: linear-gradient(90deg, rgba(217, 180, 108, 0.1), rgba(217, 180, 108, 0) 52%);
+      }
+      .row-warn::before {
+        content: "!"; flex: 0 0 auto; display: grid; place-items: center;
+        width: 1.25em; height: 1.25em; margin-right: 2px; border-radius: 50%;
+        font-size: 0.7em; font-weight: 800; color: #07090a; background: var(--amber);
+      }
+      .row-warn.on {
+        color: var(--amber); border-left-color: var(--amber);
+        background: linear-gradient(90deg, rgba(217, 180, 108, 0.22), rgba(217, 180, 108, 0) 52%);
+      }
+      .row-grey { cursor: default; color: rgba(154, 163, 167, 0.62); }
+      .row-grey .row-value, .row-grey .drop-btn { opacity: 0.85; color: var(--slate); }
+      .row-grey.on {
+        color: rgba(154, 163, 167, 0.92); border-left-color: rgba(154, 163, 167, 0.55);
+        background: linear-gradient(90deg, rgba(154, 163, 167, 0.10), rgba(154, 163, 167, 0) 48%);
+      }
       /*
-       * THE STANDINGS TABLE. Drawn above the actions, not as menu rows: a
-       * leaderboard is read, and forty times as forty rows would make the
-       * cursor walk all of them to reach Back. Three columns, because rank,
-       * pilot and lap is what a standings table is.
+       * THE PRIMARY, one per list: mint type in a mint outline, and filled
+       * only under the cursor. A primary filled all the time looked
+       * selected while the real cursor sat elsewhere; the one always
+       * filled mint thing on a screen is the command bar's button.
+       */
+      .row-primary {
+        margin: 4px 10px 8px; padding: 12px 18px;
+        font-weight: 600; letter-spacing: 0.1em; color: var(--mint);
+        background: rgba(111, 207, 162, 0.06);
+        border-left: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.5);
+      }
+      .row-primary .row-label { font-weight: 600; color: var(--mint); }
+      .row-primary.on { color: var(--deep); background: var(--mint); border-left-color: var(--mint); box-shadow: none; }
+      /* The value too: sakura on the mint fill was unreadable. */
+      .row-primary.on .row-label, .row-primary.on .row-value { color: var(--deep); }
+
+      /*
+       * STANDINGS, above the actions rather than as rows: a leaderboard is
+       * read, and forty rows would make the cursor walk all of them to
+       * reach Back. Rank, pilot, lap; a record in mint, the reader's own
+       * row marked in sakura.
        */
       .standings-table {
         grid-column: 1 / -1; justify-self: center;
-        width: min(100%, 560px); margin: 0 0 14px;
-        max-height: min(38vh, 20em); overflow-y: auto;
-        pointer-events: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
+        width: min(100%, 560px); max-height: min(38vh, 20em); margin: 0 0 14px;
+        overflow-y: auto; pointer-events: auto;
+        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
       }
       .standings-row {
-        display: grid; grid-template-columns: 2.4em 1fr auto;
-        align-items: baseline; gap: 12px;
-        padding: 6px 14px;
-        font-size: 15px; color: rgba(215, 221, 221, 0.82);
+        display: grid; grid-template-columns: 2.4em 1fr auto; align-items: baseline; gap: 12px;
+        padding: 6px 14px; font-size: 15px; color: rgba(215, 221, 221, 0.82);
       }
       .standings-head {
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--slate); padding-bottom: 2px;
+        padding-bottom: 2px;
+        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
       }
-      .standings-rank { color: var(--slate); font-variant-numeric: tabular-nums; }
-      .standings-pilot { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .standings-lap { font-variant-numeric: tabular-nums; color: var(--cream); font-weight: 600; }
-      /* Mint is what this product paints a record in, on the board and here. */
+      .standings-rank, .standings-lap { font-variant-numeric: tabular-nums; }
+      .standings-rank { color: var(--slate); }
+      .standings-pilot { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .standings-lap { font-weight: 600; color: var(--cream); }
       .standings-row.is-record .standings-lap { color: var(--mint); }
-      /* The one row a person looks for in a leaderboard is their own. */
       .standings-row.is-me {
         background: linear-gradient(90deg, rgba(215, 221, 221, 0.14), rgba(215, 221, 221, 0) 70%);
         box-shadow: inset 3px 0 0 var(--sakura);
@@ -2206,115 +2228,16 @@
       .standings-ghost {
         margin-left: 8px; padding: 1px 6px; border-radius: 0;
         font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-        background: rgba(154, 163, 167, 0.18); color: var(--slate);
+        color: var(--slate); background: rgba(154, 163, 167, 0.18);
       }
-      .standings-note {
-        padding: 10px 14px; color: var(--slate); font-size: 14px;
-      }
-      .row-info { cursor: default; }
-      /*
-       * The browser's focus ring is redundant with the cursor bar and lands
-       * in the same place, so it is suppressed for a POINTER focus and kept
-       * for a keyboard one. :focus-visible is exactly that distinction, and
-       * a row focused by script during arrow travel is not focus-visible,
-       * so arrow keys keep the bar alone and Tab gets the ring as well.
-       */
-      .row:focus { outline: none; }
-      .row:focus-visible {
-        outline: 2px solid var(--pdcs-blue); outline-offset: -2px;
-      }
-      .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
-      /*
-       * AMBER, which is the instrument colour, because this row is a reading
-       * off the hardware rather than a thing the product wants you to do.
-       * It is a row and not a floating panel so that it gets the cursor, the
-       * help column and Enter for free: a banner a radio pilot cannot focus
-       * would be the same joke twice. See padTroubleItem.
-       */
-      .row-warn {
-        color: var(--amber);
-        border-left-color: rgba(217, 180, 108, 0.55);
-        background: linear-gradient(90deg, rgba(217, 180, 108, 0.1), rgba(217, 180, 108, 0) 52%);
-      }
-      .row-warn::before {
-        content: "!"; flex: 0 0 auto; margin-right: 2px;
-        width: 1.25em; height: 1.25em; border-radius: 50%;
-        display: grid; place-items: center;
-        font-size: 0.7em; font-weight: 800;
-        background: var(--amber); color: #07090a;
-      }
-      .row-warn.on {
-        color: var(--amber); border-left-color: var(--amber);
-        background: linear-gradient(90deg, rgba(217, 180, 108, 0.22), rgba(217, 180, 108, 0) 52%);
-      }
-      .row-grey {
-        color: rgba(154, 163, 167, 0.62);
-        cursor: default;
-      }
-      .row-grey .row-value, .row-grey .drop-btn { color: var(--slate); opacity: 0.85; }
-      .row-grey.on {
-        color: rgba(154, 163, 167, 0.92);
-        border-left-color: rgba(154, 163, 167, 0.55);
-        background: linear-gradient(90deg, rgba(154, 163, 167, 0.10), rgba(154, 163, 167, 0) 48%);
-      }
-      /*
-       * The one thing to press.
-       *
-       * Every row on every screen used to be the same size, weight and
-       * colour, so Fly and Credits were typographic equals and the only
-       * hierarchy was a 4 px cursor bar. Mint on dark ink is the treatment
-       * the old track builder page gave Fly this track, and its rule was
-       * one green button per screen, so there is exactly one of these in
-       * any list.
-       */
-      /*
-       * TWO HIGHLIGHTS, ONE CURSOR.
-       *
-       * This used to paint a filled mint slab whether or not the cursor was
-       * on it, so the title screen showed Fly looking selected while the real
-       * cursor sat three rows down on Track. Two things looked selected and
-       * only one of them answered Enter. The primary now reads as the primary
-       * (mint type, a mint edge) without claiming the selection, and the
-       * command bar carries the filled button. Exactly one thing on any
-       * screen is filled mint, and it is never a row.
-       */
-      .row-primary {
-        margin: 4px 10px 8px;
-        padding: 12px 18px;
-        border-left: 2px solid transparent;
-        background: rgba(111, 207, 162, 0.06);
-        box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.5);
-        color: var(--mint);
-        font-weight: 600;
-        letter-spacing: 0.1em;
-      }
-      .row-primary .row-label { font-weight: 600; color: var(--mint); }
-      /* Selected, and only then, it fills. The cursor is the thing that
-         decides, which is the whole point. */
-      .row-primary.on {
-        border-left-color: var(--mint);
-        background: var(--mint);
-        color: var(--deep);
-        box-shadow: none;
-      }
-      .row-primary.on .row-label { color: var(--deep); }
-      /* Its value too, like its label: sakura on the mint fill was nearly
-         unreadable (a room's "1 of 16" in the room browser). */
-      .row-primary.on .row-value { color: var(--deep); }
+      .standings-note { padding: 10px 14px; font-size: 14px; color: var(--slate); }
 
-      /* A group heading in a long settings list. Not a row: no cursor, no
-         hover, no click. Twenty flat rows in one scroll is a list you read
-         rather than a panel you operate. */
+      /* A group heading in a long list: not a row, so no cursor, hover or
+         click, just a bracketed caption over a hairline. */
       .menu-section {
-        margin: 14px 0 2px;
-        padding: 0 22px 5px 28px;
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: var(--slate);
+        margin: 14px 0 2px; padding: 0 22px 5px 28px; pointer-events: none;
+        font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate);
         border-bottom: 1px solid var(--pdcs-line-soft);
-        pointer-events: none;
       }
       .menu-section::before { content: "[ "; color: var(--pdcs-blue-dim); }
       .menu-section::after { content: " ]"; color: var(--pdcs-blue-dim); }
