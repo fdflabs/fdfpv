@@ -262,7 +262,7 @@ import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DE
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
 import { GATE_SCALE, gateScaleFor } from './game/track.js';
-import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
+import { fetchWithProgress, planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
@@ -286,15 +286,9 @@ import { crashRecord } from './share/crashrecord.js';
 import { stateHash } from './replay/recorder.js';
 
 /*
- * The module's bytes, resolved against this file rather than the site root.
- *
- * It was '/dist/sim.wasm', which is the same URL as long as the shell is the
- * whole site. It is not any more: fdfpv.example serves the landing page at the
- * root and this shell under /sim/, so a leading slash asked the landing page
- * for the physics and got its 404 page back. Every other file the boot path
- * needs moved the same way and for the same reason. Nothing about the module
- * changed, only where the page looks for it, and at the root it still
- * resolves to exactly /dist/sim.wasm.
+ * The physics module's address, beside this file rather than at the site
+ * root, because a deploy serves the shell under /sim/ with a landing page
+ * at the root, where '/dist/sim.wasm' fetched the landing page's 404.
  *
  * A deployed page loads this module at ?v=<commit> (scripts/stamp-version.js)
  * and the physics has to come from the same deploy as the code that calls
@@ -304,57 +298,30 @@ import { stateHash } from './replay/recorder.js';
 const WASM_URL = new URL(`../dist/sim.wasm${new URL(import.meta.url).search}`, import.meta.url).href;
 
 /*
- * Metres between sim z = 0 and the ground plane, which is where the craft
- * spawns, and it is the PARKED height, not a hover.
- *
- * It was 0.9 m, a leftover from when the craft spawned hanging in mid air,
- * and it is the number behind the takeoff bug the owner reported: the
- * landed render sat the craft on the grass while the physics state waited
- * 0.9 m up, so every takeoff unfroze 82 cm in the air with dead motors,
- * popped up visually, fell 0.7 m while the motors spooled from zero,
- * arrived at about 3.4 m/s and was judged a crash the pilot never flew. A
- * throttle punch out-spooled the fall, which is why "wiggle and punch"
- * worked and a gentle takeoff did not. The physics now spawns exactly
- * where the parked render has always shown the craft: resting on the
- * ground.
- */
-/*
- * AND IT IS THE AIRCRAFT'S OWN NUMBER, not a constant.
- *
- * It was 0.045 for everything, which is the five inch's: plant.c's
- * `hull_hz_down` for that machine, the distance from its centre to the
- * surface it parks on. A 65 mm whoop parks 10 mm off the floor. With the
- * five inch's figure the shell put the ground plane 45 mm under the
- * whoop's centre, so the plant rested it 35 mm in the air after every
- * reset, drew it parked there, and called it grounded while it still had
- * 45 mm of clear floor beneath it. Measured through window.__ground on the
- * shipped build: a parked whoop sat 39.7 mm above the floor under it. That
- * is more than the machine's own height, and it is the "hits the ground
- * too soon, then lifts off the ground a little when it resets" the owner
- * flew.
- *
- * configs/airframes.js carries the figure per airframe as `vHalfDown`,
- * snapshotted from plant.c (the whoop's gates rested the real module on a
- * plane against it until the whoop was removed; scripts/crash-rules-selftest.js
- * still walks the collider onto a slab to prove it reaches exactly that).
- * Seated by syncCraftScale, between runs only, with
- * the collision dimensions and the drawn model: these two are a FRAME, and
- * moving one mid lap would move the floor under a craft that is flying.
+ * WHERE THE GROUND HOLDS THE CRAFT, metres from its centre down to the
+ * surface it parks on. SPAWN_ALT is where the ground plane sits under the
+ * plant's origin (worldPosToSim puts the surface at sim z minus it), and
+ * REST_HEIGHT is where the parked render and a landing put the craft;
+ * seatRestHeight sets both from the seated airframe so they cannot part.
+ * They are each aircraft's own figure: one machine's number under another
+ * rests it in the air or in the floor. The spawn is the parked pose, not a
+ * hover, so a takeoff starts from the grass the pilot sees. Seated between
+ * runs only, with the hull and the model (syncCraftScale), since moving
+ * the floor mid lap moves it under a flying craft. 0.045 is the five
+ * inch's, the figure before any airframe is seated.
  */
 let SPAWN_ALT = 0.045;
-/* The craft rests with its underside on the ground, not its centre.
- * Identical to SPAWN_ALT so the parked pose, the spawn state and a landing
- * all agree about where the ground holds the craft. */
 let REST_HEIGHT = 0.045;
-/* One seat for both, so they cannot drift apart. An aircraft on wheels
- * rests where its gear holds it, not on its lowest drawn point; one on
- * floats rests where they float it when it starts on water. */
 /* The gear pose an aircraft stands at: the kit's, or the hangar's parts'
  * (bigger tyres stand it higher), set by the shell once it has settings. */
 let partsGearOf = () => null;
 function gearOf(af) {
   return af ? (partsGearOf(af.id) ?? af.gear ?? null) : null;
 }
+/* An aircraft on wheels rests where its gear holds it, not on its lowest
+ * drawn point; one on floats rests where they float it when it starts on
+ * water; anything else on its hull's lower half extent from
+ * configs/airframes.js (vHalfDown, snapshotted from plant.c). */
 function seatRestHeight(af, onWater = false) {
   const dims = af && af.dims;
   const h = onWater && af.floats ? af.floats.restHeight
@@ -363,115 +330,64 @@ function seatRestHeight(af, onWater = false) {
   SPAWN_ALT = h;
   REST_HEIGHT = h;
 }
-/* Raising the throttle this far off the ground is a deliberate takeoff. The
- * launch latch uses 0.05, which is right for arming a run from rest but
- * would lift the craft off the instant it landed with any throttle held. */
+
+/*
+ * TAKING OFF AND SITTING DOWN. A parked craft takes off when the throttle
+ * passes TAKEOFF_THROTTLE (the launch latch's 0.05 would lift it the moment
+ * it landed with any throttle held) and may only sit down again once the
+ * throttle is back under TAKEOFF_RELEASE. The gap between them is the
+ * hysteresis a thumb resting near one threshold needs, or the craft lands
+ * and leaves on alternate frames with a blip each time. GROUND_CUE_GAP_MS
+ * is the least time between two of those blips whatever the latch does (it
+ * gates the sound, nothing else). TAKEOFF_WINDOW_MS is how long after a
+ * takeoff contact cues stay muted, on the wall clock: a flag cleared in
+ * the same frame cannot cover a frame that is 100 ms long.
+ */
 const TAKEOFF_THROTTLE = 0.25;
-/*
- * And the throttle a pilot has to come back BELOW before the craft is
- * allowed to think about sitting down again. One threshold for both edges
- * is a latch with no hysteresis: a stick resting on 0.25, which is where a
- * thumb sits while it decides, took off and sat down on alternate frames
- * and played the two loudest blips in the mix at frame rate. That train
- * measures 19 dB over the bed and 12 dB over a full crash cue, and it is
- * what "a loud noise, like I am stuck to the mesh for a moment" sounds
- * like. The gap is deliberately wide: nothing between 0.18 and 0.25 is a
- * decision, it is a thumb.
- */
 const TAKEOFF_RELEASE = 0.18;
-/*
- * And a floor on how often the pair may SOUND, whatever the latch does.
- * A genuine touch and go inside a fifth of a second does not deserve two
- * blips, and this is the backstop that means no future path can machine
- * gun them again. It gates the cue only: landed, takingOff and the
- * physics are untouched by it.
- */
 const GROUND_CUE_GAP_MS = 220;
-/*
- * How long after a takeoff the contact cues stay muted, on the WALL clock.
- *
- * 8ebd6b8 muted them on the `takingOff` flag, and the flag is not a window:
- * it is set at the top of the frame and cleared in the same frame, thirty
- * lines before the branch that judges the frame's contact and calls
- * feelImpact. So the guard covered every frame of a departure except the
- * last one, which is the one with the impulse in it. A frame can be 100 ms
- * long, so a flag cannot bound a window a frame can step over: a clock
- * can.
- */
 const TAKEOFF_WINDOW_MS = 250;
+
 /*
- * Bias subtracted from the height query's fromY, metres.
- *
- * The city's multi level height query answers "what is my floor" with a
- * WALKER'S rule: a platform is eligible when its top is within a 0.55 m
- * step of fromY. A quad is not a walker: with the craft's true 0.040 m
- * vertical half extent, the overbridge deck at 7.20 m became an eligible
- * floor for a craft flying UNDER it at 6.69 m, below the deck's own
- * underside, and the round 15b bug came back. Shifting fromY down by this
- * bias turns the walker's 0.55 m step into a 0.15 m landable depth: deep
- * enough that a kerb or a low step still judges contact, shallow enough
- * that a deck can never be your floor from underneath it. The remaining
- * gap under the deck, centre heights 6.91 m and up, is inside the bridge's
- * own structure and the underside slab collider crashes it.
+ * Taken off the height query's fromY, metres. The city's multi level query
+ * picks a floor by a walker's rule, any platform within a 0.55 m step of
+ * fromY, which let a deck above a craft flying under it count as its
+ * floor. Lowered by this much, the step becomes a 0.15 m landable depth:
+ * a kerb still counts, a deck from underneath never does.
  */
 const SURFACE_BIAS = 0.40;
 /* The plant reports motor speed in rpm; the rooms' wire carries rad/s. */
 const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 /*
- * How far the CAMERA is lifted while the craft is sitting on the ground, in
- * world metres. Render only: nothing about the physics, the collision test
- * or the trajectory can see it.
- *
- * A parked quad's lens is 5.6 cm over the surface in this world, and the
- * session's near plane is 0.2 m (src/render/shell.js, chosen for depth
- * precision across a 2.6 km valley). Those two numbers cannot both be
- * honoured: with the camera tilted up 30 degrees and a 100 degree vertical
- * field, the ground in front of a parked craft is nearer than the near plane
- * for most of the lower frame, so it is clipped away and the frame comes
- * back as a flat band of background under a thin strip of grass. That is
- * what the owner saw as clipping through the ground at the start and after a
- * crash, and it is also true of any perch mid course.
- *
- * 0.30 m puts the surface back outside the near plane across the whole
- * frame, and it is not an invention: a race quad starts from a launch pad,
- * and a pad is about this high. It is eased in and out rather than snapped,
- * because a landing that teleported the view up 30 cm would read as a bounce
- * the pilot did not fly.
+ * How far the camera rises while the craft sits on the ground, world
+ * metres, eased in and out. Render only. A parked lens is 5.6 cm off the
+ * surface and the near plane is 0.2 m (src/render/shell.js), so tilted up
+ * the ground ahead fell inside the near plane and was clipped away; 0.30 m
+ * clears it across the frame, about the height of a launch pad.
  */
 const PARKED_LIFT = 0.30;
+
 /*
- * Opening shot when a run starts: orbit the quad on the pad, settle
- * behind it, then dolly into the FPV camera. The three spans are wall
- * milliseconds of the same 1 ms accumulator the frame already uses, so
- * a hitch stretches the shot rather than skipping it.
+ * THE OPENING SHOT of a run, in wall milliseconds on the frame's own clock:
+ * an orbit round the craft on the pad, an approach that settles behind it,
+ * then a zoom into the FPV lens. The orbit starts behind the right shoulder
+ * (INTRO_THETA0, radians) and sweeps 300 degrees to dead astern, and the
+ * approach closes from there; radii and heights are world metres, outside
+ * the near plane. INTRO_FLOOR_CLEAR keeps the camera that far above what is
+ * under it, enough for a launch block's deck and smaller than the finish
+ * shot's, which would throw this close shot into the air.
+ *
+ * One frame advances the shot by at most INTRO_STEP_MAX, the physics
+ * accumulator's own cap: a hitch stretches the shot by its own length, and
+ * a slow but steady machine still plays it at its authored speed. (A 30 fps
+ * cap here once ran the shot at a third of its speed on a slow laptop.)
  */
 const INTRO_ORBIT = 2200;
 const INTRO_APPROACH = 800;
 const INTRO_ZOOM = 1000;
 const INTRO_FLY = INTRO_ORBIT + INTRO_APPROACH;
 const INTRO_TOTAL = INTRO_FLY + INTRO_ZOOM;
-/*
- * Hitch frames are capped at 100 ms in the loop. Adding that whole cap to the
- * intro clock burns the pad shot before a single exterior frame is shown.
- *
- * IT WAS 33, WHICH IS 30 FPS, AND THAT CAPPED THE STEADY STATE TOO.
- *
- * A cap on the step is a cap on how fast the shot can play, so a machine
- * running at 25 fps gave 33 of every 40 ms to a 4.0 s shot and took 4.8 s
- * over it; at 20 fps, 6.1 s; measured on this container at about 9 fps the
- * intro ran at 0.3 times speed. That is every run start and every Restart
- * run, on exactly the ordinary laptop this project is for, and the pilot
- * reads it as the simulator being slow before they have touched a stick.
- *
- * 100 matches the physics accumulator's own cap, which is the right shape:
- * a hitch stretches the shot by its own length and no more, and a slow but
- * steady machine plays the shot at the speed it was authored at, in fewer
- * frames. The comment above is why the number is not simply Infinity.
- */
 const INTRO_STEP_MAX = 100;
-/* Orbit starts on a three-quarter behind the right shoulder and walks
- * 300 degrees, which lands dead astern. Approach then closes from that
- * same point. Radii are world metres, outside the 0.2 m near plane. */
 const INTRO_THETA0 = 0.55;
 const INTRO_ORBIT_SPAN = (300 * Math.PI) / 180;
 const INTRO_ORBIT_RADIUS = 0.72;
@@ -479,48 +395,31 @@ const INTRO_ORBIT_HEIGHT = 0.30;
 const INTRO_APPROACH_RADIUS = 0.40;
 const INTRO_APPROACH_HEIGHT = 0.14;
 const INTRO_FOV = 40;
-/* How far the intro camera stays above whatever is under it. Smaller than
- * the finish camera's 0.42 because the pad shot is an intimate one and a
- * big clearance would throw it into the air; enough to clear a launch
- * block's deck, which is the thing it was actually falling into. */
 const INTRO_FLOOR_CLEAR = 0.12;
-/* FPV lens floor lives in lens.js (fpvLensClear). Intro and finish
- * already keep their cameras out of the dirt. */
-/* Finish shot. Pulls off the FPV lens onto a three-quarter of the
- * frozen craft, then sways. Radii in world metres. */
+/* The closing shot: off the FPV lens to a three-quarter view of the frozen
+ * craft, in world metres, then a slow sway. (The FPV lens keeps its own
+ * floor, fpvLensClear in src/render/lens.js.) */
 const FINISH_FOV = 46;
 const FINISH_RADIUS = 2.35;
 const FINISH_HEIGHT = 0.88;
 const FINISH_PULL_MS = 1050;
 const FINISH_SWAY = 0.00055;
+/* Smoothstep over 0 to 1, flat outside it: the shots' easing. */
 function introEase(t) {
-  if (t <= 0) {
-    return 0;
-  }
-  if (t >= 1) {
-    return 1;
-  }
-  return t * t * (3 - 2 * t);
+  const u = Math.min(1, Math.max(0, t));
+  return u * u * (3 - 2 * u);
 }
-/* The controller consumes each input sample as one RC frame, so the shell
- * must feed it at a radio's rate rather than the display's. 250 Hz is a
- * typical ELRS link and matches the harness recording rate. */
-const RC_HZ = 250;
+
 /*
- * The physics step rate. This MUST equal SIM_STEP_HZ in
- * src/native/sim_abi.h; the ABI does not report it, so the two are kept in
- * step by hand and a mismatch shows up as the shell stepping the module at
- * the wrong speed.
- *
- * The shell's clock is an integer STEP INDEX, not milliseconds. It was
- * milliseconds, which is the same thing only while a step is a
- * millisecond: `steps = Math.floor(acc)` reads an accumulator of
- * milliseconds as a count of steps, and every `simTimeMs += steps` says
- * the same. Raising the rate turns each of those into a silent factor of
- * eight. Counting steps and deriving milliseconds keeps one clock. At
- * 1000 Hz MS_PER_STEP is exactly 1 and every expression below reduces to
- * what it replaced.
+ * CLOCKS. The controller takes each stick sample as one RC frame, so the
+ * shell feeds it at a radio's rate (RC_HZ, a typical ELRS link and the
+ * harness recording rate), not the display's. SIM_HZ is the physics step
+ * rate and must equal SIM_STEP_HZ in src/native/sim_abi.h, which the ABI
+ * does not report. The shell counts steps and derives milliseconds from
+ * them (MS_PER_STEP), so a different step rate cannot turn into a silent
+ * factor somewhere a count of steps was read as milliseconds.
  */
+const RC_HZ = 250;
 const SIM_HZ = 1000;
 const MS_PER_STEP = 1000 / SIM_HZ;
 /* The most wall time one frame steps the plant, ms: a longer frame (a
@@ -531,72 +430,47 @@ const FRAME_DT_MAX = 100;
  * wall time since the last is slow, and in a room the pilot is told
  * (roomSlowFrame). One hitch is not most frames. */
 const SLOW_WINDOW_MS = 2000;
-/*
- * How near a wall a Wall Ride is flown, in metres.
- *
- * The workbook says "just a few inches away from the wall", which is a
- * five inch quad's own width. Two metres is the radius the proximity query
- * is asked with, not the distance a trick demands: the query answers "is
- * anything within two metres", the pattern asks for a great deal closer,
- * and the gap between them is what stops the query missing a wall the craft
- * is about to be beside. See TrickDetector.near.
- */
+/* The radius the trick detector's wall query asks with, metres. A Wall
+ * Ride is flown far closer; the query only has to find the wall before
+ * the craft is beside it (TrickDetector.near). */
 const WALL_NEAR_M = 2.0;
 
-/* Pack nominal, for the charge bar: 6S between empty and full. */
-/* The 6 is PLANT.cells in src/native/plant.c, restated here because the ABI
- * does not report it. These are the HUD gauge's ends only: the physics reads
- * its own constant and never these. Change the plant's cell count and this
- * has to follow, or the bar lies while the flight is right. */
-/* Per cell; the airframe says how many cells, so the wing's 4S reads right. */
+/* The pack gauge's ends per cell, volts, times the airframe's cell count.
+ * The HUD's only: the plant has its own figures. */
 const PACK_EMPTY_PER_CELL = 3.3;
 const PACK_FULL_PER_CELL = 4.2;
-/* Full throttle rotor speed on a charged pack, measured off the compiled
- * module at 25,570 RPM. Only the lens shake reads it, to turn motor speed
- * into a 0 to 1 imbalance scale, so a few percent either way is invisible. */
+/* Rotor speed at full throttle on a full pack, rpm, as the module measured
+ * it (25,570). Only the lens shake reads it, as the top of its scale. */
 const FULL_THROTTLE_RPM = 25600;
 
 const uiRoot = document.getElementById('ui');
 
-/*
- * Why a dropped tune was refused, in words. The module answers with a
- * code, and a code on screen is developer output: the player wants to
- * know whether to blame the file or the game.
- */
+/* A refused tune file, in words a pilot can act on: whether the file is
+ * wrong or the simulator would not take it. */
 function configFault(code) {
-  if (code === -4) {
-    return str('main.it_does_not_look_like_a');
-  }
-  if (code === -2) {
-    return str('main.the_file_was_empty_or_too');
-  }
-  return str('main.the_simulator_refused_it_and_kept');
+  const why = {
+    [-4]: 'main.it_does_not_look_like_a',
+    [-2]: 'main.the_file_was_empty_or_too',
+  };
+  return str(why[code] ?? 'main.the_simulator_refused_it_and_kept');
 }
 
-/* Streamed, so the loading screen can report bytes rather than a spinner. */
-async function fetchBytes(url, onProgress) {
-  const { fetchWithProgress } = await import('./ui/loading.js');
+/* A file's bytes, streamed so the loading screen can count them. */
+function fetchBytes(url, onProgress) {
   return fetchWithProgress(url, onProgress);
 }
 
-/* Reused rather than allocated at every spawn. */
+/* World axes for quaternion builds, allocated once. */
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_X = new THREE.Vector3(1, 0, 0);
 
 /*
- * Bring one map in and make it the world.
+ * How many modules each map's import fetches, which is only the weight of
+ * the loading bar's module stage (moduleCounter watches the browser's
+ * resource timing for them): a wrong count moves the bar at the wrong pace
+ * and cannot break a load. A map with no entry weighs 4.
  *
- * The module fetch and the world build are separate stages of the loading
- * screen because they fail and stall for entirely different reasons: the
- * first is the network, the second is the main thread. The module counter
- * reports the fetch honestly by watching the browser's own resource timing as
- * it walks the import graph, which needs no cooperation from the map.
- *
- * EXPECTED MODULE COUNTS are a bar weight, nothing more. Getting one wrong
- * makes that stage's bar move at the wrong rate; it cannot break the load,
- * and the stage still ends when the import resolves.
- */
-/* swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
  * all. The Alps modules it builds through are counted under their own
  * prefix, so they are not in this number, and a pilot who flew the Alps
  * first already has them. Check 16 asserts this count against what the
@@ -604,7 +478,6 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * that is wrong cannot break a load and so nothing else would notice: 61
  * sat here for a round for the city while the real count was 63.
  *
- * A map with no entry weighs 4, which is a guess and only a bar's pace.
  * The freestyle town and the airfield were removed on 2026-09-28, and the
  * town's 72 went with it. `npm run lint:memory` prints the fetched count
  * per map beside this number.
@@ -612,7 +485,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * The prefix a map's modules are counted under is `/src/maps/<id>`, and it
  * stays leading-slash while the rest of the file went relative, which is
  * not an oversight. It is never fetched. moduleCounter matches it as a
- * SUBSTRING of each performance entry's full URL, and a shell mounted at
+ * substring of each performance entry's full URL, and a shell mounted at
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
@@ -655,19 +528,14 @@ function timeOf(options) {
   return withTimeOption(options).time || 'day';
 }
 
-async function loadMap(shell, id, loading, mapOptions) {
-  const options = withTimeOption(mapOptions);
-  const entry = mapById(id);
-  /* Track mode's seat is resolved to a world by worldId before anything
-   * asks for one, so a seat reaching here is a caller that skipped it. */
-  if (entry.id !== id || !entry.load) {
-    throw new Error(`${id} is not a world that can be built`);
-  }
-  loading.mapInfo({ name: entry.name, poster: entry.poster });
+/* The map module's import, as the loading screen's module stage. It is a
+ * stage of its own because it fails for network reasons, where the build
+ * after it stalls on the main thread. */
+async function importMapModule(entry, loading) {
   loading.start('module');
   const counter = moduleCounter(
-    `/src/maps/${id}`,
-    MAP_MODULE_COUNT[id] ?? 4,
+    `/src/maps/${entry.id}`,
+    MAP_MODULE_COUNT[entry.id] ?? 4,
     (f, got, total) => loading.report('module', f, str('main.of_modules', { got, total })),
   );
   let mod;
@@ -678,6 +546,22 @@ async function loadMap(shell, id, loading, mapOptions) {
   }
   loading.done('module');
   loading.detail = '';
+  return mod;
+}
+
+/* Builds world `id` and returns it: its module fetched, its scene built
+ * through the loading screen's world stage, its water and the ground over
+ * that water attached. */
+async function loadMap(shell, id, loading, mapOptions) {
+  const options = withTimeOption(mapOptions);
+  const entry = mapById(id);
+  /* Track mode's seat is resolved to a world by worldId before anything
+   * asks for one, so a seat reaching here is a caller that skipped it. */
+  if (entry.id !== id || !entry.load) {
+    throw new Error(`${id} is not a world that can be built`);
+  }
+  loading.mapInfo({ name: entry.name, poster: entry.poster });
+  const mod = await importMapModule(entry, loading);
   loading.mapPhases(mod.PHASES);
   loading.start('world');
   await yieldToPaint();
