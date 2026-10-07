@@ -6924,12 +6924,7 @@ export class Ui {
     } else {
       try {
         const listing = inspectCourse();
-        if (listing && listing.kind === 'remix') {
-          const of = listing.sourceName ? str('ui.of', { sourceName: listing.sourceName }) : '';
-          this.resultsNote.textContent = str('ui.is_your_copy_publish_it_under', { name: listing.name, of });
-        } else if (listing && listing.kind === 'local' && listing.canPublishNew) {
-          this.resultsNote.textContent = str('ui.lives_in_this_browser_publish_it', { name: listing.name });
-        } else if (listing && listing.kind === 'owned' && listing.layoutDrift) {
+        if (listing && listing.kind === 'owned' && listing.layoutDrift) {
           this.resultsNote.textContent = str('ui.has_a_layout_that_is_not', { name: listing.name });
         }
       } catch (e) {
@@ -7390,10 +7385,6 @@ export class Ui {
 
   scoreEvents(list) {
     this.scoreHud.events(list);
-  }
-
-  showScore(on) {
-    this.scoreHud.setVisible(on);
   }
 
   resetScore() {
