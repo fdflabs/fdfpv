@@ -59,14 +59,14 @@ check('mission 1 is open and free, the rest wait in order', unlocked(fresh, 0) &
   && ACT1.slice(1).every((m) => !m.free));
 check('mission 1 is in this build', Object.hasOwn(MISSIONS, ACT1[0].id));
 
-console.log('release (the owner, 2026-10-04: only mission 1 until it is right)');
+console.log('release (the owner, 2026-10-04: only mission 1 until it is right; 2026-10-07: mission 1 held too, until it has its narration)');
 check('Act 1 is the seven missions of docs/campaign/MISSIONS.md, in order',
   ACT1.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7', ACT1.map((m) => m.id).join());
 check('every mission says available, development or soon', ACT1.every((m) => ['available', 'development', 'soon'].includes(m.release)));
-check('only First Light is available', ACT1.filter((m) => m.release === 'available').map((m) => m.id).join() === 'itaipu-1');
+check('no mission is available: First Light is held with the rest', ACT1.every((m) => m.release !== 'available'));
 check('a mission with a definition in the build is in development, one without is coming soon',
   ACT1.filter((m) => m.release !== 'available').every((m) => (m.release === 'development') === Object.hasOwn(MISSIONS, m.id)));
-check('released: mission 1 yes, 2 to 7 no', released('itaipu-1') && ACT1.slice(1).every((m) => !released(m.id)));
+check('released: none of 1 to 7', ACT1.every((m) => !released(m.id)));
 check('released with dev: 2 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
   && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
 check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));

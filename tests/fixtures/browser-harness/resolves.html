@@ -1,0 +1,15 @@
+<!doctype html>
+<!-- A harness page for scripts/browser-selftest.js: logs on every channel
+     the runner listens to, then resolves a result. -->
+<html><head><meta charset="utf-8"><script>
+  window.__simHarnessResult = new Promise((resolve) => {
+    console.log('plain log, never reported');
+    console.info('info, never reported');
+    console.warn('a warning', 7, { k: 'v' });
+    console.error('an error', 'with two parts');
+    console.assert(false, 'an assertion');
+    console.error(new Error('an error object'));
+    setTimeout(() => { throw new Error('thrown late'); }, 0);
+    setTimeout(() => resolve({ ok: true, n: 3, list: [1, 'two'] }), 300);
+  });
+</script></head><body>resolves</body></html>

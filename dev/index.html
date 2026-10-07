@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  dev/index.html: the developer's way in, /dev. The game with its missions
+  in development offered (?missions=dev, src/main.js devMissions), any
+  other query and the hash kept, so a room link still opens its room.
+  Offering is all it does: the rooms server starts a mission in
+  development only for a DEV_ACCOUNTS host (edge/rooms/war.js, ops.js).
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Paraguayan Drone Combat Simulator</title>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        q.set('missions', 'dev');
+        location.replace('../index.html?' + q.toString() + location.hash);
+      })();
+    </script>
+    <noscript><meta http-equiv="refresh" content="0; url=../index.html?missions=dev" /></noscript>
+  </head>
+  <body></body>
+</html>

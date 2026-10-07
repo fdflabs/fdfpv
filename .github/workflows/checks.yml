@@ -73,6 +73,11 @@ jobs:
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run keynotes:selftest
+      # The headless page driver every browser check opens the shell through
+      # (tests/lib/page.js): keyInfo, describe and the export list against a
+      # pinned transcript. Its browser half, --browser, stays local: it needs
+      # a Chromium (npm run page:selftest -- --browser).
+      - run: npm run page:selftest
       - run: npm run rooms:accounts
       # The checks' stand in for Google signs nobody in on the deployed
       # game: no production config names it, and the tracks server run as
@@ -165,6 +170,9 @@ jobs:
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
+      # The harness file server (tests/lib/server.js): types, ranges, the
+      # cache rule and every way out of the root, against a pinned transcript.
+      - run: npm run server:selftest
       # The blackbox_decode CSV reader (tests/lib/blackbox.js), against a
       # pinned transcript.
       - run: npm run blackbox:selftest
@@ -193,13 +201,18 @@ jobs:
       - run: npm run trackdoc:golden
       - run: npm run race:golden
       - run: npm run ghost:golden
+      # The turtle in the real page: the wait, the poke, the flip and the
+      # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
+      - run: npm run turtle:check
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
+      - run: npm run simmod:selftest
       - run: npm run contact:selftest
       - run: npm run collide:turned
       - run: npm run crash:handoff
       - run: npm run crashcam:selftest
       - run: npm run crashrecord:selftest
+      - run: npm run replaylib:selftest
       - run: npm run edit:selftest
       - run: npm run export:selftest
       - run: npm run link:selftest
@@ -244,6 +257,10 @@ jobs:
       # The share seat, edit keys, binds and lap bookkeeping kept in this
       # browser (src/share/session.js), against a pinned transcript.
       - run: npm run session:selftest
+      # The Stage 1 verification checks (tests/lib/checks.js) against a pinned
+      # transcript: the real sim over the fixtures for the checks that need no
+      # browser, stand ins for the build, the harness and the page runs.
+      - run: npm run checks:selftest
       - run: npm run crash:rules
       - run: npm run crash:tree-nan
       - run: npm run river:check
@@ -289,6 +306,10 @@ jobs:
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
+      # The verify runner (tests/verify.js) from outside: its printed
+      # report, exit code and the argv it hands shots.js and the browser,
+      # over fakes on PATH, with no Emscripten and no browser.
+      - run: npm run verify:selftest
       # src/render and src/art outputs on a fixed stage against goldens
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
