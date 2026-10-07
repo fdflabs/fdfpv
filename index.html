@@ -3744,43 +3744,34 @@
         .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: clamp(12px, 3.3vh, 16px); }
       }
 
-      /* The map screen. One card per world, each playing a short flight
-         through it. The cursor is the gate card's: a full strength hairline,
-         never a slab. */
-      /* Symmetric, so the row list sits under the middle of the card grid
-         rather than pushed right by a help column with no counterweight. */
+      /* The map screen: a card per world, each one playing a short flight
+         through it. The rows take the middle of three columns so they stay
+         centred under the cards; a help column on one side alone would
+         shove them off centre. Width is 100%, never vw: this rule comes
+         after the narrow window override, and a vw width here beat it and
+         put the Race room's rows past the right edge of phones. */
       .screen-maps .menu-stage {
+        width: 100%; max-width: 1200px; margin: 10px auto 0;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        /* 100%, not 96vw, for the reason on the shared rule above. This one
-         * also sits LATER in the sheet than the narrow-window override, so
-         * a vw width here won that fight and put the Race room's rows off
-         * the right of every phone and tablet. */
-        width: 100%;
-        max-width: 1200px;
-        margin: 10px auto 0;
       }
       .screen-maps .menu { grid-column: 2; min-width: min(320px, 86vw); }
       .screen-maps .menu-help { grid-column: 3; max-width: 22em; }
       .screen-courses .menu-scroll { max-height: none; }
       .map-cards {
-        display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
-        margin: 18px 0 10px; pointer-events: auto;
-        width: 100%;
+        width: 100%; margin: 18px 0 10px; pointer-events: auto;
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;
       }
+      /* The cursor is a hairline at full strength, as on the gate cards,
+         and never a filled slab. The chosen card (its actions open below
+         the strip) keeps a green edge while the cursor wanders down into
+         those actions; green and not white, since two white edges a card
+         apart would read as one state drawn twice. */
       .map-card {
-        width: min(340px, 82vw); cursor: pointer;
-        overflow: hidden; position: relative;
-        background: var(--pdcs-panel);
-        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+        position: relative; overflow: hidden; cursor: pointer; width: min(340px, 82vw);
+        background: var(--pdcs-panel); box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         transition: box-shadow 0.14s ease;
       }
-      /* The gate card's cursor: a full strength hairline, no lift. */
       .map-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue); }
-      /* The card whose actions are showing below the strip. It has to read as
-         chosen even when the cursor has moved off it onto its own list, which
-         is the whole reason the list is not floating free any more. Green
-         rather than the cursor's white: two whites a card apart would be one
-         state drawn twice. */
       .map-card.chosen { box-shadow: inset 0 0 0 1px var(--mint); }
       .map-card.chosen.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue), 0 0 0 2px var(--mint); }
       .map-card.chosen .map-card-name { color: var(--mint); }
@@ -3859,49 +3850,39 @@
       .map-reel-wait-stage {
         font-size: 13px; letter-spacing: 0.06em; color: var(--cream);
       }
-      .map-card-body {
-        display: flex; align-items: baseline; gap: 10px;
-        padding: 10px 14px 12px;
+      .map-card-body { padding: 10px 14px 12px; display: flex; gap: 10px; align-items: baseline; }
+      .map-card-name {
+        font-family: var(--type-name); font-size: 17px; font-weight: 600; font-synthesis: none; color: var(--cream);
       }
-      .map-card-name { font-family: var(--type-name); font-synthesis: none; color: var(--cream); font-size: 17px; font-weight: 600; }
       .map-card.on .map-card-name { color: var(--sakura); }
       .map-card-tag {
-        margin-left: auto; color: var(--mint); font-size: 11px;
-        letter-spacing: 0.1em; text-transform: uppercase;
+        margin-left: auto; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--mint);
       }
 
       /*
-       * My tracks, and the Freestyle room, which shares its card strip.
-       * Each track card wears the photograph of its world.
+       * My tracks, and the Freestyle room that borrows its card strip. Each
+       * track card wears the photograph of its world.
+       *
+       * The whole screen scrolls rather than a box within it: two strips and
+       * seven rows overflow a 900 px window, and a scroller nested in a page
+       * that is already too tall gives two scrollbars fighting. The cursor
+       * drives it with scrollIntoView. The command bar is drawn on top, so
+       * both the padding and the scroll stop clear of it; with 3vh alone a
+       * card's last row came to rest underneath the bar.
        */
-      /* The PAGE scrolls, not a box inside it. Two card strips and seven
-         rows do not fit a 900 px window, and a nested scroller inside a
-         screen that is already too tall is two scrollbars arguing. The
-         cursor's scrollIntoView drives this one. */
-      /* The bottom bar is drawn over this scroller, so its padding and the
-         cursor's scroll both clear it: at 3vh alone the last row of a
-         card's list scrolled to the window's edge and sat under the bar. */
       .screen-courses {
-        justify-content: flex-start;
-        padding-top: 4vh;
-        padding-bottom: calc(var(--bar-bot) + 3vh);
-        scroll-padding-bottom: calc(var(--bar-bot) + 8px);
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        pointer-events: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
+        justify-content: flex-start; pointer-events: auto;
+        padding-top: 4vh; padding-bottom: calc(var(--bar-bot) + 3vh);
+        overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(var(--bar-bot) + 8px);
+        scrollbar-width: thin; scrollbar-color: rgba(215, 221, 221, 0.45) rgba(10, 13, 14, 0.55);
       }
       .screen-courses > * { flex: 0 0 auto; }
-      .card-strip { width: 100%; margin-bottom: 6px; }
+      .card-strip { margin-bottom: 6px; width: 100%; }
       .strip-label {
-        margin: 10px 0 2px;
-        font-size: 11px; font-weight: 700;
-        letter-spacing: 0.18em; text-transform: uppercase;
-        color: var(--sakura);
-        text-align: center;
+        margin: 10px 0 2px; text-align: center; color: var(--sakura);
+        font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em;
       }
-      .screen-courses .map-cards { margin: 8px 0 2px; gap: 16px; }
+      .screen-courses .map-cards { gap: 16px; margin: 8px 0 2px; }
       .screen-courses .map-card { width: min(236px, 82vw); }
       .screen-courses .map-card-name { font-size: 16px; }
       .course-card .map-reel { background: #0b1119; }
@@ -3912,66 +3893,54 @@
       .map-card-meta:empty { display: none; }
 
       .board-note {
-        width: 100%; margin: 4px 0 0; text-align: center;
-        color: var(--slate); font-size: 13px;
+        width: 100%; margin: 4px 0 0; text-align: center; font-size: 13px; color: var(--slate);
       }
       .board-note:empty { display: none; }
 
       /*
-       * How to fly. A CONTROL, NOT AN ESSAY.
-       *
-       * This screen was two definition lists over a two hundred word centred
-       * paragraph, and the product already owned the thing that teaches a
-       * stick: the gimbal pair the flight overlay and the calibration screen
-       * both draw. So the sticks here are live, fed the same channels as the
-       * quad, and the prose is cut to what a picture cannot say. One source
-       * at a time: a keyboard pilot does not need the radio's five lines.
+       * How to fly is a control, not an essay. It used to be two definition
+       * lists over two hundred centred words, while the product already had
+       * the drawing that teaches a stick: the gimbal pair from the flight
+       * overlay and the calibration screen. Those sticks are live here, on
+       * the quad's own channels, and the words are cut to what the picture
+       * cannot show. One input at a time, since a keyboard pilot has no use
+       * for the radio's five lines.
        */
       .howto-lede {
-        max-width: 46em; margin: 0 0 18px;
-        color: rgba(215, 221, 221, 0.78);
-        font-size: 15px; line-height: 1.6; text-align: center;
+        margin: 0 0 18px; max-width: 46em; text-align: center;
+        font-size: 15px; line-height: 1.6; color: rgba(215, 221, 221, 0.78);
       }
-      .howto-tabs { display: flex; gap: 8px; pointer-events: auto; }
+      .howto-tabs { pointer-events: auto; display: flex; gap: 8px; }
       .howto-tab {
-        appearance: none; border: 0; border-radius: 0;
-        background: rgba(10, 13, 14, 0.72);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.14);
-        color: rgba(215, 221, 221, 0.72);
-        font: inherit; font-size: 13px; font-weight: 650;
-        letter-spacing: 0.1em; text-transform: uppercase;
-        padding: 7px 16px; cursor: pointer;
+        appearance: none; cursor: pointer; padding: 7px 16px;
+        border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.14);
+        background: rgba(10, 13, 14, 0.72); color: rgba(215, 221, 221, 0.72);
+        font: inherit; font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.1em;
       }
       .howto-tab:hover { color: var(--cream); }
       .howto-tab.on {
-        background: var(--pdcs-blue-wash);
-        box-shadow: inset 0 0 0 1px var(--pdcs-blue);
-        color: var(--pdcs-bright);
+        color: var(--pdcs-bright); background: var(--pdcs-blue-wash); box-shadow: inset 0 0 0 1px var(--pdcs-blue);
       }
       .howto-body {
-        display: flex; align-items: center; justify-content: center;
-        gap: clamp(24px, 5vw, 64px); flex-wrap: wrap;
-        margin: 22px 0 4px;
+        margin: 22px 0 4px; display: flex; flex-wrap: wrap;
+        justify-content: center; align-items: center; gap: clamp(24px, 5vw, 64px);
       }
-      .howto-rig { display: flex; flex-direction: column; align-items: center; }
-      .howto-sticks { display: flex; gap: 28px; align-items: flex-end; }
+      .howto-rig { display: flex; align-items: center; flex-direction: column; }
+      .howto-sticks { display: flex; align-items: flex-end; gap: 28px; }
       .screen-howto .osd-gimbal-plate {
-        width: clamp(96px, 12vw, 132px);
-        height: clamp(96px, 12vw, 132px);
-        background: rgba(10, 13, 14, 0.55);
+        width: clamp(96px, 12vw, 132px); height: clamp(96px, 12vw, 132px); background: rgba(10, 13, 14, 0.55);
       }
       .howto-live {
-        margin-top: 12px; font-size: 12px; letter-spacing: 0.08em;
-        text-transform: uppercase; color: var(--amber); text-align: center;
+        margin-top: 12px; text-align: center; color: var(--amber);
+        font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
       }
-      .howto-keys { margin: 0; max-width: 34em; min-width: min(100%, 22em); }
-      .howto-keys dt { color: var(--cream); font-size: 15px; font-weight: 600; margin-top: 12px; }
+      .howto-keys { margin: 0; min-width: min(100%, 22em); max-width: 34em; }
+      .howto-keys dt { margin-top: 12px; font-size: 15px; font-weight: 600; color: var(--cream); }
       .howto-keys dt:first-child { margin-top: 0; }
-      .howto-keys dd { margin: 2px 0 0; color: var(--slate); font-size: 14px; line-height: 1.5; }
+      .howto-keys dd { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--slate); }
       .howto-mode {
-        max-width: 52em; margin: 20px auto 0;
-        color: rgba(215, 221, 221, 0.62);
-        font-size: 13.5px; line-height: 1.6; text-align: center;
+        margin: 20px auto 0; max-width: 52em; text-align: center;
+        font-size: 13.5px; line-height: 1.6; color: rgba(215, 221, 221, 0.62);
       }
 
       .cols { display: flex; gap: 6vw; flex-wrap: wrap; justify-content: center; }
