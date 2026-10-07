@@ -121,6 +121,7 @@
     "track:golden": "node scripts/track-golden.js",
     "guide:golden": "node scripts/guide-golden.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
+    "replaylib:selftest": "node scripts/replaylib-selftest.js",
     "blackbox:selftest": "node scripts/blackbox-selftest.js",
     "recfile:selftest": "node scripts/recfile-selftest.js",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",

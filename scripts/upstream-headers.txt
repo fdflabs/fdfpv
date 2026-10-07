@@ -30,4 +30,3 @@ src/ui/update.js
 tests/browser/harness.html
 tests/browser/harness.js
 tests/gen/gen-baseline.js
-tests/lib/replay.js
