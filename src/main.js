@@ -1073,9 +1073,10 @@ export async function boot({
         if (e.radio != null) {
           warSay([e.radio], 'story', opsHud);
         }
-        /* A classification's card is told with its change, below. */
+        /* A classification's card is told with its change, below. A
+         * card may be a heading and its line (the script's two line UI). */
         if (e.card && e.card !== 'card.classification_updated') {
-          opsHud.cardEvent([opsSay(e.card)]);
+          opsHud.cardEvent([e.card].flat().map((k) => opsSay(k)));
         }
         if (e.text) {
           opsHud.stageEntered(opsSay(e.text));

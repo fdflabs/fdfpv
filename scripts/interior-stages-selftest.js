@@ -83,6 +83,8 @@ import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
 import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
+import EN from '../src/strings/en.js';
+import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
@@ -181,6 +183,19 @@ console.log('data');
     return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
   });
   check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
+  /* The script's UI language (M1 audit item 12): every card a cue shows
+   * is in both string tables, MISSION RULE stands in every stage, the
+   * script's two line cards are both lines, and a new primary objective
+   * (stages 2, 4 and 5, RETURN TO BASE) says so. */
+  const cueCards = stagesOf(M).flatMap((st) => (st.cues ?? []).flatMap((c) => [c.card ?? []].flat()));
+  check('every card a cue shows is in the English and Spanish tables', cueCards.length > 0 && cueCards.every((k) => EN[k] && ES[k]), cueCards.filter((k) => !EN[k] || !ES[k]).join());
+  check('MISSION RULE in every stage', stagesOf(M).every((st) => (st.objectives ?? []).some((o) => o.tier === 'rule')));
+  const shows = (pred, card) => stagesOf(M).flatMap((st) => st.cues ?? []).some((c) => pred(c) && [c.card].flat().join() === card);
+  check('SEARCH AREA ADDED, UNIDENTIFIED MOVEMENT; INTELLIGENCE UPDATED, POSSIBLE ARMED PERSONNEL',
+    shows((c) => c.search?.id === 'pair-search', 'card.search_area,card.unidentified_movement') && shows((c) => c.classify?.to === 'poi', 'card.intelligence_updated,card.possible_armed'));
+  const opens = (id) => stagesOf(M).find((st) => st.id === id).cues.some((c) => c.at === 0 && !c.when && c.card === 'card.primary_updated');
+  check('PRIMARY OBJECTIVE UPDATED when stages 2, 4 and 5 open and with RETURN TO BASE',
+    ['M1_CP_AIRBORNE', 'M1_CP_CONTACT_FOUND', 'M1_CP_CAMP_FOUND'].every(opens) && shows((c) => c.choose?.name === 'dispersal', 'card.primary_updated'));
 }
 
 console.log('the gate');
