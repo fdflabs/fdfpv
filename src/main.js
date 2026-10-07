@@ -19398,124 +19398,101 @@ export async function boot({
   window.__crashTable = () => partTable;
   /* The step trace since the last throw (THE STEP TRACE): per step, the
    * hashes of the state in, the ground plane, the state out. */
-  window.__stepTrace = () => ({
-    n: stepTrace.n,
-    pre: Array.from(stepTrace.pre.subarray(0, stepTrace.n)),
-    plane: Array.from(stepTrace.plane.subarray(0, stepTrace.n)),
-    post: Array.from(stepTrace.post.subarray(0, stepTrace.n)),
-    inputs: inputTrace.slice(),
-  });
+  window.__stepTrace = () => {
+    const count = stepTrace.n;
+    const upTo = (column) => Array.from(column.subarray(0, count));
+    return {
+      n: count,
+      pre: upTo(stepTrace.pre),
+      plane: upTo(stepTrace.plane),
+      post: upTo(stepTrace.post),
+      inputs: inputTrace.slice(),
+    };
+  };
   /*
-   * Which tune the module is actually running, read back from the module
-   * rather than from the menu, plus the config coverage counters from
-   * sim_bf_debug. A tune that is selected and not loaded, or loaded and
-   * silently ignored, is the failure this exposes; scripts/preset-lint.js
-   * asserts the same numbers headless. Harness only.
+   * The tune and the PIDs as each layer holds them: the menu, the composed
+   * block, and the module read back through sim_bf_debug and the config
+   * getters. A tune picked but never loaded, or loaded and ignored, shows
+   * up as two of these disagreeing (scripts/preset-lint.js asserts the
+   * same counters headless, scripts/shots.js the PIDs). The debug slots:
+   * 13 applied, 14 inert, 15 unknown config lines, 17 roll P, 21 roll D max,
+   * 22 TPA rate, 42 roll super rate.
    */
+  const bfDebug = (slot) => (sim.e.sim_bf_debug ? sim.e.sim_bf_debug(slot) : null);
+  const moduleValues = (names) => Object.fromEntries(names.map((name) => [name, moduleGet(sim, name)]));
   window.__tune = () => ({
     id: configId,
     name: configName,
     menu: ui.settings.tune,
-    rates: ratesSummary(ui.settings.rates),
-    /* The menu's own roll srate, in the firmware's units, so it sits beside
-     * rollSrate below and the two can be compared without converting. */
-    rollSrateSet: ui.settings.rates.roll.srate,
     offered: TUNES.map((t) => t.id),
-    applied: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(13) : null,
-    inert: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(14) : null,
-    unknown: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(15) : null,
-    pRoll: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(17) : null,
-    dMaxRoll: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(21) : null,
-    tpaRate: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(22) : null,
-    rollSrate: sim.e.sim_bf_debug ? sim.e.sim_bf_debug(42) : null,
-    /*
-     * The rate profile as the module holds it, not as the menu remembers
-     * it. The Rates screen is now the only way a pilot changes any of
-     * these, so this is where a row that writes nothing would show up: the
-     * menu would read 900 and the module would still say 67.
-     */
-    profile: {
-      rates_type: moduleGet(sim, 'rates_type'),
-      roll_rc_rate: moduleGet(sim, 'roll_rc_rate'),
-      roll_srate: moduleGet(sim, 'roll_srate'),
-      pitch_srate: moduleGet(sim, 'pitch_srate'),
-      yaw_srate: moduleGet(sim, 'yaw_srate'),
-      roll_expo: moduleGet(sim, 'roll_expo'),
-      throttle_limit_type: moduleGet(sim, 'throttle_limit_type'),
-      throttle_limit_percent: moduleGet(sim, 'throttle_limit_percent'),
-    },
+    rates: ratesSummary(ui.settings.rates),
+    /* The menu's roll super rate in firmware units, beside rollSrate. */
+    rollSrateSet: ui.settings.rates.roll.srate,
+    applied: bfDebug(13),
+    inert: bfDebug(14),
+    unknown: bfDebug(15),
+    pRoll: bfDebug(17),
+    dMaxRoll: bfDebug(21),
+    tpaRate: bfDebug(22),
+    rollSrate: bfDebug(42),
+    profile: moduleValues([
+      'rates_type', 'roll_rc_rate', 'roll_srate', 'pitch_srate', 'yaw_srate', 'roll_expo',
+      'throttle_limit_type', 'throttle_limit_percent',
+    ]),
   });
   window.__setTune = (id) => {
     ui.settings.tune = id;
     applySettings(ui.settings);
   };
+  window.__pids = () => {
+    const m = moduleValues([
+      'simplified_pids_mode', 'simplified_master_multiplier', 'p_roll', 'i_roll', 'd_roll',
+      'd_min_roll', 'f_roll', 'p_pitch', 'p_yaw', 'f_yaw',
+    ]);
+    return {
+      id: configId,
+      menu: JSON.parse(JSON.stringify(ui.settings.pids ?? {})),
+      block: pidsText,
+      module: {
+        mode: m.simplified_pids_mode,
+        master: m.simplified_master_multiplier,
+        p_roll: m.p_roll,
+        i_roll: m.i_roll,
+        d_roll: m.d_roll,
+        d_min_roll: m.d_min_roll,
+        f_roll: m.f_roll,
+        p_pitch: m.p_pitch,
+        p_yaw: m.p_yaw,
+        f_yaw: m.f_yaw,
+      },
+    };
+  };
+  /* The thumb sticks as the overlay holds them and what became of them
+   * downstream (source, angle mode, altitude); null without touch. */
+  window.__touch = () => {
+    if (!touch) {
+      return null;
+    }
+    return {
+      ...touch.debug(),
+      primary: input.isTouchPrimary(),
+      source: input.stats().source,
+      angle: angleModeOn,
+      alt: readState()[3],
+    };
+  };
   /*
-   * The PID picture in one read: what the menu stores, what the composed
-   * block says, and what the module is flying, each straight from its own
-   * source so a disagreement between them is visible as a disagreement.
-   * Harness only; scripts/shots.js asserts against this.
+   * The stick path measured: how often the browser refreshes the pad
+   * (padHz), how often a change reaches the queue (sampleHz), the fixed rate
+   * handed to Betaflight (rcHz), against the display's fps. A padHz pinned to
+   * the frame rate means the browser hands one stick value per frame.
+   * ui.bugSnapshot reads the short form when a pilot sends a report, which
+   * is where this question gets answered; __stickPath adds the queue.
    */
-  window.__pids = () => ({
-    id: configId,
-    menu: JSON.parse(JSON.stringify(ui.settings.pids ?? {})),
-    block: pidsText,
-    module: {
-      mode: moduleGet(sim, 'simplified_pids_mode'),
-      master: moduleGet(sim, 'simplified_master_multiplier'),
-      p_roll: moduleGet(sim, 'p_roll'),
-      i_roll: moduleGet(sim, 'i_roll'),
-      d_roll: moduleGet(sim, 'd_roll'),
-      d_min_roll: moduleGet(sim, 'd_min_roll'),
-      f_roll: moduleGet(sim, 'f_roll'),
-      p_pitch: moduleGet(sim, 'p_pitch'),
-      p_yaw: moduleGet(sim, 'p_yaw'),
-      f_yaw: moduleGet(sim, 'f_yaw'),
-    },
-  });
-  /*
-   * The thumb sticks as the overlay believes them, plus what the input
-   * ladder and the module made of it: source, angle mode and altitude, so
-   * one read answers "did the thumb reach the craft". null on a device
-   * with no touch points. Harness only.
-   */
-  window.__touch = () => (touch ? {
-    ...touch.debug(),
-    primary: input.isTouchPrimary(),
-    source: input.stats().source,
-    angle: angleModeOn,
-    alt: readState()[3],
-  } : null);
-  /*
-   * What the stick path is ACTUALLY doing, measured rather than assumed.
-   * padHz is how often the browser refreshes the Gamepad object, sampleHz how
-   * often a changed value reaches the queue, rcHz the fixed grid handed to
-   * Betaflight. If padHz sits at the frame rate the browser is rAF-locked on
-   * gamepad input and only WebHID will move it. Harness only.
-   */
-  /*
-   * The same numbers, on the path a pilot can actually send us.
-   *
-   * __stickPath below is a console readback and has been since round 19,
-   * which means the one measurement that settles "is this browser rAF-locked
-   * on gamepad input" has only ever been reachable by somebody who already
-   * knew to open DevTools and type it. Nobody did. Five feel reports later
-   * the question was still open, so the probe goes where the reports are
-   * written: ui.bugSnapshot calls this at the moment the pilot hits send.
-   *
-   * fps rides along because it is the number padHz has to be read against.
-   * padHz of 60 means nothing on its own; padHz of 60 on a 60 fps display
-   * means the browser is handing us one stick value per frame and no amount
-   * of polling will move it.
-   */
-  ui.setStickProbe(() => ({
-    ...input.stats(),
-    rcHz: RC_HZ,
-    fps: Math.round(fps),
-  }));
+  const stickRates = () => ({ ...input.stats(), rcHz: RC_HZ, fps: Math.round(fps) });
+  ui.setStickProbe(stickRates);
   window.__stickPath = () => ({
-    ...input.stats(),
-    rcHz: RC_HZ,
-    fps: Math.round(fps),
+    ...stickRates(),
     pending: rcPending.length,
     held: { ...rcHeld },
     simStepIdx,
@@ -19524,148 +19501,90 @@ export async function boot({
     moduleMs: Math.round(readState()[0] * 1000),
     configGen,
   });
+  /* The page's boot and frame cost figures (P6 and the block budgets). */
   window.__boot = () => ({
+    frames,
     firstFrameMs,
     worstBlockMs,
     worstShellMs,
     worstAudioMs,
-    frames,
   });
+
   /*
-   * Which gate the race actually wants, and where it is on screen. G3 says
-   * the next gate must be the brightest thing in the frame, and every G3
-   * measurement taken so far measured the wrong object: a parked capture
-   * camera looks at one gate while the race's next gate is somewhere else
-   * entirely, so the bright ring in the frame was some later gate on the
-   * glow ladder. A capture that claims anything about the target has to
-   * record which gate that is and where it is, and this is that record.
+   * Where a world point lands in the PNG a capture writes: drawing buffer
+   * pixels (CSS pixels times the pixel ratio), origin top left. A point
+   * behind the camera projects mirrored through the centre and would look
+   * plausible, so `inFront` travels with every position.
+   */
+  function probeScreen(point) {
+    const canvas = shell.renderer.domElement;
+    const ndc = point.clone().project(shell.camera);
+    const inFront = ndc.z > -1 && ndc.z < 1;
+    return {
+      x: (ndc.x * 0.5 + 0.5) * canvas.width,
+      y: (1 - (ndc.y * 0.5 + 0.5)) * canvas.height,
+      ndcZ: ndc.z,
+      inFront,
+      mirrored: !inFront,
+    };
+  }
+
+  /*
+   * The next three gates the race wants and where each sits on screen, so
+   * a capture that claims something about the target measures the right
+   * gate (a parked camera often frames a later one). A map with no gates
+   * answers gateless: true, which shots.js accepts only from the page
+   * itself, so a race map can never opt out of the rule.
    *
-   * Screen coordinates are CSS pixels with the origin top left, matching
-   * what scripts/pixels.js reads out of a PNG. Harness only, called on
-   * demand, never per frame.
+   * aperturePx is the vertical chord of the opening on screen, and only
+   * when both its ends are in front of the camera; a yawed gate is an
+   * ellipse whose width this is not. depth is camera space depth, which a
+   * projected size scales with (the straight distance overstates it off
+   * axis). centreInFrame is one point test with no occlusion, not "the
+   * pilot can see it".
    */
   window.__nextGate = () => {
-    /*
-     * A FREESTYLE MAP HAS NO GATES, AND THAT IS AN ANSWER, NOT A FAILURE.
-     *
-     * scripts/shots.js records a harness fault and exits non zero when this
-     * handle does not return a gate, which is correct on the race field: a
-     * capture that claims anything about the target has to know which gate
-     * the race actually wants, and silently capturing without one is how
-     * every G3 measurement before it measured the wrong object. On a map with
-     * no gates the same rule makes every capture fail even when the frame is
-     * perfect.
-     *
-     * So the opt out is a property of the PAGE, not a flag on the command
-     * line. The handle says which map it is and that the map is gateless, and
-     * the sidecar accepts that and nothing else. A careless `--nogate` on the
-     * race field would have weakened the gate for the map that needs it; this
-     * cannot, because the race field can never report gateless true.
-     */
+    const canvas = shell.renderer.domElement;
+    const head = { viewport: { w: canvas.width, h: canvas.height }, mapId: view.id, mapMode: view.mode };
     if (view.gates.length === 0) {
-      const el0 = shell.renderer.domElement;
-      return {
-        viewport: { w: el0.width, h: el0.height },
-        mapId: view.id,
-        mapMode: view.mode,
-        gateless: true,
-        gates: [],
-      };
+      return { ...head, gateless: true, gates: [] };
     }
-    /* Device pixels, not CSS pixels. The PNG a capture writes is the drawing
-     * buffer, which is clientWidth times the pixel ratio, so a handle that
-     * promises PNG coordinates and returns CSS ones is silently half scale
-     * on any HiDPI display. `el.width` IS the drawing buffer. */
-    const el = shell.renderer.domElement;
-    const vw = el.width;
-    const vh = el.height;
-    const project = (v) => {
-      const p = v.clone().project(shell.camera);
-      /* Behind the camera, project divides by a negative w, so x and y
-       * reflect through the principal point and land somewhere plausible
-       * inside the frame. Publishing that as a position is how a consumer
-       * that does not also read ndcZ gets a confident wrong answer, so the
-       * flag travels with the numbers. */
-      const inFront = p.z > -1 && p.z < 1;
+    const ahead = [0, 1, 2].map((step) => {
+      const sceneIndex = race.gates[(race.next + step) % race.gates.length].idx;
+      const gate = view.gates[sceneIndex];
+      const hole = gate.aperture;
+      const centre = new THREE.Vector3(gate.position.x, gate.position.y + hole.centreY, gate.position.z);
+      const half = hole.clearH * 0.5;
+      const onScreen = probeScreen(centre);
+      const topScreen = probeScreen(new THREE.Vector3(centre.x, centre.y + half, centre.z));
+      const bottomScreen = probeScreen(new THREE.Vector3(centre.x, centre.y - half, centre.z));
+      const chordValid = topScreen.inFront && bottomScreen.inFront;
       return {
-        x: (p.x * 0.5 + 0.5) * vw,
-        y: (1 - (p.y * 0.5 + 0.5)) * vh,
-        ndcZ: p.z,
-        inFront,
-        mirrored: !inFront,
-      };
-    };
-    const seq = [];
-    for (let step = 0; step < 3; step += 1) {
-      const raceIdx = (race.next + step) % race.gates.length;
-      const sceneIndex = race.gates[raceIdx].idx;
-      const gt = view.gates[sceneIndex];
-      const ap = gt.aperture;
-      const centre = new THREE.Vector3(gt.position.x, gt.position.y + ap.centreY, gt.position.z);
-      const top = new THREE.Vector3(centre.x, centre.y + ap.clearH * 0.5, centre.z);
-      const bottom = new THREE.Vector3(centre.x, centre.y - ap.clearH * 0.5, centre.z);
-      const distance = shell.camera.position.distanceTo(centre);
-      /* Camera space depth, which is what a projected size scales with. The
-       * Euclidean distance is not: at 55 degrees off axis the two differ
-       * enough to overstate a projected size by 74 percent, and any check of
-       * aperturePx against the geometry has to divide by this one. */
-      const depth = -centre.clone().applyMatrix4(shell.camera.matrixWorldInverse).z;
-      const sc = project(centre);
-      const st = project(top);
-      const sb = project(bottom);
-      /* aperturePx is the pixel distance between two projected points, and
-       * that is only the aperture when both points are actually in front of
-       * the camera. Without this gate the handle published 17988.1 px for
-       * gates 0.45 m BEHIND a zenith pointing camera, and a gate 126 m
-       * behind read 14.900 px against 14.910 for the same gate in front,
-       * because the sign flip cancels under an absolute value. It is also
-       * only ever the VERTICAL chord: a yawed gate is an ellipse on screen
-       * and its width is not this number. */
-      const apertureValid = st.inFront && sb.inFront;
-      seq.push({
         step,
         sceneIndex,
-        flyOrder: gt.flyOrder,
-        /* A per frame sample of a quantity that pulses on the wall clock,
-         * not a property of the gate. */
-        glowGainSampled: gt.glowMat.uniforms.uGain.value,
-        aperture: ap,
+        flyOrder: gate.flyOrder,
+        /* Sampled this frame from a glow that pulses on the wall clock. */
+        glowGainSampled: gate.glowMat.uniforms.uGain.value,
+        aperture: hole,
         world: { x: centre.x, y: centre.y, z: centre.z },
-        distance,
-        depth,
-        screen: sc,
-        aperturePx: apertureValid ? Math.abs(sb.y - st.y) : null,
+        distance: shell.camera.position.distanceTo(centre),
+        depth: -centre.clone().applyMatrix4(shell.camera.matrixWorldInverse).z,
+        screen: onScreen,
+        aperturePx: chordValid ? Math.abs(bottomScreen.y - topScreen.y) : null,
         aperturePxAxis: str('main.vertical_chord_only_not_the_width'),
-        /* A single point test with no clipping and no occlusion. It answers
-         * "is the aperture centre inside the frame", which is NOT "can the
-         * pilot see the target": a gate whose ring fills a third of the
-         * frame from the side reports false here. Do not use it alone to
-         * settle G3. */
-        centreInFrame: sc.inFront && sc.x >= 0 && sc.x < vw && sc.y >= 0 && sc.y < vh,
-      });
-    }
+        centreInFrame: onScreen.inFront && onScreen.x >= 0 && onScreen.x < canvas.width
+          && onScreen.y >= 0 && onScreen.y < canvas.height,
+      };
+    });
     return {
-      viewport: { w: vw, h: vh },
-      mapId: view.id,
-      mapMode: view.mode,
+      ...head,
       gateless: false,
       raceNext: race.next,
       nextSceneIndex: race.nextSceneIndex(),
       lap: race.lap,
-      gates: seq,
+      gates: ahead,
     };
   };
-  /*
-   * WHAT EVERY GATE IS WEARING, so the three tier rule is a check and not
-   * an impression.
-   *
-   * "Only the next obstacle is lit" is a claim about fourteen objects, and
-   * the only way to read that off a screenshot is to find fourteen gates in
-   * the frame first. This reports the tier each one is actually dressed in,
-   * off the materials the renderer drives, so a run can assert that exactly
-   * one gate is lit, exactly one sits on the middle tier, and the rest are
-   * dark. Harness only, called on demand, never per frame.
-   */
   /*
    * The PAINT's answer to "is this point on the side the gate is flown
    * from", straight out of the renderer, so a check can hold it against
@@ -19675,101 +19594,93 @@ export async function boot({
    * Harness only.
    */
   window.__aimProbe = (x, y, z) => (view.approachSide ? view.approachSide(x, y, z) : null);
+  /*
+   * The tier every gate is dressed in, read off its materials and meshes
+   * rather than off what the shell meant to hand out, so "only the next
+   * gate is lit, one more is on the middle tier, the rest are dark" is a
+   * check (and a stacked structure lights only its named opening).
+   */
   window.__gateTiers = () => {
-    const a = view.targetAim ? view.targetAim() : null;
+    const aim = view.targetAim ? view.targetAim() : null;
+    const tierOf = (gate) => {
+      if (!gate.ringMat.visible) {
+        return 'dark';
+      }
+      return gate.glowMat.visible ? 'target' : 'follow';
+    };
     return {
       next: race.freestyle ? -1 : race.nextSceneIndex(),
       follow: race.freestyle ? -1 : race.followSceneIndex(),
-      aim: a ? { active: a.active, correct: a.correct, distance: a.distance } : null,
-      gates: view.gates.map((gt, i) => ({
-        sceneIndex: i,
-        flyOrder: gt.flyOrder,
-        virtual: Boolean(gt.virtual),
-        /* The tier as the MATERIALS have it, not as the shell believes it
-         * handed out. Reading back what the shell wrote asserts nothing. */
-        tier: !gt.ringMat.visible
-          ? 'dark'
-          : (gt.glowMat.visible ? 'target' : 'follow'),
-        ring: `#${gt.ringMat.color.getHexString()}`,
-        haloOn: gt.haloMat.visible,
-        glowOn: gt.glowMat.visible,
-        /* Which of a stacked structure's openings is actually lit, read off
-         * the meshes rather than off what the shell asked for. A designed
-         * stack names one hole and must light exactly that one. */
-        litOpenings: gt.ringMeshes
-          ? gt.ringMeshes.map((m, k) => (m.visible ? k : -1)).filter((k) => k >= 0)
+      aim: aim ? { active: aim.active, correct: aim.correct, distance: aim.distance } : null,
+      gates: view.gates.map((gate, sceneIndex) => ({
+        sceneIndex,
+        flyOrder: gate.flyOrder,
+        virtual: Boolean(gate.virtual),
+        tier: tierOf(gate),
+        ring: `#${gate.ringMat.color.getHexString()}`,
+        haloOn: gate.haloMat.visible,
+        glowOn: gate.glowMat.visible,
+        litOpenings: gate.ringMeshes
+          ? gate.ringMeshes.flatMap((mesh, k) => (mesh.visible ? [k] : []))
           : null,
-        cueOn: Boolean(gt.cueGroup && gt.cueGroup.visible),
-        wrong: gt.fillMat ? gt.fillMat.uniforms.uWrong.value : null,
+        cueOn: Boolean(gate.cueGroup && gate.cueGroup.visible),
+        wrong: gate.fillMat ? gate.fillMat.uniforms.uWrong.value : null,
       })),
     };
   };
+
   /*
-   * The quad on screen, for T6. Reports the projected pixel box of the
-   * craft's own world bounding box and, separately, the pixel span a
-   * 0.25 m segment subtends at the craft's distance, because a 250 mm quad
-   * is quoted on its motor to motor diagonal and the model's box is not
-   * the same measurement. Both are published so a reviewer can choose.
+   * The drawn craft on screen: the pixel box of its world bounding box and,
+   * apart from it, the pixels a 0.25 m segment across the view covers at
+   * the craft (a 250 mm quad is named for its motor diagonal, which the box
+   * is not). The box includes the spinning prop discs, so it breathes with
+   * prop angle. With the camera closer than the near plane both would be
+   * projections through zero depth, so the probe refuses instead.
    */
   window.__quadScreen = () => {
-    const el = shell.renderer.domElement;
-    const vw = el.width;
-    const vh = el.height;
-    /* With the camera inside the airframe the 0.25 m span sits at zero
-     * camera space depth, the projection divides by zero, and the result is
-     * Infinity, which JSON.stringify launders into null so a reader cannot
-     * tell it from "not applicable". Four of the bounding box's eight
-     * corners are behind the near plane in the same state, so the projected
-     * box brackets a reflection rather than a box. Both are refused here
-     * instead of being published and explained. */
-    const dist = shell.camera.position.distanceTo(shell.quad.position);
-    if (dist < shell.camera.near) {
+    const canvas = shell.renderer.domElement;
+    const viewport = { w: canvas.width, h: canvas.height };
+    const cam = shell.camera;
+    const craft = shell.quad;
+    const distance = cam.position.distanceTo(craft.position);
+    if (distance < cam.near) {
       return {
-        viewport: { w: vw, h: vh },
-        visible: shell.quad.visible,
-        distance: dist,
+        viewport,
+        visible: craft.visible,
+        distance,
         boxPx: null,
         span250mmPx: null,
-        refused: str('main.camera_is_m_from_the_craft', { dist: dist.toFixed(3), near: shell.camera.near }),
+        refused: str('main.camera_is_m_from_the_craft', { dist: distance.toFixed(3), near: cam.near }),
       };
     }
-    const box = new THREE.Box3().setFromObject(shell.quad);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
+    const bounds = new THREE.Box3().setFromObject(craft);
+    const size = bounds.getSize(new THREE.Vector3());
+    const xs = [];
+    const ys = [];
     const corner = new THREE.Vector3();
-    for (let i = 0; i < 8; i += 1) {
-      corner.set(
-        i & 1 ? box.max.x : box.min.x,
-        i & 2 ? box.max.y : box.min.y,
-        i & 4 ? box.max.z : box.min.z,
-      ).project(shell.camera);
-      const px = (corner.x * 0.5 + 0.5) * vw;
-      const py = (1 - (corner.y * 0.5 + 0.5)) * vh;
-      minX = Math.min(minX, px);
-      maxX = Math.max(maxX, px);
-      minY = Math.min(minY, py);
-      maxY = Math.max(maxY, py);
+    for (const cx of [bounds.min.x, bounds.max.x]) {
+      for (const cy of [bounds.min.y, bounds.max.y]) {
+        for (const cz of [bounds.min.z, bounds.max.z]) {
+          corner.set(cx, cy, cz).project(cam);
+          xs.push((corner.x * 0.5 + 0.5) * viewport.w);
+          ys.push((1 - (corner.y * 0.5 + 0.5)) * viewport.h);
+        }
+      }
     }
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(shell.camera.quaternion);
-    const a = shell.quad.position.clone().addScaledVector(right, -0.125).project(shell.camera);
-    const b = shell.quad.position.clone().addScaledVector(right, 0.125).project(shell.camera);
-    const span = Math.abs((b.x - a.x) * 0.5 * vw);
+    const left = Math.min(...xs);
+    const top = Math.min(...ys);
+    const across = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    const endA = craft.position.clone().addScaledVector(across, -0.125).project(cam);
+    const endB = craft.position.clone().addScaledVector(across, 0.125).project(cam);
+    const span = Math.abs((endB.x - endA.x) * 0.5 * viewport.w);
+    const boxW = Math.max(...xs) - left;
     return {
-      viewport: { w: vw, h: vh },
-      visible: shell.quad.visible,
-      distance: dist,
-      /* An axis aligned bounding box over the whole group INCLUDING the
-       * spinning prop discs, so it breathes with prop angle: sampled between
-       * 0.282 and 0.320 m across this build's captures. It is not the motor
-       * to motor diagonal that a 250 mm class quad is named for, and it must
-       * not be quoted as the size of the quad. */
+      viewport,
+      visible: craft.visible,
+      distance,
       worldSizeSampled: { x: size.x, y: size.y, z: size.z },
       worldSizeNote: str('main.aabb_of_the_whole_group_including'),
-      boxPx: Number.isFinite(maxX - minX) ? { w: maxX - minX, h: maxY - minY, x: minX, y: minY } : null,
+      boxPx: Number.isFinite(boxW) ? { w: boxW, h: Math.max(...ys) - top, x: left, y: top } : null,
       span250mmPx: Number.isFinite(span) ? span : null,
     };
   };
@@ -19838,21 +19749,26 @@ export async function boot({
     wavesAtTitle = true;
     return Boolean(view.setWaves);
   };
-  window.__map = () => ({
-    id: view.id,
-    name: view.name,
-    mode: view.mode,
-    graphics: view.graphics,
-    gates: view.gates.length,
-    spawn: { x: startX, y: startY, z: startZ, yaw: startYaw },
-    ready: mapReady,
-    references: view.references ?? null,
-    loading: window.__loading ? window.__loading.timings : null,
-    /* The loading bar's module weight for this map, so check 16 can assert
-     * the typed number against what the browser actually fetched. */
-    expectedModules: MAP_MODULE_COUNT[view.id] ?? null,
-    ...(view.stats ? view.stats() : {}),
-  });
+  /* The world in the shell: which map, its spawn, whether it is built, what
+   * its stages cost to load, the module count the loading bar was told to
+   * expect (check 16 holds it against what was fetched), and whatever the
+   * map reports about itself. */
+  window.__map = () => {
+    const own = view.stats ? view.stats() : {};
+    return {
+      id: view.id,
+      name: view.name,
+      mode: view.mode,
+      graphics: view.graphics,
+      ready: mapReady,
+      gates: view.gates.length,
+      spawn: { x: startX, y: startY, z: startZ, yaw: startYaw },
+      references: view.references ?? null,
+      loading: window.__loading ? window.__loading.timings : null,
+      expectedModules: MAP_MODULE_COUNT[view.id] ?? null,
+      ...own,
+    };
+  };
   window.__maps = () => MAPS.map((m) => ({ id: m.id, name: m.name, mode: m.mode }));
   /* An opening in the dam as the war's damage hands one to the map
    * (map.onOpening, docs/FLOOD.md), and the water through every opening
@@ -19878,41 +19794,39 @@ export async function boot({
    * scripts/replay-world.js. Harness only. */
   window.__mapLeaf = (id, t) => (view && view.leafTurnAt ? view.leafTurnAt(id, t) : null);
   window.__animMs = () => animDrawnMs;
-  /* The declared departure from MultiGP's published obstacle dimensions, so
-   * check 15 can assert the threshold file and the course agree about how big
-   * a gate is rather than each believing its own copy. Harness only. */
+  /* How far this build's gates depart from MultiGP's published sizes, so
+   * check 15 compares the threshold file with the course rather than with
+   * its own copy of the number. */
   window.__gateScale = () => GATE_SCALE;
   /*
-   * Drive the active map's animation clock to an arbitrary step, so a capture
-   * can put a moving part where it needs it instead of waiting for it.
-   *
-   * The city's train circles the planet in about 43 s of simulated time and
-   * this container renders two frames a second, so waiting for it to reach
-   * the crossing is a minute and a half of wall clock that no check can
-   * afford. It takes the same step count the frame loop passes, so a capture
-   * driving it sees exactly the town a pilot would at that instant. Harness
-   * only; nothing in the shell reads it.
+   * Run the map's animation clock to `step` (the frame loop's own step
+   * count), so a capture can put a moving part, a train, a gondola, where
+   * it needs it instead of waiting minutes of slow headless frames for it.
+   * Answers the train's offset where the map has one.
    */
   window.__animTo = (step) => {
     view.updateAnim(step);
-    return view.stats ? (view.stats().trainOffset ?? null) : null;
+    if (!view.stats) {
+      return null;
+    }
+    return view.stats().trainOffset ?? null;
   };
-  /* The clocks the traffic is drawn on: the one the last frame's world was
-   * animated at, the lap clock, and the room's (null out of a room), for
-   * scripts/traffic-sync-check.js. Harness only. */
-  window.__traffic = () => ({
-    drawn: animDrawnMs,
-    lap: simTimeMs,
-    offset: trafficOffsetMs,
-    room: roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null,
-    /* The world's sound of it: what the worklet last said it voiced
-     * (src/render/world-audio.js stats), null before the mix is up. */
-    sound: worldAudio.stats,
-  });
-  /* The active map's scene graph, for measurement. tests/lib/checks.js walks
-   * it to assert that reference objects measure what this project claims they
-   * measure, which is the only way a scale error gets caught by a check
-   * rather than by a reviewer's eye. Harness only. */
+  /* The clocks traffic is drawn on: the last drawn frame's, the lap clock,
+   * the offset between them, the room's (null outside a room), and what the
+   * world audio last voiced (null before the mix exists). For
+   * scripts/traffic-sync-check.js. */
+  window.__traffic = () => {
+    const inRoom = roomLinkState.state().phase === 'open';
+    return {
+      drawn: animDrawnMs,
+      lap: simTimeMs,
+      offset: trafficOffsetMs,
+      room: inRoom ? roomLinkState.roomNow() : null,
+      sound: worldAudio.stats,
+    };
+  };
+  /* The live scene graph, which tests/lib/checks.js walks to measure the
+   * reference objects against the sizes this project claims. */
   window.__mapScene = () => view.scene;
   /* The three.js namespace, so a measurement in the page can build a Box3
    * without importing a second copy of the library. Harness only. */
@@ -19938,118 +19852,110 @@ export async function boot({
       view.cover(x, z, y - SURFACE_BIAS);
     }
   };
-  /* Set the active map's distance cull radius, for the sweep that chooses it.
-   * Null restores the map's own value. Harness only. */
-  window.__cullRadius = (r) => (view.setCullRadius ? view.setCullRadius(r) : null);
+  /* The map's distance cull radius, for the sweep that picks it; null puts
+   * the map's own back. */
+  window.__cullRadius = (r) => {
+    if (!view.setCullRadius) {
+      return null;
+    }
+    return view.setCullRadius(r);
+  };
   /* The active map's contact surface, exactly as the ground sweep queries it.
    * `fromY` is what makes a deck climbable from above and transparent from
    * below, so a capture can assert that rather than describe it. */
   window.__surface = (x, z, fromY) => view.height(x, z, fromY);
-  /* The map's name for the ground's material at a point, as the crash model reads it. */
-  window.__surfaceMaterial = (x, z, y) => (view.surfaceAt ? view.surfaceAt(x, z, y) : null);
-  /*
-   * Where the camera is, and what is directly under it. The intro camera
-   * once ended its pan INSIDE a launch block and the only way to see it was
-   * to look at a screenshot and argue about it; this reports the clearance
-   * as a number so a capture can assert it. Harness only.
-   */
-  window.__camGround = () => ({
-    x: shell.camera.position.x,
-    y: shell.camera.position.y,
-    z: shell.camera.position.z,
-    /* Where it looks and how wide, so a capture can project a point. */
-    quat: shell.camera.quaternion.toArray(),
-    fov: shell.camera.fov,
-    aspect: shell.camera.aspect,
-    ground: view.height(shell.camera.position.x, shell.camera.position.z,
-                        shell.camera.position.y),
-    clearance: shell.camera.position.y
-      - view.height(shell.camera.position.x, shell.camera.position.z,
-                    shell.camera.position.y),
-    /* The title camera's lens shift, as a fraction of the frame, or null
-     * when the lens is centred. Reported here because it is the other half
-     * of where the shot is pointed: a check that reads the position alone
-     * cannot tell a centred frame from one offset by a fifth of its height,
-     * and it is the thing that has to be gone the moment the pilot flies. */
-    shift: shell.camera.view && shell.camera.view.enabled
-      ? {
-        x: shell.camera.view.offsetX / shell.camera.view.fullWidth,
-        y: shell.camera.view.offsetY / shell.camera.view.fullHeight,
-      }
-      : null,
-  });
-  /*
-   * Set the sticks directly, bypassing the keyboard ramp.
-   *
-   * Holding W is how a player takes off and it is NOT how a capture can. W
-   * ramps the throttle while held, and this container renders a city frame in
-   * about half a second, so five seconds of held key is ten frames of ramp and
-   * the craft never reaches the 0.25 takeoff threshold. A capture that cannot
-   * take off cannot assert anything about flight, which is how the 07-inflight
-   * capture in round 10's evidence turned out to be a picture of the start
-   * line. Harness only; nothing in the shell reads it.
-   */
-  window.__stick = (roll, pitch, yaw, throttle) => {
-    /*
-     * A REAL override now, not a poke into the keyboard state. The old
-     * form wrote this.kb and the very next poll recomputed roll, pitch and
-     * yaw from the held KEYS, so only the throttle survived: a capture
-     * could climb and never steer, which several rounds of screenshot
-     * work rediscovered the hard way. The override sits at the top of
-     * poll()'s ladder and holds like a radio's gimbals until the next
-     * write. Call with no arguments to release it back to the keyboard.
-     */
-    if (roll == null) {
-      input.harnessChannels = null;
-      input.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
-      rcPending.length = 0;
-      turtleResumeGate = false;
-      turtleRecover = false;
+  /* The ground's material name at a point, the one the crash model uses. */
+  window.__surfaceMaterial = (x, z, y) => {
+    if (!view.surfaceAt) {
       return null;
     }
-    input.harnessChannels = { roll, pitch, yaw, throttle };
-    return { roll, pitch, yaw, throttle };
+    return view.surfaceAt(x, z, y);
   };
-  /* Is anything solid on the segment from p to q? Same call the frame loop
-   * makes, so a capture can assert what a quad would hit. */
+  /*
+   * The camera: where it is, how it is turned and how wide it sees (enough
+   * to project a point), the ground straight under it and its height above
+   * that (the intro once ended its pan inside a launch block), and the
+   * title lens's shift as a fraction of the frame, null when centred, which
+   * must be gone the moment the pilot flies.
+   */
+  window.__camGround = () => {
+    const cam = shell.camera;
+    const { x, y, z } = cam.position;
+    const ground = view.height(x, z, y);
+    const lens = cam.view;
+    return {
+      x,
+      y,
+      z,
+      quat: cam.quaternion.toArray(),
+      fov: cam.fov,
+      aspect: cam.aspect,
+      ground,
+      clearance: y - ground,
+      shift: lens && lens.enabled
+        ? { x: lens.offsetX / lens.fullWidth, y: lens.offsetY / lens.fullHeight }
+        : null,
+    };
+  };
+  /*
+   * Hold the sticks at these values, as a radio's gimbals would, until the
+   * next call; no arguments hands control back to the keyboard and empties
+   * the queue. A capture cannot take off on a held W: the key ramps per
+   * frame, and a slow headless page draws too few frames to reach takeoff
+   * throttle. The override sits at the top of input.poll's ladder, so roll,
+   * pitch and yaw stick too, not only the throttle.
+   */
+  window.__stick = (roll, pitch, yaw, throttle) => {
+    if (roll != null) {
+      input.harnessChannels = { roll, pitch, yaw, throttle };
+      return { roll, pitch, yaw, throttle };
+    }
+    input.harnessChannels = null;
+    input.channels = { roll: 0, pitch: 0, yaw: 0, throttle: 0 };
+    rcPending.length = 0;
+    turtleResumeGate = false;
+    turtleRecover = false;
+    return null;
+  };
+  /*
+   * The first solid on the segment p to q, asked exactly as the frame loop
+   * asks: the tilt aware half height and the craft's world attitude ride
+   * along, or the probe would be asking a different question. part is the
+   * fixed wing's part that met it, -1 for a quad's discs.
+   */
   window.__hit = (px, py, pz, qx, qy, qz, vh = vHalfFrame) => {
-    /* The frame loop passes its tilt aware half extent and the craft's
-     * world quaternion to every real query. A probe that left those out
-     * was asking a different question from the one the game asks. */
-    const k = view.colliders.hit(
+    const set = view.colliders;
+    const found = set.hit(
       px, py, pz, qx, qy, qz, vh,
       qCollide.x, qCollide.y, qCollide.z, qCollide.w,
       craftVerticalOffset(),
     );
     return {
-      kind: k < 0 ? null : view.colliders.kindName(k),
-      index: view.colliders.hitIndex,
-      t: view.colliders.hitT,
-      pen: view.colliders.hitPen,
-      nx: view.colliders.hitNx,
-      ny: view.colliders.hitNy,
-      nz: view.colliders.hitNz,
-      /* The fixed wing's part it met, -1 for the discs. */
-      part: view.colliders.hitArm ? view.colliders.hitPart : -1,
+      kind: found < 0 ? null : set.kindName(found),
+      index: set.hitIndex,
+      t: set.hitT,
+      pen: set.hitPen,
+      nx: set.hitNx,
+      ny: set.hitNy,
+      nz: set.hitNz,
+      part: set.hitArm ? set.hitPart : -1,
     };
   };
-  /* Harness only: a flat canopy over the whole of the map now loaded, its
-   * top at world y `top`, for scripts/canopy-check.js to fly the contact
-   * pass's canopy call on a map that has no forest volume of its own. The
-   * next map load builds its view afresh without it. */
+  /* A flat canopy at world height `top` over the whole loaded map, so
+   * scripts/canopy-check.js can exercise the contact pass's canopy call on a
+   * map without a forest of its own. Gone with the next map load. */
   window.__canopyTop = (top) => {
     view.canopyAt = () => top;
   };
-  /* Shadow pass on or off, so the ledger can attribute draw calls between the
-   * colour pass and the shadow pass rather than guessing at the split.
-   * Harness only. */
+  /* The shadow pass on or off, to split draw calls between it and the
+   * colour pass in the cost ledger. */
   window.__shadows = (on) => {
-    shell.renderer.shadowMap.enabled = !!on;
-    shell.renderer.shadowMap.needsUpdate = true;
-    return shell.renderer.shadowMap.enabled;
+    const shadows = shell.renderer.shadowMap;
+    shadows.enabled = !!on;
+    shadows.needsUpdate = true;
+    return shadows.enabled;
   };
-  /* A harness that names a world wants that world at the title, the way
-   * ?map= does, so it ends the title's own. */
+  /* Load a world as ?map= would at the title, which ends the title's own. */
   window.__setMap = (id) => {
     titleWorld = null;
     paintBest();
@@ -20057,45 +19963,26 @@ export async function boot({
     return swapMap(id);
   };
   /*
-   * The title camera's own loop, sampled off a clock rather than off the
-   * frame rate, so a check can walk a whole attract cycle in one call and
-   * ask where the shot goes and what it is pointed at.
-   *
-   * WHY THIS EXISTS. The attract camera is the only camera in the shell with
-   * nothing to stop it: the quad has colliders and the free camera has a
-   * pilot, but this one is a spline and it will fly through a wall without
-   * complaint. It was doing so in three of the four freestyle worlds, and
-   * the only evidence was a thumbnail that looked wrong.
-   * scripts/attract-check.js walks these samples through window.__hit and
-   * says so instead.
-   *
-   * A PRIVATE CAMERA AND A PRIVATE COPY OF THE SHOT. Driving the live
-   * attract camera would move the title behind whoever is looking at it and
-   * would leave its bank filter holding a timestamp from a probe. Harness
-   * only.
+   * One whole loop of the title's attract camera, sampled on its own clock:
+   * `count` positions and view directions (clamped to 8..2000). The attract
+   * camera is a spline with nothing to stop it going through a wall, and
+   * scripts/attract-check.js walks these samples through __hit to catch
+   * that. It flies a private camera on a private copy of the shot, so the
+   * title on screen and its bank filter are left alone.
    */
   window.__attract = (count = 240) => {
-    const probe = makeAttractCamera(view);
-    const cam = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
-    const dir = new THREE.Vector3();
-    const period = probe.periodMs > 0 ? probe.periodMs : 1000;
+    const shot = makeAttractCamera(view);
+    const eye = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
+    const look = new THREE.Vector3();
+    const periodMs = shot.periodMs > 0 ? shot.periodMs : 1000;
     const n = Math.max(8, Math.min(2000, Math.round(count)));
-    const out = [];
-    for (let i = 0; i < n; i += 1) {
-      const ms = (period * i) / n;
-      probe.update(ms, cam, {});
-      cam.getWorldDirection(dir);
-      out.push({
-        ms,
-        x: cam.position.x,
-        y: cam.position.y,
-        z: cam.position.z,
-        dx: dir.x,
-        dy: dir.y,
-        dz: dir.z,
-      });
-    }
-    return { map: view.id, kind: probe.kind, periodMs: period, samples: out };
+    const samples = Array.from({ length: n }, (_, i) => {
+      const ms = (periodMs * i) / n;
+      shot.update(ms, eye, {});
+      eye.getWorldDirection(look);
+      return { ms, x: eye.position.x, y: eye.position.y, z: eye.position.z, dx: look.x, dy: look.y, dz: look.z };
+    });
+    return { map: view.id, kind: shot.kind, periodMs, samples };
   };
   window.__budget = (name) => measureBudget(shell, view, { view: name });
 
