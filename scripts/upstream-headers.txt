@@ -43,7 +43,6 @@ src/share/ghostdata.js
 src/trackbuilder/index.html
 src/ui/accountui.js
 src/ui/credits.js
-src/ui/loading.js
 src/ui/pidspanel.js
 src/ui/ratespanel.js
 src/ui/scorehud.js
