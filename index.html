@@ -801,15 +801,12 @@
       }
 
       /*
-       * EVERY MENU SURFACE WEARS PDCS (the owner, 2 October: the menu
-       * follows the bootloader's aesthetic). The flight display keeps the
-       * warm tokens above; these surfaces map them onto the shared palette,
-       * so a rule written against --cream or --mint draws in PDCS here and
-       * in the flight palette over the world. The font is set again because
-       * #ui resolved its own before these redefine it.
-       *
-       * Monospace leads: labels, rows, values and tags. Sentences a pilot
-       * reads through (ledes, help notes, card lines) take --pdcs-read.
+       * THE MENUS SPEAK THE BOOT SCREEN'S PALETTE (the owner, 2 October).
+       * Each menu surface points the flight display's warm tokens at the
+       * PDCS ones, so one rule written against --cream or --mint draws warm
+       * over the world and PDCS on a menu. --ui-font is redefined here, so
+       * the font has to be set again: #ui resolved it before this. Labels,
+       * rows and values are monospace; prose a pilot reads through is not.
        */
       .screen, .frame-top, .frame-bot, .name-dialog, .carousel, .hangar,
       .bug-chip, .signin-chip, .signin-panel, .music-dock, .pause-chip, .swap-chip, .room-bar, .update-bar {
@@ -828,114 +825,61 @@
       .gate-card-blurb, .credits-roll, .name-dialog p, .howto-keys dd, .howto-mode {
         font-family: var(--pdcs-read);
       }
-      /* The hangar is a workbench of dense labelled controls whose panel is
-         sized to fit without scrolling (scripts/hangar-check.js), so it
-         keeps the readable face throughout, the monospace only for its
-         name and its tabs. */
+      /* The hangar's dense panel is sized to fit unscrolled
+         (scripts/hangar-check.js) in the readable face; only its name and
+         tabs are monospace. */
       .hangar { --ui-font: var(--pdcs-read); font-family: var(--ui-font); }
       .hangar .hangar-name, .hangar .hangar-tab-btn { font-family: var(--pdcs-mono); }
 
-      /* Screens. */
+      /* A SCREEN: a column over the boot screen's grid and ground, made
+         translucent so the world behind a menu is a dim shape. */
       .screen {
-        position: absolute; inset: 0; pointer-events: none;
+        position: absolute; inset: 0; box-sizing: border-box;
         display: flex; flex-direction: column; align-items: center;
-        /* Stops the double-tap zoom that maximum-scale used to be here for,
-           and keeps the pinch zoom it also blocked. See the viewport note in
-           the head. */
-        touch-action: manipulation;
-        /*
-         * SAFE CENTRE, not centre.
-         *
-         * A centred flex column whose content is taller than the box
-         * overflows in BOTH directions, and the half that goes off the top
-         * cannot be scrolled back to: that is the classic centring bug, and
-         * on a 390 px phone it is most of a screen. `safe` falls back to
-         * flex-start the moment the content stops fitting, which is the
-         * only time the difference is visible.
-         */
+        /* safe: once the content outgrows the box it starts at the top
+           instead of spilling off it where no scroll can reach (a 390 px
+           phone loses most of a screen to plain centring). */
         justify-content: safe center;
         padding: calc(2vh + var(--bar-top)) 6vw calc(2vh + var(--bar-bot));
-        box-sizing: border-box;
-        /* The bootloader's ground and grid, translucent: the world under
-           a menu is a dim shape behind an instrument, not a picture. */
+        pointer-events: none;
+        /* No double-tap zoom, with pinch zoom still allowed (see the
+           viewport note in the head). */
+        touch-action: manipulation;
         background: var(--pdcs-grid), var(--pdcs-scrim);
       }
-      /* The title is a HUD over the live map. Copy on the left (or top
-         and bottom on a phone), the world and the flying airframe fill
-         the rest. The wash is a hole, not a second landscape. */
+      /* A page or the pause modal scrolls what it cannot fit: a landscape
+         phone has under 300 px for the Rates screen's curve and thirteen
+         rows. contain stops the end of a flick becoming a pull-to-refresh. */
+      .screen-page, .screen-modal { overflow-y: auto; overscroll-behavior: contain; }
+      /* Paused, the same ground thinner, so the frozen frame shows through. */
+      .screen-modal {
+        background: var(--pdcs-grid),
+          radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.7) 0%, rgba(8, 10, 11, 0.78) 48%, rgba(5, 6, 7, 0.86) 100%);
+      }
+      /* The title is a HUD over the live map: copy down the left, and a wash
+         that darkens only behind the copy and along the edges. */
       .screen-title {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: stretch;
-        width: 100%;
-        height: 100%;
+        align-items: stretch; justify-content: stretch;
+        width: 100%; height: 100%;
         padding: 4.5vh 4vw calc(1.5vh + var(--bar-bot));
         background:
           linear-gradient(90deg, rgba(10, 13, 14, 0.78) 0%, rgba(10, 13, 14, 0.42) 26%, rgba(10, 13, 14, 0.08) 52%, rgba(10, 13, 14, 0.10) 100%),
           linear-gradient(180deg, rgba(10, 13, 14, 0.32) 0%, transparent 22%, transparent 64%, rgba(10, 13, 14, 0.38) 100%);
       }
-      /*
-       * THE GATE'S GROUND is the bootloader's, opaque: the boot screen
-       * fades out onto the same gradient and grid, so the menu reads as
-       * the system that just initialised rather than a promo splash. The
-       * title world behind it is decoration on the gate (past the gate the
-       * live world is the pilot's chosen map, and it shows again), so it
-       * is covered rather than dimmed.
-       */
-      .screen-title.is-gate {
-        background: var(--pdcs-grid), var(--pdcs-ground);
-        background-color: var(--pdcs-bg);
-      }
+      /* On the gate the boot screen fades out onto this very ground, so the
+         menu reads as the system that just started. The world behind it is
+         decoration there, and covered. */
+      .screen-title.is-gate { background: var(--pdcs-grid), var(--pdcs-ground); background-color: var(--pdcs-bg); }
       .title-copy {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        width: min(36em, 46vw);
-        height: 100%;
-        min-width: 0;
-        min-height: 0;
         z-index: 1;
+        display: flex; flex-direction: column; justify-content: space-between;
+        width: min(36em, 46vw); height: 100%; min-width: 0; min-height: 0;
       }
-      /*
-       * A PAGE SCREEN SCROLLS RATHER THAN LOSING WHAT IT CANNOT FIT.
-       *
-       * The flex fitting above and in the breakpoints keeps almost every
-       * window from needing this. `Almost` is the problem: a 844 by 390
-       * phone in landscape has 294 px of usable height, and the Rates
-       * screen is a live curve, thirteen rows and a note. It cannot fit,
-       * and before this the part that did not fit was simply gone, with no
-       * scrollbar and no way to reach it.
-       *
-       * The Race and Freestyle rooms already scrolled, which is why their
-       * card grids are usable on a phone. This is that, for every page.
-       * `safe center` on .screen is the other half: without it the overflow
-       * goes off the top as well and cannot be scrolled back to.
-       *
-       * overscroll-behavior stops a flick at the end of the list turning
-       * into a pull-to-refresh on the page behind it.
-       */
-      .screen-page,
-      .screen-modal {
-        justify-content: safe center;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-      }
-      /* Paused over a run the pilot is coming back to: the same ground,
-         thinner, so the frozen frame stays readable under the grid. */
-      .screen-modal {
-        background: var(--pdcs-grid),
-          radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.7) 0%, rgba(8, 10, 11, 0.78) 48%, rgba(5, 6, 7, 0.86) 100%);
-      }
-      /* One line under a screen's title, saying what the screen is showing
-         when the screen is showing a filtered view of something. Slate,
-         because it recedes: it is context, not an instruction. */
+      /* The line under a screen's title saying what it is filtered to.
+         Muted: context, not an instruction. */
       .screen-lede {
-        margin: -6px 0 14px;
-        color: var(--slate);
-        font-size: 13.5px;
-        line-height: 1.5;
-        max-width: 34em;
+        max-width: 34em; margin: -6px 0 14px;
+        color: var(--slate); font-size: 13.5px; line-height: 1.5;
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
       }
       .screen-lede:empty { display: none; }
