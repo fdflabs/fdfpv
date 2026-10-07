@@ -28,6 +28,10 @@
  *   and is in the round, flying; the panel said it was flying, not in a
  *   lobby, before C clicked.
  *
+ *   D (not the race or the war) opens Flight Club and presses Watch beside
+ *   that room: on its watch seat, no seat of its own and unseen by the
+ *   pilots, the camera on a pilot; J follows the next, Escape leaves.
+ *
  * The race (--game=race): A's lobby has no track yet, and its Track row
  * opens My tracks; A plays its own track there and is back in the lobby,
  * the room's track that one. R: the race goes, A on the grid. B's one
@@ -201,7 +205,11 @@ function endRound(code) {
 
 const a = await openPage({ root, url, width: 1280, height: 720, seed: GAME === 'race' ? [SEED, trackSeed()] : [SEED] });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
-const c = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
+let c = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
+/* The watcher, opened once the round is on (WATCHED games only). */
+const WATCHED = GAME !== 'race' && GAME !== 'war';
+let d = null;
+let cErrors = [];
 try {
   for (const p of [a, b, c]) {
     await p.until('window.__shellReady === true', 300000);
@@ -474,12 +482,68 @@ try {
   }
   await shot(c, '3-c-hot-join');
 
-  const errs = [a, b, c].flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
+  /* D: THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3), where
+   * pilots are flying in a listed room (not the race's, waiting on its
+   * grid, nor the war's, private): Flight Club, then Watch beside the
+   * room, each a real pointer's click. D has no seat and no aircraft, the
+   * camera follows a pilot, J steps to the next, Escape leaves. */
+  if (WATCHED) {
+    /* C's page is done with: three browsers at a time, not four. */
+    cErrors = c.errors.slice();
+    await c.close();
+    c = null;
+    await a.until('window.__rooms().peers.length === 1', 15000).catch(() => {});
+    d = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
+    await d.until('window.__shellReady === true', 300000);
+    await d.until('window.__ui.onGate() && window.__ui.hub === null', 60000).catch(() => {});
+    const dBefore = d.clicks;
+    const watchChip = `lobby:friends-watch-${code}`;
+    await d.click('.gate-card-hub-club .gate-card-name');
+    await d.until("window.__ui.hub === 'club'", 10000).catch(() => {});
+    await d.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(watchChip)})`, 30000).catch(() => {});
+    await d.evaluate(`(() => {
+      const ui = window.__ui;
+      const row = ui.titleRoomEls.find((e) => ui.items()[e.i].action === ${JSON.stringify(watchChip)});
+      if (row) { row.node.dataset.check = 'watch'; }
+      return Boolean(row);
+    })()`);
+    await d.click('[data-check="watch"]');
+    await d.until(`${FLYING} && window.__rooms().phase === 'open' && window.__rooms().watch && window.__rooms().watching !== null`, 120000).catch(() => {});
+    /* The world's tiles stream in after the flight starts. */
+    await d.sleep(5000);
+    const seen = await d.evaluate('window.__rooms()');
+    const pilots = await a.evaluate('window.__rooms().peers.length');
+    check(`D: Flight Club, then Watch (${d.clicks - dBefore} clicks): in the room on its watch seat, seat 0, the camera on a pilot within 30 m`,
+      d.clicks - dBefore === 2 && seen.code === code && seen.watch && seen.seat === 0 && seen.watching !== null && seen.watchGap < 30,
+      JSON.stringify({ code: seen.code, watch: seen.watch, seat: seen.seat, watching: seen.watching, gap: seen.watchGap }));
+    check('the pilots were not told of a watcher: A still sees B alone', pilots === 1, `${pilots}`);
+    /* A card's reel recording when Watch was pressed once held the world
+     * still under the watch camera, a blank picture (src/ui/cards.js). */
+    check('and the world is drawn, not held still by a card\'s reel', await d.evaluate('!window.__ui.reelFreezeWorld'));
+    await shot(d, '4-d-watching');
+    await d.tap('KeyJ');
+    await d.sleep(1500);
+    const next = await d.evaluate('window.__rooms()');
+    check('J: the camera follows the next pilot', next.watching !== null && next.watching !== seen.watching && next.watchGap < 30,
+      JSON.stringify({ was: seen.watching, now: next.watching, gap: next.watchGap }));
+    await shot(d, '5-d-watching-next');
+    await d.tap('Escape');
+    await d.until("window.__rooms().phase === 'idle' && window.__ui.screen !== 'flight'", 15000).catch(() => {});
+    const left = await d.evaluate("({ phase: window.__rooms().phase, screen: window.__ui.screen })");
+    check('Escape leaves the room for the menus', left.phase === 'idle' && left.screen !== 'flight', JSON.stringify(left));
+  }
+
+  const errs = [...cErrors, ...[a, b, c, d].filter(Boolean).flatMap((p) => p.errors)].filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
   await a.close();
   await b.close();
-  await c.close();
+  if (c) {
+    await c.close();
+  }
+  if (d) {
+    await d.close();
+  }
   await server.stop();
   await rm(dir, { recursive: true, force: true });
 }
