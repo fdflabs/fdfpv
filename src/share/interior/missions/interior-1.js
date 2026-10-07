@@ -148,6 +148,10 @@ export default {
   /* The hours of the day on the room clock (WORLD's clock.js): a screen
    * moves the sun by it, the light rule below ends at its sunset. */
   clock: M1_CLOCK,
+  /* The Bramor's thermal core starts on this palette (sensorview.js
+   * THERMAL_PALETTES) when the ball first comes up in a match; the period
+   * key still cycles it. */
+  sensor: { palette: 'arctic' },
   /* The marked shelter as the map names it, by the mark's dial, so the
    * screen paints the mark on the shelter the room judges (SHELTERS). */
   camp: { mark: { dial: 'mark', map: MARKED } },

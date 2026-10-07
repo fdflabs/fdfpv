@@ -133,7 +133,7 @@ const FLOOR = 0.2;
 const EQ_SHARE = 0.8;
 const MIN_SPAN_K = 6;
 const CORE_MAX_C = 500;
-export const THERMAL_PALETTES = ['whitehot', 'ironbow', 'rainbow'];
+export const THERMAL_PALETTES = ['whitehot', 'ironbow', 'rainbow', 'arctic'];
 const look = { palette: 0, span: null };
 
 /* The white hot mode's palette, a key of THERMAL_PALETTES. Black hot is a
@@ -323,10 +323,18 @@ const VIEW_FRAG = /* glsl */ `
         vec3(0.9, 0.22, 0.2), vec3(0.98, 0.5, 0.02), vec3(1.0, 0.78, 0.12), vec3(1.0, 1.0, 0.86));
       return ramp(v, iron);
     }
-    /* Rainbow: blue through cyan, green and yellow to red and white. */
-    vec3 rain[8] = vec3[8](vec3(0.04, 0.0, 0.22), vec3(0.0, 0.1, 0.85), vec3(0.0, 0.62, 0.95), vec3(0.0, 0.8, 0.35),
-      vec3(0.7, 0.9, 0.0), vec3(1.0, 0.6, 0.0), vec3(1.0, 0.12, 0.0), vec3(1.0, 0.9, 0.9));
-    return ramp(v, rain);
+    if (uPalette < 2.5) {
+      /* Rainbow: blue through cyan, green and yellow to red and white. */
+      vec3 rain[8] = vec3[8](vec3(0.04, 0.0, 0.22), vec3(0.0, 0.1, 0.85), vec3(0.0, 0.62, 0.95), vec3(0.0, 0.8, 0.35),
+        vec3(0.7, 0.9, 0.0), vec3(1.0, 0.6, 0.0), vec3(1.0, 0.12, 0.0), vec3(1.0, 0.9, 0.9));
+      return ramp(v, rain);
+    }
+    /* Arctic: the cold land in blues, the warm in orange, so a body or
+     * an engine reads as a heat signature against everything else (the
+     * owner's ask, 2026-10-07). */
+    vec3 arc[8] = vec3[8](vec3(0.02, 0.04, 0.16), vec3(0.05, 0.16, 0.42), vec3(0.12, 0.38, 0.66), vec3(0.4, 0.62, 0.8),
+      vec3(0.78, 0.85, 0.9), vec3(1.0, 0.72, 0.25), vec3(1.0, 0.42, 0.05), vec3(1.0, 0.95, 0.7));
+    return ramp(v, arc);
   }
 
   /* The core's reading at a source place: the optics' spread over the

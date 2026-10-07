@@ -544,7 +544,7 @@ export const AVX_INSETS = ['small', 'medium', 'large'];
 export const AVX_LEVELS = ['full', 'standard', 'minimal'];
 /* White hot's palettes (src/render/sensorview.js THERMAL_PALETTES, which
  * scripts/avionics-layout.js holds this list to). */
-export const AVX_PALETTES = ['whitehot', 'ironbow', 'rainbow'];
+export const AVX_PALETTES = ['whitehot', 'ironbow', 'rainbow', 'arctic'];
 
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
