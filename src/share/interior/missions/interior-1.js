@@ -103,6 +103,15 @@ const FIRST_OUT_S = 20;
 
 const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
+/* A checkpoint restart starts on Pista Cero's rail: a stage's
+ * `restartLead` is the seconds a first timer takes to fly back out to
+ * its action (the climb past 300 m at 5 m/s, then 18 m/s), which the
+ * room holds the stage's clocks for (edge/rooms/ops.js start). */
+const TRANSIT_S = (at) => {
+  const [a, b] = [P2(PLACES.pistaCero.at), at];
+  return Math.round(60 + Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) / 18);
+};
+
 /* The pair's loss thresholds (MISSIONS.md 1.7: 20 s and 45 s by default,
  * tuned per mission). Hard is 75 s here, a lead decision (reversible):
  * under WORLD's canopy an orbiting fixed wing about 150 m off the pair
@@ -117,7 +126,7 @@ const GONE = { chosen: 'dispersal', is: 'started' };
 const DISPERSAL = {
   any: [
     { captured: { set: 'camp' }, n: 5 },
-    { time: 480 },
+    { station: 480 },
     { alert: 'camp', level: 'high' },
   ],
 };
@@ -353,6 +362,7 @@ export default {
     {
       id: 'M1_CP_CONTACT_FOUND',
       title: 'ops.interior.m1.s4',
+      restartLead: TRANSIT_S(ALONG('forest-edge')),
       objectives: [
         {
           id: 'observe', text: 'ops.interior.m1.obj.observe', tier: 'primary', done: { route: 'pair', point: 'camp-edge' }, guide: { isr: 'int1-g-follow', tracker: 'int1-g-tr-follow' },
@@ -360,7 +370,7 @@ export default {
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
       cues: [
-        { at: 2, radio: 'int1-tr-picket', heard: TRACKER },
+        { when: { station: 0 }, at: 2, radio: 'int1-tr-picket', heard: TRACKER },
         { when: { lost: 'pair', s: 8 }, radio: 'int1-s4-welcome' },
         {
           when: { lost: 'pair', s: 20 }, repeat: true, radio: ['int1-s4-lost', 'int1-s4-pilot'], card: 'card.last_known', search: { id: 'pair-lkp', contact: 'pair', r: 150 },
@@ -392,6 +402,7 @@ export default {
     {
       id: 'M1_CP_CAMP_FOUND',
       title: 'ops.interior.m1.s5',
+      restartLead: TRANSIT_S(P2(CAMP_AT)),
       /* RETURN TO BASE comes with the dispersal (the script's M1_09), not
        * after the documentation: a camp gone early (its timer, an alert)
        * takes PERSONNEL with it. Listed first, so it is the guide's
@@ -418,8 +429,8 @@ export default {
         },
       ],
       cues: [
-        { at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
-        { at: 4, radio: 'int1-tr-angle', heard: TRACKER },
+        { when: { station: 0 }, at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
+        { when: { station: 0 }, at: 4, radio: 'int1-tr-angle', heard: TRACKER },
         /* Once the dispersal has started nobody walks back into the camp
          * (the tarp's walk starts in it and ends there): the mark is
          * opened with the camp being stripped instead. */

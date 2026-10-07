@@ -53,6 +53,7 @@ The war's general triggers stay (`time`, `region`, `objective`, `held`,
 | `post(state)` | M3's post condition reached `steady`, `pressed` or `critical` |
 | `chosen(branch)` | which branch a player choice took (M2's A or B, M5's decision) |
 | `route(C, point)` | contact C reached a named point on its authored route |
+| `station(s)` | s seconds after the pilots can be on station: the stage's opening, or on a checkpoint restart (which starts on the rail) the go plus the stage's `restartLead`, the time a first timer takes to fly back out; the contacts' times are held for the same lead |
 
 ### 1.3 Objectives, cards, stars, flags
 

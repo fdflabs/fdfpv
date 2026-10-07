@@ -477,17 +477,24 @@ export class RoomOps {
       checkpoint: null,
       restarted: null,
       from: 0,
+      station: null,
       result: null,
     };
     if (cp) {
       Object.assign(m, copy({
         dials: cp.dials, contacts: cp.contacts, captures: cp.captures, flags: cp.flags, flagAt: cp.flagAt, sites: cp.sites, search: cp.search, choices: cp.choices, path: cp.path,
       }), { entries: cp.entry - 1, from: cp.idx, restarted: cp.id });
-      /* The stage opens again at the go: every time the match kept is
-       * moved with it, so a contact lost when the stage first opened has
-       * been lost as long as it had then, not since. (A checkpoint stored
-       * before it kept its `at` is restored as it was.) */
-      shiftTimes(m, cp.at == null ? 0 : goAt - cp.at);
+      /* The stage opens again at the go, but its aircraft start on the
+       * rail, maybe kilometres from the action: the stage's `restartLead`
+       * (seconds) is how long a pilot takes to fly back out. Every time
+       * the match kept is moved to that, so a contact lost when the stage
+       * first opened has been lost as long as it had then once the pilot
+       * can be back, not since the go; the stage's `station` triggers
+       * count from it. (A checkpoint stored before it kept its `at` is
+       * restored as it was.) */
+      const lead = Math.round((stagesOf(mission)[cp.idx].restartLead ?? 0) * 1000);
+      shiftTimes(m, cp.at == null ? 0 : goAt + lead - cp.at);
+      m.station = goAt + lead;
     }
     this.match = m;
     this.nextId += 1;
@@ -738,6 +745,12 @@ export class RoomOps {
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
       this.enterStage(core, m.from, m.goAt);
+      if (m.station != null) {
+        /* Its checkpoint's times are the station's, which a restart
+         * from it moves the contacts against. */
+        m.stage.station = m.station;
+        m.checkpoint.at = m.station;
+      }
     }
     let dirty = m.state !== state;
     dirty = this.settleAway(core, roomNow) || dirty;

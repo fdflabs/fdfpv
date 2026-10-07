@@ -245,6 +245,12 @@ export function trigger(trig, ctx) {
     const ts = (m.downs ?? []).filter((d) => d.roles.some((r) => want.includes(r)) && (!trig.alone || d.alone)).map((d) => d.t);
     return after(earliest(ts));
   }
+  /* Seconds after the pilots can be on station: the stage's opening, or
+   * on a checkpoint restart the go plus the stage's restartLead. */
+  if (trig.station != null) {
+    const t = (st.station ?? st.at) + Math.round(trig.station * 1000);
+    return t <= f ? t : null;
+  }
   if (trig.clock != null) {
     const t = m.goAt + Math.round(trig.clock * 1000);
     return t <= f ? after(t) : null;
