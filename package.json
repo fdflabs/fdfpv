@@ -70,6 +70,7 @@
     "gen:modecards": "node scripts/modecards.js",
     "gen:hangarcard": "node scripts/hangarcard.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
+    "flightlog:selftest": "node scripts/flightlog-selftest.js",
     "ghost:golden": "node scripts/ghost-golden.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
