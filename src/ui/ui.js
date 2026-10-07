@@ -1150,251 +1150,168 @@ export class Ui {
     this.settings = loadSettings();
     this.firstRun = detectFirstRun();
     /*
-     * WHAT THIS SESSION IS FOR, which is half of the one question the front
-     * door asks. The other half is which aircraft, below, and one card on
-     * the gate answers both: see WAYS.
+     * The front door asks one question with three cards (WAYS): what is
+     * this session for, and in which aircraft. The two halves are held
+     * apart because they are remembered differently.
      *
-     * 'race', 'freestyle', or null for "not asked yet", which is one of the
-     * two ways the gate is up.
-     *
-     * It is NOT in the settings blob and is deliberately not remembered.
-     * The two are not a preference, they are what this session is for: the
-     * same pilot races on Tuesday and messes about on Wednesday, and a
-     * remembered answer would put whichever they did last in front of them
-     * as a fact rather than a choice. It costs one keypress a visit and it
-     * buys a front page that is about the thing they came to do.
-     *
-     * What it buys the menu behind it is the removal of a choice that was
-     * being made twice. Race and Freestyle were two rows on the title, each
-     * naming a place, so the pilot picked a mode by picking a location and
-     * the front page carried both. With the mode already answered there is
-     * one row, and it names the track or the map, which is the only part
-     * still open.
-     *
-     * A link that names what to fly answers it without asking: see
-     * linkedMode. The gate is up while EITHER half is unanswered, which is
-     * what onGate() says, so a link has to answer both to skip it.
+     * The session's purpose, 'race' or 'freestyle', is answered by a link
+     * that names what to fly (linkedMode) and by nothing else: it is not
+     * in the settings and is never remembered, on purpose. Racing on
+     * Tuesday says nothing about Wednesday, and a remembered answer would
+     * put last time's choice in front of the pilot as a fact. One keypress
+     * a visit buys a front page about the thing they came to do, and it
+     * removes a choice the menu behind used to make twice (a mode row per
+     * place became one row naming the place). null means not asked yet.
      */
     this.mode = linkedMode();
     /*
-     * WHICH AIRCRAFT, the other half.
+     * The aircraft is a preference and IS remembered, in settings.airframe;
+     * what is not remembered is that the gate asked, so it opens every
+     * visit (craftGate). It used to be a first run question answered once,
+     * which hid the whoop half of the product three rows deep.
      *
-     * It used to be a gate of its own IN FRONT of Race or Freestyle, on the
-     * argument that the two questions are not the same shape. They are not,
-     * but between them they have three legal answers, and asking twice for
-     * three answers cost a press and made what the second screen asked
-     * depend on what the first one answered. One gate, three cards: WAYS.
-     *
-     * The answer IS remembered, in settings.airframe, because the aircraft
-     * is a preference rather than a statement about today. What is not
-     * remembered is that the question was asked: the gate is the root of the
-     * menu and it opens every visit. See craftGate below.
+     * A link naming the aircraft (?craft=) answers this half without the
+     * gate. It goes through seatAirframe and NOT through an assignment to
+     * settings.airframe first: seatAirframe decides whether the rates and
+     * the throttle cap are still the stock ones of the aircraft it is
+     * moving FROM, read off settings.airframe, so writing the destination
+     * in first made from and to the same machine and a whoop link on a
+     * five inch profile flew the whoop on 670 degree rates with no cap.
+     * airframeAsked is what lets the link skip the gate and what the
+     * choice screen writes so the seat is an answer, not a default.
      */
     const linkedAf = linkedCraft();
     if (linkedAf) {
-      /*
-       * seatAirframe alone, and NOT an assignment to settings.airframe first.
-       * It used to be both, and the assignment defeated the seat: seatAirframe
-       * reads the aircraft it is moving FROM off settings.airframe to decide
-       * whether the rates and the throttle cap are still that machine's stock
-       * ones, and with the destination already written in, from and to were
-       * the same aircraft. A ?craft=whoop65 link on a five inch profile flew
-       * the whoop on 670 degree rates with no cap until the next reload.
-       */
       seatAirframe(this.settings, linkedAf);
       this.settings.airframeAsked = true;
       saveSettings(this.settings);
     }
-    /*
-     * THE GATE IS THE ROOT MENU, every visit and not only the first.
-     *
-     * The aircraft used to be a first run question: answer it once and it
-     * never came back, and the only way to change aircraft after that was
-     * three rows deep under Quad. That made the whoop half of this product
-     * something a pilot had to already know existed. It is not a setting
-     * inside the experience, it IS the experience, so it is on the first
-     * thing the title asks and on the thing Escape backs out to.
-     *
-     * This flag is the aircraft's half of "has the gate been answered". It
-     * is false when a link named the aircraft, and the gate still opens
-     * unless the mode is answered too, which is what onGate() decides.
-     *
-     * airframeAsked still matters: it is what lets a LINK carrying ?craft=
-     * skip straight past this, and it is what the choice screen writes so
-     * the seated aircraft is a real answer rather than a default.
-     */
+    /* The gate is up while either half is unanswered: see onGate. */
     this.craftGate = !linkedAf;
-    /* The hub the gate shows, or null for home (the three hub cards). */
+    /* The hub on the gate, null for home and its three hub cards. */
     this.hub = null;
-    /* Set while a guided first flight is in the air. main.js reads it. */
+    /* A guided first flight is in the air; main.js reads it. */
     this.guided = false;
     /* The room game a title card preselected; see act()'s ways. */
     this.roomGame = null;
+    /* The board's tracks, this browser's own (loadLocalCourses, listed by
+     * My tracks together with the board's), and everybody else's on the
+     * tracks server a page at a time (loadCloudCourses) with where the
+     * next page starts. */
     this.boardCourses = [];
-    /* The pilot's own tracks, read off this browser's library on entry to
-     * My tracks. This and the board's above are the two things that screen
-     * lists. See loadLocalCourses. */
     this.localCourses = [];
-    /* Everybody else's tracks on the tracks server, newest save first, a
-     * page at a time (loadCloudCourses), and where the next page starts. */
     this.cloudCourses = [];
     this.cloudNext = '';
-    /* The standings screen's subject and its times. null means "not asked
-     * yet", which paintStandings draws as Reading the board; an empty array
-     * means the board answered and there are none. */
+    /* The standings screen's subject and times: null is not asked yet
+     * (drawn as Reading the board), an empty array is a board that
+     * answered with none. */
     this.standingsFor = null;
     this.standingsTimes = null;
     this.standingsError = '';
-    /* The Ghost row's contents, pushed by the shell through setGhostRow,
-     * because the shell is the side that knows what can be chased. Null
-     * hides the row, which is every freestyle map. */
+    /* The Ghost and Live rows the shell pushes (setGhostRow, setLiveRow),
+     * because the shell knows what can be chased; null hides the row. */
     this.ghostRow = null;
     this.liveRow = null;
     this.boardLoading = false;
     this.openingBoardCourse = false;
     this.onBoardCourse = null; /* (track) => Promise<boolean> */
     this.screen = 'title';
-    /* Which device the pilot last touched, so the command bar prints that
-     * device's glyphs. Showing keyboard and pad prompts at once is twice the
-     * noise and half the answer.
-     *
-     * 'none' until something is pressed, and that is not a nicety: it used
-     * to start at 'key', so a phone, which never sends a key, was
-     * indistinguishable from a keyboard and got told to press Enter. The
-     * legend reads this to choose a third voice on a touch screen that has
-     * not heard from a keyboard or a pad. Everywhere else treats it exactly
-     * as it treated 'key'. */
+    /*
+     * The device the pilot last touched, so the command bar prints that
+     * device's glyphs and not two sets. 'none' until something is pressed:
+     * a phone never sends a key, and starting at 'key' told it to press
+     * Enter. The legend reads 'none' to choose a touch voice; everything
+     * else treats it as 'key'.
+     */
     this.lastInput = 'none';
-    /* Screen id to the label of the row the cursor was on. See restoreCursor. */
+    /* Screen id to the label of the row the cursor was on (restoreCursor). */
     this.cursorMemory = {};
-    /* The id of the row the cursor is on. The durable half of the cursor:
-     * the index says where the row is right now, this says which row it is.
-     * See syncCursor and restoreFocusRow. */
+    /* The cursor's two halves: the id says which row, the index says where
+     * that row is right now (syncCursor, restoreFocusRow). */
     this.focusId = null;
     this.cursor = 0;
-    /*
-     * On the gate the cursor starts on the card that is SEATED, so a
-     * returning whoop pilot sees their own answer under the cursor and two
-     * presses of Enter from a cold start put them back where they were.
-     * renderMenu only re-picks when the cursor has fallen off the list, and
-     * zero is a valid row here, so the first paint has to be told.
-     */
+    /* On the gate the cursor opens on the seated card, so a returning
+     * pilot sees their own answer under it and two presses of Enter from
+     * cold put them back where they were. renderMenu re-picks only when
+     * the cursor fell off the list, and zero is a valid row, so the first
+     * paint is told here. */
     if (this.craftGate || !this.mode) {
-      const at = GATE_WAYS.findIndex((w) => w.id === seatedWay(this.settings, this.mode).id);
-      this.cursor = at >= 0 ? at : 0;
+      const seated = seatedWay(this.settings, this.mode).id;
+      this.cursor = Math.max(0, GATE_WAYS.findIndex((w) => w.id === seated));
     }
-    /* Which course card the player has chosen, by courseCardKey, and the
-     * last one they were on. The first says whose list is showing; the
-     * second is where Back to the list puts the cursor. */
+    /* The course card the pilot chose (courseCardKey), whose list is
+     * showing, and the last one they stood on, where Back to the list
+     * puts the cursor. */
     this.cardSubject = null;
     this.lastCardKey = null;
     this.onAction = null;    /* (action, settings) => void */
     this.onSettings = null;  /* (settings) => void */
     this.onMusicSkip = null; /* (dir) => void, -1 previous, +1 next */
-    /* (screen) => void, fired by show(). The shell hangs the music
-     * context off this: the flight crate plays on a flight, the menu bed
-     * everywhere else, and this file is the only side that knows which of
-     * those is up. */
+    /* (screen) => void, fired by show(). The shell hangs the music context
+     * off it: the flight crate on a flight, the menu bed everywhere else,
+     * and only this file knows which is up. */
     this.onScreenChange = null;
-    {
-      /*
-       * A placeholder for the dock until main.js pushes the player's real
-       * status, which it does before the first gesture. It is a MENU
-       * record because a visit opens in the menus and the menu bed is
-       * what will be playing; the Music track setting names a flight
-       * record, so it is not the answer to this question even when it is
-       * pinned. Which of the two is a roll on the player, so this is
-       * MENU_TRACKS[0] rather than a second roll that would disagree with
-       * it for one frame. An empty menu crate names nothing.
-       */
-      const tr = MENU_TRACKS[0] ?? { id: '', name: '' };
-      this.musicNow = {
-        id: tr.id,
-        name: tr.name,
-        selection: this.settings.musicTrack,
-        index: 0,
-        context: 'menu',
-      };
-    }
-    /* Where the live sticks are, for the Rates curve. Written by the frame
-     * loop through paintRates, read by the panel on every redraw. */
+    /*
+     * The dock's placeholder until main.js pushes the player's real status,
+     * which it does before the first gesture. A MENU record, because a
+     * visit opens in the menus and the menu bed is what will play; the
+     * Music track setting names a flight record and is not the answer
+     * even when pinned. MENU_TRACKS[0] rather than a roll of our own that
+     * could disagree with the player's for one frame; an empty crate
+     * names nothing.
+     */
+    this.musicNow = {
+      id: MENU_TRACKS[0]?.id ?? '',
+      name: MENU_TRACKS[0]?.name ?? '',
+      selection: this.settings.musicTrack,
+      index: 0,
+      context: 'menu',
+    };
+    /* The live sticks for the Rates curve: the frame loop writes them
+     * through paintRates, the panel reads them on every redraw. */
     this.ratesStick = { roll: 0, pitch: 0, yaw: 0 };
-    /* Asked at most once a session, so oscillating across 40 does not nag. */
+    /* At most once a session, so oscillating across 40 does not nag. */
     this.yawTipAsked = false;
     /*
-     * Which room a ROOM was opened from, so Escape goes back to it.
-     *
-     * Same contract as ratesFrom below, and needed for the same reason: the
-     * Race and Freestyle rooms both carry a Tune row that is a door into
-     * Quad, and act('quad') set returnTo to 'title' from anywhere that was
-     * not paused. So changing a tune from Freestyle and pressing Back
-     * landed on the title rather than the room you were standing in, which
-     * is a one way door dressed as a signpost.
-     *
-     * Separate from returnTo on purpose: returnTo is where the pause chain
-     * came from, and overwriting it here strands a paused run.
+     * Where Escape goes back to from a room, from Rates, from PIDs and from
+     * the flight controller, each held apart from returnTo on purpose.
+     * returnTo is where the pause chain came from, and writing these into
+     * it stranded a paused run: act('quad') set returnTo to 'title' from
+     * anywhere unpaused, so a tune changed from the Freestyle room's Tune
+     * row and Back landed on the title rather than the room, a one way
+     * door dressed as a signpost. Rates and PIDs opened from Settings
+     * land back on that list the same way without losing a paused origin
+     * two screens up.
      */
     this.roomFrom = null;
-    /* Set when Rates was opened FROM Settings, so Escape lands back on the
-     * list it was a row of. Separate from returnTo on purpose: returnTo is
-     * where Settings itself came from, and overwriting it here would lose a
-     * paused origin two screens up. */
     this.ratesFrom = null;
-    /* Same contract for the PIDs screen. */
     this.pidsFrom = null;
-    /* And for the flight controller: which list its row was on, so Escape
-     * lands back there without disturbing the pause chain in returnTo. */
     this.fcFrom = null;
     /* The module readback the PIDs screen draws from; see setPidsLive. */
     this.pidsLive = null;
-    /* A refused preset write, shown as one amber row in the Rates room and
-     * cleared the moment the room is entered or a write succeeds. Not a
-     * setting: it describes this browser's last answer, not the pilot's. */
+    /* A refused preset write, one amber row in the Rates room until the
+     * room is entered again or a write succeeds. This browser's last
+     * answer, not a setting. */
     this.ratesNotice = null;
-    /*
-     * The flight-controller editor. The session holds the draft dump and
-     * builds the rows; the shell owns what Save means through onFcSave.
-     */
+    /* The flight controller editor: the session holds the draft dump and
+     * builds the rows, the shell owns what Save means (onFcSave). */
     this.onFcOpen = null;    /* (page) => void */
     this.onFcSave = null;    /* (draft, { restart, exit, presetId }) => void */
     this.onFcAngle = null;   /* (on) => void, same sim_set_angle_mode as Settings */
     this.onFcMotor = null;   /* (motor, duty) => void, sim_motor_override */
     this.fc = new FcSession();
-    this.fc.getFlightMode = () => (this.settings.flightMode === 'angle' ? 'angle' : 'acro');
-    this.fc.setFlightMode = (on) => {
-      this.settings.flightMode = on ? 'angle' : 'acro';
-      saveSettings(this.settings);
-      this.renderMenu();
-      if (this.onFcAngle) {
-        this.onFcAngle(Boolean(on));
-      }
-    };
-    this.fc.getLaunchControl = () => Boolean(this.settings.launchControl);
-    this.fc.setLaunchControl = (on) => {
-      this.settings.launchControl = Boolean(on);
-      saveSettings(this.settings);
-      this.renderMenu();
-      if (this.onSettings) {
-        this.onSettings(this.settings);
-      }
-    };
-    this.fc.motorTestAllowed = () => !this.fc.runActive && this.fcFrom !== 'paused';
-    this.fc.onMotorTest = (motor, duty) => {
-      if (this.onFcMotor) {
-        this.onFcMotor(motor, duty);
-      }
-    };
+    wireFcSession(this);
     this.onUiSound = null;   /* (kind) => void: 'move', 'adjust', 'select', 'back' */
     this.share = null;       /* published course this run is flying, or null */
     this.timePosted = null;  /* last successful post on the results screen */
-    /* The freestyle run the results screen is showing, and whether it has
-     * been sent. Both cleared by resetScore, which every restart calls. */
+    /* The freestyle run the results screen shows and whether it was sent;
+     * resetScore clears both on every restart. */
     this.freestyleRun = null;
     this.runPosted = null;
     this.resultsFastest = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
-    /* Seed the edges on the next poll rather than acting on them. Set by
-     * every screen change; see show(). */
+    /* Seed the pad's edges on the next poll rather than acting on them;
+     * every screen change sets it (show). */
     this.padRearm = true;
     this.dropEl = null;
     this.dropIndex = null;
@@ -1404,35 +1321,15 @@ export class Ui {
     this.gpuInfo = null;
     /* Set by main.js; see setStickProbe. */
     this.stickProbe = null;
-    /* The gravity hint is shown at most once per page load even before the
-     * localStorage flag is consulted, so a pilot who dismissed it and then
-     * paused and resumed does not get it again on the way back into flight. */
+    /* The gravity hint shows at most once a page load, before the stored
+     * flag is even read, so a pilot who dismissed it and paused does not
+     * meet it again on the way back into flight. */
     this.airHintDone = false;
     this.airHintTimer = 0;
     this.ptrX = null;
     this.ptrY = null;
     this.build();
-    /* A track going online, or failing to, while My tracks is open: its
-     * card says so without the pilot leaving and coming back. */
-    window.addEventListener(TRACK_SYNC_EVENT, () => {
-      if (this.screen === 'courses') {
-        this.loadLocalCourses();
-        this.renderCourseCards();
-      }
-    });
-    /* Tab is the swap key in flight and a key of the picker's, so there it
-     * must not also walk the browser's focus. Everywhere else it still
-     * does: the menus' rows and cards are tab stops. */
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Tab' && (this.screen === 'flight' || this.carousel.isOpen || this.hangar.isOpen)) {
-        e.preventDefault();
-      }
-    }, true);
-    this.root.addEventListener('mousedown', (e) => {
-      if (this.dropEl && !this.dropEl.contains(e.target) && !e.target.closest('.drop-btn')) {
-        this.closeDrop();
-      }
-    });
+    watchSessionEvents(this);
     this.show('title');
     this.bindLocationHash();
   }
@@ -7151,5 +7048,5 @@ Object.assign(Ui.prototype, keyMethods);
 
 /* slot: actions */
 
-import { sessionMethods } from './session.js';
+import { sessionMethods, watchSessionEvents, wireFcSession } from './session.js';
 Object.assign(Ui.prototype, sessionMethods);

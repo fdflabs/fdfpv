@@ -35,6 +35,7 @@
 import { MAPS, mapById } from '../maps/registry.js';
 import { MENU_TRACKS } from '../render/tracks.js';
 import { planesFor } from '../game/verify.js';
+import { TRACK_SYNC_EVENT } from '../share/cloud.js';
 import { airframeById, DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 import { normaliseStickMode, stickCaption } from '../input/stickmode.js';
 import { accountsAvailable, mayPlay } from '../share/account.js';
@@ -621,3 +622,64 @@ export const sessionMethods = {
     return isCardScreen(this.screen) || this.onGate();
   },
 };
+
+/*
+ * The flight controller session's hooks into the shell's settings and
+ * hooks. Flight mode and launch control are settings, so the bench reads
+ * and writes them through the Ui and the menus redraw; the motor test is
+ * refused while a run is live or the bench was opened from the pause
+ * menu, because a motor spinning under a paused flight is a flight.
+ */
+export function wireFcSession(ui) {
+  const { fc } = ui;
+  fc.getFlightMode = () => (ui.settings.flightMode === 'angle' ? 'angle' : 'acro');
+  fc.setFlightMode = (on) => {
+    ui.settings.flightMode = on ? 'angle' : 'acro';
+    saveSettings(ui.settings);
+    ui.renderMenu();
+    if (ui.onFcAngle) {
+      ui.onFcAngle(Boolean(on));
+    }
+  };
+  fc.getLaunchControl = () => Boolean(ui.settings.launchControl);
+  fc.setLaunchControl = (on) => {
+    ui.settings.launchControl = Boolean(on);
+    saveSettings(ui.settings);
+    ui.renderMenu();
+    if (ui.onSettings) {
+      ui.onSettings(ui.settings);
+    }
+  };
+  fc.motorTestAllowed = () => !fc.runActive && ui.fcFrom !== 'paused';
+  fc.onMotorTest = (motor, duty) => {
+    if (ui.onFcMotor) {
+      ui.onFcMotor(motor, duty);
+    }
+  };
+}
+
+/*
+ * The page events the session answers for its whole life. A track going
+ * online, or failing to, while My tracks is open redraws its card. Tab is
+ * the swap key in flight and a key of the pickers', so there it must not
+ * walk the browser's focus; everywhere else the rows and cards are tab
+ * stops. A press outside an open drop-down closes it.
+ */
+export function watchSessionEvents(ui) {
+  window.addEventListener(TRACK_SYNC_EVENT, () => {
+    if (ui.screen === 'courses') {
+      ui.loadLocalCourses();
+      ui.renderCourseCards();
+    }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Tab' && (ui.screen === 'flight' || ui.carousel.isOpen || ui.hangar.isOpen)) {
+      e.preventDefault();
+    }
+  }, true);
+  ui.root.addEventListener('mousedown', (e) => {
+    if (ui.dropEl && !ui.dropEl.contains(e.target) && !e.target.closest('.drop-btn')) {
+      ui.closeDrop();
+    }
+  });
+}
