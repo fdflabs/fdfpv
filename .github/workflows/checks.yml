@@ -194,6 +194,7 @@ jobs:
       - run: npm run genbaseline:selftest
       - run: npm run score:golden
       - run: npm run scorehud:golden
+      - run: npm run debrief:selftest
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
       - run: npm run trick:golden
@@ -300,6 +301,8 @@ jobs:
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest
+      # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
+      - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
       # A rate change mid run keeps the run, tune loads are generation
