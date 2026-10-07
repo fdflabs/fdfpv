@@ -279,6 +279,8 @@ jobs:
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check
+      # The lessons: data that exists, words in en and es, each judge.
+      - run: npm run training:selftest
       - run: npm run progress:selftest
       # The pilot's own flight time: only flight counts, and the words
       # (src/share/flighttime.js); its merge is in test:tracks.
