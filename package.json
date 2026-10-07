@@ -50,6 +50,7 @@
     "items:golden": "node scripts/items-golden.js",
     "cards:golden": "node scripts/cards-check.js",
     "actions:golden": "node scripts/actions-golden.js",
+    "uirest:golden": "node scripts/uirest-golden.js",
     "lint:input": "node scripts/input-check.js",
     "uiwire:check": "node scripts/uiwire-check.js",
     "lint:quality": "node scripts/quality-check.js",

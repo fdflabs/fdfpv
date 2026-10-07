@@ -1,29 +1,21 @@
 /*
- * ui.js: the product shell. Title, how to fly, credits, settings, pause,
- * results, stick calibration, the flight overlay, and the flight-controller screen.
+ * ui.js: the Ui class, the shell's menus and flight overlay. Title and hubs,
+ * the tutorial, settings, pause, results, calibration, the firmware bench
+ * and the overlay drawn over a flight all hang off it; the screens' rows,
+ * painters and moves live in the modules beside it (items, nav, actions,
+ * page, overlay and the rest) and are installed onto this class.
  *
- * Why this exists: the page used to load straight into a falling quad with
- * a monospace debug dump in the corner. That reads as a tech demo. A
- * player arriving cold needs a title to land on, a way to start, a way to
- * learn the sticks, a way to change the few settings that matter, and a
- * result to read at the end of a run.
+ * Every menu works from the keyboard alone and from a radio or gamepad
+ * alone. A radio has no dependable buttons, so its sticks drive the menus:
+ * pitch moves the cursor, roll right chooses, roll left goes back, and any
+ * pad button also chooses. The title and Settings leave the sticks to the
+ * aircraft, so their rows take the mouse and keyboard, with a radio switch
+ * still choosing on the title, and each screen says so. Value rows also
+ * have mouse controls: arrows for a stepped number, a dropdown for a list.
  *
- * Every screen is navigable from the keyboard alone and from a radio or
- * gamepad alone, except Settings and the title. On a radio there are no
- * reliable menu buttons, so the sticks drive the other menus: pitch moves
- * the cursor, roll right selects, roll left goes back. Any gamepad button
- * also selects. Title and Settings keep the sticks for the airframe, so
- * those screens are mouse and keyboard for the rows. A radio switch still
- * selects on the title. The screens say so. Rows that hold a value also
- * have a mouse control: up and down arrows for a stepped number, a
- * dropdown for a named list.
- *
- * The DOM is built here rather than in index.html so the markup and the
- * state machine that drives it sit in one file. Styling lives in
- * index.html next to the rest of the page's CSS.
- *
- * Nothing in this file touches the simulation. It reads state that the
- * shell hands it and returns the player's intent as action strings.
+ * The markup is built in JavaScript beside the state that drives it; the
+ * CSS stays in index.html. Nothing here touches the simulation: the shell
+ * hands in state and gets back the player's intent as action strings.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -211,14 +203,10 @@ import { scoreableTricks, trickStatus } from './trickslist.js';
  * main.js read the clock formats. */
 export { WAYS, formatRunClock, formatTime };
 
-/* Whether a Flight controller save exists, which is what puts Your edits
- * on the Tune row. Read fresh each time: the pilot can save one two rows
- * away from the row that offers it. */
 /*
- * Which actions leave for another tab, and which open another screen. The row
- * grammar reads these to decide a row's kind, so a new action that forgets to
- * appear here renders as a plain action, which is the safe default: it gets no
- * chevron it has not earned.
+ * Actions that open a screen of their own or another tab. A row whose action
+ * is listed draws the chevron that says so; anything missing from the set
+ * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
@@ -226,16 +214,13 @@ export const SCREEN_ACTIONS = new Set([
   'calibrate', 'friends', 'rooms', 'roomnew',
 ]);
 
-/* What the breadcrumb says, per screen. A room is a navigation parent, so a
- * trail rather than a single word: Escape then has one obvious destination
- * instead of the four the return chain currently chooses between. */
 /*
- * Screens a room can be opened FROM and returned to. The launch card and
- * My tracks carry doors into Quad and Pilot; the title is not here
- * because it is where Back goes when there is nowhere else to go.
+ * The screens a room is entered from and returned to on Back. The title is
+ * left out: Back reaches it anyway when nothing else is open.
  */
 export const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', 'pilot']);
 
+/* The breadcrumb's word for each screen. */
 export const SCREEN_TITLES = {
   title: str('ui.product_name'),
   courses: str('ui.my_tracks'),
@@ -257,15 +242,13 @@ export const SCREEN_TITLES = {
   roomnew: str('roombrowser.new_title'),
 };
 /*
- * The freestyle world the pilot is SEATED in, or null when the seat is a
- * track. The Map row on the title reads this rather than the remembered id,
- * because a row on the front page has to name what Fly would launch, and
- * those two are not the same thing the moment somebody backs out of the
- * world picker without choosing.
+ * The freestyle world in the seat, or null when the seat holds a track. The
+ * title's Map row names what Fly would launch, which is the seat, not the
+ * last world the picker showed.
  */
 export function seatedFreestyleMap(s) {
-  const m = MAPS.find((x) => x.id === (s && s.map));
-  return m && m.mode === 'freestyle' ? m : null;
+  const id = s ? s.map : undefined;
+  return MAPS.find((world) => world.mode === 'freestyle' && world.id === id) ?? null;
 }
 
 /* The profile's fields, choices and rules live in ./settings.js; main.js,
@@ -280,9 +263,8 @@ export {
 export const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
 
 /*
- * THE WARNING, and it comes FIRST when scoring is on, because a row wearing
- * row-warn owes the pilot the reason before it offers them anything. The
- * argument for it is at DEFAULTS.freestyleScoring.
+ * Scoring is unfinished, so whenever it is switched on the row's note opens
+ * with that caveat before describing the modes (see DEFAULTS.freestyleScoring).
  */
 const SCORING_WARNING = str('ui.this_is_an_unfinished_feature_and')
   + str('ui.the_recogniser_misses_tricks_it_should')
@@ -296,177 +278,118 @@ const SCORING_HOW = str('ui.off_no_overlay_no_names_and')
   + str('ui.score_board');
 
 export function scoringNote(mode) {
-  return mode === 'off' ? SCORING_HOW : `${SCORING_WARNING} ${SCORING_HOW}`;
+  const parts = mode === 'off' ? [SCORING_HOW] : [SCORING_WARNING, SCORING_HOW];
+  return parts.join(' ');
 }
 
 /*
- * WHO TO NAME ON A TRACK, IN ONE PLACE.
- *
- * A board track's `author` is the account that published it. On a track
- * somebody built themselves those are the same person. On the eight RaceGOW5
- * rooms they are not: six other people designed them and one brought them
- * over, and the designer is in the track's own credit block, which the board
- * passes through now. So the line names the builder where the board knows
- * one, and the publisher otherwise. The detail pane still says both.
+ * The one name a track card credits. The board's `author` is whoever
+ * published it; for the imported RaceGOW5 rooms that is not who designed
+ * them, and the board passes the designer through, so the designer wins
+ * when known. The detail pane shows both.
  */
 export function byLine(t) {
-  if (t && t.designer) {
+  if (!t) {
+    return '';
+  }
+  if (t.designer) {
     return str('ui.by', { designer: t.designer });
   }
-  return t && t.author ? str('ui.by_2', { author: t.author }) : '';
-}
-
-/* A picker card drawn in a fit rather than in the slots, a My Hangar
- * build's or a stock plane's kept aside (src/ui/builds.js), as
- * src/render/carousel3d.js takes it: the model's own key, its look, what
- * it is fitted with and a combat quad's loadout. */
-function drawnFit(key, id, fit) {
-  const parts = PROPS[id] ? { prop: 'stock', addons: [], damage: null, ...(fit.parts ?? {}) } : null;
-  return {
-    key,
-    look: lookFor(id, fit.livery),
-    fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
-    combat: fit.combat ?? null,
-  };
+  return t.author ? str('ui.by_2', { author: t.author }) : '';
 }
 
 /*
- * IS THE THING IN THE SEAT A RACE?
- *
- * The launch card is for a measured run: it exists to say what a lap time
- * counts as. Freestyle has no clock, no lap, no ghost and no board, so a
- * card in front of it would be ceremony, and the Freestyle room was built
- * without one for exactly that reason.
- *
- * The predicate is GATE COUNT, which is the same signal the Race and
- * Freestyle rooms split on and the same one the renderer uses: a designed
- * course with no stations is a freestyle flight, no lap and no gate HUD.
- * Not MAPS[].mode, which nothing but a debug hook reads and which would
- * file a gateless published track under Race and then promise it a clock it
- * cannot deliver.
+ * How src/render/carousel3d.js draws a picker card that is not simply the
+ * slots (a My Hangar build, or a stock plane's fit kept beside one): the
+ * model key, the livery, the fitted parts and power where the airframe has
+ * them, and a combat loadout.
+ */
+function pickerLook(key, id, fit) {
+  let fitted = null;
+  if (PROPS[id]) {
+    const entry = Object.assign({ prop: 'stock', addons: [], damage: null }, fit.parts);
+    const option = POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null;
+    fitted = { id, entry, option };
+  }
+  return { key, look: lookFor(id, fit.livery), fit: fitted, combat: fit.combat ?? null };
+}
+
+/*
+ * Whether the seat holds a race, which is what earns the launch card: it
+ * explains what a lap time counts as, and a flight with no clock has
+ * nothing to explain. Decided by gate count, as the rooms and the renderer
+ * decide it, so a published track with no gates flies as freestyle whatever
+ * world it stands in. A freestyle world is never a race.
  */
 export function seatIsRace(s) {
-  const m = MAPS.find((x) => x.id === s.map) ?? MAPS[0];
-  if (m.mode === 'freestyle') {
-    return false;
-  }
-  const seat = activeCourseSummary();
-  return Boolean(seat && seat.gates > 0);
+  const world = MAPS.find(({ id }) => id === s.map) || MAPS[0];
+  const gates = world.mode === 'freestyle' ? 0 : (activeCourseSummary()?.gates ?? 0);
+  return gates > 0;
 }
 
 /*
- * THE RADIO DEAD END, SAID OUT LOUD AND MADE FIXABLE.
- *
- * Two states leave a pilot with a radio they cannot use, and neither of them
- * says anything today: the cursor moves and nothing else happens, which
- * reads as a broken product rather than as a radio that needs a minute.
- *
- * NO BUTTONS. Every switch on this radio arrives as an axis, so
- * padMenuButtons has nothing to read and select is permanently false. It is
- * the harder of the two, because the fix, calibration, is itself a menu row
- * that has to be selected. input.js answers that with a hold, and this row
- * is where a pilot finds out that is the gesture.
- *
- * NOT CALIBRATED. navRaw deliberately gives up and down only, because it
- * cannot tell pitch from roll without a map. So the cursor moves and no
- * value row can be adjusted: half a menu. Calibrating is the whole fix.
- *
- * It is a ROW, not a floating panel, and it is row zero. That gets it first
- * in the focus order for free, gives it the help column, the cursor, the
- * click target and the row grammar without any of them being special cased,
- * and makes Enter on it go to the one screen that fixes the thing it is
- * complaining about. A banner nobody can focus is a banner a radio pilot
- * cannot act on, which would be the same joke twice.
+ * The radio problems that leave a pilot stuck in the menus, most serious
+ * first, each with the string keys of its row. Shown as row zero of the
+ * menu, not a banner, so a radio can reach it and Enter goes straight to
+ * calibration, the fix for all three:
+ * - no buttons: every switch reads as an axis, so nothing can select; the
+ *   note teaches the hold gesture src/input/input.js accepts instead.
+ * - throttle guess looks wrong: an uncalibrated mapping that neither the
+ *   browser vouches for (mapKnown, a standard gamepad) nor has been seen
+ *   parked off centre the way a real throttle sits (mapUsable, see
+ *   noteThrottleParked). Judged on what the axes did, not on whether the
+ *   wizard was ever run, because a radio the guess already fits is fine.
+ * - yaw missing: the throttle fits but the axis guessed as yaw never moved
+ *   (noteGuessOrder). After the throttle row, which is the worse surprise.
  */
+const PAD_TROUBLES = [
+  {
+    applies: (pad) => !pad.buttons && !pad.hasSelect,
+    label: 'ui.your_radio_has_no_buttons_this',
+    note: ['ui.every_switch_on_it_is_arriving', 'ui.hold_any_stick_away_from_centre', 'ui.which_is_enough_to_get_in',
+      'ui.to_throw_the_switch_you_want'],
+  },
+  {
+    applies: (pad) => !pad.calibrated && !pad.mapKnown && !pad.mapUsable,
+    label: 'ui.this_browser_is_guessing_your_stick',
+    note: ['ui.the_axis_it_thinks_is_your', 'ui.throttle_rests_at_one_end_because', 'ui.probably_wrong_and_a_wrong_guess',
+      'ui.that_springs_back_calibrating_takes_about'],
+  },
+  {
+    applies: (pad) => !pad.calibrated && pad.guessNoYaw,
+    label: 'ui.this_browser_cannot_see_your_yaw',
+    note: ['ui.the_axis_it_guessed_was_yaw', 'ui.know_about_has_been_swept_end', 'ui.in_some_order_other_than_the',
+      'ui.lost_is_yaw_calibrating_takes_about', 'ui.is_which'],
+  },
+];
+
+/* The warning row for the controller in use, or null for none (and always
+ * null on the keyboard or with nothing plugged in). */
 export function padTroubleItem(info) {
   if (!info || !info.count || info.using === 'Keyboard') {
     return null;
   }
-  if (!info.buttons && !info.hasSelect) {
-    return {
-      label: str('ui.your_radio_has_no_buttons_this'),
-      action: 'calibrate',
-      rowClass: 'row-warn',
-      note: str('ui.every_switch_on_it_is_arriving')
-        + str('ui.hold_any_stick_away_from_centre')
-        + str('ui.which_is_enough_to_get_in')
-        + str('ui.to_throw_the_switch_you_want'),
-    };
+  const trouble = PAD_TROUBLES.find((t) => t.applies(info));
+  if (!trouble) {
+    return null;
   }
-  /*
-   * A GUESS THAT IS WORKING IS NOT A PROBLEM, AND THIS USED TO SAY IT WAS.
-   *
-   * The test was `map.stored`, which records whether somebody has been
-   * through the wizard. It is not a fact about the mapping. A pilot with a
-   * transmitter in AETR joystick mode, which is what this page's own advice
-   * tells them to set, plugs it in, flies the quad correctly with the built
-   * in guess, and never opens the wizard because nothing is wrong. They got
-   * a red row at the top of the front page, on every visit, telling them
-   * their radio was not calibrated. Reported as a bug, and it was one: the
-   * row was reporting on a flag rather than on the radio.
-   *
-   * info.mapUsable is the observation instead, and it is about the machine:
-   * a real throttle is parked off centre because it has no centring spring.
-   * See noteThrottleParked in src/input/input.js. When it is true the guess
-   * has been seen behaving like a radio, the menus let the sticks move left
-   * and right, and there is nothing left to warn about.
-   *
-   * When it is false the warning is EARNED and says what was observed, not
-   * what a flag holds: a spring centred axis where the throttle should be is
-   * a gamepad or a radio in some other order, and that pilot is about to
-   * take off at half power on a stick that springs back.
-   *
-   * A standard gamepad on its own default is neither: the browser has said
-   * where its sticks are and input.js has put the channels there. See
-   * standardPadMap. info.mapKnown says so.
-   */
-  if (!info.calibrated && !info.mapKnown && !info.mapUsable) {
-    return {
-      label: str('ui.this_browser_is_guessing_your_stick'),
-      action: 'calibrate',
-      rowClass: 'row-warn',
-      note: str('ui.the_axis_it_thinks_is_your')
-        + str('ui.throttle_rests_at_one_end_because')
-        + str('ui.probably_wrong_and_a_wrong_guess')
-        + str('ui.that_springs_back_calibrating_takes_about'),
-    };
-  }
-  /*
-   * THE GUESS CAN PASS THE THROTTLE QUESTION AND STILL HAVE NO YAW.
-   *
-   * The row above is the only thing that was ever asked about the guess,
-   * and it asks about one axis. A radio whose throttle is where AETR says
-   * and whose yaw is not gets a silent shell and a quad that will not spin,
-   * which is three tickets on the board and none of them knew what to call
-   * it. input.js watches for it directly: see noteGuessOrder.
-   *
-   * It comes after the throttle row rather than before it because a quad
-   * taking off at half power on its own is the worse surprise of the two,
-   * and in practice only one of them can be true at a time anyway.
-   */
-  if (!info.calibrated && info.guessNoYaw) {
-    return {
-      label: str('ui.this_browser_cannot_see_your_yaw'),
-      action: 'calibrate',
-      rowClass: 'row-warn',
-      note: str('ui.the_axis_it_guessed_was_yaw')
-        + str('ui.know_about_has_been_swept_end')
-        + str('ui.in_some_order_other_than_the')
-        + str('ui.lost_is_yaw_calibrating_takes_about')
-        + str('ui.is_which'),
-    };
-  }
-  return null;
+  return {
+    label: str(trouble.label),
+    action: 'calibrate',
+    rowClass: 'row-warn',
+    note: trouble.note.map((key) => str(key)).join(''),
+  };
 }
 
 /* What the seated track is to the board, or null when nothing is seated. */
 export function liveListing() {
+  let seated = null;
   try {
-    const course = inspectCourse();
-    return course && course.kind !== 'none' ? course : null;
+    seated = inspectCourse();
   } catch (e) {
-    return null;
+    /* Storage that cannot be read holds no seat worth listing. */
   }
+  return seated && seated.kind !== 'none' ? seated : null;
 }
 
 /*
@@ -480,15 +403,13 @@ export function lapCraftOf(doc, airframe) {
 }
 
 /*
- * A track card's identity, stable across the rebuilds items() does on every
- * render. The card objects themselves are made fresh each time, so the chosen
- * card is remembered by this key rather than by reference.
+ * What a track card is remembered by. items() makes new card objects on
+ * every render, so the chosen one is kept as this string, never by
+ * reference: its kind and its track's id.
  */
 export function courseCardKey(card) {
-  if (!card || !card.course) {
-    return null;
-  }
-  return `${card.course.kind}:${card.course.track.id}`;
+  const course = card ? card.course : null;
+  return course ? `${course.kind}:${course.track.id}` : null;
 }
 
 /*
@@ -525,178 +446,144 @@ function cloudCardRows(subject) {
 }
 
 /*
- * WHAT ONE TRACK CARD CAN DO, once the player has chosen it.
- *
- * Choosing a card names it and lists what can be done with it, rather than
- * flying it on the spot. Play is first, so the common path is Enter then
- * Enter. One of the pilot's own can be played, edited in the builder,
- * renamed, duplicated and deleted; one from the board can be played, copied
- * into My tracks to build on, and its times read.
+ * The list under a chosen track card. Choosing a card does not fly it: it
+ * opens this list, Play first, so Enter twice still flies. The pilot's own
+ * tracks can be edited, renamed, copied and deleted; a board track can be
+ * copied into My tracks, its standings read, or its page opened. Each entry
+ * is [label key, action, note key]; every note may name the track and its
+ * world.
  */
+const OWN_CARD_ENTRIES = [
+  ['ui.edit', 'card-edit', 'ui.open_it_in_the_builder_in'],
+  ['ui.rename', 'card-rename', 'ui.give_it_a_name_you_will'],
+  ['ui.duplicate', 'card-duplicate', 'ui.a_copy_to_change_without_touching'],
+  ['ui.delete_label', 'card-delete', 'ui.take_it_out_of_this_browser'],
+];
+const BOARD_CARD_ENTRIES = [
+  ['ui.duplicate', 'card-duplicate', 'ui.copy_it_into_my_tracks_board'],
+  ['ui.standings', 'card-standings', 'ui.every_time_posted_on_fastest_first'],
+  ['ui.open_on_the_web', 'card-board', 'ui.the_public_page_for_a_link'],
+];
+
 export function courseCardRows(subject) {
   if (subject.course.kind === 'cloud') {
     return cloudCardRows(subject);
   }
-  const board = subject.course.kind === 'board';
-  const name = subject.label;
-  const world = mapById(subject.course.track.map).name;
-  const rows = [
-    /* The list says whose it is. The chosen card is marked as well, but a
-     * colour is not a label, and this list sits far enough below the strip
-     * that the two want joining in words. Not a cursor stop. */
-    { label: name, section: true },
-    {
-      label: str('ui.play'),
-      action: 'card-fly',
-      note: board
-        ? str('ui.load_from_the_board_and_fly', { name })
-        : str('ui.race_it_in', { name, world }),
-    },
+  const fromBoard = subject.course.kind === 'board';
+  const vars = { name: subject.label, world: mapById(subject.course.track.map).name };
+  const entry = ([label, action, note]) => ({ label: str(label), action, note: str(note, vars) });
+  /* The heading names the track in words, since the highlighted card sits
+   * well above this list. A section, so the cursor skips it. */
+  return [
+    { label: subject.label, section: true },
+    entry(['ui.play', 'card-fly', fromBoard ? 'ui.load_from_the_board_and_fly' : 'ui.race_it_in']),
+    ...(fromBoard ? BOARD_CARD_ENTRIES : OWN_CARD_ENTRIES).map(entry),
+    { label: str('ui.back_to_the_list'), action: 'card-back' },
   ];
-  if (board) {
-    rows.push({
-      label: str('ui.duplicate'),
-      action: 'card-duplicate',
-      note: str('ui.copy_it_into_my_tracks_board', { name }),
-    });
-    rows.push({
-      label: str('ui.standings'),
-      action: 'card-standings',
-      note: str('ui.every_time_posted_on_fastest_first', { name }),
-    });
-    rows.push({
-      label: str('ui.open_on_the_web'),
-      action: 'card-board',
-      note: str('ui.the_public_page_for_a_link', { name }),
-    });
-  } else {
-    rows.push(
-      {
-        label: str('ui.edit'),
-        action: 'card-edit',
-        note: str('ui.open_it_in_the_builder_in', { name, world }),
-      },
-      {
-        label: str('ui.rename'),
-        action: 'card-rename',
-        note: str('ui.give_it_a_name_you_will', { name }),
-      },
-      {
-        label: str('ui.duplicate'),
-        action: 'card-duplicate',
-        note: str('ui.a_copy_to_change_without_touching', { name }),
-      },
-      {
-        label: str('ui.delete_label'),
-        action: 'card-delete',
-        note: str('ui.take_it_out_of_this_browser', { name }),
-      },
-    );
-  }
-  rows.push({ label: str('ui.back_to_the_list'), action: 'card-back' });
-  return rows;
 }
 
 /*
- * The aircraft row: the top of the Quad screen and the only way to change
- * the answer the first run gate asked.
+ * The aircraft row heading the Quad screen. Its note is the loudest on the
+ * screen because the change is: a new aircraft brings its own tune, pack and
+ * camera, and its own kind of track (a whoop room, a five inch field, an
+ * airfield), so the seated track moves too.
  *
- * It carries the loudest note on the screen because it is the loudest
- * change on the screen. Everything else here adjusts one machine; this one
- * swaps the machine, and it takes the tune, the pack charge and the camera
- * with it because none of those means anything on the other aircraft. It
- * also changes what a track IS: a whoop flies a 1.22 by 1.83 m RaceGOW room,
- * a five inch flies a sixty metre field and a wing flies an airfield, so
- * the seated track goes with it too.
- */
-/*
- * During a run the row SWAPS the aircraft in place (src/main.js hotSwap)
- * rather than seating it for the next one, so it no longer carries the
- * start line warning: `swap` is the shell's, and absent between runs.
- * Enter and a click open the picker (src/ui/carousel.js) through `open`,
- * which the screen adds because it needs the Ui.
+ * Given `swap` (the shell's, present only during a run) the choice swaps the
+ * aircraft in place via src/main.js hotSwap; otherwise it seats it for the
+ * next run. Enter and a click open the picker (src/ui/carousel.js) through an
+ * `open` the screen adds, since that needs the Ui.
  */
 export function craftItem(s, swap, shown = s.airframe) {
-  const af = airframeById(shown);
-  return {
-    ...choice(
-      str('ui.aircraft'),
-      str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: swap ? ` ${str('carousel.in_place')}` : '' }),
-      AIRFRAME_IDS,
-      shown,
-      (id) => airframeById(id).name,
-      (id) => {
-        if (swap) {
-          swap(id);
-        } else {
-          seatAirframe(s, id);
-        }
-      },
-    ),
-    pickOnly: true,
-  };
+  const inPlace = swap ? ` ${str('carousel.in_place')}` : '';
+  const note = str('ui.changing_it_loads_that_machine_s', { blurb: airframeById(shown).blurb, v3: inPlace });
+  const nameOf = (id) => airframeById(id).name;
+  const take = swap ? (id) => { swap(id); } : (id) => { seatAirframe(s, id); };
+  return { ...choice(str('ui.aircraft'), note, AIRFRAME_IDS, shown, nameOf, take), pickOnly: true };
 }
 
 /*
- * Where the camera tilt starts costing enough yaw to be worth a word, and
- * what to offer instead. 40 is where sin(t) passes 0.64, so nearly two
- * thirds of a yaw becomes picture roll; 500 puts a 40 degree mount back to
- * roughly what 30 degrees feels like at the stock rate. Both measured, see
+ * The yaw rate offered when a steep camera tilt starts eating yaw. Past 40
+ * degrees of tilt sin(t) exceeds 0.64, so about two thirds of a yaw input
+ * shows as roll in the picture; 500 deg/s makes a 40 degree mount feel
+ * roughly like 30 degrees at the stock rate. Both figures measured, see
  * PROGRESS.md.
  */
 export const YAW_TIP_RATE = 500;
 
-/*
- * RACE OR FREESTYLE, WHEN THE LINK ALREADY SAID.
- *
- * The gate is a question, and a question that has been answered must not be
- * asked again: the board's links carry ?share=id, and a chase link carries
- * ?ghost=id. Each is somebody arriving with the thing they want to fly
- * already named, so the gate would be a screen in front of a decision they
- * made on another page.
- *
- * Only the link answers it. A stored setting deliberately does not, which is
- * the whole point of the gate: see the constructor.
- */
-function linkedMode() {
-  let params;
+/* The page's query string, empty where there is no location to read. */
+function linkParams() {
   try {
-    params = new URLSearchParams(window.location.search);
+    return new URLSearchParams(window.location.search);
   } catch (e) {
-    /* No URL to read. The gate asks. */
-    return null;
+    return new URLSearchParams();
   }
-  if (params.get('share') || params.get('ghost')) {
-    return 'race';
-  }
-  const wanted = params.get('map');
-  const m = wanted ? MAPS.find((x) => x.id === wanted) : null;
-  if (!m) {
-    return null;
-  }
-  return m.mode === 'freestyle' ? 'freestyle' : 'race';
 }
 
 /*
- * The aircraft, when a link names it. Same rule as linkedMode: somebody
- * arriving from the builder or the board with a whoop track in hand has
- * already answered the question, so asking it would be a screen in front of
- * a decision they made on another page.
- *
- * Returns an airframe id or null. Unknown values are null rather than a
- * fallback, because "the link said something I do not understand" and "the
- * link said nothing" should both end up asking.
+ * The session's purpose when the link already gives it, so the gate does
+ * not ask again: a board link (?share=) or a chase link (?ghost=) means a
+ * race, and ?map= a known world's own mode. null when the link says nothing
+ * usable. Only links answer this, never stored settings: see the
+ * constructor.
  */
-function linkedCraft() {
-  let params;
-  try {
-    params = new URLSearchParams(window.location.search);
-  } catch (e) {
+function linkedMode() {
+  const q = linkParams();
+  if (q.get('share') || q.get('ghost')) {
+    return 'race';
+  }
+  const named = q.get('map');
+  const world = named ? MAPS.find(({ id }) => id === named) : undefined;
+  if (!world) {
     return null;
   }
-  const wanted = currentAirframeId(params.get('craft'));
-  return AIRFRAME_IDS.includes(wanted) ? wanted : null;
+  return world.mode === 'freestyle' ? world.mode : 'race';
 }
+
+/*
+ * The aircraft a link names with ?craft=, so someone arriving from the
+ * builder or the board with a craft already chosen skips the question.
+ * Anything not a known airframe id is null, so an unreadable answer asks
+ * just as a missing one does.
+ */
+function linkedCraft() {
+  const id = currentAirframeId(linkParams().get('craft'));
+  return AIRFRAME_IDS.includes(id) ? id : null;
+}
+
+/*
+ * Seat the aircraft a link names, as the gate's answer. Through
+ * seatAirframe rather than assigning settings.airframe first, because
+ * seatAirframe reads the airframe being left to decide whether the rates and
+ * throttle cap are still that machine's stock ones; written first, a whoop
+ * link on a five inch profile kept 670 degree rates and no cap. Whether a
+ * link seated one.
+ */
+function seatLinkedCraft(settings) {
+  const id = linkedCraft();
+  if (!id) {
+    return false;
+  }
+  seatAirframe(settings, id);
+  settings.airframeAsked = true;
+  saveSettings(settings);
+  return true;
+}
+
+/* The overlay writes text, class and bar width every frame; a node keeps
+ * its last value under `slot` and is touched only when the value moved,
+ * because even an equal write replaces children and dirties style. */
+function writeChanged(node, slot, value, apply) {
+  if (!node || node[slot] === value) {
+    return;
+  }
+  node[slot] = value;
+  apply(node, value);
+}
+
+const asText = (value) => (value == null ? '' : String(value));
+
+/* The tutorial's input sources; anything else shows the keyboard. */
+const HOWTO_SOURCES = new Set(['radio', 'launch', 'touch', 'mouse']);
 
 export class Ui {
   constructor(root) {
@@ -734,14 +621,9 @@ export class Ui {
      * airframeAsked is what lets the link skip the gate and what the
      * choice screen writes so the seat is an answer, not a default.
      */
-    const linkedAf = linkedCraft();
-    if (linkedAf) {
-      seatAirframe(this.settings, linkedAf);
-      this.settings.airframeAsked = true;
-      saveSettings(this.settings);
-    }
+    const seatedByLink = seatLinkedCraft(this.settings);
     /* The gate is up while either half is unanswered: see onGate. */
-    this.craftGate = !linkedAf;
+    this.craftGate = !seatedByLink;
     /* The hub on the gate, null for home and its three hub cards. */
     this.hub = null;
     /* A guided first flight is in the air; main.js reads it. */
@@ -789,9 +671,10 @@ export class Ui {
      * cold put them back where they were. renderMenu re-picks only when
      * the cursor fell off the list, and zero is a valid row, so the first
      * paint is told here. */
-    if (this.craftGate || !this.mode) {
-      const seated = seatedWay(this.settings, this.mode).id;
-      this.cursor = Math.max(0, GATE_WAYS.findIndex((w) => w.id === seated));
+    const gateOpen = this.craftGate || !this.mode;
+    if (gateOpen) {
+      const seatedId = seatedWay(this.settings, this.mode).id;
+      this.cursor = Math.max(0, GATE_WAYS.findIndex(({ id }) => id === seatedId));
     }
     /* The course card the pilot chose (courseCardKey), whose list is
      * showing, and the last one they stood on, where Back to the list
@@ -814,12 +697,10 @@ export class Ui {
      * could disagree with the player's for one frame; an empty crate
      * names nothing.
      */
+    const firstRecord = MENU_TRACKS[0];
     this.musicNow = {
-      id: MENU_TRACKS[0]?.id ?? '',
-      name: MENU_TRACKS[0]?.name ?? '',
-      selection: this.settings.musicTrack,
-      index: 0,
-      context: 'menu',
+      id: firstRecord ? firstRecord.id : '', name: firstRecord ? firstRecord.name : '',
+      selection: this.settings.musicTrack, index: 0, context: 'menu',
     };
     /* The live sticks for the Rates curve: the frame loop writes them
      * through paintRates, the panel reads them on every redraw. */
@@ -907,8 +788,8 @@ export class Ui {
    * meanwhile, which is where a world swap always lands.
    */
   play() {
-    this.settings.map = 'track';
     this.mode = 'race';
+    Object.assign(this.settings, { map: 'track' });
     saveSettings(this.settings);
     this.returnTo = 'title';
     if (this.onAction) {
@@ -924,12 +805,10 @@ export class Ui {
    * camera there; Escape out of the builder comes back to this screen.
    */
 
-  /*
-   * The tutorial's one column, and the sticks above it. Rebuilt rather than
-   * toggled because it is six lines of type and a switch nobody flips twice.
-   */
+  /* Which input the tutorial teaches. The column is rebuilt, not toggled:
+   * it is a few lines, and the source rarely changes twice. */
   setHowtoSource(id) {
-    this.howtoSource = ['radio', 'launch', 'touch', 'mouse'].includes(id) ? id : 'keyboard';
+    this.howtoSource = HOWTO_SOURCES.has(id) ? id : 'keyboard';
     this.renderHowto();
     if (this.onUiSound) {
       this.onUiSound('adjust');
@@ -946,70 +825,39 @@ export class Ui {
   titleStop() {
     const items = this.items();
     if (this.onGate()) {
-      /* At home, Flight Club, the first hub (the owner, 2026-10-03); in
-       * a hub, the seated aircraft's card. */
-      const seated = seatedWay(this.settings, this.mode).action;
-      const want = this.hub ? seated : `hub-${HUBS[0].id}`;
-      const at = items.findIndex((it) => it.action === want);
-      if (at >= 0) {
-        return at;
+      /* Home opens on the first hub (Flight Club, the owner's call of
+       * 2026-10-03); inside a hub, on the seated aircraft's card. */
+      const target = this.hub ? seatedWay(this.settings, this.mode).action : `hub-${HUBS[0].id}`;
+      const found = items.findIndex(({ action }) => action === target);
+      if (found !== -1) {
+        return found;
       }
     }
     return this.firstStop(items);
   }
 
-  /*
-   * The overlay's three write guards. setOsd runs every flight frame, and
-   * assigning a node the string it already holds still replaces its text
-   * child and invalidates style, on an overlay composited above the WebGL
-   * canvas: 17 mutation records a frame in flight before these, 3 on the
-   * title. The last value lives on the node, so no map has to follow a
-   * DOM the screens rebuild. scorehud.js keeps the same guard.
-   */
+  /* Write guards for the overlay: setOsd runs every flight frame over the
+   * WebGL canvas, and unguarded writes cost 17 mutation records a frame
+   * (scorehud.js guards the same way). */
   static text(el, value) {
-    if (!el) {
-      return;
-    }
-    const next = value == null ? '' : String(value);
-    if (el.__lastText === next) {
-      return;
-    }
-    el.__lastText = next;
-    el.textContent = next;
+    writeChanged(el, '__lastText', asText(value), (node, text) => { node.textContent = text; });
   }
 
   static klass(el, value) {
-    if (!el) {
-      return;
-    }
-    const next = value == null ? '' : String(value);
-    if (el.__lastClass === next) {
-      return;
-    }
-    el.__lastClass = next;
-    el.className = next;
+    writeChanged(el, '__lastClass', asText(value), (node, cls) => { node.className = cls; });
   }
 
-  /* A width in per cent, to one decimal before the compare: a pack that
-   * drains a ten thousandth of a per cent a frame would otherwise write
-   * every frame and move nothing a pilot can see. */
+  /* A width in per cent rounded to a tenth first, so a pack draining
+   * imperceptibly does not rewrite the bar every frame. */
   static bar(el, frac) {
-    if (!el) {
-      return;
-    }
-    const clamped = Math.max(0, Math.min(1, frac));
-    const pct = Math.round(clamped * 1000) / 10;
-    if (el.__lastBar === pct) {
-      return;
-    }
-    el.__lastBar = pct;
-    el.style.width = `${pct}%`;
+    const tenths = Math.round(1000 * Math.min(1, Math.max(0, frac)));
+    writeChanged(el, '__lastBar', tenths / 10, (node, pct) => { node.style.width = `${pct}%`; });
   }
 
-  /* The scrolling box for the screen the cursor is on, or null when the
-   * screen has none. Used only for measurement. */
+  /* The current screen's scrolling box (its menu when it has no separate
+   * scroller), or null. Read only to measure. */
   menuScrollNode() {
-    const host = this.screens && this.screens[this.screen];
+    const host = this.screens ? this.screens[this.screen] : null;
     if (!host) {
       return null;
     }
@@ -1017,11 +865,12 @@ export class Ui {
   }
 
   adjust(dir) {
-    const it = this.items()[this.cursor];
-    if (it && it.adjust) {
-      it.adjust(dir);
-      this.writeSettings();
+    const row = this.items()[this.cursor];
+    if (!row || !row.adjust) {
+      return;
     }
+    row.adjust(dir);
+    this.writeSettings();
   }
 
 
@@ -1174,9 +1023,9 @@ export class Ui {
       list: () => this.myBuilds,
       drawn: (card, build) => {
         if (build) {
-          return drawnFit(`${BUILD_PREFIX}${build.id}`, build.airframe, build.fit);
+          return pickerLook(`${BUILD_PREFIX}${build.id}`, build.airframe, build.fit);
         }
-        return familyFitted(s, card) ? drawnFit(card, card, stockFit(s, card)) : null;
+        return familyFitted(s, card) ? pickerLook(card, card, stockFit(s, card)) : null;
       },
       rename: (id, name) => this.renameBuild(id, name),
       remove: (id) => this.removeBuild(id),
