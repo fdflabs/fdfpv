@@ -103,7 +103,10 @@ function seed(airframe) {
   const real = WebAssembly.instantiate.bind(WebAssembly);
   WebAssembly.instantiate = async (...args) => {
     const res = await real(...args);
-    const ex = res && res.instance ? res.instance.exports : null;
+    /* instantiate(bytes) resolves to { module, instance }, instantiate(module)
+     * to the Instance itself (tests/lib/simmod.js compiles first). */
+    const bare = res instanceof WebAssembly.Instance;
+    const ex = bare ? res.exports : res && res.instance ? res.instance.exports : null;
     if (!ex || typeof ex.sim_step !== 'function' || W.wrapped) return res;
     W.wrapped = true;
     const out = {};
@@ -139,7 +142,7 @@ function seed(airframe) {
         return r;
       };
     }
-    return { module: res.module, instance: { exports: out } };
+    return bare ? { exports: out } : { module: res.module, instance: { exports: out } };
   };
 })();`];
 }
