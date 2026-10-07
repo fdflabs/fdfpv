@@ -106,10 +106,10 @@ war): its shots are that map's metres.
    `seenFilm` says this pilot has seen, play with no `clock` and
    `seen: true`.
 
-A host's skip that ends the briefing for everybody (the war's
-`skipIntro`) does not exist in the ops room yet: a seen pilot who holds to
-skip circles Pista Cero until the briefing ends. That is the room's
-(`edge/rooms/ops.js`) to add, with a `seen` message like the war's.
+A host's skip ends the briefing for everybody, as the war's does: the
+room's `skipIntro` (`edge/rooms/ops.js`) starts the countdown at once when
+every pilot here has sent `seen` for this cut of the film, and refuses it
+`unwatched` otherwise, so a first viewing is never cut.
 
 ### Radio lines and subtitles
 
