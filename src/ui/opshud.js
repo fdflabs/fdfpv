@@ -5,13 +5,17 @@
  * war's: the war wants its enemies very obvious, an ops mission the
  * opposite.
  *
- * THE RULE IT KEEPS: nothing is drawn for what the room has not told the
+ * THE RULE IT KEEPS: nothing is NAMED for what the room has not told the
  * squad. A contact gets a box only once the room has discovered it (its
  * class is set), and only while it is in some pilot's frame; a lost one
  * gets its last known position, never where it is; the room's search
  * areas are soft circles; bearing hints are ticks on the compass tape
- * toward those circles and positions. No glowing marker before discovery,
- * no omniscient minimap. `interior:hud` proves it on the HUD's own pixels.
+ * toward those circles and positions. No omniscient minimap. The one
+ * thing drawn before discovery is the spotting caret over a contact that
+ * is in the frame and near (the owner's call, 2026-10-07: a motorcycle
+ * or a person on the ground is otherwise a few pixels nobody finds); it
+ * says where to look, never what it is. `interior:hud` proves it on the
+ * HUD's own pixels.
  *
  * WHAT IT DRAWS. Over the ball: the centre cross and the survey box (the
  * capture's cuts: inside the inner brackets a framed item grades clean,
@@ -76,6 +80,10 @@ const TAPE_SPAN = 60;
 const MAP_M = [3000, 9000];
 /* A box never smaller than this, CSS px. */
 const BOX_MIN_PX = 14;
+/* The spotting caret over a contact in the frame: its half width, CSS
+ * px, and how far from the craft one is still drawn, m. */
+const SPOT_PX = 6;
+const SPOT_M = 2500;
 /* Ground circles are drawn as this many segments. */
 const RING = 40;
 /* The game's furniture is looked for this often (it comes and goes), and
@@ -1002,9 +1010,15 @@ export class OpsHud {
       }
     }
     /* Contacts the room has told: a box while seen, the last known
-     * position once lost. Nothing for the rest. */
+     * position once lost. Any contact in the frame, told or not, gets
+     * the spotting caret over it (owner 2026-10-07: the motorcycle and
+     * the people on the ground were impossible to pick out; the box and
+     * class still wait for the room). */
     for (const c of v.contacts || []) {
       const mark = markOf(c);
+      if (c.state !== 'vanished') {
+        this.spot(c);
+      }
       if (mark === 'box') {
         const at = src.poseOf(c);
         const p = at && src.project(at);
@@ -1049,6 +1063,37 @@ export class OpsHud {
         }
       }
     }
+  }
+
+  /* A small solid caret over a contact in the frame, haloed like the
+   * guide's so it reads over any ground; nothing off screen, nothing
+   * past SPOT_M, no word: the pilot still has to look where it is. */
+  spot(c) {
+    const { g, w, h, src } = this;
+    const at = src.poseOf(c);
+    const p = at && src.project(at);
+    if (!p || p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
+      return;
+    }
+    if (src.craft && Math.hypot(at[0] - src.craft.p[0], at[1] - src.craft.p[1]) > SPOT_M) {
+      return;
+    }
+    const a = SPOT_PX;
+    g.lineJoin = 'round';
+    g.strokeStyle = HALO;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(p.x - a, p.y - a * 3.2);
+    g.lineTo(p.x + a, p.y - a * 3.2);
+    g.lineTo(p.x, p.y - a * 1.6);
+    g.closePath();
+    g.stroke();
+    g.fillStyle = INK;
+    g.fill();
+    g.lineWidth = 1.25;
+    this.marks.push({
+      kind: 'spot', id: c.id, x: p.x, y: p.y,
+    });
   }
 
   /*

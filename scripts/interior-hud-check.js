@@ -12,9 +12,9 @@
  * shown room views (CONTRACT-P0.md 4.1) injected into the client with a
  * stand in world that puts contacts at known places in the picture, since
  * track WORLD's map is not on main yet:
- *   - an UNDISCOVERED contact in the middle of the picture gets no mark:
- *     nothing in the HUD's mark list and not one inked pixel of the HUD's
- *     canvas around where it stands; the same probe finds ink round a
+ *   - an UNDISCOVERED contact in the middle of the picture gets only the
+ *     spotting caret above it: no box, no chip, not one inked pixel of
+ *     the HUD's canvas where it stands; the same probe finds ink round a
  *     discovered one, so it can see; once the room discovers it, it gets
  *     its box
  *   - a lost contact gets its last known position, not its place; the
@@ -308,9 +308,12 @@ try {
   })()`);
   check('the HUD is up over an ops match', hud.on);
   const mineHidden = hud.marks.filter((m) => m.id === 'hidden');
-  check('UNDISCOVERED: no mark of any kind for it', mineHidden.length === 0, JSON.stringify(mineHidden));
-  const inkHidden = await inkAt(px.hidden.x, px.hidden.y);
+  check('UNDISCOVERED: the spotting caret over it and nothing else, no box, no chip', mineHidden.length === 1 && mineHidden[0].kind === 'spot' && Math.hypot(mineHidden[0].x - px.hidden.x, mineHidden[0].y - px.hidden.y) < 3, JSON.stringify(mineHidden));
+  /* The caret sits above the contact; where it stands, nothing is inked. */
+  const inkHidden = await inkAt(px.hidden.x, px.hidden.y + 10, 6);
   check('UNDISCOVERED: not one inked HUD pixel where it stands', inkHidden === 0, `${inkHidden} px inked at ${Math.round(px.hidden.x)}, ${Math.round(px.hidden.y)}`);
+  const inkCaret = await inkAt(px.hidden.x, px.hidden.y - 14, 6);
+  check('UNDISCOVERED: the caret is inked over it', inkCaret > 0, `${inkCaret} px inked above ${Math.round(px.hidden.x)}, ${Math.round(px.hidden.y)}`);
   const boxSeen = hud.marks.find((m) => m.kind === 'contact' && m.id === 'seen');
   check('a discovered contact in a frame gets its box and chip', Boolean(boxSeen) && Math.hypot(boxSeen.x - px.seen.x, boxSeen.y - px.seen.y) < 3 && /UNKNOWN/.test(boxSeen.chip), JSON.stringify(boxSeen));
   const inkSeen = await inkAt(px.seen.x, px.seen.y);
