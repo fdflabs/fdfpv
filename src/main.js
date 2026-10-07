@@ -13688,77 +13688,75 @@ export async function boot({
   const flashNotice = (text, ms) => {
     notice = { text, untilMs: performance.now() + ms };
   };
-  function isRunActive() {
-    return (mode === 'flight' || mode === 'paused') && !landed;
-  }
   ui.onFcOpen = (page) => {
-    ui.fc.open(moduleDump(sim), { runActive: isRunActive(), page });
+    /* Off the ground in a flight, paused or not, the FC screen offers a
+     * restart with its Save (src/ui/fc.js runActive). */
+    const runActive = (mode === 'flight' || mode === 'paused') && !landed;
+    ui.fc.open(moduleDump(sim), { runActive, page });
   };
   /*
-   * The Flight controller's Save. The draft is a full dump of the module;
-   * what it becomes is three things, each through the store that already
-   * owns it: its rate keys become the pilot's rate profile, its body
-   * becomes the "custom" tune under FC_DUMP_KEY, and the PIDs screen's
-   * adjustment for that tune is cleared because the dump IS the new
-   * baseline. Then one composeConfig and one sim_init, the same join and
-   * the same call every other config change makes. No preset shortcut:
-   * Save always lands as Your edits, and the Tune row flies the pure
-   * registry files.
+   * THE FLIGHT CONTROLLER'S SAVE. A draft is a whole module dump, and its
+   * parts land in the stores that already own them: the rate keys become
+   * the pilot's rate profile, the rest the "custom" tune (FC_DUMP_KEY), and
+   * the PIDs screen's adjustment to that tune is dropped because the dump
+   * is the new baseline. The module is initialised once, as for any other
+   * config change, and the result is always named Your edits; the Tune row
+   * keeps flying the registry's own files.
    */
-  ui.onFcSave = (draft, opts) => {
-    bumpConfigGen();
-    const nextRates = normaliseRates(ratesFromDump(draft));
-    const body = tuneBody(draft);
-    const nextText = composeConfig(body, nextRates, RATES_KEEP, '');
-    const code = sim.init(nextText);
-    if (code !== SIM_OK) {
-      notice = { text: str('main.that_dump_could_not_be_saved', { configFault: configFault(code) }), untilMs: performance.now() + 3600 };
-      sim.init(configText);
-      adoptSimClock();
-      reset();
-      publishPids();
-      ui.renderMenu();
-      return;
-    }
-    if (!writeFcDump(body)) {
-      /* Storage refused (private mode). The save still FLIES, it just
-       * does not survive a reload, and the pilot is told which. */
-      notice = { text: str('main.saved_for_this_session_only_this'), untilMs: performance.now() + 3600 };
-    } else {
-      notice = { text: str('main.saved_flying_your_edits'), untilMs: performance.now() + 2400 };
-    }
-    ui.settings.rates = nextRates;
+  function refuseFcDraft(code) {
+    flashNotice(str('main.that_dump_could_not_be_saved', { configFault: configFault(code) }), 3600);
+    /* Back on the config that was flying before the failed init. */
+    sim.init(configText);
+    adoptSimClock();
+    reset();
+    publishPids();
+    ui.renderMenu();
+  }
+  function seatFcDraft(body, rates, text) {
+    /* Private mode refuses the write: the edits still fly, for this page
+     * only, and the notice says which. */
+    const kept = writeFcDump(body);
+    flashNotice(str(kept ? 'main.saved_flying_your_edits' : 'main.saved_for_this_session_only_this'), kept ? 2400 : 3600);
+    Object.assign(ui.settings, { rates, tune: 'custom' });
     clearPidsFor(ui.settings.pids, 'custom');
-    ui.settings.tune = 'custom';
     menuTune = 'custom';
     ui.persistSettings();
     configId = 'custom';
     configName = str('main.your_edits');
+    configText = text;
     tuneText = body;
-    ratesText = ratesDiff(nextRates);
+    ratesText = ratesDiff(rates);
     pidsText = '';
-    configText = nextText;
     adoptSimClock();
     sim.setCellVoltage(runVoltage);
     race.setRecordKey(recordKey());
     paintBest();
     reset();
     publishPids();
-    const live = moduleDump(sim);
-    ui.fc.snapshot = live;
-    ui.fc.draft = live;
-    ui.fc.runActive = false;
-    if (opts && opts.restart) {
+    const seated = moduleDump(sim);
+    Object.assign(ui.fc, { snapshot: seated, draft: seated, runActive: false });
+  }
+  ui.onFcSave = (draft, opts) => {
+    const after = opts || {};
+    bumpConfigGen();
+    const rates = normaliseRates(ratesFromDump(draft));
+    const body = tuneBody(draft);
+    const text = composeConfig(body, rates, RATES_KEEP, '');
+    const code = sim.init(text);
+    if (code !== SIM_OK) {
+      refuseFcDraft(code);
+      return;
+    }
+    seatFcDraft(body, rates, text);
+    if (after.restart) {
       mode = 'flight';
       ui.show('flight');
       introMs = 0;
-      return;
-    }
-    if (opts && opts.exit) {
+    } else if (after.exit) {
       ui.leaveFc();
-      return;
+    } else {
+      ui.renderMenu();
     }
-    ui.renderMenu();
   };
   ui.onFcAngle = (on) => {
     ui.settings.flightMode = on ? 'angle' : 'acro';
@@ -13907,78 +13905,52 @@ export async function boot({
   ui.hangarWarning = (id) => (liveryKey(id) === liveryKey(runAirframe) && race.currentLapMs(simTimeMs) != null
     && hangarPower(id) ? str('hangar.power_voids_lap') : '');
   /*
-   * The first flight's prompts.
+   * THE FIRST RUN'S COACHING: three lines, each moved on by the pilot
+   * reaching the next gate rather than by a clock, so a slow first lap is
+   * never cut off and a quick one never nagged. Once a lap is posted or
+   * three gates are behind them the lap splits say more, so it retires for
+   * good (ui.guided goes false and the frame loop stops asking).
    *
-   * THREE LINES, FIRED BY WHAT THE PILOT DOES, not by a clock. The banner
-   * already carries the launch prompt and the lap splits, and the guide
-   * arrows are already painted on the grass, so a first run needs nothing
-   * new: it needs the three sentences that carry somebody from a hover to a
-   * gate, and then it needs to get out of the way.
-   *
-   * It retires itself. Once a lap is on the board, or three gates are behind
-   * them, the pilot is flying and the lap splits are the more useful message.
-   * Retiring here rather than on a timer means a slow first lap is never cut
-   * off mid prompt and a fast one is never nagged.
+   * The lines name the controls of whatever the pilot is holding: a thumb
+   * pilot in landscape has no arrow key and no Escape. The device is read
+   * on every call, since a radio can be plugged in between two lines.
    */
-  /*
-   * THE FIRST FLIGHT TOLD EVERY PILOT TO PRESS A KEY THEY MIGHT NOT HAVE.
-   *
-   * These three lines are the only instruction this simulator ever gives,
-   * and they named the up arrow, R and Escape to a pilot who could be
-   * holding a radio or a phone. A thumb pilot in landscape has no arrow key
-   * and no Escape, so the one screen meant to teach the controls was
-   * describing somebody else's.
-   *
-   * It is the same root as the feel reports that prompted this round: three
-   * transducers reach this shell and the shell kept assuming one of them.
-   * Read once per prompt rather than cached, because a radio can be plugged
-   * in between the line that says "arrow" and the line that says "stick".
-   */
-  const guidedWords = () => {
+  const guidedControls = () => {
     if (input.isTouchPrimary()) {
-      return {
-        nose: str('main.push_the_right_plate_up_then'),
-        again: str('main.pause_then_restart_puts_you_back'),
-      };
+      return { nose: str('main.push_the_right_plate_up_then'), again: str('main.pause_then_restart_puts_you_back') };
     }
-    if (input.firstGamepad()) {
-      return {
-        nose: str('main.ease_the_right_stick_forward_then'),
-        again: str('main.r_puts_you_back_on_the'),
-      };
-    }
-    return {
-      nose: str('main.tip_forward_with_the_up_arrow'),
-      again: str('main.r_puts_you_back_on_the'),
-    };
+    const again = str('main.r_puts_you_back_on_the');
+    return input.firstGamepad()
+      ? { nose: str('main.ease_the_right_stick_forward_then'), again }
+      : { nose: str('main.tip_forward_with_the_up_arrow'), again };
   };
   const guidedPrompt = (race) => {
-    if (race.freestyle || race.lastLapMs != null || race.next >= 3) {
+    const coaching = !race.freestyle && race.lastLapMs == null && race.next < 3;
+    if (!coaching) {
       ui.guided = false;
       return '';
     }
-    const words = guidedWords();
-    if (race.next === 0) {
-      return str('main.the_green_gate_starts_your_lap', { nose: words.nose });
+    const { nose, again } = guidedControls();
+    switch (race.next) {
+      case 0: return str('main.the_green_gate_starts_your_lap', { nose });
+      case 1: return str('main.through_the_next_gate_turns_green');
+      default: return str('main.gate_by_gate', { again });
     }
-    if (race.next === 1) {
-      return str('main.through_the_next_gate_turns_green');
-    }
-    return str('main.gate_by_gate', { again: words.again });
   };
   /*
-   * A published track chosen from My tracks. This is exactly what a ?share=
-   * link does at boot, minus the navigation: fetch the document, write the
-   * share seat, tell the shell which track it is now holding. The screen
-   * then plays it and the world builds around it.
+   * A published track picked from My tracks seats the way a ?share= link
+   * does at boot, without the navigation: fetch it, write the share seat,
+   * and tell the shell which track it holds. The world builds around it
+   * from there.
    */
   ui.onBoardCourse = async (track) => {
-    const payload = await fetchTrackDocument(track.id, track.board);
-    const doc = payload.document || payload;
+    const fetched = await fetchTrackDocument(track.id, track.board);
+    /* A board answers with the document inside its listing, or bare. */
+    const doc = fetched.document || fetched;
     const share = {
-      id: payload.id || track.id,
-      name: payload.name || track.name || doc.name,
-      author: payload.author || track.author || '',
+      id: fetched.id || track.id,
+      name: fetched.name || track.name || doc.name,
+      author: fetched.author || track.author || '',
       board: track.board,
       document: doc,
     };
@@ -14451,54 +14423,60 @@ export async function boot({
     return intent;
   }
 
-  /* Any real key or pointer press is the user gesture browsers require
-   * before audio can start. */
   /*
-   * Per stem levels. Guarded on typeof because the audio module and this file
-   * are changed independently and a missing method must not take the whole
-   * page down: a silent bed is a defect, a blank screen is a disaster.
+   * THE MIX, from Settings' 0 to 10 sliders to the audio engine. The engine
+   * ships on its own schedule, so a method this build lacks is skipped
+   * rather than called: a missing bed is a defect, a page that throws on
+   * every slider is an outage.
    */
+  const MIX_STEMS = [
+    ['motors', 'motorLevel'], ['wind', 'windLevel'], ['music', 'musicLevel'], ['effects', 'effectsLevel'],
+    ['voice', 'voiceLevel'], ['ambience', 'ambientLevel'], ['other', 'otherLevel'],
+  ];
+  const hasAudio = (method) => typeof audio[method] === 'function';
   function applyMix(s) {
-    if (typeof audio.setMix === 'function') {
-      mixArg.motors = s.motorLevel / 10;
-      mixArg.wind = s.windLevel / 10;
-      mixArg.music = s.musicLevel / 10;
+    if (hasAudio('setMix')) {
+      for (const [stem, level] of MIX_STEMS) {
+        mixArg[stem] = s[level] / 10;
+      }
       mixArg.focus = 1;
-      mixArg.effects = s.effectsLevel / 10;
-      mixArg.voice = s.voiceLevel / 10;
-      mixArg.ambience = s.ambientLevel / 10;
-      mixArg.other = s.otherLevel / 10;
       audio.setMix(mixArg);
     }
-    if (typeof audio.setMusicEnabled === 'function') {
+    if (hasAudio('setMusicEnabled')) {
       audio.setMusicEnabled(s.musicLevel > 0);
     }
-    if (typeof audio.setMusicTrack === 'function') {
+    if (hasAudio('setMusicTrack')) {
       audio.setMusicTrack(s.musicTrack);
     }
-    /* Before reading the status, so the dock names the record the bed is
-     * actually on. This is also the only thing that sets the context on a
-     * page that has not changed screen since it loaded: the first gesture
-     * reaches wakeAudio, not show(). */
-    if (typeof audio.setMusicContext === 'function') {
+    /* The context goes first so the status read after it names the record
+     * that is really playing. On a page that has not changed screen since
+     * it loaded, nothing but the first gesture's call here sets it. */
+    if (hasAudio('setMusicContext')) {
       audio.setMusicContext(ui.flying() ? 'flight' : 'menu');
     }
-    if (typeof audio.musicStatus === 'function') {
+    if (hasAudio('musicStatus')) {
       ui.setMusicNow(audio.musicStatus());
     }
-    if (typeof audio.setFocusEnabled === 'function') {
+    if (hasAudio('setFocusEnabled')) {
       audio.setFocusEnabled(Boolean(s.focusTone));
     }
   }
 
+  /*
+   * A key or a pointer press is the user gesture a browser wants before it
+   * lets audio start, so both land here. The same gesture restarts a
+   * context the browser suspended or another app interrupted
+   * (MotorAudio.start).
+   */
   function wakeAudio() {
-    if (ui.settings.sound && !audio.ctx) {
-      audio.start();
-      audio.setLevel(ui.settings.volume / 10);
-    } else if (ui.settings.sound && audio.ctx.state !== 'running') {
-      /* A context the browser suspended or another app interrupted: this
-       * gesture is what lets it start again (MotorAudio.start). */
-      audio.start();
+    if (ui.settings.sound) {
+      const first = !audio.ctx;
+      if (first || audio.ctx.state !== 'running') {
+        audio.start();
+      }
+      if (first) {
+        audio.setLevel(ui.settings.volume / 10);
+      }
     }
     audio.setEnabled(ui.settings.sound);
     applyMix(ui.settings);
