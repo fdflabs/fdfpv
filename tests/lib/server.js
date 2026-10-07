@@ -1,187 +1,166 @@
 /*
- * server.js: minimal static file server for the browser harness. Serves the
- * repository root on 127.0.0.1 with correct MIME types for .wasm and ES
- * modules. Node only.
+ * server.js: the file server behind every browser check. Serves one
+ * folder, normally the repository, on a port of the loopback's choosing,
+ * the way the deploy serves it: the right type for a module and a wasm,
+ * byte ranges for media, the music folder cacheable for a year and
+ * nothing else cached at all. Node only.
  *
- * This file is part of WebFPVSimulator.
+ * Only files are served: a folder, a missing path, a path that will not
+ * decode and anything that resolves outside the root are a 404 or a 403
+ * with a one-word body. Every method is answered like GET, HEAD without
+ * the body.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * This file is part of the Paraguayan Drone Combat Simulator.
+ *
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import http from 'node:http';
-import { stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
-import { join, normalize, extname, resolve } from 'node:path';
+import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { extname, join, normalize, resolve } from 'node:path';
 
-/* The Itaipu data are built outside the repository (docs/ITAIPU-PLAN.md)
-   and the map reads its own from itaipu-data/ beside the page, so that
-   path is served from the folder its variable names, the pipeline's
-   output by default. */
-const DATA_DIRS = [
-  ['itaipu-data/', resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'))],
-];
+/* The Itaipu data set is built outside the repository (docs/ITAIPU-PLAN.md)
+ * and the map fetches it from itaipu-data/ beside the page, so that prefix
+ * is served from the pipeline's output folder, or wherever
+ * FDFPV_ITAIPU_DATA points. */
+const ITAIPU_PREFIX = 'itaipu-data/';
+const ITAIPU_DIR = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
 
-function servedPath(base, rel) {
-  const data = DATA_DIRS.find(([prefix]) => rel.startsWith(prefix));
-  const [dir, sub] = data ? [data[1], rel.slice(data[0].length)] : [base, rel];
-  const path = join(dir, sub);
-  return path.startsWith(dir) ? path : null;
+/* Types the browser is strict about. Anything else goes as bytes. An SVG
+ * served as bytes is a broken picture in an <img>; a .webm here is an
+ * Opus track but the deploy's table calls it video/webm, and check 14
+ * must measure what the public gets. */
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.rec': 'application/octet-stream',
+  '.diff': 'text/plain; charset=utf-8',
+  '.md': 'text/plain; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+  '.webm': 'video/webm',
+};
+const BYTES = 'application/octet-stream';
+
+/* render.yaml serves assets/music/* immutable for a year and the rest
+ * no-store, and music.js warms the next track through a second element
+ * counting on the disk cache. The harness keeps the same split so that
+ * warm-up is testable; the cost is the deploy's (bump MUSIC_REV in
+ * src/render/tracks.js to re-encode a crate). */
+const MUSIC_PREFIX = 'assets/music/';
+const YEAR_IMMUTABLE = 'public, max-age=31536000, immutable';
+
+/* Where a request path lands on disk, or null when it would leave the
+ * folder it is served from. The path is normalised first, so a ".." only
+ * ever climbs within the request, never out of the root. */
+function locate(rootDir, requestPath) {
+  const rel = normalize(decodeURIComponent(requestPath)).replace(/^[/\\]+/, '');
+  const [dir, sub] = rel.startsWith(ITAIPU_PREFIX)
+    ? [ITAIPU_DIR, rel.slice(ITAIPU_PREFIX.length)]
+    : [rootDir, rel];
+  const file = join(dir, sub);
+  return { rel, file: file.startsWith(dir) ? file : null };
 }
 
-const MIME = new Map([
-  ['.html', 'text/html; charset=utf-8'],
-  ['.js', 'text/javascript; charset=utf-8'],
-  ['.json', 'application/json; charset=utf-8'],
-  ['.wasm', 'application/wasm'],
-  ['.rec', 'application/octet-stream'],
-  ['.diff', 'text/plain; charset=utf-8'],
-  ['.md', 'text/plain; charset=utf-8'],
-  ['.mp3', 'audio/mpeg'],
-  /* An SVG is never sniffed: served as octet-stream an <img> shows the
-     broken picture, where every host the site deploys to says svg+xml. */
-  ['.svg', 'image/svg+xml'],
-  ['.woff2', 'font/woff2'],
-  /* video/webm and not audio/webm. Every .webm in this tree is an
-     audio-only Opus track, but Render serves the deploy off its own
-     extension table and that table says video/webm, so the harness has to
-     say it too or check 14 measures a page the public never gets. */
-  ['.webm', 'video/webm'],
-]);
-
-/*
- * Byte ranges and a stream, not a Buffer. A media element opens a track
- * with Range and reopens it as its buffer drains; a server that answers
- * 200 with the whole body instead makes Chromium take a whole track in
- * one go, which is not what the deploy does. Check 14 waits on a real
- * element's currentTime, so this is the difference between measuring the
- * bed and measuring this file.
- */
-/* pipe() and not .pipe(), because pipe does not forward a read error and an
-   unhandled 'error' on a Readable takes the process with it. A file that
-   goes away mid response should drop one connection, not the server. */
-function pipe(stream, res) {
-  stream.on('error', () => res.destroy());
-  stream.pipe(res);
-}
-
-function parseRange(header, size) {
+/* One byte range as a browser asks for it, against a file of `size`
+ * bytes: null when the header is absent, malformed, names several ranges
+ * or is "bytes=-" (whole file); { unsatisfiable } when nothing of it
+ * falls inside the file; otherwise the clamped [start, end]. */
+function byteRange(header, size) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(String(header ?? '').trim());
-  if (!m) {
+  if (!m || (m[1] === '' && m[2] === '')) {
     return null;
   }
-  const [, rawStart, rawEnd] = m;
-  if (rawStart === '' && rawEnd === '') {
-    return null;
-  }
-  /* bytes=-500 is the LAST 500 bytes. */
-  let start = rawStart === '' ? size - Number(rawEnd) : Number(rawStart);
-  let end = rawStart === '' || rawEnd === '' ? size - 1 : Number(rawEnd);
+  const suffix = m[1] === '';
+  let start = suffix ? size - Number(m[2]) : Number(m[1]);
+  let end = suffix || m[2] === '' ? size - 1 : Number(m[2]);
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
     return null;
   }
   start = Math.max(0, start);
   end = Math.min(size - 1, end);
-  if (start > end) {
-    return { unsatisfiable: true };
-  }
-  return { start, end };
+  return start > end ? { unsatisfiable: true } : { start, end };
 }
 
-/*
- * The deploy's cache policy, mirrored for one directory.
- *
- * render.yaml serves /assets/music/* immutable for a year and everything
- * else no-cache, and music.js leans on that: it warms the next track in a
- * rotation through a second element so the handoff comes out of the disk
- * cache rather than off the wire again. Under a blanket no-store that warm
- * is not an optimisation, it is the same track downloaded twice, and a
- * harness that cannot tell those two apart cannot check the feature.
- *
- * The cost is the one the deploy has: re-encode the crate and a browser
- * that already has it will not notice. Bump MUSIC_REV in
- * src/render/tracks.js, which is the same lever production needs.
- */
-function cacheControl(rel) {
-  return rel.startsWith('assets/music/') ? 'public, max-age=31536000, immutable' : 'no-store';
+/* A stream's read error must drop this one answer, not the process: an
+ * unhandled 'error' on a Readable is fatal, and .pipe() forwards none. */
+function stream(file, res, range) {
+  const source = createReadStream(file, range ? { start: range.start, end: range.end } : {});
+  source.on('error', () => res.destroy());
+  source.pipe(res);
 }
 
-async function sendFile(req, res, path, rel) {
-  const info = await stat(path);
-  if (!info.isFile()) {
-    throw new Error('not a file');
+async function answer(rootDir, req, res) {
+  let where;
+  try {
+    where = locate(rootDir, new URL(req.url, 'http://127.0.0.1').pathname);
+  } catch (e) {
+    /* A path that does not decode is a path that does not exist. */
+    where = { rel: '', file: '' };
   }
-  const head = {
-    'content-type': MIME.get(extname(path)) ?? 'application/octet-stream',
-    'cache-control': cacheControl(rel),
+  if (where.file === null) {
+    res.writeHead(403);
+    res.end('forbidden');
+    return;
+  }
+  const info = await stat(where.file).catch(() => null);
+  if (!info || !info.isFile()) {
+    res.writeHead(404);
+    res.end('not found');
+    return;
+  }
+  const headers = {
+    'content-type': TYPES[extname(where.file)] ?? BYTES,
+    'cache-control': where.rel.startsWith(MUSIC_PREFIX) ? YEAR_IMMUTABLE : 'no-store',
     'accept-ranges': 'bytes',
   };
-  const range = req.headers.range ? parseRange(req.headers.range, info.size) : null;
-  if (range && range.unsatisfiable) {
-    res.writeHead(416, { ...head, 'content-range': `bytes */${info.size}` });
+  const range = byteRange(req.headers.range, info.size);
+  if (range?.unsatisfiable) {
+    res.writeHead(416, { ...headers, 'content-range': `bytes */${info.size}` });
     res.end();
     return;
   }
   if (range) {
-    res.writeHead(206, {
-      ...head,
-      'content-range': `bytes ${range.start}-${range.end}/${info.size}`,
-      'content-length': range.end - range.start + 1,
-    });
-    if (req.method === 'HEAD') {
-      res.end();
-      return;
-    }
-    pipe(createReadStream(path, { start: range.start, end: range.end }), res);
-    return;
+    headers['content-range'] = `bytes ${range.start}-${range.end}/${info.size}`;
+    headers['content-length'] = range.end - range.start + 1;
+    res.writeHead(206, headers);
+  } else {
+    headers['content-length'] = info.size;
+    res.writeHead(200, headers);
   }
-  res.writeHead(200, { ...head, 'content-length': info.size });
   if (req.method === 'HEAD') {
     res.end();
     return;
   }
-  pipe(createReadStream(path), res);
+  stream(where.file, res, range);
 }
 
 export async function startServer(rootDir) {
-  const server = http.createServer(async (req, res) => {
-    try {
-      const url = new URL(req.url, 'http://127.0.0.1');
-      const rel = normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
-      const path = servedPath(rootDir, rel);
-      if (!path) {
-        res.writeHead(403);
-        res.end('forbidden');
-        return;
-      }
-      await sendFile(req, res, path, rel);
-    } catch {
-      res.writeHead(404);
-      res.end('not found');
-    }
-  });
-  await new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', resolve);
-  });
+  const server = createServer((req, res) => answer(rootDir, req, res));
+  await new Promise((listening) => server.listen(0, '127.0.0.1', listening));
   const { port } = server.address();
   return {
     port,
     origin: `http://127.0.0.1:${port}`,
-    close: () =>
-      new Promise((resolve) => {
-        server.closeAllConnections();
-        server.close(resolve);
-      }),
+    close: () => new Promise((closed) => {
+      server.closeAllConnections();
+      server.close(closed);
+    }),
   };
 }
