@@ -18567,8 +18567,8 @@ export async function boot({
     return score.summary();
   };
 
-  /* The obstacle field the recogniser flies around (scripts/obstacle-audit.js). */
-  window.__obstacleField = () => obstacles;
+  /* The obstacle field the trick recogniser reads, counted by kind; null
+   * on a map without one. */
   window.__obstacles = () => {
     if (!obstacles) {
       return null;
