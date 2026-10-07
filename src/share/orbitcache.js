@@ -30,6 +30,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { moveDatabase } from './olddb.js';
+
 /*
  * Why each version was raised (a version is the only thing that retires
  * stored clips, since the camera path is not in the key):
@@ -46,7 +48,10 @@ export const CLIP_BITRATE = 800000;
 export const CLIP_MS_MAX = 12000;
 export const CLIP_MS_MIN = 8000;
 
-const DB_NAME = 'webfpv.orbitclips.v1';
+const DB_NAME = 'fdfpv.orbitclips.v1';
+/* Where the clips were kept before the project took its own name; moved
+ * into DB_NAME on first open (src/share/olddb.js). */
+const OLD_DB_NAME = 'webfpv.orbitclips.v1';
 const STORE = 'clips';
 /* Worlds kept; the least recently recorded go first. */
 const KEEP = 12;
@@ -65,24 +70,28 @@ export function clipKeyForMap(mapId) {
 let opening = null;
 function database() {
   if (!opening) {
-    opening = new Promise((resolve) => {
-      let req;
-      try {
-        req = indexedDB.open(DB_NAME, 1);
-      } catch (e) {
-        resolve(null);
-        return;
-      }
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains(STORE)) {
-          req.result.createObjectStore(STORE, { keyPath: 'key' });
-        }
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    });
+    opening = moveDatabase(OLD_DB_NAME, openClips);
   }
   return opening;
+}
+
+function openClips() {
+  return new Promise((resolve) => {
+    let req;
+    try {
+      req = indexedDB.open(DB_NAME, 1);
+    } catch (e) {
+      resolve(null);
+      return;
+    }
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(STORE)) {
+        req.result.createObjectStore(STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
 }
 
 /* One request in a fresh transaction, as a promise of its result, or of

@@ -46,7 +46,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { transcript } from './lib/transcript.js';
 
-const PINNED = '2e69bcccbe3eeaa9dfbf3f3c8eaa5b5cbb6135a56a30b1bcd0d383e9b386b1c2';
+const PINNED = 'd1bc50939f9c7329481b1f469f70b10aa5cb1d2d4bd84a91d17512ed981bed4b';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /* Runs in the page. Every record is [label, value]; values are plain data. */
