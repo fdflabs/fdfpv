@@ -18528,23 +18528,6 @@ export async function boot({
     };
   };
 
-  /*
-   * Put the race on gate `raceIndex` for a capture parked on the racing
-   * line. The race is reset first: a bare `race.next` with no lap started
-   * makes the next gate frame touch read as a voided lap, which would flash
-   * across the capture. Returns the old value so a rig can put it back.
-   */
-  window.__setRaceNext = (raceIndex) => {
-    const previous = race.next;
-    const count = race.gates.length;
-    race.reset();
-    race.next = (((raceIndex | 0) % count) + count) % count;
-    view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-    racePrev.copy(shell.quad.position);
-    raceHasPrev = true;
-    return { raceNext: race.next, sceneIndex: race.nextSceneIndex(), previous };
-  };
-
   /* A point on the course curve at u (0 to 1), its heading and the ground
    * under it; null on a map without a curve. */
   window.__trackPoint = (u) => {
