@@ -41,8 +41,9 @@
  * What computed style cannot see is pinned by its CSSOM text instead:
  * ::placeholder, the range input's track and thumb, @font-face, @keyframes
  * and the world cards' reel rules. The custom property the scripts read
- * back, --ui-font (src/ui/peermarks.js), is recorded on :root; the other
- * tokens are the sheet's own business and a rewrite may rename them.
+ * back or writes (SCRIPT_TOKENS) are recorded wherever they apply; every
+ * other custom property is left out of the hash, because the tokens are
+ * the sheet's own business and a rewrite may rename or add them.
  *
  * Any difference is a stylesheet change: the answer is to fix the rule, or
  * to re-record on purpose with the reason in the commit.
@@ -123,6 +124,10 @@ const ROOT_STATES = ['fpv-osd-on', 'bar-shown', 'compact', 'avx-on', 'war-on', '
  * (SHEET).
  */
 const STILL_ID = 'css-golden-still';
+/* Custom properties script reads (getPropertyValue) or writes
+ * (style.setProperty), from a grep of src/: the only tokens that are
+ * contract. */
+const SCRIPT_TOKENS = ['--ui-font', '--bar-top', '--bar-bot', '--i', '--swatch', '--burst', '--frac', '--px', '--py', '--poster'];
 const SETTLE = `function settle() {
   if (!document.getElementById('${STILL_ID}')) {
     const st = document.createElement('style');
@@ -152,12 +157,17 @@ const SNAP = (rootExpr) => `(() => {
     }
     return a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0');
   };
+  const SCRIPT_TOKENS = new Set(${JSON.stringify(SCRIPT_TOKENS)});
   const styleText = (el, pseudo) => {
     const cs = getComputedStyle(el, pseudo);
     if (pseudo && cs.content === 'none') { return 'none'; }
     const parts = [];
     for (let i = 0; i < cs.length; i += 1) {
       const p = cs[i];
+      /* Custom properties are the sheet's own vocabulary and a rewrite may
+       * rename or add them; what they do lands in the real properties,
+       * which are recorded. The ones script reads or writes are kept. */
+      if (p.startsWith('--') && !SCRIPT_TOKENS.has(p)) { continue; }
       parts.push(p + ':' + cs.getPropertyValue(p));
     }
     /* Sorted: Chromium lists custom properties in an order that changes
