@@ -162,7 +162,7 @@ Cheaper checks that do not need a toolchain, and are the ones to reach for
 first: `npm run lint:shell`, `lint:input`, `lint:nouns`, `lint:memory`,
 `lint:fc`, `lint:presets`, `lint:catalog`, `lint:responsive`, and
 `npm run input:selftest`, `score:selftest`, `ghost:selftest`,
-`contact:selftest`, `link:selftest`, `music:selftest`, `test:edge`.
+`contact:selftest`, `link:selftest`, `music:selftest`.
 `input:selftest` drives the calibration wizard and the stick modes in plain
 Node against synthetic radios, one check per shipped defect; `lint:input`
 is the same tickets' other half, the calibrate screen, the title's trouble
