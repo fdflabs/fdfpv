@@ -43,6 +43,7 @@ jobs:
       - run: npm run nav:golden
       - run: npm run dialogs:golden
       - run: npm run overlay:golden
+      - run: npm run session:golden
       - run: npm run actions:golden
       - run: npm run items:golden
       # The link preview a crawler reads: index.html's social tags, their
