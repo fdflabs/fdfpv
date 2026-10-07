@@ -34,6 +34,7 @@
     "lint:quality": "node scripts/quality-check.js",
     "ratescurve:selftest": "node scripts/ratescurve-selftest.js",
     "lint:boot": "node scripts/boot-check.js",
+    "boot:entry": "node scripts/boot-entry-check.js",
     "lint:memory": "node scripts/memory-check.js",
     "catalog-rules:selftest": "node scripts/catalog-rules-selftest.js",
     "lint:fc": "node scripts/fc-trace.js",

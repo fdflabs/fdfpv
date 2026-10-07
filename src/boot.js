@@ -1,31 +1,31 @@
 /*
- * boot.js: the entry point, and the only module that runs before three.js.
+ * boot.js: the page's entry module. It runs first and imports nothing heavy.
  *
- * It exists so the loading screen can report the three.js fetch. A page whose
- * entry module imports three at module scope cannot: the browser fetches the
- * whole static graph before a line of that module runs, so the first thing
- * the player would see is a blank page for however long the CDN takes. This
- * file imports only the loading screen, drives the fetch itself with a
- * streamed reader for byte progress, and then dynamically imports main.js,
- * which does import three statically and is served from cache by then.
+ * The loading screen has to be on screen before three.js arrives, and a
+ * module graph is fetched whole before any of it runs. If the entry module
+ * imported three.js (or main.js, which does), the player would stare at an
+ * empty page for as long as the CDN took. So this module pulls in only the
+ * loading screen and a few small leaves, puts the bar up, and then brings in
+ * three.js, the string table and main.js with dynamic imports it can report.
  *
- * The three.js URL is read out of the page's own import map rather than
- * written down again here, so there is exactly one place it lives.
+ * What it decides before main.js exists: which world the page opens on (from
+ * ?map= and ?share=), and how the loading bar is weighted for that world.
+ * scripts/boot-entry-check.js pins both.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { Loading, planStages } from './ui/loading.js';
@@ -35,151 +35,142 @@ import { SIM_WINDOW, claimWindowName } from './share/windows.js';
 import { watchPageErrors } from './share/crashrecord.js';
 import { moveIn } from './share/move.js';
 
-/* P6: navigation to the first interactive frame. Stamped in the first module
- * the page runs so it covers every fetch and every module evaluation, and
- * read back through window.__boot. */
-const BOOT_START = performance.now();
+/* Time zero for the first-frame figure main.js reports through
+ * window.__boot. Taken here because nothing the page does comes earlier. */
+const pageT0 = performance.now();
 
-/* From the first module on, so an error anywhere in the load is one the
- * next F8 report can carry. See share/crashrecord.js. */
+/* Errors from here on can ride along in the next F8 report
+ * (share/crashrecord.js). */
 watchPageErrors(window);
 
-/* This tab is the simulator, and there is only ever one of it. Claimed in
- * the first module the page runs, so the board's Fly this track finds it
- * even while the shell is still loading. See share/windows.js. */
+/* The board's Fly this track looks for the simulator tab by window name,
+ * and a tab still loading should already answer to it. */
 claimWindowName(SIM_WINDOW);
 
 const loading = new Loading(document.getElementById('pdcs-loader'));
-/* window.loader is the spec's name for the controller; __loading is the
- * harness's, and both are the one object. */
+/* Two names, one controller: window.loader for the page, window.__loading
+ * for the harness. */
 window.loader = loading;
 window.__loading = loading;
 
-/* Read out of the page's own import map so the version lives in one place. */
-function threeVersion() {
-  const el = document.querySelector('script[type="importmap"]');
-  if (!el) {
-    return '';
-  }
+/* The world the title shows (the photographic Swiss valley with the
+ * Skyhunter in it), regardless of what the pilot last flew. Only a link that
+ * names a map replaces it; the pilot's stored map is built when they press
+ * fly. */
+const TITLE_WORLD = 'swiss2';
+
+/* "three.js r160" for an import map entry on three@0.160.0: the release
+ * number players and bug reports use. Empty when the page has no import map
+ * or the entry does not name a version. */
+function rendererLabel() {
+  const map = document.querySelector('script[type="importmap"]');
+  let spec = '';
   try {
-    const url = JSON.parse(el.textContent).imports.three ?? '';
-    const m = url.match(/three@([0-9.]+)/);
-    return m ? `three.js r${m[1].replace(/^0\./, '').replace(/\.0$/, '')}` : '';
+    spec = map ? JSON.parse(map.textContent).imports.three ?? '' : '';
   } catch (e) {
     return '';
+  }
+  const found = /three@([0-9.]+)/.exec(spec);
+  if (!found) {
+    return '';
+  }
+  const parts = found[1].split('.');
+  if (parts[0] === '0') {
+    parts.shift();
+  }
+  if (parts.length > 1 && parts[parts.length - 1] === '0') {
+    parts.pop();
+  }
+  return `three.js r${parts.join('.')}`;
+}
+
+/* The map the page's address asks for, or null for the title's own world.
+ * A board link names its track as ?share=, which always means the Track
+ * seat. */
+function linkedMap() {
+  let query;
+  try {
+    query = new URLSearchParams(window.location.search);
+  } catch (e) {
+    return null;
+  }
+  if (query.get('share')) {
+    return 'track';
+  }
+  return query.get('map') || null;
+}
+
+/* Where a linked map actually lands. A retired world goes to its
+ * replacement, and the caller tells main.js so it can say why. Anything
+ * else no map answers to (a typo, a stale bookmark, the old race field ids
+ * 'field' and 'custom') is the Track seat, so the Map row never names a
+ * world that is not there. MAP_BUILD_MS is keyed by every map id and is
+ * already a boot import, unlike the map registry and its loaders. */
+function resolveLink(asked) {
+  const retired = retiredMap(asked);
+  const landed = retired ? retired.to : asked;
+  return {
+    mapId: landed && !Object.hasOwn(MAP_BUILD_MS, landed) ? 'track' : landed,
+    retiredFrom: retired ? asked : null,
+  };
+}
+
+/* The guest's storage from the old address comes over first, before anything
+ * reads it (share/move.js). A failure is logged and the game runs anyway;
+ * when moveIn sends the tab to the old address it never settles, so nothing
+ * below runs on a page that is leaving. */
+async function carryStorage() {
+  let outcome;
+  try {
+    outcome = await moveIn();
+  } catch (e) {
+    console.warn('moving the guest\'s storage from the old address threw', e);
+    outcome = 'failed';
+  }
+  if (outcome === 'failed') {
+    console.warn('moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
   }
 }
 
-/*
- * THE TITLE'S OWN WORLD, the photographic Alps, which main.js shows with
- * the Skyhunter flying them. The owner asked for the title to open on this
- * whatever the pilot last flew, so the stored map is no longer the boot
- * world. The pilot's own map stays theirs: main.js builds it when they
- * press fly and never writes this one into the settings.
- */
-const TITLE_MAP = 'swiss2';
+async function launch() {
+  await carryStorage();
 
-async function start() {
-  /* A guest's first visit to the game's own domain brings their storage
-   * over from the old address (src/share/move.js), before anything below
-   * reads or writes it. When it leaves for the old address this never
-   * settles, and the boot does not run on a page that is going away. */
-  const moved = await moveIn().catch((e) => {
-    /* The game runs without the carry rather than not at all. */
-    console.warn('moving the guest\'s storage from the old address threw', e);
-    return 'failed';
-  });
-  if (moved === 'failed') {
-    console.warn('moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
-  }
-  /*
-   * A map named in the URL replaces the title's world, and a board link is
-   * the one that matters: it names the track as ?share=, so the pilot lands
-   * on it rather than hunting through a menu. main.js takes the mapId and
-   * writes it into the settings, so the title is the world the link named
-   * and the Map row agrees with it. Harnesses and posters name their world
-   * the same way.
-   */
-  let mapId = null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    mapId = params.get('map') || null;
-    /* A published track arrives as ?share=id, which is Track mode's seat,
-     * even when the link omits map=. */
-    if (params.get('share')) {
-      mapId = 'track';
-    }
-  } catch (e) {
-    /* No URL to read. The title is its own world. */
-  }
-  /*
-   * An id no map has is a stale bookmark or a typo, and it used to reach
-   * main.js verbatim, so the Map row named a world that was not there and
-   * syncWorld saw a mismatch it could never clear. MAP_BUILD_MS is keyed by
-   * map id and is imported here anyway, so the check does not drag the
-   * registry, and its loader thunks, into the boot graph. The race field
-   * ('field', 'custom', which the board's links still carry) is gone, and
-   * any of these is the Track seat.
-   */
-  /* A retired world's link lands in the world that replaced it, and says
-   * so: main.js asks the pilot about `retiredFrom`, so they are not left
-   * thinking the link meant to send them to the Swiss valley. */
-  const retiredFrom = retiredMap(mapId) ? mapId : null;
-  if (retiredFrom) {
-    mapId = retiredMap(retiredFrom).to;
-  }
-  if (mapId && !Object.hasOwn(MAP_BUILD_MS, mapId)) {
-    mapId = 'track';
-  }
-  const titleMap = mapId ? null : TITLE_MAP;
-  /* The Track seat's world is not known until the seat is read, and it is
-   * one of the two valleys: the Swiss valley's figure is the larger. */
+  const { mapId, retiredFrom } = resolveLink(linkedMap());
+  const titleMap = mapId ? null : TITLE_WORLD;
+  /* The Track seat's world is only known once the seat is read, and it is one
+   * of the valleys, so it is budgeted as the Swiss one, the slower build. */
   const worldMs = MAP_BUILD_MS[mapId ?? titleMap] ?? MAP_BUILD_MS.swiss2;
-
   loading.run(planStages(['three', 'board', 'sim', 'module', 'world', 'frame'], worldMs));
 
   /*
-   * NO BYTE PROGRESS ON THIS STAGE, AND THAT IS A MEASUREMENT, NOT AN
-   * OVERSIGHT.
-   *
-   * The first version streamed the three.js module itself with a reader so
-   * the bar could report kilobytes, on the assumption that the dynamic import
-   * a moment later would be served from the HTTP cache. Measured, that
-   * assumption is not safe: `performance.getEntriesByType('resource')` came
-   * back with TWO entries for three.module.js, so the browser made two
-   * requests, and whether the second one costs 1.2 MB over the wire depends
-   * entirely on the CDN's cache headers and on the harness, which fulfils
-   * jsdelivr from a local cache and returns no caching headers at all.
-   *
-   * Paying up to 1.2 MB of a player's connection to animate a progress bar is
-   * the wrong trade, and a bar that is honest about the network is the whole
-   * point of this screen. So the stage keeps its NAME and its stall line,
-   * which is what makes a stall legible, and it does not pretend to
-   * know how far through it is. The stages that can measure their progress
-   * honestly still do: dist/sim.wasm streams its bytes because the shell
-   * needs them anyway, and the map graph counts modules off the browser's own
-   * resource timing.
+   * The renderer stage shows its name and the release but no byte count, on
+   * purpose. Streaming three.js through a reader to count bytes was tried:
+   * the browser then fetched the module twice (two resource timing entries
+   * for three.module.js), because whether the import reuses the first
+   * response depends on the CDN's cache headers. Spending up to 1.2 MB of
+   * the player's data on a progress animation is a bad trade, so this stage
+   * keeps its stall line and makes no claim about how far along it is. The
+   * wasm and the map graph still report real progress.
    */
   loading.start('three');
-  loading.detail = threeVersion();
+  loading.detail = rendererLabel();
   await import('three');
   loading.done('three');
   loading.detail = '';
 
-  /* The locale, before main.js: its module scope builds screen titles and
-   * menu rows from the string table at import time, so the table has to be
-   * the right one first. Only en ships today; see src/strings/index.js. */
+  /* main.js builds titles and menu rows from the string table while it is
+   * imported, so the pilot's language has to be loaded before it. */
   const strings = await import('./strings/index.js');
   await strings.useLocale(strings.preferredLocale());
-  const main = await import('./main.js');
-  await main.boot({
-    loading, bootStart: BOOT_START, mapId, titleMap, retiredFrom,
+
+  const shell = await import('./main.js');
+  await shell.boot({
+    loading, bootStart: pageT0, mapId, titleMap, retiredFrom,
   });
 }
 
-start().catch((e) => {
-  loading.fail(e.message ?? String(e));
-  /* Still report it the way the shell used to, so nothing that reads the
-   * console for a failure stops working. */
-  console.error(e);
+launch().catch((err) => {
+  loading.fail(err.message ?? String(err));
+  /* Also on the console, where checks and bug reports look for it. */
+  console.error(err);
 });
