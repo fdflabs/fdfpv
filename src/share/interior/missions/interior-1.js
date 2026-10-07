@@ -113,6 +113,7 @@ const PAIR_TRACK = { soft: 20, hard: 75 };
 
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
+const GONE = { chosen: 'dispersal', is: 'started' };
 const DISPERSAL = {
   any: [
     { captured: { set: 'camp' }, n: 5 },
@@ -409,9 +410,17 @@ export default {
       cues: [
         { at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
         { at: 4, radio: 'int1-tr-angle', heard: TRACKER },
+        /* Once the dispersal has started nobody walks back into the camp
+         * (the tarp's walk starts in it and ends there): the mark is
+         * opened with the camp being stripped instead. */
         {
-          when: { captured: { set: 'camp' }, n: 3 }, at: 5, move: [{ contacts: 'camp-tarp', route: { dial: 'mark', map: { s1: 'camp-tarp-move-s1', s2: 'camp-tarp-move-s2', s3: 'camp-tarp-move-s3' } } }], choose: { name: 'tarp', value: 'moved' },
+          when: { captured: { set: 'camp' }, n: 3 },
+          at: 5,
+          unless: GONE,
+          move: [{ contacts: 'camp-tarp', route: { dial: 'mark', map: { s1: 'camp-tarp-move-s1', s2: 'camp-tarp-move-s2', s3: 'camp-tarp-move-s3' } } }],
+          choose: { name: 'tarp', value: 'moved' },
         },
+        { when: { all: [{ captured: { set: 'camp' }, n: 3 }, GONE] }, choose: { name: 'tarp', value: 'moved' } },
         {
           when: { captured: 'symbol', grade: 'usable' },
           flag: 'M1_SYMBOL_CAPTURED',
@@ -432,8 +441,10 @@ export default {
             ...Object.entries(OUT).map(([d, ids]) => ids.map((id, k) => ({
               contacts: id, route: `out-${d}-${'ab'[k]}`, after: { dial: 'firstOut', map: Object.fromEntries(Object.keys(OUT).map((x) => [x, x === d ? 0 : FIRST_OUT_S])) },
             }))).flat(),
-            { contacts: 'pair-a', route: 'pair-out-a', after: 30 },
-            { contacts: 'pair-b', route: 'pair-out-b', after: 30 },
+            /* No alternate on the way out: a hard threshold would send
+             * the pair back along its concealment route to the camp. */
+            { contacts: 'pair-a', route: 'pair-out-a', alt: null, after: 30 },
+            { contacts: 'pair-b', route: 'pair-out-b', alt: null, after: 30 },
           ],
         },
         { when: DISPERSAL, radio: 'int1-tr-split', heard: TRACKER },
@@ -442,7 +453,7 @@ export default {
       ],
       /* Home once the camp has gone: the debrief (M1_10) is the outro
        * over the squad's stills, VIEW's. */
-      exits: [{ when: { all: [{ chosen: 'dispersal', is: 'started' }, { landed: 'pista-cero', roles: ['isr'] }] }, to: 'won', why: 'landed' }],
+      exits: [{ when: { all: [GONE, { landed: 'pista-cero', roles: ['isr'] }] }, to: 'won', why: 'landed' }],
     },
   ],
 };

@@ -749,6 +749,51 @@ console.log('squad: five pilots, the trackers, a low pass, the whole camp');
   check('won, with the whole camp\'s star', v.state === 'won' && v.result.starIds.includes('camp') && v.result.flags.M1_CAMP_FULLY_DOCUMENTED === true, JSON.stringify(v.result));
 }
 
+/* ---------------------------------------------------- the camp gone */
+
+/* Stage 5 with nothing documented: the camp disperses on its 8 min
+ * timer (MISSIONS.md M1_09). Returns the room, the pilot and the ms the
+ * stage opened and the dispersal started. */
+function campGone(seed = undefined) {
+  const e = opsRoom(M, { ...ROOM, n: 1, ...(seed == null ? {} : { seed }) });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5');
+  const opened = e.r.ops.match.stage.at;
+  c.target = STANDOFF;
+  c.aim = null;
+  until(e, () => e.r.ops.match.choices?.dispersal, 600000, 'the dispersal by the timer');
+  return {
+    e, c, opened, gone: e.r.ops.match.choices.dispersal.t,
+  };
+}
+
+console.log('the camp gone first: nobody goes back into it');
+{
+  const { e, c, opened, gone } = campGone();
+  check('nothing documented: the dispersal on the timer, 480 s after stage 5 opened', gone - opened === 480000, `${gone - opened}`);
+  /* Past every delayed way out, then the three captures that cue the
+   * tarp's mover (M1_08): on its way out, it must stay on it. */
+  e.fly(e.clock + 30000);
+  for (const id of ['shelters', 'motorcycles', 'antenna']) {
+    snap(e, 0, c, id);
+  }
+  e.fly(e.clock + 10000);
+  const camp = () => e.r.ops.match.contacts.filter((x) => x.group === 'camp');
+  check('three captures after the dispersal: every camp person still on a way out (or gone), none back at a shelter',
+    camp().every((x) => x.state === 'vanished' || x.route.startsWith('out-')), JSON.stringify(camp().map((x) => [x.id, x.route])));
+  check('the mark opened all the same, the camp being stripped', e.r.ops.match.choices?.tarp?.value === 'moved' && e.view(0).opened.includes('symbol'));
+  const pair = e.r.ops.match.contacts.filter((x) => x.group === 'pair');
+  check('the pair on its way out has no alternate a hard threshold could send it back along', pair.every((x) => x.route.startsWith('pair-out-') && x.alt == null),
+    JSON.stringify(pair.map((x) => [x.id, x.route, x.alt])));
+  until(e, () => camp().every((x) => x.state === 'vanished'), 900000, 'the whole camp gone');
+  check('the whole camp gone into the forest', camp().every((x) => x.state === 'vanished'));
+}
+
 /* ------------------------------------------------------------- fails */
 
 console.log('fails: three hard thresholds, then the checkpoint');
