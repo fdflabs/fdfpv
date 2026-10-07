@@ -192,6 +192,9 @@ jobs:
       # The pilot's name and the signed in account record
       # (src/share/pilot.js), against a pinned transcript.
       - run: npm run pilot:selftest
+      # A tester ticket sent to the board (src/share/bugs.js), against a
+      # pinned transcript.
+      - run: npm run bugs:selftest
       # How a seated track relates to the board (src/share/listing.js),
       # against a transcript of answers, requests and storage.
       - run: npm run listing:selftest
