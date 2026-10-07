@@ -1,0 +1,2114 @@
+{
+ "en": {
+  "el": [
+   {
+    "tag": "DIV"
+   },
+   {
+    "tag": "DIV",
+    "cls": "a b"
+   },
+   {
+    "tag": "SPAN",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "text"
+    ]
+   },
+   {
+    "tag": "P",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   {
+    "tag": "P",
+    "cls": "x",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "0"
+    ]
+   },
+   {
+    "tag": "P",
+    "cls": "x"
+   },
+   {
+    "tag": "P",
+    "cls": "x"
+   }
+  ],
+  "btn": [
+   {
+    "tag": "BUTTON",
+    "cls": "go",
+    "type": "button",
+    "writes": [
+     "textContent",
+     "type"
+    ],
+    "children": [
+     "Go"
+    ]
+   },
+   {
+    "tag": "BUTTON",
+    "type": "button",
+    "writes": [
+     "type"
+    ]
+   }
+  ],
+  "hint": [
+   {
+    "tag": "DIV",
+    "cls": "hint",
+    "children": [
+     {
+      "tag": "SPAN",
+      "cls": "hint-keys",
+      "children": [
+       {
+        "tag": "KBD",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "W"
+        ]
+       },
+       {
+        "tag": "KBD",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "S"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "SPAN",
+      "cls": "hint-copy",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Throttle"
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "DIV",
+    "cls": "hint",
+    "children": [
+     {
+      "tag": "SPAN",
+      "cls": "hint-keys"
+     },
+     {
+      "tag": "SPAN",
+      "cls": "hint-copy",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   }
+  ],
+  "wordmark": {
+   "tag": "DIV",
+   "cls": "lockup-box",
+   "children": [
+    {
+     "tag": "H1",
+     "cls": "wordmark lockup",
+     "children": [
+      {
+       "tag": "SPAN",
+       "cls": "lockup-slash",
+       "attrs": [
+        [
+         "aria-hidden",
+         "true"
+        ]
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "lockup-over",
+       "children": [
+        {
+         "tag": "SPAN",
+         "cls": "py-flag",
+         "attrs": [
+          [
+           "aria-hidden",
+           "true"
+          ]
+         ],
+         "children": [
+          {
+           "tag": "SPAN"
+          },
+          {
+           "tag": "SPAN"
+          },
+          {
+           "tag": "SPAN"
+          }
+         ]
+        },
+        "Paraguayan"
+       ]
+      },
+      " ",
+      {
+       "tag": "SPAN",
+       "cls": "lockup-name",
+       "dataset": {
+        "text": "Drone Combat"
+       },
+       "children": [
+        {
+         "tag": "SPAN",
+         "writes": [
+          "textContent"
+         ],
+         "children": [
+          "Drone"
+         ]
+        },
+        " ",
+        {
+         "tag": "SPAN",
+         "writes": [
+          "textContent"
+         ],
+         "children": [
+          "Combat"
+         ]
+        }
+       ]
+      },
+      " ",
+      {
+       "tag": "SPAN",
+       "cls": "lockup-under",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        "Simulator"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "gimbal": {
+   "box": {
+    "tag": "DIV",
+    "cls": "osd-gimbal",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "osd-gimbal-plate",
+      "children": [
+       {
+        "tag": "DIV",
+        "cls": "osd-cross-x"
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-cross-y"
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-nub"
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-gimbal-cap",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Throttle / Yaw"
+      ]
+     }
+    ]
+   },
+   "nub": {
+    "tag": "DIV",
+    "cls": "osd-nub"
+   },
+   "cap": {
+    "tag": "DIV",
+    "cls": "osd-gimbal-cap",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "Throttle / Yaw"
+    ]
+   }
+  },
+  "padCard": {
+   "card": {
+    "tag": "DIV",
+    "cls": "pad-card",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "pad-card-title",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-art",
+      "children": [
+       {
+        "tag": "DIV",
+        "cls": "osd-gimbal",
+        "children": [
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-plate",
+          "children": [
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-x"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-y"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-nub"
+           }
+          ]
+         },
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-cap",
+          "writes": [
+           "textContent"
+          ],
+          "children": [
+           ""
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-gimbal",
+        "children": [
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-plate",
+          "children": [
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-x"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-y"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-nub"
+           }
+          ]
+         },
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-cap",
+          "writes": [
+           "textContent"
+          ],
+          "children": [
+           ""
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-name",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-status",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   },
+   "title": {
+    "tag": "DIV",
+    "cls": "pad-card-title",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "name": {
+    "tag": "DIV",
+    "cls": "pad-card-name",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "status": {
+    "tag": "DIV",
+    "cls": "pad-card-status",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "left": {
+    "box": {
+     "tag": "DIV",
+     "cls": "osd-gimbal",
+     "children": [
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-plate",
+       "children": [
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-x"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-y"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-nub"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-cap",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        ""
+       ]
+      }
+     ]
+    },
+    "nub": {
+     "tag": "DIV",
+     "cls": "osd-nub"
+    },
+    "cap": {
+     "tag": "DIV",
+     "cls": "osd-gimbal-cap",
+     "writes": [
+      "textContent"
+     ],
+     "children": [
+      ""
+     ]
+    }
+   },
+   "right": {
+    "box": {
+     "tag": "DIV",
+     "cls": "osd-gimbal",
+     "children": [
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-plate",
+       "children": [
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-x"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-y"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-nub"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-cap",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        ""
+       ]
+      }
+     ]
+    },
+    "nub": {
+     "tag": "DIV",
+     "cls": "osd-nub"
+    },
+    "cap": {
+     "tag": "DIV",
+     "cls": "osd-gimbal-cap",
+     "writes": [
+      "textContent"
+     ],
+     "children": [
+      ""
+     ]
+    }
+   }
+  },
+  "slider": {
+   "box": {
+    "tag": "DIV",
+    "cls": "osd-air is-off",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "osd-air-hint",
+      "hidden": true,
+      "writes": [
+       "hidden"
+      ],
+      "children": [
+       {
+        "tag": "P",
+        "cls": "osd-air-hint-title",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Weight"
+        ]
+       },
+       {
+        "tag": "P",
+        "cls": "osd-air-hint-body",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Drag this if the aircraft feels floaty or too heavy. Right makes it heavier, so it drops when you chop the throttle and stops hanging at the top of a jump. Left makes it lighter and it floats. Hover moves up and down the stick with it, which is most of what you will feel."
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "osd-air-hint-btn",
+        "type": "button",
+        "writes": [
+         "textContent",
+         "type"
+        ],
+        "children": [
+         "Got it"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-air-row",
+      "children": [
+       {
+        "tag": "SPAN",
+        "cls": "osd-air-end",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Floaty"
+        ]
+       },
+       {
+        "tag": "INPUT",
+        "cls": "row-range osd-air-range",
+        "attrs": [
+         [
+          "aria-label",
+          "Weight"
+         ]
+        ],
+        "type": "range",
+        "min": "60",
+        "max": "140",
+        "step": "5",
+        "value": "100",
+        "writes": [
+         "type",
+         "min",
+         "max",
+         "step",
+         "value"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "osd-air-end",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Sinky"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-air-cap",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   },
+   "range": {
+    "tag": "INPUT",
+    "cls": "row-range osd-air-range",
+    "attrs": [
+     [
+      "aria-label",
+      "Weight"
+     ]
+    ],
+    "type": "range",
+    "min": "60",
+    "max": "140",
+    "step": "5",
+    "value": "100",
+    "writes": [
+     "type",
+     "min",
+     "max",
+     "step",
+     "value"
+    ]
+   },
+   "cap": {
+    "tag": "DIV",
+    "cls": "osd-air-cap",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "hint": {
+    "tag": "DIV",
+    "cls": "osd-air-hint",
+    "hidden": true,
+    "writes": [
+     "hidden"
+    ],
+    "children": [
+     {
+      "tag": "P",
+      "cls": "osd-air-hint-title",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Weight"
+      ]
+     },
+     {
+      "tag": "P",
+      "cls": "osd-air-hint-body",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Drag this if the aircraft feels floaty or too heavy. Right makes it heavier, so it drops when you chop the throttle and stops hanging at the top of a jump. Left makes it lighter and it floats. Hover moves up and down the stick with it, which is most of what you will feel."
+      ]
+     },
+     {
+      "tag": "BUTTON",
+      "cls": "osd-air-hint-btn",
+      "type": "button",
+      "writes": [
+       "textContent",
+       "type"
+      ],
+      "children": [
+       "Got it"
+      ]
+     }
+    ]
+   },
+   "dismiss": {
+    "tag": "BUTTON",
+    "cls": "osd-air-hint-btn",
+    "type": "button",
+    "writes": [
+     "textContent",
+     "type"
+    ],
+    "children": [
+     "Got it"
+    ]
+   }
+  },
+  "modes": {
+   "1": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "50%"
+      },
+      {
+       "left": "50%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "100%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "87.5%"
+      },
+      {
+       "left": "25%",
+       "top": "75%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Forward is nose down, fly forward. Springs back to centre when you let go.",
+     " Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds."
+    ],
+    "keys": [
+     [
+      "W and S",
+      "Pitch. Forward is stick forward, nose down, fly forward."
+     ],
+     [
+      "A and D",
+      "Yaw, left and right on the spot."
+     ],
+     [
+      "Up and down",
+      "Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height."
+     ],
+     [
+      "Left and right",
+      "Roll."
+     ]
+    ]
+   },
+   "2": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "75%"
+      },
+      {
+       "left": "25%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds.",
+     " Forward is nose down, fly forward. Springs back to centre when you let go."
+    ],
+    "keys": [
+     [
+      "W and S",
+      "Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height."
+     ],
+     [
+      "A and D",
+      "Yaw, left and right on the spot."
+     ],
+     [
+      "Up and down",
+      "Pitch. Forward is stick forward, nose down, fly forward."
+     ],
+     [
+      "Left and right",
+      "Roll."
+     ]
+    ]
+   },
+   "3": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "50%"
+      },
+      {
+       "left": "50%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "100%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ],
+     [
+      {
+       "left": "25%",
+       "top": "87.5%"
+      },
+      {
+       "left": "0%",
+       "top": "75%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "55%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Forward is nose down, fly forward. Springs back to centre when you let go.",
+     " Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds."
+    ],
+    "keys": [
+     [
+      "W and S",
+      "Pitch. Forward is stick forward, nose down, fly forward."
+     ],
+     [
+      "A and D",
+      "Roll."
+     ],
+     [
+      "Up and down",
+      "Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height."
+     ],
+     [
+      "Left and right",
+      "Yaw, left and right on the spot."
+     ]
+    ]
+   },
+   "4": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "25%",
+       "top": "75%"
+      },
+      {
+       "left": "0%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "55%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds.",
+     " Forward is nose down, fly forward. Springs back to centre when you let go."
+    ],
+    "keys": [
+     [
+      "W and S",
+      "Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height."
+     ],
+     [
+      "A and D",
+      "Roll."
+     ],
+     [
+      "Up and down",
+      "Pitch. Forward is stick forward, nose down, fly forward."
+     ],
+     [
+      "Left and right",
+      "Yaw, left and right on the spot."
+     ]
+    ]
+   },
+   "undefined": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "75%"
+      },
+      {
+       "left": "25%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Throttle STAYS where you leave it, like a real radio: trim a hover, lift the thumb, it holds.",
+     " Forward is nose down, fly forward. Springs back to centre when you let go."
+    ],
+    "keys": [
+     [
+      "W and S",
+      "Throttle. Tap for a nudge, hold to climb, long hold to punch. Let go and it holds height."
+     ],
+     [
+      "A and D",
+      "Yaw, left and right on the spot."
+     ],
+     [
+      "Up and down",
+      "Pitch. Forward is stick forward, nose down, fly forward."
+     ],
+     [
+      "Left and right",
+      "Roll."
+     ]
+    ]
+   }
+  },
+  "placeNub": [
+   {
+    "left": "50%",
+    "top": "50%"
+   },
+   {
+    "left": "100%",
+    "top": "0%"
+   },
+   {
+    "left": "0%",
+    "top": "100%"
+   },
+   {
+    "left": "75%",
+    "top": "62.5%"
+   }
+  ]
+ },
+ "es": {
+  "el": [
+   {
+    "tag": "DIV"
+   },
+   {
+    "tag": "DIV",
+    "cls": "a b"
+   },
+   {
+    "tag": "SPAN",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "text"
+    ]
+   },
+   {
+    "tag": "P",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   {
+    "tag": "P",
+    "cls": "x",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "0"
+    ]
+   },
+   {
+    "tag": "P",
+    "cls": "x"
+   },
+   {
+    "tag": "P",
+    "cls": "x"
+   }
+  ],
+  "btn": [
+   {
+    "tag": "BUTTON",
+    "cls": "go",
+    "type": "button",
+    "writes": [
+     "textContent",
+     "type"
+    ],
+    "children": [
+     "Go"
+    ]
+   },
+   {
+    "tag": "BUTTON",
+    "type": "button",
+    "writes": [
+     "type"
+    ]
+   }
+  ],
+  "hint": [
+   {
+    "tag": "DIV",
+    "cls": "hint",
+    "children": [
+     {
+      "tag": "SPAN",
+      "cls": "hint-keys",
+      "children": [
+       {
+        "tag": "KBD",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "W"
+        ]
+       },
+       {
+        "tag": "KBD",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "S"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "SPAN",
+      "cls": "hint-copy",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Throttle"
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "DIV",
+    "cls": "hint",
+    "children": [
+     {
+      "tag": "SPAN",
+      "cls": "hint-keys"
+     },
+     {
+      "tag": "SPAN",
+      "cls": "hint-copy",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   }
+  ],
+  "wordmark": {
+   "tag": "DIV",
+   "cls": "lockup-box",
+   "children": [
+    {
+     "tag": "H1",
+     "cls": "wordmark lockup",
+     "children": [
+      {
+       "tag": "SPAN",
+       "cls": "lockup-slash",
+       "attrs": [
+        [
+         "aria-hidden",
+         "true"
+        ]
+       ]
+      },
+      {
+       "tag": "SPAN",
+       "cls": "lockup-over",
+       "children": [
+        {
+         "tag": "SPAN",
+         "cls": "py-flag",
+         "attrs": [
+          [
+           "aria-hidden",
+           "true"
+          ]
+         ],
+         "children": [
+          {
+           "tag": "SPAN"
+          },
+          {
+           "tag": "SPAN"
+          },
+          {
+           "tag": "SPAN"
+          }
+         ]
+        },
+        "Paraguayan"
+       ]
+      },
+      " ",
+      {
+       "tag": "SPAN",
+       "cls": "lockup-name",
+       "dataset": {
+        "text": "Drone Combat"
+       },
+       "children": [
+        {
+         "tag": "SPAN",
+         "writes": [
+          "textContent"
+         ],
+         "children": [
+          "Drone"
+         ]
+        },
+        " ",
+        {
+         "tag": "SPAN",
+         "writes": [
+          "textContent"
+         ],
+         "children": [
+          "Combat"
+         ]
+        }
+       ]
+      },
+      " ",
+      {
+       "tag": "SPAN",
+       "cls": "lockup-under",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        "Simulator"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "gimbal": {
+   "box": {
+    "tag": "DIV",
+    "cls": "osd-gimbal",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "osd-gimbal-plate",
+      "children": [
+       {
+        "tag": "DIV",
+        "cls": "osd-cross-x"
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-cross-y"
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-nub"
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-gimbal-cap",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Throttle / Yaw"
+      ]
+     }
+    ]
+   },
+   "nub": {
+    "tag": "DIV",
+    "cls": "osd-nub"
+   },
+   "cap": {
+    "tag": "DIV",
+    "cls": "osd-gimbal-cap",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     "Throttle / Yaw"
+    ]
+   }
+  },
+  "padCard": {
+   "card": {
+    "tag": "DIV",
+    "cls": "pad-card",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "pad-card-title",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-art",
+      "children": [
+       {
+        "tag": "DIV",
+        "cls": "osd-gimbal",
+        "children": [
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-plate",
+          "children": [
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-x"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-y"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-nub"
+           }
+          ]
+         },
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-cap",
+          "writes": [
+           "textContent"
+          ],
+          "children": [
+           ""
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "DIV",
+        "cls": "osd-gimbal",
+        "children": [
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-plate",
+          "children": [
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-x"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-cross-y"
+           },
+           {
+            "tag": "DIV",
+            "cls": "osd-nub"
+           }
+          ]
+         },
+         {
+          "tag": "DIV",
+          "cls": "osd-gimbal-cap",
+          "writes": [
+           "textContent"
+          ],
+          "children": [
+           ""
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-name",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "pad-card-status",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   },
+   "title": {
+    "tag": "DIV",
+    "cls": "pad-card-title",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "name": {
+    "tag": "DIV",
+    "cls": "pad-card-name",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "status": {
+    "tag": "DIV",
+    "cls": "pad-card-status",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "left": {
+    "box": {
+     "tag": "DIV",
+     "cls": "osd-gimbal",
+     "children": [
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-plate",
+       "children": [
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-x"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-y"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-nub"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-cap",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        ""
+       ]
+      }
+     ]
+    },
+    "nub": {
+     "tag": "DIV",
+     "cls": "osd-nub"
+    },
+    "cap": {
+     "tag": "DIV",
+     "cls": "osd-gimbal-cap",
+     "writes": [
+      "textContent"
+     ],
+     "children": [
+      ""
+     ]
+    }
+   },
+   "right": {
+    "box": {
+     "tag": "DIV",
+     "cls": "osd-gimbal",
+     "children": [
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-plate",
+       "children": [
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-x"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-cross-y"
+        },
+        {
+         "tag": "DIV",
+         "cls": "osd-nub"
+        }
+       ]
+      },
+      {
+       "tag": "DIV",
+       "cls": "osd-gimbal-cap",
+       "writes": [
+        "textContent"
+       ],
+       "children": [
+        ""
+       ]
+      }
+     ]
+    },
+    "nub": {
+     "tag": "DIV",
+     "cls": "osd-nub"
+    },
+    "cap": {
+     "tag": "DIV",
+     "cls": "osd-gimbal-cap",
+     "writes": [
+      "textContent"
+     ],
+     "children": [
+      ""
+     ]
+    }
+   }
+  },
+  "slider": {
+   "box": {
+    "tag": "DIV",
+    "cls": "osd-air is-off",
+    "children": [
+     {
+      "tag": "DIV",
+      "cls": "osd-air-hint",
+      "hidden": true,
+      "writes": [
+       "hidden"
+      ],
+      "children": [
+       {
+        "tag": "P",
+        "cls": "osd-air-hint-title",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Peso"
+        ]
+       },
+       {
+        "tag": "P",
+        "cls": "osd-air-hint-body",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Arrastra esto si la aeronave se siente flotante o demasiado pesado. A la derecha lo hace más pesado, así que cae cuando cortas el throttle y deja de quedarse colgado arriba de un salto. A la izquierda lo hace más ligero y flota. El hover sube y el stick con él hacia abajo, que es la mayor parte de lo que vas a sentir."
+        ]
+       },
+       {
+        "tag": "BUTTON",
+        "cls": "osd-air-hint-btn",
+        "type": "button",
+        "writes": [
+         "textContent",
+         "type"
+        ],
+        "children": [
+         "Entendido"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-air-row",
+      "children": [
+       {
+        "tag": "SPAN",
+        "cls": "osd-air-end",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Flotante"
+        ]
+       },
+       {
+        "tag": "INPUT",
+        "cls": "row-range osd-air-range",
+        "attrs": [
+         [
+          "aria-label",
+          "Weight"
+         ]
+        ],
+        "type": "range",
+        "min": "60",
+        "max": "140",
+        "step": "5",
+        "value": "100",
+        "writes": [
+         "type",
+         "min",
+         "max",
+         "step",
+         "value"
+        ]
+       },
+       {
+        "tag": "SPAN",
+        "cls": "osd-air-end",
+        "writes": [
+         "textContent"
+        ],
+        "children": [
+         "Se hunde"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "DIV",
+      "cls": "osd-air-cap",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       ""
+      ]
+     }
+    ]
+   },
+   "range": {
+    "tag": "INPUT",
+    "cls": "row-range osd-air-range",
+    "attrs": [
+     [
+      "aria-label",
+      "Weight"
+     ]
+    ],
+    "type": "range",
+    "min": "60",
+    "max": "140",
+    "step": "5",
+    "value": "100",
+    "writes": [
+     "type",
+     "min",
+     "max",
+     "step",
+     "value"
+    ]
+   },
+   "cap": {
+    "tag": "DIV",
+    "cls": "osd-air-cap",
+    "writes": [
+     "textContent"
+    ],
+    "children": [
+     ""
+    ]
+   },
+   "hint": {
+    "tag": "DIV",
+    "cls": "osd-air-hint",
+    "hidden": true,
+    "writes": [
+     "hidden"
+    ],
+    "children": [
+     {
+      "tag": "P",
+      "cls": "osd-air-hint-title",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Peso"
+      ]
+     },
+     {
+      "tag": "P",
+      "cls": "osd-air-hint-body",
+      "writes": [
+       "textContent"
+      ],
+      "children": [
+       "Arrastra esto si la aeronave se siente flotante o demasiado pesado. A la derecha lo hace más pesado, así que cae cuando cortas el throttle y deja de quedarse colgado arriba de un salto. A la izquierda lo hace más ligero y flota. El hover sube y el stick con él hacia abajo, que es la mayor parte de lo que vas a sentir."
+      ]
+     },
+     {
+      "tag": "BUTTON",
+      "cls": "osd-air-hint-btn",
+      "type": "button",
+      "writes": [
+       "textContent",
+       "type"
+      ],
+      "children": [
+       "Entendido"
+      ]
+     }
+    ]
+   },
+   "dismiss": {
+    "tag": "BUTTON",
+    "cls": "osd-air-hint-btn",
+    "type": "button",
+    "writes": [
+     "textContent",
+     "type"
+    ],
+    "children": [
+     "Entendido"
+    ]
+   }
+  },
+  "modes": {
+   "1": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "50%"
+      },
+      {
+       "left": "50%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "100%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "87.5%"
+      },
+      {
+       "left": "25%",
+       "top": "75%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Adelante es nariz abajo, volar hacia adelante. Vuelve al centro cuando lo sueltas.",
+     " El throttle SE QUEDA donde lo dejas, como un radio de verdad: ajusta un hover, levanta el pulgar, y lo mantiene."
+    ],
+    "keys": [
+     [
+      "W y S",
+      "Pitch. Adelante es stick adelante, nariz abajo, volar hacia adelante."
+     ],
+     [
+      "A y D",
+      "Yaw, izquierda y derecha en el lugar."
+     ],
+     [
+      "Arriba y abajo",
+      "Throttle. Toca para un empujoncito, mantén para subir, mantén largo para un punch. Suelta y mantiene la altura."
+     ],
+     [
+      "Izquierda y derecha",
+      "Roll."
+     ]
+    ]
+   },
+   "2": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "75%"
+      },
+      {
+       "left": "25%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " El throttle SE QUEDA donde lo dejas, como un radio de verdad: ajusta un hover, levanta el pulgar, y lo mantiene.",
+     " Adelante es nariz abajo, volar hacia adelante. Vuelve al centro cuando lo sueltas."
+    ],
+    "keys": [
+     [
+      "W y S",
+      "Throttle. Toca para un empujoncito, mantén para subir, mantén largo para un punch. Suelta y mantiene la altura."
+     ],
+     [
+      "A y D",
+      "Yaw, izquierda y derecha en el lugar."
+     ],
+     [
+      "Arriba y abajo",
+      "Pitch. Adelante es stick adelante, nariz abajo, volar hacia adelante."
+     ],
+     [
+      "Izquierda y derecha",
+      "Roll."
+     ]
+    ]
+   },
+   "3": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "50%"
+      },
+      {
+       "left": "50%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "100%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ],
+     [
+      {
+       "left": "25%",
+       "top": "87.5%"
+      },
+      {
+       "left": "0%",
+       "top": "75%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "55%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " Adelante es nariz abajo, volar hacia adelante. Vuelve al centro cuando lo sueltas.",
+     " El throttle SE QUEDA donde lo dejas, como un radio de verdad: ajusta un hover, levanta el pulgar, y lo mantiene."
+    ],
+    "keys": [
+     [
+      "W y S",
+      "Pitch. Adelante es stick adelante, nariz abajo, volar hacia adelante."
+     ],
+     [
+      "A y D",
+      "Roll."
+     ],
+     [
+      "Arriba y abajo",
+      "Throttle. Toca para un empujoncito, mantén para subir, mantén largo para un punch. Suelta y mantiene la altura."
+     ],
+     [
+      "Izquierda y derecha",
+      "Yaw, izquierda y derecha en el lugar."
+     ]
+    ]
+   },
+   "4": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "25%",
+       "top": "75%"
+      },
+      {
+       "left": "0%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "55%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " El throttle SE QUEDA donde lo dejas, como un radio de verdad: ajusta un hover, levanta el pulgar, y lo mantiene.",
+     " Adelante es nariz abajo, volar hacia adelante. Vuelve al centro cuando lo sueltas."
+    ],
+    "keys": [
+     [
+      "W y S",
+      "Throttle. Toca para un empujoncito, mantén para subir, mantén largo para un punch. Suelta y mantiene la altura."
+     ],
+     [
+      "A y D",
+      "Roll."
+     ],
+     [
+      "Arriba y abajo",
+      "Pitch. Adelante es stick adelante, nariz abajo, volar hacia adelante."
+     ],
+     [
+      "Izquierda y derecha",
+      "Yaw, izquierda y derecha en el lugar."
+     ]
+    ]
+   },
+   "undefined": {
+    "placed": [
+     [
+      {
+       "left": "50%",
+       "top": "100%"
+      },
+      {
+       "left": "50%",
+       "top": "50%"
+      }
+     ],
+     [
+      {
+       "left": "100%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "100%"
+      }
+     ],
+     [
+      {
+       "left": "0%",
+       "top": "75%"
+      },
+      {
+       "left": "25%",
+       "top": "87.5%"
+      }
+     ],
+     [
+      {
+       "left": "55%",
+       "top": "0%"
+      },
+      {
+       "left": "100%",
+       "top": "0%"
+      }
+     ]
+    ],
+    "thr": [
+     " El throttle SE QUEDA donde lo dejas, como un radio de verdad: ajusta un hover, levanta el pulgar, y lo mantiene.",
+     " Adelante es nariz abajo, volar hacia adelante. Vuelve al centro cuando lo sueltas."
+    ],
+    "keys": [
+     [
+      "W y S",
+      "Throttle. Toca para un empujoncito, mantén para subir, mantén largo para un punch. Suelta y mantiene la altura."
+     ],
+     [
+      "A y D",
+      "Yaw, izquierda y derecha en el lugar."
+     ],
+     [
+      "Arriba y abajo",
+      "Pitch. Adelante es stick adelante, nariz abajo, volar hacia adelante."
+     ],
+     [
+      "Izquierda y derecha",
+      "Roll."
+     ]
+    ]
+   }
+  },
+  "placeNub": [
+   {
+    "left": "50%",
+    "top": "50%"
+   },
+   {
+    "left": "100%",
+    "top": "0%"
+   },
+   {
+    "left": "0%",
+    "top": "100%"
+   },
+   {
+    "left": "75%",
+    "top": "62.5%"
+   }
+  ]
+ }
+}

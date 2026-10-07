@@ -119,9 +119,17 @@ const CROWN_SPEC = 0.3;
  * the dry season (BIBLE.md 2.3), semi deciduous: most crowns green, a
  * few turning. */
 const PALETTE = [
-  [0.03, 0.06, 0.02], [0.038, 0.074, 0.022], [0.048, 0.09, 0.024], [0.062, 0.106, 0.026],
-  [0.058, 0.086, 0.03], [0.066, 0.08, 0.034], [0.046, 0.068, 0.034],
+  [0.018, 0.046, 0.026], [0.028, 0.062, 0.026], [0.042, 0.086, 0.024], [0.06, 0.106, 0.026],
+  [0.056, 0.086, 0.03], [0.064, 0.08, 0.034], [0.042, 0.066, 0.036],
 ];
+/* How dark a crown goes for the crowns over it: the factor's floor, and
+ * what a block of the far forest takes as a stand's average (the points
+ * in front of it are darkened one by one; a block is a dozen crowns and
+ * has no neighbours of its own to read). Measured on the chunk round the
+ * camp: 877 trees, factors spread from the floor to 1 with a fifth of
+ * them (the emergents and the proud crowns) at 1, mean 0.80. */
+const OCC_FLOOR = 0.35;
+const OCC_FAR = 0.8;
 const DRY = [0.078, 0.07, 0.046];
 const PINK = [0.16, 0.06, 0.09];
 const YELLOW = [0.17, 0.13, 0.03];
@@ -144,25 +152,30 @@ function crownColour(t, flowers = true) {
   }
   const r1 = hash01(Math.floor(t.tint * 4096), 7, 41);
   const r2 = hash01(Math.floor(t.tint * 4096), 9, 43);
+  const r3 = hash01(Math.floor(t.tint * 4096), 11, 53);
   if (r1 > 0.992) {
     return DRY;
   }
-  /* The stand: a noise 70 m a feature, and the region's lean a noise
-   * 500 m a feature, so a slope of the forest is olive and the next a
-   * darker green. */
-  const stand = noise(t.x, t.z, 70, 31) * 0.7 + noise(t.x, t.z, 500, 33) * 0.3;
-  const f = Math.min(0.999, Math.max(0, stand * 1.2 - 0.1 + (r1 - 0.5) * 0.8)) * PALETTE.length;
+  /* The stand: a noise 70 m a feature, a noise 220 m a feature, and the
+   * region's lean a noise 500 m a feature, so a slope of the forest is
+   * olive and the next a darker green, and from 450 m up the roof is
+   * patches of lighter and darker stands and not one carpet. */
+  const stand = noise(t.x, t.z, 70, 31) * 0.5 + noise(t.x, t.z, 220, 35) * 0.25 + noise(t.x, t.z, 500, 33) * 0.25;
+  const f = Math.min(0.999, Math.max(0, stand * 1.5 - 0.25 + (r1 - 0.5) * 0.7)) * PALETTE.length;
   const k = Math.floor(f);
   const a = PALETTE[k];
   const b = PALETTE[Math.min(PALETTE.length - 1, k + 1)];
   const u = f - k;
-  const lum = 0.85 + 0.3 * r2;
+  const lum = 0.72 + 0.5 * r2;
+  /* Each tree's own lean, blue green to yellow green: two neighbours of
+   * one stand are not one colour. */
+  const lean = r3 - 0.5;
   /* A palm's fronds a little lighter; a shrub's scrub paler, drier and
    * yellower than the roof over it. */
   const [kr, kg, kb] = KIND_TONE[t.kind];
-  out3[0] = (a[0] + (b[0] - a[0]) * u) * lum * kr;
+  out3[0] = (a[0] + (b[0] - a[0]) * u) * lum * kr * (1 - 0.3 * lean);
   out3[1] = (a[1] + (b[1] - a[1]) * u) * lum * kg;
-  out3[2] = (a[2] + (b[2] - a[2]) * u) * lum * kb;
+  out3[2] = (a[2] + (b[2] - a[2]) * u) * lum * kb * (1 + 0.5 * lean);
   return out3;
 }
 /* A tree's seed for the hand overs, in [0, 1), not its colour's. */
@@ -384,6 +397,12 @@ const CROWN_FRAG_PARS = /* glsl */ `
 const CROWN_FRAG_START = /* glsl */ `
   float crUp = vCrUp;
   float crShadeK = 1.0;
+  /* The tree's own number in [0, 1), for its top's light. */
+  #if CROWN_MODE < 2
+    float crTree = crH(vCrC * 0.0137);
+  #else
+    float crTree = vCrSeed.x;
+  #endif
   #if CROWN_MODE < 2
     float crPx = length(fwidth(vCrW));
     crClumpK = 1.0 - smoothstep(0.18, 0.5, crPx);
@@ -425,7 +444,7 @@ const CROWN_FRAG_START = /* glsl */ `
 const CROWN_FRAG_COLOUR = /* glsl */ `
   /* The hollows between clumps, where the leaves shade each other. */
   float crCrease = mix(1.0, 0.6 + 0.4 * smoothstep(0.2, 0.7, crHeapH), crClumpK);
-  float crShade = mix(0.42, 1.0, smoothstep(-0.85, 0.75, crUp)) * crShadeK * crCrease;
+  float crShade = mix(0.34, 1.0, smoothstep(-0.85, 0.75, crUp)) * crShadeK * crCrease;
   #if CROWN_MODE < 2
     float crK1 = 1.0 - smoothstep(0.4, 1.3, crPx);
     float crK2 = 1.0 - smoothstep(0.12, 0.45, crPx);
@@ -435,7 +454,17 @@ const CROWN_FRAG_COLOUR = /* glsl */ `
     crShade *= mix(1.0, 0.6 + 0.8 * crC, crK1) * mix(1.0, 0.78 + 0.44 * crL, crK2);
   #endif
   diffuseColor.rgb *= crShade;
-  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.22, 1.16, 0.76), smoothstep(0.2, 1.0, crUp) * (CROWN_MODE >= 2 ? 0.45 : 0.6));
+  /* The top's lift: warm on the near balls, where the golden hour's
+   * mocks want it, and greener and less on the tiers a survey sees, where
+   * one yellow on every crown said "game"; each tree its own share. */
+  #if CROWN_MODE == 0
+    vec3 crTop = vec3(1.22, 1.16, 0.76);
+  #elif CROWN_MODE == 1
+    vec3 crTop = vec3(1.14, 1.14, 0.84);
+  #else
+    vec3 crTop = vec3(1.08, 1.12, 0.9);
+  #endif
+  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * crTop, smoothstep(0.2, 1.0, crUp) * (CROWN_MODE == 0 ? 0.6 : 0.25 + 0.5 * crTree));
 `;
 /* After the normal: the clumps' bump on the true crown's normal (a
  * ball's), or the point's own normal. The leaves are colour only: a
@@ -457,7 +486,7 @@ const CROWN_FRAG_NORMAL = /* glsl */ `
  * the low sun through the crown's outer leaves, most when the camera
  * looks toward it; and a third of the specular (CROWN_SPEC). */
 const CROWN_FRAG_LIGHT = /* glsl */ `
-  reflectedLight.indirectDiffuse *= mix(0.35, 1.0, smoothstep(-0.6, 0.9, crUp));
+  reflectedLight.indirectDiffuse *= mix(0.28, 1.0, smoothstep(-0.6, 0.9, crUp));
   #if NUM_DIR_LIGHTS > 0
     {
       vec3 crV = normalize(vViewPosition);
@@ -538,6 +567,45 @@ function trunkMaterial(THREE, bark) {
   };
   mat.customProgramCacheKey = () => 'interior-trunk';
   return mat;
+}
+
+/* THE CROWNS' SHADE ON EACH OTHER: no tier past the near one casts a
+ * shadow, so from 450 m up the roof was one bright carpet with no depth.
+ * Each tree's factor, OCC_FLOOR to 1, by the crowns that stand over it
+ * among those it touches (its neighbours within two squares, read from a
+ * box a crown wider than the chunk so a chunk's edge is no seam): a crown
+ * buried under taller neighbours darkens, an emergent over the roof
+ * keeps all its light. Baked into the crown's colour, so every tier and
+ * every hour of the clock has it for nothing on the GPU. */
+function occlusionOf(list, around, x0, z0) {
+  const out = new Float32Array(list.length).fill(1);
+  const grid = new Map();
+  for (const t of around) {
+    grid.set(Math.floor((t.x - x0) / TREE_CELL + 4) * 1024 + Math.floor((t.z - z0) / TREE_CELL + 4), t);
+  }
+  list.forEach((t, k) => {
+    const top = t.ground + t.h;
+    let sum = 0;
+    const ci = Math.floor((t.x - x0) / TREE_CELL + 4);
+    const cj = Math.floor((t.z - z0) / TREE_CELL + 4);
+    for (let j = -2; j <= 2; j += 1) {
+      for (let i = -2; i <= 2; i += 1) {
+        const n = grid.get((ci + i) * 1024 + cj + j);
+        if (!n || n === t) {
+          continue;
+        }
+        const reach = t.r + n.r + 2;
+        const d = Math.hypot(n.x - t.x, n.z - t.z);
+        const rise = n.ground + n.h - top;
+        if (d >= reach || rise <= 0) {
+          continue;
+        }
+        sum += (1 - d / reach) * Math.min(1, rise / 6);
+      }
+    }
+    out[k] = Math.max(OCC_FLOOR, 1 / (1 + 2.5 * sum));
+  });
+  return out;
 }
 
 function chunkKey(i, j) {
@@ -640,7 +708,11 @@ export function buildTrees({
   function makeChunk(ci, cj) {
     const x0 = -HALF + ci * CHUNK;
     const z0 = -HALF + cj * CHUNK;
-    const list = canopy.treesIn(x0, z0, x0 + CHUNK, z0 + CHUNK, []);
+    /* The chunk's trees and, two squares round them, the neighbours
+     * that shade them. */
+    const around = canopy.treesIn(x0 - 2 * TREE_CELL, z0 - 2 * TREE_CELL, x0 + CHUNK + 2 * TREE_CELL, z0 + CHUNK + 2 * TREE_CELL, []);
+    const list = around.filter((t) => t.x >= x0 && t.x < x0 + CHUNK && t.z >= z0 && t.z < z0 + CHUNK);
+    const occ = occlusionOf(list, around, x0, z0);
     const at = new Float32Array(list.length * 3);
     const shape = new Float32Array(list.length * 3);
     const cols = new Float32Array(list.length * 3);
@@ -660,9 +732,9 @@ export function buildTrees({
       shape[k * 3 + 1] = t.ry;
       shape[k * 3 + 2] = seeds[k];
       const c = crownColour(t);
-      cols[k * 3] = c[0];
-      cols[k * 3 + 1] = c[1];
-      cols[k * 3 + 2] = c[2];
+      cols[k * 3] = c[0] * occ[k];
+      cols[k * 3 + 1] = c[1] * occ[k];
+      cols[k * 3 + 2] = c[2] * occ[k];
     });
     const ch = {
       ci, cj, n: list.length, at, shape, cols, seeds, extra, crowns: null, tier: -1, pts: false,
@@ -736,7 +808,7 @@ export function buildTrees({
       const c = crownColour({
         x: px, z: pz, tint: t ? t.tint : hash01(bi, bj, 23), kind: KIND.broadleaf,
       }, false);
-      farCol.push(c[0], c[1], c[2]);
+      farCol.push(c[0] * OCC_FAR, c[1] * OCC_FAR, c[2] * OCC_FAR);
       farShape.push(r, ry, hash01(bi, bj, 24));
     }
   }

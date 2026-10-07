@@ -22,9 +22,9 @@
  *              once the tarp moves, the dispersal, home: won, two stars,
  *              its flag; no tracker line heard
  *   orbit      a pilot circling the pair at 150 m, as a fixed wing must,
- *              over each of the three concealment routes: no hard
- *              threshold (Mission 1's is 75 s), no soft fail; and at
- *              200 m
+ *              going overhead when the pair is called lost, over each of
+ *              the three concealment routes: no hard threshold (Mission
+ *              1's is 75 s), no soft fail; and at 200 m
  *   lag        the opening stages flown again with every message 300 ms
  *              late: every decision at the same room ms
  *   squad      five pilots: the seeded deal, the trackers' own lines, a
@@ -37,6 +37,19 @@
  *              item still to capture, the corridor, the pair as told, the
  *              camp, home), the guide's line per role, never a contact the
  *              room has not told; and when a nudge is due
+ *   low        the pair followed under 300 m near the camp: the camp's
+ *              alertness still nothing when stage 5 opens
+ *   camp gone  the camp dispersing on its timer before anything is
+ *              documented: nobody walks back into it, the pair keeps its
+ *              way out, the mark still opens
+ *   restart    a checkpoint restart in stage 4 or 5 from Pista Cero's
+ *              rail: the stage's clocks wait for a first timer to fly
+ *              back out (no loss line on the way, the camp still there)
+ *   light      a first timer at 18, 22 and 25 m/s (a longer track, a
+ *              search, time lining up each still) lands with at least
+ *              5 min of light left; a dawdler loses it at sunset
+ *   the pilots every scripted pilot flew as a Bramor: 25 m/s level at
+ *              most, 5 m/s climb
  *   fails      three hard thresholds (the soft fail) and the restart from
  *              its checkpoint, captures kept and stars capped at two; the
  *              boundary's warnings to the crossing pilot alone and the
@@ -73,9 +86,10 @@ import { CAMP_PROPS } from '../src/share/interior/places.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
-  NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
+  CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
 } from '../src/share/ops/guide.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
+import { AIRFRAMES } from '../configs/airframes.js';
 import {
   aimAt, check, finish, opsRoom,
 } from './lib/opsroom.js';
@@ -151,6 +165,7 @@ console.log('data');
   const tos = stagesOf(M).flatMap((st) => (st.cues ?? []).flatMap((c) => [c.classify ?? []].flat().map((k) => k.to)));
   check('every class it classifies to is the campaign\'s', tos.length > 0 && tos.every((x) => M.classes.includes(x)), tos.join());
   check('every site it names exists', [...named(/"alert":"([^"]+)"/g)].every((x) => M.sites.some((s) => s.id === x)));
+  check('every site\'s stage is one of its stages', M.sites.every((s) => !s.stage || stagesOf(M).some((st) => st.id === s.stage)));
   check('three stars, the script\'s optionals', M.stars.map((s) => s.id).join() === 'symbol,camp,eyes');
   check('no faction reaches a view: the contacts carry it in data only', M.contacts.every((c) => typeof c.faction === 'string'));
   check('the debrief\'s required items are the mission\'s', M.debrief.required.length > 0 && M.debrief.required.every((id) => M.items.some((x) => x.id === id))
@@ -223,22 +238,40 @@ console.log('the briefing: a first viewing never cut, the host\'s skip for every
 
 const dist = (a, b) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
 
-/* A scripted pilot: flies toward `target` at `v` m/s (a target may be a
- * function of room ms), aims its camera at `aim` (a point or a function)
- * with `th` (tanHalf), airborne while `air`. */
-function pilot(e, i, start) {
+/* The Bramor as the scripted pilots fly it: level at full throttle
+ * (configs/airframes.js topSpeed, tests/bramor-thresholds.json b4_top)
+ * and its best climb (b7_climb, the published 5 m/s). Every pilot here is
+ * held to them, measured each step (FLOWN), so the light's budget below
+ * is a real aircraft's. */
+const BRAMOR = AIRFRAMES.find((a) => a.id === 'bramor2300');
+const TOP_MS = BRAMOR.topSpeed;
+const CLIMB_MS = 5;
+const FLOWN = { v: 0, climb: 0 };
+
+/* A scripted pilot: flies toward `target` at `v` m/s level and at most
+ * CLIMB_MS up or down (a target may be a function of room ms), aims its
+ * camera at `aim` (a point or a function) with `th` (tanHalf), airborne
+ * while `air`. `detour` is the track's length over the straight line's:
+ * a real pilot turns, overshoots and lines up, so covers ground slower
+ * than its airspeed; `hold` more ms lining up each still. */
+function pilot(e, i, start, { v = TOP_MS, detour = 1, hold = 0 } = {}) {
   const c = {
-    p: start.slice(), target: start.slice(), v: 60, air: false, crashed: false, aim: null, th: 0.5, last: null,
+    p: start.slice(), target: start.slice(), v, detour, hold: 0, air: false, crashed: false, aim: null, th: 0.5, last: null,
   };
   e.paths[i] = (t) => {
     const dt = c.last == null ? 0 : (t - c.last) / 1000;
     c.last = t;
     const tg = typeof c.target === 'function' ? c.target(t) : c.target;
-    if (tg) {
-      const d = dist(c.p, tg);
-      const step = Math.min(d, c.v * dt);
-      if (d > 0) {
-        c.p = c.p.map((v, k) => v + ((tg[k] - v) * step) / d);
+    if (tg && dt > 0) {
+      const dh = Math.hypot(tg[0] - c.p[0], tg[1] - c.p[1]);
+      const sh = Math.min(dh, (c.v / c.detour) * dt);
+      const dz = tg[2] - c.p[2];
+      const sz = Math.sign(dz) * Math.min(Math.abs(dz), CLIMB_MS * dt);
+      const was = c.p;
+      c.p = dh > 0 ? [c.p[0] + ((tg[0] - c.p[0]) * sh) / dh, c.p[1] + ((tg[1] - c.p[1]) * sh) / dh, c.p[2] + sz] : [c.p[0], c.p[1], c.p[2] + sz];
+      if (c.air) {
+        FLOWN.v = Math.max(FLOWN.v, Math.hypot(c.p[0] - was[0], c.p[1] - was[1]) / dt);
+        FLOWN.climb = Math.max(FLOWN.climb, Math.abs(c.p[2] - was[2]) / dt);
       }
     }
     return c.p;
@@ -291,7 +324,7 @@ function snap(e, i, c, id, { who = null, frac = 0.15, grade = 'clean' } = {}) {
   }) : () => itemAt(e, id);
   c.aim = who ? aimAt(e, W, who, 0.1, 16 / 9, i) : at();
   c.th = it.size / (2 * frac * dist(c.p, at()));
-  e.fly(e.clock + 1200);
+  e.fly(e.clock + 1200 + c.hold);
   c.th = it.size / (2 * frac * dist(c.p, at()));
   e.fly(e.clock + 600);
   const n = e.view(0).captures.length;
@@ -316,12 +349,14 @@ function launch(e, c, { blind = false } = {}) {
     e.fly(e.clock + 60000);
     return true;
   }
-  return until(e, stageIs(e, 'M1_CP_AIRBORNE'), 120000, 'stage 2');
+  return until(e, stageIs(e, 'M1_CP_AIRBORNE'), 240000, 'stage 2');
 }
 
 /* Stage 2, time scripted (no reading of the view but the dials), so the
  * lag run flies it the same. */
-function survey(e, c, i = 0, { teacher = true, moto = true } = {}) {
+function survey(e, c, i = 0, { teacher = true, moto = true, search = 0 } = {}) {
+  /* Looking for the first item (`search` ms) before finding it. */
+  e.fly(e.clock + search);
   if (moto) {
     /* The motorcycle on Ruta Vieja, seen from afar as it passes. */
     c.aim = aimAt(e, W, 'moto-road', 0.01, 16 / 9, i);
@@ -366,31 +401,40 @@ function anomaly(e, c, i = 0, { wait = true } = {}) {
 }
 
 /* Overhead the pair, camera on pair-a. Straight overhead the pair is
- * hidden at most 36 to 38 s on WORLD's routes; from 150 m off to one side
- * up to 57.6 to 58.1 s (canopy round #467, measured on canopyBlocks every
- * 100 ms of each route), under Mission 1's hard threshold of 75 s (the
- * orbit runs below hold it to that). `orbit` circles the pair at that
- * radius instead. */
-function follow(e, c, i = 0, { orbit = 0 } = {}) {
+ * hidden at most 36 to 38 s on WORLD's routes (canopy round #467,
+ * measured on canopyBlocks every 100 ms of each route), under Mission
+ * 1's hard threshold of 75 s. `orbit` circles the pair at that radius
+ * instead, as a fixed wing must, and, as Ibarra asks when the soft
+ * threshold's "I've lost them. Pilot?" comes, goes overhead the pair
+ * until it is seen again: from 150 m and 200 m off, the canopy can hide
+ * it for up to 87.5 s at some points of the circle (48 phases of the
+ * circle over the three routes at the Bramor's 25 m/s; the 57.6 to
+ * 58.1 s of round #467 was one phase), so a pilot who only circles can
+ * be moved to the alternate. `alt` metres over Pista Cero's ground. */
+function follow(e, c, i = 0, { orbit = 0, alt = 600 } = {}) {
   const site = M.sites[0];
+  const soft = M.contacts.find((x) => x.id === 'pair-a').track.soft * 1000;
+  let lostAt = null;
   const where = (t) => {
     const k = contact(e, 'pair-a');
     const p = k && W.poseOnRoute(k.route, t - k.t0);
     if (!p) {
       return null;
     }
-    /* Overhead, but never inside the camp's standoff: "No low pass". */
+    lostAt = k.state === 'lost' ? (lostAt ?? t) : null;
+    const r = lostAt != null && t - lostAt >= soft ? 0 : orbit;
     /* A fixed wing's circle about the pair: about 110 m is the Bramor's
      * tightest at 25 m/s and 30 degrees of bank; once round a minute.
      * (Math.cos and sin are the test pilot's, never the room's.) */
     const a = (2 * Math.PI * t) / 60000;
-    let [x, y] = [p.x + orbit * Math.cos(a), p.y + orbit * Math.sin(a)];
+    let [x, y] = [p.x + r * Math.cos(a), p.y + r * Math.sin(a)];
+    /* Overhead, but never inside the camp's standoff: "No low pass". */
     const d = Math.sqrt((x - site.at[0]) ** 2 + (y - site.at[1]) ** 2);
     if (d < site.r + 60) {
       x = site.at[0] + ((x - site.at[0]) * (site.r + 60)) / d;
       y = site.at[1] + ((y - site.at[1]) * (site.r + 60)) / d;
     }
-    return [x, y, M.z0 + 600];
+    return [x, y, M.z0 + alt];
   };
   c.target = where;
   c.aim = aimAt(e, W, 'pair-a', 0.06, 16 / 9, i);
@@ -449,9 +493,9 @@ function home(e, c) {
   c.aim = null;
   const pad = M.points['pista-cero'].at;
   c.target = [pad[0], pad[1], M.z0 + 300];
-  until(e, () => dist(c.p, c.target) < 2, 600000, 'over Pista Cero');
+  until(e, () => dist(c.p, c.target) < 2, 1200000, 'over Pista Cero');
   c.target = [pad[0], pad[1], M.z0];
-  until(e, () => c.p[2] < M.z0 + 0.5, 60000, 'down');
+  until(e, () => c.p[2] < M.z0 + 0.5, 120000, 'down');
   c.air = false;
   return until(e, () => e.view(0).state !== 'live', 30000, 'the end');
 }
@@ -621,15 +665,38 @@ console.log('guide: when a nudge is due, and what it says');
   const n = createNudger();
   n.progress('a', 0);
   n.spoke(0);
-  check(`no nudge before ${NUDGE_IDLE_MS / 1000} s of no progress`, !n.due(NUDGE_IDLE_MS - 1, false) && n.due(NUDGE_IDLE_MS, false));
+  check(`no nudge before ${NUDGE_IDLE_MS / 1000} s of no progress`, !n.due(NUDGE_IDLE_MS - 1) && n.due(NUDGE_IDLE_MS));
   n.nudged(NUDGE_IDLE_MS);
-  check('the next waits longer while nothing changes', !n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS, false) && n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS * 1.5, false));
+  check('the next waits longer while nothing changes', !n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS) && n.due(NUDGE_IDLE_MS + NUDGE_GAP_MS * 1.5));
   n.progress('b', 50000);
-  check('progress resets the idle clock and the gap', !n.due(60000, false) && n.due(70000, false));
-  const far = createNudger();
-  far.progress('a', 0);
-  far.spoke(0);
-  check('far from the objective: due once the gap has passed, progress or not', far.due(NUDGE_GAP_MS, true) && !far.due(NUDGE_GAP_MS - 1, true));
+  check('progress resets the idle clock and the gap', !n.due(60000) && n.due(70000));
+  /* On the way: 2.4 km out, straight at it at 20 m/s, nothing else
+   * changing. Every CLOSE_M nearer is progress, so nothing is said until
+   * the pilot stops closing. */
+  const leg = createNudger();
+  leg.progress('a', 0, 2400);
+  leg.spoke(0);
+  const saidOnTheWay = [];
+  let t = 0;
+  for (; t <= 120000; t += 250) {
+    leg.progress('a', t, 2400 - (20 * t) / 1000);
+    if (leg.due(t)) {
+      saidOnTheWay.push(t);
+      leg.nudged(t);
+    }
+  }
+  check('closing on the objective is progress: no nudge on a two minute leg straight at it', saidOnTheWay.length === 0, JSON.stringify(saidOnTheWay));
+  for (; t <= 120000 + NUDGE_IDLE_MS; t += 250) {
+    leg.progress('a', t, 0);
+  }
+  check(`then holding there, a nudge after ${NUDGE_IDLE_MS / 1000} s`, leg.due(t));
+  const drift = createNudger();
+  drift.progress('a', 0, 2000);
+  drift.spoke(0);
+  for (let u = 0; u <= NUDGE_IDLE_MS; u += 250) {
+    drift.progress('a', u, 2000 + (10 * u) / 1000);
+  }
+  check(`flying away is not progress: due after ${NUDGE_IDLE_MS / 1000} s (CLOSE_M ${CLOSE_M} m)`, drift.due(NUDGE_IDLE_MS));
   check('the clock bearing off the nose: ahead 12, right 3, behind 6, left 9', clockOf([0, 0], [0, 100], 0) === 12 && clockOf([0, 0], [100, 0], 0) === 3
     && clockOf([0, 0], [0, -100], 0) === 6 && clockOf([0, 0], [-100, 0], 0) === 9 && clockOf([0, 0], [100, 0], Math.PI / 2) === 12);
   check('the distance band', distLine(400) === 'int-g-dist-500' && distLine(1200) === 'int-g-dist-1k' && distLine(2200) === 'int-g-dist-2k' && distLine(9000) === 'int-g-dist-far');
@@ -707,8 +774,8 @@ console.log('squad: five pilots, the trackers, a low pass, the whole camp');
     && !heard(e, isr, 'int1-tr-assign'));
   check('everyone heard the story', [isr, ...trackers].every((i) => heard(e, i, 'int1-s3-follow')));
   /* Each tracker takes one way out: until the dispersal it waits high
-   * off to the side; then it flies over the two going that way, camera
-   * wide on the middle of them, as Ibarra's split line asks. */
+   * off its side of the camp; then it flies over the two going that
+   * way, camera wide on the middle of them, as Ibarra's split line asks. */
   const dirs = ['n', 'e', 's', 'w'];
   tc.forEach((p, k) => {
     const goers = (t) => e.view(0).contacts.filter((x) => x.route.startsWith(`out-${dirs[k]}-`) && x.state !== 'vanished' && t >= x.t0)
@@ -717,7 +784,9 @@ console.log('squad: five pilots, the trackers, a low pass, the whole camp');
       const ps = goers(t);
       return ps.length ? [ps.reduce((a, q) => a + q.x, 0) / ps.length, ps.reduce((a, q) => a + q.y, 0) / ps.length, ps.reduce((a, q) => a + q.z, 0) / ps.length] : null;
     };
-    const wait = p.target;
+    /* Waiting high off its side of the camp, outside the alertness. */
+    const out = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] }[dirs[k]];
+    const wait = [CAMP_SITE.at[0] + out[0] * 700, CAMP_SITE.at[1] + out[1] * 700, M.z0 + 700];
     p.target = (t) => {
       const m = middle(t);
       return m ? [m[0], m[1], m[2] + 400] : wait;
@@ -747,6 +816,213 @@ console.log('squad: five pilots, the trackers, a low pass, the whole camp');
   home(e, c);
   const v = e.view(0);
   check('won, with the whole camp\'s star', v.state === 'won' && v.result.starIds.includes('camp') && v.result.flags.M1_CAMP_FULLY_DOCUMENTED === true, JSON.stringify(v.result));
+}
+
+/* ------------------------------------------------------ low tracking */
+
+console.log('low tracking before the camp: the camp only hears what flies over it once it is found');
+{
+  /* The pair followed at 250 m, under the camp's 300 m and inside its
+   * 1500 m reach for much of the way (MISSIONS.md M1 stage 5: the
+   * camp's alertness is the camp stage's). */
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  follow(e, c, 0, { alt: 250 });
+  let most = 0;
+  until(e, () => {
+    most = Math.max(most, e.view(0).sites.camp.value);
+    return stageIs(e, 'M1_CP_CAMP_FOUND')();
+  }, 1800000, 'stage 5 after a low follow');
+  check('followed low through stages 3 and 4: the camp never stirred before it was found', most === 0 && e.view(0).sites.camp.level === 'calm', `${most} ${e.view(0).sites.camp.level}`);
+  c.target = STANDOFF;
+  c.aim = null;
+  e.fly(e.clock + 3000);
+  check('stage 5 opens on "No low pass. Record everything.", no dispersal and no "They heard you."', heard(e, 0, 'int1-s5-record') && !heard(e, 0, 'int1-s5-early')
+    && !heard(e, 0, 'int1-s5-moving') && !e.r.ops.match.choices?.dispersal);
+}
+
+/* ---------------------------------------------------- the camp gone */
+
+/* Stage 5 with nothing documented: the camp disperses on its 8 min
+ * timer (MISSIONS.md M1_09). Returns the room, the pilot and the ms the
+ * stage opened and the dispersal started. */
+function campGone(seed = undefined) {
+  const e = opsRoom(M, { ...ROOM, n: 1, ...(seed == null ? {} : { seed }) });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5');
+  const opened = e.r.ops.match.stage.at;
+  c.target = STANDOFF;
+  c.aim = null;
+  until(e, () => e.r.ops.match.choices?.dispersal, 600000, 'the dispersal by the timer');
+  return {
+    e, c, opened, gone: e.r.ops.match.choices?.dispersal?.t ?? null,
+  };
+}
+
+console.log('the camp gone first: the way home shown at once, nobody goes back into it');
+{
+  const { e, c, opened, gone } = campGone();
+  check('nothing documented: the dispersal on the timer, 480 s after stage 5 opened', gone - opened === 480000, `${gone - opened}`);
+  e.fly(e.clock + 1000);
+  {
+    const g = guideOf(e, c);
+    const pad = M.points['pista-cero'].at;
+    check('the dispersal: RETURN TO BASE shown, the guide home to Pista Cero with its brief, documentation not blocking it',
+      e.view(0).cards.some((x) => x.id === 'rtb' && x.state === 'active') && g.focus?.card.id === 'rtb' && g.target?.kind === 'home'
+      && g.target.at[0] === pad[0] && g.target.at[1] === pad[1] && briefOf(g.focus, 'isr') === 'int1-g-rtb',
+      JSON.stringify({ cards: e.view(0).cards.map((x) => `${x.id}:${x.state}`), focus: g.focus?.card.id, target: g.target }));
+  }
+  /* Past every delayed way out, then the three captures that cue the
+   * tarp's mover (M1_08): on its way out, it must stay on it. */
+  e.fly(e.clock + 30000);
+  for (const id of ['shelters', 'motorcycles', 'antenna']) {
+    snap(e, 0, c, id);
+  }
+  e.fly(e.clock + 10000);
+  const camp = () => e.r.ops.match.contacts.filter((x) => x.group === 'camp');
+  check('three captures after the dispersal: every camp person still on a way out (or gone), none back at a shelter',
+    camp().every((x) => x.state === 'vanished' || x.route.startsWith('out-')), JSON.stringify(camp().map((x) => [x.id, x.route])));
+  check('the mark opened all the same, the camp being stripped', e.r.ops.match.choices?.tarp?.value === 'moved' && e.view(0).opened.includes('symbol'));
+  const pair = e.r.ops.match.contacts.filter((x) => x.group === 'pair');
+  check('the pair on its way out has no alternate a hard threshold could send it back along', pair.every((x) => x.route.startsWith('pair-out-') && x.alt == null),
+    JSON.stringify(pair.map((x) => [x.id, x.route, x.alt])));
+  until(e, () => camp().every((x) => x.state === 'vanished'), 900000, 'the whole camp gone');
+  check('the whole camp gone into the forest', camp().every((x) => x.state === 'vanished'));
+  e.fly(e.clock + 1000);
+  const doc = e.view(0).cards.find((x) => x.id === 'document');
+  check('its people gone before they were captured: DOCUMENT THE SITE missed, not left open', doc?.state === 'failed', JSON.stringify(doc));
+  home(e, c);
+  check('home: won, landed', e.view(0).state === 'won' && e.view(0).why === 'landed', `${e.view(0).state} ${e.view(0).why}`);
+}
+
+/* ----------------------------------------------------------- restart */
+
+/* Lost in stage `id` (the ISR down, nobody else up), then played again
+ * from its checkpoint: the aircraft starts on Pista Cero's rail, 8 to 9
+ * km from the action, and a first timer flies there at 18 m/s. Returns
+ * the room and the new pilot at the go. */
+function restartIn(id) {
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  let c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  if (id === 'M1_CP_CAMP_FOUND') {
+    follow(e, c);
+    until(e, stageIs(e, id), 1800000, 'stage 5');
+  }
+  c.crashed = true;
+  c.air = false;
+  until(e, () => e.view(0).state === 'lost', 5000, `lost in ${id}`);
+  check(`lost in ${id}: its checkpoint`, e.view(0).checkpoint?.stage === id, JSON.stringify(e.view(0).checkpoint));
+  e.say(0, {
+    type: 'ops', op: 'start', mission: 'interior-1', from: 'checkpoint',
+  });
+  c = pilot(e, 0, BASE, { v: 18 });
+  until(e, () => e.view(0).state === 'live', 10000, 'the restart live');
+  return { e, c, goAt: e.view(0).goAt };
+}
+
+console.log('restart: the stage waits for a first timer flying back out from Pista Cero');
+{
+  const { e, c, goAt } = restartIn('M1_CP_CAMP_FOUND');
+  c.air = true;
+  c.target = STANDOFF;
+  until(e, () => dist(c.p, STANDOFF) < 2, 1200000, 'the standoff after the restart');
+  const gone = e.r.ops.match.choices?.dispersal;
+  const at = e.clock;
+  check(`stage 5 again, back at standoff ${Math.round((at - goAt) / 1000)} s after the go: the camp still there, "No low pass" said no sooner than the transit`,
+    !gone && e.view(0).state === 'live' && !e.cues(0).some((x) => [x.radio].flat().includes('int1-s5-nolow') && x.at < at - 120000),
+    JSON.stringify({ gone, nolow: e.cues(0).filter((x) => [x.radio].flat().includes('int1-s5-nolow')).map((x) => x.at - goAt) }));
+  until(e, () => e.r.ops.match.choices?.dispersal, 900000, 'the dispersal after the restart');
+  const t = e.r.ops.match.choices?.dispersal?.t ?? Infinity;
+  check(`and most of the 8 min of observation still to come there: the dispersal ${Math.round((t - at) / 1000)} s after arriving`, t - at >= 300000, `${t - at}`);
+}
+{
+  const { e, c } = restartIn('M1_CP_CONTACT_FOUND');
+  const near = () => {
+    const k = contact(e, 'pair-a');
+    const q = W.poseOnRoute(k.route, e.clock - k.t0);
+    return q && Math.hypot(q.x - c.p[0], q.y - c.p[1]) < 1500;
+  };
+  /* Lost again at once and restarted again: the same lead, not two. */
+  const pairAt = (x) => x.r.ops.match.contacts.filter((k) => k.group === 'pair').map((k) => [k.id, k.route, k.t0 - x.view(0).goAt, k.lastIn - x.view(0).goAt]);
+  const first = JSON.stringify(pairAt(e));
+  c.crashed = true;
+  c.air = false;
+  until(e, () => e.view(0).state === 'lost', 5000, 'lost again');
+  e.say(0, {
+    type: 'ops', op: 'start', mission: 'interior-1', from: 'checkpoint',
+  });
+  c.crashed = false;
+  c.p = BASE.slice();
+  c.target = BASE.slice();
+  until(e, () => e.view(0).state === 'live', 10000, 'the second restart live');
+  check('restarted twice from stage 4: the pair held for the same lead after the go both times', JSON.stringify(pairAt(e)) === first, `${first} vs ${JSON.stringify(pairAt(e))}`);
+  const goAt2 = e.view(0).goAt;
+  c.air = true;
+  follow(e, c);
+  until(e, near, 1200000, 'near the pair after the restart');
+  const lines = ['int1-s4-welcome', 'int1-s4-lost', 'int1-s4-hard', 'int1-s4-hard-b'];
+  const early = e.cues(0).filter((x) => x.at >= goAt2 && [x.radio].flat().some((r) => lines.includes(r))).map((x) => `${[x.radio].flat()[0]}@${Math.round((x.at - goAt) / 1000)}`);
+  check(`stage 4 again, within 1.5 km of the pair ${Math.round((e.clock - goAt2) / 1000)} s after the go: no loss line on the way and no hard threshold`,
+    !early.length && contact(e, 'pair-a').hards === 0 && !contact(e, 'pair-a').route.includes('-alt-'), JSON.stringify({ early, pair: contact(e, 'pair-a') }));
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5 after the restart');
+  check('and followed from there to the camp', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND' && e.view(0).state === 'live', `${e.view(0).state} ${e.view(0).why}`);
+}
+
+/* ------------------------------------------------------------ light */
+
+/* The light's budget at the Bramor's speeds: one pilot flies the whole
+ * mission as a first timer would, not a scripted line: its track a fifth
+ * longer than the straight one (turns, overshoots, lining up), two
+ * minutes looking for the first item, eight seconds lining up each still,
+ * the pair missed until the discovery window's call, followed on a
+ * circle, the camp from standoff, home. It must land with at least
+ * MARGIN_S of light left at 18 m/s and over; and a pilot who dawdles
+ * still loses the light at sunset (the rule is real pressure). */
+const MARGIN_S = 300;
+const SUNSET_MS = sunsetMs(M1_CLOCK);
+console.log(`light: a first timer's run at 18, 22 and 25 m/s lands with ${MARGIN_S / 60} min of light; a dawdler loses it`);
+for (const v of [18, 22, TOP_MS]) {
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE, { v, detour: 1.2, hold: 8000 });
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { search: 120000 });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c);
+  follow(e, c, 0, { orbit: 150 });
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5');
+  documentCamp(e, c);
+  home(e, c);
+  const w = e.view(0);
+  const left = Math.round((w.goAt + SUNSET_MS - (w.endAt ?? e.clock)) / 1000);
+  const path = e.r.ops.match.path.map((x) => `${x.id.replace('M1_CP_', '')} ${Math.round((x.at - w.goAt) / 1000)} s`).join(', ');
+  check(`${v} m/s: won, landed with ${left} s of light left (at least ${MARGIN_S})`, w.state === 'won' && w.why === 'landed' && left >= MARGIN_S,
+    `${w.state} ${w.why} at ${Math.round(((w.endAt ?? e.clock) - w.goAt) / 1000)} s, sunset ${Math.round(SUNSET_MS / 1000)} s; ${path}`);
+}
+{
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  until(e, () => e.view(0).state !== 'live', SUNSET_MS + 60000, 'the light gone');
+  const w = e.view(0);
+  check('a pilot who never gets on with it: lost to the light at sunset, the line said', w.state === 'lost' && w.why === 'light'
+    && Math.abs(w.endAt - w.goAt - SUNSET_MS) <= 1000 && heard(e, 0, 'int-fail-function'), `${w.state} ${w.why} ${w.endAt - w.goAt}`);
 }
 
 /* ------------------------------------------------------------- fails */
@@ -829,5 +1105,9 @@ console.log('fails: the ISR down');
   f.fly(f.clock + 3000);
   check('the ISR down with a tracker still up: the line, no fail', f.view(0).state === 'live' && heard(f, 1 - isr, 'int-lost-aircraft'));
 }
+
+console.log('the pilots');
+check(`every scripted pilot flew as a Bramor: at most ${TOP_MS} m/s level and ${CLIMB_MS} m/s up or down`, FLOWN.v <= TOP_MS + 1e-6 && FLOWN.climb <= CLIMB_MS + 1e-6,
+  `${FLOWN.v.toFixed(2)} m/s, climb ${FLOWN.climb.toFixed(2)} m/s`);
 
 finish();

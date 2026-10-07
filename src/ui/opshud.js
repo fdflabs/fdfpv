@@ -5,13 +5,17 @@
  * war's: the war wants its enemies very obvious, an ops mission the
  * opposite.
  *
- * THE RULE IT KEEPS: nothing is drawn for what the room has not told the
+ * THE RULE IT KEEPS: nothing is NAMED for what the room has not told the
  * squad. A contact gets a box only once the room has discovered it (its
  * class is set), and only while it is in some pilot's frame; a lost one
  * gets its last known position, never where it is; the room's search
  * areas are soft circles; bearing hints are ticks on the compass tape
- * toward those circles and positions. No glowing marker before discovery,
- * no omniscient minimap. `interior:hud` proves it on the HUD's own pixels.
+ * toward those circles and positions. No omniscient minimap. The one
+ * thing drawn before discovery is the spotting caret over a contact that
+ * is in the frame and near (the owner's call, 2026-10-07: a motorcycle
+ * or a person on the ground is otherwise a few pixels nobody finds); it
+ * says where to look, never what it is. `interior:hud` proves it on the
+ * HUD's own pixels.
  *
  * WHAT IT DRAWS. Over the ball: the centre cross and the survey box (the
  * capture's cuts: inside the inner brackets a framed item grades clean,
@@ -76,6 +80,10 @@ const TAPE_SPAN = 60;
 const MAP_M = [3000, 9000];
 /* A box never smaller than this, CSS px. */
 const BOX_MIN_PX = 14;
+/* The spotting caret over a contact in the frame: its half width, CSS
+ * px, and how far from the craft one is still drawn, m. */
+const SPOT_PX = 6;
+const SPOT_M = 2500;
 /* Ground circles are drawn as this many segments. */
 const RING = 40;
 /* The game's furniture is looked for this often (it comes and goes), and
@@ -169,7 +177,10 @@ const CSS = `
   letter-spacing: 0.02em; line-height: 1.35; color: ${INK}; background: rgba(6, 10, 12, 0.55); padding: 0.25em 0.9em; }
 .ops-subtitle:empty { display: none; }
 .ops-goal { max-width: min(62ch, 90vw); text-align: center; white-space: normal; letter-spacing: 0.12em; line-height: 1.4;
-  padding: 0.2em 0.7em; background: rgba(6, 10, 12, 0.35); }
+  padding: 0.25em 0.8em; background: rgba(6, 10, 12, 0.55); font-size: 1.3em; color: #fff; }
+.ops-goal-n { color: ${AMBER}; font-weight: 600; margin-left: 0.5em; display: inline-block; }
+.ops-goal-n.ops-bump { animation: ops-bump 0.9s ease-out; }
+@keyframes ops-bump { 0% { transform: scale(1.7); } 100% { transform: scale(1); } }
 .ops-first { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; box-sizing: border-box;
   max-width: min(92vw, 520px); padding: 0.9em 1.2em; border: 1px solid rgba(236, 244, 240, 0.45); background: rgba(6, 10, 12, 0.78);
   letter-spacing: 0.1em; line-height: 1.55; }
@@ -815,8 +826,7 @@ export class OpsHud {
     this.tut.set(src.tutorial ? say(src.tutorial) : '');
     const goal = src.guide ? src.guide.line : '';
     if (goal !== this.goalText) {
-      this.goalText = goal;
-      this.goal.textContent = goal;
+      this.setGoal(goal);
     }
     const bound = v && v.boundary ? v.boundary[src.seat] : null;
     this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : '');
@@ -955,6 +965,25 @@ export class OpsHud {
     }
   }
 
+  /* The objective line, its count (the part after the last " · ",
+   * guide.js goalLine) in amber and bumped once when it changes: the
+   * owner's flight (2026-10-07) never noticed the count go up. */
+  setGoal(goal) {
+    const prev = this.goalText || '';
+    this.goalText = goal;
+    const i = goal.lastIndexOf(' · ');
+    if (i < 0) {
+      this.goal.textContent = goal;
+      return;
+    }
+    const count = goal.slice(i + 3);
+    this.goal.replaceChildren(goal.slice(0, i));
+    const n = el('span', 'ops-goal-n', this.goal, count);
+    if (prev.lastIndexOf(' · ') >= 0 && prev.slice(prev.lastIndexOf(' · ') + 3) !== count) {
+      n.classList.add('ops-bump');
+    }
+  }
+
   /* A circle on the ground through the screen's camera, dashed; returns
    * whether any of it was drawn. */
   groundRing(at, r, dash) {
@@ -1002,9 +1031,15 @@ export class OpsHud {
       }
     }
     /* Contacts the room has told: a box while seen, the last known
-     * position once lost. Nothing for the rest. */
+     * position once lost. Any contact in the frame, told or not, gets
+     * the spotting caret over it (owner 2026-10-07: the motorcycle and
+     * the people on the ground were impossible to pick out; the box and
+     * class still wait for the room). */
     for (const c of v.contacts || []) {
       const mark = markOf(c);
+      if (c.state !== 'vanished') {
+        this.spot(c);
+      }
       if (mark === 'box') {
         const at = src.poseOf(c);
         const p = at && src.project(at);
@@ -1049,6 +1084,37 @@ export class OpsHud {
         }
       }
     }
+  }
+
+  /* A small solid caret over a contact in the frame, haloed like the
+   * guide's so it reads over any ground; nothing off screen, nothing
+   * past SPOT_M, no word: the pilot still has to look where it is. */
+  spot(c) {
+    const { g, w, h, src } = this;
+    const at = src.poseOf(c);
+    const p = at && src.project(at);
+    if (!p || p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
+      return;
+    }
+    if (src.craft && Math.hypot(at[0] - src.craft.p[0], at[1] - src.craft.p[1]) > SPOT_M) {
+      return;
+    }
+    const a = SPOT_PX;
+    g.lineJoin = 'round';
+    g.strokeStyle = HALO;
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(p.x - a, p.y - a * 3.2);
+    g.lineTo(p.x + a, p.y - a * 3.2);
+    g.lineTo(p.x, p.y - a * 1.6);
+    g.closePath();
+    g.stroke();
+    g.fillStyle = INK;
+    g.fill();
+    g.lineWidth = 1.25;
+    this.marks.push({
+      kind: 'spot', id: c.id, x: p.x, y: p.y,
+    });
   }
 
   /*

@@ -1,223 +1,215 @@
-import { str } from '../strings/index.js';
 /*
- * flightlog.js: record a flight and write it out as a blackbox log.
+ * flightlog.js: the pilot's own flight, recorded in the browser and saved
+ * as a blackbox log.
  *
- * WHY THE SIMULATOR RECORDS. scripts/replay-log.js can take a real quad's
- * blackbox log, fly its sticks through this build and report what the plant
- * got wrong. That is the instrument. This is the other half of it: the
- * simulator writing its OWN flight in the same format, for two jobs that
- * both matter.
+ * scripts/replay-log.js flies a real quad's blackbox log through this
+ * build and reports where the plant differs. This is the other direction:
+ * the simulator logging its own flight in the same shape, so that "it
+ * feels different" arrives as rates, sticks, pack voltage and rotor speeds
+ * against time, and a sim log and a real log of the same line can be read
+ * by the same parser and compared column for column.
  *
- *   Diagnosis. "It feels different" is not something a maintainer can act
- *   on, and it cost this project a whole archaeology session once already.
- *   A log of the flight that felt wrong is: rates, sticks, pack voltage and
- *   rotor speeds against time, which either shows the anomaly or rules the
- *   plant out.
+ * The file is blackbox_decode's CSV rather than Betaflight's packed binary:
+ * every blackbox tool reads the CSV, writing the binary would mean keeping
+ * a second encoder in step with a format this project does not own, and
+ * tests/lib/blackbox.js parses exactly this CSV.
  *
- *   Comparison. A sim log and a real log in the same format go through the
- *   same parser and the same report, so "here is my quad, here is the sim,
- *   flying the same line" is a diff rather than an argument.
+ * What a row holds: time, sticks, gyro and pack voltage straight from the
+ * module's state block. The motor columns are ROTOR SPEED as a fraction of
+ * nominal full throttle, not the duty a real ESC logs, because duty never
+ * crosses the module ABI (it reports RPM); anyone comparing motor columns
+ * with a real log needs to know that. There is one row per rendered frame,
+ * 60 to 144 Hz against a real FC's 1 to 8 kHz: each row's sticks and gyro
+ * are read at the same instant, so a manoeuvre shows, filter phase does
+ * not.
  *
- * THE FORMAT is blackbox_decode's CSV, not Betaflight's packed binary. The
- * binary is a format this project does not own and reimplementing its
- * writer would be a second decoder to keep in sync for no gain: every tool
- * that reads blackbox reads the decoded CSV too, and tests/lib/blackbox.js
- * parses exactly this.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WHAT IS AND IS NOT IN A ROW. Time, sticks, gyro and pack voltage are the
- * real thing, straight off the state block. The motor columns carry ROTOR
- * SPEED normalised against a nominal full throttle, NOT the duty a real ESC
- * logs, because duty never crosses the ABI: the module reports RPM. That is
- * written down here rather than left for someone to discover, because a
- * motor column that looks like a duty and is not is exactly the sort of
- * thing that quietly ruins a comparison.
- *
- * RATE. One row per rendered frame, so 60 to 144 Hz rather than a real
- * FC's 1 to 8 kHz. The stick and gyro pair in a row are read at the same
- * instant, so the row is honest; there are simply fewer of them. Enough to
- * see a manoeuvre, not enough to see filter phase.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* Betaflight stick units, the same ones tests/lib/blackbox.js inverts. */
-const RC_SPAN = 500;
-const THR_MIN = 1000;
-const THR_SPAN = 1000;
+import { str } from '../strings/index.js';
+
+/* Betaflight's stick units (tests/lib/blackbox.js maps them back): roll,
+ * pitch and yaw as +-500 about centre, throttle as 1000..2000. Motor
+ * columns use the 0..2047 range of a DShot value. */
+const STICK_HALF_RANGE = 500;
+const THROTTLE_LOW = 1000;
+const THROTTLE_RANGE = 1000;
+const MOTOR_FULL = 2047;
+const DEG_PER_RAD = 57.29577951308232;
+
+/* State block slots this file reads (see the module ABI). */
+const AT_TIME_S = 0;
+const AT_GYRO = 11; /* p, q, r in rad/s */
+const AT_RPM = 14; /* four rotors */
+const AT_VBAT = 18;
 
 /*
- * Write rows as blackbox_decode's CSV.
+ * blackbox_decode's CSV for `samples` ({ tUs, rc[4], gyroDps[3], motor?[4],
+ * vbat? }). Here rather than under tests because the browser writes logs;
+ * tests/lib/blackbox.js re-exports it to prove its parser reads this back.
  *
- * Lives here, in src, rather than in tests, because the browser is what
- * produces a log; tests/lib/blackbox.js imports this for the round trip
- * that proves its own parser agrees with this writer.
- *
- * The pitch channel is negated on the way out for the same reason the
- * parser negates it on the way in: bf_glue.c builds rcData[PITCH] as
- * 1500 MINUS the ABI channel, so a log's positive pitch is this ABI's
- * negative pitch. The two negations are one convention, and they are
- * tested against each other by scripts/replay-log.js --selftest.
+ * Pitch goes out negated: bf_glue.c builds rcData[PITCH] as 1500 minus the
+ * ABI's pitch, so a log's positive pitch is the ABI's negative. The parser
+ * negates it back; scripts/replay-log.js --selftest holds the two together.
  */
 export function toBlackboxCsv(samples) {
-  const head = [
+  const columns = [
     str('flightlog.time_us'),
     'rcCommand[0]', 'rcCommand[1]', 'rcCommand[2]', 'rcCommand[3]',
     'gyroADC[0]', 'gyroADC[1]', 'gyroADC[2]',
     'motor[0]', 'motor[1]', 'motor[2]', 'motor[3]',
     str('flightlog.vbatlatest_v'),
-  ].map((n) => `"${n}"`).join(', ');
-  const body = samples.map((s) => [
-    Math.round(s.tUs),
-    s.rc[0] * RC_SPAN,
-    -s.rc[1] * RC_SPAN,
-    s.rc[2] * RC_SPAN,
-    THR_MIN + s.rc[3] * THR_SPAN,
-    s.gyroDps[0], s.gyroDps[1], s.gyroDps[2],
-    ...(s.motor ?? [0, 0, 0, 0]).map((d) => d * 2047),
-    s.vbat ?? 0,
-  ].join(', '));
-  return `${head}\n${body.join('\n')}\n`;
+  ];
+  const header = columns.map((name) => `"${name}"`).join(', ');
+  const lines = [];
+  for (const { tUs, rc, gyroDps, motor, vbat } of samples) {
+    const [roll, pitch, yaw, throttle] = rc;
+    const motors = motor ?? [0, 0, 0, 0];
+    lines.push([
+      Math.round(tUs),
+      roll * STICK_HALF_RANGE,
+      -pitch * STICK_HALF_RANGE,
+      yaw * STICK_HALF_RANGE,
+      THROTTLE_LOW + throttle * THROTTLE_RANGE,
+      ...gyroDps,
+      ...motors.map((fraction) => fraction * MOTOR_FULL),
+      vbat ?? 0,
+    ].join(', '));
+  }
+  /* Header, rows, and a closing newline; with no rows the line between
+   * is empty. */
+  return `${header}\n${lines.join('\n')}\n`;
 }
 
-/*
- * How many rows to keep. At 144 Hz this is a little over eleven minutes,
- * which is longer than any pack, and it is a RING: a pilot who leaves
- * recording on all session still gets the end of the flight rather than an
- * out of memory. Roughly 13 MB of CSV at the cap.
- */
+/* At 144 Hz a little over eleven minutes, longer than any pack: past it the
+ * oldest rows go, so a recorder left on all session keeps the end of the
+ * flight instead of filling memory (about 13 MB of CSV at the cap). */
 const MAX_ROWS = 100000;
+
+/* The gap left in the time axis where a module reset is spliced in. */
+const SPLICE_GAP_US = 100000;
 
 export class FlightRecorder {
   constructor() {
-    this.rows = [];
     this.on = false;
-    this.dropped = 0;
-    /*
-     * The splice offset. The module's clock restarts at zero on every
-     * reset, and a crash recovery resets the module, so a session's second
-     * run used to make the file's time axis jump BACKWARDS mid stream. The
-     * owner's first real log did exactly that, twice, and any tool that
-     * bins by time reads such a file as one garbled flight. When a pushed
-     * time is behind the last one, the offset advances so the new run
-     * continues the axis after a visible 100 ms seam: one file, several
-     * runs, monotonic time, and the seam wide enough that a reader can see
-     * where the splice is.
-     */
-    this.offsetUs = 0;
-    this.lastRawUs = -Infinity;
-    this.lastOutUs = -Infinity;
-  }
-
-  setEnabled(on) {
-    this.on = Boolean(on);
-    if (!this.on) {
-      return;
-    }
-    /* Turning it on starts a new log. A recording that silently continued
-     * across runs would put two flights in one file with a time axis that
-     * jumps backwards. */
     this.clear();
   }
 
+  /* On starts a fresh log: carrying one on across runs would put two
+   * flights in one file. Off keeps what was recorded for saving. */
+  setEnabled(on) {
+    this.on = Boolean(on);
+    if (this.on) {
+      this.clear();
+    }
+  }
+
   clear() {
-    this.rows.length = 0;
-    this.dropped = 0;
-    this.offsetUs = 0;
-    this.lastRawUs = -Infinity;
-    this.lastOutUs = -Infinity;
+    this.ring = [];
+    this.head = 0;
+    /* Time continuity across module resets. The module's clock restarts at
+     * zero on every reset (a crash recovery is one), and a log whose time
+     * runs backwards mid file reads as one garbled flight in any tool that
+     * bins by time. A sample earlier than the one before it starts a new
+     * segment SPLICE_GAP_US after the last written time, so the file stays
+     * monotonic and the seam is visible. */
+    this.shiftUs = 0;
+    this.prevModuleUs = -Infinity;
+    this.prevLoggedUs = -Infinity;
   }
 
   get count() {
-    return this.rows.length;
+    return this.ring.length;
   }
 
-  /* Roughly, for a menu note. */
+  /* Rows oldest first. */
+  inOrder() {
+    return this.head === 0 ? this.ring : [...this.ring.slice(this.head), ...this.ring.slice(0, this.head)];
+  }
+
+  /* Length of the log in seconds, roughly, for a menu note. */
   get seconds() {
-    if (this.rows.length < 2) {
+    const n = this.ring.length;
+    if (n < 2) {
       return 0;
     }
-    return (this.rows[this.rows.length - 1].tUs - this.rows[0].tUs) / 1e6;
+    const newest = this.ring[(this.head + n - 1) % n];
+    const oldest = this.ring[this.head];
+    return (newest.tUs - oldest.tUs) / 1e6;
   }
 
   /*
-   * One row, from the state block and the sticks that produced it.
-   *
-   * `st` is the raw state array and `rc` the channel set last handed to the
-   * module, so the pair is what the craft was actually doing and what it
-   * was actually told, read at the same instant.
+   * One row: `st` is the module's state block and `rc` the channels last
+   * handed to it, so the row pairs what the craft did with what it was
+   * told at the same instant. `fullThrottleRpm` scales the rotor speeds.
    */
   push(st, rc, fullThrottleRpm) {
     if (!this.on) {
       return;
     }
-    if (this.rows.length >= MAX_ROWS) {
-      this.rows.shift();
-      this.dropped += 1;
+    const moduleUs = st[AT_TIME_S] * 1e6;
+    if (moduleUs < this.prevModuleUs) {
+      this.shiftUs = this.prevLoggedUs + SPLICE_GAP_US - moduleUs;
     }
-    const rpmToDuty = (rpm) => (fullThrottleRpm > 0 ? rpm / fullThrottleRpm : 0);
-    const rawUs = st[0] * 1e6;
-    if (rawUs < this.lastRawUs) {
-      this.offsetUs = this.lastOutUs + 100000 - rawUs;
-    }
-    this.lastRawUs = rawUs;
-    this.lastOutUs = rawUs + this.offsetUs;
-    this.rows.push({
-      tUs: this.lastOutUs,
+    this.prevModuleUs = moduleUs;
+    this.prevLoggedUs = moduleUs + this.shiftUs;
+    const fraction = (rpm) => (fullThrottleRpm > 0 ? rpm / fullThrottleRpm : 0);
+    const row = {
+      tUs: this.prevLoggedUs,
       rc: [rc.roll, rc.pitch, rc.yaw, rc.throttle],
-      /* State block P, Q, R are rad/s; a blackbox gyro column is deg/s. */
-      gyroDps: [st[11] * 57.29577951308232, st[12] * 57.29577951308232, st[13] * 57.29577951308232],
-      /* Rotor speed as a fraction of nominal full throttle. NOT ESC duty:
-       * see the header. */
-      motor: [rpmToDuty(st[14]), rpmToDuty(st[15]), rpmToDuty(st[16]), rpmToDuty(st[17])],
-      vbat: st[18],
-    });
+      gyroDps: [0, 1, 2].map((k) => st[AT_GYRO + k] * DEG_PER_RAD),
+      motor: [0, 1, 2, 3].map((k) => fraction(st[AT_RPM + k])),
+      vbat: st[AT_VBAT],
+    };
+    if (this.ring.length < MAX_ROWS) {
+      this.ring.push(row);
+      return;
+    }
+    this.ring[this.head] = row;
+    this.head = (this.head + 1) % MAX_ROWS;
   }
 
   csv() {
-    return toBlackboxCsv(this.rows);
+    return toBlackboxCsv(this.inOrder());
   }
 }
 
 /*
- * Hand the file to the browser.
- *
- * An anchor with a download attribute and an object URL, which is the one
- * mechanism that works in every browser this runs in without a server
- * round trip. The URL is revoked on the next tick rather than immediately
- * because Safari has historically cancelled the download if it is revoked
- * inside the same task.
+ * Save `text` as a file through a hidden download link and an object URL,
+ * which every browser this runs in supports with no server. The URL is
+ * revoked a task later, not at once: Safari has cancelled downloads whose
+ * URL was revoked in the same task.
  */
 export function downloadText(filename, text, mime = 'text/csv') {
-  const blob = new Blob([text], { type: `${mime};charset=utf-8` });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.append(a);
-  a.click();
-  a.remove();
+  const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }));
+  const link = document.createElement('a');
+  Object.assign(link, { href: url, download: filename });
+  link.style.display = 'none';
+  document.body.append(link);
+  link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-/* A name that sorts and says what it is. */
+/* py-drone-combat-<map>-YYYYMMDD-HHMMSS.csv in local time, so files sort
+ * by when they were flown. */
 export function flightLogName(mapId) {
-  const t = new Date();
-  const p = (n, w = 2) => String(n).padStart(w, '0');
-  const stamp = `${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}`
-    + `-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}`;
-  return `py-drone-combat-${String(mapId || 'flight')}-${stamp}.csv`;
+  const now = new Date();
+  const two = (n) => String(n).padStart(2, '0');
+  const day = `${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}`;
+  const time = `${two(now.getHours())}${two(now.getMinutes())}${two(now.getSeconds())}`;
+  return `py-drone-combat-${String(mapId || 'flight')}-${day}-${time}.csv`;
 }
