@@ -1,547 +1,429 @@
 /*
- * verify.js: the npm run verify entry point. Runs every Stage 1 check from
- * STAGE1.md, prints one table row per check with the measured value, the
- * threshold and PASS, FAIL or SKIP, then exits non-zero if anything failed.
- * A check can fail and it can never crash the runner.
+ * verify.js: npm run verify. Runs the Stage 1 checks from STAGE1.md
+ * (tests/lib/checks.js), prints one table row per check with what it
+ * measured, its threshold and PASS, FAIL or SKIP, and exits 1 if any check
+ * failed. A check may fail; the runner itself may not crash on it.
  *
- * SKIP is narrow and it is loud. It means the check's TOOLCHAIN is not on
- * this machine, which is not the same thing as the check failing, and only
- * check 1 can reach it: emcc absent and vendor/betaflight not checked out
- * means there is nothing to build and nothing to compare, so "FAIL, build
- * exited 1" was reporting a broken build on a machine that never had the
- * compiler. It named the wrong thing and it named it every run. A skipped
- * check still prints its row, still prints WHY, and is counted separately in
- * the summary line so a green run cannot quietly mean an unbuilt one. When
- * emcc IS present the skip is unreachable and check 1 behaves as it always
- * did, so this cannot hide a real build break from anybody who can build.
+ * SKIP exists for exactly one case and it is never quiet: check 1 cannot
+ * compile Betaflight on a machine with no emcc and no vendored sources. That
+ * is not a broken build, it is a machine that cannot build, and reporting
+ * "build:wasm exited 1" there named the wrong fault on every run. A skipped
+ * check keeps its row, prints why, and is counted apart from the passes in
+ * the summary, so an unbuilt machine can never read as a green one. With a
+ * compiler present the skip is unreachable and check 1 is as strict as ever.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { decodeRec } from './lib/recfile.js';
-import { loadSim } from './lib/simmod.js';
-import { SimError, replayTrace } from './lib/replay.js';
-import { buildChecks } from './lib/checks.js';
-import { renderTable } from './lib/table.js';
-import { startServer } from './lib/server.js';
 import { runBrowserHarness } from './lib/browser.js';
+import { buildChecks } from './lib/checks.js';
+import { decodeRec } from './lib/recfile.js';
+import { SimError, replayTrace } from './lib/replay.js';
+import { startServer } from './lib/server.js';
+import { loadSim } from './lib/simmod.js';
+import { renderTable } from './lib/table.js';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const WIN = process.platform === 'win32';
+const BUILD_TIMEOUT_MS = 600000;
+const SHOTS_TIMEOUT_MS = { 'audio-bed': 300000, 'world-scale': 600000 };
+const BUILD_TAIL_LINES = 15;
 
-function runBuild() {
-  /*
-   * shell on Windows, because npm there is npm.cmd and spawnSync without a
-   * shell cannot start it at all. The failure mode was the worst kind:
-   * status null coerced to exit 1 with EMPTY stdout and stderr, so check 1
-   * reported "build:wasm exited 1" with a blank where the reason belongs,
-   * on every Windows machine, always. The owner stared at exactly that.
-   * A spawn ERROR is also surfaced now instead of being dropped, so "could
-   * not start npm" can never again read as a silent build failure.
-   */
-  /* One command STRING under a shell on Windows, not an args array: Node
-   * deprecated shell-plus-array (DEP0190) because the args are concatenated
-   * unescaped, and the owner's first successful Windows run printed exactly
-   * that warning. The command is a constant, so a string is also the honest
-   * form. Elsewhere the array form stays, with no shell in the way. */
-  const build = process.platform === 'win32'
-    ? spawnSync('npm run build:wasm', {
-      cwd: root,
-      encoding: 'utf8',
-      timeout: 600000,
-      shell: true,
-    })
-    : spawnSync('npm', ['run', 'build:wasm'], {
-      cwd: root,
-      encoding: 'utf8',
-      timeout: 600000,
-    });
-  const vendor = spawnSync('git', ['diff', '--stat', '--', 'vendor/betaflight'], {
-    cwd: root,
-    encoding: 'utf8',
-  });
-  const spawnFault = build.error ? `verify could not run npm: ${build.error.message}\n` : '';
-  /*
-   * Is the toolchain here at all? Probed directly rather than by matching the
-   * build's error text, because a message is a string somebody can reword and
-   * this has to be exact: it decides between "your build is broken" and "you
-   * cannot build here". Both conditions have to hold. An emsdk with no
-   * vendored sources, or sources with no emsdk, is still a real failure of a
-   * machine that was set up to build.
-   */
-  const emcc = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['emcc'], {
-    encoding: 'utf8',
-  });
-  const haveEmcc = Boolean(process.env.EMSDK) || emcc.status === 0;
-  const haveSources = existsSync(join(root, 'vendor/betaflight/src/main/fc/parameter_names.h'));
+/* Fixtures and configuration read once; everything the checks share. */
+async function loadInputs() {
+  const read = (rel, enc) => readFile(join(ROOT, rel), enc);
   return {
-    exitCode: build.status ?? 1,
-    output: `${spawnFault}${build.stdout ?? ''}${build.stderr ?? ''}`,
-    vendorDiff: (vendor.stdout ?? '').trim(),
-    toolchainAbsent: !haveEmcc && !haveSources
-      ? 'no emcc on PATH, EMSDK unset, and vendor/betaflight is not checked out'
-      : '',
+    th: JSON.parse(await read('tests/thresholds.json', 'utf8')),
+    configA: await read('tests/fixtures/config-baseline.diff', 'utf8'),
+    configB: await read('tests/fixtures/config-rates-b.diff', 'utf8'),
+    rec: decodeRec(new Uint8Array(await read('tests/inputs/baseline.rec'))),
   };
 }
 
-function memo(fn) {
-  let called = false;
-  let value;
-  let failure;
-  return async () => {
-    if (!called) {
-      called = true;
-      try {
-        value = await fn();
-      } catch (e) {
-        failure = e;
-      }
-    }
-    if (failure) {
-      throw failure;
-    }
-    return value;
+function text(run) {
+  return `${run.stdout ?? ''}${run.stderr ?? ''}`;
+}
+
+/*
+ * Compile the module and probe the toolchain. The three answers check 1
+ * reads are exitCode, vendorDiff and toolchainAbsent (a sentence, or '').
+ *
+ * On Windows npm is npm.cmd, which spawnSync cannot start without a shell,
+ * and the symptom was the worst kind: a null status read as exit 1 with no
+ * output at all, so check 1 said "build:wasm exited 1" and nothing else on
+ * every Windows machine. The shell form takes one command string, not an
+ * array, because Node's DEP0190 warns on shell plus array and the owner saw
+ * that warning on his first working run. A spawn error is kept as text too,
+ * so "could not start npm" is never mistaken for a failed compile.
+ */
+function compileModule() {
+  const opts = { cwd: ROOT, encoding: 'utf8', timeout: BUILD_TIMEOUT_MS };
+  const build = WIN
+    ? spawnSync('npm run build:wasm', { ...opts, shell: true })
+    : spawnSync('npm', ['run', 'build:wasm'], opts);
+  const diff = spawnSync('git', ['diff', '--stat', '--', 'vendor/betaflight'], { cwd: ROOT, encoding: 'utf8' });
+  const fault = build.error ? `verify could not run npm: ${build.error.message}\n` : '';
+  return {
+    exitCode: build.status ?? 1,
+    output: fault + text(build),
+    vendorDiff: (diff.stdout ?? '').trim(),
+    toolchainAbsent: toolchainAbsent(),
   };
+}
+
+/*
+ * The toolchain is probed directly, not inferred from the build's output: a
+ * message is a string anyone may reword, and this answer decides between
+ * "your build is broken" and "you cannot build here". Both the compiler and
+ * the sources must be missing. An emsdk without the submodule, or the
+ * submodule without an emsdk, is a machine set up to build that failed to.
+ */
+function toolchainAbsent() {
+  const lookup = spawnSync(WIN ? 'where' : 'which', ['emcc'], { encoding: 'utf8' });
+  const compiler = Boolean(process.env.EMSDK) || lookup.status === 0;
+  const sources = existsSync(join(ROOT, 'vendor/betaflight/src/main/fc/parameter_names.h'));
+  return compiler || sources ? '' : 'no emcc on PATH, EMSDK unset, and vendor/betaflight is not checked out';
+}
+
+function reportBuild(build) {
+  if (build.exitCode === 0) return;
+  console.log(build.toolchainAbsent
+    ? `build:wasm could not run (${build.toolchainAbsent}); check 1 will SKIP:`
+    : 'build:wasm output (build failed, checks will report it):');
+  console.log(build.output.trim().split('\n').slice(-BUILD_TAIL_LINES).join('\n'));
+  console.log('');
+}
+
+/* Run an async producer once and hand every caller the same outcome, a
+ * rejection included: two checks sharing one browser run must both see the
+ * one failure rather than launch a second browser. */
+function once(produce) {
+  let outcome;
+  return () => {
+    outcome ??= produce();
+    return outcome;
+  };
+}
+
+/*
+ * Drive scripts/shots.js and collect the string each eval step returned.
+ * shots.js prints `eval <expression> = <JSON string>` per step; the
+ * expression may itself contain " = " (a `let g = null` inside a scene
+ * walk), so the result is taken from the end of the line, never from the
+ * first separator. Callers decode the strings they expect JSON in.
+ */
+function shots(name, steps) {
+  const run = spawnSync('node', [join(ROOT, 'scripts/shots.js'), `--out=${join(ROOT, 'dist', name)}`, ...steps], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    timeout: SHOTS_TIMEOUT_MS[name],
+  });
+  const out = text(run);
+  const results = [];
+  for (const line of out.split('\n')) {
+    const m = line.startsWith('eval ') ? line.match(/ = ("(?:[^"\\]|\\.)*")\s*$/) : null;
+    if (m) results.push(JSON.parse(m[1]));
+  }
+  return { results, tail: out.trim().split('\n').slice(-3).join(' | ') };
+}
+
+/*
+ * Check 14: the live audio bed through the real shell. tools/audio/render.js
+ * attaches MotorAudio to an offline context of its own, so every spectral
+ * claim in the project would stay true with the shell building no graph at
+ * all, which is the defect that was reported as "no music". Browsers only
+ * unlock audio on a real gesture and the shell wakes it from a key handler,
+ * so a real key is tapped over DevTools, which shots.js already does and
+ * check 13 already trusts. The window is 2.5 s of media time: the question
+ * is whether the chosen mp3 is actually advancing through the page.
+ */
+const AUDIO_WINDOW_MS = 2500;
+const AUDIO_STEPS = [
+  '--w=400',
+  '--h=300',
+  'until:!!window.__boot && window.__boot()',
+  'tap:KeyZ',
+  /* The media element starting is the event, not a guess at how long a 5 MB
+   * file takes to buffer off localhost. The engine is an AudioWorklet that
+   * arrives asynchronously, so it is waited for as well; one that never
+   * lands still reads false in the sample below. */
+  'until:window.__audio && window.__audio.music && window.__audio.music.el && window.__audio.music.el.currentTime > 0.05',
+  'until:window.__audio && window.__audio.engine',
+  "eval:(()=>{window.__abBase = window.__audio.music.el.currentTime; window.__abT = window.__audio.ctx.currentTime; return 'ok'})()",
+  `wait:${AUDIO_WINDOW_MS}`,
+  'eval:JSON.stringify({' +
+    "state: window.__audio.ctx ? window.__audio.ctx.state : 'none'," +
+    'engineAttached: !!window.__audio.engine,' +
+    'musicAttached: !!window.__audio.music.gain,' +
+    'musicGain: window.__audio.music.gain ? window.__audio.music.gain.gain.value : 0,' +
+    'musicAdvance: window.__audio.music.el ? window.__audio.music.el.currentTime - window.__abBase : 0,' +
+    'elapsed: window.__audio.ctx.currentTime - window.__abT,' +
+    'nodes: window.__audio.nodeCount()' +
+    '})',
+];
+
+function audioBed() {
+  const { results, tail } = shots('audio-bed', AUDIO_STEPS);
+  const sample = results[results.length - 1];
+  if (!sample) throw new Error(`shots.js produced no eval result: ${tail}`);
+  return { ...JSON.parse(sample), windowMs: AUDIO_WINDOW_MS };
+}
+
+/*
+ * Checks 15 and 16: one page run over two worlds. The Alps are the smallest
+ * world left and the Swiss valley builds through their modules, so the pair
+ * only works this way round: Alps first, valley second, Alps again. Every
+ * URL the page requested is read while the Alps are selected and again
+ * after the valley is chosen, which makes the valley's absence a measurement
+ * and its arrival the proof the loader works. The Alps' budget is taken at
+ * boot and again after the round trip, because a leak on the valley's way
+ * out is invisible until the Alps are measured on the far side of it.
+ */
+const PARK_FOV = 44;
+const BASE_MAP = 'alps';
+const OTHER_MAP = 'swiss2';
+const collectUrls = "JSON.stringify({ tag: 'urls', urls: performance.getEntriesByType('resource').map((e) => e.name) })";
+
+/*
+ * Parks the camera over the spawn and records the frame it was asked on.
+ * The lens is pinned at 44 degrees, the attract camera's, because a park
+ * that sets only eye and aim keeps whatever field of view the last frame
+ * left: the attract camera is skipped while a harness camera is parked and a
+ * world load leaves the pilot's lens behind (85 or 95 degrees), so after the
+ * round trip the Alps were once measured through 85 degrees and the windsock,
+ * a road car and the strip entered a frame they are outside of at 44. That
+ * read as a leak (292 calls and 1611530 triangles against 282 and 1604546)
+ * and was only the lens. 44 is what every boot figure was measured at.
+ */
+function parkStep(frameVar, tag) {
+  return 'eval:JSON.stringify((() => {' +
+    'const sp = window.__map().spawn;' +
+    `window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30, ${PARK_FOV});` +
+    `window.${frameVar} = window.__boot().frames;` +
+    `return { tag: "${tag}" };` +
+  '})())';
+}
+
+/* __setCam lands on the next animation frame and __budget renders outside
+ * the frame loop, so the park is waited on by frame count, not by time. The
+ * animation clock is parked in the same expression as the budget: the Alps
+ * move (traffic, a gondola, a herd) and a car crossing the parked camera
+ * between the two readings would be a draw call that is not a leak. */
+function budgetSteps(frameVar, label, tag) {
+  return [
+    `until:window.__boot().frames > window.${frameVar} + 3`,
+    'eval:JSON.stringify((() => {' +
+      'window.__animTo(0);' +
+      `const b = window.__budget("${label}");` +
+      'window.__setCam(null);' +
+      `return { tag: "${tag}", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };` +
+    '})())',
+  ];
+}
+
+/*
+ * The craft's drawn size, in world space, from the geometry and the world
+ * SCALE rather than from a world bounding box. Three lessons are built in:
+ * constructor parameters are blind to a `group.scale.setScalar(2)`, so the
+ * geometry's own box is multiplied by the object's world scale instead; the
+ * body is measured on its own geometry because every panel carries a back
+ * sided outline hull scaled 1.13 that Box3.setFromObject would include; and
+ * nothing goes through an axis aligned world box, because such a box grows
+ * as the object turns. A spinning prop's square box once reported anything
+ * from 0.0635 to 0.0898 m for one radius, and a quad settled on a tilted
+ * launch block grew its body from 0.1550 to 0.1583 m while being the right
+ * size and merely banked. The prop offset is taken in the craft's frame for
+ * the same reason: a tilt rotates hub height into the horizontal plane.
+ */
+const CRAFT_MEASURE =
+  'const s = window.__mapScene();' +
+  'let g = null;' +
+  's.traverse((o) => { if (o.name === "craft") { g = o; } });' +
+  'g.updateMatrixWorld(true);' +
+  'const THREE = window.__three;' +
+  'const body = g.children.find((c) => c.geometry && c.geometry.type === "BoxGeometry" && c.geometry.parameters.depth > 0.14);' +
+  'body.geometry.computeBoundingBox();' +
+  'const bs = new THREE.Vector3(); body.geometry.boundingBox.getSize(bs);' +
+  'const bws = new THREE.Vector3(); body.getWorldScale(bws);' +
+  'bs.set(bs.x * Math.abs(bws.x), bs.y * Math.abs(bws.y), bs.z * Math.abs(bws.z));' +
+  'const gsc = new THREE.Vector3(); g.getWorldScale(gsc);' +
+  'const gxz = Math.max(Math.abs(gsc.x), Math.abs(gsc.z));' +
+  'const wsc = new THREE.Vector3();' +
+  'let maxR = 0;' +
+  'for (const c of g.children) {' +
+    'if (!c.geometry || c.geometry.type !== "CylinderGeometry") { continue; }' +
+    'const rr = c.geometry.parameters.radiusTop;' +
+    'if (rr < 0.05) { continue; }' +
+    'c.getWorldScale(wsc);' +
+    'const at = c.position;' +
+    'const d = Math.hypot(at.x, at.z) * gxz + rr * Math.max(Math.abs(wsc.x), Math.abs(wsc.z));' +
+    'if (d > maxR) { maxR = d; }' +
+  '}' +
+  'const th = window.__craftState().thresholds;' +
+  'return { bodyLength: Math.max(bs.x, bs.z), bodyWidth: Math.min(bs.x, bs.z), bodyHeight: bs.y, sweepMeasured: maxR, craftR: th.craftRadius, craftRTrue: th.craftRadiusTrue, worldScale: th.worldScale };';
+
+function worldScaleSteps() {
+  return [
+    /* 1280 by 720 at the high preset: the c3c6e44 baseline this compares
+     * against was measured so. P5 is render target bytes and follows the
+     * panel, and headless Chrome rasterises on the CPU so boot would pick a
+     * lower preset here than on a machine with a GPU. The world is named in
+     * the address so the title shows it rather than its own valley, and the
+     * interceptor is the aircraft the craft bands were rewritten for. */
+    '--w=1280',
+    '--h=720',
+    '--graphics=high',
+    `--url=/index.html?map=${BASE_MAP}`,
+    '--airframe=interceptor',
+    'until:!!window.__boot && window.__boot().frames > 2',
+    `eval:${collectUrls}`,
+    parkStep('__camFrame', 'budget-pending'),
+    ...budgetSteps('__camFrame', `${BASE_MAP} spawn`, 'budget'),
+    /* The title draws the Skyhunter whatever is seated, so the craft is only
+     * in the scene during a run. Both budgets are taken on the title either
+     * side of it, so they still compare like with like. */
+    'eval:JSON.stringify({ tag: "fly", started: (window.__ui.onAction("fly", window.__ui.settings), true) })',
+    'until:window.__craftState().mode === "flight" && window.__craft().shown === window.__craft().run',
+    'eval:JSON.stringify({' +
+      'tag: "craft",' +
+      'map: window.__map().id,' +
+      'gateScale: window.__gateScale(),' +
+      `craft: (() => {${CRAFT_MEASURE}})()` +
+    '})',
+    'eval:JSON.stringify({ tag: "title", back: (window.__ui.act("title"), window.__ui.screen) })',
+    'until:window.__craftState().mode === "title"',
+    `eval:JSON.stringify({ tag: "swap", started: (window.__setMap("${OTHER_MAP}"), true) })`,
+    `until:window.__map().id === "${OTHER_MAP}" && window.__map().ready`,
+    'eval:JSON.stringify({ tag: "other", expectedModules: window.__map().expectedModules })',
+    `eval:${collectUrls}`,
+    `eval:JSON.stringify({ tag: "back", started: (window.__setMap("${BASE_MAP}"), true) })`,
+    `until:window.__map().id === "${BASE_MAP}" && window.__map().ready`,
+    parkStep('__camFrame2', 'budget2-pending'),
+    ...budgetSteps('__camFrame2', `${BASE_MAP} spawn after round trip`, 'budget2'),
+  ];
+}
+
+function worldScale() {
+  const run = shots('world-scale', worldScaleSteps());
+  const results = run.results.map((v) => JSON.parse(v));
+  /* By tag, never by position: a step that fails silently would shift every
+   * later result by one and the check would report a confident wrong number. */
+  const tagged = (tag) => results.find((v) => v.tag === tag);
+  const urls = results.filter((v) => v.tag === 'urls');
+  const craft = tagged('craft');
+  const other = tagged('other');
+  if (urls.length < 2 || !craft || !other) {
+    throw new Error(`world-scale run produced tags [${results.map((v) => v.tag).join(', ')}]: ${run.tail}`);
+  }
+  const ofOther = (u) => u.includes(`/src/maps/${OTHER_MAP}`);
+  return {
+    craft: craft.craft,
+    gateScale: craft.gateScale ?? null,
+    otherExpectedModules: other.expectedModules ?? null,
+    baseBudget: tagged('budget'),
+    baseBudgetAfterRoundTrip: tagged('budget2'),
+    otherUrlsWhileBaseSelected: urls[0].urls.filter(ofOther),
+    otherUrlsAfterChoosing: urls[1].urls.filter(ofOther),
+  };
+}
+
+async function harnessPage() {
+  const server = await startServer(ROOT);
+  try {
+    return await runBrowserHarness(`${server.origin}/tests/browser/harness.html`);
+  } finally {
+    await server.close();
+  }
+}
+
+/* What every check in tests/lib/checks.js receives. The shared runs are
+ * produced once and handed to every check that asks. */
+function checkContext(inputs, build) {
+  const { th, rec, configA } = inputs;
+  const wasm = once(async () => new Uint8Array(await readFile(join(ROOT, 'dist/sim.wasm'))));
+  const canonicalOpts = () => ({
+    configText: configA,
+    renderHz: th.replay.canonical_render_hz.value,
+    traceStrideMs: th.replay.trace_stride_ms.value,
+  });
+  const freshSim = async () => loadSim(await wasm());
+  return {
+    ...inputs,
+    build,
+    canonicalOpts,
+    freshSim,
+    nodeCanonicalHash: once(async () => replayTrace(await freshSim(), rec, canonicalOpts())),
+    audioBedRun: once(async () => audioBed()),
+    scaleRun: once(async () => worldScale()),
+    browserRun: once(harnessPage),
+  };
+}
+
+/* A check that throws still gets a row. A SimError names the ABI call that
+ * refused; anything else is the harness's own fault and says so. */
+async function outcome(check, ctx) {
+  try {
+    return await check.run(ctx);
+  } catch (e) {
+    if (e instanceof SimError) {
+      return { measured: `${e.where} -> ${e.errorName}`, pass: false, reason: e.errorName };
+    }
+    return { measured: 'n/a', pass: false, reason: `harness-error: ${e.message}` };
+  }
+}
+
+function verdict(r) {
+  if (r.skipped) return { result: 'SKIP', reason: r.skipped };
+  return { result: r.pass ? 'PASS' : 'FAIL', reason: r.reason ?? '' };
 }
 
 async function main() {
-  const th = JSON.parse(await readFile(join(root, 'tests/thresholds.json'), 'utf8'));
-  const configA = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
-  const configB = await readFile(join(root, 'tests/fixtures/config-rates-b.diff'), 'utf8');
-  const rec = decodeRec(new Uint8Array(await readFile(join(root, 'tests/inputs/baseline.rec'))));
-
+  const inputs = await loadInputs();
+  const { rec } = inputs;
   console.log('npm run verify: Stage 1 checks from STAGE1.md');
   console.log(`baseline: ${rec.count} samples at ${rec.rateHz} Hz, ${(rec.count / rec.rateHz).toFixed(1)} s\n`);
 
-  const build = runBuild();
-  if (build.exitCode !== 0) {
-    console.log(build.toolchainAbsent
-      /* Not "build failed". It never started. */
-      ? `build:wasm could not run (${build.toolchainAbsent}); check 1 will SKIP:`
-      : 'build:wasm output (build failed, checks will report it):');
-    console.log(build.output.trim().split('\n').slice(-15).join('\n'));
-    console.log('');
-  }
-
-  const wasmBytes = memo(async () => {
-    const bytes = await readFile(join(root, 'dist/sim.wasm'));
-    return new Uint8Array(bytes);
-  });
-
-  const ctx = {
-    th,
-    root,
-    rec,
-    configA,
-    configB,
-    build,
-    canonicalOpts() {
-      return {
-        configText: configA,
-        renderHz: th.replay.canonical_render_hz.value,
-        traceStrideMs: th.replay.trace_stride_ms.value,
-      };
-    },
-    freshSim: async () => loadSim(await wasmBytes()),
-    nodeCanonicalHash: memo(async () =>
-      replayTrace(await loadSim(await wasmBytes()), rec, {
-        configText: configA,
-        renderHz: th.replay.canonical_render_hz.value,
-        traceStrideMs: th.replay.trace_stride_ms.value,
-      }),
-    ),
-    /*
-     * The live audio bed, driven through the real shell rather than through
-     * an OfflineAudioContext the harness builds itself. That distinction is
-     * the whole point of this check: tools/audio/render.js calls
-     * MotorAudio.attach on its own offline context, so every spectral claim
-     * in this project stays true even if the shell stops building a graph at
-     * all, which is exactly the defect that was reported as no music
-     * playing. A synthetic click will not do either, because the shell wakes
-     * audio from input.onKey and a window pointerdown listener, and browsers
-     * only honour a real gesture, so this taps a real key over the DevTools
-     * protocol. scripts/shots.js already drives the page that way and its
-     * console gate is already trusted by check 13, so this drives it rather
-     * than duplicating the plumbing.
-     */
-    audioBedRun: memo(async () => {
-      /* 2.5 s of media time, not 4 s of scheduler steps. The generated
-       * sixteenth-note bed is gone; the check is that the chosen mp3 is
-       * actually playing through the live page. */
-      const windowMs = 2500;
-      const out = join(root, 'dist/audio-bed');
-      const steps = [
-        `--out=${out}`,
-        '--w=400',
-        '--h=300',
-        'until:!!window.__boot && window.__boot()',
-        'tap:KeyZ',
-        /* Wait until the media element has started, not a wall clock guess
-         * at how long a 5 MB mp3 takes to buffer off localhost. */
-        'until:window.__audio && window.__audio.music && window.__audio.music.el && window.__audio.music.el.currentTime > 0.05',
-        /* The engine is an AudioWorklet module and arrives asynchronously:
-         * waited for, so a slow load is not read as a missing engine, and a
-         * load that never lands still reads false below. */
-        'until:window.__audio && window.__audio.engine',
-        "eval:(()=>{window.__abBase = window.__audio.music.el.currentTime; window.__abT = window.__audio.ctx.currentTime; return 'ok'})()",
-        `wait:${windowMs}`,
-        'eval:JSON.stringify({' +
-          "state: window.__audio.ctx ? window.__audio.ctx.state : 'none'," +
-          'engineAttached: !!window.__audio.engine,' +
-          'musicAttached: !!window.__audio.music.gain,' +
-          'musicGain: window.__audio.music.gain ? window.__audio.music.gain.gain.value : 0,' +
-          'musicAdvance: window.__audio.music.el ? window.__audio.music.el.currentTime - window.__abBase : 0,' +
-          'elapsed: window.__audio.ctx.currentTime - window.__abT,' +
-          'nodes: window.__audio.nodeCount()' +
-          '})',
-      ];
-      const run = spawnSync('node', [join(root, 'scripts/shots.js'), ...steps], {
-        cwd: root,
-        encoding: 'utf8',
-        timeout: 300000,
-      });
-      const text = `${run.stdout ?? ''}${run.stderr ?? ''}`;
-      const lines = text.split('\n').filter((l) => l.startsWith('eval ') && l.includes(' = "'));
-      const last = lines[lines.length - 1];
-      if (!last) {
-        throw new Error(`shots.js produced no eval result: ${text.trim().split('\n').slice(-3).join(' | ')}`);
-      }
-      const quoted = last.slice(last.indexOf(' = ') + 3);
-      const parsed = JSON.parse(JSON.parse(quoted));
-      return { ...parsed, windowMs };
-    }),
-    /*
-     * One page run that loads two maps and reports what each one measures.
-     *
-     * It doubles as the isolation evidence for the lazy load: it records every
-     * URL the page requests while the ALPS are selected, so the Swiss valley's
-     * own modules being absent is a measurement rather than a claim. The
-     * valley is then chosen and the same list is read again, which is what
-     * proves the modules arrive only when they are asked for.
-     *
-     * The Alps are the smallest world there is now. This run used the
-     * airfield and the city until both were retired on 2026-09-28, and the
-     * race field before them; nothing it measures was about either's own
-     * dressing except the town's bands check 15 dropped with it. The valley
-     * builds through the Alps' modules, so the pair only works this way
-     * round: the Alps first, the valley second.
-     */
-    scaleRun: memo(async () => {
-      const out = join(root, 'dist/world-scale');
-      /*
-       * THE PARKED CAMERA'S LENS, PINNED. A park that sets only the eye and
-       * the aim measures whatever field of view the last frame left, and
-       * that is not always the same one: on the title the attract camera
-       * sets its 44 degrees (src/render/attract.js ATTRACT_FOV) every
-       * frame, but it is skipped while a harness camera is parked
-       * (src/main.js, the title branch's !camOverride), and a world load
-       * leaves the pilot's FPV lens on the camera (85 on the five inch, 95 on the interceptor).
-       * After the Swiss valley round trip the park sometimes landed before
-       * any title frame had put 44 back, so the Alps were measured through
-       * an 85 degree lens: 292 draw calls and 1611530 triangles against
-       * 282 and 1604546, the windsock, a road car and the strip coming into
-       * a frame they are outside of at 44, read as a leak (P5 and P10 did
-       * not move). 44 is what the boot figures were always measured at.
-       */
-      const PARK_FOV = 44;
-      const collect = "JSON.stringify({ tag: 'urls', urls: performance.getEntriesByType('resource').map((e) => e.name) })";
-      const steps = [
-        `--out=${out}`,
-        /* 1280 by 720, matching the run that measured the c3c6e44 baseline
-         * this check compares against. P5 is render target bytes and scales
-         * with the panel, so comparing two resolutions would report a
-         * regression that is only a window size. */
-        '--w=1280',
-        '--h=720',
-        /* And the preset the baseline was measured at, for the same reason
-         * as the size above. Headless Chrome rasterises on the CPU, so boot
-         * would otherwise lower a detected preset to Low here and to
-         * nothing at all on a machine with a GPU, and this check would
-         * answer differently depending on who ran it. */
-        '--graphics=high',
-        /* The world, named in the address so the title shows it rather than
-         * its own valley, and the aircraft the craft bands are for: the
-         * racer, since the five inch they were written for was removed
-         * (2026-10-03). */
-        '--url=/index.html?map=alps',
-        '--airframe=interceptor',
-        'until:!!window.__boot && window.__boot().frames > 2',
-        `eval:${collect}`,
-        /* The Alps' cost, at a parked camera over their spawn so the
-         * numbers are reproducible. Measured with the Alps selected, which is
-         * the whole point: the Swiss valley must cost nothing at all until it
-         * is chosen. */
-        'eval:JSON.stringify((() => {' +
-          'const sp = window.__map().spawn;' +
-          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30, ' + PARK_FOV + ');' +
-          'window.__camFrame = window.__boot().frames;' +
-          'return { tag: "budget-pending" };' +
-        '})())',
-        /* __setCam only takes effect on the NEXT animation frame, and
-         * measureBudget renders directly rather than through the frame loop,
-         * so a fixed wait would measure whatever camera the last real frame
-         * left. Waiting on the frame counter is the only honest way to know
-         * the override has landed. */
-        'until:window.__boot().frames > window.__camFrame + 3',
-        /* The animation clock is parked in the same expression as the
-         * budget, because the Alps move (the traffic, the gondola, the
-         * herd): a car driving into the parked camera's frame between the
-         * two readings would be a draw call that is not a leak. __budget
-         * renders directly, so no frame can move the clock in between. */
-        'eval:JSON.stringify((() => {' +
-          'window.__animTo(0);' +
-          'const b = window.__budget("alps spawn");' +
-          'window.__setCam(null);' +
-          'return { tag: "budget", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
-        '})())',
-        /*
-         * INTO A RUN FOR THE CRAFT, and back out after it. The title draws
-         * the Skyhunter whatever is seated (TITLE_CRAFT in src/main.js), so
-         * the seated five inch this measures is only in the scene once a
-         * run is. The budgets either side are both taken on the title, so
-         * they still compare like with like.
-         */
-        'eval:JSON.stringify({ tag: "fly", started: (window.__ui.onAction("fly", window.__ui.settings), true) })',
-        'until:window.__craftState().mode === "flight" && window.__craft().shown === window.__craft().run',
-        'eval:JSON.stringify({' +
-          'tag: "craft",' +
-          'map: window.__map().id,' +
-          'gateScale: window.__gateScale(),' +
-          /*
-           * MEASURED IN WORLD SPACE, from bounding boxes, not from the
-           * BufferGeometry constructor parameters. Reading `parameters.depth`
-           * and `position.x` was the first version and it is blind to exactly
-           * the error this check exists for: a `group.scale.setScalar(2)` on
-           * the craft doubles the rendered quad and leaves every parameter
-           * untouched, so the check would have reported 0.1550 m for a 310 mm
-           * machine. A world Box3 sees the scale.
-           */
-          'craft: (() => {' +
-            'const s = window.__mapScene();' +
-            'let g = null;' +
-            's.traverse((o) => { if (o.name === "craft") { g = o; } });' +
-            'g.updateMatrixWorld(true);' +
-            'const THREE = window.__three;' +
-            'const body = g.children.find((c) => c.geometry && c.geometry.type === "BoxGeometry" && c.geometry.parameters.depth > 0.14);' +
-            /* The body's OWN geometry through its own world matrix. Box3
-             * setFromObject descends into children, and every body panel
-             * carries an outlineHull, a back sided shell scaled 1.13, so the
-             * first version measured 0.1754 m for a 0.155 m body: the hull,
-             * not the airframe. Transforming the geometry's box keeps the
-             * world scale and leaves the hull out. */
-            /*
-             * SCALE WITHOUT ROTATION, and this is the second half of the same
-             * lesson the prop comment below teaches.
-             *
-             * This used to be `boundingBox.applyMatrix4(body.matrixWorld)`,
-             * and Box3.applyMatrix4 returns the AXIS ALIGNED box of the
-             * transformed box, which GROWS as the object turns, exactly like
-             * the spinning prop square. Every craft this check ever measured
-             * was level, so it never showed: verify measured the custom map
-             * with no course seeded, and with no course there is no launch
-             * block, and with no launch block the quad sits flat. Seed a
-             * course and the quad settles onto the tilted block at roughly
-             * -83, 62, 82 degrees, the body box grows 0.1550 to 0.1583 and
-             * the swept disc 0.1735 to 0.1785, and the check reports "the
-             * drawn craft is not the true size at the declared scale" about a
-             * craft that is the right size and merely banked.
-             *
-             * The geometry's OWN box times the object's WORLD SCALE is the
-             * measurement that was wanted all along. It still sees a
-             * `group.scale.setScalar(2)`, which is the error this check
-             * exists for, and it cannot see attitude at all.
-             */
-            'body.geometry.computeBoundingBox();' +
-            'const bs = new THREE.Vector3(); body.geometry.boundingBox.getSize(bs);' +
-            'const bws = new THREE.Vector3(); body.getWorldScale(bws);' +
-            'bs.set(bs.x * Math.abs(bws.x), bs.y * Math.abs(bws.y), bs.z * Math.abs(bws.z));' +
-            'const gsc = new THREE.Vector3(); g.getWorldScale(gsc);' +
-            'const gxz = Math.max(Math.abs(gsc.x), Math.abs(gsc.z));' +
-            /*
-             * The swept disc: how far the outside of a spinning prop reaches
-             * from the craft's centre.
-             *
-             * THE PROP RADIUS COMES FROM THE GEOMETRY AND ITS WORLD SCALE,
-             * NOT FROM A WORLD BOUNDING BOX. A CylinderGeometry's box is a
-             * SQUARE 2r by 2r in plan, and the discs spin, so an axis aligned
-             * box around that square grows to 2r*sqrt(2) as it turns. Reading
-             * half of it as the radius therefore reported anything from
-             * 0.0635 to 0.0898 m depending on which frame the measurement
-             * landed on, which is how this check produced 0.1438 m on one run
-             * and 0.1957 m on the next for a craft that had not changed. It
-             * failed both times, against a true 0.1735 m, and the failure
-             * looked like a scale error in the model rather than a spinning
-             * square in the harness.
-             */
-            'const wsc = new THREE.Vector3();' +
-            'let maxR = 0;' +
-            'for (const c of g.children) {' +
-              'if (!c.geometry || c.geometry.type !== "CylinderGeometry") { continue; }' +
-              'const rr = c.geometry.parameters.radiusTop;' +
-              'if (rr < 0.05) { continue; }' +
-              'c.getWorldScale(wsc);' +
-              /* The hub offset in the CRAFT's frame, not the world's. A world
-               * offset projected onto XZ is a function of attitude: the props
-               * sit above the body's centre line, so a tilt rotates part of
-               * that height into the horizontal plane and the reach grows. */
-              'const at = c.position;' +
-              'const d = Math.hypot(at.x, at.z) * gxz + rr * Math.max(Math.abs(wsc.x), Math.abs(wsc.z));' +
-              'if (d > maxR) { maxR = d; }' +
-            '}' +
-            'const th = window.__craftState().thresholds;' +
-            'return { bodyLength: Math.max(bs.x, bs.z), bodyWidth: Math.min(bs.x, bs.z), bodyHeight: bs.y, sweepMeasured: maxR, craftR: th.craftRadius, craftRTrue: th.craftRadiusTrue, worldScale: th.worldScale };' +
-          '})()' +
-        '})',
-        'eval:JSON.stringify({ tag: "title", back: (window.__ui.act("title"), window.__ui.screen) })',
-        'until:window.__craftState().mode === "title"',
-        'eval:JSON.stringify({ tag: "swap", started: (window.__setMap("swiss2"), true) })',
-        'until:window.__map().id === "swiss2" && window.__map().ready',
-        'eval:JSON.stringify({ tag: "other", expectedModules: window.__map().expectedModules })',
-        `eval:${collect}`,
-        /*
-         * BACK TO THE ALPS, AND MEASURE THEM AGAIN. The budget taken at boot
-         * cannot see a leak, because at that point the valley has never
-         * existed: anything the valley fails to free on its way out is
-         * invisible until the Alps are measured on the far side of a round
-         * trip. A review pointed this out and it was right.
-         */
-        'eval:JSON.stringify({ tag: "back", started: (window.__setMap("alps"), true) })',
-        'until:window.__map().id === "alps" && window.__map().ready',
-        'eval:JSON.stringify((() => {' +
-          'const sp = window.__map().spawn;' +
-          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30, ' + PARK_FOV + ');' +
-          'window.__camFrame2 = window.__boot().frames;' +
-          'return { tag: "budget2-pending" };' +
-        '})())',
-        'until:window.__boot().frames > window.__camFrame2 + 3',
-        'eval:JSON.stringify((() => {' +
-          'window.__animTo(0);' +
-          'const b = window.__budget("alps spawn after round trip");' +
-          'window.__setCam(null);' +
-          'return { tag: "budget2", p1: b.p1_calls, p2: b.p2_triangles, p5: b.p5_target_MB, p10: b.p10_attribute_MB, meshes: b.meshes, cel: window.__celCount() };' +
-        '})())',
-      ];
-      const run = spawnSync('node', [join(root, 'scripts/shots.js'), ...steps], {
-        cwd: root,
-        encoding: 'utf8',
-        timeout: 600000,
-      });
-      const text = `${run.stdout ?? ''}${run.stderr ?? ''}`;
-      /*
-       * The echoed expression is on the same line as its result, and these
-       * expressions contain their own " = " (a `let g = null` inside the
-       * scene walk), so slicing at the FIRST one cuts the line in the middle
-       * of the JavaScript and hands JSON.parse a fragment. Anchored at the
-       * end of the line instead.
-       */
-      const values = text
-        .split('\n')
-        .map((l) => (l.startsWith('eval ') ? l.match(/ = ("(?:[^"\\]|\\.)*")\s*$/) : null))
-        .filter(Boolean)
-        .map((m) => JSON.parse(JSON.parse(m[1])));
-      /* Tagged rather than positional, because a step that fails silently
-       * would otherwise shift every later result by one and the check would
-       * report a confident wrong number. */
-      const urls = values.filter((v) => v.tag === 'urls');
-      const budget = values.find((v) => v.tag === 'budget');
-      const budgetAfter = values.find((v) => v.tag === 'budget2');
-      const craftData = values.find((v) => v.tag === 'craft');
-      const otherData = values.find((v) => v.tag === 'other');
-      if (urls.length < 2 || !craftData || !otherData) {
-        throw new Error(
-          `world-scale run produced tags [${values.map((v) => v.tag).join(', ')}]: ` +
-          `${text.trim().split('\n').slice(-3).join(' | ')}`,
-        );
-      }
-      const [baseUrls, otherUrls] = urls;
-      const ofOther = (u) => u.includes('/src/maps/swiss2');
-      return {
-        craft: craftData.craft,
-        gateScale: craftData.gateScale ?? null,
-        otherExpectedModules: otherData.expectedModules ?? null,
-        baseBudget: budget,
-        baseBudgetAfterRoundTrip: budgetAfter,
-        otherUrlsWhileBaseSelected: baseUrls.urls.filter(ofOther),
-        otherUrlsAfterChoosing: otherUrls.urls.filter(ofOther),
-      };
-    }),
-    browserRun: memo(async () => {
-      const server = await startServer(root);
-      try {
-        return await runBrowserHarness(
-          `${server.origin}/tests/browser/harness.html`,
-        );
-      } finally {
-        await server.close();
-      }
-    }),
-  };
+  const build = compileModule();
+  reportBuild(build);
+  const ctx = checkContext(inputs, build);
 
   const rows = [];
-  let passing = 0;
-  let skipped = 0;
+  const tally = { PASS: 0, FAIL: 0, SKIP: 0 };
   for (const check of buildChecks()) {
-    let r;
-    try {
-      r = await check.run(ctx);
-    } catch (e) {
-      if (e instanceof SimError) {
-        r = {
-          measured: `${e.where} -> ${e.errorName}`,
-          pass: false,
-          reason: e.errorName,
-        };
-      } else {
-        r = {
-          measured: 'n/a',
-          pass: false,
-          reason: `harness-error: ${e.message}`,
-        };
-      }
-    }
-    if (r.skipped) {
-      skipped += 1;
-    } else if (r.pass) {
-      passing += 1;
-    }
-    rows.push([
-      check.num,
-      check.id,
-      r.measured,
-      check.thresholdText,
-      r.skipped ? 'SKIP' : (r.pass ? 'PASS' : 'FAIL'),
-      r.skipped ? r.skipped : (r.reason ?? ''),
-    ]);
+    const r = await outcome(check, ctx);
+    const { result, reason } = verdict(r);
+    tally[result] += 1;
+    rows.push([check.num, check.id, r.measured, check.thresholdText, result, reason]);
   }
 
   console.log(renderTable(['#', 'check', 'measured', 'threshold', 'result', 'reason'], rows));
-  const ran = rows.length - skipped;
-  console.log(`\n${passing} of ${ran} checks passing`);
-  /* Said separately and said every time. A skipped check is not a passing
-   * one, and a summary that folded the two together would let an unbuilt
-   * machine read as a clean run. */
-  if (skipped > 0) {
-    console.log(`${skipped} check(s) COULD NOT RUN on this machine, see the SKIP rows above`);
+  const ran = rows.length - tally.SKIP;
+  console.log(`\n${tally.PASS} of ${ran} checks passing`);
+  /* Always its own line: folded into the count, an unbuilt machine would
+   * read as a clean run. */
+  if (tally.SKIP > 0) {
+    console.log(`${tally.SKIP} check(s) COULD NOT RUN on this machine, see the SKIP rows above`);
   }
-  process.exit(passing === ran ? 0 : 1);
+  process.exit(tally.FAIL === 0 ? 0 : 1);
 }
 
 main().catch((e) => {
