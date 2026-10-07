@@ -1,0 +1,2869 @@
+[
+ {
+  "name": "title: pack voltage",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: arcade",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    1,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.3.90.arcade.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: expert",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: weight 120",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_set_gravity",
+    1.2,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 120,
+    "run": 120,
+    "scale": 1.2,
+    "module": 1.2,
+    "key": "webfpv.best.cdcbddff.3.90.interceptor.g120"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: weight 100",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_set_gravity",
+    1,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: roll srate +5",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 72\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_pose",
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "3cb95d16"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: master slider 45",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 72\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.330248454909373,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "ce4ae1fc"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "d0ccc224"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "191e32d1"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "ce76aa89"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 107,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 20,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {
+     "betaflight-interceptor": {
+      "sliders": {
+       "master": 45
+      }
+     }
+    },
+    "block": "\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n",
+    "module": {
+     "mode": "RPY",
+     "master": "45",
+     "p_roll": "20",
+     "i_roll": "36",
+     "d_roll": "18",
+     "d_min_roll": "13",
+     "f_roll": "54",
+     "p_pitch": "21",
+     "p_yaw": "20",
+     "f_yaw": "54"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.89e73772.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: sliders back",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 72\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.330248454909373,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "ce4ae1fc"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "d0ccc224"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "191e32d1"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "3cb95d16"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: angle mode",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_set_angle_mode",
+    1,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: acro mode",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_set_angle_mode",
+    0,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: link elrs150",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "title: camera angle 99 and fov 110",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    3.9,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.3.90.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 55
+  }
+ },
+ {
+  "name": "title: seven inch",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_set_airframe",
+    24,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_set_addons",
+    1569096,
+    0
+   ],
+   [
+    "sim_set_addon_inertia",
+    1569096,
+    0
+   ],
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE 7 INCH COMBAT QUAD.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors, a 4200 mAh\n# 6S Li-ion pack, and the Li-ion cell limits a builder sets, 3.00 V empty\n# and a 3.20 V warning, where a LiPo stops at 3.50. Every PID and filter\n# value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# overshoots about as the five inch's does and settles in under 0.2 s.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 300\nset vbat_warning_cell_voltage = 320\nset battery_capacity = 4200\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 72\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "3cb95d16"
+   ],
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.629,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.29624845490937,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "2b89967f"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "87380fe5"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "43a2b2c0"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-7inch",
+    "name": "betaflight-7inch.diff",
+    "menu": "betaflight-7inch",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-7inch",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.f895f66a.4.20.7inch"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-7inch",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 25
+  }
+ },
+ {
+  "name": "title: after the seven inch tune swap",
+  "calls": [],
+  "probes": {
+   "tune": {
+    "id": "betaflight-7inch",
+    "name": "betaflight-7inch.diff",
+    "menu": "betaflight-7inch",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-7inch",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.f895f66a.4.20.7inch"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-7inch",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 25
+  }
+ },
+ {
+  "name": "title: interceptor again",
+  "calls": [
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_set_flight_style",
+    0,
+    0
+   ],
+   [
+    "sim_set_airframe",
+    26,
+    0
+   ],
+   [
+    "sim_power_clear",
+    0
+   ],
+   [
+    "sim_addons_clear",
+    0
+   ],
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 72\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "3cb95d16"
+   ],
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.330248454909373,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "ce4ae1fc"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "d0ccc224"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "191e32d1"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: weight 120",
+  "calls": [
+   [
+    "sim_set_gravity",
+    1.2,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 120,
+    "run": 120,
+    "scale": 1.2,
+    "module": 1.2,
+    "key": "webfpv.best.afdb149b.4.20.interceptor.g120"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: weight 100",
+  "calls": [
+   [
+    "sim_set_gravity",
+    1,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: pack voltage waits for the next run",
+  "calls": [],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 720 roll, 670 pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 72,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "72",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.afdb149b.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: roll srate -5",
+  "calls": [
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 67\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_pose",
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "b12dc316"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: launch control held",
+  "calls": [
+   [
+    "sim_set_launch_stand",
+    1,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": false,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: launch control released",
+  "calls": [
+   [
+    "sim_set_launch_stand",
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    "sim_tree_clear",
+    0
+   ],
+   [
+    "sim_tree_add",
+    -47.21954345703125,
+    48.75274658203125,
+    -0.095,
+    0.356314092874527,
+    3.6254378843307493,
+    19.441893844604493,
+    8.555166906018847,
+    0
+   ],
+   [
+    "run",
+    "sim_tree_clump_add",
+    29,
+    "76b2c806"
+   ],
+   [
+    "sim_wire_clear",
+    0
+   ],
+   [
+    "sim_obstacle_clear",
+    0
+   ],
+   [
+    "run",
+    "sim_obstacle_cylinder",
+    7,
+    "1dd25f36"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": false,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: launch control idle",
+  "calls": [],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": false,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: launch control from the module",
+  "calls": [],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 106,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 45,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {},
+    "block": "",
+    "module": {
+     "mode": "RPY",
+     "master": "100",
+     "p_roll": "45",
+     "i_roll": "80",
+     "d_roll": "40",
+     "d_min_roll": "30",
+     "f_roll": "120",
+     "p_pitch": "47",
+     "p_yaw": "45",
+     "f_yaw": "120"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cdcbddff.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": false,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "flight: master slider resets the run",
+  "calls": [
+   [
+    "sim_init",
+    "# diff\n# Betaflight / SITL (SITL) 4.5.1\n#\n# THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.\n#\n# configs/betaflight-default.diff, line for line, with the airframe keys\n# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh\n# 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and\n# filter value is Betaflight 4.5.1's factory default, as on the five inch.\n#\n# NO RATES, as in every tune here: rates are the pilot's (configs/rates.js).\n#\n# The airframe keys are STORED, not read: the plant's mass, kV, cells and\n# rotors are constants in src/native/plant.c.\n#\n# Measured on its plant (scripts/combat-gates.js): a half stick roll step\n# barely overshoots and reaches 63 percent of its rate in 15 ms, against\n# the five inch's 20, on twice the five inch's roll authority.\n\nbatch start\n\nboard_name SITL\n\n# ---- master ----\n\nset motor_kv = 1300\nset motor_poles = 14\nset vbat_max_cell_voltage = 420\nset vbat_min_cell_voltage = 350\nset vbat_warning_cell_voltage = 350\nset battery_capacity = 1800\nset small_angle = 180\n\n# Filters, 4.5 defaults\nset gyro_hardware_lpf = NORMAL\nset gyro_lpf1_type = PT1\nset gyro_lpf1_static_hz = 250\nset gyro_lpf2_type = PT1\nset gyro_lpf2_static_hz = 500\nset gyro_notch1_hz = 0\nset gyro_notch1_cutoff = 0\nset gyro_notch2_hz = 0\nset gyro_notch2_cutoff = 0\nset gyro_lpf1_dyn_min_hz = 250\nset gyro_lpf1_dyn_max_hz = 500\nset gyro_lpf1_dyn_expo = 5\nset simplified_gyro_filter = ON\nset simplified_gyro_filter_multiplier = 100\n\nset dyn_notch_count = 3\nset dyn_notch_q = 300\nset dyn_notch_min_hz = 100\nset dyn_notch_max_hz = 600\n\nset yaw_spin_recovery = AUTO\nset dshot_idle_value = 550\nset mixer_type = LEGACY\nset yaw_motors_reversed = OFF\n\n# ---- profile 0 ----\nprofile 0\n\nset pid_at_min_throttle = ON\nset anti_gravity_gain = 80\nset anti_gravity_cutoff_hz = 5\nset anti_gravity_p_gain = 100\nset acc_limit_yaw = 0\nset acc_limit = 0\n\nset iterm_rotation = OFF\nset iterm_relax = RP\nset iterm_relax_type = SETPOINT\nset iterm_relax_cutoff = 15\nset iterm_windup = 85\nset iterm_limit = 400\nset pidsum_limit = 500\n\n# 400 is 40 percent of the mixer's yaw range, and it is why this tune's yaw\n# feels loose next to its own roll and pitch. Betaflight's anti windup is\n# driven only by getMotorMixRange against iterm_windup, so a yaw axis clipped\n# at 40 percent can never on its own reach the 85 percent windup point: the\n# I term keeps integrating for the whole time the axis is saturated. Measured\n# here on a full stick yaw step, yaw I pins at its 400 cap for 225 ms, the\n# rate overshoots 10.1 percent and the nose bounces back 75 deg/s. Raise the\n# limit past about 480 and the discontinuity disappears (overshoot 8.4\n# percent, bounce 60, I never caps), which is exactly the report in\n# betaflight/betaflight issue 13486, open since March 2024 and unfixed.\n#\n# NOT CHANGED HERE ON PURPOSE. This file's whole job is to be what a freshly\n# flashed quad flies, including the parts of that which are wrong. Round 23\n# in PROGRESS.md has the sweep. Raising it to 1000 on the bench lands on the\n# good side of it, which is what the preset that used to ship beside this one\n# did.\nset pidsum_limit_yaw = 400\n\nset throttle_boost = 5\nset throttle_boost_cutoff = 15\n\nset p_roll = 45\nset i_roll = 80\nset d_roll = 40\nset f_roll = 120\nset p_pitch = 47\nset i_pitch = 84\nset d_pitch = 46\nset f_pitch = 125\nset p_yaw = 45\nset i_yaw = 80\nset d_yaw = 0\nset f_yaw = 120\n\nset d_min_roll = 30\nset d_min_pitch = 34\nset d_min_yaw = 0\nset d_max_gain = 37\nset d_max_advance = 20\n\nset abs_control_gain = 0\nset use_integrated_yaw = OFF\n\nset thrust_linear = 0\nset transient_throttle_limit = 0\nset feedforward_transition = 0\nset feedforward_max_rate_limit = 90\n\nset dyn_idle_min_rpm = 0\n\nset simplified_pids_mode = RPY\nset simplified_master_multiplier = 100\nset simplified_i_gain = 100\nset simplified_d_gain = 100\nset simplified_pi_gain = 100\nset simplified_dmax_gain = 100\nset simplified_feedforward_gain = 100\nset simplified_pitch_d_gain = 100\nset simplified_pitch_pi_gain = 100\n\nset tpa_mode = D\nset tpa_rate = 65\nset tpa_breakpoint = 1350\nset tpa_low_rate = 20\nset tpa_low_breakpoint = 1050\nset tpa_low_always = OFF\n\nset dterm_lpf1_dyn_min_hz = 75\nset dterm_lpf1_dyn_max_hz = 150\nset dterm_lpf1_dyn_expo = 5\nset dterm_lpf1_type = PT1\nset dterm_lpf1_static_hz = 75\nset dterm_lpf2_type = PT1\nset dterm_lpf2_static_hz = 150\nset dterm_notch_hz = 0\nset dterm_notch_cutoff = 0\nset yaw_lowpass_hz = 100\nset simplified_dterm_filter = ON\nset simplified_dterm_filter_multiplier = 100\n\nbatch end\n\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n\n# Rates, from the menu. See configs/rates.js.\nrateprofile 0\nset rates_type = ACTUAL\nset roll_rc_rate = 7\nset pitch_rc_rate = 7\nset yaw_rc_rate = 7\nset roll_srate = 67\nset pitch_srate = 67\nset yaw_srate = 67\nset roll_expo = 0\nset pitch_expo = 0\nset yaw_expo = 0\nset quickrates_rc_expo = OFF\nset throttle_limit_type = OFF\nset throttle_limit_percent = 100\nset thr_mid = 50\nset thr_expo = 0\n",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.330248454909373,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "ce4ae1fc"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "d0ccc224"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "191e32d1"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "run",
+    "sim_bf_get",
+    16,
+    "e57d6e61"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 107,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 20,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {
+     "betaflight-interceptor": {
+      "sliders": {
+       "master": 45
+      }
+     }
+    },
+    "block": "\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n",
+    "module": {
+     "mode": "RPY",
+     "master": "45",
+     "p_roll": "20",
+     "i_roll": "36",
+     "d_roll": "18",
+     "d_min_roll": "13",
+     "f_roll": "54",
+     "p_pitch": "21",
+     "p_yaw": "20",
+     "f_yaw": "54"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cf739596.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "flight",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "back to the title",
+  "calls": [
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "78a21ac4"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    796.9250941386849,
+    0
+   ],
+   [
+    "sim_water_add",
+    22.330248454909373,
+    1335,
+    -794.44904864541,
+    1
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    48,
+    "e9aff9c2"
+   ],
+   [
+    "sim_water_wind",
+    1,
+    0,
+    0,
+    -1,
+    0,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    169,
+    "ce4ae1fc"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    244,
+    "d0ccc224"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    4
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    1970,
+    "191e32d1"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_water_components",
+    1,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_parts_count",
+    16
+   ],
+   [
+    "run",
+    "sim_part_info",
+    16,
+    "6cf034b3"
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 107,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 20,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {
+     "betaflight-interceptor": {
+      "sliders": {
+       "master": 45
+      }
+     }
+    },
+    "block": "\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n",
+    "module": {
+     "mode": "RPY",
+     "master": "45",
+     "p_roll": "20",
+     "i_roll": "36",
+     "d_roll": "18",
+     "d_min_roll": "13",
+     "f_roll": "54",
+     "p_pitch": "21",
+     "p_yaw": "20",
+     "f_yaw": "54"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cf739596.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  }
+ },
+ {
+  "name": "world swap to alps",
+  "calls": [
+   [
+    "sim_reset",
+    0
+   ],
+   [
+    "sim_set_cell_voltage",
+    4.2,
+    0
+   ],
+   [
+    "sim_water_clear",
+    0
+   ],
+   [
+    "sim_water_add",
+    -1.595,
+    -2265,
+    -196.3195976483789,
+    0
+   ],
+   [
+    "run",
+    "sim_water_vertex",
+    256,
+    "c3361695"
+   ],
+   [
+    "sim_water_wind",
+    0,
+    2,
+    -1,
+    0,
+    795.1018468302982,
+    0
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    1
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    57,
+    "a86ad49d"
+   ],
+   [
+    "sim_water_channel",
+    2.05,
+    2
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    92,
+    "943a1090"
+   ],
+   [
+    "sim_water_channel",
+    2.85,
+    3
+   ],
+   [
+    "run",
+    "sim_water_channel_point",
+    270,
+    "3d25f5c4"
+   ],
+   [
+    "sim_water_components",
+    0,
+    1568144,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_set_crashflip",
+    0,
+    0
+   ],
+   [
+    "sim_wing_stab",
+    0
+   ],
+   [
+    "sim_crashflip_active",
+    0
+   ],
+   [
+    "sim_air_lift",
+    0,
+    0,
+    0,
+    0
+   ],
+   [
+    "sim_wing_discus_phase",
+    0
+   ]
+  ],
+  "probes": {
+   "tune": {
+    "id": "betaflight-interceptor",
+    "name": "betaflight-interceptor.diff",
+    "menu": "betaflight-interceptor",
+    "rates": "Actual, 670 roll and pitch, 670 yaw deg/s",
+    "applied": 107,
+    "inert": 5,
+    "unknown": 0,
+    "pRoll": 20,
+    "rollSrate": 67,
+    "profile": {
+     "rates_type": "ACTUAL",
+     "roll_rc_rate": "7",
+     "roll_srate": "67",
+     "pitch_srate": "67",
+     "yaw_srate": "67",
+     "roll_expo": "0",
+     "throttle_limit_type": "OFF",
+     "throttle_limit_percent": "100"
+    }
+   },
+   "pids": {
+    "id": "betaflight-interceptor",
+    "menu": {
+     "betaflight-interceptor": {
+      "sliders": {
+       "master": 45
+      }
+     }
+    },
+    "block": "\n# PID sliders, from the PIDs screen. See configs/pids.js.\nprofile 0\nset simplified_master_multiplier = 45\nsimplified_tuning apply\n",
+    "module": {
+     "mode": "RPY",
+     "master": "45",
+     "p_roll": "20",
+     "i_roll": "36",
+     "d_roll": "18",
+     "d_min_roll": "13",
+     "f_roll": "54",
+     "p_pitch": "21",
+     "p_yaw": "20",
+     "f_yaw": "54"
+    }
+   },
+   "air": {
+    "setting": 100,
+    "run": 100,
+    "scale": 1,
+    "module": 1,
+    "key": "webfpv.best.cf739596.4.20.interceptor"
+   },
+   "key": "webfpv.bestLapMs",
+   "craft": {
+    "mode": "title",
+    "tune": "betaflight-interceptor",
+    "landed": true,
+    "turtle": false
+   },
+   "cameraAngle": 45
+  },
+  "screen": "title"
+ }
+]
