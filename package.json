@@ -119,6 +119,7 @@
     "turtle:check": "node scripts/turtle-check.js",
     "crash:feel": "node scripts/crash-feel.js",
     "crash:stand-fault": "node scripts/stand-fault-check.js",
+    "reset:check": "node scripts/reset-check.js",
     "score:selftest": "node scripts/score-selftest.js",
     "score:golden": "node scripts/score-golden.js",
     "scorehud:golden": "node scripts/scorehud-golden.js",
