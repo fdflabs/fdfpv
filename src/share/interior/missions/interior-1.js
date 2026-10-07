@@ -261,6 +261,9 @@ export default {
   },
   /* The played square less WORLD's warning margin (places.js boundary). */
   boundary: { min: [-PLACES.boundary.warn, -PLACES.boundary.warn], max: [PLACES.boundary.warn, PLACES.boundary.warn] },
+  /* Takes that name a fixed hour to a place (guide.js bearingSaid): the
+   * discovery window's "Tree line. Eleven o'clock from your nose." */
+  bearings: { 'int1-s3-bearing': { hour: 11, at: ALONG('forest-edge') } },
   lines: {
     boundary: { warning: 'int-boundary', final: 'int-boundary-final' },
     fail: 'int1-fail',
