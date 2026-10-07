@@ -1,70 +1,69 @@
 /*
- * bugs.js: send a tester ticket to the public board.
+ * bugs.js: a tester's ticket, sent to the public board.
  *
- * THE CONNECTION, WRITTEN DOWN ONCE.
+ *   POST {board}/api/bugs   { kind, title, what, expected?, steps?,
+ *                             reporter?, context?, images? }
  *
- *   Submit     POST {board}/api/bugs   { kind, title, what, expected?,
- *                                      steps?, reporter?, context?,
- *                                      images? }
+ * `images` holds up to four screenshots as data: URLs, already shrunk and
+ * re-encoded to what the board accepts by src/ui/bugshots.js. The board is
+ * the one board.js resolves (a ?board= query, a stored override, then the
+ * default). A board that is down rejects here and the form says so; it
+ * never takes the game down with it.
  *
- * `images` is up to four screenshots as data: URLs, already shrunk and
- * re-encoded by src/ui/bugshots.js to what the board accepts.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * The board origin is the same one board.js already resolved: a ?board=
- * query, a stored override, then the local default. A board that is down
- * must not take the rest of the game with it. The caller shows the error.
- *
- * This file is part of WebFPVSimulator.
- *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { boardOrigin } from './board.js';
 import { str } from '../strings/index.js';
 
+/* The kinds a ticket can be, in the order the form lists them. The ids are
+ * the board's closed list. */
 export const BUG_KINDS = [
-  { id: 'crash', label: str('bugs.crash_or_freeze') },
-  { id: 'blocking', label: str('bugs.cannot_play') },
-  { id: 'wrong', label: str('bugs.wrong_behaviour') },
-  { id: 'visual', label: str('bugs.looks_wrong') },
-  { id: 'feel', label: str('ui.flight_feel') },
-  { id: 'other', label: str('bugs.other') },
-];
+  ['crash', 'bugs.crash_or_freeze'],
+  ['blocking', 'bugs.cannot_play'],
+  ['wrong', 'bugs.wrong_behaviour'],
+  ['visual', 'bugs.looks_wrong'],
+  ['feel', 'ui.flight_feel'],
+  ['other', 'bugs.other'],
+].map(([id, key]) => ({ id, label: str(key) }));
 
-function trimOrigin(value) {
-  return String(value || '').trim().replace(/\/+$/, '');
-}
-
+/* Resolves to the board's answer (null when it is empty or not JSON).
+ * Rejects with an Error carrying `status` when the board refuses, worded
+ * as the board worded it if it did, and with fetch's own error when there
+ * is no board to reach. */
 export async function submitBug(payload, origin = boardOrigin()) {
-  const board = trimOrigin(origin);
-  const res = await fetch(`${board}/api/bugs`, {
+  const base = String(origin || '').trim().replace(/\/+$/, '');
+  const res = await fetch(`${base}/api/bugs`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
   const text = await res.text();
-  let body = null;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch (e) {
-    body = null;
+  let answer = null;
+  if (text) {
+    try {
+      answer = JSON.parse(text);
+    } catch (e) {
+      answer = null;
+    }
   }
-  if (!res.ok) {
-    const message = (body && body.error) || text || str('board.the_board_answered', { status: res.status });
-    const err = new Error(message);
-    err.status = res.status;
-    throw err;
+  if (res.ok) {
+    return answer;
   }
-  return body;
+  const refusal = new Error((answer && answer.error) || text || str('board.the_board_answered', { status: res.status }));
+  refusal.status = res.status;
+  throw refusal;
 }

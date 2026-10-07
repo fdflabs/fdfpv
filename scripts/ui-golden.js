@@ -53,13 +53,19 @@ const ONLY = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 /* Each fixture: the stored profile it boots with, the language, and
  * whether the two gate questions (mode and aircraft) are answered first,
- * the way scripts/shell-check.js walks past them. */
+ * the way scripts/shell-check.js walks past them. That also clears the
+ * first run flag unless keepFirstRun says to leave it as the shell found
+ * it. */
 const FIXTURES = [
   { name: 'first-visit', profile: null, lang: 'en', pastGate: false },
   { name: 'race', profile: { airframeAsked: true }, lang: 'en', pastGate: 'race' },
   { name: 'freestyle', profile: { airframeAsked: true, freestyleMap: 'swiss2', map: 'swiss2' }, lang: 'en', pastGate: 'freestyle' },
   { name: 'plane-angle', profile: { airframeAsked: true, airframe: 'cub', flightMode: 'angle' }, lang: 'en', pastGate: 'race' },
   { name: 'race-es', profile: { airframeAsked: true }, lang: 'es', pastGate: 'race' },
+  /* No profile but a best lap stored: a returning pilot whose settings
+   * were lost, which the shell must not greet as a first visit. */
+  { name: 'returning', profile: null, extra: { 'webfpv.best.track': '61234' }, lang: 'en', pastGate: 'race', keepFirstRun: true },
+  { name: 'first-visit-race', profile: null, lang: 'en', pastGate: 'race', keepFirstRun: true },
 ];
 
 /* Screens whose rows are walked for leads. The bench (fc) is left to its
@@ -216,6 +222,9 @@ function seedFor(fx) {
      * visit; a fixed pair keeps the Friends rows the same every run. */
     "try { localStorage.setItem('fdfpv.pilotPick', '[1,2,42]'); localStorage.setItem('fdfpv.pilotFigure', '3'); } catch (e) { /* storage refused */ }",
   ];
+  for (const [k, v] of Object.entries(fx.extra || {})) {
+    lines.push(`try { localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)}); } catch (e) { /* storage refused */ }`);
+  }
   if (fx.profile) {
     lines.push(`try {
       localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, ${JSON.stringify(JSON.stringify(fx.profile))});
@@ -233,11 +242,13 @@ for (const fx of FIXTURES) {
   let got;
   try {
     await page.until('window.__shellReady === true', 300000);
-    const pastGate = `(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = ${JSON.stringify(fx.pastGate)}; return true; })()`;
+    const pastGate = `(() => { const ui = window.__ui; ${fx.keepFirstRun ? '' : 'ui.firstRun = false;'} ui.craftGate = false; ui.mode = ${JSON.stringify(fx.pastGate)}; return true; })()`;
+    /* What the shell decided on boot, before any gate answer touches it. */
+    const boot = await page.evaluate('JSON.stringify({ firstRun: Boolean(window.__ui.firstRun), screen: window.__ui.screen })');
     if (fx.pastGate) {
       await page.evaluate(pastGate);
     }
-    got = {};
+    got = { '@boot': { state: JSON.parse(boot) } };
     const names = await page.evaluate(HOOK);
     for (const name of names) {
       let from = 0;
@@ -286,7 +297,7 @@ for (const fx of FIXTURES) {
   const want = JSON.parse(await readFile(file, 'utf8'));
   const diffs = [];
   for (const name of new Set([...Object.keys(want), ...Object.keys(got)])) {
-    for (const part of ['screen', 'error', 'items', 'rows', 'leads']) {
+    for (const part of ['state', 'screen', 'error', 'items', 'rows', 'leads']) {
       const a = JSON.stringify(want[name] && want[name][part]);
       const b = JSON.stringify(got[name] && got[name][part]);
       if (a !== b) {

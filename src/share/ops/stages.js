@@ -245,6 +245,12 @@ export function trigger(trig, ctx) {
     const ts = (m.downs ?? []).filter((d) => d.roles.some((r) => want.includes(r)) && (!trig.alone || d.alone)).map((d) => d.t);
     return after(earliest(ts));
   }
+  /* Seconds after the pilots can be on station: the stage's opening, or
+   * on a checkpoint restart the go plus the stage's restartLead. */
+  if (trig.station != null) {
+    const t = (st.station ?? st.at) + Math.round(trig.station * 1000);
+    return t <= f ? t : null;
+  }
   if (trig.clock != null) {
     const t = m.goAt + Math.round(trig.clock * 1000);
     return t <= f ? after(t) : null;
@@ -382,12 +388,13 @@ export function applyCue(m, mission, cue, t) {
 }
 
 /* The stage's cards as the view shows them: those shown so far (an
- * `after` card once that one is done), each with its tier, roles, star
+ * `after` card once that one is done, a `show` card once its trigger
+ * fired, as the war's objectivesView), each with its tier, roles, star
  * and, for a count of captures, how far it has got. */
 export function cardsView(ctx) {
   const { st, m, mission } = ctx;
   const stars = new Set((mission.stars ?? []).map((s) => s.card).filter(Boolean));
-  return (stagesOf(mission)[st.idx].objectives ?? []).filter((o) => !o.after || st.obj[o.after]?.state === 'done').map((o) => {
+  return (stagesOf(mission)[st.idx].objectives ?? []).filter((o) => (!o.after || st.obj[o.after]?.state === 'done') && (!o.show || st.obj[o.id])).map((o) => {
     const out = {
       id: o.id, text: o.text, tier: o.tier ?? 'primary', state: o.tier === 'rule' ? 'active' : (st.obj[o.id]?.state ?? 'active'), roles: o.roles ?? null, star: stars.has(o.id),
     };

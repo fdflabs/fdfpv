@@ -1,0 +1,1760 @@
+{
+ "en": {
+  "list": [
+   {
+    "name": "1 Trippy Spin",
+    "points": 100,
+    "category": "Building Blocks",
+    "difficulty": "Block",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 1,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty Flip",
+    "points": 200,
+    "category": "Matty Flips",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0,
+       "pitch": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Anti Matty",
+    "points": 250,
+    "category": "Matty Flips",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Matty",
+    "points": 300,
+    "category": "Matty Flips",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 1.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty Roll",
+    "points": 425,
+    "category": "Matty Flips",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 0.75,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty 360",
+    "points": 425,
+    "category": "Matty Flips",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 0.5,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   },
+   {
+    "name": "Maverick Loop",
+    "points": 100,
+    "category": "Maverick Loops",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Mavvy Roll",
+    "points": 250,
+    "category": "Maverick Loops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0,
+       "roll": 2
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Donkey Loop",
+    "points": 600,
+    "category": "Maverick Loops",
+    "difficulty": "Master",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0.5,
+       "roll": 1,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Yaw Spin",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 1,
+      "track": true,
+      "inverted": false
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Flip",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Roll",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Segmented Flips/Rolls",
+    "points": 75,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axisIn": [
+       "roll",
+       "pitch"
+      ],
+      "turns": 0.5
+     },
+     {
+      "axisAs": 0,
+      "turns": 0.5,
+      "sameAs": 0,
+      "stallMs": 500
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Invert Rewind",
+    "points": 75,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axisIn": [
+       "roll",
+       "pitch"
+      ],
+      "turns": 0.5
+     },
+     {
+      "axisAs": 0,
+      "turns": 0.5,
+      "oppTo": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Vanny Roll",
+    "points": 125,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "yaw",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     },
+     {
+      "axis": "yaw",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Double Flip",
+    "points": 150,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 2
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Double Roll",
+    "points": 150,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 2
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Juicy Flick",
+    "points": 200,
+    "category": "Open Air Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "dir": 1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Snapback",
+    "points": 200,
+    "category": "Open Air Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "dir": -1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Rubik's Cube",
+    "points": 325,
+    "category": "Open Air Tricks",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 0.5
+     },
+     {
+      "axis": "pitch",
+      "turns": 1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Cubik's Rube",
+    "points": 325,
+    "category": "Open Air Tricks",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     },
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Inverted Yaw Spin",
+    "points": 400,
+    "category": "Open Air Tricks",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "axis": "yaw",
+      "turns": 1,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Inverted Yaw Tracking",
+    "points": 425,
+    "category": "Open Air Tricks",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 0.5
+     },
+     {
+      "axis": "yaw",
+      "turns": 1,
+      "oppTo": 0,
+      "inverted": true
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Eject Roll",
+    "points": 200,
+    "category": "Other Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Orbit x2",
+    "points": 75,
+    "category": "Pole Dancing",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 2,
+      "track": true,
+      "inverted": false
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Trippy Spin x2",
+    "points": 500,
+    "category": "Pole Dancing",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 2,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Powerloop",
+    "points": 200,
+    "category": "Powerloops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Immelmann Turn",
+    "points": 250,
+    "category": "Powerloops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "under",
+      "rot": {
+       "pitch": 0.5
+      }
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Flip",
+    "points": 350,
+    "category": "Powerloops",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 2
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Roll",
+    "points": 450,
+    "category": "Powerloops",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 7
+    }
+   },
+   {
+    "name": "Inverted 360 Powerloop",
+    "points": 650,
+    "category": "Powerloops",
+    "difficulty": "Master",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1,
+       "roll": 0,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   },
+   {
+    "name": "Flip Stall Rewind",
+    "points": 275,
+    "category": "Rewinds",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 1,
+      "stallMs": 400
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "360 Stall Rewind",
+    "points": 275,
+    "category": "Rewinds",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 1,
+      "stallMs": 400
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Split-S",
+    "points": 100,
+    "category": "SplitS",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0.5,
+       "pitch": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 3
+    }
+   },
+   {
+    "name": "Split Yaw",
+    "points": 300,
+    "category": "SplitS",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0.5,
+       "pitch": 0.5,
+       "yaw": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   }
+  ],
+  "status": [
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 6 of 9 test flights, so it wants flying cleanly to register."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 7 of 9 test flights, so it wants flying cleanly to register."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 6 of 9 test flights, so it wants flying cleanly to register."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 3 of 9 test flights, so it wants flying cleanly to register."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 6 of 9 test flights, so it wants flying cleanly to register."
+   }
+  ],
+  "edge": [
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 3 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 3 test flights, across three bank angles and three degrees of overshoot."
+   },
+   {
+    "tag": "Fussy",
+    "line": "Scored on 2 of 3 test flights, so it wants flying cleanly to register."
+   },
+   {
+    "tag": "Reliable",
+    "line": "Scored on all 0 test flights, across three bank angles and three degrees of overshoot."
+   }
+  ],
+  "count": 35
+ },
+ "es": {
+  "list": [
+   {
+    "name": "1 Trippy Spin",
+    "points": 100,
+    "category": "Building Blocks",
+    "difficulty": "Block",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 1,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty Flip",
+    "points": 200,
+    "category": "Matty Flips",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0,
+       "pitch": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Anti Matty",
+    "points": 250,
+    "category": "Matty Flips",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Matty",
+    "points": 300,
+    "category": "Matty Flips",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 1.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty Roll",
+    "points": 425,
+    "category": "Matty Flips",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 0.75,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Matty 360",
+    "points": 425,
+    "category": "Matty Flips",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "pitch": 0.5,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   },
+   {
+    "name": "Maverick Loop",
+    "points": 100,
+    "category": "Maverick Loops",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Mavvy Roll",
+    "points": 250,
+    "category": "Maverick Loops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0,
+       "roll": 2
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Donkey Loop",
+    "points": 600,
+    "category": "Maverick Loops",
+    "difficulty": "Master",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 0.5,
+       "roll": 1,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Yaw Spin",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 1,
+      "track": true,
+      "inverted": false
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Flip",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Roll",
+    "points": 50,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Segmented Flips/Rolls",
+    "points": 75,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axisIn": [
+       "roll",
+       "pitch"
+      ],
+      "turns": 0.5
+     },
+     {
+      "axisAs": 0,
+      "turns": 0.5,
+      "sameAs": 0,
+      "stallMs": 500
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Invert Rewind",
+    "points": 75,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axisIn": [
+       "roll",
+       "pitch"
+      ],
+      "turns": 0.5
+     },
+     {
+      "axisAs": 0,
+      "turns": 0.5,
+      "oppTo": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Vanny Roll",
+    "points": 125,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "yaw",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     },
+     {
+      "axis": "yaw",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Double Flip",
+    "points": 150,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 2
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Double Roll",
+    "points": 150,
+    "category": "Open Air Tricks",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 2
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Juicy Flick",
+    "points": 200,
+    "category": "Open Air Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "dir": 1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Snapback",
+    "points": 200,
+    "category": "Open Air Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "dir": -1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Rubik's Cube",
+    "points": 325,
+    "category": "Open Air Tricks",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 0.5
+     },
+     {
+      "axis": "pitch",
+      "turns": 1
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Cubik's Rube",
+    "points": 325,
+    "category": "Open Air Tricks",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     },
+     {
+      "axis": "pitch",
+      "turns": 0.5,
+      "sameAs": 0
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Inverted Yaw Spin",
+    "points": 400,
+    "category": "Open Air Tricks",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "axis": "yaw",
+      "turns": 1,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Inverted Yaw Tracking",
+    "points": 425,
+    "category": "Open Air Tricks",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 0.5
+     },
+     {
+      "axis": "yaw",
+      "turns": 1,
+      "oppTo": 0,
+      "inverted": true
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Eject Roll",
+    "points": 200,
+    "category": "Other Tricks",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 0.5
+     },
+     {
+      "axis": "roll",
+      "turns": 1
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Orbit x2",
+    "points": 75,
+    "category": "Pole Dancing",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 2,
+      "track": true,
+      "inverted": false
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Trippy Spin x2",
+    "points": 500,
+    "category": "Pole Dancing",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "pole",
+      "turnsAtLeast": 2,
+      "inverted": true
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Powerloop",
+    "points": 200,
+    "category": "Powerloops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Immelmann Turn",
+    "points": 250,
+    "category": "Powerloops",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "under",
+      "rot": {
+       "pitch": 0.5
+      }
+     },
+     {
+      "axis": "roll",
+      "turns": 0.5
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Flip",
+    "points": 350,
+    "category": "Powerloops",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 2
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Power Roll",
+    "points": 450,
+    "category": "Powerloops",
+    "difficulty": "Advanced",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1,
+       "roll": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 7
+    }
+   },
+   {
+    "name": "Inverted 360 Powerloop",
+    "points": 650,
+    "category": "Powerloops",
+    "difficulty": "Master",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 1,
+      "from": "under",
+      "rot": {
+       "pitch": 1,
+       "roll": 0,
+       "yaw": 1
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   },
+   {
+    "name": "Flip Stall Rewind",
+    "points": 275,
+    "category": "Rewinds",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "pitch",
+      "turns": 1,
+      "stallMs": 400
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "360 Stall Rewind",
+    "points": 275,
+    "category": "Rewinds",
+    "difficulty": "Novice",
+    "steps": [
+     {
+      "axis": "roll",
+      "turns": 1,
+      "stallMs": 400
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 9
+    }
+   },
+   {
+    "name": "Split-S",
+    "points": 100,
+    "category": "SplitS",
+    "difficulty": "Beginner",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0.5,
+       "pitch": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 3
+    }
+   },
+   {
+    "name": "Split Yaw",
+    "points": 300,
+    "category": "SplitS",
+    "difficulty": "Intermediate",
+    "steps": [
+     {
+      "path": "bar",
+      "turns": 0.5,
+      "from": "over",
+      "rot": {
+       "roll": 0.5,
+       "pitch": 0.5,
+       "yaw": 0.5
+      }
+     }
+    ],
+    "proven": {
+     "runs": 9,
+     "landed": 6
+    }
+   }
+  ],
+  "status": [
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 6 de 9 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 7 de 9 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 6 de 9 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 9 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 3 de 9 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 6 de 9 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   }
+  ],
+  "edge": [
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 3 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 3 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   },
+   {
+    "tag": "Exigente",
+    "line": "Puntuado en 2 de 3 vuelos de prueba, así que hay que volarlo limpio para que cuente."
+   },
+   {
+    "tag": "Fiable",
+    "line": "Puntuado en los 0 vuelos de prueba, a lo largo de tres bank ángulos y tres grados de sobrepaso."
+   }
+  ],
+  "count": 35
+ }
+}
