@@ -424,7 +424,6 @@
         letter-spacing: 0.06em; text-transform: uppercase;
         color: var(--cream);
         white-space: nowrap;
-        animation: score-name-in 2.2s ease-out forwards;
       }
       .score-name.is-sloppy { color: var(--amber); }
       .score-name.is-bump { color: var(--sakura); }
@@ -471,7 +470,6 @@
         letter-spacing: 0.14em; text-transform: uppercase;
         opacity: 0;
       }
-      .score-verdict.is-on { animation: score-verdict 1.15s ease-out forwards; }
       .score-verdict.is-bank { color: var(--mint); }
       /* A saturated sakura rather than the token. --sakura is the brand's
          blossom pink and it is a pale one by design; over a lit road it
@@ -490,9 +488,6 @@
       @media (max-height: 560px) {
         .score-combo { bottom: 34vh; }
         .score-names { bottom: calc(34vh + 52px); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .score-name, .score-verdict.is-on { animation-duration: 0.01s; }
       }
       /* ------------------------------------------------------------------
          THE ANIME LAYER.
@@ -669,7 +664,6 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .score-name, .score-verdict.is-on { animation-duration: 0.01s; }
         /* NOTHING THAT CARRIES MEANING IS HIDDEN. The tier colour, the
            badge and the score all stay; what goes is the movement, which is
            the same contract the rest of this overlay keeps. */
