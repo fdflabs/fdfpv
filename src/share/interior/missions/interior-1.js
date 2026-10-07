@@ -122,6 +122,10 @@ const PAIR_TRACK = { soft: 20, hard: 75 };
 
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
+/* How long stage 4 holds the pair at the camp edge for the long objects
+ * nobody saw at the opening, s: well under the hard threshold
+ * (PAIR_TRACK), so the hold is not what loses a pair. */
+const EDGE_HOLD_S = 30;
 const GONE = { chosen: 'dispersal', is: 'started' };
 const DISPERSAL = {
   any: [
@@ -395,9 +399,15 @@ export default {
           classify: { contacts: 'pair', to: 'poi', why: 'ev.long_objects' },
           card: 'card.intelligence_updated',
         },
+        { when: { route: 'pair', point: 'camp-edge' }, at: EDGE_HOLD_S, choose: { name: 'edge', value: 'held' } },
       ],
       exits: [
-        { when: { route: 'pair', point: 'camp-edge' }, to: 'next' },
+        /* The camp edge with the long objects seen (M1_06) moves on at
+         * once; a pair nobody saw through the opening (about 95 s) is held
+         * there EDGE_HOLD_S, so the beat still plays on a first sighting
+         * at the edge, and the stage then moves on without it. */
+        { when: { all: [{ route: 'pair', point: 'camp-edge' }, { classified: 'pair', is: 'poi' }] }, to: 'next' },
+        { when: { chosen: 'edge', is: 'held' }, to: 'next' },
         /* Three hard thresholds before the camp: the soft fail, played
          * again from this checkpoint (MISSIONS.md M1). */
         { when: { hards: 'pair', n: 3 }, to: 'lost', why: 'track' },
