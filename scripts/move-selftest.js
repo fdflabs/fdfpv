@@ -143,6 +143,7 @@ console.log('the pack');
     ['webfpv.settings.v3', 'webfpv.builds.v1', 'webfpv.pilot.key.v1', 'webfpv.pilot.name', 'webfpv_stick_map_v1', 'webfpv.trackbuilder.library.v1', 'fdfpv.voice']
       .every((k) => e[k] === GUEST[k]), Object.keys(e).join(' '));
   check('the server overrides do not, nor the storage probe', ['fdfpv.rooms', 'webfpv.tracks.origin', 'webfpv.board.origin', 'webfpv.probe'].every((k) => !(k in e)));
+  check('nor the board override under its new name', !('fdfpv.board.origin' in entriesOf(new Storage({ ...GUEST, 'fdfpv.board.origin': 'https://x.example/board' }))));
   check('another page\'s keys on the same origin do not', !('another.fdflabs.page' in e));
   check('the account session is excluded by name', EXCLUDED.has('webfpv.account.v1') && EXCLUDED.has('webfpv.account.synced.v1'));
 }
