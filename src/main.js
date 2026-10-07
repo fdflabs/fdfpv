@@ -19643,14 +19643,6 @@ export async function boot({
       view.cover(x, z, y - SURFACE_BIAS);
     }
   };
-  /* The map's distance cull radius, for the sweep that picks it; null puts
-   * the map's own back. */
-  window.__cullRadius = (r) => {
-    if (!view.setCullRadius) {
-      return null;
-    }
-    return view.setCullRadius(r);
-  };
   /* The active map's contact surface, exactly as the ground sweep queries it.
    * `fromY` is what makes a deck climbable from above and transparent from
    * below, so a capture can assert that rather than describe it. */
