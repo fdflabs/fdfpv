@@ -45,7 +45,6 @@ scripts/replay-log.js
 scripts/responsive-check.js
 scripts/run-bash.js
 scripts/serve.js
-scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
 src/boot.js
