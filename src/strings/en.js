@@ -828,6 +828,7 @@ export default {
   "power.bombshell.electric": "BMJR's electric: Himax 2816 1220 kV, 3S 850",
   "power.bombshell.stock": "Cox Texaco .049 two stroke, 7 x 3.5 (stock)",
   "power.bramor.stock": "Brushless pusher, 6S (stock)",
+  "power.bramor.500kv": "Uprated 500 kV pusher, 6S",
   "power.cub.stock": "3536 850 kV, 11 x 7, 3S (stock)",
   "power.kadet.electric": "SIG's electric: Himax 5018 530 kV, 5S 5000",
   "power.f16.stock": "Freewing 70 mm 12 blade fan, 2957 2210 kV, 6S (stock)",

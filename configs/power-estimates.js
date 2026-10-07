@@ -170,6 +170,12 @@ export const ESTIMATES = {
         topSpeed: 24.62,
         minutes: 176.7
       }
+    },
+    '500kv': {
+      '6s22000': {
+        topSpeed: 26.25,
+        minutes: 174.3
+      }
     }
   },
   slowstick1180: {
