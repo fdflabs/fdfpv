@@ -157,6 +157,9 @@ jobs:
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
+      # The .rec stick recording format (tests/lib/recfile.js), against a
+      # pinned transcript.
+      - run: npm run recfile:selftest
       - run: npm run score:golden
       - run: npm run tricks:golden
       - run: npm run tricks:gen -- --check
