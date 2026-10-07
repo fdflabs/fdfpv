@@ -72,9 +72,13 @@
  * in the build and is shown Under Development; 'soon' is only planned, has
  * no mission file, and is shown Coming Soon. The room refuses to start
  * anything but 'available' (edge/rooms/war.js start), so this row is the
- * gate, not the screen. A mission is made available here and nowhere else. */
+ * gate, not the screen. A mission is made available here and nowhere else.
+ * First Light went back to 'development' on 2026-10-07 (the owner: it has
+ * no narration, nothing of what Mission 1 of The Interior has; under
+ * construction until it is as finished); the owner's own account still
+ * flies it (DEV_ACCOUNTS, devHost). */
 export const ACT1 = [
-  { id: 'itaipu-1', key: 'intakes', free: true, release: 'available' },
+  { id: 'itaipu-1', key: 'intakes', free: true, release: 'development' },
   { id: 'itaipu-2', key: 'spillway', free: false, release: 'development' },
   { id: 'itaipu-3', key: 'switchyard', free: false, release: 'development' },
   { id: 'itaipu-4', key: 'night', free: false, release: 'development' },
