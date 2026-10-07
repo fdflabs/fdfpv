@@ -3161,7 +3161,124 @@
   },
   "load:json-null": {
    "settings": {
-    "threw": "TypeError"
+    "airframe": "timber1500",
+    "airframeAsked": false,
+    "ambientLevel": 5,
+    "avxInset": "small",
+    "avxLevel": "standard",
+    "avxPalette": "whitehot",
+    "buildFits": {},
+    "cameraAngle": 5,
+    "cameraFov": 100,
+    "campaign": {
+     "earned": 0,
+     "equipped": {
+      "speed": false,
+      "warhead": "standard"
+     },
+     "films": {},
+     "flags": {},
+     "missions": {},
+     "owned": {},
+     "v": 1
+    },
+    "combat": {},
+    "crashDamage": true,
+    "effectsLevel": 5,
+    "feelAsked": false,
+    "flightLog": false,
+    "flightMode": "acro",
+    "flightStyle": "expert",
+    "flightTime": {},
+    "floats": {
+     "timber1500": false
+    },
+    "focusTone": false,
+    "fpsCap": 0,
+    "freestyleMap": "",
+    "freestyleScoring": "off",
+    "ghost": "best",
+    "graphics": "high",
+    "graphicsAuto": true,
+    "hudStyle": "osd",
+    "hudStyleBy": {},
+    "interiorConsent": false,
+    "laps": 3,
+    "latencyMode": "low",
+    "launchControl": false,
+    "link": "perfect",
+    "live": "off",
+    "livery": {},
+    "liverySaves": {},
+    "map": "track",
+    "missionGuidance": true,
+    "motorLevel": 5,
+    "mouseCentre": "auto",
+    "mouseExpo": 0,
+    "mouseFlight": false,
+    "mouseInvert": false,
+    "mouseSens": 100,
+    "musicLevel": 5,
+    "musicTrack": "rotation",
+    "otherLevel": 5,
+    "packVoltage": 4.2,
+    "parts": {},
+    "peerMarks": "on",
+    "perfMode": "balanced",
+    "perfOverlay": false,
+    "pids": {},
+    "pidsSeeded": {},
+    "power": {},
+    "progress": {
+     "casual": {},
+     "challenges": {},
+     "courses": {},
+     "seen": {},
+     "unlockAll": false,
+     "v": 1,
+     "xp": 0
+    },
+    "rates": {
+     "pitch": {
+      "expo": 0,
+      "rcRate": 7,
+      "srate": 67
+     },
+     "roll": {
+      "expo": 0,
+      "rcRate": 7,
+      "srate": 67
+     },
+     "thrExpo": 0,
+     "thrMid": 50,
+     "throttleCap": 100,
+     "type": "ACTUAL",
+     "yaw": {
+      "expo": 0,
+      "rcRate": 7,
+      "srate": 67
+     }
+    },
+    "ratesSplitPitch": false,
+    "renderScale": 100,
+    "scoringReset": true,
+    "sound": true,
+    "stickMode": 2,
+    "touchRatesOffered": false,
+    "tune": "timber-acro",
+    "tuneFor": {
+     "interceptor": "betaflight-interceptor"
+    },
+    "tuning": {},
+    "voiceLevel": 5,
+    "voiceReplayAck": false,
+    "volume": 6,
+    "warAirframe": "",
+    "warConsent": false,
+    "weight": 100,
+    "windLevel": 5,
+    "wingDefaults": 2,
+    "wingView": "fpv"
    },
    "storage": {
     "webfpv.settings.v3": "null"

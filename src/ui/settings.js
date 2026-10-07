@@ -486,7 +486,7 @@ const WING_VIEWS = ['fpv', 'chase', 'los', 'ball'];
 /*
  * The stored profile, every field present and valid. Reading it also
  * updates the dump's aircraft stamp in storage when it names a retired
- * aircraft. A stored JSON null throws, as it always has.
+ * aircraft.
  */
 export function loadSettings() {
   let raw;
@@ -495,6 +495,9 @@ export function loadSettings() {
   } catch (e) {
     raw = {};
   }
+  /* A stored null is valid JSON with no fields; reading a field of it
+   * would throw and stop the page booting. */
+  if (raw === null) raw = {};
   const firstLoadOfGraphics = typeof raw.graphics !== 'string';
   const s = {};
   for (const [key, fallback] of Object.entries(DEFAULTS)) {
