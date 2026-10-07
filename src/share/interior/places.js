@@ -309,6 +309,9 @@ export const OPENINGS = [
   { id: 'pista-cero', at: g(3.0, 1.98), r: 260 },
   { id: 'narrow-opening', points: path([[8.655, 9.33], [8.632, 9.385]]), width: 7 },
   { id: 'picada', points: path([[9.09, 9.06], [8.85, 9.04], [8.6, 8.99], [8.35, 8.9], [8.1, 8.74], [7.92, 8.58]]), width: 5 },
+  /* An older, narrower cut north of the mid route's clearing: its
+   * alternate reacquisition point (routes.js ALT) is where it crosses. */
+  { id: 'picada-norte', points: path([[8.98, 9.2], [8.8, 9.235], [8.69, 9.27]]), width: 4 },
   { id: 'camp-access', points: path([[8.565, 9.48], [8.52, 9.62], [8.43, 9.8], [8.33, 9.98], [8.24, 10.15]]), width: 3.5 },
   { id: 'west-gap-1', at: g(8.885, 8.86), r: 9 },
   { id: 'west-clearing', at: g(8.6, 9.17), r: 18 },

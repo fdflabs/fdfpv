@@ -83,6 +83,7 @@ import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
 import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
 import { CAMP_PROPS } from '../src/share/interior/places.js';
+import { ALT_POINTS, CONCEAL_POINTS, ROUTES } from '../src/share/interior/routes.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import {
@@ -181,6 +182,19 @@ console.log('data');
     return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
   });
   check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
+  /* The hard threshold's line names a side of last contact (east for the
+   * cañada, north for the path crossing): the alternate must lie on that
+   * side of everywhere the pair can be lost before its second gap, or
+   * Vega's voice and the search ring disagree (the M1 audit, item 8). */
+  const ops = (p) => threePosToDoc(p[0], 0, p[1], {});
+  const side = { 'int1-s4-hard': (a, p) => a.x > p.x, 'int1-s4-hard-b': (a, p) => a.y > p.y };
+  const hard = stagesOf(M).flatMap((st) => st.cues ?? []).find((c) => c.when?.lost && c.search?.id === 'pair-alt');
+  const wrong = M.dials.conceal.filter((d) => {
+    const alt = ops(ROUTES[`conceal-${d}-alt-a`].pts[ALT_POINTS.reacquire]);
+    const walk = ROUTES[`conceal-${d}-a`].pts.slice(0, CONCEAL_POINTS.gap2).map(ops);
+    return !walk.every((p) => side[resolve(hard.radio, { conceal: d })](alt, p));
+  });
+  check('for every concealment route, the hard threshold\'s line names the side its alternate is on', hard && !wrong.length, wrong.join());
 }
 
 console.log('the gate');
