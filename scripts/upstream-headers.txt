@@ -40,7 +40,6 @@ src/native/sim.c
 src/native/sim_internal.h
 src/share/board.js
 src/trackbuilder/index.html
-src/ui/accountui.js
 src/ui/credits.js
 src/ui/pidspanel.js
 src/ui/ratespanel.js
