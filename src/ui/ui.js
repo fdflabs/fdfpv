@@ -95,7 +95,6 @@ import {
   RATE_TYPE_LABEL,
   THROTTLE_CAP_CHOICES,
   THROTTLE_CURVE_FIELDS,
-  cliOf,
   formatRate,
   fullStickDeg,
   hoverStickPercent,
@@ -214,6 +213,9 @@ import {
   FREESTYLE_SCORING, AVX_INSETS, AVX_LEVELS, AVX_PALETTES, loadSettings, FIRST_AIRFRAME, normaliseFloats, withFloats,
   seatAirframe, DEFAULTS, saveSettings, airHintSeen, markAirHintSeen, detectFirstRun, tuneChoices,
 } from './settings.js';
+import {
+  choice, cycle, fitsAsSegments, number, stampIds, stepper, toggle,
+} from './rows.js';
 
 /* Whether a Flight controller save exists, which is what puts Your edits
  * on the Tune row. Read fresh each time: the pilot can save one two rows
@@ -313,15 +315,6 @@ export {
 
 /* How long the air hint card stays up untouched before it closes itself. */
 const AIR_HINT_MS = 10000;
-
-/* Step through a list with wraparound. Every value row on every screen
- * moves through this, so a left arrow at the start of a list lands on its
- * end rather than doing nothing. */
-function cycle(list, value, dir) {
-  const i = list.indexOf(value);
-  const n = list.length;
-  return list[((i < 0 ? 0 : i) + dir + n) % n];
-}
 
 const FREESTYLE_SCORING_LABEL = { off: 'Off', free: str('ui.free_flight'), scored: str('ui.scored_run') };
 
@@ -997,193 +990,11 @@ function padTroubleItem(info) {
   return null;
 }
 
-/*
- * HOW MANY CHOICES FIT ON THE ROW ITSELF.
- *
- * Up to four, the whole set is drawn inline as segments and the pilot can
- * see every option and which one is live without pressing anything. Above
- * four there is no width for it, so the row keeps its button and Enter
- * opens the list.
- *
- * The count is not enough on its own, and the shell check said so: the Tune
- * row carried three presets then, so it drew as a strip, and its labels were
- * things like "Betaflight default" and "Karate race 6S", which wrapped to two
- * lines and took the title screen 18 px further past the fold. So the rule is
- * count AND fit, and both are measured rather than guessed. Twenty four
- * characters of labels all told is what a row's control holds at 1280 px
- * beside a label of its own: Off/On is five, Acro/Angle is nine,
- * Low/High/Ultra is twelve, Arcade/Expert is twelve, and those three tunes
- * were forty.
- *
- * The Tune row ships one preset now and no longer needs the fit rule to
- * behave, which is exactly why it stopped relying on it: it carries
- * `pickOnly` instead. The budget is unchanged and stays measured, because it
- * was never about that one row.
- *
- * The line also decides what Enter does, and that is the more important
- * half. See select().
- */
-const SEGMENT_MAX = 4;
-
 /* Long enough that a fast typist does not trigger a rebuild per letter,
  * short enough that the list feels live. A bench rebuild is about 57 ms
  * measured on this container, so anything under about 100 would still be
  * one render per keystroke. */
 const SEARCH_DEBOUNCE_MS = 120;
-const SEGMENT_CHARS = 24;
-
-/* Whether a choice row draws its whole set on the row, or keeps a button
- * and opens a list. One predicate, so the renderer and select() cannot
- * disagree about which kind of row this is. */
-function fitsAsSegments(it) {
-  if (!it || !it.options || !it.options.length || it.options.length > SEGMENT_MAX) {
-    return false;
-  }
-  const chars = it.options.reduce((n, o) => n + String(o.label || '').length, 0);
-  return chars <= SEGMENT_CHARS;
-}
-
-/*
- * Slug a label down to something that survives being written into a DOM id
- * and read back. Anything that is not a letter or a digit becomes a hyphen,
- * because a label is prose: it has apostrophes, degrees signs and commas.
- */
-function slugify(text) {
-  return String(text == null ? '' : text)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    || 'row';
-}
-
-/*
- * Stamp a stable id onto every row of a freshly built list. See items().
- *
- * The list is mutated in place rather than copied: these objects are made
- * fresh on every render and thrown away on the next one, and the callers
- * that hold on to one, the drop-down and the typed field, are holding the
- * same object this is stamping.
- */
-function stampIds(items, screen) {
-  const seen = new Map();
-  const prefix = screen ? `${screen}:` : '';
-  for (const it of items) {
-    if (!it || typeof it !== 'object') {
-      continue;
-    }
-    if (it.id) {
-      continue;
-    }
-    let base;
-    if (it.action) {
-      base = `a-${it.action}`;
-    } else if (it.key) {
-      base = `k-${it.key}`;
-    } else if (it.section) {
-      base = `s-${slugify(it.label)}`;
-    } else {
-      base = slugify(it.label);
-    }
-    const n = (seen.get(base) || 0) + 1;
-    seen.set(base, n);
-    it.id = n === 1 ? `${prefix}${base}` : `${prefix}${base}~${n}`;
-  }
-  return items;
-}
-
-/* Step a value through a list, wrapping. */
-function choice(label, note, choices, current, format, set) {
-  const fmt = format || ((v) => String(v));
-  return {
-    label,
-    note,
-    value: fmt(current),
-    current,
-    options: choices.map((c) => ({ value: c, label: fmt(c) })),
-    pick: (v) => {
-      const hit = choices.find((c) => String(c) === String(v));
-      if (hit !== undefined) {
-        set(hit);
-      }
-    },
-    adjust: (d) => set(cycle(choices, current, d)),
-  };
-}
-
-/*
- * A BOOLEAN IS A SWITCH, not a list of two things.
- *
- * This used to be choice() over [true, false], which meant a two item popup
- * opened for every on and off in the product: Sound, Launch control, Flight
- * log, Binaural tone, and every feature row on the bench. Twelve of them. A popup is the control for "which of these many",
- * and a popup listing On and Off asks a pilot to travel to a menu to answer
- * a question the row itself could have answered in place.
- *
- * `sw` is the flag, and there are no `options`, which is what keeps the
- * dropdown from ever opening on one of these. Left, Right and Enter all
- * flip it: a switch is one bit, the same key puts it back, and it is the
- * one value row where Enter changing something is the idiom rather than
- * the accident. See select().
- */
-function toggle(label, note, on, set) {
-  const current = Boolean(on);
-  return {
-    label,
-    note,
-    sw: true,
-    on: current,
-    value: current ? 'On' : 'Off',
-    current,
-    /* Left and Right SET a switch rather than cycling it: Right is On,
-     * Left is Off. Cycling means a held Right on a radio makes the row
-     * blink, and it means the two keys are the same key, which is a waste
-     * of the only spatial handle a two state control has. */
-    adjust: (d) => set(d > 0),
-    /* Enter flips. See select(). */
-    flip: () => set(!current),
-  };
-}
-
-/*
- * A TYPED number, in whatever units the row's field is displayed in.
- *
- * The one row type on these menus that is not a list, and the reason it
- * exists is the rates bug: a value a pilot has in their head, 1500 deg/s or
- * 0.42 of super rate, has to be enterable, and no list of a dozen steps is
- * ever going to carry it. spec comes from configs/rates.js and knows the
- * firmware bounds, the display scale and how the number is written.
- *
- * The arrows still work, and one press is one firmware unit, so the row is
- * still drivable from a radio or the keyboard alone. `typed` is what the
- * text field commits: it clamps rather than refuses, because a pilot who
- * asks for 5000 deg/s means "as much as it will give me".
- */
-function number(label, note, spec, cli, set) {
-  const clamp = (v) => Math.max(spec.cliMin, Math.min(spec.cliMax, v));
-  const text = formatRate(spec, cli);
-  return {
-    label,
-    note,
-    /* No `value`: the field IS the value on this row, and renderMenu reads
-     * num before it looks for one. */
-    num: {
-      spec, cli, text, unit: spec.unit,
-    },
-    adjust: (d) => set(clamp(cli + d)),
-    typed: (raw) => {
-      const t = String(raw).trim();
-      if (t === '') {
-        return null;
-      }
-      return cliOf(spec, Number(t));
-    },
-    set,
-  };
-}
-
-function stepper(label, note, value, adjust) {
-  return { label, note, value, adjust, step: true };
-}
 
 function hasLoadedTrack() {
   return hasFlyableTrack();
