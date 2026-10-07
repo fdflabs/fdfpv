@@ -4,11 +4,17 @@
  * the room clock").
  *
  * Mission 1 is "16:40 into sunset; the return at sunset" (MISSIONS.md
- * M1), 20 to 30 minutes of play, and the sun sets two minutes after the
- * latest the script can need. Sixteen forty to the sun's setting is about
- * an hour and a half of the day (src/maps/interior/sun.js), so the day
- * runs faster than the room: RATE hours of day for every hour of room,
- * which puts the sunset at 32 minutes into the mission. The room owns
+ * M1). Sixteen forty to the sun's setting is about an hour and a half of
+ * the day (src/maps/interior/sun.js), so the day runs faster than the
+ * room: RATE hours of day for every hour of room. The light is a fail
+ * (interior-1.js), so RATE is set from a measured run, not the script's
+ * 20 to 30 minutes: a first timer at the Bramor's speeds, its track a
+ * fifth longer than the straight line, two minutes searching and eight
+ * seconds lining up each still (interior-stages-selftest.js, light),
+ * lands 48.2 min after the go at 18 m/s, 42.5 at 22 and 39.6 at 25 (at
+ * 2.95 the sun set at 32.1 min and every one of them lost the light).
+ * 1.58 puts the sunset at 59.9 min: 11.7 min of light left at 18 m/s,
+ * while a pilot who dawdles or gets lost still loses it. The room owns
  * the mission's start; every screen turns the room's milliseconds into
  * an hour with localHour and hands it to the map (map.setLocalTime).
  *
@@ -36,7 +42,7 @@
  *             written here as a number so the room needs no trigonometry)
  * rate        hours of day per hour of room
  */
-export const M1_CLOCK = { startHour: 16 + 40 / 60, sunsetHour: 18.2446, rate: 2.95 };
+export const M1_CLOCK = { startHour: 16 + 40 / 60, sunsetHour: 18.2446, rate: 1.58 };
 
 /* The local hour `roomMs` into a mission that started at `startedMs`. */
 export function localHour(clock, startedMs, roomMs) {

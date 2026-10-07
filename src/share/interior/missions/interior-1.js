@@ -252,7 +252,8 @@ export default {
   },
   /* The mission's fails beyond its stages' (MISSIONS.md M1, recovery and
    * fails): the ISR down with nobody else airborne, and the light gone
-   * (two minutes past the latest the script can need: a broken run). */
+   * (clock.js: about 12 minutes after a first timer at 18 m/s would land,
+   * so it ends a run that dawdled or got lost, not an ordinary one). */
   lost: [
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
     { when: { clock: Math.round(sunsetMs(M1_CLOCK) / 1000) }, why: 'light', radio: 'int-fail-function' },

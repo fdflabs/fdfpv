@@ -435,8 +435,10 @@ the squad's captures (INTROS M1, N8).
 - **Fail:** the ISR destroyed with no other aircraft of the squad
   airborne; leaving the boundary after the final warning; the required
   survey impossible (a required item destroyed or the light gone: the
-  sun sets two minutes after the latest the script can need, so this
-  only fires on a broken run).
+  sun sets 59.9 minutes after the go, about 12 minutes after a first
+  timer flying the Bramor at 18 m/s lands (clock.js, measured by
+  interior:stages), so this fires on a run that dawdled or got lost,
+  not an ordinary one).
 - **Never fail:** for briefly losing a contact, imperfect framing, time,
   or a different valid route.
 
