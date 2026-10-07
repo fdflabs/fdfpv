@@ -71,6 +71,7 @@
     "gen:hangarcard": "node scripts/hangarcard.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "ghost:golden": "node scripts/ghost-golden.js",
+    "ghost:shell": "node scripts/ghost-shell-check.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
     "collide:golden": "node scripts/collide-golden.js",
