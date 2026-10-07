@@ -14040,8 +14040,9 @@ export async function boot({
     ui.show(dest === 'flight' ? 'paused' : dest);
     const sum = input.padSummary();
     ui.setPadInfo(sum);
+    /* Read only: input.js owns the result now (a getter over the roster,
+     * cleared when the next pick starts), and writing it throws. */
     const result = input.padPickResult;
-    input.padPickResult = null;
     if (result === 'accepted') {
       notice = { text: str('main.flying_with', { using: sum.using }), untilMs: performance.now() + 2800 };
     } else if (result === 'skipped') {
