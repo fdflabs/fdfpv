@@ -1,0 +1,21 @@
+<!--
+  The room screen in a room (refreshFriends in src/ui/session.js) and the war lobby over it (setWarLobby, drawLobby in src/ui/session.js).
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="screen screen-page screen-friends in-room war-lobby-on" style=""><h2>Fly with friends</h2><p class="rates-lede">Join a room from the list, or make your own and name it: public so everybody can find it, or private for up to eight friends with its code. Everybody sees everybody's aircraft, in their own paint.</p><div class="war-lobby"><div class="war-lobby-head"><div class="war-lobby-title">LOBBY</div><div class="war-lobby-mission">Night raid on the bridge</div></div><div class="war-lobby-status go">Starting in 3</div><div class="war-lobby-last">Last mission lost, 1 kills. Ready again to retry.</div><div class="war-lobby-pilots"><div class="war-lobby-pilot ready me"><div class="war-lobby-who"><span class="war-lobby-name">Tester</span><span class="war-lobby-craft">Strike quad</span></div><span class="war-lobby-flag">READY</span></div></div></div><div class="menu-stage"><div class="menu menu-scroll" role="listbox"><div class="row row-nav row-primary on" tabindex="0" role="option" aria-selected="true" data-row-id="friends:a-rooms"><span class="row-label">Rooms</span><span class="row-value"></span></div><div class="row row-nav" tabindex="-1" role="option" aria-selected="false" data-row-id="friends:a-roomnew"><span class="row-label">Make a room</span></div><div class="row" tabindex="-1" role="option" aria-selected="false" data-row-id="friends:a-friends-join"><span class="row-label">Join with a code</span></div><div class="row" tabindex="-1" role="option" aria-selected="false" data-row-id="friends:your-name"><span class="row-label">Your name</span><div class="row-control"><button class="drop-btn" type="button" aria-haspopup="listbox" aria-label="Your name">Happy Eagle 42</button></div></div><div class="row" tabindex="-1" role="option" aria-selected="false" data-row-id="friends:your-pilot"><span class="row-label">Your pilot</span><div class="row-control"><span class="row-value">4 of 12</span><span class="step-col"><button class="step" type="button" aria-label="Increase Your pilot">▲</button><button class="step" type="button" aria-label="Decrease Your pilot">▼</button></span></div></div></div><div class="menu-help">Every public room flying right now, with its name and who is in it. Pick one to join.</div></div><div class="hint"><span class="hint-keys"><kbd>Esc</kbd></span><span class="hint-copy">Goes back. Changes are already stored. Arrow keys still move the menu.</span></div></div>

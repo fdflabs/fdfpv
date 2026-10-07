@@ -1,0 +1,122 @@
+<!--
+  The loader, index.html's own #pdcs-loader markup as src/ui/loading.js Loading drives it (the stall class and line as paintStall sets them after six seconds). It sits outside #ui, after it, as in index.html.
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"","body":"","outside":true} -->
+<div id="pdcs-loader" class="pdcs-loader hidden" data-screen="4" style="" hidden="">
+      <div class="loader-noise"></div>
+      <div class="loader-grid"></div>
+
+      <header class="loader-header">
+        <div class="loader-stage">
+          <span id="loader-stage-number">[ 01 ]</span>
+          <span id="loader-stage-name">INITIAL BOOT</span>
+        </div>
+        <div class="loader-brand">
+          <div class="py-flag" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span>PDCS // SIMULATION CORE</span>
+        </div>
+      </header>
+
+      <main class="loader-content">
+        <section id="screen-boot" class="loader-screen active">
+          <div class="initial-center">
+            <div class="pdcs-mark" aria-hidden="true">△</div>
+            <div class="core-name">PDCS // SIMULATION CORE</div>
+            <div class="py-flag py-flag-center" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="boot-action">INITIALIZING...</div>
+            <div class="progress-row">
+              <div class="progress-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="boot-progress" class="progress-fill"></div><div class="progress-sweep"></div></div>
+              <span id="boot-progress-text">0%</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="screen-check" class="loader-screen">
+          <div class="systems-layout">
+            <div class="systems-list" data-group="system">
+              <div class="system-row" data-row="flight" data-state="wait"><span data-label="row_flight">FLIGHT CONTROLLER</span><span id="sys-flight">WAIT</span></div>
+              <div class="system-row" data-row="physics" data-state="wait"><span data-label="row_physics">PHYSICS ENGINE</span><span id="sys-physics">WAIT</span></div>
+              <div class="system-row" data-row="input" data-state="wait"><span data-label="row_input">INPUT DEVICES</span><span id="sys-input">WAIT</span></div>
+              <div class="system-row" data-row="audio" data-state="wait"><span data-label="row_audio">AUDIO SYSTEM</span><span id="sys-audio">WAIT</span></div>
+              <div class="system-row" data-row="telemetry" data-state="wait"><span data-label="row_telemetry">TELEMETRY</span><span id="sys-telemetry">WAIT</span></div>
+              <div class="system-row" data-row="online" data-state="wait"><span data-label="row_online">ONLINE SERVICES</span><span id="sys-online">WAIT</span></div>
+            </div>
+            <div class="drone-wireframe" aria-hidden="true"><img src="assets/boot/drone.svg" alt="" width="360" height="240" decoding="async"></div>
+          </div>
+        </section>
+
+        <section id="screen-map" class="loader-screen">
+          <div class="map-layout">
+            <div>
+              <h2 id="map-title">LOADING ENVIRONMENT</h2>
+              <div class="map-name"></div>
+              <div class="progress-row large">
+                <div class="progress-track" role="progressbar" aria-label="Map loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="map-progress" class="progress-fill"></div><div class="progress-sweep"></div></div>
+                <span id="map-progress-text">0%</span>
+              </div>
+              <div class="systems-list compact" data-group="map">
+                <div class="system-row" data-row="terrain" data-state="wait"><span data-label="row_terrain">TERRAIN DATA</span><span id="map-terrain">WAIT</span></div>
+                <div class="system-row" data-row="satellite" data-state="wait"><span data-label="row_satellite">SATELLITE IMAGERY</span><span id="map-satellite">WAIT</span></div>
+                <div class="system-row" data-row="height" data-state="wait"><span data-label="row_height">HEIGHTMAPS</span><span id="map-height">WAIT</span></div>
+                <div class="system-row" data-row="buildings" data-state="wait"><span data-label="row_buildings">BUILDINGS</span><span id="map-buildings">WAIT</span></div>
+                <div class="system-row" data-row="vegetation" data-state="wait"><span data-label="row_vegetation">VEGETATION</span><span id="map-vegetation">WAIT</span></div>
+                <div class="system-row" data-row="roads" data-state="wait"><span data-label="row_roads">ROADS &amp; INFRA</span><span id="map-roads">WAIT</span></div>
+              </div>
+            </div>
+            <div id="map-preview" class="map-preview" aria-hidden="true"><img alt="" hidden="" decoding="async"></div>
+          </div>
+        </section>
+
+        <section id="screen-final" class="loader-screen">
+          <div class="final-layout">
+            <div>
+              <h2 id="final-title">FINALIZING SIMULATION ENVIRONMENT</h2>
+              <div class="progress-row large">
+                <div class="progress-track" role="progressbar" aria-label="Finalizing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="final-progress" class="progress-fill"></div></div>
+                <span id="final-progress-text">0%</span>
+              </div>
+              <div class="systems-list compact" data-group="final">
+                <div class="system-row" data-row="world" data-state="wait"><span data-label="row_world">WORLD DATA</span><span id="final-world">WAIT</span></div>
+                <div class="system-row" data-row="core" data-state="wait"><span data-label="row_core">SIMULATION CORE</span><span id="final-core">WAIT</span></div>
+                <div class="system-row" data-row="environment" data-state="wait"><span data-label="row_environment">ENVIRONMENT</span><span id="final-env">WAIT</span></div>
+                <div class="system-row" data-row="scene" data-state="wait"><span data-label="row_scene">SCENE INTEGRATION</span><span id="final-scene">WAIT</span></div>
+              </div>
+            </div>
+            <div class="final-reticle" aria-hidden="true"><div></div></div>
+          </div>
+        </section>
+
+        
+        <section class="loader-fail">
+          <div class="loader-fail-inner">
+            <div class="progress-row"><div class="progress-track"><div class="progress-fill"></div></div></div>
+            <div class="loading-error" hidden=""></div>
+            <div class="loading-help" hidden="" role="alert" aria-live="assertive"></div>
+          </div>
+        </section>
+
+        <div class="loader-status" aria-live="polite"></div>
+      </main>
+
+      <footer class="loader-footer">
+        <span id="loader-footer-left">SYS INIT</span>
+        <span id="loader-footer-center">Local build</span>
+        <span id="loader-footer-right">BOOTLOADER</span>
+      </footer>
+    </div>

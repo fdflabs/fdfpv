@@ -1,0 +1,21 @@
+<!--
+  The chips and bars over the world (syncChips, setRoomBar, syncMusicDock in src/ui/session.js; built in src/ui/page.js). The sign in chip and panel carry what syncChips gives them where accounts are available, set here because this page has none.
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="frame-bot"><div class="frame-legend"><i><span class="kbd">↑</span><span class="kbd">↓</span> Move</i><i><span class="kbd">Enter</span> Choose</i><i><span class="kbd">Esc</span> Back</i></div><div class="frame-gap"></div><div class="update-bar room-bar" role="status"><span>Tester is waiting in the room</span><button class="update-reload" type="button">Rejoin</button></div><div class="update-bar" role="status"><span>A new version is out.</span><button class="update-reload" type="button">Reload</button></div><button class="frame-primary" type="button">Resume</button></div><button class="bug-chip" type="button" title="F8 also opens this.">Report bug, give feedback</button><button class="bug-chip pause-chip" type="button" title="Escape also pauses." hidden="">Pause</button><button class="bug-chip swap-chip" type="button" title="Tab also opens it." hidden="">Aircraft</button><button class="bug-chip signin-chip" type="button" data-initial="T" title="Yours alone: rooms, the board and your lap times show it, and nobody else can use it.">Tester</button><div class="signin-panel" hidden=""><p class="signin-panel-why"></p><div class="signin-panel-gis"></div><button class="bug-chip signin-panel-pick" type="button">Choose callsign</button><p class="signin-panel-status" role="status" hidden=""></p></div><div class="music-dock under-chip on-flight is-muted" role="group" aria-label="Music" hidden=""><button class="music-skip" type="button" aria-label="Previous track" tabindex="-1">‹</button><button class="music-title" type="button" aria-live="polite" tabindex="-1" title=". Click to unmute."></button><button class="music-skip" type="button" aria-label="Next track" tabindex="-1">›</button></div>

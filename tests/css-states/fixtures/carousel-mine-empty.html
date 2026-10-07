@@ -1,0 +1,21 @@
+<!--
+  The aircraft picker (src/ui/carousel.js Carousel), opened as openPicker in src/ui/ui.js opens it, with two builds in the pilot's hangar for its own tab.
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"carousel-open","body":""} -->
+<div class="carousel mine" role="dialog" aria-modal="true"><div class="carousel-panel"><div class="carousel-head"><div class="carousel-title">Choose your aircraft</div><div class="carousel-tabs" role="tablist"><button class="carousel-tab" type="button" role="tab" aria-selected="false">Quads</button><button class="carousel-tab" type="button" role="tab" aria-selected="false">Planes</button><button class="carousel-tab" type="button" role="tab" aria-selected="false">All</button><button class="carousel-tab carousel-tab-mine on" type="button" role="tab" aria-selected="true">My Hangar</button></div></div><div class="carousel-stage" style="touch-action: none;"><button class="carousel-arrow carousel-prev" type="button" aria-label="Previous aircraft" disabled="">‹</button><button class="carousel-arrow carousel-next" type="button" aria-label="Next aircraft" disabled="">›</button></div><div class="carousel-info"><div class="carousel-name" aria-live="polite">My Hangar is empty</div><div class="carousel-mine-form" hidden=""></div><div class="carousel-facts" hidden=""><span class="carousel-fact">Span 1400 mm</span><span class="carousel-fact">1.53 kg</span><button class="hangar-floats carousel-floats on" type="button" data-key="floats" role="switch" aria-checked="true">Floats</button></div><div class="carousel-mine-tools" hidden=""><button class="carousel-mine-tool" type="button" data-key="mine-rename">Rename</button><button class="carousel-mine-tool" type="button" data-key="mine-delete">Delete</button></div><p class="carousel-note">Choose a plane, press Customise, change what you like and press Save to My Hangar. Keep as many as you want, even three of the same plane.</p><div class="carousel-dots"></div></div><div class="carousel-foot"><p class="carousel-warn" hidden=""></p><div class="carousel-buttons"><button class="carousel-back" type="button">Back</button><button class="carousel-back carousel-custom" type="button" hidden="">Customise</button><button class="carousel-choose" type="button" hidden="">Choose</button></div><p class="carousel-hint">Wheel, arrows or drag to turn. Enter chooses, C customises a plane, F switches its floats, E its engine, Escape goes back.</p></div></div></div>

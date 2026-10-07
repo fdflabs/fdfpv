@@ -1,0 +1,21 @@
+<!--
+  The calibration screen (src/ui/page.js calibrateScreen) as setCalibration and setCalAxes in src/ui/overlay.js paint it.
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="screen screen-page screen-calibrate" style=""><h2>Calibrate sticks</h2><div class="cal-kicker">Step 3 of 7, Throttle</div><p class="cal-prompt">Move the throttle all the way up and down.</p><p class="cal-hint">Then let go.</p><div class="cal-sticks"><div class="osd-gimbal"><div class="osd-gimbal-plate"><div class="osd-cross-x"></div><div class="osd-cross-y"></div><div class="osd-nub" style="left: 50%; top: 40%;"></div></div><div class="osd-gimbal-cap">Yaw, throttle</div></div><div class="osd-gimbal"><div class="osd-gimbal-plate"><div class="osd-cross-x"></div><div class="osd-cross-y"></div><div class="osd-nub" style="left: 65%; top: 30%;"></div></div><div class="osd-gimbal-cap">Roll, pitch</div></div></div><div class="cal-axes"><div class="cal-axis is-mapped is-live"><span class="cal-axis-n">0</span><span class="cal-axis-track"><i class="cal-axis-span" style="left: 0%; width: 100%;"></i><i class="cal-axis-dot" style="left: 95%;"></i></span></div><div class="cal-axis is-live"><span class="cal-axis-n">1</span><span class="cal-axis-track"><i class="cal-axis-span" style="left: 40%; width: 40%;"></i><i class="cal-axis-dot" style="left: 75%;"></i></span></div><div class="cal-axis is-mapped"><span class="cal-axis-n">2</span><span class="cal-axis-track"><i class="cal-axis-span" style="left: 50%; width: 0%;"></i><i class="cal-axis-dot" style="left: 50%;"></i></span></div><div class="cal-axis"><span class="cal-axis-n">3</span><span class="cal-axis-track"><i class="cal-axis-span" style="left: 51%; width: 0%;"></i><i class="cal-axis-dot" style="left: 51%;"></i></span></div></div><ol class="cal-steps"><li class="done">Centre</li><li class="done">Full range</li><li class="on">Throttle</li><li>Roll</li><li>Pitch</li><li>Yaw</li><li>Check</li></ol><div class="cal-actions"><button class="name-dialog-btn" type="button">Cancel</button><button class="name-dialog-btn" type="button">No switch, skip</button><button class="name-dialog-btn" type="button" hidden="">Throttle zero is here</button><button class="name-dialog-btn" type="button">Un-reverse throttle</button><button class="name-dialog-btn" type="button" hidden="">Stick mode 2</button><button class="name-dialog-btn on" type="button" disabled="">Save mapping</button></div><div class="hint"><span class="hint-keys"><kbd>Esc</kbd></span><span class="hint-copy">Cancels. Nothing is saved until Save mapping.</span></div></div>

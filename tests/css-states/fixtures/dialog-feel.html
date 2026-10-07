@@ -1,0 +1,21 @@
+<!--
+  The dialog overlay (src/ui/dialogs.js askForm, askConfirm, askBugReport with its shot tray from src/ui/bugshots.js, askFeelReport).
+  Made by scripts/css-states-capture.js.
+
+  This file is part of the Paraguayan Drone Combat Simulator.
+
+  The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<!-- state: {"ui":"bar-shown","body":""} -->
+<div class="name-dialog" aria-modal="true" role="dialog"><div class="name-dialog-box bug feel"><h2>How does it fly?</h2><p class="lede">One honest word steers the tune work more than any telemetry. Only the first row is needed; your tune, PID adjustment and rates travel with the answer so the numbers behind the feel arrive too. You were flying Factory default.</p><p class="name-dialog-label">The quad felt</p><div class="feel-chips"><button class="feel-chip on" type="button">Floppy</button><button class="feel-chip" type="button">Soft</button><button class="feel-chip" type="button">About right</button><button class="feel-chip" type="button">Stiff</button><button class="feel-chip" type="button">Twitchy</button></div><p class="name-dialog-label">Anything specific (pick any)</p><div class="feel-chips"><button class="feel-chip" type="button">Slow to answer the stick</button><button class="feel-chip" type="button">Bounces back after a stop</button><button class="feel-chip" type="button">Wobbles in propwash</button><button class="feel-chip" type="button">Drifts off attitude</button><button class="feel-chip" type="button">Yaw is lazy</button><button class="feel-chip" type="button">Throttle is touchy</button><button class="feel-chip" type="button">Floaty, carries too far</button><button class="feel-chip" type="button">Locked in, no complaints</button></div><p class="lede feel-hint" hidden=""></p><p class="lede feel-hint" hidden=""></p><p class="name-dialog-label">In your own words (optional)</p><textarea class="name-dialog-input name-dialog-area" maxlength="2000" rows="3" placeholder="What you would tell the person holding the screwdriver."></textarea><p class="name-dialog-label">Screenshots (optional)</p><div class="shot-tray"><div class="shot-drop" tabindex="0" role="button"><span class="shot-drop-text">Click here and press Ctrl+V to paste a screenshot, or drop one on this form.</span><button class="shot-pick" type="button">Choose a file</button></div><input type="file" accept="image/*" multiple="" hidden=""><div class="shot-chips"></div><p class="shot-err"></p></div><p class="name-dialog-label">Your name (optional)</p><input class="name-dialog-input" type="text" maxlength="24" autocomplete="nickname" placeholder="Leave blank to stay Anonymous"><p class="name-dialog-err"></p><div class="name-dialog-row"><button class="name-dialog-btn on" type="button">Send</button><button class="name-dialog-btn" type="button">Not now</button></div></div></div>
