@@ -1,32 +1,33 @@
 /*
- * listing.js: how a track in this browser relates to the public board.
+ * listing.js: the seated track as the public board sees it, and keeping
+ * the board's copy of this browser's own tracks current.
  *
- * The share seat holds the track being flown: a published listing this run
- * can post a time to, or one of the pilot's own that is on no board. This
- * file is the one place that looks at it, plus the edit key, and says what
- * the player can do next: upload a time, or update a name they own.
+ * Read side: inspectCourse classifies the share seat (nothing, a track of
+ * this browser's own, a board listing someone else published, or one this
+ * browser published and holds the edit key for) and says what the menus
+ * may offer: post a time, or update the listing. Write side: publishing a
+ * course, and pushing a retitle or a new pilot handle to the listings this
+ * browser owns.
  *
- * Layout is everything that makes two tracks different races: the world,
- * the elements, the flying order. The title is not layout. The handle is
- * not layout either. The board uses the same split, so renaming an owned
- * course keeps the times, and changing the name this browser flies under
- * updates the author and the times posted under the old handle on courses
- * this browser published.
+ * A track's layout is what makes it a different race: its world, its
+ * elements and its flying order. Its name, id and credit are not, so a
+ * renamed listing keeps its times and a republished one can be found again
+ * by layout alone.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { trackClassOf } from '../trackbuilder/elements.js';
@@ -47,89 +48,70 @@ import {
 } from './session.js';
 
 /*
- * MIRRORS layoutHash in fdfpv-leaderboard/src/validate.js. The
- * board decides when a layout has changed enough to clear a course's times;
- * this is the client's prediction of that answer, used to warn before
- * publishing. They must agree on WHICH KEYS count as the layout, currently
- * field, elements and sequence, and the map on a map track, AND on which
- * element types are dressing
- * rather than layout. Different hashes, same key list and same skip list:
- * change one and change the other, or the warning and the clearing
- * disagree.
- */
-/*
- * Element types that are painted on rather than flown through, so changing
- * them cannot change a lap.
+ * Painted-on element types: no collider, not in the flying order, so adding
+ * one cannot change a lap. Leaving them out of the layout is what lets a
+ * sponsor's mark go onto a course without clearing its board.
  *
- * THIS IS WHY A SPONSOR DOES NOT WIPE A LEADERBOARD. Selling a place on an
- * existing course means adding a mark to a track people have already flown,
- * and if that counted as a layout change every time on the board would be
- * cleared the moment the deal was signed. Paint has no collider and is not
- * in the flying order, so a lap flown before it was painted is the same lap.
- *
- * Written out as a literal rather than derived from the element library,
- * because the board has no element library and the two lists have to be
- * edited together on purpose. MIRRORS LAYOUT_SKIP in the board's
- * validate.js.
+ * KEEP IN STEP WITH layoutHash and LAYOUT_SKIP in the board's
+ * src/validate.js (fdfpv-leaderboard). The board clears a course's times
+ * when its layout changes; layoutFingerprint is this side's forecast of
+ * that, used to warn before a publish. The hashes differ, but both sides
+ * must read the same keys (map on a map track, field, elements, sequence)
+ * and skip the same types. The list is spelled out rather than taken from
+ * the element library because the board has no element library.
  */
-const LAYOUT_SKIP = new Set(['groundLogo']);
+const PAINT_ONLY = new Set(['groundLogo']);
 
 export function layoutFingerprint(doc) {
   if (!doc || typeof doc !== 'object') {
     return '';
   }
-  let plain = doc;
-  try {
-    if (doc.schemaVersion) {
-      plain = toPlain(doc);
-    }
-  } catch (e) {
-    plain = doc;
+  const src = plainOrSelf(doc);
+  const layout = {};
+  /* Positions on a version 4 map track are absolute in its world, so the
+   * world is part of the race. Older documents never carry the key, which
+   * keeps every field track's fingerprint where it was. */
+  if (src.schemaVersion >= 4 && isMapTrack(src)) {
+    layout.map = src.map;
   }
-  /* A MAP TRACK'S WORLD IS LAYOUT. Its positions are absolute in that world
-   * (schemaVersion 4), so the same gates on swiss2 and on alps are two
-   * different races and a republish onto another world clears the times.
-   * Only a version 4 document naming a map carries the key, so every field
-   * track fingerprints exactly as it did. MIRRORS the board's layoutHash. */
-  const onMap = plain.schemaVersion >= 4 && isMapTrack(plain);
-  return JSON.stringify({
-    ...(onMap ? { map: plain.map } : {}),
-    field: plain.field ?? {},
-    elements: (plain.elements ?? []).filter((e) => !LAYOUT_SKIP.has(e?.type)),
-    sequence: plain.sequence ?? [],
-  });
+  layout.field = src.field ?? {};
+  const elements = src.elements ?? [];
+  layout.elements = elements.filter((el) => !PAINT_ONLY.has(el?.type));
+  layout.sequence = src.sequence ?? [];
+  return JSON.stringify(layout);
 }
 
+/* A versioned document as plain data; anything toPlain will not take is
+ * read as it is, since a fingerprint must never throw on a stored blob. */
+function plainOrSelf(doc) {
+  if (!doc.schemaVersion) {
+    return doc;
+  }
+  try {
+    return toPlain(doc);
+  } catch (e) {
+    return doc;
+  }
+}
+
+const sameTitle = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 
 /*
- * THE SAME TRACK, UNDER WHATEVER ID THE BOARD HOLDS IT AT NOW.
+ * Board ids are minted by the board, and a seat remembers one. Taking a
+ * track off the board and putting it back (scripts/boardpresets.js
+ * --replace, an admin removal) gives it a new id and strands every seat on
+ * the old one: the pilot is offered Upload for a lap the board then says
+ * belongs to no track. This looks the flown layout up on the board again.
  *
- * A board id is minted by the board and a seat remembers it, so a seat is
- * only as good as the listing it came from. Take a track off the board and
- * put it back, which is what scripts/boardpresets.js --replace does and what
- * an admin removal does, and every browser holding a seat for it is left
- * pointing at an id that no longer exists. The pilot is told their track is
- * on the public board, offered Upload, and gets "That track is not on the
- * board." with nowhere to go and a lap they cannot post. That is what this
- * is for, and it was reported from the seat on a shipped RaceGOW room.
+ * Only an exact layoutFingerprint match counts, because a lap posted to a
+ * different track with the same name is worse than no post. The name only
+ * orders the search (same-named listings first, so the usual case is one
+ * document fetch), the track class filters it (a whoop lap only fits a
+ * room), and at most TWIN_LOOKUPS documents are fetched.
  *
- * THE MATCH IS THE LAYOUT, NOT THE NAME. Two tracks with the same name are
- * not the same track and a time on the wrong one is worse than no time at
- * all, so a candidate only counts when layoutFingerprint agrees exactly.
- * That fingerprint reads the field, the elements and the flying order and
- * ignores the id, the name and the credit, which is precisely what survives
- * a republish. The name is used only to decide what to LOOK at first, and
- * the class narrows it before that: a whoop's lap can only belong to a room.
- *
- * The cap is what keeps this from being a crawl of the whole board. In
- * practice the first candidate is the right one, because it is the one whose
- * name matches; the cap is there for the case where it is not.
- *
- * Returns `{ found, sameName }`. `found` is a seat ready to be written.
- * `sameName` is a listing that wears the name but has a different layout,
- * which is a different message: the board's copy is not what was flown, so
- * the time does not belong on it and the pilot needs to know that rather
- * than be told the track is gone.
+ * Resolves to { found, sameName }: `found` is a seat ready to write;
+ * `sameName` is a listing with the flown name but another layout, so the
+ * caller can say the board's copy is not what was flown.
  */
 const TWIN_LOOKUPS = 6;
 
@@ -138,40 +120,35 @@ export async function findBoardTwin({ doc, name, trackClass, origin } = {}) {
   if (!want) {
     return { found: null, sameName: null };
   }
-  const board = origin || boardOrigin();
-  const list = await fetchTrackList(board);
+  const fallbackBoard = origin || boardOrigin();
+  const listings = await fetchTrackList(fallbackBoard);
   const cls = trackClassOf({ trackClass });
-  const wanted = String(name || '').trim().toLowerCase();
-  const pool = list
-    .filter((t) => t.id && t.trackClass === cls)
-    /* Same name first, so the usual case costs one document fetch. */
-    .sort((a, b) => Number(String(b.name || '').trim().toLowerCase() === wanted)
-      - Number(String(a.name || '').trim().toLowerCase() === wanted));
-  let sameName = null;
-  for (const t of pool.slice(0, TWIN_LOOKUPS)) {
-    let payload = null;
-    try {
-      /* eslint-disable-next-line no-await-in-loop */
-      payload = await fetchTrackDocument(t.id, t.board || board);
-    } catch (e) {
-      /* A candidate the board will not hand over is not a match. Carry on:
-       * one bad document must not cost the pilot the others. */
-      payload = null;
+  const named = [];
+  const others = [];
+  for (const t of listings) {
+    if (t.id && t.trackClass === cls) {
+      (sameTitle(t.name, name) ? named : others).push(t);
     }
+  }
+  let sameName = null;
+  for (const t of [...named, ...others].slice(0, TWIN_LOOKUPS)) {
+    const where = t.board || fallbackBoard;
+    /* eslint-disable-next-line no-await-in-loop */
+    const payload = await fetchTrackDocument(t.id, where).catch(() => null);
     const held = payload && (payload.document || payload);
     if (held && layoutFingerprint(held) === want) {
       return {
         found: {
-          id: (payload && payload.id) || t.id,
-          name: (payload && payload.name) || t.name,
-          author: (payload && payload.author) || t.author || '',
-          board: t.board || board,
+          id: payload.id || t.id,
+          name: payload.name || t.name,
+          author: payload.author || t.author || '',
+          board: where,
           document: held,
         },
         sameName: null,
       };
     }
-    if (!sameName && String(t.name || '').trim().toLowerCase() === wanted) {
+    if (!sameName && sameTitle(t.name, name)) {
       sameName = t;
     }
   }
@@ -179,335 +156,331 @@ export async function findBoardTwin({ doc, name, trackClass, origin } = {}) {
 }
 
 export function suggestRemixName(original) {
-  const base = String(original || '').trim() || str('ui.untitled_track');
-  const tagged = / remix$/i.test(base) ? base : `${base} remix`;
-  return tagged.slice(0, 80);
+  const title = String(original || '').trim() || str('ui.untitled_track');
+  const remix = / remix$/i.test(title) ? title : `${title} remix`;
+  return remix.slice(0, 80);
 }
 
-/* The track the world should be seated with, from the share seat. */
+/* The key the world should be seated under, from the share seat. */
 export function seatedCourseKey() {
   return courseSeatKey(readShareImport());
 }
 
-function pick(parts, key, fallback) {
-  return Object.prototype.hasOwnProperty.call(parts, key) ? parts[key] : fallback();
+/* Race gates in the flying order. A waypoint is a step that only pins the
+ * line and scores nothing, so it is not a gate a pilot is promised. */
+function raceGateCount(doc) {
+  if (!Array.isArray(doc.sequence)) {
+    return 0;
+  }
+  const byId = new Map();
+  for (const el of doc.elements || []) {
+    if (!byId.has(el.id)) {
+      byId.set(el.id, el);
+    }
+  }
+  return doc.sequence.filter((step) => {
+    const el = byId.get(step.elementId);
+    return Boolean(el) && el.type !== 'waypoint';
+  }).length;
 }
 
-function summaryOf(doc, extra) {
+const NO_RIGHTS = {
+  canPostTime: false,
+  canUpdateListing: false,
+  layoutDrift: false,
+  nameDrift: false,
+  authorDrift: false,
+};
+
+/* The one shape inspectCourse answers in, whatever the kind. */
+function courseView(doc, { kind, name, author, shareId, board, published, owned }, rights) {
   return {
-    name: extra.name || (doc && doc.name) || str('ui.untitled_track'),
-    /* GATES, NOT STEPS. A waypoint is a step in the flying order that
-     * pins the line through a point and scores nothing, so counting the
-     * order would advertise gates a pilot will never fly through. */
-    gates: doc && Array.isArray(doc.sequence)
-      ? doc.sequence.filter((s) => {
-        const el = (doc.elements || []).find((e) => e.id === s.elementId);
-        return Boolean(el) && el.type !== 'waypoint';
-      }).length
-      : 0,
+    name,
+    gates: doc ? raceGateCount(doc) : 0,
     elements: doc && Array.isArray(doc.elements) ? doc.elements.length : 0,
-    author: extra.author || '',
-    shareId: extra.shareId || null,
-    board: extra.board || '',
-    ...extra,
-    doc: doc || null,
+    author,
+    shareId,
+    board,
+    kind,
+    published,
+    owned,
+    canPostTime: rights.canPostTime,
+    canUpdateListing: rights.canUpdateListing,
+    layoutDrift: rights.layoutDrift,
+    nameDrift: rights.nameDrift,
+    authorDrift: rights.authorDrift,
+    doc,
   };
 }
 
 /*
- * What this browser will fly, and what the menus should offer.
+ * What this browser will fly and what the menus may offer, as `kind`:
  *
- *   community   a published track opened from the board, not ours
- *   owned       a listing this browser published, edit key in hand
- *   local       one of this browser's own tracks, not on the board
- *   none        nothing to fly
+ *   none        nothing seated
+ *   local       one of this browser's own tracks, on no board: no time can
+ *               be posted, and its records key on its own id
+ *   community   a board listing this browser does not hold the key for
+ *   owned       a board listing this browser published
  *
- * `parts` is for tests. The live path reads the share seat and the keys.
+ * `parts` lets a test supply the seat, the key and bind lookups and the
+ * pilot name; given as null, a part is null rather than read from storage.
  */
 export function inspectCourse(parts = {}) {
-  const share = pick(parts, 'share', readShareImport);
+  const given = (key) => Object.prototype.hasOwnProperty.call(parts, key);
+  const share = given('share') ? parts.share : readShareImport();
+  const pilotName = given('pilotName') ? parts.pilotName : readPilotName();
   const editKeyFor = parts.editKeyFor || readEditKey;
   const bindFor = parts.bindFor || readBind;
-  const currentName = pick(parts, 'pilotName', () => readPilotName());
 
   if (!share || !share.document) {
-    return summaryOf(null, {
-      kind: 'none',
-      published: false,
-      owned: false,
-      canPostTime: false,
-      canUpdateListing: false,
-      layoutDrift: false,
-      nameDrift: false,
-      authorDrift: false,
-    });
+    return courseView(null, {
+      kind: 'none', name: str('ui.untitled_track'), author: '', shareId: null, board: '', published: false, owned: false,
+    }, NO_RIGHTS);
   }
-
   const doc = share.document;
+  /* Shown under the seat's name; compared with the board under the
+   * document's own, which is what an edit in the builder changes. */
+  const shownName = share.name || doc.name;
   if (share.local) {
-    /*
-     * THE PILOT'S OWN, played from My tracks. Nothing is published, so no
-     * time can be posted against it and there is no board ghost; the
-     * record key is the track's own, so its laps accumulate against one
-     * name however often it is edited.
-     */
-    return summaryOf(doc, {
-      kind: 'local',
-      published: false,
-      owned: false,
-      shareId: null,
-      board: '',
-      author: '',
-      name: share.name || doc.name,
-      canPostTime: false,
-      canUpdateListing: false,
-      layoutDrift: false,
-      nameDrift: false,
-      authorDrift: false,
-    });
+    return courseView(doc, {
+      kind: 'local', name: shownName, author: '', shareId: null, board: '', published: false, owned: false,
+    }, NO_RIGHTS);
   }
 
   const id = share.id || doc.id;
   const owned = Boolean(editKeyFor(id));
   const bind = bindFor(id);
-  const fp = layoutFingerprint(doc);
-  const layoutMatch = !bind || !bind.layoutFingerprint || bind.layoutFingerprint === fp;
-  const nameOnBoard = bind ? bind.nameOnBoard : (share.name || doc.name);
-  const listedAuthor = (bind && bind.author) || share.author || '';
-  const authorDrift = Boolean(owned && currentName && listedAuthor && currentName !== listedAuthor);
-  return summaryOf(doc, {
+  const title = doc.name || share.name;
+  const boardLayout = bind ? bind.layoutFingerprint : '';
+  const layoutMoved = Boolean(boardLayout) && boardLayout !== layoutFingerprint(doc);
+  const boardName = bind ? bind.nameOnBoard : shownName;
+  const author = (bind && bind.author) || share.author || '';
+  const handleMoved = owned && Boolean(pilotName) && Boolean(author) && pilotName !== author;
+  return courseView(doc, {
     kind: owned ? 'owned' : 'community',
-    published: true,
-    owned,
+    name: shownName,
+    author,
     shareId: id,
     board: share.board || (bind && bind.board) || '',
-    author: listedAuthor,
-    name: share.name || doc.name,
-    canPostTime: layoutMatch,
-    canUpdateListing: owned && (!layoutMatch || nameOnBoard !== (doc.name || share.name) || authorDrift),
-    layoutDrift: Boolean(owned && bind && bind.layoutFingerprint && bind.layoutFingerprint !== fp),
-    nameDrift: Boolean(owned && bind && bind.nameOnBoard && bind.nameOnBoard !== (doc.name || share.name)),
-    authorDrift,
+    published: true,
+    owned,
+  }, {
+    canPostTime: !layoutMoved,
+    canUpdateListing: owned && (layoutMoved || boardName !== title || handleMoved),
+    layoutDrift: owned && layoutMoved,
+    nameDrift: owned && Boolean(bind && bind.nameOnBoard) && bind.nameOnBoard !== title,
+    authorDrift: handleMoved,
   });
 }
 
 export function hasFlyableTrack() {
   try {
-    const listing = inspectCourse();
-    return Boolean(listing && listing.doc && listing.gates > 0);
+    const course = inspectCourse();
+    return Boolean(course.doc) && course.gates > 0;
   } catch (e) {
     return false;
   }
 }
 
-
 /*
- * A copy of a track under a new id, and the bind that would make it this
- * browser's: what a publish does when the board already holds this id for
- * another browser.
- *
- * The bind is RETURNED rather than written, so the caller commits it only
- * when the fork actually happens.
+ * Record a publish the board accepted: the edit key it returned, the bind
+ * (where it is listed, under which author and name, with which layout) and,
+ * unless told not to, the share seat. The board may answer under another
+ * id or name than was sent, and its answer wins. An earlier bind's source
+ * fields (a fork's original) are carried over.
  */
-function forkDocument(doc, extra = {}) {
-  const copy = duplicateTrack(doc, extra.name || suggestRemixName(doc && doc.name));
-  const bind = {
-    board: extra.board || '',
-    author: '',
-    nameOnBoard: '',
-    layoutFingerprint: '',
-    owned: false,
-    sourceId: extra.sourceId || (doc && doc.id) || '',
-    sourceName: extra.sourceName || (doc && doc.name) || '',
-    sourceAuthor: extra.sourceAuthor || '',
-  };
-  return { copy, commit: () => writeBind(copy.id, bind) };
-}
-
-function rememberPublish(doc, posted, origin, author, extra = {}) {
-  const plain = toPlain(doc);
-  const id = (posted && posted.id) || plain.id;
-  if (posted && posted.editKey) {
-    writeEditKey(id, posted.editKey);
+function recordPublished(doc, answer, board, author, { seat = true } = {}) {
+  const sent = toPlain(doc);
+  const reply = answer || {};
+  const id = reply.id || sent.id;
+  if (reply.editKey) {
+    writeEditKey(id, reply.editKey);
   }
-  const prev = readBind(plain.id) || readBind(id) || {};
+  const before = readBind(sent.id) || readBind(id) || {};
+  const where = board || before.board || '';
+  const listedName = reply.name || sent.name || '';
   writeBind(id, {
-    board: origin || prev.board || '',
-    author: author || prev.author || '',
-    nameOnBoard: (posted && posted.name) || plain.name || '',
-    layoutFingerprint: layoutFingerprint(plain),
+    board: where,
+    author: author || before.author || '',
+    nameOnBoard: listedName,
+    layoutFingerprint: layoutFingerprint(sent),
     owned: true,
-    sourceId: prev.sourceId || '',
-    sourceName: prev.sourceName || '',
-    sourceAuthor: prev.sourceAuthor || '',
+    sourceId: before.sourceId || '',
+    sourceName: before.sourceName || '',
+    sourceAuthor: before.sourceAuthor || '',
   });
-  if (extra.touchShare !== false) {
+  if (seat) {
     writeShareImport({
-      id,
-      name: (posted && posted.name) || plain.name || '',
-      author: author || '',
-      board: origin || prev.board || '',
-      document: plain,
+      id, name: listedName, author: author || '', board: where, document: sent,
     });
   }
-  return id;
 }
 
+/* Write a bind that says the board already lists `id` as it should be. */
+function confirmBind(id, bind, fields) {
+  writeBind(id, { ...bind, ...fields, owned: true });
+}
+
+/*
+ * Push the course's current name (and the pilot's current handle) to its
+ * listing, when this browser owns it. Never republishes a changed layout:
+ * that would clear the board's times, which takes the pilot's say-so in
+ * the publish flow. Resolves to { ok, posted } or { skipped: reason }.
+ */
 export async function syncOwnedName(doc, origin) {
-  const plain = doc && doc.schemaVersion ? toPlain(doc) : doc;
-  if (!plain || !plain.id) {
+  const course = doc && doc.schemaVersion ? toPlain(doc) : doc;
+  if (!course || !course.id) {
     return { skipped: 'no-doc' };
   }
-  const key = readEditKey(plain.id);
-  if (!key) {
+  const editKey = readEditKey(course.id);
+  if (!editKey) {
     return { skipped: 'not-owned' };
   }
-  const bind = readBind(plain.id) || {};
+  const bind = readBind(course.id) || {};
   const board = origin || bind.board || boardOrigin();
   const author = readPilotName() || bind.author || '';
   if (!author) {
     return { skipped: 'no-author' };
   }
-  const authorChanged = Boolean(author && bind.author && bind.author !== author);
-  if (bind.nameOnBoard && bind.nameOnBoard === plain.name && !authorChanged) {
+  const handleMoved = Boolean(bind.author) && bind.author !== author;
+  if (bind.nameOnBoard && bind.nameOnBoard === course.name && !handleMoved) {
     return { skipped: 'current' };
   }
-  let publishedFp = bind.layoutFingerprint || '';
-  if (!publishedFp) {
+  let listedLayout = bind.layoutFingerprint || '';
+  if (!listedLayout) {
+    /* No layout on record (a bind from before it was kept): ask the board
+     * what it holds, and if that already reads right, just remember it. */
     try {
-      const payload = await fetchTrackDocument(plain.id, board);
-      const remote = payload.document || payload;
-      publishedFp = layoutFingerprint(remote);
-      const remoteName = payload.name || remote.name;
-      const remoteAuthor = payload.author || '';
-      if (remoteName === plain.name && (!remoteAuthor || remoteAuthor === author)) {
-        writeBind(plain.id, {
-          ...bind,
-          board,
-          author: remoteAuthor || author,
-          nameOnBoard: remoteName,
-          layoutFingerprint: publishedFp,
-          owned: true,
+      const payload = await fetchTrackDocument(course.id, board);
+      const held = payload.document || payload;
+      listedLayout = layoutFingerprint(held);
+      const listedName = payload.name || held.name;
+      const listedAuthor = payload.author || '';
+      if (listedName === course.name && (!listedAuthor || listedAuthor === author)) {
+        confirmBind(course.id, bind, {
+          board, author: listedAuthor || author, nameOnBoard: listedName, layoutFingerprint: listedLayout,
         });
         return { skipped: 'current' };
       }
-    } catch (e) {
-      return { skipped: 'offline', error: e };
+    } catch (error) {
+      return { skipped: 'offline', error };
     }
   }
-  if (publishedFp && publishedFp !== layoutFingerprint(plain)) {
+  if (listedLayout && listedLayout !== layoutFingerprint(course)) {
     return { skipped: 'layout-changed' };
   }
   const posted = await publishTrack({
-    author,
-    document: plain,
-    editKey: key,
-    origin: board,
+    author, document: course, editKey, origin: board,
   });
-  rememberPublish(plain, posted, board, author);
+  recordPublished(course, posted, board, author);
   return { ok: true, posted };
 }
 
 /*
- * The handle lives in this browser. Courses and times on the board still
- * carry the name they were sent with, until this browser pushes the new
- * one. Courses this browser published are the ones it can retitle: the
- * author line, and times posted under the old handle on those courses.
+ * The pilot's handle lives in this browser; the board keeps whatever name a
+ * listing was sent under. For every listing this browser holds a key for,
+ * resend it under the current handle (the board then retitles the author
+ * line and the times posted under the old one). One failure does not stop
+ * the rest: each id gets its own result.
  */
 export async function syncOwnedIdentity(origin) {
   const author = readPilotName();
   if (!author) {
     return { skipped: 'no-author' };
   }
-  const keys = readAllEditKeys();
-  const ids = Object.keys(keys).filter((id) => keys[id]);
-  if (!ids.length) {
+  const editKeys = readAllEditKeys();
+  const owned = Object.entries(editKeys).filter(([, key]) => key);
+  if (owned.length === 0) {
     return { skipped: 'none-owned' };
   }
-  const share = readShareImport();
+  const seat = readShareImport();
   const results = [];
-  for (const id of ids) {
-    const bind = readBind(id) || {};
-    if (bind.author && bind.author === author) {
-      results.push({ id, skipped: 'current' });
-      continue;
-    }
-    const board = origin || bind.board || boardOrigin();
-    try {
-      const payload = await fetchTrackDocument(id, board);
-      const document = payload.document || payload;
-      const remoteAuthor = payload.author || '';
-      if (remoteAuthor === author) {
-        writeBind(id, {
-          ...bind,
-          board,
-          author,
-          nameOnBoard: payload.name || document.name || bind.nameOnBoard || '',
-          layoutFingerprint: bind.layoutFingerprint || layoutFingerprint(document),
-          owned: true,
-        });
-        results.push({ id, skipped: 'current' });
-        continue;
-      }
-      const posted = await publishTrack({
-        author,
-        document,
-        editKey: keys[id],
-        origin: board,
-      });
-      rememberPublish(document, posted, board, author, {
-        touchShare: Boolean(share && share.id === id),
-      });
-      results.push({ id, ok: true });
-    } catch (e) {
-      results.push({ id, error: e });
-    }
+  for (const [id, editKey] of owned) {
+    /* eslint-disable-next-line no-await-in-loop */
+    results.push(await resendUnderHandle(id, editKey, author, origin, seat));
   }
   return { results };
 }
 
-export async function pushOwnedListing(doc, origin) {
-  let named = null;
-  if (doc) {
-    named = await syncOwnedName(doc, origin);
+async function resendUnderHandle(id, editKey, author, origin, seat) {
+  const bind = readBind(id) || {};
+  if (bind.author && bind.author === author) {
+    return { id, skipped: 'current' };
   }
+  const board = origin || bind.board || boardOrigin();
+  try {
+    const payload = await fetchTrackDocument(id, board);
+    const held = payload.document || payload;
+    if ((payload.author || '') === author) {
+      confirmBind(id, bind, {
+        board,
+        author,
+        nameOnBoard: payload.name || held.name || bind.nameOnBoard || '',
+        layoutFingerprint: bind.layoutFingerprint || layoutFingerprint(held),
+      });
+      return { id, skipped: 'current' };
+    }
+    const posted = await publishTrack({
+      author, document: held, editKey, origin: board,
+    });
+    recordPublished(held, posted, board, author, { seat: Boolean(seat && seat.id === id) });
+    return { id, ok: true };
+  } catch (error) {
+    return { id, error };
+  }
+}
+
+export async function pushOwnedListing(doc, origin) {
+  const named = doc ? await syncOwnedName(doc, origin) : null;
   const identity = await syncOwnedIdentity(origin);
   return { named, identity };
 }
 
-export async function publishCurrentCourse({ doc, author, origin, courseName }) {
-  let working = toPlain(doc);
-  if (courseName && courseName !== working.name) {
-    working = { ...working, name: courseName };
-  }
-  const board = origin || readBind(working.id)?.board || boardOrigin();
-  const trySend = async (payload) => publishTrack({
-    author,
-    document: payload,
-    editKey: readEditKey(payload.id),
-    origin: board,
-  });
+/*
+ * Publish the course being built, under `courseName` if one is given. When
+ * the board answers that the id belongs to another browser (a conflict),
+ * publish a copy under a fresh id instead, and record the original as its
+ * source once the copy is accepted. Resolves to { posted, doc, forked },
+ * `doc` being what was actually published.
+ */
+export async function publishCurrentCourse({
+  doc, author, origin, courseName,
+}) {
+  const plainDoc = toPlain(doc);
+  const course = courseName && courseName !== plainDoc.name ? { ...plainDoc, name: courseName } : plainDoc;
+  const board = origin || readBind(course.id)?.board || boardOrigin();
+  const publish = async (candidate) => {
+    const posted = await publishTrack({
+      author, document: candidate, editKey: readEditKey(candidate.id), origin: board,
+    });
+    return posted;
+  };
+  const finish = (published, posted, forked) => {
+    recordPublished(published, posted, board, author);
+    writeAutosave(published);
+    return { posted, doc: published, forked };
+  };
+
+  let posted;
   try {
-    const posted = await trySend(working);
-    rememberPublish(working, posted, board, author);
-    writeAutosave(working);
-    return { posted, doc: working, forked: false };
+    posted = await publish(course);
   } catch (e) {
     if (!e || !e.conflict) {
       throw e;
     }
-    const fork = forkDocument(working, {
-      name: working.name,
+    const copy = toPlain(duplicateTrack(course, course.name || suggestRemixName(course.name)));
+    const postedCopy = await publish(copy);
+    writeBind(copy.id, {
       board,
-      sourceId: working.id,
-      sourceName: working.name,
+      author: '',
+      nameOnBoard: '',
+      layoutFingerprint: '',
+      owned: false,
+      sourceId: course.id || '',
+      sourceName: course.name || '',
       sourceAuthor: '',
     });
-    const plain = toPlain(fork.copy);
-    const posted = await trySend(plain);
-    fork.commit();
-    rememberPublish(plain, posted, board, author);
-    writeAutosave(plain);
-    return { posted, doc: plain, forked: true };
+    return finish(copy, postedCopy, true);
   }
+  return finish(course, posted, false);
 }
