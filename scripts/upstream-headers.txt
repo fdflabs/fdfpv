@@ -12,14 +12,11 @@ scripts/build-selftest.js
 scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
-scripts/gatecards.js
 scripts/icons.js
 scripts/memory-check.js
 scripts/og.js
 scripts/pixels.js
-scripts/posters.js
 scripts/responsive-check.js
-scripts/shots.js
 src/game/airframehull.js
 src/game/verify.js
 src/main.js
