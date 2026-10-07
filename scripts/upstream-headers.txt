@@ -13,11 +13,9 @@ scripts/arcade-check.js
 scripts/attract-check.js
 scripts/board-check.js
 scripts/bombshell-shell.js
-scripts/boot-check.js
 scripts/boot-loader-check.js
 scripts/build-save-check.js
 scripts/build-selftest.js
-scripts/build-wasm.sh
 scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
@@ -43,8 +41,6 @@ scripts/preset-lint.js
 scripts/quality-check.js
 scripts/replay-log.js
 scripts/responsive-check.js
-scripts/run-bash.js
-scripts/serve.js
 scripts/shell-check.js
 scripts/shots.js
 scripts/track-mode-check.js
