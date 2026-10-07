@@ -1,33 +1,32 @@
 /*
- * replay.js: drive a Sim through a recorded input stream or a scripted
- * stick program, collect a state trace, and hash it.
+ * replay.js: feed a Sim a recorded stick stream or a scripted one, sample
+ * its state block along the way and hash the samples.
  *
- * Environment-neutral module, runs unchanged in Node and the browser.
- * Hashing uses WebCrypto SHA-256 over the raw little-endian state block
- * bytes, so no number formatting is involved anywhere near the hash.
+ * Runs unchanged in Node and in the browser, so nothing here comes from
+ * node:*; the hash is WebCrypto SHA-256 over the raw little-endian state
+ * bytes, with no number formatting anywhere near it.
  *
- * Input delivery rule, identical everywhere: an input sample with
- * timestamp tUs is delivered to sim_input before the 1 ms step covering
- * [floor(tUs / 1000), floor(tUs / 1000) + 1) ms executes. The render rate
- * only changes how many whole steps are batched into one sim_step call.
- * By construction the harness delivers the same samples before the same
- * steps at every render rate; a sim that honours the ABI therefore
- * produces bit-identical traces.
+ * The one rule that makes the hash comparable across hosts: a sample with
+ * timestamp tUs is handed to sim_input before the 1 ms step that covers
+ * floor(tUs / 1000) runs. The render rate decides only how many whole
+ * milliseconds are batched into one sim_step call, never which sample
+ * precedes which step, so a module that honours sim_abi.h gives the same
+ * trace at 7 Hz, 60 Hz and 2400 Hz.
  *
- * This file is part of WebFPVSimulator.
+ * This file is part of the Paraguayan Drone Combat Simulator.
  *
- * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or (at
  * your option) any later version.
  *
- * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY, without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { SIM_OK, simErrorName } from './simmod.js';
@@ -48,133 +47,147 @@ export function must(code, where) {
 }
 
 export async function sha256Hex(chunks) {
-  let total = 0;
+  const joined = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let at = 0;
   for (const c of chunks) {
-    total += c.length;
+    joined.set(c, at);
+    at += c.length;
   }
-  const all = new Uint8Array(total);
-  let off = 0;
-  for (const c of chunks) {
-    all.set(c, off);
-    off += c.length;
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', joined));
+  let hex = '';
+  for (const b of digest) {
+    hex += (b < 16 ? '0' : '') + b.toString(16);
   }
-  const digest = await crypto.subtle.digest('SHA-256', all);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  return hex;
+}
+
+/* The millisecond step a recorded sample belongs to. */
+const stepOf = (sample) => Math.floor(sample.tUs / 1000);
+
+/*
+ * The recording's samples in order, each handed to the sim exactly once,
+ * the moment the step it belongs to is about to run.
+ */
+function sampleQueue(sim, rec) {
+  let next = 0;
+  return {
+    /* Hand over every sample due at or before step `ms`. */
+    deliverThrough(ms) {
+      while (next < rec.count && stepOf(rec.samples[next]) <= ms) {
+        const s = rec.samples[next];
+        must(sim.input(s.tUs / 1e6, s.roll, s.pitch, s.yaw, s.throttle), 'sim_input');
+        next += 1;
+      }
+    },
+    /* The step the next undelivered sample belongs to; none left reads as
+     * never. */
+    nextDueMs() {
+      return next < rec.count ? stepOf(rec.samples[next]) : Infinity;
+    },
+  };
+}
+
+/* The trace: the state block's raw bytes, one chunk per capture. */
+function stateRecorder(sim) {
+  const chunks = [];
+  return {
+    chunks,
+    take() {
+      const read = sim.readStateBytes();
+      must(read.code, 'sim_state');
+      chunks.push(read.bytes);
+    },
+  };
+}
+
+/* Bring a fresh sim to the point where the recording's first sample makes
+ * sense: the config, an optional pack voltage, then whatever the recording
+ * assumed had happened (an airframe, a hand launch). */
+function prepare(sim, opts) {
+  must(sim.init(opts.configText), 'sim_init');
+  const volts = opts.cellVoltage;
+  if (volts != null) {
+    must(sim.setCellVoltage(volts), 'sim_set_cell_voltage');
+  }
+  opts.prelude?.(sim);
 }
 
 /*
- * Replay a decoded .rec through the sim, batching steps as a render loop
- * running at renderHz would, and return the SHA-256 of the state trace.
- *
- * opts:
- *   configText     Betaflight diff text for sim_init
- *   renderHz       simulated render rate driving the accumulator
- *   traceStrideMs  state sampled into the trace every this many ms
- *   cellVoltage    optional open-circuit per-cell voltage to set after init
- *   prelude        optional function(sim) run after init, before any sample
+ * Replay a decoded .rec through the sim the way a render loop at
+ * opts.renderHz would drive it, and return the SHA-256 hex of the state
+ * trace. The trace holds the state at 0 ms and at every multiple of
+ * opts.traceStrideMs the recording's duration reaches; nothing is added at
+ * the end unless the stride lands there. The rest of opts: configText is
+ * the Betaflight diff for sim_init, cellVoltage (undefined or null to leave
+ * the plant's default) and prelude(sim) are applied in that order before
+ * the first sample.
  */
 export async function replayTrace(sim, rec, opts) {
-  const { configText, renderHz, traceStrideMs } = opts;
-  must(sim.init(configText), 'sim_init');
-  if (opts.cellVoltage !== undefined && opts.cellVoltage !== null) {
-    must(sim.setCellVoltage(opts.cellVoltage), 'sim_set_cell_voltage');
-  }
-  /* Anything a recording assumes was done before its first sample: the
-   * wing's airframe and its throw. Nothing for the quad. */
-  if (opts.prelude) {
-    opts.prelude(sim);
-  }
-  const durationMs = Math.round((rec.count * 1000) / rec.rateHz);
-  const chunks = [];
-  const capture = () => {
-    const { code, bytes } = sim.readStateBytes();
-    must(code, 'sim_state');
-    chunks.push(bytes);
-  };
+  const { renderHz, traceStrideMs } = opts;
+  prepare(sim, opts);
 
-  capture();
-  let curMs = 0;
-  let nextSample = 0;
-  let frame = 0;
-  let nextTraceMs = traceStrideMs;
-  while (curMs < durationMs) {
-    frame += 1;
-    let frameEndMs = Math.floor((frame * 1000) / renderHz);
-    if (frameEndMs > durationMs) {
-      frameEndMs = durationMs;
-    }
-    while (curMs < frameEndMs) {
-      // Deliver every sample whose timestamp falls inside a step that has
-      // not executed yet but starts at or before curMs.
-      while (
-        nextSample < rec.count &&
-        Math.floor(rec.samples[nextSample].tUs / 1000) <= curMs
-      ) {
-        const s = rec.samples[nextSample];
-        must(
-          sim.input(s.tUs / 1e6, s.roll, s.pitch, s.yaw, s.throttle),
-          'sim_input',
-        );
-        nextSample += 1;
-      }
-      let chunkEndMs = frameEndMs;
-      if (nextSample < rec.count) {
-        const boundary = Math.floor(rec.samples[nextSample].tUs / 1000);
-        if (boundary < chunkEndMs) {
-          chunkEndMs = boundary;
-        }
-      }
-      if (nextTraceMs < chunkEndMs) {
-        chunkEndMs = nextTraceMs;
-      }
-      if (chunkEndMs <= curMs) {
-        chunkEndMs = curMs + 1;
-      }
-      must(sim.step(chunkEndMs - curMs), 'sim_step');
-      curMs = chunkEndMs;
-      if (curMs === nextTraceMs) {
-        capture();
-        nextTraceMs += traceStrideMs;
+  const endMs = Math.round((rec.count * 1000) / rec.rateHz);
+  const queue = sampleQueue(sim, rec);
+  const trace = stateRecorder(sim);
+  trace.take();
+
+  let nowMs = 0;
+  let captureAtMs = traceStrideMs;
+  for (let frame = 1; nowMs < endMs; frame += 1) {
+    const frameEndMs = Math.min(Math.floor((frame * 1000) / renderHz), endMs);
+    /* A frame shorter than a millisecond ends where the last one did and
+     * runs no step; the loop simply moves on to the next frame. */
+    while (nowMs < frameEndMs) {
+      queue.deliverThrough(nowMs);
+      /* Run whole steps up to whichever comes first: the frame's end, the
+       * step a pending sample must precede, or a trace capture. The ABI
+       * permits any batching, so this batch is only about doing the
+       * bookkeeping at the right instants. */
+      const stopMs = Math.max(nowMs + 1, Math.min(frameEndMs, queue.nextDueMs(), captureAtMs));
+      must(sim.step(stopMs - nowMs), 'sim_step');
+      nowMs = stopMs;
+      if (nowMs === captureAtMs) {
+        trace.take();
+        captureAtMs += traceStrideMs;
       }
     }
   }
-  return sha256Hex(chunks);
+  return sha256Hex(trace.chunks);
 }
 
 /*
- * Run a scripted stick program: segments of constant stick values, stepping
- * 1 ms at a time. onStep(tMs, state) is called after every step with the
- * decoded state block. Assumes the sim is already initialised and reset.
+ * Fly a scripted stick program: each segment holds the sticks for durMs
+ * (missing channels read as 0), one sim_step per millisecond, and onStep
+ * (when given) sees (tMs, state) after every step. The sim must already be
+ * initialised and reset.
  *
- * startMs is the sim's current time in ms. It must be threaded through
- * consecutive runScript calls on the same sim without a reset in between,
- * so input timestamps stay non-decreasing as sim_abi.h requires. The
- * function returns the end time for exactly that purpose.
+ * startMs is where the sim's clock stands. sim_abi.h wants input
+ * timestamps non-decreasing, so a second runScript on the same sim without
+ * a reset must start from what the first returned.
  */
 export function runScript(sim, segments, onStep, startMs = 0) {
-  let tMs = startMs;
+  const stick = (v) => v ?? 0;
+  const observe = onStep
+    ? (tMs) => {
+      const read = sim.readState();
+      must(read.code, 'sim_state');
+      onStep(tMs, read.state);
+    }
+    : () => {};
+  let clockMs = startMs;
   for (const seg of segments) {
-    must(
-      sim.input(tMs / 1000, seg.roll ?? 0, seg.pitch ?? 0, seg.yaw ?? 0, seg.throttle ?? 0),
-      'sim_input',
-    );
-    const end = tMs + seg.durMs;
-    while (tMs < end) {
+    const code = sim.input(clockMs / 1000, stick(seg.roll), stick(seg.pitch), stick(seg.yaw), stick(seg.throttle));
+    must(code, 'sim_input');
+    for (let left = seg.durMs; left > 0; left -= 1) {
       must(sim.step(1), 'sim_step');
-      tMs += 1;
-      if (onStep) {
-        const { code, state } = sim.readState();
-        must(code, 'sim_state');
-        onStep(tMs, state);
-      }
+      clockMs += 1;
+      observe(clockMs);
     }
   }
-  return tMs;
+  return clockMs;
 }
 
-/* State block indices, mirroring sim_abi.h. */
+/* Indices into the state block, as laid out in src/native/sim_abi.h. */
 export const ST = {
   T: 0,
   PX: 1,

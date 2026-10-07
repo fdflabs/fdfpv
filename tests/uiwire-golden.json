@@ -1,0 +1,2058 @@
+{
+ "keyboard": [
+  {
+   "step": "to the title past the gate",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "a quad is chosen",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate",
+   "screen": "title",
+   "mode": "title",
+   "notice": "No radio or gamepad found.\nPlug one in, set it to joystick mode, and reload.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act calibrate-cancel",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act choosepad",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "No radio or gamepad found.\nPlug one in, set it to joystick mode, then move it.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act calibrate-check",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "No radio or gamepad found.\nPlug one in, set it to joystick mode, and reload.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act downloadflightlog",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "Nothing recorded yet.\nTurn the flight log on in Settings, then fly.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act padpick-cancel",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "a setting rides in with an action",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.7,
+       "wind": 0.5,
+       "music": 0.3,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      true
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "sound off rides in",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      false
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyQ",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "sound back on",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyQ",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "a click is heard",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "ui",
+     [
+      "move"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act fly",
+   "intro": "on",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyX",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "launch control off, L",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "Launch control is off.\nTurn it on in Quad, then press L on the start line.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "launch control on, L on the pad",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "LAUNCH CONTROL\nThrottle idle. Pitch forward, centre the stick, punch.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyL",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "Launch control off",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyR",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "a repeated R is ignored",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act pause",
+   "screen": "flight",
+   "mode": "paused",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act resume",
+   "intro": "off",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act restart",
+   "intro": "off",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "the FC opens on a live run",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act title",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "the FC opens on the title",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "the FC saves its draft",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "Saved. Flying your edits.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "the FC saves and restarts",
+   "intro": "on",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "the FC angle switch",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act title",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act postrun",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "Free flight has no clock, so it has no place on the board. Switch Run to Scored on the Freestyle screen.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act posttime",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "This track is not on the public board yet.",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "a standings ghost with no id",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act setname",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": true,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "the name dialog closes",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act importkey",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": true,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "the key dialog closes",
+   "screen": "flight",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "7inch",
+   "tune": "custom",
+   "stickMode": 2,
+   "launchControl": true,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "uncaught exceptions",
+   "count": 0
+  }
+ ],
+ "radio": [
+  {
+   "step": "booted with a radio",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act padpick-cancel",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "to the title past the gate",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-reverse",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act calibrate-zero-throttle",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act calibrate-stick-mode",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 3,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "ui",
+     [
+      "adjust"
+     ]
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-stick-mode",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 4,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "ui",
+     [
+      "adjust"
+     ]
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-stick-mode",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 1,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "ui",
+     [
+      "adjust"
+     ]
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-stick-mode",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "ui",
+     [
+      "adjust"
+     ]
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-skip",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act calibrate-save",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act choosepad",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act padpick-cancel",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-cancel",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-check",
+   "screen": "calibrate",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act calibrate-cancel",
+   "screen": "pilot",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "to the title",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "pitch up on an unmapped radio",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [],
+   "nav": [
+    "up"
+   ]
+  },
+  {
+   "step": "stick back to centre",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "pitch down on an unmapped radio",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [],
+   "nav": [
+    "down"
+   ]
+  },
+  {
+   "step": "roll on an unmapped radio",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "roll back to centre",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act choosepad",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act choosepad",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act padpick-no",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act padpick-skip",
+   "screen": "title",
+   "mode": "title",
+   "notice": "Keyboard sticks. Choose joystick in Settings to pick a radio.",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act choosepad",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act padpick-yes",
+   "screen": "padpick",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": []
+  },
+  {
+   "step": "act padpick-cancel",
+   "screen": "title",
+   "mode": "title",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act fly",
+   "intro": "on",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act choosepad",
+   "screen": "padpick",
+   "mode": "paused",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "menu"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act padpick-cancel",
+   "screen": "paused",
+   "mode": "paused",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "act resume",
+   "intro": "on",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "key KeyL",
+   "screen": "flight",
+   "mode": "flight",
+   "notice": "Thrown. Keep it flying.",
+   "dialog": false,
+   "airframe": "timber1500",
+   "tune": "timber-acro",
+   "stickMode": 2,
+   "launchControl": false,
+   "fcRunActive": false,
+   "calls": [
+    [
+     "start",
+     null
+    ],
+    [
+     "setLevel",
+     [
+      0.6
+     ]
+    ],
+    [
+     "setEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMix",
+     [
+      {
+       "motors": 0.5,
+       "wind": 0.5,
+       "music": 0.5,
+       "focus": 1,
+       "effects": 0.5,
+       "voice": 0.5,
+       "ambience": 0.5,
+       "other": 0.5
+      }
+     ]
+    ],
+    [
+     "setMusicEnabled",
+     [
+      true
+     ]
+    ],
+    [
+     "setMusicTrack",
+     [
+      "rotation"
+     ]
+    ],
+    [
+     "setMusicContext",
+     [
+      "flight"
+     ]
+    ],
+    [
+     "setFocusEnabled",
+     [
+      false
+     ]
+    ]
+   ]
+  },
+  {
+   "step": "uncaught exceptions",
+   "count": 0
+  }
+ ]
+}
