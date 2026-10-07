@@ -44,8 +44,6 @@ src/native/sim_internal.h
 src/share/board.js
 src/share/ghostdata.js
 src/share/orbitcache.js
-src/share/orbit.html
-src/share/orbit.js
 src/trackbuilder/index.html
 src/ui/accountui.js
 src/ui/credits.js
