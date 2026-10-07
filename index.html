@@ -2862,237 +2862,120 @@
         cursor: pointer;
       }
       .drop-opt:hover, .drop-opt.on { color: var(--cream); background: rgba(215, 221, 221, 0.12); }
-      /* A narrow window stacks the curve over the rows rather than
-         squeezing both. Same breakpoint the rest of the page uses. */
-      /* One column: the curve stacks over the rows rather than squeezing
-         both, and the note moves under the list where there is width for
-         it. Everything shrinks a little, because a window this size has to
-         hold the curve, seven rows and the hint at once. */
       /*
-       * A STACKED STAGE FITS ITS BOX, wherever it stacks.
-       *
-       * The two blocks above turn the Quad and Rates stages into one column
-       * below 1100 px, and a one column GRID grows to its content: the
-       * screen is a centred flex column with no scroller of its own, so
-       * anything past the padded box is simply lost. Measured at 1180 by
-       * 820 the Quad room's help column ran 373 px past the bottom of the
-       * window, and the PIDs screen 105.
-       *
-       * The same three rules the narrow-window block uses, applied here:
-       * the stage is a flex column capped at the box, the LIST is the part
-       * that shrinks and scrolls, and the help keeps its natural height up
-       * to a third. `max-height: none` on the list is what lets that
-       * happen: the hand tuned vh caps above are a good guess for the
-       * common window and the wrong answer for a short one, and flex knows
-       * the real number.
-       *
-       * min-height: 0 on both is the half that makes a flex child shrink
-       * instead of overflowing, which is the whole defect in one property.
+       * Up to 1280 px the Quad and Rates stages are one column, and a
+       * phone or a laptop alike is better served by the page scrolling
+       * than by a list scrolling inside a box inside the page (a nested
+       * scroller showed four of sixteen rows on a phone). So everything
+       * takes its natural height here; the height rules after this block
+       * still cap the rates list on a short window.
        */
       @media (max-width: 1280px) {
         .screen-quad .menu-stage,
         .screen-rates .menu-stage {
           display: flex; flex-direction: column; align-items: stretch;
-          max-height: 100%; min-height: 0;
+          min-height: 0; max-height: none;
         }
-        .screen-quad .craft-showcase,
-        .screen-rates .rates-panel {
-          flex: 0 0 auto;
-        }
-        .screen-quad .menu-stage > .menu,
-        .screen-rates .menu-stage > .menu {
-          /* Three rows' worth of floor, for the reason on the narrow
-           * window rule: the airframe and the curve are both `flex: 0 0
-           * auto` and will otherwise take the whole box. */
-          flex: 1 1 auto; min-height: min(200px, 100%);
-          max-height: none; overflow-y: auto;
-        }
-        .screen-quad .menu-help,
-        .screen-rates .menu-help {
-          flex: 0 0 auto; max-height: 33%; overflow-y: auto;
-        }
-      }
-
-      @media (max-width: 1280px) {
         .screen-rates .menu-stage { grid-template-columns: minmax(0, 1fr); }
+        .screen-quad .craft-showcase,
+        .screen-rates .rates-panel { flex: 0 0 auto; }
+        .screen-quad .menu-stage > .menu,
+        .screen-rates .menu-stage > .menu,
+        .screen-quad .menu-help,
+        .screen-rates .menu-help { flex: 0 0 auto; max-height: none; overflow-y: visible; }
+        .screen-quad .menu-stage > .menu,
+        .screen-rates .menu-stage > .menu { min-height: 0; }
+        .screen-quad .menu-scroll,
+        .screen-rates .menu-scroll { max-height: none; overflow-y: visible; }
         .rates-panel {
-          grid-column: 1; grid-row: 1;
-          justify-self: center; width: min(100%, 620px); margin: 0 0 12px;
+          grid-row: 1; grid-column: 1; justify-self: center;
+          width: min(100%, 620px); margin: 0 0 12px;
         }
         .screen-rates .menu-stage .menu { grid-column: 1; justify-self: center; }
+        /* In flow again, under the list, where a growing note pushes
+           nothing up. */
         .screen-rates .menu-help {
-          /* Back in flow: this layout is one column with the note stacked
-             under the list, where growing downward moves nothing. */
-          position: static;
-          grid-column: 1; max-width: none; border-left: 0;
-          padding: 8px 14px 0; margin-top: 6px; text-align: center;
+          position: static; grid-column: 1;
+          max-width: none; margin-top: 6px; padding: 8px 14px 0; border-left: 0;
+          text-align: center;
         }
         .rates-graph-wrap { height: clamp(140px, 20vh, 200px); }
-        .screen-rates .menu-scroll { max-height: calc(34vh - var(--bars)); }
-        /* Narrow enough to clear the music dock and the bug chip, which are
-           fixed to the top right corner and sit over any screen. At 48em the
-           last words of this sentence went under them. */
+        /* Clears the music dock and bug chip in the top right corner. */
         .rates-lede { max-width: 34em; }
-      }
-      /*
-       * A PHONE SCROLLS THE PAGE, NOT A BOX INSIDE THE PAGE.
-       *
-       * The blocks above cap the list and let it scroll inside the stage,
-       * which is right on a laptop where the window is wide and short. On a
-       * phone it is the nested-scroller trap: at 390 by 844 the list was
-       * 224 px tall with 441 px hidden inside it, so four of the sixteen
-       * rows were visible and the other twelve were behind a scroll gesture
-       * that competes with the page's own. `.screen-page` already scrolls,
-       * so the honest answer on a narrow window is to let everything take
-       * its natural height and let the page carry it.
-       *
-       * 900 px, because that is where the stage is already one column and
-       * the three-column reasoning above has stopped applying.
-       */
-      @media (max-width: 1280px) {
-        .screen-rates .menu-stage,
-        .screen-quad .menu-stage {
-          max-height: none;
-        }
-        .screen-rates .menu-stage > .menu,
-        .screen-quad .menu-stage > .menu {
-          flex: 0 0 auto; min-height: 0; max-height: none; overflow-y: visible;
-        }
-        .screen-rates .menu-scroll,
-        .screen-quad .menu-scroll {
-          max-height: none; overflow-y: visible;
-        }
-        .screen-rates .menu-help,
-        .screen-quad .menu-help {
-          max-height: none; overflow-y: visible;
-        }
-        /*
-         * The legend sits on its own patch once the PAGE is what scrolls.
-         *
-         * .frame-bot's scrim is a gradient that reaches zero at the top of
-         * its own 44 px, which is fine on a window where the list scrolls
-         * inside the padded box and nothing ever passes behind the bar. Here
-         * the rows go under it, and a row reading through "Enter Choose" is
-         * two sentences in the same pixels. Opaque where the words are, still
-         * feathered at the top so it does not read as a second panel.
-         */
+        /* Rows now pass under the command bar as the page scrolls, so its
+           scrim is solid where the words are, feathered only at the top. */
         .frame-bot {
-          background: linear-gradient(
-            0deg,
-            rgba(10, 13, 14, 0.97) 0%,
-            rgba(10, 13, 14, 0.93) 62%,
-            rgba(10, 13, 14, 0) 100%);
+          background: linear-gradient(0deg, rgba(10, 13, 14, 0.97) 0%, rgba(10, 13, 14, 0.93) 62%, rgba(10, 13, 14, 0) 100%);
         }
       }
-      /*
-       * CLEAR THE FIXED CHIPS, which is a phone problem and only a phone
-       * problem. The bug chip and the music dock are pinned to the top right
-       * over every screen. On a wide window the centred copy is narrow enough
-       * to pass beside them; on a phone nothing is, and measured at 390 by
-       * 844 the lede spanned x 23..366 while the chip sat at x 151..374,
-       * y 56..86, with the two drawn over each other. So the copy starts
-       * below them instead of beside them.
-       */
+      /* A phone is too narrow to pass beside the fixed chips at the top
+         right, so the heading starts under them. */
       @media (max-width: 900px) {
         .screen-rates .rates-lede,
-        .screen-quad .rates-lede {
-          max-width: none;
-        }
+        .screen-quad .rates-lede { max-width: none; }
         .screen-rates > h2,
-        .screen-quad > h2 {
-          margin-top: 76px;
-        }
+        .screen-quad > h2 { margin-top: 76px; }
       }
-      /* A short window spends its height on the curve and the rows: the
-         lede is the one thing here that repeats what the row notes say, and
-         the curve gives up the pixels the list needs to show all seven rows
-         rather than six and a half. */
+      /* A short window gives the curve's height to the list: the curve is a
+         shape and reads small, cut rows do not. The lede goes first, since
+         the row notes say it in more detail. */
       @media (max-height: 820px) {
         .rates-graph-wrap { height: clamp(118px, 16vh, 160px); }
         .screen-rates .menu-scroll { max-height: calc(46vh - var(--bars)); }
       }
-      /* Shorter still, and the lede is the first thing to go: it is the one
-         line here that the row notes already say in more detail. */
       @media (max-height: 700px) {
         .rates-lede { display: none; }
-        /* A 1024 by 700 window is 14 px short with the lede already gone and
-           the longest note showing, so the curve gives up those pixels. It
-           is a shape, not a table: it survives being short far better than
-           the rows survive being cut. */
         .rates-graph-wrap { height: clamp(100px, 14vh, 140px); }
       }
-      /* Superseded by the command bar, which says the same thing in the same
-         place on every screen. Kept in the DOM so the screens that build one
-         do not need surgery.
 
-         IT USED TO SAY "and so a screen reader still finds the text", which
-         was not true of the rule underneath it: display:none removes a node
-         from the accessibility tree in every browser, so all fourteen hints
-         were read by nobody. They are hidden from everybody now, which is at
-         least honest, and the command bar carries the same words visibly.
-         The pattern for text that IS meant to be heard and not seen is
-         .sr-only below. */
+      /* The command bar says what a hint said, on every screen; the nodes
+         stay so the screens that build them need no change. display: none
+         also hides them from a screen reader, which is what .sr-only is
+         for instead. */
       .hint { display: none; }
-
-      /* Off screen, not gone: the clip keeps the node in the accessibility
-         tree, which is the whole difference between this and the rule above.
-         One user, the announcer that says a lap finished. */
+      /* Clipped, not removed, so it stays in the accessibility tree (the
+         lap announcer). */
       .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        margin: -1px;
-        padding: 0;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-        border: 0;
+        position: absolute; overflow: hidden;
+        width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+        clip-path: inset(50%); white-space: nowrap;
       }
-      .screen-calibrate {
-        pointer-events: auto;
-      }
+
+      /* Radio calibration and the pad picker. Amber is the live input,
+         mint is one already claimed, as on every instrument in the shell. */
+      .screen-calibrate,
+      .screen-padpick { pointer-events: auto; }
+      .screen-padpick { padding: 4vh 4vw 3vh; }
       .cal-kicker {
+        margin-bottom: 10px;
+        color: var(--sakura);
         font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: var(--sakura); margin-bottom: 10px;
       }
       .cal-prompt {
-        margin: 0; max-width: 28em; text-align: center;
-        font-size: clamp(18px, 2.4vw, 28px); font-weight: 600;
-        line-height: 1.35; color: var(--cream);
+        max-width: 28em; margin: 0; text-align: center;
+        color: var(--cream); font-size: clamp(18px, 2.4vw, 28px); font-weight: 600; line-height: 1.35;
       }
       .cal-hint {
-        margin: 10px 0 0; min-height: 1.4em; text-align: center;
-        font-size: 14px; color: var(--slate);
+        min-height: 1.4em; margin: 10px 0 0; text-align: center;
+        color: var(--slate); font-size: 14px;
       }
-      .cal-sticks {
-        display: flex; align-items: flex-end; gap: 36px;
-        margin: 28px 0 16px;
-      }
-      .screen-calibrate .osd-gimbal-plate {
-        width: 120px; height: 120px;
-        background: rgba(10, 13, 14, 0.55);
-      }
-      /*
-       * ONE CELL PER AXIS THE RADIO REPORTS. See setCalAxes in src/ui/ui.js
-       * for why this strip exists at all: the gimbals above it can only
-       * show four channels and do not yet know which four axes those are.
-       *
-       * Slate for the track, which is the colour type that should recede,
-       * amber for the live dot, which is what an instrument reads in, mint
-       * for an axis a channel has already claimed, which is the colour a
-       * finished thing wears everywhere else in this shell.
-       */
+      .cal-sticks { display: flex; align-items: flex-end; gap: 36px; margin: 28px 0 16px; }
+      .screen-calibrate .osd-gimbal-plate,
+      .pad-card .osd-gimbal-plate { background: rgba(10, 13, 14, 0.55); }
+      .screen-calibrate .osd-gimbal-plate { width: 120px; height: 120px; }
+      /* Every axis the radio reports (setCalAxes in src/ui/ui.js): the
+         gimbals above show four channels and cannot know which. */
       .cal-axes {
-        display: flex; flex-wrap: wrap; justify-content: center;
-        gap: 6px 12px; margin: 0 0 18px; max-width: 34em;
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px;
+        max-width: 34em; margin: 0 0 18px;
       }
       .cal-axis { display: flex; align-items: center; gap: 6px; }
       .cal-axis-n {
-        font-size: 10px; letter-spacing: 0.08em;
-        color: rgba(215, 221, 221, 0.45); min-width: 0.8em; text-align: right;
+        min-width: 0.8em; text-align: right;
+        color: rgba(215, 221, 221, 0.45); font-size: 10px; letter-spacing: 0.08em;
       }
       .cal-axis-track {
-        position: relative; display: block;
+        display: block; position: relative;
         width: 54px; height: 4px; border-radius: 0;
         background: rgba(215, 221, 221, 0.14);
       }
@@ -3101,8 +2984,8 @@
         background: rgba(215, 221, 221, 0.30);
       }
       .cal-axis-dot {
-        position: absolute; top: 50%; width: 6px; height: 6px;
-        margin: -3px 0 0 -3px; border-radius: 50%;
+        position: absolute; top: 50%;
+        width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
         background: rgba(215, 221, 221, 0.55);
       }
       .cal-axis.is-live .cal-axis-n { color: var(--amber); }
@@ -3111,64 +2994,42 @@
       .cal-axis.is-mapped .cal-axis-dot { background: var(--mint); }
       .cal-axis.is-mapped .cal-axis-span { background: rgba(111, 207, 162, 0.24); }
       .cal-steps {
-        list-style: none; display: flex; flex-wrap: wrap;
-        justify-content: center; gap: 8px 14px;
-        padding: 0; margin: 4px 0 16px;
-        font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
-        /* 0.38 measured 3.1 to 1 against the panel, under the 4.5 floor for
-           small text; 0.55 is 5.0 to 1 and still recedes behind the live
-           step. */
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 14px;
+        margin: 4px 0 16px; padding: 0; list-style: none;
+        /* 5.0:1 on the panel; the 0.38 before it failed small text. */
         color: rgba(215, 221, 221, 0.55);
+        font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
       }
       .cal-steps li.on { color: var(--amber); }
       .cal-steps li.done { color: var(--mint); }
       .cal-actions { display: flex; gap: 10px; margin-top: 4px; }
       .cal-actions .name-dialog-btn:disabled { opacity: 0.35; cursor: default; }
-      .screen-padpick {
-        pointer-events: auto;
-        padding: 4vh 4vw 3vh;
-      }
       .pad-cards {
-        display: flex; flex-wrap: wrap; justify-content: center;
-        gap: 16px; margin: 28px 0 18px; max-width: 1100px;
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 16px;
+        max-width: 1100px; margin: 28px 0 18px;
       }
       .pad-card {
-        width: 220px;
-        padding: 14px 14px 12px;
-        border-radius: 0;
-        border: 1px solid rgba(215, 221, 221, 0.16);
+        width: 220px; padding: 14px 14px 12px;
+        border: 1px solid rgba(215, 221, 221, 0.16); border-radius: 0;
         background: rgba(10, 13, 14, 0.62);
         text-align: center;
         transition: border-color 0.12s linear, box-shadow 0.12s linear;
       }
-      .pad-card.is-live {
-        border-color: var(--amber);
-        box-shadow: 0 0 0 1px rgba(217, 180, 108, 0.55);
-      }
-      .pad-card.is-on {
-        border-color: var(--mint);
-        box-shadow: 0 0 0 2px rgba(111, 207, 162, 0.7);
-      }
+      .pad-card.is-live { border-color: var(--amber); box-shadow: 0 0 0 1px rgba(217, 180, 108, 0.55); }
+      .pad-card.is-on { border-color: var(--mint); box-shadow: 0 0 0 2px rgba(111, 207, 162, 0.7); }
       .pad-card-title {
-        font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-        color: var(--sakura); margin-bottom: 10px;
-      }
-      .pad-card-art {
-        display: flex; justify-content: center; gap: 18px;
         margin-bottom: 10px;
+        color: var(--sakura);
+        font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
       }
-      .pad-card .osd-gimbal-plate {
-        width: 72px; height: 72px;
-        background: rgba(10, 13, 14, 0.55);
-      }
+      .pad-card-art { display: flex; justify-content: center; gap: 18px; margin-bottom: 10px; }
+      .pad-card .osd-gimbal-plate { width: 72px; height: 72px; }
       .pad-card .osd-gimbal-cap { display: none; }
-      .pad-card-name {
-        font-size: 13px; color: var(--cream);
-        min-height: 2.4em; line-height: 1.3;
-      }
+      .pad-card-name { min-height: 2.4em; color: var(--cream); font-size: 13px; line-height: 1.3; }
       .pad-card-status {
-        margin-top: 4px; font-size: 12px; letter-spacing: 0.08em;
-        text-transform: uppercase; color: var(--slate);
+        margin-top: 4px;
+        color: var(--slate);
+        font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
       }
       .pad-card.is-live .pad-card-status { color: var(--amber); }
       .pad-card.is-on .pad-card-status { color: var(--mint); }
