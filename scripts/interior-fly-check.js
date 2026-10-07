@@ -118,6 +118,11 @@ try {
   check('the match is live at the first checkpoint and the pilot is in it on the Interior\'s map', live.state === 'live' && live.stage === 'M1_CP_START' && live.map === 'interior' && live.mode === 'flight', JSON.stringify(live));
   const hud = await page.evaluate('window.__opsHud()');
   const others = await page.evaluate("({ osd: window.__fpvOsd ? window.__fpvOsd().on : false, avx: window.__avionicsHud ? window.__avionicsHud().on : false, alone: /alone in room/i.test(document.body.innerText) })");
+  /* The mission's aircraft is fixed (the owner, 2026-10-07: Mission 1 was
+   * flown in a Shahed with no camera): the pickers, the swap and the [ ]
+   * cycle offer only the role's platform. */
+  const offered = await page.evaluate('window.__ui.craftOnly()');
+  check('the mission\'s aircraft is fixed: only the Bramor is offered', Array.isArray(offered) && offered.join() === 'bramor2300', JSON.stringify(offered));
   check('nothing else draws over it: no OSD, no Avionics HUD, no \'alone in room\' bar', !others.osd && !others.avx && !others.alone, JSON.stringify(others));
   check('the quiet HUD: the launch card, the mission rule, a tutorial prompt', hud.on && hud.cards.some((c) => c.text === 'ops.interior.m1.obj.launch') && /ENGAGEMENT NOT AVAILABLE/.test(hud.rule || '') && Boolean(hud.tutorial),
     JSON.stringify({ on: hud.on, cards: hud.cards, rule: hud.rule, tutorial: hud.tutorial }));
