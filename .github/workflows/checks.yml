@@ -276,6 +276,10 @@ jobs:
       - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
+      # The hangar's workshop in the real shell: Flip, the preset views and a
+      # pad's R3 on one aircraft of every paint family
+      # (docs/redesign/WORKSHOP-PAINT.md).
+      - run: npm run paint:workshop
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

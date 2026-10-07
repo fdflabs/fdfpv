@@ -2,11 +2,13 @@
  * paint-workshop-check.js: the hangar's workshop (docs/redesign/
  * WORKSHOP-PAINT.md), in the real shell, headless.
  *
- *   1. Flip on one aircraft of every paint family: the Flip button pressed
- *      with a real pointer rolls the model over on its stand, the roll
- *      lands at a half turn with the model lifted clear of the floor, and
- *      a picture is kept upright and flipped; V rolls it back to upright.
- *   2. Flipped and closed, the hangar opens again upright, and the picker
+ *   1. One aircraft of every paint family: the Top and Bottom views
+ *      pressed with a real pointer, Bottom rolling the model over on its
+ *      stand (Flip), a picture kept of each; V rolls it back upright.
+ *   2. The Flip button; the views by keys 3 to 6 keep the plane flipped,
+ *      1 (Top) stands it up, a view pressed again lets go; a pad's R3
+ *      flips it.
+ *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
  * The pictures go to the directory given as the first argument.
@@ -88,21 +90,25 @@ async function closeHangar(page) {
   await page.until('!window.__ui.hangar.isOpen', 5000);
 }
 
-async function flipEach(page) {
-  console.log(`1. Flip on every paint family (${FAMILIES.join(', ')})`);
+const LANDED = (focus) => `(() => { const c = window.__carouselStats().camera; return Boolean(c) && c.focus === '${focus}' && ['zoom', 'up', 'along', 'elev'].every((k) => Math.abs(c[k] - c.target[k]) < 0.01); })()`;
+
+async function viewsEach(page) {
+  console.log(`1. Top and Bottom on every paint family (${FAMILIES.join(', ')})`);
   for (const id of FAMILIES) {
     await openHangar(page, id);
+    await page.click('.hangar [data-key="view-top"]');
+    await page.until(LANDED('top'), 60000).catch(() => {});
     await page.until(ROLLED(0), 30000).catch(() => {});
-    await page.sleep(1500);
     await shot(page, `${id}-top`);
-    const clicked = await page.click('.hangar [data-key="flip"]');
+    await page.click('.hangar [data-key="view-bottom"]');
     await page.until(ROLLED(Math.PI), 60000).catch(() => {});
-    await page.sleep(800);
-    const flipped = await cam(page);
-    const pressed = await page.evaluate("document.querySelector('.hangar [data-key=\"flip\"]').getAttribute('aria-pressed')");
+    await page.until(LANDED('top'), 60000).catch(() => {});
+    await page.sleep(500);
+    const c = await cam(page);
+    const flip = await page.evaluate("document.querySelector('.hangar [data-key=\"flip\"]').getAttribute('aria-pressed')");
     await shot(page, `${id}-bottom`);
-    say(clicked && pressed === 'true' && Math.abs(flipped.roll - Math.PI) < 0.01,
-      `${id}: the Flip button rolls it over, roll ${flipped.roll.toFixed(3)}, pressed ${pressed}`);
+    say(c.focus === 'top' && Math.abs(c.roll - Math.PI) < 0.01 && flip === 'true',
+      `${id}: Bottom looks down on the plane rolled over: focus ${c.focus}, roll ${c.roll.toFixed(3)}, Flip pressed ${flip}`);
     await page.tap('KeyV');
     await page.until(ROLLED(0), 60000).catch(() => {});
     const back = await cam(page);
@@ -112,8 +118,46 @@ async function flipEach(page) {
   }
 }
 
+async function flipAndViews(page) {
+  console.log('2. the Flip button, the views by key and button, R3');
+  await openHangar(page, 'timber1500');
+  const clicked = await page.click('.hangar [data-key="flip"]');
+  await page.until(ROLLED(Math.PI), 60000).catch(() => {});
+  say(clicked && Math.abs((await cam(page)).roll - Math.PI) < 0.01, 'the Flip button rolls it over');
+  for (const [code, focus] of [['Digit3', 'side_left'], ['Digit4', 'side_right'], ['Digit5', 'front'], ['Digit6', 'rear']]) {
+    await page.tap(code);
+    await page.until(LANDED(focus), 60000).catch(() => {});
+    const c = await cam(page);
+    say(c.focus === focus && Math.abs(c.roll - Math.PI) < 0.01, `${code} goes to ${focus} and keeps it flipped: ${c.focus}, roll ${c.roll.toFixed(3)}`);
+  }
+  await page.tap('Digit1');
+  await page.until(ROLLED(0), 60000).catch(() => {});
+  say(Math.abs((await cam(page)).roll) < 0.01, 'Top (1) stands it upright');
+  await page.click('.hangar [data-key="view-top"]');
+  await page.sleep(400);
+  const off = await page.evaluate("document.querySelector('.hangar [data-key=\"view-top\"]').getAttribute('aria-pressed')");
+  say(off === 'false', `Top pressed again lets the view go (${off})`);
+  /* A standard pad whose right stick is pressed in, then let go. */
+  await page.evaluate(`(() => {
+    window.__r3 = false;
+    const pad = () => ({ id: 'check pad', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: i === 11 && window.__r3, touched: false, value: 0 })) });
+    navigator.getGamepads = () => [pad()];
+    return true;
+  })()`);
+  await page.sleep(400);
+  await page.evaluate('window.__r3 = true');
+  await page.sleep(400);
+  await page.evaluate('window.__r3 = false');
+  await page.until(ROLLED(Math.PI), 60000).catch(() => {});
+  say(Math.abs((await cam(page)).roll - Math.PI) < 0.01, `R3 on a pad flips it: roll ${(await cam(page)).roll.toFixed(3)}`);
+  await page.evaluate('navigator.getGamepads = () => []; true');
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function closedFlipped(page) {
-  console.log('2. flipped and closed, it opens again upright');
+  console.log('3. flipped and closed, it opens again upright');
   const id = FAMILIES.includes('timber1500') ? 'timber1500' : FAMILIES[0];
   await openHangar(page, id);
   await page.tap('KeyV');
@@ -139,7 +183,8 @@ async function main() {
   try {
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    await flipEach(page);
+    await viewsEach(page);
+    await flipAndViews(page);
     await closedFlipped(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
