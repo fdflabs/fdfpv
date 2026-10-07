@@ -12402,12 +12402,31 @@ export async function boot({
     return { recordSuffix, reach: airframeById(runAirframe).fixedWing ? PLANE_REACH : 0 };
   }
 
+  /*
+   * The world in `view` has just been built and becomes the one flown. With
+   * keepPlace it is the same world and course rebuilt for a new look, so
+   * the run carries on, paused, where it stood. Otherwise everything tied to
+   * the old world starts again on this one, from the title.
+   */
   function adoptLoadedView(keepPlace, stayMode, stayScreen) {
     prewarm([...FX_ROOTS, shell.quad]);
     attractCam = makeAttractCamera(view);
-    if (!keepPlace) {
-      /* A map track's records are its own (seatMapCourse), not the world's. */
-      /* A world adopted fresh is the seat's, whatever a swap held before. */
+    if (keepPlace) {
+      /* The new gate meshes need the current next-gate highlight. */
+      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
+      ui.setShare(view.share || null);
+      paintBest();
+      mode = stayMode === 'flight' ? 'paused' : stayMode;
+      /* Only if the pilot is still on it: a war lobby builds its mission's
+       * world while the pilot waits (warTimeFrame), about 5 s, and one who
+       * left the room and opened Make a room meanwhile was thrown back to
+       * the room screen, with no room. */
+      if (stayScreen && ui.screen === stayScreen) {
+        ui.show(stayScreen);
+      }
+    } else {
+      /* A world adopted fresh is the seat's, whatever a swap held before,
+       * and a map track's records are its own (seatMapCourse). */
       worldHold = null;
       race = new Race(view.gates, 'full', raceOpts(view.recordSuffix ?? ''));
       race.setRecordKey(recordKey());
@@ -12422,24 +12441,10 @@ export async function boot({
       ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
-    } else {
-      /* Same map, new look. Physics and the lap stay where they were; the
-       * new gate meshes just need the current next-gate highlight. */
-      view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
-      ui.setShare(view.share || null);
-      paintBest();
-      mode = stayMode === 'flight' ? 'paused' : stayMode;
-      /* Only if the pilot is still on it: a war lobby builds its mission's
-       * world while the pilot waits (warTimeFrame), about 5 s, and one who
-       * left the room and opened Make a room meanwhile was thrown back to
-       * the room screen, with no room. */
-      if (stayScreen && ui.screen === stayScreen) {
-        ui.show(stayScreen);
-      }
     }
     finishLoadingOnFrame = true;
-    /* The world just changed, so what is worth flying around changed with
-     * it. Once per map, never per run: it scans every collider. */
+    /* Scanning every collider for what is worth flying round is a once per
+     * world job, never a once per run one. */
     rebuildObstacles();
     mapReady = true;
   }
@@ -12523,18 +12528,21 @@ export async function boot({
     view.recordSuffix = `.map.${seated.document.id}`;
   }
 
+  /* Whether the standing world is the one the settings name: its id, its
+   * graphics level, the course seated on it and the time it was built at. */
   function worldMatchesSettings() {
+    const quality = normalizeGraphics(ui.settings.graphics);
     /* A run that has changed aircraft keeps its world: see worldHold. */
-    if (worldHold && view && ui.settings.map === worldHold.map
-      && normalizeGraphics(ui.settings.graphics) === worldHold.graphics) {
+    if (worldHold && view && ui.settings.map === worldHold.map && quality === worldHold.graphics) {
       return true;
     }
-    const wantId = worldId();
-    const wantQ = normalizeGraphics(ui.settings.graphics);
-    return view
-      && wantId === view.id
-      && wantQ === view.graphics
-      && wantedCourseKey(wantId) === loadedCourseKey(view)
+    if (!view) {
+      return false;
+    }
+    const id = worldId();
+    return id === view.id
+      && quality === view.graphics
+      && wantedCourseKey(id) === loadedCourseKey(view)
       && worldTime === timeOf(worldTimeOptions());
   }
 
@@ -12561,18 +12569,21 @@ export async function boot({
     return worldSync;
   }
 
+  /* Builds world `id` at `quality` into `view`. The caller has disposed the
+   * old one first, so two worlds' render targets never stand at once. */
+  async function loadWorldInto(id, quality, timeOptions) {
+    applyPixelRatio(shell, quality, renderScaleOf(ui.settings));
+    view = await loadMap(shell, id, loading, { quality, renderScale: renderScaleOf(ui.settings), ...timeOptions });
+  }
+
   async function syncWorldNow() {
-    /* Resolved, not raw: worldId turns the Track seat into a world and an id
-     * no map has into the seat's (mapById's fallback), so the tail guard
-     * below cannot see a mismatch that never clears: dispose, rebuild,
-     * re-enter, forever. ?map= is taken verbatim in boot.js, so an unknown
-     * id is reachable from a stale bookmark. */
+    /* Resolved, not raw: worldId turns the Track seat into a world and an
+     * unknown id (a stale bookmark's ?map=, which boot.js takes verbatim)
+     * into the seat's, so the tail check below cannot chase a mismatch
+     * that never clears. */
     const wantId = worldId();
     const wantQ = normalizeGraphics(ui.settings.graphics);
-    if (swapInFlight) {
-      return;
-    }
-    if (mapReady && worldMatchesSettings()) {
+    if (swapInFlight || (mapReady && worldMatchesSettings())) {
       return;
     }
     /*
@@ -12596,22 +12607,18 @@ export async function boot({
       }
       return;
     }
+    /* Only the graphics level moved: the same world and course, rebuilt. */
     const keepPlace = mapReady && wantId === view.id && wantedCourseKey(wantId) === loadedCourseKey(view);
     /*
-     * Which menu the pilot goes back to after the swap, or null for the
-     * title. This is a list of PAGE screens, and it has to name every one a
-     * settings change can be made from: 'rates' is here because every arrow
-     * key on that screen runs applySettings, which lands here whenever the
-     * world no longer matches, and without it a rate nudge would bounce the
-     * pilot to the title. The 'fc' it replaces named a screen that no
-     * longer exists, and would have failed silently: show() on an unknown
-     * name displays no node and leaves the previous screen's rows behind.
-     * 'friends' because a card seats its own world on the room screen
-     * (ui.js, the card's world wins), and a swap to another world, which
-     * otherwise ends on the title, ends back there (adoptLoadedView).
+     * The screens a swap hands back to the pilot when it is done, rather
+     * than the title: every page a settings change can be made from. 'rates'
+     * is one because each arrow on it runs applySettings, which swaps the
+     * world whenever it no longer matches. 'friends' because a card seats
+     * its own world on the room screen (ui.js, the card's world wins), and
+     * the swap should end back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
-    const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
+    const stayScreens = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
+    const stayScreen = stayScreens.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
     mapReady = false;
@@ -12624,60 +12631,41 @@ export async function boot({
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
-    /* Paint the loading screen BEFORE disposing a world and building another,
-     * because both of those block the main thread and a screen nobody
-     * composited is not a screen. */
+    /* Disposing and building both hold the main thread, so the loading
+     * screen is given a frame to be composited first. */
     await yieldToPaint();
-    const previous = view.id;
-    const previousGraphics = view.graphics;
+    const before = { id: view.id, graphics: view.graphics };
     if (build) {
       build.exit(false);
     }
     try {
       view.dispose();
     } catch (e) {
-      /* Already gone, or the last swap never produced a world. */
+      /* Nothing to dispose: the last swap never produced a world. */
     }
     /* A new world starts native: its cost is not the old one's. */
     dynres.reset();
-    applyPixelRatio(shell, wantQ, renderScaleOf(ui.settings));
     try {
-      view = await loadMap(shell, wantId, loading, {
-        quality: wantQ,
-        renderScale: renderScaleOf(ui.settings),
-        ...worldTimeOptions(),
-      });
+      await loadWorldInto(wantId, wantQ, worldTimeOptions());
       worldTime = timeOf(worldTimeOptions());
       await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
     } catch (e) {
-      /*
-       * The old world is already gone by here, deliberately: disposing before
-       * building is what keeps two maps' render targets from ever coexisting.
-       * Rebuild the map that was just disposed. A message with no world
-       * behind it used to leave mapReady false forever.
-       */
+      /* The old world is gone already, so it is built again, and the
+       * settings put back to it, rather than leaving no world at all. The
+       * title's own world is not the pilot's seat and never written there. */
       console.error(e);
-      /* The title's world is not the pilot's seat, so it is never written
-       * there. */
       if (!titleWorld) {
-        ui.settings.map = previous;
+        ui.settings.map = before.id;
       }
-      ui.settings.graphics = previousGraphics;
+      ui.settings.graphics = before.graphics;
       try {
-        applyPixelRatio(shell, previousGraphics, renderScaleOf(ui.settings));
-        view = await loadMap(shell, previous, loading, {
-          quality: previousGraphics,
-          renderScale: renderScaleOf(ui.settings),
-        });
+        await loadWorldInto(before.id, before.graphics, {});
         worldTime = timeOf({});
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
-        notice = {
-          text: str('main.could_not_be_loaded', { name: entry.name }),
-          untilMs: performance.now() + 4200,
-        };
+        notice = { text: str('main.could_not_be_loaded', { name: entry.name }), untilMs: performance.now() + 4200 };
       } catch (e2) {
         console.error(e2);
         loading.fail(str('ui.could_not_be_loaded', { name: entry.name, v2: e.message ?? e }));
@@ -12685,28 +12673,31 @@ export async function boot({
     } finally {
       swapInFlight = false;
     }
-    /* A change requested DURING the swap was refused by the guard at the top,
-     * and ui.js has already saved it, so the setting and the loaded map would
-     * otherwise stay diverged with the title screen naming a map that is not
-     * there. Honour it now. */
+    /* A change made while the swap ran was turned away at the top, and ui.js
+     * has saved it, so the settings and the world would stay apart. */
     if (mapReady && !worldMatchesSettings()) {
       await syncWorldNow();
     }
   }
+
   async function swapMap(id) {
     ui.settings.map = id;
     return syncWorld();
   }
 
   /*
-   * ANGLE MODE is a Betaflight flight-mode flag, not a plant change. The
-   * module defaults to acro. Keyboard stick input cannot hold a rate, so
-   * it always raises ANGLE_MODE; a radio uses the setting. Changing this
-   * does not re-init the module and does not reset the craft.
+   * Angle mode is a Betaflight flight mode flag sent to the module as it
+   * stands; changing it neither re-inits the module nor resets the craft.
+   * angleModeOn mirrors what the module was last told.
+   *
+   * Launch control: the Settings row only offers the feature, and the L key
+   * arms it (lcArmed). While the module reports it holding, the craft sits
+   * on the stand (launchStaging); lcAcroUntil keeps the flight mode in acro
+   * through the hold and briefly after the release, and lcGoUntil is when
+   * the GO banner after a release ends. lcBoost marks a launch in progress
+   * and lcPrevState is the module's state on the last frame.
    */
   let angleModeOn = false;
-  /* L-switch for launch control. The Settings row only enables the
-   * feature; this is the mode switch, captured at the sitting. */
   let lcArmed = false;
   let launchStaging = false;
   let lcBoost = false;
@@ -12715,85 +12706,47 @@ export async function boot({
   let lcGoUntil = 0;
 
   function wantAngleMode() {
+    /* The turtle and its recovery own the mixer. */
     if (crashflipOn || turtleRecover) {
       return false;
     }
+    /* A launch is flown in acro, through the hold and just past it. */
     if (lcAcroUntil === Infinity || (lcAcroUntil > 0 && performance.now() < lcAcroUntil)) {
       return false;
     }
-    /* The thumb sticks are a proportional stick, so they are a RADIO here,
-     * not a keyboard: they fly whichever mode the setting says. Keys keep
-     * forcing angle because a key is a bang-bang input and acro on one is
-     * a crash generator. */
-    if (input.isTouchPrimary()) {
-      return ui.settings.flightMode === 'angle';
-    }
-    /* The mouse is a proportional stick too, and for the same reason. */
-    if (input.isMousePrimary()) {
-      return ui.settings.flightMode === 'angle';
-    }
     /*
-     * THE HARNESS OVERRIDE IS A GIMBAL, NOT A KEY.
+     * A proportional input (the thumb sticks, the mouse, a radio, or the
+     * harness's window.__stick, which writes a gimbal's channels) flies the
+     * mode the pilot chose. So does anything in freestyle, keys included:
+     * angle holds the craft to about thirty degrees of bank, which puts
+     * every trick in the catalogue out of reach, and freestyle exists for
+     * them whether or not the scorer is on.
      *
-     * window.__stick writes a proportional channel straight into the poll
-     * ladder, so it can hold a rate the way a radio does and the reason
-     * keys force angle does not apply to it. It was landing on the
-     * keyboard branch anyway, and ANGLE MODE CANNOT LOOP: the craft is
-     * held to about thirty degrees of bank, so every probe that tried to
-     * fly a Powerloop swept eighty three degrees of pitch in three seconds
-     * of full back stick and flew away in a climb. That is why no check in
-     * this repository had ever flown one of these tricks: every "verified"
-     * loop was a path drawn by arithmetic and fed to the recogniser
-     * directly, because the only thing that could actually FLY was locked
-     * out of acro. A pilot on a radio is unaffected either way.
+     * Keys on a race force angle: a key is all or nothing, and acro on one
+     * cannot hold a line.
      */
-    if (input.harnessChannels) {
-      return ui.settings.flightMode === 'angle';
-    }
-    /*
-     * FREESTYLE IS THE TRICK MODE, AND NO TRICK IS POSSIBLE IN ANGLE.
-     *
-     * Angle holds the craft to about thirty degrees of bank, so a pilot in
-     * it cannot fly a Powerloop, a Split-S, a Matty Flip, an Orbit, a roll
-     * or a flip: the entire catalogue is out of reach. Forcing it on the
-     * keyboard therefore does not make freestyle safer for a key pilot, it
-     * makes freestyle pointless for them, and a scoring system nobody on a
-     * keyboard can score in is not a scoring system.
-     *
-     * IT IS NOT GATED ON freestyleScoring AND MUST NOT BE. The scorer was
-     * how the case got made, but the case does not rest on it: a pilot who
-     * wants to fly a flip in the town wants to fly a flip whether or not
-     * anything is naming it, and scoring is off by default, so gating this
-     * would lock every keyboard pilot out of every trick unless they first
-     * switched on a feature the product tells them is unfinished. That is
-     * the opposite trade. Racing keeps the guard.
-     *
-     * So in freestyle the SETTING decides, on a keyboard as much as on a
-     * radio. Racing keeps the guard, where holding a line matters more than
-     * inverting and a key is a bang bang input.
-     */
-    if (view && view.mode === 'freestyle') {
+    const proportional = input.isTouchPrimary() || input.isMousePrimary() || Boolean(input.harnessChannels);
+    if (proportional || (view && view.mode === 'freestyle')) {
       return ui.settings.flightMode === 'angle';
     }
     return input.isKeyboardPrimary() || ui.settings.flightMode === 'angle';
   }
 
+  /* The nose's angle below the horizon in degrees, from a state's body
+   * quaternion (w, x, y, z at 7 to 10): the body x axis in world terms,
+   * against its length in the y, z plane. */
   function pitchNoseDownDeg(st) {
-    const w = st[7];
-    const x = st[8];
-    const y = st[9];
-    const z = st[10];
-    const ux = 2 * (x * z - w * y);
-    const uy = 2 * (y * z + w * x);
-    const uz = 1 - 2 * (x * x + y * y);
-    const horiz = Math.sqrt(uy * uy + uz * uz);
-    return Math.atan2(-ux, horiz) * (180 / Math.PI);
+    const [w, x, y, z] = [st[7], st[8], st[9], st[10]];
+    const forwardZ = 2 * (x * z - w * y);
+    const sideZ = 2 * (y * z + w * x);
+    const upZ = 1 - 2 * (x * x + y * y);
+    return Math.atan2(-forwardZ, Math.sqrt(sideZ * sideZ + upZ * upZ)) * (180 / Math.PI);
   }
 
+  /* The module's launch control state: 0 idle, 1 and 2 holding, 3
+   * released. An older dist/sim.wasm has no launch control and is idle. */
   function lcState() {
-    return typeof sim.launchControlState === 'function'
-      ? sim.launchControlState()
-      : 0;
+    return typeof sim.launchControlState === 'function' ? sim.launchControlState() : 0;
   }
 
   function applyLaunchSwitch(on) {
@@ -12807,28 +12760,23 @@ export async function boot({
     sim.e.sim_set_launch_stand(0, 0, 0, 0, 1, 0, 0, 0);
   }
 
-  /* Seed the plant with the ramp pitch the parked overlay was drawing,
-   * then let the module hold a rear-arm hinge every 1 ms step. Without
-   * that seed, launching off a 28 degree block dropped the craft onto a
-   * level physics pose and walking the stick walked it off the rails. */
+  /* The stand holds a hinge at the rear arms every step, seeded with the
+   * ramp pitch the parked overlay was drawing; on a level seed a 28 degree
+   * block dropped the craft flat and the sticks walked it off the rails. */
   function enableLaunchStand() {
     const st = readState();
-    const h = startPitch * 0.5;
-    const code = sim.e.sim_set_launch_stand(
-      1, st[1], st[2], st[3],
-      Math.cos(h), 0, Math.sin(h), 0,
-    );
+    const half = startPitch * 0.5;
+    const code = sim.e.sim_set_launch_stand(1, st[1], st[2], st[3], Math.cos(half), 0, Math.sin(half), 0);
     if (code === SIM_OK) {
       stateCurr = readState();
       statePrev = stateCurr;
     }
   }
 
+  /* Onto the stand, from a landed craft that is the right way up. */
   function beginLaunchStaging() {
-    if (!(mode === 'flight' && landed)) {
-      return;
-    }
-    if (stateCurr && plantUpZ(stateCurr) < 0) {
+    const upright = !stateCurr || plantUpZ(stateCurr) >= 0;
+    if (mode !== 'flight' || !landed || !upright) {
       return;
     }
     landed = false;
@@ -12840,23 +12788,47 @@ export async function boot({
     enableLaunchStand();
   }
 
+  /* Off the stand. With `park`, in flight, the craft is set down landed
+   * where it is, as if the launch had never been staged. */
   function endLaunchStaging(park) {
     launchStaging = false;
     input.forcePadRest = false;
     lcBoost = false;
     disableLaunchStand();
-    if (park && mode === 'flight') {
-      sim.rest();
-      landed = true;
-      takingOff = false;
-      stateCurr = readState();
-      statePrev = stateCurr;
-      acc = 0;
+    if (!park || mode !== 'flight') {
+      return;
+    }
+    sim.rest();
+    landed = true;
+    takingOff = false;
+    stateCurr = readState();
+    statePrev = stateCurr;
+    acc = 0;
+  }
+
+  /* The module released a held launch: the stand goes and the craft flies,
+   * in acro for the first moment, with GO on the banner. */
+  function releaseLaunch(nowMs) {
+    launchStaging = false;
+    input.forcePadRest = false;
+    disableLaunchStand();
+    lcBoost = true;
+    takingOff = true;
+    takeoffUntil = nowMs + TAKEOFF_WINDOW_MS;
+    flownThisRun = true;
+    racePrev.copy(shell.quad.position);
+    raceHasPrev = true;
+    lcGoUntil = nowMs + 900;
+    lcAcroUntil = nowMs + 480;
+    if (typeof audio.event === 'function') {
+      audio.event('takeoff');
     }
   }
 
+  /* Once a frame: follows the module's launch control state, and drops an
+   * armed switch whose Settings row was turned off. Returns the state. */
   function syncLaunchControl(nowMs) {
-    if (!ui.settings.launchControl && lcArmed) {
+    if (lcArmed && !ui.settings.launchControl) {
       applyLaunchSwitch(false);
       if (launchStaging) {
         endLaunchStaging(true);
@@ -12864,27 +12836,16 @@ export async function boot({
       lcAcroUntil = 0;
     }
     const st = lcState();
-    if (st === 1 || st === 2) {
+    const holding = (s) => s === 1 || s === 2;
+    if (holding(st)) {
       lcAcroUntil = Infinity;
-      if (landed && mode === 'flight' && !turtleWait && !turtleFlip.active && !turtleRecover) {
+      const turtled = turtleWait || turtleFlip.active || turtleRecover;
+      if (landed && mode === 'flight' && !turtled) {
         beginLaunchStaging();
       }
     } else if (st === 3) {
-      if (lcPrevState === 1 || lcPrevState === 2) {
-        launchStaging = false;
-        input.forcePadRest = false;
-        disableLaunchStand();
-        lcBoost = true;
-        takingOff = true;
-        takeoffUntil = nowMs + TAKEOFF_WINDOW_MS;
-        flownThisRun = true;
-        racePrev.copy(shell.quad.position);
-        raceHasPrev = true;
-        lcGoUntil = nowMs + 900;
-        lcAcroUntil = nowMs + 480;
-        if (typeof audio.event === 'function') {
-          audio.event('takeoff');
-        }
+      if (holding(lcPrevState)) {
+        releaseLaunch(nowMs);
       }
     } else {
       if (launchStaging) {
@@ -12898,70 +12859,46 @@ export async function boot({
     return st;
   }
 
+  /* Tells the module the flight mode when it changes, and keeps the craft
+   * card's caption on the mode being flown. */
   function syncAngleMode() {
     const want = wantAngleMode();
     if (want !== angleModeOn) {
       angleModeOn = want;
       sim.setAngleMode(want);
     }
-    if (ui.setCraftCaption && !(showcase && showcase.failed)) {
-      ui.setCraftCaption(want
-        ? str('main.angle_sticks_are_tilt_hands_off')
-        : str('ui.acro_sticks_are_rates_hands_off'));
+    if (!ui.setCraftCaption || (showcase && showcase.failed)) {
+      return;
     }
+    ui.setCraftCaption(str(want ? 'main.angle_sticks_are_tilt_hands_off' : 'ui.acro_sticks_are_rates_hands_off'));
   }
 
-  /* The pilot's render scale as a multiplier, 100 percent being native. */
+  /* The Render scale setting as a multiplier of native resolution. */
   function renderScaleOf(s) {
     return (Number(s.renderScale) || 100) / 100;
   }
 
   /*
-   * Everything the shell derived from the OLD plant, re-derived. Four things
-   * and they have to move together, which is why this is one function rather
-   * than four lines at the call site:
-   *
-   *   the collision dimensions, which src/game/collide.js publishes as live
-   *     module bindings so every importer follows without knowing;
-   *   the drawn model, which is a different builder entirely for a whoop;
-   *   the ground plane the module holds, because a 23 mm thick machine does
-   *     not park 45 mm off the deck; and
-   *   the record key, because a whoop lap and a five inch lap on the same
-   *     track are not the same record.
-   *
-   * Between runs only. Every collision query in flight reads the dimensions
-   * and swapping them mid lap would move the hull under a craft that is
-   * already resolving a contact.
+   * After the plant changes airframe, everything the shell keeps about the
+   * old one follows: the collision dimensions (src/game/collide.js exports
+   * them as live bindings), the parts, the cell count, the parked height
+   * (which places the ground plane, the spawn and the landed test; see
+   * SPAWN_ALT), the drawn model, the ghost's model, the motor voice and the
+   * camera mount. Between runs only: a hull swapped mid flight would move
+   * under a contact being resolved.
    */
   function syncCraftScale() {
-    setCraftAirframe(airframeById(runAirframe).dims);
+    const craft = airframeById(runAirframe);
+    setCraftAirframe(craft.dims);
     seatCraftParts();
-    runCells = airframeById(runAirframe).cells;
-    /* Where this aircraft's centre sits when it is parked, which is where
-     * the shell puts the ground plane, the spawn and the landed test. See
-     * SPAWN_ALT at the top of this file. */
-    seatRestHeight(airframeById(runAirframe), startsAfloat());
+    runCells = craft.cells;
+    seatRestHeight(craft, startsAfloat());
     dressCraft();
     swapGhostRig();
-    const isWing = Boolean(airframeById(runAirframe).fixedWing);
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
-    setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
+    setFlownVoice(craft.voice ?? (craft.fixedWing ? 'wing' : 'quad'));
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
-    /*
-     * The ground PLANE needs no raising here: raiseGroundFromState asserts
-     * it from the craft's own pose every step it matters, and the shell
-     * does not hold one. This paragraph exists because the first version of
-     * this function called a raiseGround() that does not exist.
-     *
-     * Where that plane goes under the craft is another matter, and it is
-     * the line above. worldPosToSim puts the surface at sim z minus
-     * SPAWN_ALT, so SPAWN_ALT IS how far the plant's origin stands off the
-     * floor, and it has to be this aircraft's parked height or the plant
-     * rests the craft in the air. That was the bug: "a 23 mm thick machine
-     * does not park 45 mm off the deck" was written here, correctly, while
-     * both numbers stayed the five inch's.
-     */
   }
 
   /*
@@ -12990,13 +12927,45 @@ export async function boot({
     drawnCombat = combat;
   }
 
+  /*
+   * The settings, applied. Called on every change ui.js makes and at boot,
+   * so each part below compares and only acts on what moved. The order is
+   * load-bearing where the module is concerned: the run's plant first
+   * (voltage, style, airframe and what hangs on it), then gravity, the
+   * record key, the world, the tune, the rates and the PIDs, and the module
+   * receives exactly that sequence.
+   */
   function applySettings(s) {
-    /*
-     * The pilot's stick mode, first, because everything below it that draws
-     * a stick wants to know. input.setStickMode forwards to the thumb
-     * sticks; ui.setStickMode redraws the captions and the how-to prose.
-     * Both are no-ops when the mode has not moved.
-     */
+    applyControlSettings(s);
+    applyCameraSettings(s);
+    applyDisplaySettings(s);
+    if (mode === 'title') {
+      applyRunSettings(s);
+    }
+    applyAirSettings(s);
+    race.setRecordKey(recordKey());
+    paintBest();
+    if (!worldMatchesSettings()) {
+      syncWorld();
+    }
+    /* Only a move of the Tune row swaps the tune. Comparing with the loaded
+     * tune instead would throw away a dropped diff, which is no registry
+     * tune, on the next unrelated change such as the volume. */
+    if (s.tune !== menuTune) {
+      menuTune = s.tune;
+      configLoadWait = swapTune(s.tune).catch((e) => {
+        console.error(e);
+      });
+    }
+    applyRatesSettings(s);
+    applyPidSettings(s);
+    applyDeviceSettings(s);
+    syncAngleMode();
+  }
+
+  /* The stick mode first, since every stick drawn after it reads it (both
+   * calls do nothing when it has not moved), then the mouse. */
+  function applyControlSettings(s) {
     input.setStickMode(s.stickMode);
     if (ui.setStickMode) {
       ui.setStickMode(s.stickMode);
@@ -13008,19 +12977,24 @@ export async function boot({
       invert: s.mouseInvert,
       centre: s.mouseCentre,
     });
+  }
+
+  /* The FPV camera's uptilt (clamped, and the clamp written back) and its
+   * vertical field of view, a lens choice on a real quad. */
+  function applyCameraSettings(s) {
     camTilt = clampCameraAngle(s.cameraAngle);
     s.cameraAngle = camTilt;
     qTilt.setFromAxisAngle(AXIS_X, cameraTiltRad(camTilt));
-    /* Vertical field of view. The default 100 keeps every measured budget
-     * comparable; the setting exists because how roomy a course feels is a
-     * pilot preference on real quads too, set by lens choice. */
     if (shell.camera.fov !== s.cameraFov) {
       shell.camera.fov = s.cameraFov;
       shell.camera.updateProjectionMatrix();
     }
-    /* Render scale changes are free, no world rebuild: set the ratio and
-     * walk the same guarded resize path a window resize takes, so the
-     * composer and every prepass target follow in one place. */
+  }
+
+  /* Render scale, the dynamic resolution mode and the perf overlay. A size
+   * change takes the same guarded resize path a window resize does, so the
+   * composer and every prepass target follow; no world is rebuilt. */
+  function applyDisplaySettings(s) {
     const userScale = renderScaleOf(s);
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
@@ -13028,240 +13002,157 @@ export async function boot({
     perfOverlay.setOn(s.perfOverlay);
     dynres.setWatch(s.perfOverlay);
     const wantPr = pixelRatioFor(s.graphics, userScale, null, dynres.state.scale);
-    const userChanged = !!(view && view.post && view.post.userScale != null
-      && view.post.userScale !== userScale);
-    if (view && view.post && view.post.userScale != null) {
-      view.post.userScale = userScale;
+    const post = view && view.post && view.post.userScale != null ? view.post : null;
+    const scaleMoved = Boolean(post) && post.userScale !== userScale;
+    if (post) {
+      post.userScale = userScale;
     }
     /* An export surface re-applies the settings' size when it goes. */
-    if (!exportShot && (shell.pixelRatio !== wantPr || userChanged)) {
-      if (shell.pixelRatio !== wantPr) {
-        applyPixelRatio(shell, s.graphics, userScale, null, dynres.state.scale);
-      }
-      const d = shell.resize();
-      if (view && view.post && mapReady) {
-        view.post.setSize(d.w, d.h);
-      }
+    if (exportShot || (shell.pixelRatio === wantPr && !scaleMoved)) {
+      return;
     }
-    if (mode === 'title') {
-      /* Between runs the choice takes effect at once. During a run it
-       * waits for the next one, so the record it is measured against is
-       * the pack it was flown on. */
-      runVoltage = s.packVoltage;
-      sim.setCellVoltage(runVoltage);
-      /* Flight style rides the same rule: the record and the physics a
-       * run is flown on are decided when it starts, not mid lap. Guarded
-       * because an older dist/sim.wasm predates the export. */
-      runStyle = s.flightStyle === 'arcade' ? 'arcade' : 'expert';
-      if (typeof sim.e.sim_set_flight_style === 'function') {
-        sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
+    if (shell.pixelRatio !== wantPr) {
+      applyPixelRatio(shell, s.graphics, userScale, null, dynres.state.scale);
+    }
+    const size = shell.resize();
+    if (view && view.post && mapReady) {
+      view.post.setSize(size.w, size.h);
+    }
+  }
+
+  /*
+   * What a run is flown on, taken only between runs so that a record is
+   * measured on one machine from its start: the pack voltage, the flight
+   * style, the airframe (the whole plant: mass, inertia, motors, rotors,
+   * pack and hull) or a Loadout propulsion, then crash damage, power,
+   * tuning and parts, each after the airframe it belongs to. Exports an
+   * older dist/sim.wasm lacks are skipped, and that build flies what it has.
+   */
+  function applyRunSettings(s) {
+    runVoltage = s.packVoltage;
+    sim.setCellVoltage(runVoltage);
+    runStyle = s.flightStyle === 'arcade' ? 'arcade' : 'expert';
+    if (typeof sim.e.sim_set_flight_style === 'function') {
+      sim.e.sim_set_flight_style(runStyle === 'arcade' ? 1 : 0);
+    }
+    const craft = airframeById(s.airframe).id;
+    const plant = seatedSimId(craft);
+    if (craft !== runAirframe || plant !== runSimId) {
+      runAirframe = craft;
+      runSimId = plant;
+      if (typeof sim.e.sim_set_airframe === 'function') {
+        sim.e.sim_set_airframe(runSimId);
       }
-      /*
-       * THE AIRFRAME, on the same between-runs rule and for a stronger
-       * version of the same reason. Pack charge and flight style change what
-       * a run measures; the airframe changes the ENTIRE PLANT, the mass, the
-       * inertia, the motors, the rotors, the pack and the collision hull, so
-       * applying it mid lap would be swapping the aircraft under the pilot.
-       *
-       * Guarded because an older dist/sim.wasm predates the export, same as
-       * the flight style above. On such a build the shell simply flies the
-       * five inch, which is what that build has.
-       */
-      const wantCraft = airframeById(s.airframe).id;
-      /* A propulsion chosen on the Loadout tab is a plant of its own, so it
-       * changes the plant as an airframe does, on the same rule. */
-      const wantSim = seatedSimId(wantCraft);
-      if (wantCraft !== runAirframe || wantSim !== runSimId) {
-        runAirframe = wantCraft;
-        runSimId = wantSim;
-        if (typeof sim.e.sim_set_airframe === 'function') {
-          sim.e.sim_set_airframe(runSimId);
-        }
-        /*
-         * The plant changed under a module that is already initialised, so
-         * everything the shell derived from the OLD plant has to follow: the
-         * craft's own dimensions, its collision hull, its model and the
-         * ground plane it sits on. syncCraftScale does all four and is
-         * called here rather than left to worldMatchesSettings because the
-         * craft is session lived and the world is not.
-         */
-        syncCraftScale();
-        /* The plant raised the old airframe's flaps with it. */
-        flapNotch = 0;
-      }
-      /* Crash damage rides the same rule: a run is flown on one set of
-       * physics from its start. After the airframe, whose part table it
-       * picks. See THE CRASH SHELL. */
-      applyCrashMode(s);
-      /* The power system too, after the airframe it belongs to: a fresh
-       * pack and a full tank every run. The tuning after the power it is
-       * balanced on, and the hangar's parts over both. */
-      applyPower(s);
-      applyTuning(s);
-      applyParts(s);
+      /* The craft is session lived and the world is not, so its derived
+       * state follows here rather than in a world rebuild. */
+      syncCraftScale();
+      /* The plant raised the old airframe's flaps with it. */
+      flapNotch = 0;
     }
-    /*
-     * THE AIR, OUTSIDE THE BETWEEN-RUNS BLOCK ON PURPOSE.
-     *
-     * See the note at runWeight: this is the one physics setting with a
-     * control on the flight screen, and it is there so the pilot can feel it
-     * arrive. Waiting for the next run would make the slider a promise
-     * instead of a knob.
-     *
-     * What it costs is paid on the lap rather than hidden: a lap the change
-     * lands inside was flown on two different aircraft and is voided, which
-     * is the same bookkeeping a gate frame strike gets and shows up the same
-     * way on the results screen. Between laps, on the start line, or in
-     * freestyle, nothing is interrupted.
-     *
-     * Guarded because an older dist/sim.wasm predates the export, same as
-     * the flight style and the airframe. On such a build the slider moves and
-     * the plant does not, so the guard also holds the shell's own idea of the
-     * run's air at stock: a record must not be filed under an air the module
-     * never flew.
-     */
-    {
-      const wantWeight = clampWeight(s.weight);
-      /*
-       * The scale follows the airframe as well as the slider, because the
-       * base lives on the airframe entry; and the test is on the SCALE, not
-       * the weight, so the boot time disagreement between the module's 1.0
-       * and the shell's normal is seen, and so an airframe swap that moved
-       * the base would be too. The airframe itself only changes between
-       * runs, above, so this cannot swap the plant under a lap.
-       */
-      const wantScale = gravityScaleFor(wantWeight, runAirframe);
-      if (wantScale !== runGravityScale) {
-        if (typeof sim.e.sim_set_gravity === 'function'
-          && sim.e.sim_set_gravity(wantScale) === SIM_OK) {
-          /*
-           * NOT gated on mode, and the first version was. The slider sits
-           * below the pause panel, dimmed but uncovered, so it can be dragged
-           * while paused; with `mode === 'flight'` in this test a pilot who
-           * paused mid lap, dragged it and resumed finished a lap flown under
-           * two gravities that was never voided and then filed under the new
-           * key. A running lap is a running lap whichever screen is over it.
-           * Title and results have no lap, because reset clears one, so the
-           * boot time push of a stored value cannot void anything.
-           */
-          const midLap = race.currentLapMs(simTimeMs) != null;
-          runWeight = wantWeight;
-          runGravityScale = wantScale;
-          if (midLap) {
-            race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
-          }
-        } else {
-          ui.settings.weight = runWeight;
-          ui.paintAir();
-        }
-      } else {
-        runWeight = wantWeight;
-      }
+    applyCrashMode(s);
+    applyPower(s);
+    applyTuning(s);
+    applyParts(s);
+  }
+
+  /*
+   * Weight, the one physics setting that applies mid run: it has a control
+   * on the flight screen so the pilot can feel it arrive. A lap it lands in
+   * was flown on two aircraft and is voided, paused or not, since the
+   * slider stays reachable under the pause panel; at the title there is no
+   * lap to void. What reaches the module is the gravity multiple, which
+   * follows the airframe's base as well as the slider. On a module without
+   * the export, or one that refuses it, the slider goes back to the weight
+   * actually flown, so no record is filed under an air never flown.
+   */
+  function applyAirSettings(s) {
+    const weight = clampWeight(s.weight);
+    const scale = gravityScaleFor(weight, runAirframe);
+    if (scale === runGravityScale) {
+      runWeight = weight;
+      return;
     }
-    race.setRecordKey(recordKey());
-    paintBest();
-    if (!worldMatchesSettings()) {
-      syncWorld();
+    const taken = typeof sim.e.sim_set_gravity === 'function' && sim.e.sim_set_gravity(scale) === SIM_OK;
+    if (!taken) {
+      ui.settings.weight = runWeight;
+      ui.paintAir();
+      return;
     }
-    /*
-     * Only a MOVE of the Tune item swaps the tune. Comparing against what
-     * is loaded instead would undo a dropped diff the next time the pilot
-     * changed the volume, because a dropped file is not a registry tune.
-     */
-    if (s.tune !== menuTune) {
-      menuTune = s.tune;
-      configLoadWait = swapTune(s.tune).catch((e) => {
-        console.error(e);
-      });
+    const midLap = race.currentLapMs(simTimeMs) != null;
+    runWeight = weight;
+    runGravityScale = scale;
+    if (midLap) {
+      race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
     }
-    /*
-     * Rates are part of the config text, so changing one re-inits the module.
-     * Compared as the CLI text the profile emits rather than field by field,
-     * so a change to any of the eleven fields, the rates type included, is
-     * one string comparison and none of them can be forgotten here.
-     *
-     * IT DOES NOT RESET THE RUN, and that is the difference between this
-     * branch and the tune and PID branches around it. A tune changes the
-     * MACHINE and a lap flown half on each is not a lap. Rates change the
-     * PILOT: how far their sticks go. The owner asked for the change to be
-     * flyable mid run, and the request is right, because tuning stick feel
-     * means tuning it against a corner and you cannot do that if every nudge
-     * costs the lap. So the module is re-inited and the craft is put back
-     * where it stood by reseatAfterConfigSwap, which also says what it
-     * cannot carry across.
-     *
-     * The record key still changes, because recordKey hashes the whole
-     * composed config and the rates are in it. A lap flown across a rate
-     * change is therefore compared against its own key and not against the
-     * old one's best, which is the protection reset() used to provide by
-     * throwing the lap away. Keeping the lap and keying it honestly is the
-     * better half of that trade.
-     */
+  }
+
+  /*
+   * Rates are part of the config text, so a change re-inits the module,
+   * but without resetting the run: rates are the pilot's stick feel, which
+   * is tuned against a corner mid run, not the machine. The craft is put
+   * back where it stood (reseatAfterConfigSwap), and the record key moves
+   * with the text, so the lap is kept and filed honestly.
+   *
+   * The new text is composed into a local and adopted only if the module
+   * takes it. A refused sim_init has already reset the parameter groups and
+   * applied part of the text, so the recovery re-inits the text that last
+   * worked.
+   */
+  function applyRatesSettings(s) {
     const nextRates = ratesDiff(s.rates);
-    if (nextRates !== ratesText) {
-      /*
-       * Composed into a LOCAL first. A refused sim_init is not a no-op down
-       * in the module: bridge_parse_config has already reset every
-       * parameter group to its default and applied part of the new text, so
-       * the craft is flying a half applied config with the PREVIOUS run's
-       * filter and PID init products. The other four init sites recover by
-       * re-initing the text that worked; this one did not, and it had
-       * already overwritten configText with the rejected text, so every one
-       * of those recoveries would have restored the bad config too.
-       */
-      const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, pidsText);
-      /* Read BEFORE the init that zeroes it. */
-      const before = readState();
-      if (sim.init(nextText) === SIM_OK) {
-        ratesText = nextRates;
-        configText = nextText;
-        race.setRecordKey(recordKey());
-        paintBest();
-        reseatAfterConfigSwap(before);
-      } else if (sim.init(configText) === SIM_OK) {
-        /* Back to the config that worked, and put the craft back on it. The
-         * failed attempt moved the module underneath the craft, and a
-         * refused rate change should cost a pilot nothing at all, so this
-         * re-seats rather than resetting too. */
-        reseatAfterConfigSwap(before);
-      }
-      publishPids();
+    if (nextRates === ratesText) {
+      return;
     }
-    /*
-     * The PID adjustment, same contract as rates: part of the config text,
-     * so changing it re-inits the module and resets the craft. Compared as
-     * the CLI text configs/pids.js emits for the LOADED tune, so a slider
-     * moved on the tune that is flying re-inits, and an adjustment stored
-     * for a different tune changes nothing until that tune is chosen.
-     * While a tune swap is in flight configId is still the old tune, this
-     * comparison stays a no-op, and swapTune adopts the new tune's block
-     * itself.
-     */
+    const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, pidsText);
+    /* Read before the init that zeroes the state. */
+    const before = readState();
+    const taken = sim.init(nextText) === SIM_OK;
+    if (taken) {
+      ratesText = nextRates;
+      configText = nextText;
+      race.setRecordKey(recordKey());
+      paintBest();
+    }
+    if (taken || sim.init(configText) === SIM_OK) {
+      reseatAfterConfigSwap(before);
+    }
+    publishPids();
+  }
+
+  /*
+   * The PID adjustment for the tune that is flying (configs/pids.js), also
+   * part of the config text, but a change to the machine, so it resets the
+   * run. An adjustment stored for another tune moves nothing until that
+   * tune flies; while a swap is in flight configId is still the old tune,
+   * and swapTune takes the new tune's block itself.
+   */
+  function applyPidSettings(s) {
     const nextPids = pidsDiffFor(s.pids, configId);
-    if (nextPids !== pidsText) {
-      /* A local first, same reason as rates above: a refused sim_init has
-       * already half-applied the new text, and recovery must restore the
-       * text that worked, not the rejected one. */
-      const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, nextPids);
-      if (sim.init(nextText) === SIM_OK) {
-        pidsText = nextPids;
-        configText = nextText;
-        adoptSimClock();
-        sim.setCellVoltage(runVoltage);
+    if (nextPids === pidsText) {
+      return;
+    }
+    const nextText = composeConfig(tuneText, s.rates, RATES_KEEP, nextPids);
+    const taken = sim.init(nextText) === SIM_OK;
+    if (taken) {
+      pidsText = nextPids;
+      configText = nextText;
+    }
+    if (taken || sim.init(configText) === SIM_OK) {
+      adoptSimClock();
+      sim.setCellVoltage(runVoltage);
+      if (taken) {
         race.setRecordKey(recordKey());
         paintBest();
-        reset();
-      } else if (sim.init(configText) === SIM_OK) {
-        adoptSimClock();
-        sim.setCellVoltage(runVoltage);
-        reset();
       }
-      publishPids();
+      reset();
     }
-    /* The radio, and the recorder. Both are re-read here so a change in
-     * Settings lands without a restart. setPreset on the same id is a
-     * no-op, and setEnabled only clears the log when it goes from off to
-     * on, so neither re-applies anything on an unrelated settings change. */
+    publishPids();
+  }
+
+  /* The radio link, the flight recorder, sound and the mix. setPreset and
+   * setEnabled act only on a real change, so an unrelated setting re-applies
+   * nothing here. */
+  function applyDeviceSettings(s) {
     if (rcLink.id !== s.link) {
       rcLink.setPreset(s.link);
       rcLink.reset(rcNextMs);
@@ -13272,7 +13163,6 @@ export async function boot({
     audio.setLevel(s.volume / 10);
     audio.setEnabled(s.sound);
     applyMix(s);
-    syncAngleMode();
   }
 
   /*
