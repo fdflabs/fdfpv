@@ -113,6 +113,12 @@ async function boot(airframe) {
   const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed: seedFor(airframe) });
   await page.until('window.__shellReady && window.__map && window.__map().ready', 120000);
   await page.sleep(1000);
+  /* Nothing here reads a pixel. On a CI runner, which renders in software
+   * on two cores, a drawn frame of the valley takes seconds, and the pad
+   * shot (which advances per frame, capped per frame) did not end inside a
+   * minute; turtle:check hit the same wall. The draw is skipped with the
+   * perf checks' hook; the loop and the plant run as they do with it. */
+  await page.evaluate('window.__drawOff(true)');
   await page.evaluate(RECORDER);
   return page;
 }
