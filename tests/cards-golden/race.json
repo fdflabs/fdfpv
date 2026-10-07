@@ -1,0 +1,2267 @@
+{
+ "courses-absent": {
+  "local": [
+   {
+    "id": "own-alps",
+    "name": "Alpine ring",
+    "map": "alps",
+    "gates": 3,
+    "planes": [
+     "cub1400",
+     "slowstick1180",
+     "cub1400f",
+     "bombshell1118",
+     "f16878",
+     "zagi1219"
+    ],
+    "author": "",
+    "online": "",
+    "doc": "<doc>"
+   },
+   {
+    "id": "own-swiss",
+    "name": "One gate valley",
+    "map": "swiss2",
+    "gates": 1,
+    "planes": [
+     "cub1400",
+     "slowstick1180",
+     "cub1400f",
+     "bombshell1118",
+     "f16878",
+     "zagi1219"
+    ],
+    "author": "",
+    "online": "",
+    "doc": "<doc>"
+   }
+  ],
+  "board": [],
+  "boardNote": "The board is not answering, so only your own tracks are listed.",
+  "localNote": "",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mapCards": 0,
+  "walk": [
+   [
+    [
+     true,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ]
+   ],
+   [
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     true,
+     -1,
+     null,
+     false
+    ]
+   ],
+   [
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ]
+   ]
+  ],
+  "keptOnRender": true
+ },
+ "courses-board": {
+  "noteWhileReading": "Reading the board",
+  "seen": [
+   "board /api/tracks"
+  ],
+  "board": [
+   {
+    "id": "b-flown",
+    "name": "Most flown",
+    "author": "pub",
+    "designer": "Des Igner",
+    "series": "",
+    "gates": 7,
+    "recordMs": 31234,
+    "recordBy": "Zed",
+    "times": 40,
+    "publishedUtc": "",
+    "plan": null,
+    "tags": [],
+    "trackClass": "full",
+    "map": "swiss2",
+    "planes": [
+     "cub1400"
+    ],
+    "planeRecordMs": 45678,
+    "planeRecordBy": "Wingo",
+    "planeTimes": 3,
+    "board": "http://127.0.0.1:3180"
+   },
+   {
+    "id": "b-quad",
+    "name": "Quads only",
+    "author": "Quinn",
+    "designer": "",
+    "series": "",
+    "gates": 4,
+    "recordMs": 20500,
+    "recordBy": "Q",
+    "times": 12,
+    "publishedUtc": "",
+    "plan": null,
+    "tags": [],
+    "trackClass": "full",
+    "map": "alps",
+    "planes": [],
+    "planeRecordMs": null,
+    "planeRecordBy": "",
+    "planeTimes": 0,
+    "board": "http://127.0.0.1:3180"
+   },
+   {
+    "id": "b-one",
+    "name": "Single gate",
+    "author": "",
+    "designer": "",
+    "series": "",
+    "gates": 1,
+    "recordMs": null,
+    "recordBy": "",
+    "times": 5,
+    "publishedUtc": "",
+    "plan": null,
+    "tags": [],
+    "trackClass": "full",
+    "map": "swiss2",
+    "planes": [
+     "cub1400"
+    ],
+    "planeRecordMs": null,
+    "planeRecordBy": "",
+    "planeTimes": 0,
+    "board": "http://127.0.0.1:3180"
+   }
+  ],
+  "boardNote": "",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Most flown"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · by Des Igner · 7 gates · Record 31.23"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Quads only"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · by Quinn · 4 gates · Record 20.50"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Single gate"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "chosen": {
+   "subject": "board:b-flown",
+   "lit": [
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     true
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ]
+   ]
+  }
+ },
+ "courses-board-none-fly": {
+  "noteWhileReading": "Reading the board",
+  "seen": [
+   "board /api/tracks"
+  ],
+  "board": [],
+  "boardNote": "No interceptor tracks on the board yet. Build one and publish it, or change aircraft.",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "courses-board-empty": {
+  "noteWhileReading": "Reading the board",
+  "seen": [
+   "board /api/tracks"
+  ],
+  "board": [],
+  "boardNote": "No published tracks on the board yet. Build one and publish it.",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "courses-cloud": {
+  "noteWhileReading": "Reading the tracks online",
+  "seen": [
+   "board /api/tracks",
+   "cloud /api/tracks?limit=50&owner=<key>",
+   "cloud /api/tracks?limit=24"
+  ],
+  "cloud": [
+   {
+    "id": "c-theirs",
+    "name": "Their valley",
+    "author": "Other",
+    "owner": "someone",
+    "map": "swiss2",
+    "gates": 5,
+    "planes": [
+     "cub1400"
+    ],
+    "updatedUtc": "2026-09-14T10:00:00Z"
+   },
+   {
+    "id": "c-gone",
+    "name": "Their retired",
+    "author": "",
+    "owner": "someone",
+    "map": "nowhere",
+    "gates": 2,
+    "planes": [],
+    "updatedUtc": "2026-08-01T10:00:00Z"
+   }
+  ],
+  "next": "page2",
+  "localNote": "",
+  "local": [
+   {
+    "id": "own-alps",
+    "name": "Alpine ring",
+    "map": "alps",
+    "gates": 3,
+    "planes": [
+     "cub1400",
+     "slowstick1180",
+     "cub1400f",
+     "bombshell1118",
+     "f16878",
+     "zagi1219"
+    ],
+    "author": "",
+    "online": "",
+    "doc": "<doc>"
+   },
+   {
+    "id": "own-swiss",
+    "name": "One gate valley",
+    "map": "swiss2",
+    "gates": 1,
+    "planes": [
+     "cub1400",
+     "slowstick1180",
+     "cub1400f",
+     "bombshell1118",
+     "f16878",
+     "zagi1219"
+    ],
+    "author": "",
+    "online": "",
+    "doc": "<doc>"
+   }
+  ],
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Their valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · by Other · 5 gates · Sep 14, 2026"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Their retired"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Retired world · 2 gates · Aug 1, 2026"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "more": {
+   "seen": [
+    "cloud /api/tracks?limit=24&before=page2"
+   ],
+   "ids": [
+    "c-theirs",
+    "c-gone",
+    "c-more"
+   ],
+   "next": "",
+   "cards": 5
+  },
+  "down": {
+   "localNote": "The tracks server is not answering, so only the tracks in this browser are listed.",
+   "cloud": 0
+  }
+ },
+ "seating": {
+  "local": true,
+  "seat": {
+   "id": "own-swiss",
+   "name": "One gate valley",
+   "author": "",
+   "board": "",
+   "document": "<doc>",
+   "local": true,
+   "importedUtc": "<noise>"
+  },
+  "share": null,
+  "gone": false,
+  "goneNote": "",
+  "cloudNoteWhileLoading": "Loading Their valley",
+  "cloudSeat": {
+   "then": 1,
+   "note": "",
+   "seat": {
+    "id": "c-theirs",
+    "name": "Their valley",
+    "author": "Other",
+    "board": "",
+    "document": "<doc>",
+    "local": true,
+    "importedUtc": "<noise>"
+   },
+   "share": null
+  },
+  "copy": {
+   "opened": [
+    {
+     "map": "swiss2",
+     "sameId": false,
+     "hasId": true
+    }
+   ],
+   "subject": null,
+   "note": ""
+  },
+  "cloudMissing": {
+   "then": 1,
+   "note": "Missing could not be loaded. The tracks server answered 404"
+  },
+  "copyMissing": {
+   "opened": 0,
+   "note": "Missing could not be loaded. The tracks server answered 404"
+  }
+ },
+ "standings": {
+  "none": "courses",
+  "reading": {
+   "screen": "standings",
+   "roomFrom": "courses",
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "Reading the board"
+      ]
+     }
+    ]
+   },
+   "times": null,
+   "error": ""
+  },
+  "world": {
+   "screen": "standings",
+   "roomFrom": "courses",
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "No lap"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "0.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Zed",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "31.23"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-me",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "3"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         " ANA TEST ",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "33.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "4"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Unnamed pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "38.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "5"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Slow Sam"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "40.10"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t7",
+     "name": "No lap",
+     "lapMs": 0,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t3",
+     "name": "Zed",
+     "lapMs": 31234,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t2",
+     "name": " ANA TEST ",
+     "lapMs": 33000,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t5",
+     "name": "",
+     "lapMs": 38000,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t1",
+     "name": "Slow Sam",
+     "lapMs": 40100,
+     "hasGhost": false,
+     "craft": ""
+    }
+   ],
+   "error": ""
+  },
+  "field": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Old field · by Old",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "No lap"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "0.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Zed",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "31.23"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-me",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "3"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         " ANA TEST ",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "33.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "4"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Unnamed pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "38.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "5"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Slow Sam"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "40.10"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "6"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Wingo"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "45.68"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "7"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Plane two",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "50.00"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t7",
+     "name": "No lap",
+     "lapMs": 0,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t3",
+     "name": "Zed",
+     "lapMs": 31234,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t2",
+     "name": " ANA TEST ",
+     "lapMs": 33000,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t5",
+     "name": "",
+     "lapMs": 38000,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t1",
+     "name": "Slow Sam",
+     "lapMs": 40100,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t4",
+     "name": "Wingo",
+     "lapMs": 45678,
+     "hasGhost": false,
+     "craft": "cub1400"
+    },
+    {
+     "id": "t6",
+     "name": "Plane two",
+     "lapMs": 50000,
+     "hasGhost": true,
+     "craft": "cub1400"
+    }
+   ],
+   "error": ""
+  },
+  "empty": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Empty · 2 gates",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "No times posted on this track yet. The first one is yours."
+      ]
+     }
+    ]
+   },
+   "times": [],
+   "error": ""
+  },
+  "down": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Down · 1 gates · by D",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "The board is not answering, so its times cannot be shown."
+      ]
+     }
+    ]
+   },
+   "times": [],
+   "error": "The board is not answering, so its times cannot be shown."
+  },
+  "superseded": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "No lap"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "0.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Zed",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "31.23"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-me",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "3"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         " ANA TEST ",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "33.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "4"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Unnamed pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "38.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "5"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Slow Sam"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "40.10"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t7",
+     "name": "No lap",
+     "lapMs": 0,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t3",
+     "name": "Zed",
+     "lapMs": 31234,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t2",
+     "name": " ANA TEST ",
+     "lapMs": 33000,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t5",
+     "name": "",
+     "lapMs": 38000,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t1",
+     "name": "Slow Sam",
+     "lapMs": 40100,
+     "hasGhost": false,
+     "craft": ""
+    }
+   ],
+   "error": ""
+  },
+  "fromPaused": {
+   "roomFrom": null,
+   "returnTo": "paused"
+  }
+ },
+ "tricks": {
+  "first": {
+   "name": "1 Trippy Spin",
+   "meta": "100 points · Block · Building Blocks · Reliable",
+   "how": "A whole turn or more around a post, flown belly up. Scored on all 9 test flights, across three bank angles and three degrees of overshoot.",
+   "view": "Seen from above. The pink nose is the front of the quad, and the faded copies are where it was."
+  },
+  "count": 35,
+  "kept": true,
+  "head": [
+   {
+    "name": "1 Trippy Spin",
+    "how": "A whole turn or more around a post, flown belly up.",
+    "view": "above",
+    "status": {
+     "tag": "Reliable",
+     "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+    },
+    "points": 100
+   },
+   {
+    "name": "Matty Flip",
+    "how": "Half a lap around a rail, entered from over the top, carrying a half turn of flip.",
+    "view": "side",
+    "status": {
+     "tag": "Reliable",
+     "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+    },
+    "points": 200
+   },
+   {
+    "name": "Anti Matty",
+    "how": "Half a lap around a rail, entered from over the top, carrying a whole turn of flip.",
+    "view": "side",
+    "status": {
+     "tag": "Reliable",
+     "line": "Scored on all 9 test flights, across three bank angles and three degrees of overshoot."
+    },
+    "points": 250
+   }
+  ],
+  "fifth": {
+   "name": "Matty Roll",
+   "meta": "425 points · Advanced · Matty Flips · Reliable",
+   "how": "Half a lap around a rail, entered from over the top, carrying three quarters of a turn of flip and a whole turn of roll. Scored on all 9 test flights, across three bank angles and three degrees of overshoot.",
+   "view": "Seen from the side. The pink nose is the front of the quad, and the faded copies are where it was."
+  },
+  "past": {
+   "name": "Split Yaw",
+   "meta": "300 points · Intermediate · SplitS · Fussy",
+   "how": "Half a lap around a rail, entered from over the top, carrying a half turn of roll and a half turn of flip and a half turn of yaw spin. Scored on 6 of 9 test flights, so it wants flying cleanly to register.",
+   "view": "Seen from the side. The pink nose is the front of the quad, and the faded copies are where it was."
+  }
+ },
+ "reels": {
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Alps"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Swiss valley, photoreal"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/itaipu.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Itaipu"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Interior (in development)"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "ids": [
+   "alps",
+   "swiss2",
+   "itaipu",
+   "interior"
+  ],
+  "waiting": {
+   "tag": "div",
+   "cls": "map-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Alps"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Swiss valley, photoreal"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card has-poster",
+     "poster": "url(\"/assets/posters/itaipu.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Itaipu"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait",
+         "kids": [
+          {
+           "tag": "div",
+           "cls": "map-reel-wait-stage",
+           "kids": [
+            "loading"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-still"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "The Interior (in development)"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "freeze": false,
+  "cached": {
+   "id": "alps",
+   "shots": [
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "video",
+       "cls": "map-reel-view",
+       "aria-hidden": "true",
+       "src": "<blob>"
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-reel",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel-wait",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-reel-wait-stage",
+         "kids": [
+          "loading"
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "keptOnCursor": true,
+  "lit": [
+   [
+    false,
+    -1,
+    null,
+    false
+   ],
+   [
+    true,
+    -1,
+    null,
+    false
+   ],
+   [
+    false,
+    -1,
+    null,
+    false
+   ],
+   [
+    false,
+    -1,
+    null,
+    false
+   ]
+  ],
+  "tags": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "quietTooSoon": false,
+  "started": true,
+  "startedAfterQuiet": true,
+  "recorder": {
+   "tag": "iframe",
+   "cls": "map-reel-view",
+   "clip": null,
+   "title": "World preview",
+   "src": "/src/share/orbit.html?map=swiss2"
+  },
+  "freezeWhileRecording": true,
+  "afterInput": {
+   "recorder": false,
+   "freeze": false,
+   "shots": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "rearmed": true,
+  "afterRearm": [
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   },
+   {
+    "tag": "div",
+    "cls": "map-reel"
+   }
+  ],
+  "stopped": {
+   "freeze": false,
+   "shots": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "thumbs": [
+   true
+  ]
+ }
+}

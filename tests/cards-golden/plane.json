@@ -1,0 +1,912 @@
+{
+ "courses-board": {
+  "noteWhileReading": "Reading the board",
+  "seen": [
+   "board /api/tracks"
+  ],
+  "board": [
+   {
+    "id": "b-flown",
+    "name": "Most flown",
+    "author": "pub",
+    "designer": "Des Igner",
+    "series": "",
+    "gates": 7,
+    "recordMs": 45678,
+    "recordBy": "Wingo",
+    "times": 3,
+    "publishedUtc": "",
+    "plan": null,
+    "tags": [],
+    "trackClass": "full",
+    "map": "swiss2",
+    "planes": [
+     "cub1400"
+    ],
+    "planeRecordMs": 45678,
+    "planeRecordBy": "Wingo",
+    "planeTimes": 3,
+    "board": "http://127.0.0.1:3180"
+   },
+   {
+    "id": "b-one",
+    "name": "Single gate",
+    "author": "",
+    "designer": "",
+    "series": "",
+    "gates": 1,
+    "recordMs": null,
+    "recordBy": "",
+    "times": 0,
+    "publishedUtc": "",
+    "plan": null,
+    "tags": [],
+    "trackClass": "full",
+    "map": "swiss2",
+    "planes": [
+     "cub1400"
+    ],
+    "planeRecordMs": null,
+    "planeRecordBy": "",
+    "planeTimes": 0,
+    "board": "http://127.0.0.1:3180"
+   }
+  ],
+  "boardNote": "",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster on",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Most flown"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · by Des Igner · 7 gates · Record 45.68"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Single gate"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "chosen": {
+   "subject": "board:b-flown",
+   "lit": [
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ],
+    [
+     false,
+     -1,
+     null,
+     true
+    ],
+    [
+     false,
+     -1,
+     null,
+     false
+    ]
+   ]
+  }
+ },
+ "courses-board-none-fly": {
+  "noteWhileReading": "Reading the board",
+  "seen": [
+   "board /api/tracks"
+  ],
+  "board": [],
+  "boardNote": "No piper cub tracks on the board yet. Build one and publish it, or change aircraft.",
+  "cards": {
+   "tag": "div",
+   "cls": "map-cards course-cards",
+   "kids": [
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/alps.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "Alpine ring"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "The Alps · 3 gates"
+       ]
+      }
+     ]
+    },
+    {
+     "tag": "div",
+     "cls": "map-card course-card has-poster",
+     "poster": "url(\"/assets/posters/swiss2.jpg\")",
+     "kids": [
+      {
+       "tag": "div",
+       "cls": "map-reel"
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-body",
+       "kids": [
+        {
+         "tag": "div",
+         "cls": "map-card-name",
+         "kids": [
+          "One gate valley"
+         ]
+        },
+        {
+         "tag": "div",
+         "cls": "map-card-tag"
+        }
+       ]
+      },
+      {
+       "tag": "div",
+       "cls": "map-card-meta",
+       "kids": [
+        "Swiss valley, photoreal · 1 gate"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "standings": {
+  "none": "courses",
+  "reading": {
+   "screen": "standings",
+   "roomFrom": "courses",
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "Reading the board"
+      ]
+     }
+    ]
+   },
+   "times": null,
+   "error": ""
+  },
+  "world": {
+   "screen": "standings",
+   "roomFrom": "courses",
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Wingo"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "45.68"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Plane two",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "50.00"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t4",
+     "name": "Wingo",
+     "lapMs": 45678,
+     "hasGhost": false,
+     "craft": "cub1400"
+    },
+    {
+     "id": "t6",
+     "name": "Plane two",
+     "lapMs": 50000,
+     "hasGhost": true,
+     "craft": "cub1400"
+    }
+   ],
+   "error": ""
+  },
+  "field": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Old field · by Old",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "No lap"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "0.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Zed",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "31.23"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-me",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "3"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         " ANA TEST ",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "33.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "4"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Unnamed pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "38.00"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "5"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Slow Sam"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "40.10"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "6"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Wingo"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "45.68"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "7"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Plane two",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "50.00"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t7",
+     "name": "No lap",
+     "lapMs": 0,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t3",
+     "name": "Zed",
+     "lapMs": 31234,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t2",
+     "name": " ANA TEST ",
+     "lapMs": 33000,
+     "hasGhost": true,
+     "craft": ""
+    },
+    {
+     "id": "t5",
+     "name": "",
+     "lapMs": 38000,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t1",
+     "name": "Slow Sam",
+     "lapMs": 40100,
+     "hasGhost": false,
+     "craft": ""
+    },
+    {
+     "id": "t4",
+     "name": "Wingo",
+     "lapMs": 45678,
+     "hasGhost": false,
+     "craft": "cub1400"
+    },
+    {
+     "id": "t6",
+     "name": "Plane two",
+     "lapMs": 50000,
+     "hasGhost": true,
+     "craft": "cub1400"
+    }
+   ],
+   "error": ""
+  },
+  "empty": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Empty · 2 gates",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "No times posted on this track yet. The first one is yours."
+      ]
+     }
+    ]
+   },
+   "times": [],
+   "error": ""
+  },
+  "down": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Down · 1 gates · by D",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-note",
+      "kids": [
+       "The board is not answering, so its times cannot be shown."
+      ]
+     }
+    ]
+   },
+   "times": [],
+   "error": "The board is not answering, so its times cannot be shown."
+  },
+  "superseded": {
+   "screen": "standings",
+   "roomFrom": null,
+   "returnTo": "title",
+   "lede": "Most flown · 7 gates · by Des Igner",
+   "table": {
+    "tag": "div",
+    "cls": "standings-table",
+    "kids": [
+     {
+      "tag": "div",
+      "cls": "standings-row standings-head",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank"
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Pilot"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "Lap"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row is-record",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "1"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Wingo"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "45.68"
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "cls": "standings-row",
+      "kids": [
+       {
+        "tag": "span",
+        "cls": "standings-rank",
+        "kids": [
+         "2"
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-pilot",
+        "kids": [
+         "Plane two",
+         {
+          "tag": "span",
+          "cls": "standings-ghost",
+          "kids": [
+           "ghost"
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "cls": "standings-lap",
+        "kids": [
+         "50.00"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "times": [
+    {
+     "id": "t4",
+     "name": "Wingo",
+     "lapMs": 45678,
+     "hasGhost": false,
+     "craft": "cub1400"
+    },
+    {
+     "id": "t6",
+     "name": "Plane two",
+     "lapMs": 50000,
+     "hasGhost": true,
+     "craft": "cub1400"
+    }
+   ],
+   "error": ""
+  },
+  "fromPaused": {
+   "roomFrom": null,
+   "returnTo": "paused"
+  }
+ }
+}
