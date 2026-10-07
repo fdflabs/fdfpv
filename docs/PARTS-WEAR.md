@@ -74,21 +74,21 @@ seats fresh parts and a full pack and never accrues wear. One function,
 Two new synced sections, `keyed`, merged per key like `parts`:
 
 ```
-settings.packs = {                         // per pilot, shared by airframes
-  v: 1,
-  list: [ { id: 'p3k9',                    // [a-z0-9]{1,8}, never reused
-            spec: '4s5000',                // a pack id from power.js or motors.js
-            cycles: 37,                    // full equivalent cycles, integer
-            health: 912,                   // per mille, 1000 new, integer
-            charge: 'full' | 'storage' | 'flat' } ],
-  charger: { channels: 2 },                // packs charged per turnaround
-}
-settings.wear = {                          // per airframe id
-  [airframeId]: { v: 1,
-    motor: 1000, prop: 1000, frame: 1000,  // per mille, integers
-    flights: 12 }
-}
+settings.packs[packId] = { v: 1,           // per pilot, shared by airframes
+  spec: '4s5000',     // cells, capacity, 'li' for Li-ion: configs/wear.js packSpec
+  cycles: 37,         // discharges, integer
+  health: 912,        // per mille, 1000 new, integer
+  charge: 'full' | 'storage' | 'flat',
+  from: 'sky1800' | null }                 // the airframe a starter pack came with
+settings.wear[airframeId] = { v: 1,
+  motor: 1000, prop: 1000, frame: 1000,    // per mille, integers
+  flights: 12 }
 ```
+
+Keyed by pack id so the account's keyed merge handles each pack on its own;
+starter packs are `<airframe>-1` and `-2`, so two computers granting them
+grant the same keys. The charger has no stored state: two channels
+(`CHARGER_CHANNELS`) until the economy sells more.
 
 Integers per mille keep the merge exact and every multiplier below a
 rational of small integers, so the block is the same double in Node and
@@ -108,7 +108,7 @@ during a flight. h = health / 1000.
 | pack health | R_CELL x (2 - h), PACK_C x (0.8 + 0.2 h) | R_CELL x (2 - h) (no capacity input) |
 | pack C rating | already in R_CELL (motors.js `g`) | same |
 | pack charge 'storage' | PACK_C x 0.6 (flown from 3.85 V a cell) | sag only, cells start lower (needs ABI: deferred) |
-| motor | THRUST x (0.9 + 0.1 h), CURRENT unchanged | `sim_set_motors` R x (2 - h) |
+| motor | THRUST x (0.9 + 0.1 h), CURRENT unchanged | `sim_set_motors` R x (1.2 - 0.2 h) |
 | prop | THRUST x (0.85 + 0.15 h) | KT x (0.85 + 0.15 h) |
 | frame | none in the plant (crash damage stays the existing taped and broken parts) | same |
 
@@ -145,7 +145,7 @@ nothing else:
 ```
 delta = { airframe,
           pack: { id, spec, before, after, cycles, charge } | null,
-          parts: [ { part: 'motor'|'prop'|'frame', before, after,
+          parts: [ { part: 'motor'|'prop'|'frame'|'pack', before, after,
                      cause: 'cycle'|'heat'|'impact'|'overdischarge' } ],
           retired: [packId] }
 ```
