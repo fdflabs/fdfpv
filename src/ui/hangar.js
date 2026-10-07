@@ -208,6 +208,22 @@ function withScheme(entry, scheme) {
   return out;
 }
 
+/* An entry with a region's underside in `hex`; the top's own colour
+ * (`top`) there is no underside of its own, so it is taken away. */
+function withUnder(entry, region, hex, top) {
+  const under = { ...(entry.under ?? {}) };
+  if (hex === top) {
+    delete under[region];
+  } else {
+    under[region] = hex;
+  }
+  const out = { ...entry, under };
+  if (!Object.keys(under).length) {
+    delete out.under;
+  }
+  return out;
+}
+
 /* The power choice a stored one names, made valid for these options. A
  * quad's has a prop as well (`power.props`, src/main.js quadPower). */
 export function powerChoice(power, stored) {
@@ -249,6 +265,8 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
     this.view = null;
+    /* Which side of the region the colours paint: 'top' or 'under'. */
+    this.paintSide = 'top';
     this.hover = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
@@ -480,6 +498,7 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.setFlip(false);
     this.setView(null);
+    this.paintSide = 'top';
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -591,7 +610,16 @@ export class Hangar {
     if (h.patch) {
       return this.shop.withDecal(this.entry, h.decal, h.patch);
     }
+    if (h.side === 'under') {
+      return withUnder(this.entry, h.region, h.hex, coloursFor(this.id, this.entry)[h.region]);
+    }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
+  }
+
+  /* Painting the underside of the region on show: not a film's. */
+  underSide() {
+    const r = this.regions.find((x) => x.id === this.region);
+    return this.paintSide === 'under' && Boolean(r) && !r.film;
   }
 
   /* Show the plane in what is on show now. Due rather than done: the
@@ -667,6 +695,14 @@ export class Hangar {
     this.changed(`scheme-${id}`);
   }
 
+  /* The underside is painted with the plane rolled over, so it faces the
+   * camera; the top with it upright. */
+  pickSide(side) {
+    this.paintSide = side;
+    this.setFlip(side === 'under');
+    this.changed(`side-${side}`, 'move');
+  }
+
   pickRegion(id) {
     this.region = id;
     this.focus = id;
@@ -680,6 +716,11 @@ export class Hangar {
       return;
     }
     const v = hex.toLowerCase();
+    if (this.underSide()) {
+      this.entry = withUnder(this.entry, this.region, v, coloursFor(this.id, this.entry)[this.region]);
+      this.changed(`colour-${v}`);
+      return;
+    }
     const bare = coloursFor(this.id, { scheme: this.entry.scheme })[this.region];
     const regions = { ...(this.entry.regions ?? {}) };
     if (v === bare) {
@@ -1159,11 +1200,25 @@ export class Hangar {
     box.append(list);
 
     const region = this.regions.find((r) => r.id === this.region);
+    if (region && !region.film) {
+      const sides = el('div', 'hangar-sides');
+      for (const side of ['top', 'under']) {
+        const on = this.paintSide === side;
+        const b = button(`hangar-side-btn${on ? ' on' : ''}`, str(`hangar.side_${side}`));
+        b.dataset.key = `side-${side}`;
+        b.dataset.focus = region.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => this.pickSide(side));
+        sides.append(b);
+      }
+      box.append(sides);
+    }
     if (region) {
-      const hex = colours[region.id];
+      const under = this.underSide();
+      const hex = under ? ((this.entry.under && this.entry.under[region.id]) ?? colours[region.id]) : colours[region.id];
       /* The scheme's own colour here, which is the first swatch, so there
        * is always a way back to it. */
-      const kit = coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
+      const kit = under ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
       const named = paletteColour(hex);
       const nameBox = el('div', 'hangar-colour');
       const chip = el('span', `hangar-colour-chip${region.film ? ' film' : ''}`);
@@ -1190,7 +1245,7 @@ export class Hangar {
         b.title = `${c.brand} ${c.name}`;
         b.setAttribute('aria-label', `${c.brand} ${c.name}`);
         b.setAttribute('aria-pressed', String(on));
-        this.trial(b, { region: region.id, hex: c.hex }, region.id);
+        this.trial(b, { region: region.id, hex: c.hex, side: under ? 'under' : 'top' }, region.id);
         b.addEventListener('click', () => this.pickColour(c.hex));
         pal.append(b);
       });

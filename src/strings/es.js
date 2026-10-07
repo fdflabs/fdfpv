@@ -1913,6 +1913,8 @@ export default {
   "hangar.tab_colours": "Colores",
   "hangar.reset": "Volver a serie",
   "hangar.flip": "Dar vuelta",
+  "hangar.side_top": "Arriba",
+  "hangar.side_under": "Panza",
   "hangar.view_top": "Arriba",
   "hangar.view_bottom": "Abajo",
   "hangar.view_left": "Izquierda",

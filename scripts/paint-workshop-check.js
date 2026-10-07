@@ -8,6 +8,11 @@
  *   2. The Flip button; the views by keys 3 to 6 keep the plane flipped,
  *      1 (Top) stands it up, a view pressed again lets go; a pad's R3
  *      flips it.
+ *   4. The underside: on one aircraft of every paint family the Colours
+ *      tab's Underside, pressed, rolls it over, and a swatch then paints
+ *      the first region's underside only (the model's material carries
+ *      it, the top keeps its colour); a picture of each. The Timber's is
+ *      saved, kept in the settings, and after a reload still drawn.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -54,7 +59,7 @@ function say(ok, what) {
 
 /* One aircraft per paint family: a float version wears its land plane's
  * livery, so it is the same paint. */
-const FAMILIES = AIRFRAMES.map((a) => a.id).filter((id, i, all) => paintable(id) && all.findIndex((o) => liveryKey(o) === liveryKey(id)) === i);
+const FAMILIES = (process.env.WORKSHOP_ONLY ? AIRFRAMES.filter((a) => process.env.WORKSHOP_ONLY.split(',').includes(a.id)) : AIRFRAMES).map((a) => a.id).filter((id, i, all) => paintable(id) && all.findIndex((o) => liveryKey(o) === liveryKey(id)) === i);
 
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -178,18 +183,91 @@ async function closedFlipped(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+const look = (page, id) => page.evaluate(`window.__pickLook(${JSON.stringify(id)})`);
+const paintOf = (page, id) => page.evaluate(`window.__pickPaint(${JSON.stringify(id)})`);
+
+/* Paint the first region that is not a film's underside in the third
+ * swatch on offer. Returns { region, hex } or null when every region is
+ * film (the Kadet). */
+async function paintUnder(page, id) {
+  await page.click('.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const region = await page.evaluate("(window.__ui.hangar.regions.find((r) => !r.film) || {}).id || null");
+  if (!region) {
+    return null;
+  }
+  await page.click(`.hangar [data-key="region-${region}"]`);
+  await page.click('.hangar [data-key="side-under"]');
+  await page.until("window.__ui.hangar.paintSide === 'under'", 5000).catch(async (e) => {
+    await shot(page, `${id}-no-underside`);
+    throw e;
+  });
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  const key = keys[2];
+  await page.click(`.hangar [data-key="${key}"]`);
+  /* The pointer off the panel, so no swatch under it is being tried on. */
+  await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
+  return { region, hex: key.slice('colour-'.length) };
+}
+
+async function underEach(page) {
+  console.log('4. the underside of every paint family');
+  for (const id of FAMILIES) {
+    await openHangar(page, id);
+    const before = await paintOf(page, id);
+    const got = await paintUnder(page, id);
+    if (!got) {
+      const side = await page.evaluate("Boolean(document.querySelector('.hangar [data-key=\"side-under\"]'))");
+      say(!side, `${id}: every region is film, so no Underside switch is offered`);
+      await closeHangar(page);
+      await page.evaluate('window.__ui.carousel.close(); true');
+      continue;
+    }
+    await page.until(ROLLED(Math.PI), 60000).catch(() => {});
+    await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(id)}); const u = l && l.uniforms[${JSON.stringify(got.region)}]; return Boolean(u) && u.under === ${JSON.stringify(got.hex)}; })()`, 20000).catch(() => {});
+    await page.sleep(600);
+    const l = await look(page, id);
+    const after = await paintOf(page, id);
+    await shot(page, `${id}-under`);
+    const u = l && l.uniforms[got.region];
+    const entry = await page.evaluate('window.__ui.hangar.entry');
+    say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
+      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}`);
+    if (id === 'timber1500') {
+      await page.click('.hangar [data-key="save"]');
+      await page.until('!window.__ui.hangar.isOpen', 10000);
+      const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery.timber1500`);
+      say(Boolean(stored) && stored.under && stored.under[got.region] === got.hex, `Save keeps the Timber's underside: ${JSON.stringify(stored)}`);
+      await page.cdp.send('Page.reload', {}, page.sessionId);
+      await page.until('!!window.__shellReady', 300000);
+      await page.until('window.__map && window.__map().ready', 400000);
+      await openHangar(page, id);
+      await page.until(`(() => { const l = window.__pickLook('timber1500'); const u = l && l.uniforms[${JSON.stringify(got.region)}]; return Boolean(u) && u.under === ${JSON.stringify(got.hex)}; })()`, 20000).catch(() => {});
+      const kept = await look(page, id);
+      say(kept && kept.uniforms[got.region] && kept.uniforms[got.region].under === got.hex, `after a reload the Timber still wears it: ${JSON.stringify(kept && kept.uniforms[got.region])}`);
+      await closeHangar(page);
+    } else {
+      await closeHangar(page);
+    }
+    await page.evaluate('window.__ui.carousel.close(); true');
+  }
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    await viewsEach(page);
-    await flipAndViews(page);
-    await closedFlipped(page);
+    if (!process.env.WORKSHOP_ONLY) {
+      await viewsEach(page);
+      await flipAndViews(page);
+      await closedFlipped(page);
+    }
+    await underEach(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
-    say(false, `the check stopped: ${e.message}`);
+    say(false, `the check stopped: ${e.message}; the page said: ${page.errors.slice(0, 3).join(" | ")}`);
   } finally {
     await page.close();
   }

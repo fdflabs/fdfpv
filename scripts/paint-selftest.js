@@ -34,7 +34,7 @@
 import {
   CODE_MAX, CODE_PREFIX, DECAL_KINDS, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
 } from '../configs/paint.js';
-import { normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
+import { entryDrops, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
 
 let failed = 0;
 let passed = 0;
@@ -139,6 +139,17 @@ console.log('4. the decal kinds');
   check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('cub1400', { decals: [d] }).decals.length === 1));
   const text = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].text);
   check('only the number and the words read the right way round when mirrored', same(text, ['num', 'text']));
+}
+
+console.log('5. the underside (docs/redesign/WORKSHOP-PAINT.md)');
+{
+  const old = { scheme: 'stock', regions: { wing: '#112233' }, wear: 20 };
+  check('an entry from before the underside reads exactly as it did', same(normaliseEntry('timber1500', old), { regions: { wing: '#112233' }, wear: 20 }));
+  const e = normaliseEntry('timber1500', { under: { wing: '#AABBCC', nope: '#000000', tail: 'red' } });
+  check('a region underside is kept lower case, an unknown region and a bad colour dropped', same(e, { under: { wing: '#aabbcc' } }));
+  check('the dropped parts are counted, so a code carrying them is refused', entryDrops('timber1500', { under: { nope: '#000000' } }) === 1);
+  check('a film region has no underside of its own', normaliseEntry('kadet1981', { under: { wing: '#aabbcc' } }) === null);
+  check('the look carries the underside as numbers', lookFor('timber1500', e).under.wing === 0xaabbcc && Object.keys(lookFor('timber1500', null).under).length === 0);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
