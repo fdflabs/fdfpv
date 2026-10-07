@@ -10,9 +10,7 @@ index.html
 render.yaml
 scripts/attract-check.js
 scripts/board-check.js
-scripts/boot-check.js
 scripts/build-selftest.js
-scripts/build-wasm.sh
 scripts/collider-audit.js
 scripts/craft-check.js
 scripts/device-check.js
@@ -28,8 +26,6 @@ scripts/pixels.js
 scripts/posters.js
 scripts/quality-check.js
 scripts/responsive-check.js
-scripts/run-bash.js
-scripts/serve.js
 scripts/shots.js
 src/game/airframehull.js
 src/game/verify.js
