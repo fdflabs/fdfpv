@@ -19,6 +19,8 @@
  *   - a lost match WITHOUT the symbol: the reconstruction in its place,
  *     and for the host, play again from the checkpoint, which sends the
  *     contract's start
+ *   - the flight's facts under the stills (docs/DEBRIEF.md), and no
+ *     replay button where there is no clip
  *   - pictures of both, outside the repository; no page errors
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -221,6 +223,13 @@ try {
   check('an optional item nobody captured: not captured', k1.burned && k1.burned.kind === 'missing');
   check('the star earned, and the next mission\'s state', /★ {2}HISTORICAL SYMBOL/.test(d1.text) && /Eyes in the Forest · Under development/.test(d1.text), d1.text.slice(0, 200));
   check('no play again on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
+  /* The flight's facts (docs/DEBRIEF.md) under the stills: this page
+   * never flew, so no clip and no replay button, never a dead one. */
+  const facts1 = await page.evaluate(`JSON.stringify([...document.querySelectorAll('.debrief-facts dt')].map((n, i) => [n.textContent, document.querySelectorAll('.debrief-facts dd')[i].textContent]))`);
+  const f1 = Object.fromEntries(JSON.parse(facts1));
+  check('the debrief carries the flight\'s facts: time in the air, required items captured of 11, stars',
+    /^\d+:\d\d$/.test(f1['In the air'] || '') && /^\d+ of 11$/.test(f1['Required items captured'] || '') && /^1 of \d+$/.test(f1.Stars || ''), facts1);
+  check('no flight, no clip: no replay button', !d1.buttons.includes('replay'), d1.buttons.join());
   const prog = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-1']) || null");
   const flags = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
   check('the result goes into the synced progress: stars and the script\'s flag', prog && prog.won === true && prog.stars === 1 && flags && flags.M1_SYMBOL_CAPTURED === true, JSON.stringify({ prog, flags }));

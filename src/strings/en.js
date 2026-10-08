@@ -3685,6 +3685,8 @@ export default {
   "debrief.top_value": "{m} m over the start",
   "debrief.n_of": "{n} of {of}",
   "debrief.card_line": "You: {air} in the air, {dist}. {key} replays the last 30 s",
+  "debrief.items_required": "Required items captured",
+  "debrief.stars": "Stars",
   "debrief.place": "Place",
   "debrief.points": "Points",
   "debrief.clean_laps": "Clean laps",

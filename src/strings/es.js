@@ -3690,6 +3690,8 @@ export default {
   "debrief.top_value": "{m} m sobre la salida",
   "debrief.n_of": "{n} de {of}",
   "debrief.card_line": "Tú: {air} en el aire, {dist}. {key} repite los últimos 30 s",
+  "debrief.items_required": "Objetos requeridos capturados",
+  "debrief.stars": "Estrellas",
   "debrief.place": "Puesto",
   "debrief.points": "Puntos",
   "debrief.clean_laps": "Vueltas limpias",

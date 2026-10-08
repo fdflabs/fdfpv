@@ -36,6 +36,8 @@
 import { str } from '../strings/index.js';
 import { rank } from '../share/ops/capture.js';
 import { itemsOf } from '../share/ops/stages.js';
+import { fromOps } from '../game/debrief.js';
+import { factLines } from './factlines.js';
 
 const CSS = `
 .debrief { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 45;
@@ -64,6 +66,10 @@ const CSS = `
 .debrief-who::before { content: '\\00b7'; margin: 0 0.5em; }
 .debrief-still.rec { border-style: dashed; border-color: #ffc04a; }
 .debrief-still.missing { opacity: 0.55; }
+.debrief-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.2em 1.2em; margin: 0 0 1em; }
+.debrief-facts dt { color: rgba(236, 244, 240, 0.55); }
+.debrief-facts dd { margin: 0; }
+.debrief-facts dd.gain { color: #8dffb5; }
 .debrief-next { margin-top: 1em; color: rgba(236, 244, 240, 0.7); }
 .debrief-row { display: flex; justify-content: flex-end; gap: 0.8em; margin-top: 1.2em; flex-wrap: wrap;
   position: sticky; bottom: -1.2em; padding: 0.8em 0 1.2em; background: rgba(8, 12, 14, 0.97); }
@@ -199,7 +205,8 @@ function reconstruction(name) {
 }
 
 export class Debrief {
-  /* act: { close(), again() }; nameOf(seat) the pilot's shown name. */
+  /* act: { close(), again(), replay() }; nameOf(seat) the pilot's shown
+   * name. */
   constructor(root, act, nameOf) {
     const style = document.createElement('style');
     style.textContent = CSS;
@@ -231,7 +238,21 @@ export class Debrief {
       frames: this.frames.map(({ still, ...f }) => ({ ...f, image: Boolean(still && still.image) })),
       text: this.box.textContent,
       buttons: [...this.box.querySelectorAll('button')].map((b) => b.dataset.act),
+      facts: [...this.box.querySelectorAll('.debrief-facts dt')].map((n) => n.textContent),
     });
+  }
+
+  /* Shown again as it was, after the replay it opened has closed. */
+  reopen() {
+    if (this.shownFor == null || this.isOpen) {
+      return;
+    }
+    this.isOpen = true;
+    this.el.classList.add('open');
+    const done = this.box.querySelector('button[data-act="continue"]');
+    if (done) {
+      done.focus({ preventScroll: true });
+    }
   }
 
   close() {
@@ -248,7 +269,8 @@ export class Debrief {
    * identity: shown once per key), view, mission, seat, host (bool),
    * stills (this seat's, src/avionics/capture.js createStillStore().of),
    * next ({ id, label } the campaign's next mission and its card word,
-   * or null) }.
+   * or null), flight (this pilot's own flight for the facts:
+   * src/game/debrief.js fromOps; or null) }.
    */
   show(o) {
     if (o.key === this.shownFor) {
@@ -309,6 +331,17 @@ export class Debrief {
         sub.textContent = str('ops.debrief.optional');
       }
     }
+    /* The flight's facts (docs/DEBRIEF.md) under the stills. */
+    const record = o.flight ? fromOps({
+      won, ended, items: this.frames, stars: { got: got.size, of: (mission.stars ?? []).length }, flight: o.flight,
+    }) : null;
+    if (record) {
+      const facts = el('dl', 'debrief-facts', box);
+      for (const [label, value, tone] of factLines(record)) {
+        el('dt', '', facts, label);
+        el('dd', tone || '', facts, value);
+      }
+    }
     if (o.next) {
       el('div', 'debrief-next', box, str('ops.debrief.next', {
         name: word(`ops.campaign.${skey(camp)}.m.${skey(o.next.key)}`), state: word(`ops.campaign.state_${skey(o.next.label)}`),
@@ -322,6 +355,18 @@ export class Debrief {
       again.addEventListener('click', () => {
         this.close();
         this.act.again();
+      });
+    }
+    if (record && record.replay && record.replay.ok) {
+      const replay = el('button', 'debrief-btn', row, str('debrief.watch_replay'));
+      replay.type = 'button';
+      replay.dataset.act = 'replay';
+      replay.title = str('debrief.watch_replay_note');
+      /* Hidden, not closed: the replay's way out shows it again. */
+      replay.addEventListener('click', () => {
+        this.isOpen = false;
+        this.el.classList.remove('open');
+        this.act.replay();
       });
     }
     const done = el('button', 'debrief-btn on', row, str('ops.debrief.continue'));

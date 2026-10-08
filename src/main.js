@@ -734,7 +734,17 @@ export async function boot({
       }
     },
     again: () => roomOps.start(roomOps.view().mission, { from: 'checkpoint' }),
+    /* The crash cam on this pilot's last 30 s; its way out shows the
+     * debrief again (crashCam's exit). */
+    replay: () => {
+      replayFromDebrief = true;
+      if (!crashCam || !crashCam.open()) {
+        replayFromDebrief = false;
+        debrief.reopen();
+      }
+    },
   }, (seat) => opsSeatName(seat));
+  let replayFromDebrief = false;
   function opsDebrief() {
     const v = roomOps.view();
     const mission = roomOps.mission();
@@ -745,6 +755,14 @@ export async function boot({
     rolesBoard.close();
     debrief.show({
       key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
+      flight: {
+        aircraft: runAirframe,
+        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        flightMs: runAirMs,
+        totalS: aircraftSecondsNow(),
+        route: runRoute.snapshot(),
+        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+      },
     });
     interiorScreen.record(match, v);
   }
@@ -18874,6 +18892,10 @@ export async function boot({
       }
       mode = 'flight';
       ui.show('flight');
+      if (replayFromDebrief) {
+        replayFromDebrief = false;
+        debrief.reopen();
+      }
     },
     drawWar: warMapDraw,
     /* The two beds as they play now, [id, seconds in] ('' for none): the

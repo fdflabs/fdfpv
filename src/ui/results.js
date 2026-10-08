@@ -35,8 +35,8 @@ import { writePendingTime } from '../share/session.js';
 import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
 import { withPosted } from '../game/debrief.js';
-import { splitDuration } from '../share/flighttime.js';
-import { formatDelta, formatRunClock, formatTime, lengthText } from './format.js';
+import { factLines } from './factlines.js';
+import { formatDelta, formatTime } from './format.js';
 import { el } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
 import { lapCraftOf, seatIsRace } from './ui.js';
@@ -147,51 +147,6 @@ function routeSvg(route) {
   return node;
 }
 
-
-function hoursText(s) {
-  const { h, m } = splitDuration(s);
-  if (h) {
-    return str('debrief.hours', { h, m });
-  }
-  return m ? str('debrief.minutes', { m }) : str('debrief.seconds', { s: Math.floor(s) });
-}
-
-/* A record line's value in its own unit: a lap time, a board score or a
- * total flight time. */
-function recordText(r) {
-  if (r.what === 'debrief.aircraft_time') {
-    return hoursText(r.now);
-  }
-  if (r.what === 'debrief.run_best' && r.improved) {
-    return str('debrief.board_best_new', { now: formatScore(r.now) });
-  }
-  const unit = r.what === 'debrief.track_record' ? formatTime : formatScore;
-  if (r.before == null) {
-    return str('debrief.record_first', { now: unit(r.now) });
-  }
-  return r.improved ? str('debrief.record_beat', { now: unit(r.now), before: unit(r.before) }) : str('debrief.record_stands', { before: unit(r.before) });
-}
-
-/* The debrief's facts (src/game/debrief.js): every line the record has,
- * in the contract's order; the result is the screen's head and the next
- * actions its menu, so neither is repeated here. */
-function factLines(d) {
-  const lines = [[str('debrief.air_time'), formatRunClock(d.time.flightMs)]];
-  if (d.route) {
-    lines.push([str('debrief.distance'), lengthText(d.route.distanceM)]);
-    lines.push([str('debrief.top'), str('debrief.top_value', { m: Math.max(0, Math.round(d.route.topM)) })]);
-  }
-  for (const a of d.accuracy) {
-    lines.push([str(a.what), a.of == null ? String(a.n) : str('debrief.n_of', { n: a.n, of: a.of })]);
-  }
-  if (d.result.landed != null) {
-    lines.push([str('debrief.landing'), str(d.result.landed ? 'debrief.landed' : 'debrief.not_landed')]);
-  }
-  for (const r of d.records) {
-    lines.push([str(r.what), recordText(r), r.improved === true ? 'gain' : r.improved === false ? 'off' : '']);
-  }
-  return lines;
-}
 
 function fillFacts(box, d) {
   if (!d) {

@@ -25,7 +25,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createRoute, fromFree, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
+import { createRoute, fromFree, fromOps, fromRace, fromRoom, nextActions, replayState, ROUTE_MAX, withPosted } from '../src/game/debrief.js';
 
 let failed = 0;
 function check(name, ok, detail = '') {
@@ -141,6 +141,19 @@ const ok = { ok: true, why: null };
   const none = fromRoom({ activity: 'combat', aircraft: 'x', place: null, of: 0, final: true, flightMs: 1, totalS: NaN, replay: ok });
   check('room: no standing, no place line, no time line', none.accuracy.length === 0 && none.records.length === 0 && none.result.kind === 'complete');
   check('room: the room rows lead', JSON.stringify(won.next) === '["room","replay","title"]');
+}
+
+/* An ops mission. */
+{
+  const items = [{ required: true, kind: 'mine' }, { required: true, kind: 'rec' }, { required: true, kind: 'squad' }, { required: false, kind: 'missing' }];
+  const flight = { aircraft: 'bramor2300', fixedWing: true, flightMs: 300000, totalS: 4000, replay: ok };
+  const w = fromOps({ won: true, ended: false, items, stars: { got: 2, of: 3 }, flight });
+  check('ops: won, required captured 2 of 3 (the optional one not counted)', w.result.kind === 'won' && w.accuracy[0].n === 2 && w.accuracy[0].of === 3);
+  check('ops: stars 2 of 3', w.accuracy[1].what === 'debrief.stars' && w.accuracy[1].n === 2 && w.accuracy[1].of === 3);
+  check('ops: its own buttons in order', JSON.stringify(w.next) === '["again","replay","continue"]');
+  const l = fromOps({ won: false, ended: false, items: [], stars: { got: 0, of: 0 }, flight });
+  check('ops: lost, no items or stars, no lines', l.result.kind === 'lost' && l.accuracy.length === 0);
+  check('ops: ended', fromOps({ won: false, ended: true, items: [], stars: null, flight }).result.kind === 'ended');
 }
 
 /* The replay row and the fallback next list. */
