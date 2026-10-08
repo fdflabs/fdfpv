@@ -53,6 +53,7 @@ import {
 } from '../../configs/paint.js';
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
+import { readPilotName } from '../share/pilot.js';
 import { str } from '../strings/index.js';
 import { el } from './dom.js';
 
@@ -386,7 +387,7 @@ export class PaintShop {
   kindsBox() {
     const box = el('div', 'paint-kinds');
     DECAL_KIND_IDS.forEach((k, i) => {
-      const sample = newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
+      const sample = k === 'text' ? this.callsignText() : newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
       const b = button('paint-kind');
       b.dataset.key = `kind-${k}`;
       b.style.setProperty('--i', String(i));
@@ -396,6 +397,15 @@ export class PaintShop {
       box.append(b);
     });
     return box;
+  }
+
+  /* A new words layer, its words the pilot's callsign where the lettering
+   * can draw it (and the word filter passes it), else the kind's own. */
+  callsignText() {
+    const d = newDecal('text', [0, 0, 0], [0, 1, 0], this.style);
+    /* A handle may hold an underscore, which the lettering has not got. */
+    const t = cleanText((readPilotName() || '').replace(/_/g, ' '));
+    return (t && checkDecal({ ...d, t, a: textAspect(t) }).decal) || d;
   }
 
   /* PLACING: the aim over the plane, a decal under it. `index` is the
