@@ -1205,6 +1205,27 @@
       "es": "Identifiquen." },
     { "id": "film-int3-11", "group": "film", "speaker": "vega", "delivery": "calm", "notes": "Interior M3 intro film, after 10, the longer pause.",
       "en": "Then we decide what happens.",
-      "es": "Después decidimos qué pasa." }
+      "es": "Después decidimos qué pasa." },
+    { "id": "film-int3-12", "group": "film", "speaker": "rojas", "delivery": "firm", "notes": "Interior M3 outro film, outro shot 1, the northern vehicle's still. Sure.",
+      "en": "Column supply vehicle.",
+      "es": "Vehículo de abastecimiento de la Columna." },
+    { "id": "film-int3-13", "group": "film", "speaker": "ibarra", "delivery": "calm", "notes": "Interior M3 outro film, after 12. Quiet doubt.",
+      "en": "I don't think so.",
+      "es": "No creo." },
+    { "id": "film-int3-14", "group": "film", "speaker": "rojas", "delivery": "calm", "notes": "Interior M3 outro film, after 13.",
+      "en": "Why?",
+      "es": "¿Por qué?" },
+    { "id": "film-int3-15", "group": "film", "speaker": "ibarra", "delivery": "calm", "notes": "Interior M3 outro film, outro shot 2, the zoom into the containers.",
+      "en": "Because these people have spent years surviving with almost nothing.",
+      "es": "Porque esta gente pasó años sobreviviendo casi sin nada." },
+    { "id": "film-int3-16", "group": "film", "speaker": "ibarra", "delivery": "calm", "notes": "Interior M3 outro film, outro shot 3, another still of the vehicle. Trailing off.",
+      "en": "Whoever supplied that...",
+      "es": "Quien sea que les dio eso..." },
+    { "id": "film-int3-17", "group": "film", "speaker": "ibarra", "delivery": "calm", "notes": "Interior M3 outro film, after 16, the beat. Low.",
+      "en": "...has money.",
+      "es": "...tiene plata." },
+    { "id": "film-int3-18", "group": "film", "speaker": "ferrer", "delivery": "calm", "notes": "Interior M3 outro film, after 17, only if the unknown drone completed its watch.",
+      "en": "And the drone that watched the post got everything it came for.",
+      "es": "Y el dron que vigiló el puesto se llevó todo lo que vino a buscar." }
   ]
 }
