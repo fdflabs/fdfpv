@@ -3769,4 +3769,5 @@ export default {
   "training.lesson.race_ghost": "Gana a tu fantasma",
   "training.lesson.race_ghost_note": "Vuela una vuelta más rápida que el fantasma de tu mejor vuelta.",
   "walk.shop": "Tienda",
+  "walk.trophies": "Trofeos",
 };

@@ -260,6 +260,11 @@ const ACTIONS = {
   'field-walk'(ui) { ui.openWalk('field'); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
+  /* The trophy wall: the hangar on its Challenges tab, which lists the
+   * firsts the wall's trophies stand for (src/ui/progress-ui.js). */
+  'hangar-trophies'(ui) {
+    ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'challenges');
+  },
   'hangar-shop'(ui) {
     ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'shop');
   },
