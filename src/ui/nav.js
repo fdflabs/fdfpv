@@ -656,6 +656,7 @@ export const navMethods = {
       const node = hint.action ? btn('legend-act', '') : el('i', null);
       node.append(...hint.keys.map((k) => el('span', kbd, k)), document.createTextNode(` ${hint.text}`));
       if (hint.action) {
+        node.dataset.action = hint.action;
         node.addEventListener('click', () => this.act(hint.action));
       }
       this.frameLegend.append(node);
@@ -703,8 +704,16 @@ export const navMethods = {
       return hints;
     }
     const pad = this.lastInput === 'pad';
+    if (this.screen === 'walk' && this.walk && this.walk.photo) {
+      return [
+        { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
+        { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
+        { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
+      ];
+    }
     if (this.screen === 'walk') {
       return [
+        { keys: ['P'], text: str('walk.photo'), action: 'walk-photo' },
         { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
         { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },

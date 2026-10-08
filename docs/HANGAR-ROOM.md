@@ -91,12 +91,16 @@ largest tier, aircraft and pilot in it, shadow pass included:
 
 | Preset | Draw calls | Triangles | Textures | GPU ms, median (this box) |
 | --- | --- | --- | --- | --- |
-| low | 40 | 150 k | 2 | 2.0 |
-| medium | 60 | 150 k | 3 | 3.0 |
-| high | 70 | 150 k | 3 | 4.0 |
+| low | 40 | 150 k | 3 | 2.0 |
+| medium | 60 | 150 k | 4 | 3.0 |
+| high | 70 | 150 k | 4 | 4.0 |
 
-Textures: the room itself uses none (vertex colours); the count is the
-render target and the shadow map. The GPU column is a small share of the
+Textures: the furniture uses none (vertex colours); the count is the
+render target, the shadow map and, since item 28's photo wall
+(docs/SHOW-IT-OFF.md), one atlas of the newest six photos, 1536 by 576,
+3.5 MB, made only when there is a photo. The texture column went up by
+that one on purpose, written here before it was measured; nothing else
+in the budget moved. The GPU column is a small share of the
 frame on purpose: a Low machine (Steam Deck class) is several times
 slower than this box's RTX 3060 Ti. `npm run hangar:perf` fails a run
 over the budget.

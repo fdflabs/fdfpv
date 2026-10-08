@@ -114,6 +114,15 @@ export function trophyKind(key) {
   return key.startsWith('aircraft:') ? 'aircraft' : 'lesson';
 }
 
+/* Photo mode: the camera's distance from the stand at zoom 1, m. */
+const PHOTO_DIST = 2.6;
+/* The photo wall: frames of 16 by 9, three by two, from one atlas. */
+export const PHOTO_FRAMES = 6;
+const FRAME_W = 0.64;
+const FRAME_H = 0.36;
+const ATLAS_W = 1536;
+const ATLAS_H = 576;
+
 /* The follow camera: behind the pilot and above, looking at the chest. */
 const CAM_BACK = 3.0;
 const CAM_UP = 1.7;
@@ -453,6 +462,9 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
   cups.castShadow = true;
   scene.add(cups);
   let wallMatrix = null;
+  let captureWanted = null;
+  let photoWall = null;
+  let photoCount = 0;
   let trophyKey = '';
   const craftSlot = new THREE.Group();
   scene.add(craftSlot);
@@ -643,6 +655,70 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     camera.lookAt(look);
   }
 
+  /* PHOTO MODE's camera: round the aircraft on its stand, yaw radians
+   * from the door's side, zoom a multiple of PHOTO_DIST; set at once, no
+   * spring, so a picture is where the pilot put it. */
+  function aimAtStand({ yaw, zoom }) {
+    const room = ROOMS[tier];
+    const W = (room.w * CELL) / 2 - 0.15;
+    const D = (room.d * CELL) / 2 - 0.15;
+    const r = PHOTO_DIST * zoom;
+    const c = craftSlot.position;
+    camera.position.set(
+      Math.max(-W, Math.min(W, c.x + Math.sin(yaw) * r)),
+      Math.min(room.h - 0.2, c.y + 0.25 + r * 0.35),
+      Math.max(-D, Math.min(D, c.z + Math.cos(yaw) * r)),
+    );
+    look.set(c.x, c.y + 0.15, c.z);
+    camera.lookAt(look);
+    cam.placed = false;
+  }
+
+  /*
+   * THE PHOTO WALL: the newest pictures (ImageBitmaps, at most
+   * PHOTO_FRAMES) in frames on the left wall, drawn from one atlas
+   * texture, one draw. With none, no texture is made at all.
+   */
+  function setPhotos(bitmaps) {
+    if (photoWall) {
+      scene.remove(photoWall);
+      photoWall.geometry.dispose();
+      photoWall.material.map.dispose();
+      photoWall.material.dispose();
+      photoWall = null;
+    }
+    const list = bitmaps.slice(0, PHOTO_FRAMES);
+    photoCount = list.length;
+    if (!list.length || !tier) {
+      return;
+    }
+    const atlas = document.createElement('canvas');
+    atlas.width = ATLAS_W;
+    atlas.height = ATLAS_H;
+    const g = atlas.getContext('2d');
+    const cw = ATLAS_W / 3;
+    const ch = ATLAS_H / 2;
+    const quads = [];
+    const room = ROOMS[tier];
+    const x = -(room.w * CELL) / 2 + 0.03;
+    list.forEach((bm, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      g.drawImage(bm, col * cw, row * ch, cw, ch);
+      const q = new THREE.PlaneGeometry(FRAME_W, FRAME_H).rotateY(Math.PI / 2)
+        .translate(x, 1.95 - row * (FRAME_H + 0.12), (col - 1) * (FRAME_W + 0.12));
+      const uv = q.attributes.uv;
+      for (let k = 0; k < uv.count; k += 1) {
+        uv.setXY(k, (col + uv.getX(k)) / 3, 1 - (row + 1 - uv.getY(k)) / 2);
+      }
+      quads.push(q);
+    });
+    const tex = new THREE.CanvasTexture(atlas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    photoWall = new THREE.Mesh(mergeGeometries(quads), new THREE.MeshBasicMaterial({ map: tex, fog: false }));
+    scene.add(photoWall);
+  }
+
   /* The trophies: first keys (progress.firsts), in the order given; as
    * many as the wall has slots. */
   function setTrophies(keys) {
@@ -675,12 +751,25 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     setTrophies,
     /* pose { x, z, heading, moving } from hangarroom.js's walk; ms the
      * clock for the stride. */
-    update(dt, pose, ms, orbit = 0) {
-      pilot.set([{
+    /* photo: null to follow the pilot, or { yaw, zoom } for photo mode:
+     * the pilot out of the picture and the camera round the stand. */
+    update(dt, pose, ms, orbit = 0, photo = null) {
+      pilot.set(photo ? [] : [{
         x: pose.x, y: 0, z: pose.z, heading: pose.heading, action: pose.moving ? 'walk' : 'stand', tint: [0.1, 0.13, 0.15], seed: 2,
       }], ms);
-      follow(dt, pose, orbit);
+      if (photo) {
+        aimAtStand(photo);
+      } else {
+        follow(dt, pose, orbit);
+      }
     },
+    /* The next frame drawn, as a JPEG Blob, to `done` (null when the
+     * browser refuses). Taken straight after the draw: the canvas keeps
+     * no drawing buffer. */
+    capture(done) {
+      captureWanted = done;
+    },
+    setPhotos,
     draw() {
       renderer.getDrawingBufferSize(size);
       if (target.width !== size.x || target.height !== size.y) {
@@ -708,17 +797,23 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       renderer.info.autoReset = autoReset;
       renderer.setRenderTarget(null);
       renderer.render(blitScene, blitCam);
+      if (captureWanted) {
+        const done = captureWanted;
+        captureWanted = null;
+        renderer.domElement.toBlob((blob) => done(blob), 'image/jpeg', 0.92);
+      }
       renderer.setRenderTarget(was.target);
       renderer.autoClear = was.autoClear;
       renderer.shadowMap.enabled = was.shadows;
     },
     /* camBack: the camera's distance from the pilot along the floor, m. */
-    stats: () => ({ ...info, tier, trophies: cups.count, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
+    stats: () => ({ ...info, tier, trophies: cups.count, photos: photoCount, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
     dispose() {
       if (built) {
         built.dispose();
       }
       setCraft(null);
+      setPhotos([]);
       cupGeo.dispose();
       cups.material.dispose();
       pilot.dispose();

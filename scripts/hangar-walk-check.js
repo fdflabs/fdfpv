@@ -183,6 +183,35 @@ try {
   await page.sleep(500);
   await shot('02-orbit');
 
+  /* Photo mode: P, a drag and the wheel aim, Space and the command bar's
+   * Take keep a picture for the photo wall. */
+  const photos = () => page.evaluate("import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length)");
+  const before = await photos();
+  await page.tap('KeyP');
+  await page.until('Boolean(window.__ui.walk.photo)', 5000);
+  const photoLegend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
+  check('P turns photo mode on and the command bar says Take', photoLegend.includes(en['walk.photo_take']), JSON.stringify(photoLegend));
+  const p0 = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.walk.photo))');
+  for (const [type, x] of [['mouseMoved', 700], ['mousePressed', 700], ['mouseMoved', 760], ['mouseReleased', 760]]) {
+    await page.cdp.send('Input.dispatchMouseEvent', { type, x, y: 400, button: 'left', clickCount: 1 }, page.sessionId);
+  }
+  await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 800, y: 400, deltaX: 0, deltaY: -200 }, page.sessionId);
+  const p1 = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.walk.photo))');
+  check('a drag turns round the stand and the wheel zooms', p1.yaw !== p0.yaw && p1.zoom < p0.zoom, `yaw ${p0.yaw.toFixed(2)} -> ${p1.yaw.toFixed(2)}, zoom ${p0.zoom} -> ${p1.zoom.toFixed(2)}`);
+  await page.sleep(400);
+  await shot('02b-photo-mode');
+  await page.tap('Space');
+  await page.until(`import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length === ${before + 1})`, 15000).then(() => true, () => false);
+  check('Space keeps a picture', (await photos()) === before + 1, `${before} -> ${await photos()}`);
+  check('the Take button, clicked', await page.click('.frame-legend .legend-act[data-action="walk-photo-take"]'), 'clicked');
+  await page.until(`import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length === ${before + 2})`, 15000).then(() => true, () => false);
+  check('and so does the Take button', (await photos()) === before + 2, `${await photos()}`);
+  await page.tap('KeyP');
+  await page.until('!window.__ui.walk.photo', 5000);
+  await page.until(`window.__walkStats().view.photos === ${Math.min(6, before + 2)}`, 10000).then(() => true, () => false);
+  const wall = (await stats()).view.photos;
+  check('P again leaves photo mode, and the photo wall shows the pictures', wall === Math.min(6, before + 2), `${wall} on the wall`);
+
   const view = (await stats()).view;
   console.log(`room in the real shell: ${view.calls} draw calls, ${view.triangles} triangles`);
   check('the room draws within the High budget\'s calls in the shell', view.calls <= 70, `${view.calls} calls`);
