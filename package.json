@@ -460,6 +460,7 @@
     "hangar:garage": "node scripts/garage-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "paint:workshop": "node scripts/paint-workshop-check.js",
+    "gallery:check": "node scripts/gallery-check.js",
     "livery:layers": "node scripts/livery-layers-check.js",
     "livery:editor": "node scripts/livery-editor-check.js",
     "sticker:check": "node scripts/sticker-check.js",
