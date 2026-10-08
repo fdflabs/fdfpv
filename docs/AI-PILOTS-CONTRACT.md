@@ -66,11 +66,14 @@ check, the tick's batch recipients). Those 17 go through one helper,
   socket attachment.
 - Cost budget: the VM is one core and 5.6 GB, the tick is 33 ms, and
   health.js's valve closes new public rooms on the process's own CPU, so
-  AI cost is counted there without a line. The bench (scripts/
-  bots-bench.js, PR 2) runs N bots and one pilot through a live tag match
-  for 60 room seconds at 30 Hz and prints ms per tick for stepping and for
-  judging separately. BOT_CAP per room is set from that measurement and
-  the number is written next to the constant.
+  AI cost is counted there without a line. Measured (bots:selftest's cost
+  row, 7 AI pilots for 60 room seconds at 30 Hz, this lane's 20 core desktop
+  on 2026-10-07): 0.016 to 0.038 ms CPU per AI pilot per room second for the
+  flight and the choices, so 7 in a room are under 0.3 ms of every second.
+  What they add to the room's judging (tag's frontier moves on every tick,
+  pairs grow with seats) is measured in PR 3 through RoomCore, and BOT_CAP
+  is set from that, with the number next to the constant. The VM's slower
+  core is measured after the deploy (the same selftest, run there).
 
 ## How they fly
 
@@ -118,8 +121,8 @@ check, the tick's batch recipients). Those 17 go through one helper,
 
 1. This contract.
 2. edge/rooms/bots.js: the flight model, the seeded generator, save and
-   restore, tag behaviour; scripts/bots-selftest.js; scripts/bots-bench.js
-   with the measured cost. Pure, nothing in the room yet.
+   restore, tag behaviour; scripts/bots-selftest.js with the measured cost.
+   Pure, nothing in the room yet.
 3. The room: bot seats in core.js through `people()`, fill and leave,
    ROOM_LEVEL 3, the host's row, the client's marked names (en and es); the
    two-page browser check (one page alone in a tag room sees marked AI
@@ -141,7 +144,8 @@ check, the tick's batch recipients). Those 17 go through one helper,
 - `npm run rooms:selftest` additions (PR 3): a person joining a full room
   of AI is seated and an AI leaves; no AI ever holds the host; the lobby
   listing counts people only; the room empties when the last person leaves.
-- `npm run bots:bench`: ms per tick, printed; BOT_CAP is set from it.
+- bots:selftest's cost row, and PR 3's room tick cost with AI pilots in a
+  live tag match; BOT_CAP is set from the second.
 - PR 3's two-page browser check through `~/.cache/run-check-slot.sh`.
 - lint:header, lint:dashes, lint:copy on every PR.
 
