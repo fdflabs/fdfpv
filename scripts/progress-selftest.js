@@ -25,7 +25,8 @@
 
 import {
   CHALLENGES, FIRST_LAP_XP, LAP_XP, LEVEL_XP, PLANE_LEVELS, RunWatch, STARTER_PLANES, STREAK_HOOPS,
-  addXp, awardChallenge, awardLap, courseKind, freshProgress, levelInfo, levelOf, lockOf, normaliseProgress,
+  FIRST_XP, MILESTONE_S, PROGRESS_VERSION, addXp, awardChallenge, awardFirsts, awardLap, courseKind, firstsOf,
+  freshProgress, levelInfo, levelOf, lockOf, migrateProgress, milestonesOf, normaliseProgress,
   opensAt, registerUnlockables, unlockables,
 } from '../src/game/progress.js';
 import { AIRFRAMES } from '../configs/airframes.js';
@@ -64,6 +65,50 @@ check('a stored switch wins over the profile\'s age', normaliseProgress({ unlock
 const bad = normaliseProgress({ xp: -5.5, courses: { a: true, b: 1, c: 'yes' }, challenges: ['x'], seen: null, unlockAll: 'on' });
 check('junk is made safe', bad.xp === 0 && same(bad.courses, { a: true }) && same(bad.challenges, {}) && same(bad.seen, {}) && same(bad.casual, {}) && bad.unlockAll === false, JSON.stringify(bad));
 check('XP is whole and bounded', normaliseProgress({ xp: 123.9 }).xp === 123 && normaliseProgress({ xp: 1e12 }).xp === 1e7 && normaliseProgress({ xp: NaN }).xp === 0);
+
+console.log('the stored shape\'s versions (docs/ECONOMY.md section 3)');
+/* Seeds: what each build before versioning wrote to settings.progress. */
+const SEED_V1_NO_V = { xp: 700, courses: { 'track:abc': true }, challenges: { deadstick: true }, seen: {}, casual: {}, unlockAll: false };
+const SEED_V1 = { v: 1, xp: 320, courses: {}, challenges: {}, seen: { 'campaign-first': true }, casual: {}, unlockAll: true };
+for (const [name, seed] of [['a v1 profile with no version', SEED_V1_NO_V], ['a v1 profile', SEED_V1]]) {
+  const m = normaliseProgress(seed);
+  check(`${name} becomes v${PROGRESS_VERSION}, keeping all it had`, m.v === PROGRESS_VERSION && m.xp === seed.xp
+    && same(m.courses, seed.courses) && same(m.challenges, seed.challenges) && same(m.seen, seed.seen)
+    && m.unlockAll === seed.unlockAll && same(m.firsts, {}), JSON.stringify(m));
+  check(`${name}: migrating twice is a no op`, same(normaliseProgress(m), m) && same(migrateProgress(m), m));
+}
+check('a v2 profile is walked nowhere', same(migrateProgress({ v: 2, xp: 5, firsts: { k: true } }), { v: 2, xp: 5, firsts: { k: true } }));
+check('the fresh profile is the current version', freshProgress().v === PROGRESS_VERSION && same(freshProgress().firsts, {}));
+
+console.log('firsts pay once (PROGRESSION.md rule 1)');
+const warVet = { missions: { 'itaipu-1': { stars: 2, won: true, credits: 300 } } };
+const flown = { cub1400: 700, cub1400f: 3000, timber1500: 0.5 };
+const seededV1 = normaliseProgress(SEED_V1_NO_V);
+const ev1 = awardFirsts(seededV1, { campaign: warVet, seconds: flown });
+const keys1 = ev1.filter((e) => e.type === 'first').map((e) => e.key);
+check('a v1 war veteran is paid the win and both stars once', ['mission:itaipu-1:win', 'mission:itaipu-1:star1', 'mission:itaipu-1:star2'].every((k) => keys1.includes(k)) && !keys1.includes('mission:itaipu-1:star3'), keys1.join());
+check('a float plane\'s time counts for its land plane: the Cub has its hour', keys1.includes('aircraft:cub1400:hour'));
+check('under a second is not a first flight', !keys1.some((k) => k.startsWith('aircraft:timber1500')));
+const paid = FIRST_XP.win + 2 * FIRST_XP.star + FIRST_XP.flight + FIRST_XP.ten + FIRST_XP.hour;
+check('the XP is the sum of the firsts, once', seededV1.xp === SEED_V1_NO_V.xp + paid, `${seededV1.xp}`);
+check('the same facts again pay nothing', awardFirsts(seededV1, { campaign: warVet, seconds: flown }).length === 0 && seededV1.xp === SEED_V1_NO_V.xp + paid);
+const reloaded = normaliseProgress(JSON.parse(JSON.stringify(seededV1)));
+check('a reload of the paid profile pays nothing', awardFirsts(reloaded, { campaign: warVet, seconds: flown }).length === 0);
+const third = awardFirsts(reloaded, { campaign: { missions: { 'itaipu-1': { stars: 3, won: true } } }, seconds: flown });
+check('a better result pays only what is new', same(third.filter((e) => e.type === 'first').map((e) => e.key), ['mission:itaipu-1:star3']));
+check('an unknown mission or aircraft pays nothing: the list is finite', firstsOf({ campaign: { missions: { 'my-own-1': { won: true, stars: 3 } } }, seconds: { notaplane: 1e6 } }).length === 0);
+const everything = firstsOf({
+  campaign: { missions: Object.fromEntries([...Array(12)].map((_, i) => [i < 7 ? `itaipu-${i + 1}` : `interior-${i - 6}`, { won: true, stars: 99 }])) },
+  seconds: Object.fromEntries(AIRFRAMES.map((a) => [a.id, 1e9])),
+});
+const ceiling = everything.reduce((n, f) => n + f.xp, 0);
+check('every fact at once has a ceiling: stars clamp to three', everything.filter((f) => f.key.includes(':star')).length === 12 * 3 && ceiling < 1e5, `${everything.length} firsts, ${ceiling} XP`);
+const learner = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 1759800000000, not_yet_written: 1759800000001, bad: 'x' } });
+check('lesson passes are kept as times, unknown ids too, junk dropped', learner.lessons.first_takeoff === 1759800000000 && learner.lessons.not_yet_written && !('bad' in learner.lessons));
+const lessonEv = awardFirsts(learner, { lessons: learner.lessons });
+check('a known lesson passed is a first, paid once; an unknown one pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_takeoff'])
+  && learner.xp === FIRST_XP.lesson && awardFirsts(learner, { lessons: learner.lessons }).length === 0);
+check('milestones by name', same(milestonesOf({ cub1400: MILESTONE_S.ten }, 'cub1400f'), { flight: true, ten: true, hour: false }));
 
 console.log('what is locked');
 const p0 = freshProgress(false);

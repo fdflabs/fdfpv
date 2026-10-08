@@ -58,6 +58,11 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aircraft",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -154,6 +159,11 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -330,6 +340,16 @@
    "screen": "title",
    "items": [
     {
+     "id": "title:a-hangar-walk",
+     "label": "Walk in",
+     "action": "hangar-walk",
+     "card": "hangar-walk",
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-hangar-aircraft",
      "label": "Aircraft",
      "action": "hangar-aircraft",
@@ -436,6 +456,11 @@
      "facts": [],
      "svg": "<svg 623 chars>",
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -23449,6 +23474,11 @@
      "svg": "<svg 1448 chars>",
      "links": [
       {
+       "label": "Entrar",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
+      {
        "label": "Aeronave",
        "action": "hangar-aircraft",
        "key": "hangar-aircraft"
@@ -23545,6 +23575,11 @@
      "facts": [],
      "svg": "<svg 1448 chars>",
      "links": [
+      {
+       "label": "Entrar",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aeronave",
        "action": "hangar-aircraft",
@@ -23721,6 +23756,16 @@
    "screen": "title",
    "items": [
     {
+     "id": "title:a-hangar-walk",
+     "label": "Entrar",
+     "action": "hangar-walk",
+     "card": "hangar-walk",
+     "blurb": "Tu hangar como un lugar: la aeronave en su soporte, el banco, la puerta al campo.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-hangar-aircraft",
      "label": "Aeronave",
      "action": "hangar-aircraft",
@@ -23827,6 +23872,11 @@
      "facts": [],
      "svg": "<svg 623 chars>",
      "links": [
+      {
+       "label": "Entrar",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aeronave",
        "action": "hangar-aircraft",
