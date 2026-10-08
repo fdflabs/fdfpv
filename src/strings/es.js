@@ -2591,6 +2591,8 @@ export default {
   "kit.lights": "Luces",
   "kit.light.nav": "Luces de navegación",
   "kit.light.strobe": "Estrobos de punta de ala",
+  "kit.item": "{slot}: {option}",
+  "shop.earn_hour": "Se gana con una hora de vuelo en esta aeronave.",
   "kit.note": "Las piezas de kit son solo estética: sin peso ni resistencia, la aeronave vuela exactamente igual.",
   "loadout.payload": "Carga útil",
   "loadout.payload.none": "Ninguna",

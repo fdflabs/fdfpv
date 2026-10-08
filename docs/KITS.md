@@ -158,14 +158,24 @@ entry.lights = { v: 1, led: '#rrggbb', pattern: 'solid'|'chase'|'strobe'|'thrott
 
 ## 7. Earn and shop
 
-`ITEMS` gains `kind: 'kit'` entries, ids `kit:<family>:<slot>:<option>`.
-First pass: every family has free stock and two free options per slot;
-two options per family are Shop items (150 to 400 tokens), one per family
-is earned (that family's first mission three stars, or `challenges`).
-Owned is the existing owned list; locked options preview but do not fit.
-`grantCeiling()` versus the whole shop's price is rechecked in that PR so
-"flying everything once buys the whole shop" (ECONOMY.md section 8) still
-holds, or the PR asks the owner. Real money: none.
+Lead decision 2026-10-08: per family two options sold, one earned, the
+rest free; lights are free and off by default. `ITEMS`
+(src/game/economy.js) carries `kind: 'kit'` items, ids
+`kit:<family>:<slot>:<option>`, read off the catalogue: the last option
+of the third slot (with fewer slots, of the last one) is earned by an
+hour flown on that aircraft (`hour:<airframe>`, from the synced flight
+time), and the last option of each of the first two slots not earned is
+sold, so a family with one slot (the NRJ, the Bramor) has only its
+earned option. Price: 70 tokens each, because ECONOMY.md's rule "flying
+everything once buys the whole shop" must hold: 1,400 (paint) + 24 x 70
+= 3,080 against a ceiling of 4,050 (economy-selftest holds it). Prices are the owner's to change.
+
+In the Kit tab a sold or earned option not owned shows its price or
+"Earned only", is tried on when pointed at, and when pressed opens in the
+Shop, chosen, instead of fitting. The Shop lists the paint items and this
+aircraft's kit items. Codes and saves are not checked against ownership
+(the same lead decision as shop finishes). Buying needs the server's
+ITEMS: a VM deploy.
 
 ## 8. PRs, in order
 

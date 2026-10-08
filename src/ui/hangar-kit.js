@@ -27,6 +27,8 @@ import { airframeById } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
+import { kitItem } from '../game/economy.js';
+import { kitStanding, showInShop } from './hangar-shop.js';
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -35,7 +37,7 @@ function button(cls, text) {
 }
 
 /* The entry with one slot set; all stock leaves no kit at all. */
-function withSlot(entry, family, slot, option) {
+export function withSlot(entry, family, slot, option) {
   const parts = { ...kitParts(family, entry.kit), [slot]: option };
   const fitted = Object.fromEntries(Object.entries(parts).filter(([, o]) => o !== 'stock'));
   const out = { ...entry };
@@ -153,8 +155,20 @@ registerHangarTab({
         b.style.setProperty('--i', String(i));
         b.setAttribute('aria-pressed', String(on));
         b.append(el('span', 'hangar-card-name', str(`kit.option.${option}`)));
+        /* A Shop or earned option (docs/KITS.md section 7) is tried on
+         * like any other; pressed while not owned, it opens in the Shop.
+         * One already fitted (a code, a save from before) stays fitted. */
+        const item = kitItem(family, s.id, option);
+        const locked = item && !on && kitStanding(item.id) !== 'owned';
+        if (item && kitStanding(item.id) !== 'owned') {
+          b.append(el('span', 'hangar-card-detail', item.price ? str('shop.tokens', { n: item.price }) : str('shop.earned_only')));
+        }
         hangar.trial(b, { entry: withSlot(hangar.entry, family, s.id, option) }, 'overview');
         b.addEventListener('click', () => {
+          if (locked) {
+            showInShop(hangar, item.id);
+            return;
+          }
           hangar.entry = withSlot(hangar.entry, family, s.id, option);
           hangar.changed(`kit-${s.id}-${option}`);
         });
