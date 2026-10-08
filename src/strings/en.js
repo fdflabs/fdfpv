@@ -2545,6 +2545,7 @@ export default {
   "kit.slot.mount": "Camera mount",
   "kit.slot.antenna": "Antennas",
   "kit.slot.fins": "Fins",
+  "kit.option.sfg": "Side force generators",
   "kit.option.stock": "Stock",
   "kit.option.bullet": "Bullet",
   "kit.option.flat": "Flat cap",
