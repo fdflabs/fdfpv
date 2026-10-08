@@ -307,7 +307,10 @@ function waterMaterial(THREE) {
         vec3 shoal = vec3(0.11, 0.092, 0.06);
         float swirl = rbNoise(w * 0.008) * 0.5 + rbNoise(w * 0.03) * 0.3 + rbNoise(w * 0.11) * 0.2;
         vec3 col = mix(deep, shoal, shallow * 0.75) * (0.8 + 0.45 * swirl);
-        vec3 siltFar = vec3(0.19, 0.15, 0.095) * (0.88 + 0.25 * swirl);
+        /* From survey height the river is the silt's own colour, darker
+         * than its sand, with the sky's sheen doing the lightening: at
+         * 0.19 it printed as a tan band lighter than the fields. */
+        vec3 siltFar = vec3(0.1, 0.082, 0.055) * (0.88 + 0.25 * swirl);
         col = mix(col, siltFar, smoothstep(0.3, 2.0, rbFp));
         /* Sand bars on the inside of a tighter bend (bend's sign is the
          * inside), wider where it turns harder, broken along it. */
