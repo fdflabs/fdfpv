@@ -87,7 +87,23 @@ const seed = [`try {
     progress: { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll: true },
   });
   localStorage.setItem(k, JSON.stringify(s));
-} catch (e) { /* storage refused; the checks below will say so */ }`];
+} catch (e) { /* storage refused; the checks below will say so */ }
+/* A record of the pointer's presses and the side panel being drawn
+ * again, read back when a click lands somewhere it should not have. */
+window.__clickLog = [];
+for (const type of ['pointerdown', 'pointerup', 'click']) {
+  document.addEventListener(type, (e) => {
+    const k = e.target && e.target.closest && e.target.closest('[data-key]');
+    window.__clickLog.push(type + ':' + (k ? k.dataset.key : e.target.className) + '@' + Math.round(performance.now()));
+  }, true);
+}
+new MutationObserver((list) => {
+  for (const m of list) {
+    if (m.target.classList && m.target.classList.contains('hangar-side') && m.addedNodes.length) {
+      window.__clickLog.push('repaint@' + Math.round(performance.now()));
+    }
+  }
+}).observe(document, { childList: true, subtree: true });`];
 
 async function shot(page, name) {
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
@@ -179,9 +195,17 @@ async function flipAndViews(page) {
   })()`);
   /* Each step waits on the hangar's own state, not a clock: a slow
    * software renderer polls the pad once a frame, a few times a second.
-   * The pad is first seen released (the first poll only learns what is
-   * held), then held in until the hangar has flipped, then let go. */
-  await page.until('Boolean(window.__ui.hangar.padPrev)', 60000);
+   * The pad is first chosen as the device in use (the roster takes a pad
+   * that turns up on some later poll) and seen released, since the first
+   * poll only learns what is held; then held in until the hangar has
+   * flipped, then let go. */
+  await page.until("(() => { const gp = window.__input.firstGamepad(); return Boolean(gp) && gp.id === 'check pad'; })()", 60000);
+  /* Two more of the hangar's polls (each makes a new padPrev) with the pad
+   * chosen and R3 out, so the press is an edge and not learnt as held. */
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate('window.__padPrevSeen = window.__ui.hangar.padPrev; true');
+    await page.until('window.__ui.hangar.padPrev !== window.__padPrevSeen', 60000);
+  }
   await page.evaluate('window.__r3 = true');
   await page.until('window.__ui.hangar.flip === true', 60000).catch(() => {});
   await page.evaluate('window.__r3 = false');
@@ -257,7 +281,20 @@ async function steady(page, selector) {
 /* A real pointer click on a button once it stands still. */
 async function press(page, selector) {
   await steady(page, selector);
-  return page.click(selector);
+  const before = await page.evaluate('window.__clickLog.length');
+  const done = await page.click(selector);
+  /* The click must reach the control aimed at; say so plainly if it went
+   * to another, with what the page saw, rather than fail later on state. */
+  const key = (selector.match(/data-key="([^"]+)"/) || [])[1];
+  if (key) {
+    await page.until(`window.__clickLog.slice(${before}).some((l) => l.startsWith('click:'))`, 10000).catch(() => {});
+    const log = await page.evaluate(`window.__clickLog.slice(${before})`);
+    const hit = log.find((l) => l.startsWith('click:'));
+    if (!hit || !hit.startsWith(`click:${key}@`)) {
+      throw new Error(`the click on ${key} landed on ${hit || 'nothing'}: ${log.join(' ')}`);
+    }
+  }
+  return done;
 }
 
 async function paintUnder(page, id) {
@@ -306,7 +343,7 @@ async function underEach(page) {
     const u = l && l.uniforms[got.region];
     const entry = await page.evaluate('window.__ui.hangar.entry');
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
-      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}`);
+      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}${entry.under && entry.under[got.region] === got.hex ? '' : ` log ${await page.evaluate('window.__clickLog.slice(-24).join(" ")')}`}`);
     if (id === 'timber1500') {
       await press(page, '.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
@@ -530,17 +567,25 @@ async function swatchLibrary(page) {
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
+    /* The hangar's own reduced motion (index.html): no entrance slides, no
+     * staggered swatches, no smooth scroll. Motion is not what this check
+     * is about, and on CI's starved software page a control still moving
+     * when the pointer pressed took the click for its neighbour, or lost
+     * it, whatever the check waited on first. */
+    await page.cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, page.sessionId);
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    await viewsEach(page);
-    await flipAndViews(page);
-    await closedFlipped(page);
-    await underEach(page);
-    await clickToPaint(page);
-    await undoSteps(page);
-    await abStock(page);
-    await patternsEach(page);
-    await swatchLibrary(page);
+    /* WORKSHOP_STEPS (names of the steps below) and WORKSHOP_REPEAT run a
+     * part of the check again and again, to hunt a race on a slow page. */
+    const steps = {
+      viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
+    };
+    const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : Object.keys(steps);
+    for (let i = 0; i < Number(process.env.WORKSHOP_REPEAT || 1); i++) {
+      for (const name of chosen) {
+        await steps[name](page);
+      }
+    }
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
