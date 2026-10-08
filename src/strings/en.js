@@ -3958,6 +3958,7 @@ export default {
   "ops.campaign.no_map": "The Interior's map is not in this build yet, so a mission cannot start from here.",
   "ops.campaign.no_room": "No room could be made for it: {why}",
   "ops.interior.star.eyes": "EYES OPEN: every optional item",
+  "ops.interior.star.unseen": "UNSEEN: the property and the meeting, never detected",
   "ops.debrief.eyebrow": "DEBRIEF",
   "ops.debrief.won": "MISSION COMPLETE",
   "ops.debrief.lost": "MISSION FAILED · {why}",

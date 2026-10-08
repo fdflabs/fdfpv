@@ -103,6 +103,8 @@ console.log('data');
   const noPoint = [...points].filter((p) => !M.points[p]);
   check(`every route point it names exists (${points.size})`, noPoint.length === 0, noPoint.join());
   M.items.forEach((it) => keys.add(`ops.interior.item.${it.id}`));
+  /* A star with no card is named by its own key (src/ui/debrief.js). */
+  M.stars.filter((x) => !x.card).forEach((x) => keys.add(`ops.interior.star.${x.id}`));
   const noStr = [...keys].filter((k) => !(k in EN) || !(k in ES));
   check(`every string it shows is in en and es (${keys.size})`, noStr.length === 0, noStr.join());
   const doc = readFileSync(new URL('../docs/campaign/interior/MISSIONS.md', import.meta.url), 'utf8');

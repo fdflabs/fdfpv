@@ -3963,6 +3963,7 @@ export default {
   "ops.campaign.no_map": "El mapa del Interior todavía no está en esta versión, así que una misión no puede empezar desde aquí.",
   "ops.campaign.no_room": "No se pudo crear una sala: {why}",
   "ops.interior.star.eyes": "OJOS ABIERTOS: cada elemento opcional",
+  "ops.interior.star.unseen": "SIN SER VISTOS: la estancia y la reunión, sin ser detectados",
   "ops.debrief.eyebrow": "INFORME",
   "ops.debrief.won": "MISIÓN CUMPLIDA",
   "ops.debrief.lost": "MISIÓN FALLIDA · {why}",
