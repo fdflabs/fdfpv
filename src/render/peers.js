@@ -43,6 +43,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
@@ -148,6 +149,7 @@ export function buildPeerCraft(profile, look = null) {
   const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined });
   if (paint) {
     dressLivery(craft, id, paint);
+    addNavLights(craft, paint.lights);
   }
   let smoke = null;
   if (PROPS[id]) {

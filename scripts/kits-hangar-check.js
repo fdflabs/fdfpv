@@ -195,6 +195,54 @@ async function leds(page) {
   say(run.meshes === 4 && run.usPerFrame < 50, `${id}: LED cost: ${run.meshes} extra draws, setLights ${run.usPerFrame.toFixed(2)} us a frame`);
 }
 
+/* A plane's Kit tab: no slot options yet, Nav lights and Strobes pressed,
+ * saved, and pictured from the front left. */
+async function navLights(page, id) {
+  await openHangar(page, id);
+  await press(page, '.hangar [data-key="tab-kit"]');
+  await page.until("window.__ui.hangar.tab === 'kit'", 5000);
+  const slots = await page.evaluate("document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]').length");
+  say(slots === 0, `${id}: no kit slot options until its models land (${slots})`);
+  await press(page, '.hangar [data-key="light-nav"]');
+  await page.sleep(300);
+  await press(page, '.hangar [data-key="light-strobe"]');
+  await page.sleep(300);
+  const lights = await page.evaluate('JSON.stringify(window.__ui.hangar.entry.lights || null)');
+  say(lights === JSON.stringify({ v: 1, nav: true, strobe: true }), `${id}: nav lights and strobes fitted ${lights}`);
+  await press(page, '.hangar [data-key="view-front"]');
+  await page.sleep(2500);
+  await shot(page, `${id}-nav`);
+  await press(page, '.hangar [data-key="save"]');
+  await page.until(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null) === ${JSON.stringify(lights)}`, 10000).catch(() => {});
+  say(await page.evaluate(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null)`) === lights, `${id}: Save keeps the lights`);
+  await closeAll(page);
+}
+
+/* Every plane family: red left, green right, white aft, the strobes on
+ * the flight clock, and nothing added without lights. */
+async function navEveryPlane(page) {
+  const got = await page.evaluate(`(async () => {
+    const { craftBuilderFor } = await import('./src/render/craft.js');
+    const { addNavLights } = await import('./src/render/navlights.js');
+    const { KITS, lightsFor } = await import('./configs/kits.js');
+    const out = [];
+    for (const id of Object.keys(KITS).filter((f) => lightsFor(f).nav)) {
+      const c = addNavLights(craftBuilderFor(id)({ fog: false }), { v: 1, nav: true, strobe: true });
+      const g = (n) => c.group.getObjectByName(n);
+      c.setLights(30);
+      const on = g('strobe-left').visible;
+      c.setLights(600);
+      const off = !g('strobe-left').visible;
+      const plain = addNavLights(craftBuilderFor(id)({ fog: false }), null);
+      out.push({ id, ok: g('nav-left').position.x < 0 && g('nav-right').position.x > 0 && g('nav-tail').position.z > 0 && on && off && !plain.group.getObjectByName('nav-left') });
+    }
+    return out;
+  })()`);
+  for (const r of got) {
+    say(r.ok, `${r.id}: red left, green right, white aft, strobes flash on the flight clock, none without lights`);
+  }
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -204,13 +252,10 @@ async function main() {
       await quad(page, id);
     }
     await leds(page);
-    await openHangar(page, 'sky1800');
-    await page.click('.hangar [data-key="tab-kit"]');
-    await page.until("window.__ui.hangar.tab === 'kit'", 5000).catch(() => {});
-    const note = await page.evaluate("Boolean(document.querySelector('.hangar .kit-tab')) && !document.querySelector('.hangar .kit-tab [data-key^=\"kit-\"]')");
-    say(note, 'sky1800: a family not drawn yet shows the tab with no options');
-    await page.tap('Escape');
-    await closeAll(page);
+    for (const id of ['sky1800', 'p51d1450', 'f16878']) {
+      await navLights(page, id);
+    }
+    await navEveryPlane(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

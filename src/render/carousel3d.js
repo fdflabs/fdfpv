@@ -47,6 +47,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
@@ -245,7 +246,7 @@ export function createCarouselStage(renderer) {
     if (m) {
       return m;
     }
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }

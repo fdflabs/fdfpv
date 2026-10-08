@@ -59,3 +59,10 @@ export function ledLevel(pattern, m, tMs, throttle, battery, out) {
   }
   return out;
 }
+
+/* A plane's wingtip strobes: the same double flash once a second as the
+ * LEDs' strobe, 1 on and 0 off. */
+export function navLevel(tMs) {
+  const p = tMs % STROBE_MS;
+  return p < FLASH_MS || (p >= 2 * FLASH_MS && p < 3 * FLASH_MS) ? 1 : 0;
+}
