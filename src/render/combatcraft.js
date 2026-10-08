@@ -1183,12 +1183,17 @@ export function buildCombatDrone(opts = {}) {
   }
   blade.dispose();
 
+  /* On the group's userData, not the craft: a craft's and the shell's
+   * handles are a pinned shape (render:golden), and only a kitted craft
+   * has lights. */
   const setLights = armLeds(group, f, opts.lights);
+  if (setLights) {
+    group.userData.setLights = setLights;
+  }
   const craft = {
     group,
     discs,
     blades,
-    setLights,
     cameraMount,
     propSpin: PROP_SPIN,
     stator: mats.copper,
