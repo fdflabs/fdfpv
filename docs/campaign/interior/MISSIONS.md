@@ -858,7 +858,7 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-s2-contact | the hostile action | ROJAS | all | We have contact. |
 | int3-s2-pilot | after s2-contact; card CONFIRM IDENTIFICATION | VEGA | all | Pilot? |
 | int3-s2-cleared | CONFIRM IDENTIFICATION on the right contact | VEGA | all | Cleared. |
-| int3-s2-stopped | the strike's white out ends | ROJAS | all | Threat stopped. |
+| int3-s2-stopped | the strike's white out ends | ROJAS | all | Threat's stopped. (the script's "Threat stopped.": spoken, it was always heard as one word) |
 | int3-s2-continue | after s2-stopped | VEGA | all | Continue observing. |
 | int3-s2-pressed | `post(pressed)` | ROJAS | all | (new) They're closing on the post. I need eyes on the tree line. |
 | int3-s2-notyet | CONFIRM IDENTIFICATION before the evidence | IBARRA | all | (new) We don't have that yet. |
