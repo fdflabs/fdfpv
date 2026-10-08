@@ -64,6 +64,8 @@ import {
   GRADES, inBand, judgeCapture, lower, rank,
 } from '../../src/share/ops/capture.js';
 import { validCam } from '../../src/share/ops/sight.js';
+import { holdOf, holdPose } from '../../src/share/ops/hold.js';
+import { airframeById } from '../../configs/airframes.js';
 import {
   BOUNDARY_MS, applyCue, cardsView, drawDials, dueCues, resolve, starsOf, toldOf, trigger,
 } from '../../src/share/ops/stages.js';
@@ -84,6 +86,11 @@ export const CAM_STALE_MS = 1500;
 export const CAPTURE_BACK_MS = 2000;
 /* A seat gone this long gives its roles up (a reload keeps them). */
 export const AWAY_MS = 10000;
+/* A hold's left pose may be this far from the seat's newest pose, m: a
+ * fast aircraft over a second of latency (CONTRACT-HOLDS.md 4.3). */
+export const HOLD_NEAR = 100;
+/* A hold's ms may be this far behind the room's clock. */
+export const HOLD_BACK_MS = 5000;
 /* The most stars a match restarted from its checkpoint earns. */
 export const RESTART_STARS = 2;
 
@@ -109,6 +116,16 @@ function shiftTimes(m, d) {
   }
   m.flagAt = Object.fromEntries(Object.entries(m.flagAt).map(([k, t]) => [k, mv(t)]));
   m.choices = Object.fromEntries(Object.entries(m.choices).map(([k, c]) => [k, { ...c, t: mv(c.t) }]));
+}
+
+/* A camera at p looking at c.aim, or null when it is there. */
+function camFrom(p, c) {
+  const v = [c.aim[0] - p[0], c.aim[1] - p[1], c.aim[2] - p[2]];
+  const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  if (!(n > 0)) {
+    return null;
+  }
+  return { dir: [v[0] / n, v[1] / n, v[2] / n], tanHalf: c.tanHalf, aspect: c.aspect };
 }
 
 export class RoomOps {
@@ -235,6 +252,7 @@ export class RoomOps {
         swaps: copy(m.roles.swaps),
       } : null,
       dials: { ...m.dials },
+      holds: copy(this.liveHolds()),
       /* What a screen draws by: the mission's clock (the sun), the camp's
        * marked shelter as the room judges it, the choices made (the tarp
        * moved), and the items whose `open` has fired, so seen from any
@@ -343,6 +361,7 @@ export class RoomOps {
       case 'take': case 'active': case 'swap': case 'swapAccept': case 'swapDecline':
         return this.role(core, conn, s, msg, roomNow);
       case 'seen': return this.seenFilms(core, conn, s, msg.films);
+      case 'hold': return this.hold(core, conn, s, msg, roomNow);
       default: break;
     }
     if (s.seat !== core.host()) {
@@ -478,6 +497,10 @@ export class RoomOps {
       flew: {},
       choices: {},
       roles: null,
+      /* seat -> { role key: { airframe, hold, cam } }: the aircraft a
+       * seat is not flying (CONTRACT-HOLDS.md). Only those whose key the
+       * seat holds and does not fly count (liveHolds). */
+      holds: {},
       tokens: {},
       away: {},
       checkpoint: null,
@@ -593,15 +616,72 @@ export class RoomOps {
     if (!c || t - c.t > CAM_STALE_MS) {
       return null;
     }
-    const v = [c.aim[0] - p[0], c.aim[1] - p[1], c.aim[2] - p[2]];
-    const n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    if (!(n > 0)) {
-      return null;
-    }
-    return { dir: [v[0] / n, v[1] / n, v[2] / n], tanHalf: c.tanHalf, aspect: c.aspect };
+    return camFrom(p, c);
   }
 
-  /* The pilots at room ms t: each seat here with a pose then. */
+  /* The match's holds that stand: their key held by the seat and not
+   * the one it flies. A role given up or flown again drops its hold. */
+  liveHolds() {
+    const m = this.match;
+    const out = {};
+    for (const [seat, hs] of Object.entries(m.holds ?? {})) {
+      const keep = Object.entries(hs).filter(([key]) => m.roles?.held[seat]?.includes(key) && m.roles.active[seat] !== key);
+      if (keep.length) {
+        out[seat] = Object.fromEntries(keep);
+      }
+    }
+    return out;
+  }
+
+  /*
+   * A seat leaves an aircraft on a hold: { key, t, pose: { p, v,
+   * airborne } (ops frame), cam: { aim, tanHalf, aspect } | null }. The
+   * room makes the hold itself (hold.js holdOf on the role's platform),
+   * so a client names only where it left the aircraft, and that must be
+   * near where the room last saw this seat.
+   */
+  hold(core, conn, s, msg, roomNow) {
+    const m = this.match;
+    if (!this.on() || !m.roles) {
+      return this.error(conn, 'off');
+    }
+    const key = msg.key;
+    if (!m.roles.held[s.seat]?.includes(key) || m.roles.active[s.seat] === key) {
+      return this.error(conn, 'hold', 'role');
+    }
+    const def = this.mission().roles.find((d) => d.id === roles.roleOf(key));
+    const af = def?.platforms?.[0] ? airframeById(def.platforms[0]) : null;
+    const pose = msg.pose;
+    const vec = (x) => Array.isArray(x) && x.length === 3 && x.every(Number.isFinite);
+    if (!af || af.id !== def.platforms[0] || !Number.isInteger(msg.t) || msg.t > roomNow + AHEAD_MS || msg.t < roomNow - HOLD_BACK_MS
+      || !pose || !vec(pose.p) || !vec(pose.v) || typeof pose.airborne !== 'boolean') {
+      return this.error(conn, 'hold', 'shape');
+    }
+    const last = this.seats.get(s.seat)?.track.s.at(-1);
+    const seen = last ? threePosToDoc(last.px, last.py, last.pz, {}) : null;
+    if (!seen || Math.hypot(pose.p[0] - seen.x, pose.p[1] - seen.y, pose.p[2] - seen.z) > HOLD_NEAR) {
+      return this.error(conn, 'hold', 'pose');
+    }
+    const c = msg.cam;
+    if (c != null && (!vec(c.aim) || !validCam({ dir: [1, 0, 0], tanHalf: c.tanHalf, aspect: c.aspect }))) {
+      return this.error(conn, 'hold', 'cam');
+    }
+    let hold;
+    try {
+      hold = holdOf({ p: pose.p, v: pose.v, airborne: pose.airborne }, af, msg.t);
+    } catch {
+      return this.error(conn, 'hold', 'track');
+    }
+    m.holds[s.seat] = {
+      ...(m.holds[s.seat] ?? {}),
+      [key]: { airframe: af.id, hold, cam: c == null ? null : { aim: c.aim.slice(), tanHalf: c.tanHalf, aspect: c.aspect } },
+    };
+    return this.changed(core);
+  }
+
+  /* The pilots at room ms t: each seat here with a pose then (its role
+   * the one it flies), and each aircraft it holds (`held`, its role the
+   * hold's), where its hold has it. */
   pilotsAt(core, t) {
     const out = [];
     for (const s of [...core.seats.values()].sort((a, b) => a.seat - b.seat)) {
@@ -612,7 +692,17 @@ export class RoomOps {
       const q = this.poseOf(s.seat, t);
       if (q) {
         out.push({
-          seat: s.seat, p: q.p, flags: q.flags, airborne: (q.flags & FLAG_AIRBORNE) !== 0, crashed: (q.flags & FLAG_CRASHED) !== 0, cam: this.camOf(s.seat, t, q.p),
+          seat: s.seat, role: this.match.roles?.active[s.seat] ?? null, p: q.p, flags: q.flags, airborne: (q.flags & FLAG_AIRBORNE) !== 0, crashed: (q.flags & FLAG_CRASHED) !== 0, cam: this.camOf(s.seat, t, q.p),
+        });
+      }
+      for (const [key, h] of Object.entries(this.liveHolds()[s.seat] ?? {})) {
+        if (t < h.hold.t0) {
+          continue;
+        }
+        const p = holdPose(h.hold, Math.floor(t)).p;
+        const airborne = h.hold.kind !== 'parked';
+        out.push({
+          seat: s.seat, role: key, held: true, speed: h.hold.kind === 'orbit' ? h.hold.speed : 0, p, flags: airborne ? FLAG_AIRBORNE : 0, airborne, crashed: false, cam: h.cam ? camFrom(p, h.cam) : null,
         });
       }
     }
@@ -822,13 +912,14 @@ export class RoomOps {
     const spotted = this.spotStep(pilots, g);
     dirty ||= spotted.dirty;
     told.push(...spotted.told);
-    for (const q of pilots) {
+    /* Downs are the flown aircraft's: a hold never crashes. */
+    for (const q of pilots.filter((x) => !x.held)) {
       if (q.airborne) {
         m.flew[q.seat] = true;
       }
       const rec = this.seats.get(q.seat);
       if (q.crashed && !rec.crashed) {
-        const alone = !pilots.some((o) => o.seat !== q.seat && o.airborne && !o.crashed);
+        const alone = !pilots.some((o) => !o.held && o.seat !== q.seat && o.airborne && !o.crashed);
         m.downs.push({
           seat: q.seat, t: g, roles: [...new Set((m.roles?.held[q.seat] ?? []).map(roles.roleOf))], alone,
         });
@@ -877,6 +968,11 @@ export class RoomOps {
       const st = (m.spot[sp.id] ??= spotState());
       const was = st.value;
       const qs = pilots.filter((q) => q.airborne).map((q) => {
+        /* A held aircraft moves at its hold's speed; the seat's poses are
+         * the aircraft it flies. */
+        if (q.held) {
+          return { p: q.p, v: q.speed };
+        }
         const b = this.poseOf(q.seat, g - 1000);
         const v = b ? Math.sqrt((q.p[0] - b.p[0]) ** 2 + (q.p[1] - b.p[1]) ** 2 + (q.p[2] - b.p[2]) ** 2) : 0;
         return { p: q.p, v };
@@ -916,7 +1012,8 @@ export class RoomOps {
     if (!box) {
       return told;
     }
-    for (const q of pilots) {
+    /* The flown aircraft's: a hold stays where its pilot left it. */
+    for (const q of pilots.filter((x) => !x.held)) {
       const out = q.p[0] < box.min[0] || q.p[1] < box.min[1] || q.p[0] > box.max[0] || q.p[1] > box.max[1];
       const b = m.bound[q.seat];
       if (!out) {

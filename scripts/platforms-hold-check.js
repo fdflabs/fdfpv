@@ -12,6 +12,8 @@
  *     where the hold has it
  *   - [ pressed: back to the Bramor at the point of its orbit, no jump,
  *     and the 7 inch hovers where it was left
+ *   - the room is told of each hold (op hold, its pose); another seat's
+ *     hold in the room's view is drawn where it says
  *   - the role board's FLY THIS (a real pointer) asks the room the same
  *   - no page errors
  *
@@ -151,6 +153,8 @@ try {
   check('] asks the room for the other role', asked && asked.op === 'active' && asked.key === 'recon', JSON.stringify(asked));
   await inject('recon');
   await page.until("window.__ops.flown() === '7inch'", 20000);
+  const told = await page.evaluate("window.__ops.sent().filter((m) => m.op === 'hold').slice(-1)[0] || null");
+  check('the room told of the Bramor left on its hold', told && told.key === 'isr' && Number.isInteger(told.t) && told.pose.airborne === true && told.pose.p.length === 3, JSON.stringify(told));
   const s1 = await page.evaluate('window.__lastSwap()');
   check('the 7 inch seated where the Bramor was, no jump', swapJump(s1) < 0.1 && s1.rule === 'air', `${swapJump(s1).toFixed(3)} m, ${s1.rule}`);
   let h = await page.evaluate('window.__ops.holds()');
@@ -183,6 +187,26 @@ try {
   const q2 = (await page.evaluate('window.__ops.holds()')).held.find((x) => x.key === 'recon');
   check('the 7 inch hovers where it was left', q && q.kind === 'hover' && dist(q.p, [s2.before.x, s2.before.y, s2.before.z]) > 1 && dist(q.p, q2.p) < 0.5, JSON.stringify(q));
   await shot('hold-hover.png');
+
+  /* Another seat's hold in the room's view: drawn where it says. */
+  {
+    const v = view('isr');
+    v.roles.held[2] = [];
+    v.holds = {
+      2: {
+        'isr:2': {
+          airframe: 'bramor2300', cam: null, hold: { kind: 'hover', t0: 0, p0: [b2.c[0], b2.c[1], b2.c[2] + 40] },
+        },
+      },
+    };
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+    await page.sleep(500);
+    const peers = (await page.evaluate('window.__ops.holds()')).peers;
+    const pp = peers[0];
+    check('another seat\'s hold from the view is drawn where it says', peers.length === 1 && pp.shown && dist(pp.drawn, [b2.c[0], b2.c[2] + 40, -b2.c[1]]) < 0.01, JSON.stringify(peers));
+    await shot('hold-peer.png');
+    await inject('isr');
+  }
 
   /* The role board's FLY THIS, by pointer. */
   const at = (sel) => page.evaluate(`(() => {

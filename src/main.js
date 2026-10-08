@@ -894,10 +894,44 @@ export async function boot({
     return h.hold.kind === 'orbit' ? Math.atan2(-holdV.x, -holdV.z) : h.yaw;
   }
 
+  /* The other seats' holds, from the room's view: `${seat}:${key}` ->
+   * { airframe, hold, yaw, rig }. */
+  const peerHolds = new Map();
+  function peerHoldsSync(v) {
+    const want = new Map();
+    const mine = String(roomOps.seat());
+    for (const [seat, hs] of Object.entries((roomOps.live() && v && v.holds) || {})) {
+      if (seat === mine) {
+        continue;
+      }
+      for (const [key, h] of Object.entries(hs)) {
+        want.set(`${seat}:${key}`, { ...h, key });
+      }
+    }
+    for (const [id, h] of peerHolds) {
+      const w = want.get(id);
+      if (!w || w.airframe !== h.airframe || w.hold.t0 !== h.hold.t0) {
+        h.rig.group.removeFromParent();
+        h.rig.dispose();
+        peerHolds.delete(id);
+      }
+    }
+    for (const [id, w] of want) {
+      if (!peerHolds.has(id)) {
+        const rig = buildPeerCraft({ airframe: w.airframe, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
+        rig.setLabel(roleName(w.key));
+        peerHolds.set(id, {
+          airframe: w.airframe, hold: w.hold, yaw: 0, rig,
+        });
+      }
+    }
+  }
+
   /* Each held aircraft drawn where its hold has it: level on a hover or
    * parked, banked into the turn on an orbit. */
-  function opsHoldsDraw() {
-    for (const h of opsHolds.values()) {
+  function opsHoldsDraw(v) {
+    peerHoldsSync(v);
+    for (const h of [...opsHolds.values(), ...peerHolds.values()]) {
       const yaw = holdNow(h);
       h.rig.group.position.copy(holdP);
       holdE.set(0, yaw, h.hold.kind === 'orbit' ? HOLD_BANK : 0);
@@ -945,6 +979,10 @@ export async function boot({
         to.rig.dispose();
         opsHolds.delete(toKey);
       }
+      /* The room's copy: it makes the same hold from the same pose. The
+       * camera ball's ground lock stays on the held aircraft's camera. */
+      const lock = ball && ballAirframe === from.id && ball.state.lock ? ball.state.lock.slice() : null;
+      roomOps.hold(fromKey, t, left, lock && opsCam ? { aim: lock, tanHalf: opsCam.tanHalf, aspect: opsCam.aspect } : null);
       leftHold.rig = buildPeerCraft({ airframe: from.id, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
       leftHold.rig.setLabel(roleName(fromKey));
       opsHolds.set(fromKey, leftHold);
@@ -1311,7 +1349,7 @@ export async function boot({
       }
     }
     opsFilmFrame(v, match, consentDue);
-    opsHoldsDraw();
+    opsHoldsDraw(v);
     opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
@@ -1946,6 +1984,12 @@ export async function boot({
         holdNow(h);
         return {
           key, airframe: h.airframe, kind: h.hold.kind, r: h.hold.r ?? null, c: h.hold.c ? h.hold.c.slice() : null, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
+        };
+      }),
+      peers: [...peerHolds].map(([id, h]) => {
+        holdNow(h);
+        return {
+          id, airframe: h.airframe, kind: h.hold.kind, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
         };
       }),
     }),
