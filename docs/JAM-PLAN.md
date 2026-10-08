@@ -20,7 +20,7 @@ the strings' `jam.*`. The player sees "Trick Battle" / "Batalla de Trucos".
    room's spawn, the clock and your score on the jam HUD. Everybody else is
    held on the ground with the camera on the runner and the runner's score,
    tricks and last trick live on their HUD.
-3. A run ends when its clock runs out or when the runner presses the end key.
+3. A run ends when its clock runs out.
    A crash costs the open combo, as in freestyle, and the run goes on after
    the respawn. The next pilot's count starts at once.
 4. After each round the HUD says who took it. After the last round (or when a
@@ -101,6 +101,12 @@ Client to room, JSON text:
     { type: 'jam', op: 'done',  total, tricks, unique, crashes }
                                             the runner: its run is over
 
+The runner sends `score` at most twice a second, the latest numbers
+coalesced, and `done` once, at least half a second after its last `score`:
+a seat's text allowance is TEXT_PER_S (edge/rooms/core.js), and a message
+past it is dropped. A dropped `done` costs nothing but time, since the room
+closes the run at `endAt + SLACK_MS` with the last numbers it heard.
+
 `last` is null or `{ name, execution, points }`: the trick just landed, for
 the watchers' HUD (a name up to 40 characters, an execution of the sheet's
 five, whole points). A message from anybody else, outside the run, or out of
@@ -123,7 +129,10 @@ Room to every seat and every watcher, on every change and every score:
   last }`.
 - `runs`: every closed run `{ round, seat, total, tricks, unique, crashes,
   why }`, why 'done'|'time'|'left'.
-- `wins`: `{ seat: round wins }`; `winners`: the seats that won, at results.
+- `wins`: `{ seat: round wins }`; `winners`: the seats that won, at results;
+  `gone`: the match's seats no longer here.
+- A start refused because another game is on is the room's usual
+  `{ type: 'refused', why: <that game> }` (core.js hostCheck).
 
 The match is stored (`{ store: 'jam' }`) on every change of turn or state,
 and restored after a hibernation like tag's.

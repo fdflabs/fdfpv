@@ -169,6 +169,7 @@
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
+    "jam:selftest": "node scripts/jam-selftest.js",
     "voicechat:selftest": "node scripts/voicechat-selftest.js",
     "voicechat:twopage": "node scripts/voicechat-two-page.js",
     "rooms:clock": "node scripts/roomclock-check.js",

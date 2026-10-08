@@ -105,6 +105,7 @@ import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { createRoomJam } from './share/roomjam.js';
 import { MODES, modeById, modeOfRoom, modeOfWire } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
@@ -3222,6 +3223,8 @@ export async function boot({
   const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
   /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
+  /* Trick Battle (src/share/roomjam.js, docs/JAM-PLAN.md). */
+  const roomJam = createRoomJam((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
   /* Ops missions (src/share/roomops.js), wired below at THE CAMERA BALL. */
@@ -3271,7 +3274,7 @@ export async function boot({
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
-  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', jam: 'jam.card', war: 'war.card', free: 'ui.free_flight_card' };
   /*
    * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
    * a room's socket that dropped, or a rooms server that said it was
@@ -3295,6 +3298,7 @@ export async function boot({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
       roomTag.onWelcome(w);
+      roomJam.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
       roomPeersClear();
@@ -3391,7 +3395,7 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
-      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomJam.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
         /* Not the room's refusal of the aircraft a war just put this pilot
          * out of (warSeatCraft): only one still flown says it. */
@@ -3441,6 +3445,7 @@ export async function boot({
         roomRaceRunId = null;
         roomRaceHud.update(null);
         roomTag.clear();
+        roomJam.clear();
         roomTagRunId = null;
         roomTagHud.update(null);
         tagMarkPeers();
@@ -4084,6 +4089,21 @@ export async function boot({
       },
       rows: () => [],
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
+    },
+    jam: {
+      on: () => roomJam.on(),
+      ended: () => roomJam.view().state === 'results',
+      start: 'friends-lobby-start',
+      begin: (lobby) => roomJam.start(lobby.seconds),
+      setting: {
+        key: modeById('jam').setting.key,
+        choices: () => modeById('jam').setting.choices,
+        label: 'lobby.seconds',
+        note: 'lobby.seconds_note',
+        value: (n) => str('lobby.seconds_value', { n }),
+      },
+      rows: () => [],
+      line: (lobby) => str('lobby.jam_line', { n: lobby.seconds }),
     },
     /* The race goes off the track the host chose, from My tracks; the
      * pilots in the lobby have it built under the lobby screen, and are on
