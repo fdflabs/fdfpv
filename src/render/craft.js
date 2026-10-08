@@ -46,7 +46,7 @@ import { buildStrikerCraft, buildStrikerLauncher } from './strikercraft.js';
 import { bodyPosToModel } from './frame.js';
 import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
-import { dressLivery } from './livery.js';
+import { dressLivery, liveryFor } from './livery.js';
 import { dressParts } from './partsfit.js';
 
 /* A builder on floats: the same airframe with the float set for gear. */
@@ -164,12 +164,14 @@ export function craftDims() {
  */
 export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
   lastBuiltId = airframeById(airframeId).id;
+  const look = liveryFor(lastBuiltId);
   const built = craftBuilderFor(lastBuiltId)({
+    kit: (look && look.kit) ?? undefined,
     name: 'craft',
     fog: true,
     worldScale: true,
     measure: true,
     combat: combat ?? combatFor(lastBuiltId) ?? undefined,
   });
-  return dressParts(dressLivery(built, lastBuiltId), lastBuiltId);
+  return dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId);
 }
