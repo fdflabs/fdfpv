@@ -194,6 +194,7 @@ import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
 import { createRoomView } from './render/hangarroomview.js';
+import { listClips } from './replay/store.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -2014,6 +2015,8 @@ export async function boot({
    * stand is built again when the seated one changes or the hangar's
    * editor shuts, since a save there may have repainted it.
    */
+  /* Where a replay the hangar's TV opened goes back to: { mode, which }. */
+  let tvReturn = null;
   const walkRoom = { view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
   function walkRoomFrame(dt) {
     const pose = ui.walkFrame(dt);
@@ -13702,6 +13705,23 @@ export async function boot({
     if (s) {
       applySettings(s);
     }
+    /* The hangar's TV: the newest of My clips in the replay viewer, whose
+     * own My clips lists the rest; leaving it is the hangar again. */
+    if (action === 'hangar-tv' && ui.walk) {
+      const which = ui.walk.tier === 'field' ? 'field' : 'main';
+      listClips().then((rows) => {
+        if (!rows.length) {
+          return undefined;
+        }
+        const newest = rows.reduce((a, b) => (b.created > a.created ? b : a));
+        tvReturn = { mode, which };
+        return crashCam.playSaved(newest.id);
+      }).catch((err) => {
+        tvReturn = null;
+        notice = { text: str('walk.tv_refused', { why: err.message }), untilMs: performance.now() + 2400 };
+      });
+      return;
+    }
     if (accountUi.handle(action)) {
       return;
     }
@@ -16212,7 +16232,8 @@ export async function boot({
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
-    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk);
+    /* A replay the TV opened draws the world in the room's place. */
+    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk) && !crashCam.live;
     fr.studioOn = ui.screen === 'quad' && !fr.pickerOn;
     fr.worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
@@ -18883,6 +18904,14 @@ export async function boot({
       mode = 'replay';
     },
     exit: () => {
+      /* A replay the hangar's TV opened goes back to the hangar. */
+      if (tvReturn) {
+        const back = tvReturn;
+        tvReturn = null;
+        mode = back.mode;
+        ui.openWalk(back.which);
+        return;
+      }
       mode = 'flight';
       acc = 0;
       /* The map as the war has it now, whatever the replay drew. */

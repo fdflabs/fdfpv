@@ -3770,4 +3770,6 @@ export default {
   "training.lesson.race_ghost_note": "Vuela una vuelta más rápida que el fantasma de tu mejor vuelta.",
   "walk.shop": "Tienda",
   "walk.trophies": "Trofeos",
+  "walk.tv": "Repeticiones",
+  "walk.tv_refused": "El clip no se pudo reproducir: {why}",
 };

@@ -24,11 +24,14 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 
 ## 0b. TV
 
-- The TV shows the pilot's newest saved clip's thumbnail (My clips,
-  src/replay/store.js) on its screen. At it, E opens My clips; Play there
-  plays the clip in the replay viewer (crashcam.js playSaved), and leaving
-  the replay comes back to the room.
+- At the TV, once the pilot has saved a clip (My clips,
+  src/replay/store.js), the prompt reads Replays; E plays the newest clip
+  in the replay viewer (crashcam.js playSaved), whose own My clips lists
+  the rest, and leaving the replay is the room again. No clips, no prompt.
+- The screen shows no thumbnail: a picture there is one more texture, and
+  Low's budget holds two, both taken (docs/HANGAR-ROOM.md).
 - Data: read only, IndexedDB clips. Nothing new stored.
+- Known: the replay viewer's way out still reads "Back to flight".
 
 ## 1. Photo mode and photo wall
 

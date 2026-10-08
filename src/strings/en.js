@@ -3765,4 +3765,6 @@ export default {
   "training.lesson.race_ghost_note": "Fly a lap faster than the ghost of your best lap.",
   "walk.shop": "Shop",
   "walk.trophies": "Trophies",
+  "walk.tv": "Replays",
+  "walk.tv_refused": "The clip would not play: {why}",
 };

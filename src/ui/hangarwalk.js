@@ -32,12 +32,12 @@ import {
 import { levelOf } from '../game/progress.js';
 import { str } from '../strings/index.js';
 import { customisable } from './builds.js';
+import { listClips } from '../replay/store.js';
 import { hubWays } from './ways.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
- * does not exist yet has no action here and gives no prompt (the TV until
- * it is wired); the bench, the shelf and the
+ * does not exist yet has no action here and gives no prompt; the bench, the shelf and the
  * shop need an aircraft that can be customised, as the hangar does.
  */
 const STATIONS = {
@@ -45,6 +45,8 @@ const STATIONS = {
   bench: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.bench' },
   shelf: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.shelf' },
   trophies: { action: (ui) => (customisable(ui.settings.airframe) ? 'hangar-trophies' : null), label: 'walk.trophies' },
+  /* The TV plays My clips (src/replay/store.js), when there are any. */
+  tv: { action: (ui) => (ui.walk.clips > 0 ? 'hangar-tv' : null), label: 'walk.tv' },
   shop: { action: (ui) => (customisable(ui.settings.airframe) ? 'hangar-shop' : null), label: 'walk.shop' },
   door: { action: (ui) => (ui.walk.tier === 'field' ? warWay(ui) : 'fly'), label: 'walk.door' },
 };
@@ -114,7 +116,11 @@ export const walkMethods = {
       held: new Set(),
       pad: null,
       promptKey: null,
+      clips: 0,
     };
+    /* How many clips the TV has to play; read once a visit. */
+    const w = this.walk;
+    listClips().then((rows) => { w.clips = rows.length; w.promptKey = null; }, () => { w.clips = 0; });
     this.show('walk');
     renderPrompt(this);
   },
