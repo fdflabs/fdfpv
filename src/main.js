@@ -6534,6 +6534,7 @@ export async function boot({
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
+        decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
