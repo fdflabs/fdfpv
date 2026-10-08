@@ -59,6 +59,7 @@ import {
 } from '../../src/share/ops/contacts.js';
 import * as roles from '../../src/share/ops/roles.js';
 import { siteState, stepSite } from '../../src/share/ops/alert.js';
+import { spotState, stepSpot } from '../../src/share/ops/spot.js';
 import {
   GRADES, inBand, judgeCapture, lower, rank,
 } from '../../src/share/ops/capture.js';
@@ -211,6 +212,8 @@ export class RoomOps {
       cards: m.stage ? cardsView(this.ctx(core, m.f)) : [],
       contacts: contactsView(m.contacts),
       sites: copy(m.sites),
+      spot: copy(m.spot ?? {}),
+      spotAdvice: this.spotAdvice(),
       captures: m.captures.map(({
         item, seat, t, grade, at,
       }) => ({
@@ -465,6 +468,9 @@ export class RoomOps {
       flags: {},
       flagAt: {},
       sites: Object.fromEntries((mission.sites ?? []).map((x) => [x.id, siteState()])),
+      /* Not in the checkpoint: a restart is a fresh approach, nobody
+       * looking up yet. */
+      spot: Object.fromEntries((mission.spotters ?? []).map((x) => [x.id, spotState()])),
       search: [],
       bounds: [],
       bound: {},
@@ -813,6 +819,9 @@ export class RoomOps {
         dirty = true;
       }
     }
+    const spotted = this.spotStep(pilots, g);
+    dirty ||= spotted.dirty;
+    told.push(...spotted.told);
     for (const q of pilots) {
       if (q.airborne) {
         m.flew[q.seat] = true;
@@ -848,6 +857,52 @@ export class RoomOps {
       told.push(...s.told);
     }
     return { dirty, out: this.tell(core, told) };
+  }
+
+  /* The spotters at grid ms g (spot.js): a pilot's speed is its pose's
+   * travel over the second before, the room's own. A spotter's `warn`
+   * is told when `looking` is reached; being spotted scatters its people
+   * (the end scene) and its loss rule waits out the scene. The view
+   * is sent again on a level or on leaving or reaching 0, as a site's. */
+  spotStep(pilots, g) {
+    const m = this.match;
+    const mission = this.mission();
+    const told = [];
+    let dirty = false;
+    m.spot ??= {};
+    for (const sp of mission.spotters ?? []) {
+      if (sp.stage && !(m.stage && m.stage.idx >= stagesOf(mission).findIndex((x) => x.id === sp.stage))) {
+        continue;
+      }
+      const st = (m.spot[sp.id] ??= spotState());
+      const was = st.value;
+      const qs = pilots.filter((q) => q.airborne).map((q) => {
+        const b = this.poseOf(q.seat, g - 1000);
+        const v = b ? Math.sqrt((q.p[0] - b.p[0]) ** 2 + (q.p[1] - b.p[1]) ** 2 + (q.p[2] - b.p[2]) ** 2) : 0;
+        return { p: q.p, v };
+      });
+      const levels = stepSpot(sp, st, g, GRID_MS, qs, m.contacts, this.worldOf());
+      dirty ||= levels.length > 0 || (st.value === 0) !== (was === 0);
+      for (const level of levels) {
+        if (level === 'looking' && sp.warn) {
+          told.push({
+            at: g, stage: m.stage?.id ?? null, heard: 'all', radio: sp.warn,
+          });
+        }
+        if (level === 'spotted') {
+          applyCue(m, mission, { move: sp.scatter ?? [] }, g);
+        }
+      }
+    }
+    return { dirty, told };
+  }
+
+  /* The advice a loss to a spotter carries, for the fail card, or null. */
+  spotAdvice() {
+    const m = this.match;
+    const rule = (this.mission().lost ?? []).find((x) => x.spot && x.why === m.why);
+    const st = rule && m.state === 'lost' ? m.spot?.[rule.spot] : null;
+    return st?.advice ? { id: rule.spot, advice: st.advice, h: st.worst.h } : null;
   }
 
   /* Each pilot outside the mission's boundary is warned, warned a last
@@ -930,9 +985,12 @@ export class RoomOps {
     /* The mission's own loss rules, in every stage; the boundary's out. */
     let loss = null;
     for (const rule of mission.lost ?? []) {
-      const t = fired(rule.when, ctx);
-      if (t != null && (!loss || t < loss.t)) {
-        loss = { t, why: rule.why, radio: rule.radio };
+      const sp = rule.spot ? mission.spotters.find((x) => x.id === rule.spot) : null;
+      const at = fired(rule.when, ctx);
+      /* A spotter's loss waits out its end scene, then says its advice. */
+      const t = at == null ? null : at + Math.round((sp?.scene ?? 0) * 1000);
+      if (t != null && t <= g && (!loss || t < loss.t)) {
+        loss = { t, why: rule.why, radio: sp ? [sp.lines.spotted, 1, sp.lines[m.spot[sp.id].advice]] : rule.radio };
       }
     }
     const out = m.bounds.find((b) => b.level === 'out' && b.t <= g);
