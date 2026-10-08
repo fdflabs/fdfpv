@@ -272,6 +272,7 @@
     "combat:respawn": "node scripts/combat-respawn-pages.js",
     "friends:card": "node scripts/friends-card-check.js",
     "modes:card": "node scripts/mode-cards-check.js",
+    "pilot:stats": "node scripts/pilot-stats-check.js",
     "home:rooms": "node scripts/home-rooms-check.js",
     "lockup:check": "node scripts/lockup-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",

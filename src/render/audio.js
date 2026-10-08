@@ -1184,10 +1184,13 @@ export class MotorAudio {
    * microphone opened) can still say 'running' while its clock stands
    * still, and then nothing on the page makes a sound until a reload. Once
    * a frame, live only: a clock that has not moved in CLOCK_STALL_S of the
-   * page's own time while it says running is a stall, logged loudly, kept
-   * in this.states, and kicked with a suspend and a resume, which is what
+   * page's own time while it says running is a stall, kept in
+   * this.states, and kicked with a suspend and a resume, which is what
    * starts a stalled renderer on a new device. A hidden tab draws no
-   * frames, so it never trips this.
+   * frames, so it never trips this. The kick is logged as a warning, not
+   * an error: it is handled here, and a starved headless runner trips it
+   * (it failed paint:workshop's no-console-error row three times on CI on
+   * 2026-10-08); a kick that fails is the error, logged below.
    */
   watchClock() {
     const ctx = this.ctx;
@@ -1205,7 +1208,7 @@ export class MotorAudio {
     c.kicked = true;
     this.stalls += 1;
     this.states.push({ at: Math.round(wall * 1000), state: 'stalled' });
-    console.error(`audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
+    console.warn(`audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
     ctx.suspend().then(() => ctx.resume()).catch((e) => console.error('audio: the stalled context would not restart', e));
   }
 

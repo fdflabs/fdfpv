@@ -1403,6 +1403,106 @@
       .gate-room.on .gate-room-name { color: var(--pdcs-bright); }
       .gate-room:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 2px; }
       /*
+       * FLIGHT CLUB'S PILOT STATS (src/ui/pilotstats.js; the owner,
+       * 2026-10-08: "i need prominently to see the game stats, played hours
+       * in total"). The room between the wordmark and the cards was empty;
+       * the panel takes it, the total time large on the left, the tiles in
+       * a row beside it, each mode's time along the foot. The cards keep
+       * their auto margin, so a short window loses the gap above them,
+       * never the cards. Not a control: the screen's pointer-events none
+       * stays on it.
+       */
+      .gate-stats { display: none; }
+      .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+        display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+        column-gap: clamp(16px, 2.4vw, 40px); row-gap: 10px; align-items: stretch;
+        width: 100%; box-sizing: border-box;
+        margin: clamp(10px, 3vh, 36px) 0 clamp(10px, 2vh, 24px);
+        padding: clamp(12px, 1.6vw, 20px) clamp(14px, 1.8vw, 24px);
+        background: var(--pdcs-panel);
+        border-top: 1px solid var(--pdcs-line);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+      }
+      .gate-stats-head { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+      .gate-stats-title, .gate-stat-label {
+        font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate);
+      }
+      .gate-stats-title::before, .gate-stat-label::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .gate-stats-title::after, .gate-stat-label::after { content: " ]"; color: var(--pdcs-blue-dim); }
+      .gate-stats-time {
+        font-family: var(--type-name); font-synthesis: none;
+        font-size: clamp(30px, 4.4vw, 64px); line-height: 1.05; font-weight: 500;
+        letter-spacing: 0.04em; color: var(--pdcs-bright); white-space: nowrap;
+      }
+      .gate-stats-time-label { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cream); }
+      .gate-stats-nudge { color: var(--cream); }
+      .gate-stats-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+      .gate-stat {
+        display: flex; flex-direction: column; gap: 3px; min-width: 0;
+        padding: 9px 12px 10px; box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+      }
+      .gate-stat-label { font-size: 10.5px; letter-spacing: 0.1em; overflow-wrap: anywhere; }
+      .gate-stat-value {
+        font-family: var(--type-name); font-synthesis: none;
+        font-size: clamp(20px, 2.2vw, 32px); line-height: 1.1; font-weight: 500; color: var(--cream);
+      }
+      .gate-stat-sub { font-size: 12px; line-height: 1.35; color: var(--slate); overflow-wrap: anywhere; }
+      .gate-stat-bar {
+        position: relative; height: 3px; margin-top: auto; background: var(--pdcs-line-soft);
+      }
+      .gate-stat-bar::after {
+        content: ""; position: absolute; inset: 0 auto 0 0;
+        width: calc(var(--frac, 0) * 100%); background: var(--pdcs-blue);
+      }
+      .gate-stats-modes {
+        grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 22px;
+        padding-top: 8px; border-top: 1px solid var(--pdcs-line-soft);
+        font-size: 12.5px; letter-spacing: 0.04em;
+      }
+      .gate-stats-mode { display: inline-flex; gap: 8px; min-width: 0; }
+      .gate-stats-mode-name { color: var(--slate); text-transform: uppercase; letter-spacing: 0.1em; }
+      .gate-stats-mode-time { color: var(--cream); }
+      /* A window under 820 tall (1280 by 720 is the common laptop): six
+         cards in a row need the height, so the panel gives back its air
+         and the tiles their second lines (the most flown, the medal
+         split, the stars), and the cards' tags stay clear of the command
+         bar in Spanish too (pilot:stats). */
+      @media (max-height: 820px) {
+        .gate-stat-sub, .gate-stats-time-label { display: none; }
+        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+          margin: 6px 0 8px; padding: 8px 14px; row-gap: 6px;
+        }
+        .gate-stats-time { font-size: clamp(28px, 3.4vw, 46px); }
+        .gate-stat { padding: 5px 10px 6px; gap: 1px; }
+        .gate-stat-value { font-size: 22px; }
+        .gate-stats-modes { padding-top: 5px; }
+      }
+      /* A window under 1100 wide: the tiles go to their own row under the
+         time, three and two, so no label is cut to a letter a line. */
+      @media (max-width: 1100px) {
+        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+        .gate-stats-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      /* A phone, upright or on its side: one line, the total time and the
+         level, because six stacked cards need the height (pilot:stats
+         measures them clear of the command bar at 360 by 640, in Spanish,
+         where the tags wrap). The rest stays on the wider page and the
+         Pilot rows in Settings. */
+      @media (max-width: 860px), (max-height: 520px) {
+        .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
+          display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px;
+          margin: 4px 0; padding: 5px 12px;
+        }
+        .gate-stats-head { flex-direction: row; align-items: baseline; gap: 10px; }
+        .gate-stats-time { font-size: 20px; }
+        .gate-stats-title, .gate-stats-time-label, .gate-stats-nudge, .gate-stats-modes, .gate-stat-level .gate-stat-sub,
+        .gate-stats-tiles .gate-stat:not(.gate-stat-level) { display: none; }
+        .gate-stats-tiles { display: flex; }
+        .gate-stat-level { flex-direction: row; align-items: baseline; gap: 6px; padding: 0; box-shadow: none; }
+        .gate-stat-level .gate-stat-value { font-size: 18px; }
+        .gate-stat-level .gate-stat-bar { display: none; }
+      }
+      /*
        * HOME'S ROOMS, OUT IN THE OPEN (the owner, 2026-10-03: "it needs to
        * be wide out in the open"). On home the panel leaves the corner for
        * a band the page's whole width between the wordmark and the hub
