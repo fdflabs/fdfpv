@@ -52,7 +52,7 @@ for (const af of AIRFRAMES) {
 const everything = {
   v: 1,
   data: {
-    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 } },
+    progress: { challenges: { ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])), my_own: true }, lessons: { ...Object.fromEntries(LESSONS.map((l) => [l.id, 1759800000000])), my_lesson: 1 }, lessonsFlown: { ...Object.fromEntries(LESSONS.map((l) => [l.id, true])), my_lesson: true } },
     campaign: { v: 1, missions: Object.fromEntries(everyFirst().filter((f) => f.key.startsWith('mission:')).map((f) => [f.key.split(':')[1], { stars: 99, won: true, credits: 0 }])) },
     flightTime: flight,
   },
@@ -67,6 +67,8 @@ const twice = { ...everything, data: { ...everything.data, flightTime: addFlight
 check('more flying on the same aircraft pays nothing more: repetition never pays', sum(grantsFrom(twice)) === sum(all));
 check('an empty record pays nothing', grantsFrom(null).length === 0 && grantsFrom({}).length === 0);
 check('the amounts are whole and positive', all.every((g) => Number.isInteger(g.amount) && g.amount > 0));
+
+check('a lesson covered by a skip, passed but not flown, pays no tokens', grantsFrom({ data: { progress: { lessons: { first_takeoff: 5, first_unaided: 5 }, lessonsFlown: { first_unaided: true } } } }).map((g) => g.key).join() === 'first:lesson:first_unaided');
 
 console.log('three currencies, never exchanged');
 check('no grant reads or pays war credits', !all.some((g) => /credit/.test(g.key)));

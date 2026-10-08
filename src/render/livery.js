@@ -123,6 +123,12 @@ export function paintRegions() {
     materials() {
       return Object.fromEntries([...regions].map(([id, r]) => [id, [...r.base, ...r.shade].map((p) => p.mat)]));
     },
+    /* Each region's materials with the brightness each keeps against the
+     * region's colour, 1 for a base and the shade's own k, so an
+     * underside colour darkens a shade the way set() does. */
+    shades() {
+      return Object.fromEntries([...regions].map(([id, r]) => [id, [...r.base.map((p) => ({ mat: p.mat, k: 1 })), ...r.shade.map((p) => ({ mat: p.mat, k: p.k }))]]));
+    },
   };
   return { base, shade, livery };
 }
@@ -152,7 +158,7 @@ export function liveryFor(airframeId) {
 export function dressLivery(craft, airframeId, look = liveryFor(airframeId)) {
   if (craft && craft.livery) {
     craft.livery.set((look && look.colours) ?? {});
-    dressFinish(craft, (look && look.finishes) ?? {}, (look && look.wear) || 0);
+    dressFinish(craft, (look && look.finishes) ?? {}, (look && look.wear) || 0, (look && look.under) ?? {});
     dressDecals(craft, (look && look.decals) ?? []);
   }
   return craft;
