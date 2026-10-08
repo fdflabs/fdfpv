@@ -638,7 +638,7 @@ function kitAntennaKit(k, f, which) {
  * stock quad draws and costs exactly what it did.
  */
 const LED_RED = new THREE.Color(0xff1a00);
-function armLeds(group, f, lights) {
+function armLeds(group, f, lights, fog) {
   if (!lights || !lights.led) {
     return null;
   }
@@ -646,7 +646,9 @@ function armLeds(group, f, lights) {
   const pattern = lights.pattern ?? 'solid';
   const mats = [];
   MOTOR_SIGNS.forEach(([sx, sz], m) => {
-    const mat = new THREE.MeshBasicMaterial({ color: base.clone(), fog: false });
+    /* In the fog as the rest of the craft is, so a far LED fades with
+     * its quad instead of floating bright in the haze. */
+    const mat = new THREE.MeshBasicMaterial({ color: base.clone(), fog });
     const bar = new THREE.Mesh(new THREE.BoxGeometry(f.armW * 0.9, 0.003, f.motorR * 1.6), mat);
     bar.name = `led-${m}`;
     bar.position.set(sx * f.motorX * 0.86, f.armTop - f.armT - 0.002, sz * f.motorZ * 0.86);
@@ -1183,7 +1185,7 @@ export function buildCombatDrone(opts = {}) {
   }
   blade.dispose();
 
-  const setLights = armLeds(group, f, opts.lights);
+  const setLights = armLeds(group, f, opts.lights, fog);
   const craft = {
     group,
     discs,
