@@ -51,7 +51,7 @@ where the airframe has the part.
 | --- | --- |
 | Trainers and sport (sky1800, cub1400, kadet1981, slowstick1180, uglystik1567, timber1500) | spinner: stock, bullet, flat cap, none (pointed prop nut); wingtips: stock, raked, drooped (Hoerner), winglet; wheels: stock, pants (spats), tundra (big soft tyres, drawn only); fin: stock, swept cap; canopy tint: clear, smoke, gold |
 | Warbirds and classics (p51d1450, tigermoth1803, bombshell1118) | spinner: stock, two tone, striped; exhausts: stock, short stacks, flame dampers; wheels: stock, covered; canopy: stock, bubble tint |
-| Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium; canopy tint: clear, gold |
+| Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium (straw collar, blued petals). The canopy is a paint region and gold already, so no tint slot |
 | Gliders (radian2000, nrj1490) | nose: stock, long pointed; wingtips: stock, winglet; canopy tint |
 | Flying wings (zagi1219, bramor2300) | winglets: stock, tall, split; nose: stock, camera bubble (drawn only) |
 | Combat quads (7inch, 10inch, interceptor) | arms: stock, cut out, X blade, tapered; top plate: stock, vented, armoured cap; camera mount: stock, TPU cage, side plates; antenna: stock whip, dual T, pagoda (drawn only). Prop colour is the existing `props` paint region. The interceptor has no mount slot (its camera is in the armoured nose) |

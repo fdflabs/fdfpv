@@ -45,7 +45,9 @@ const WARBIRD = [
   slot('wheels', 'covered'),
   slot('canopy', 'bubble'),
 ];
-const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium'), slot('canopy', 'gold')];
+/* The F-16's canopy is already gold tinted and a paint region of its own,
+ * so a tint slot would only repeat the Paint page. */
+const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
 const GLIDER = [slot('nose', 'pointed'), slot('wingtips', 'winglet'), slot('canopy', 'smoke')];
 const WING = [slot('winglets', 'tall', 'split'), slot('nose', 'bubble')];
 const QUAD = [
@@ -73,7 +75,7 @@ export const KITS = {
 
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
-export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500']);
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
