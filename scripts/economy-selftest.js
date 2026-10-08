@@ -80,8 +80,11 @@ check('no shop item is a war upgrade', !ITEMS.some((it) => UPGRADES.some((u) => 
 const PAINTED = ITEMS.filter((it) => it.kind !== 'kit');
 check('every item is a finish, a decal or a visual kit option: nothing changes flight', PAINTED.every((it) => ['finish', 'decal'].includes(it.kind) && it.id === `${it.kind}:${it.paint}`)
   && ITEMS.filter((it) => it.kind === 'kit').every((it) => slotsFor(it.family).some((sl) => sl.id === it.slot && sl.options.includes(it.option) && it.option !== 'stock')));
-check('every kit family sells at most two and earns one (lead decision 2026-10-08)', Object.keys(KITS).every((f) => {
+check('every kit family sells at most two and earns one (lead decision 2026-10-08); one with no kit yet has none', Object.keys(KITS).every((f) => {
   const mine = ITEMS.filter((it) => it.kind === 'kit' && it.family === f);
+  if (!slotsFor(f).length) {
+    return mine.length === 0;
+  }
   return mine.filter((it) => it.price).length <= 2 && mine.filter((it) => it.earn).length === 1 && mine.find((it) => it.earn).earn === `hour:${f}`;
 }));
 check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3600 } } } } } }).join() === 'kit:sky1800:wingtips:winglet'
