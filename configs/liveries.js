@@ -46,6 +46,7 @@
 
 import { airframeById } from './airframes.js';
 import { MAX_SAVED, PATTERNS, checkPaint, cleanName, decodeLivery } from './paint.js';
+import { checkKit, checkLights, kitParts } from './kits.js';
 
 /*
  * THE COVERING ON OFFER, by the makers' own names and numbers. The hex is
@@ -421,6 +422,18 @@ function checkEntry(family, entry) {
   } else if (entry.patterns !== undefined) {
     dropped += 1;
   }
+  /* `kit` and `lights`: the visual part kits and lights (configs/kits.js,
+   * docs/KITS.md). Pixels only; nothing in the flight reads them. */
+  const kit = checkKit(family, entry.kit);
+  dropped += kit.dropped;
+  if (kit.kit) {
+    out.kit = kit.kit;
+  }
+  const lights = checkLights(family, entry.lights);
+  dropped += lights.dropped;
+  if (lights.lights) {
+    out.lights = lights.lights;
+  }
   const paint = checkPaint(l.regions, entry);
   dropped += paint.dropped;
   if (Object.keys(paint.finishes).length) {
@@ -488,6 +501,8 @@ export function lookFor(airframeId, entry) {
     finishes: (entry && entry.finishes) || {},
     decals: (entry && entry.decals) || [],
     wear: ((entry && entry.wear) || 0) / 100,
+    kit: kitParts(liveryKey(airframeId), entry && entry.kit),
+    lights: (entry && entry.lights) || null,
   };
 }
 

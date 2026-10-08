@@ -42,6 +42,7 @@ import {
 import { normalisePids } from '../../configs/pids.js';
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalisePlane, normaliseParts } from '../../configs/hangar-parts.js';
+import { normalisePacks } from '../../configs/wear.js';
 import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
@@ -235,6 +236,7 @@ export const DEFAULTS = {
   progress: {},
   campaign: {},
   parts: {},
+  packs: {},
   combat: {},
   tuning: {},
   floats: {},
@@ -535,6 +537,7 @@ export function loadSettings() {
   s.hudStyleBy = Object.fromEntries(Object.entries(hudBy)
     .filter(([id, style]) => AIRFRAME_IDS.includes(id) && HUD_STYLES.includes(style)));
   s.parts = normaliseParts(s.parts);
+  s.packs = normalisePacks(s.packs);
   s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   s.tuning = normalizeTuning(s.tuning, limitsWith(s.power));
