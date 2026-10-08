@@ -256,8 +256,12 @@ function gateRows(ui) {
     facts: w.facts,
     action: w.action,
   }));
+  /* The war's field hangar, a card of its own under Operations. */
+  const field = ui.hub === 'ops' ? [{
+    label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
+  }] : [];
   const weekly = ui.hub === 'club' && ui.weeklyEvent ? [weeklyCard(ui.weeklyEvent)] : [];
-  return [...weekly, ...ways, ...(ui.hub === 'club' ? panel : []), ...trouble];
+  return [...weekly, ...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
 }
 
 const POSTERS = new Set(['alps', 'itaipu', 'swiss2']);
