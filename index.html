@@ -2976,6 +2976,21 @@
 
       .screen-modal { background: rgba(10, 13, 14, 0.72); }
 
+      /* The walkable hangar: the room is the canvas under it, so no ground
+         and no scrim; the screen takes the drag that turns the camera. */
+      .screen-walk { background: none; pointer-events: auto; cursor: grab; justify-content: flex-end; }
+      .walk-prompt {
+        display: flex; align-items: center; gap: 10px; margin-bottom: 6vh;
+        padding: 8px 16px; border-radius: 6px;
+        background: rgba(10, 13, 14, 0.72); color: var(--cream);
+        font-size: clamp(15px, 1.6vw, 19px); letter-spacing: 0.06em;
+      }
+      .walk-prompt[hidden] { display: none; }
+      .walk-prompt kbd {
+        min-width: 1.6em; padding: 2px 6px; border-radius: 4px; text-align: center;
+        background: var(--mint); color: #0a0d0e; font-family: var(--pdcs-mono); font-weight: 700;
+      }
+
       /* The finish screen keeps the title's opening for the HUD: the
          frozen craft and the course fill the open side and the times hold
          the left, or the foot of the screen on a phone. */

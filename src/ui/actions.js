@@ -256,6 +256,7 @@ const ACTIONS = {
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
+  'hangar-walk'(ui) { ui.openWalk(); },
   customise(ui) {
     /* The aircraft in the air may be a My Hangar build; a change in the
      * hangar is then a change to that build. */
@@ -497,6 +498,12 @@ const needsAccount = (action) => typeof action === 'string' && !OPEN_ACTIONS.has
 
 /* Screens with their own step back. True when the step was taken. */
 const BACK_FROM = {
+  /* The walkable hangar backs out to the Hangar's cards. */
+  walk(ui) {
+    ui.hub = 'hangar';
+    ui.show('title');
+    return true;
+  },
   calibrate(ui) {
     ui.act('calibrate-cancel');
     return true;
@@ -734,6 +741,7 @@ export const actionMethods = {
     const plan = craftSvg(airframeById(this.settings.airframe));
     const card = (id, label, svg, blurb, action) => ({ label, card: `hangar-${id}`, svg, blurb, facts: [], action });
     return [
+      card('walk', str('walk.card'), null, str('walk.blurb'), 'hangar-walk'),
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
       ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str('hangar.row_note'), 'customise')] : []),
       card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
