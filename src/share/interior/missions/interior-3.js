@@ -94,6 +94,11 @@ export default {
   film: { id: FILMS['int3-intro'].id, version: FILMS['int3-intro'].version },
   /* Thermal matters more as the light goes (MISSIONS.md M3). */
   sensor: { palette: 'arctic' },
+  /* The forward feed's loss past the ridge, until the relay holds
+   * (src/share/ops/feed.js): the recon's picture is snow over it. */
+  feed: {
+    stage: 'M3_CP_RELAY', roles: ['recon'], point: 'command', clear: { chosen: 'relay', is: 'held' }, snow: 0.6,
+  },
   debrief: {
     required: ['radio_op', 'temp_shelter', 'command_motos', 'route_markers'],
   },

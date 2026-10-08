@@ -137,6 +137,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
+import { feedSnow } from './share/ops/feed.js';
 import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
@@ -1935,6 +1936,8 @@ export async function boot({
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
+    /* The forward feed's snow on this screen now (src/share/ops/feed.js). */
+    feed: () => opsFeedSnow(),
     /* The platform holds: the role flown, and each held aircraft, where
      * its hold has it now and where its model is drawn (scene frame). */
     holds: () => ({
@@ -11652,8 +11655,21 @@ export async function boot({
       shell.quad.visible = true;
     }
     wreckRig.setCraftVisible(shell.quad.visible);
-    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride && !warIntro);
+    /* An ops mission's forward feed breaking up (src/share/ops/feed.js):
+     * the snow is on whatever picture the pilot flies by, FPV or ball. */
+    const feed = opsFeedSnow();
+    fpvFail.signal(feed);
+    fpvFail.update(nowWall, ((runDamage && fpvLensLive) || feed > 0) && !camOverride && !warIntro);
   }
+  function opsFeedSnow() {
+    const m = roomOps.room() ? roomOps.mission() : null;
+    if (!m || !m.feed) {
+      return 0;
+    }
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, feedDoc);
+    return feedSnow(m, roomOps.view(), roomOps.seat(), [feedDoc.x, feedDoc.y]);
+  }
+  const feedDoc = { x: 0, y: 0, z: 0 };
 
   function crashSummary() {
     const names = Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0);
