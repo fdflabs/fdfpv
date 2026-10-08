@@ -201,6 +201,30 @@ async function shapes(page) {
   await closeHangar(page, false);
 }
 
+async function groups(page) {
+  console.log('4. a group: a circle grouped with the copy under it grows with it');
+  await openHangar(page, 'timber1500');
+  await press(page, 'view-top');
+  await page.sleep(1200);
+  await press(page, 'decal-add');
+  await press(page, 'kind-circle');
+  await page.until('(() => { const p = window.__ui.hangar.shop.placing; return Boolean(p && p.hit && p.hit.n); })()', 60000).catch(() => {});
+  await page.tap('Enter');
+  await page.until('(window.__ui.hangar.entry.decals || []).length === 4', 20000).catch(() => {});
+  await press(page, 'layer-group');
+  let e = await entry(page);
+  say(e.decals[3].g && e.decals[3].g === e.decals[2].g, `Group joins the circle to the layer under it: ${e.decals.map((d) => d.g ?? '-')}`);
+  const before = e.decals[2].s;
+  await press(page, 'size-up');
+  e = await entry(page);
+  say(Math.abs(e.decals[2].s - before * 1.12) < 0.002 && e.decals[1].s === 0.2, `Size on the circle scales its group (${before} to ${e.decals[2].s}) and not the locked star outside it (${e.decals[1].s})`);
+  await press(page, 'layer-group');
+  e = await entry(page);
+  say(!e.decals[3].g && !e.decals[2].g, 'Ungroup ends a group of two');
+  await shot(page, 'timber-group');
+  await closeHangar(page, false);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -209,6 +233,7 @@ async function main() {
     await timber(page);
     await everyFamily(page);
     await shapes(page);
+    await groups(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
