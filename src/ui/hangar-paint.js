@@ -72,6 +72,31 @@ const TURN_STEP = 15;
 /* A layer's lean and opacity change by these a press: degrees, percent. */
 const SKEW_STEP = 5;
 const OPACITY_STEPS = 2 * OPACITY_STEP;
+/* The aim snaps to the centreline, and to another layer's centre, within
+ * this many metres: a stripe down the spine lands on it exactly. */
+const SNAP = 0.012;
+/* What a group's members share when one of them changes: the factor of a
+ * size or stretch, the change of a turn or lean, the rest as set. */
+const GROUP_SCALED = ['s', 'a'];
+const GROUP_ADDED = ['r', 'x'];
+const GROUP_SET = ['o', 'fi', 'c', 'c2', 'm', 'h'];
+
+/* A hit on the model snapped (docs/redesign/LIVERY-LAYERS.md section 2):
+ * onto another layer's centre if one is that near, else onto the
+ * centreline. `others` the layers not being placed. */
+export function snapHit(hit, others) {
+  if (!hit) {
+    return hit;
+  }
+  const near = others.find((d) => Math.hypot(d.p[0] - hit.p[0], d.p[1] - hit.p[1], d.p[2] - hit.p[2]) < SNAP);
+  if (near) {
+    return { ...hit, p: [...near.p], n: [...near.n], snap: 'layer' };
+  }
+  if (Math.abs(hit.p[0]) < SNAP) {
+    return { ...hit, p: [0, hit.p[1], hit.p[2]], n: [0, hit.n[1], hit.n[2]], snap: 'centre' };
+  }
+  return hit;
+}
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -295,7 +320,7 @@ export class PaintShop {
     list.forEach((d, i) => {
       const b = button(`paint-decal${i === this.sel ? ' on' : ''}`);
       b.dataset.key = `decal-${i}`;
-      const marks = [d.h ? str('hangar.decal_hidden') : '', d.l ? str('hangar.decal_locked') : ''].filter(Boolean).join(', ');
+      const marks = [d.g ? str('hangar.decal_in_group', { g: d.g }) : '', d.h ? str('hangar.decal_hidden') : '', d.l ? str('hangar.decal_locked') : ''].filter(Boolean).join(', ');
       b.append(thumb(d), el('span', 'paint-decal-name', marks ? `${this.decalName(d)} (${marks})` : this.decalName(d)));
       b.classList.toggle('hidden-layer', Boolean(d.h));
       b.setAttribute('aria-pressed', String(i === this.sel));
@@ -436,6 +461,7 @@ export class PaintShop {
     if (!p) {
       return;
     }
+    hit = snapHit(hit, this.decals.filter((_, k) => k !== p.index));
     const same = JSON.stringify(hit) === JSON.stringify(p.hit);
     p.hit = hit;
     this.reticle.classList.toggle('on', Boolean(hit));
@@ -458,10 +484,16 @@ export class PaintShop {
     if (!d) {
       return;
     }
-    const list = [...this.decals];
+    let list = [...this.decals];
     let at = p.index;
     if (at >= 0) {
+      const was = list[at];
       list[at] = d;
+      /* A group moves as one: the others by the same step. */
+      if (was.g) {
+        const step = d.p.map((v, k) => v - was.p[k]);
+        list = list.map((o, k) => (k === at || o.g !== was.g || o.l ? o : checkDecal({ ...o, p: o.p.map((v, j) => v + step[j]) }).decal ?? o));
+      }
     } else {
       list.push(d);
       at = list.length - 1;
@@ -636,6 +668,7 @@ export class PaintShop {
       chip('layer-up', str('hangar.decal_raise'), null, () => this.moveLayer(i, 1), i >= this.decals.length - 1),
       chip('layer-down', str('hangar.decal_lower'), null, () => this.moveLayer(i, -1), i <= 0),
       chip('layer-dup', str('hangar.decal_duplicate'), null, () => this.duplicateLayer(i), this.decals.length >= MAX_DECALS),
+      chip('layer-group', str(d.g ? 'hangar.decal_ungroup' : 'hangar.decal_group'), Boolean(d.g), () => this.toggleGroup(i), !d.g && i === 0),
     );
     box.append(order);
 
@@ -739,6 +772,7 @@ export class PaintShop {
   }
 
   patch(patch, focusKey, sound = 'select') {
+    const was = this.decals[this.sel];
     const d = this.patched(this.sel, patch);
     if (!d) {
       return;
@@ -749,9 +783,64 @@ export class PaintShop {
     if (patch.c2) {
       this.style.c2 = patch.c2;
     }
-    const list = [...this.decals];
-    list[this.sel] = d;
+    const list = this.withGroup(this.decals, this.sel, was, d);
     this.setDecals(list, focusKey, sound);
+  }
+
+  /* The list with layer i changed from `was` to `d`, and the rest of its
+   * group (unlocked) changed the same way. */
+  withGroup(decals, i, was, d) {
+    const list = [...decals];
+    list[i] = d;
+    if (!was.g) {
+      return list;
+    }
+    return list.map((o, k) => {
+      if (k === i || o.g !== was.g || o.l) {
+        return o;
+      }
+      const next = { ...o };
+      for (const key of GROUP_SCALED) {
+        next[key] = o[key] * (d[key] / was[key]);
+      }
+      for (const key of GROUP_ADDED) {
+        next[key] = ((o[key] ?? 0) + (d[key] ?? 0) - (was[key] ?? 0));
+      }
+      next.r = ((next.r + 540) % 360) - 180;
+      next.x = clamp(next.x, DECAL_LIMITS.skew);
+      next.s = clamp(next.s, DECAL_LIMITS.size);
+      next.a = clamp(next.a, DECAL_LIMITS.aspect);
+      for (const key of GROUP_SET) {
+        if (d[key] !== was[key]) {
+          next[key] = d[key];
+        }
+      }
+      return checkDecal(next).decal ?? o;
+    });
+  }
+
+  /* Group a layer with the one under it, or take it out of its group (and
+   * end a group left with one layer). */
+  toggleGroup(i) {
+    const list = [...this.decals];
+    const d = list[i];
+    const ungrouped = (o) => {
+      const out = { ...o };
+      delete out.g;
+      return out;
+    };
+    if (d.g) {
+      list[i] = ungrouped(d);
+      const left = list.filter((o) => o.g === d.g);
+      if (left.length === 1) {
+        list[list.indexOf(left[0])] = ungrouped(left[0]);
+      }
+    } else if (i > 0) {
+      const g = list[i - 1].g ?? 1 + Math.max(0, ...list.map((o) => o.g ?? 0));
+      list[i - 1] = { ...list[i - 1], g };
+      list[i] = { ...d, g };
+    }
+    this.setDecals(list, 'layer-group');
   }
 
   setColour(hex) {

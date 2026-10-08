@@ -43,6 +43,7 @@ import {
   LIVERIES, entryDrops, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode,
 } from '../configs/liveries.js';
 import { checkProfile } from '../src/share/roomwire.js';
+import { snapHit } from '../src/ui/hangar-paint.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -212,6 +213,15 @@ console.log('7. layers');
   check('stored settings from before layers read unchanged', same(normaliseLiveries({ timber1500: old }), { timber1500: old }));
   check('a saves list from before layers reads unchanged', same(normaliseSaves({ timber1500: [{ name: 'Old', entry: old }] }), { timber1500: [{ name: 'Old', entry: old }] }));
   check('an old entry\'s look draws the same decals', same(lookFor('timber1500', old).decals, old.decals));
+}
+
+console.log('8. snapping');
+{
+  const up = [0, 1, 0];
+  check('an aim 8 mm off the centreline lands on it', same(snapHit({ p: [0.008, 0.05, 0.1], n: [0.05, 0.99, 0] }, []).p, [0, 0.05, 0.1]));
+  check('an aim 30 mm off stays where it is', snapHit({ p: [0.03, 0.05, 0.1], n: up }, []).snap === undefined);
+  check('an aim near another layer lands on its centre', same(snapHit({ p: [0.205, 0.05, 0.1], n: up }, [{ p: [0.2, 0.055, 0.1], n: up }]).p, [0.2, 0.055, 0.1]));
+  check('no hit stays no hit', snapHit(null, []) === null);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
