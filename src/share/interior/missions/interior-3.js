@@ -90,7 +90,7 @@ export default {
   /* Thermal matters more as the light goes (MISSIONS.md M3). */
   sensor: { palette: 'arctic' },
   debrief: {
-    required: ['radio-op', 'temp-shelter', 'command-motos', 'route-markers'],
+    required: ['radio_op', 'temp_shelter', 'command_motos', 'route_markers'],
   },
   classes: CLASSES,
   roles: [
@@ -155,23 +155,23 @@ export default {
     /* CONFIRM IDENTIFICATION is a capture of the box on the contact
      * (MISSIONS.md 1.6: any pilot's, on the contact in their box). */
     {
-      id: 'confirm-pair', set: 'confirm', contact: 'pair', size: 1.7,
+      id: 'confirm_pair', set: 'confirm', contact: 'pair', size: 1.7,
     },
     ...[1, 2, 3].map((k) => ({
-      id: `confirm-v${k}`, set: 'confirm', contact: `v${k}`, size: 5,
+      id: `confirm_v${k}`, set: 'confirm', contact: `v${k}`, size: 5,
     })),
     /* The command site (stage 4, RECON forward). */
     {
-      id: 'radio-op', set: 'command', contact: 'radio-man', size: 1.7,
+      id: 'radio_op', set: 'command', contact: 'radio-man', size: 1.7,
     },
     {
-      id: 'temp-shelter', set: 'command', at: [...G(7.167, 15.271), 1.2], size: 4,
+      id: 'temp_shelter', set: 'command', at: [...G(7.167, 15.271), 1.2], size: 4,
     },
     {
-      id: 'command-motos', set: 'command', at: [...G(7.178, 15.259), 0.6], size: 3,
+      id: 'command_motos', set: 'command', at: [...G(7.178, 15.259), 0.6], size: 3,
     },
     {
-      id: 'route-markers', set: 'command', at: [...G(7.15, 15.235), 0.3], size: 1,
+      id: 'route_markers', set: 'command', at: [...G(7.15, 15.235), 0.3], size: 1,
     },
   ],
   points: {
@@ -323,9 +323,9 @@ export default {
           card: 'card.confirm_identification',
           text: 'ops.interior.m3.confirm',
         },
-        { when: { captured: 'confirm-pair' }, unless: { route: 'pair', point: 'gate-near' }, radio: 'int3-s2-notyet' },
+        { when: { captured: 'confirm_pair' }, unless: { route: 'pair', point: 'gate-near' }, radio: 'int3-s2-notyet' },
         {
-          when: { all: [{ route: 'pair', point: 'gate-near' }, { captured: 'confirm-pair' }] },
+          when: { all: [{ route: 'pair', point: 'gate-near' }, { captured: 'confirm_pair' }] },
           radio: 'int3-s2-cleared',
           classify: { contacts: 'pair', to: 'hostile', why: 'ev.hostile_action' },
           card: 'card.classification_updated',
@@ -379,7 +379,7 @@ export default {
         /* A strike on vehicle 1 or 2: a designation, then the strike
          * platform's run over it (MISSIONS.md 1.6). */
         ...['v1', 'v2'].map((v) => ({
-          when: { all: [{ captured: `confirm-${v}` }, RUN(`${v}-stop`)] },
+          when: { all: [{ captured: `confirm_${v}` }, RUN(`${v}-stop`)] },
           radio: ['int3-s3-error', 'int3-s3-error-2'],
           move: [{ contacts: v, route: 'm3-stopped', alt: null }],
           choose: { name: `error-${v}`, value: 'yes' },
