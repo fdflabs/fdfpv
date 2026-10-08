@@ -596,11 +596,13 @@ export function recordScriptedFlight(sim, { prelude = wingPrelude, rudder = fals
  * comes on (docs/FLIGHTMODEL.md), and a pilot holds it with right rudder.
  * Returns the sticks for this step from the state.
  */
-/* A pilot's feet on the take off roll: the runway's heading held on the
- * rudder, full rudder by 10 deg off it. The swirl on the fin swings a
- * tractor faster than the gains of before the slipstream caught. */
+/* A pilot's feet on the take off roll: the runway's centreline held on
+ * the rudder, the nose aimed back at it 0.3 rad per metre off it, and full
+ * rudder by 10 deg off that aim. The swirl on the fin swings a tractor
+ * faster than the gains of before the slipstream caught, and the prop's
+ * gyroscope kicks it as the tail comes up. */
 export function rudderHold(s) {
-  return Math.max(-1, Math.min(1, 6.0 * runwayHeading(s) + 0.6 * s[13]));
+  return Math.max(-1, Math.min(1, 6.0 * (runwayHeading(s) + 0.3 * s[2]) + 0.6 * s[13]));
 }
 
 export function takeoffSticks(s, { vRotate = 8.9 } = {}) {

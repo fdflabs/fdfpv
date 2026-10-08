@@ -154,20 +154,20 @@
   },
   "s17_unmoved": {
     "quad": "9fdc42323baad668",
-    "wing": "d7b7743dfde9a0cc",
-    "sky": "02b8a7aa3d79c02c",
-    "cub": "295dc5bf9525bfcd",
-    "glider": "a34eca44c846b1b1",
-    "bramor": "f58582158e8f18a6",
+    "wing": "8f9ddc4ca6fc3e8a",
+    "sky": "36c214086b307801",
+    "cub": "8ed3fb731365a257",
+    "glider": "d1d2f3da74e685b0",
+    "bramor": "0e00ed4d2d61b6af",
     "bramorChute": "6c35bf1d12a3268b",
-    "slowstick": "0cdddd5d24950418",
-    "bombshell": "773cf4c3ba7a83cb",
-    "timber": "282e2efb62c686c1",
-    "timberf": "8dceb5cdaa61af89",
-    "kadet": "72c9da9ccc341b5d",
+    "slowstick": "941575956671ce8f",
+    "bombshell": "ed037ea4d648f31b",
+    "timber": "d9619c1d060daf1b",
+    "timberf": "70aaa33f79ae5090",
+    "kadet": "f64e4e6979bfaa29",
     "p51": "33137690d0b3d7db",
     "p51Air": "5a20ef72fc6dfb69",
-    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream (docs/FLIGHTMODEL.md): the tractors' recordings were re-recorded and their hashes moved; the five inch's and every aircraft's without a wash are as they were."
+    "source": "the five inch's canonical replay hash and every other aircraft's recorded flight hash in Node, from main's module at 4ea84e3, before the F-16 existed, and the P-51's two from main's at 1cce6bb, after #127 sharpened its stall on purpose (its own p51:gates S18 records the same two), before the F-16 joined it Re-pinned for the prop's slipstream and its gyroscope on every prop (docs/FLIGHTMODEL.md): the recordings flown under power moved; the five inch's is as it was."
   },
   "s18_cross_host": {
     "source": "the F-16's recorded take off and flight, state trace hash, Node against headless Chrome"
