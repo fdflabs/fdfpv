@@ -91,6 +91,8 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 export const KITS = {
   sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
+  /* The Extra arrived after the kit models: no slots until it has its own. */
+  extra3d1308: [],
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,

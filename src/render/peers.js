@@ -45,6 +45,7 @@ import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
+import { readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
@@ -294,6 +295,9 @@ export function buildPeerCraft(profile, look = null) {
       }
       return Object.fromEntries(Object.entries(craft.livery.read()).map(([k, v]) => [k, `#${v.toString(16).padStart(6, '0')}`]));
     },
+    /* The livery's layers as drawn (src/render/decals.js readDecals), for
+     * a check. */
+    decals: () => readDecals(craft),
     dispose() {
       if (undoLook) {
         undoLook();
