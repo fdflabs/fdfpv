@@ -284,6 +284,52 @@ try {
   await page.until("window.__ui.screen !== 'walk'", 15000).then(() => true, () => false);
   const after = await page.evaluate('window.__ui.screen');
   check('door: E flies (the launch card or the flight)', after === 'launch' || after === 'flight', after);
+
+  /* The TV: a clip of this flight saved to My clips (as Save does, from
+   * the replay's own clip), then the TV plays it and leaving the replay
+   * is the hangar again. */
+  if (after === 'launch') {
+    await page.tap('Enter');
+  }
+  await page.until("window.__ui.screen === 'flight'", 60000);
+  await page.sleep(3000);
+  await page.tap('KeyV');
+  await page.until('window.__crashCam.live()', 15000);
+  const saved = await page.evaluate(`(async () => {
+    const { encodeReplay } = await import('/src/replay/file.js');
+    const store = await import('/src/replay/store.js');
+    const clip = window.__crashCam.h().clip();
+    const id = store.newId();
+    await store.putClip({ id, name: 'tv', created: Date.now(), thumb: null, bytes: encodeReplay(clip), airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.time[clip.n - 1] });
+    return id;
+  })()`);
+  await page.tap('Escape');
+  await page.until('!window.__crashCam.live()', 15000);
+  await page.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); window.__ui.act('title'); window.__ui.hub = null; window.__ui.renderMenu(); true");
+  await page.until("window.__ui.screen === 'title'", 20000);
+  await page.sleep(500);
+  check('back on the hub, the Hangar hub card clicked', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
+  await page.until("window.__ui.hub === 'hangar'", 10000);
+  check('Walk in, with a clip saved', await page.click(walkCard), 'clicked');
+  await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
+  s = await stats();
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  const tv = s.stations.find((x) => x.id === 'tv');
+  s = await walkTo(room, occ, tv);
+  await page.sleep(300);
+  const tvPrompt = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
+  check('tv: its prompt says Replays once there is a clip', Boolean(tvPrompt) && tvPrompt.includes(en['walk.tv']), `${JSON.stringify(tvPrompt)} (clip ${saved})`);
+  await shot('08-tv');
+  await page.tap('KeyE');
+  const played = await page.until('window.__crashCam.live()', 30000).then(() => true, () => false);
+  check('tv: E plays the newest clip in the replay viewer', played, String(played));
+  await page.sleep(1500);
+  await shot('09-tv-replay');
+  check('tv: the replay draws the world, not the room over it', (await page.evaluate('window.__walkStats().view')) === null, 'room view let go');
+  await page.tap('Escape');
+  await page.until("!window.__crashCam.live() && window.__ui.screen === 'walk'", 20000).then(() => true, () => false);
+  check('tv: leaving the replay is the hangar again', await page.evaluate("window.__ui.screen === 'walk' && Boolean(window.__walkStats())"), await page.evaluate('window.__ui.screen'));
   /* A refused connection is a rooms or board server this check does not
    * start; anything else is the page's. */
   const errors = page.errors.filter((e) => !e.startsWith('network:'));
