@@ -31,6 +31,7 @@ import {
 } from '../game/hangarroom.js';
 import { str } from '../strings/index.js';
 import { customisable } from './builds.js';
+import { hubWays } from './ways.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
@@ -42,8 +43,17 @@ const STATIONS = {
   stand: { action: () => 'hangar-aircraft', label: 'walk.stand' },
   bench: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.bench' },
   shelf: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.shelf' },
-  door: { action: () => 'fly', label: 'walk.door' },
+  door: { action: (ui) => (ui.walk.tier === 'field' ? warWay(ui) : 'fly'), label: 'walk.door' },
 };
+
+/* The field hangar's door goes to the war: the first Operations card the
+ * pilot could open from the hub, which needs a rooms server. None, no
+ * door. */
+function warWay(ui) {
+  const rooms = ui.friendsItems().length > 0;
+  const way = hubWays('ops').find((w) => rooms || !w.room);
+  return way ? way.action : null;
+}
 
 const FORWARD = new Set(['KeyW', 'ArrowUp']);
 const BACKWARD = new Set(['KeyS', 'ArrowDown']);
@@ -62,7 +72,8 @@ function usable(ui) {
   const s = stationNear(w.stations, w.pose);
   const def = s && STATIONS[s.id];
   const action = def && def.action(ui);
-  return action ? { id: s.id, action, label: str(def.label) } : null;
+  const label = s && s.id === 'door' && ui.walk.tier === 'field' ? 'walk.door_war' : def && def.label;
+  return action ? { id: s.id, action, label: str(label) } : null;
 }
 
 function renderPrompt(ui) {
@@ -80,14 +91,15 @@ function renderPrompt(ui) {
 }
 
 export const walkMethods = {
-  /* Into the room, at the door. The tier is the garage corner until
-   * the progression lane says otherwise (docs/HANGAR-ROOM.md). */
-  openWalk() {
-    const tier = 'garage';
+  /* Into a room, at the door: the main hangar, whose tier is the garage
+   * corner until the progression lane says otherwise (docs/HANGAR-ROOM.md),
+   * or the war's field hangar. Back returns to the hub it came from. */
+  openWalk(tier = 'garage') {
     const room = ROOMS[tier];
     const layout = LAYOUTS[tier];
     this.walk = {
       tier,
+      hub: tier === 'field' ? 'ops' : 'hangar',
       layout,
       room,
       occ: occupancy(room, layout),

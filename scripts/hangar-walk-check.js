@@ -134,6 +134,8 @@ async function walkTo(room, occ, target) {
 const trace = [];
 const room = ROOMS.garage;
 const occ = occupancy(room, LAYOUTS.garage);
+const fieldRoom = ROOMS.field;
+const fieldOcc = occupancy(fieldRoom, LAYOUTS.field);
 
 try {
   await page.until('window.__shellReady === true', 300000);
@@ -204,6 +206,37 @@ try {
   await page.until("window.__ui.screen === 'title'", 10000).then(() => true, () => false);
   check('Escape leaves to the Hangar hub', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === 'hangar' && window.__walkStats() === null"), await page.evaluate('JSON.stringify([window.__ui.screen, window.__ui.hub])'));
 
+  /* The war's field hangar, from the Operations hub: its own room. */
+  await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
+  await page.sleep(300);
+  check('the Operations hub card clicked', await page.click('.gate-card.gate-card-hub-ops'), 'clicked');
+  await page.until("window.__ui.hub === 'ops'", 10000);
+  const fieldCard = '.gate-card.gate-card-ops-field';
+  check('Operations shows a Field hangar card', (await page.evaluate(`document.querySelector('${fieldCard} .gate-card-name')?.textContent`)) === en['walk.field'], en['walk.field']);
+  check('Field hangar clicked', await page.click(fieldCard), 'clicked');
+  await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
+  await page.sleep(800);
+  s = await stats();
+  check('in the field hangar, not the main one', s.tier === 'field', s.tier);
+  await shot('06-field-door');
+  const fieldDoor = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
+  check('field: its door goes to the front, not to free flight', fieldDoor === null || (fieldDoor.includes(en['walk.door_war']) && !fieldDoor.includes(en['walk.door'])), JSON.stringify(fieldDoor));
+  const fieldBench = s.stations.find((x) => x.id === 'bench');
+  s = await walkTo(fieldRoom, fieldOcc, fieldBench);
+  await page.sleep(200);
+  const fp = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').dataset.station");
+  check('field: walked to its bench with the keys and its prompt shows', fp === 'bench' && Math.hypot(s.pose.x - fieldBench.x, s.pose.z - fieldBench.z) < 0.6, `${fp} at ${s.pose.x.toFixed(2)}, ${s.pose.z.toFixed(2)}`);
+  await shot('07-field-bench');
+  const fieldView = (await stats()).view;
+  console.log(`field hangar in the real shell: ${fieldView.calls} draw calls, ${fieldView.triangles} triangles`);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'title'", 10000).then(() => true, () => false);
+  check('Escape leaves the field hangar to the Operations hub', await page.evaluate("window.__ui.screen === 'title' && window.__ui.hub === 'ops'"), await page.evaluate('JSON.stringify([window.__ui.screen, window.__ui.hub])'));
+
+  await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
+  await page.sleep(300);
+  check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
+  await page.until("window.__ui.hub === 'hangar'", 10000);
   check('Walk in again', await page.click(walkCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   s = await stats();

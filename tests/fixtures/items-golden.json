@@ -42,6 +42,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
@@ -144,6 +149,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
@@ -293,6 +303,16 @@
      "drives": {}
     },
     {
+     "id": "title:a-field-walk",
+     "label": "Field hangar",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-calibrate",
      "label": "Your radio has no buttons this browser can see",
      "note": "Every switch on it is arriving as an axis, so nothing on it can press Enter yet. Hold any stick away from centre for about a second and that counts as one press, which is enough to get in here and fix it properly. Calibrating ends by asking you to throw the switch you want as Enter, and after that it works like a button.",
@@ -332,6 +352,16 @@
       "Camera ball, quiet HUD"
      ],
      "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Field hangar",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "The war's own hangar: a tent over dirt, the aircraft on its stand, the way out to the front.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     }
    ]
@@ -441,6 +471,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
@@ -23458,6 +23493,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Hangar de campaña",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
@@ -23560,6 +23600,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Hangar de campaña",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
@@ -23709,6 +23754,16 @@
      "drives": {}
     },
     {
+     "id": "title:a-field-walk",
+     "label": "Hangar de campaña",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+     "facts": [],
+     "svg": null,
+     "drives": {}
+    },
+    {
      "id": "title:a-calibrate",
      "label": "Tu radio no tiene botones que este navegador pueda ver",
      "note": "Cada interruptor suyo está llegando como un eje, así que nada en él puede pulsar Enter todavía. Mantén cualquier stick fuera del centro por un segundo más o menos y eso cuenta como una pulsación, que es suficiente para entrar aquí y arreglarlo bien. Calibrar termina pidiéndote que muevas el switch que quieras como Enter, y después funciona como un botón.",
@@ -23748,6 +23803,16 @@
       "Camera ball, quiet HUD"
      ],
      "svg": "<svg 559 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-field-walk",
+     "label": "Hangar de campaña",
+     "action": "field-walk",
+     "card": "ops-field",
+     "blurb": "El hangar de la guerra: una carpa sobre tierra, la aeronave en su soporte, la salida al frente.",
+     "facts": [],
+     "svg": null,
      "drives": {}
     }
    ]
@@ -23857,6 +23922,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Hangar de campaña",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "drives": {}
