@@ -4187,6 +4187,12 @@
       }
       .hangar-side-btn:hover, .hangar-side-btn:focus-visible { border-color: var(--cream); }
       .hangar-side-btn.on { color: var(--deep); background: var(--cream); }
+      /* The region and side under the pointer, beside it. */
+      .hangar-hover-label {
+        position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap;
+        padding: 5px 8px; font: 600 12px/1 var(--ui-font); color: var(--cream);
+        background: rgba(10, 13, 14, 0.8); border: 1px solid rgba(255, 255, 255, 0.18);
+      }
       /* The preset views, a row beside Flip. */
       .hangar-views { position: absolute; left: 96px; bottom: 0; display: flex; gap: 4px; flex-wrap: wrap; }
       .hangar-view {
@@ -4333,6 +4339,10 @@
         background: rgba(255, 59, 47, 0.08); border: 1px solid rgba(255, 90, 70, 0.4);
       }
       .parts-damage-row.taped { background: rgba(169, 173, 177, 0.08); border-color: rgba(200, 205, 210, 0.35); }
+      /* Wear below the repair band, and a pack still in service, read as
+       * taped does: noted, not broken. */
+      .parts-damage-row.worn, .parts-damage-row.pack:not(.retired) { background: rgba(169, 173, 177, 0.08); border-color: rgba(200, 205, 210, 0.35); }
+      .parts-damage-row.worn .parts-damage-state, .parts-damage-row.pack:not(.retired) .parts-damage-state { color: #c9cdd1; }
       .parts-damage-words { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
       .parts-damage-name { font: 700 14px/1.2 var(--ui-font); color: var(--cream); }
       .parts-damage-state {
@@ -4505,6 +4515,7 @@
       .paint-add { justify-content: center; min-height: 64px; border-style: dashed; font-size: 13px; color: var(--mint); }
       .paint-add.on { background: rgba(111, 207, 162, 0.08); border-color: var(--mint); }
       .paint-decal-name, .paint-kind-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .paint-decal.hidden-layer .paint-thumb { opacity: 0.35; }
       .paint-thumb {
         width: 54px; height: 34px; border-radius: 0;
         background: linear-gradient(180deg, #8d949b, #6c737a); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);

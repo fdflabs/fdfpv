@@ -47,7 +47,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
-import { dressLivery } from './livery.js';
+import { dressLivery, liveryFor } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
@@ -239,7 +239,8 @@ export function createCarouselStage(renderer) {
     }
     /* In the hangar's preview, or the saved paint. */
     const preview = key === id ? previews.get(id) : undefined;
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined }), id, preview ?? undefined), id);
+    const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit }), id, preview ?? undefined), id);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -700,7 +701,14 @@ export function createCarouselStage(renderer) {
       n.negate();
     }
     n.transformDirection(toGroup);
-    return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z] };
+    /* The paint region the face is in, and whether it looks down, the
+     * same test the underside's shader makes (src/render/finish.js), for
+     * the workshop's click to paint; null on a part no region owns. */
+    const mat = hit.object.material;
+    const owner = m.craft.livery
+      ? Object.entries(m.craft.livery.materials()).find(([, mats]) => mats.includes(mat))
+      : null;
+    return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z], region: owner ? owner[0] : null, under: n.y < -0.1 };
   }
 
   /* The exploded part under client pixels on the hangar's model, or

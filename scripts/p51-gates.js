@@ -50,7 +50,7 @@ import {
   P51_AIRFRAME, p51GroundPrelude, p51RecPrelude, p51AirPrelude, p51TakeoffSticks, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude,
   slowstickGroundPrelude, skyPrelude, kadetGroundPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
-  timberFloatRecPrelude, RC_STEP_MS,
+  timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderHold
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -291,6 +291,9 @@ check: {
     must(sim.input(0, 0, 0, 0, 1), 'sim_input');
     must(sim.step(1), 'sim_step');
     const d = wingDebug(sim);
+    /* The slipstream's own roll (sim_wing_slip, docs/FLIGHTMODEL.md) is
+     * taken out: this gate is the motor's term alone. */
+    d[12] -= wingSlip(sim)[0];
     gate('P10', 'prop torque, static full throttle', d[12] < 0 && within(-d[12], th.p10_prop_torque), `${(-d[12]).toFixed(4)} N m ${d[12] < 0 ? 'rolling left' : 'WRONG WAY'} at ${d[8].toFixed(2)} N`, `${band(th.p10_prop_torque)} N m, rolling left`);
   }
 
@@ -309,7 +312,8 @@ check: {
     const s = sim.readState().state;
     const omega = s[14] * 2 * Math.PI / 60;
     const want = 1.6 * d[8] * -d[17] / omega;
-    const got = d[14] + d[7];
+    /* Less the slipstream's yaw (sim_wing_slip): the P factor alone. */
+    const got = d[14] + d[7] - wingSlip(sim)[2];
     gate('P11', 'P factor, climbing at full throttle', got > 0 && Math.abs(got / want - 1) <= t11.tolerance,
       `${got.toFixed(5)} N m nose left, formula ${want.toFixed(5)} at ${d[8].toFixed(2)} N, -w ${(-d[17]).toFixed(3)} m/s`, `within ${t11.tolerance * 100} percent, nose left`);
   }
@@ -327,6 +331,8 @@ check: {
     const d = wingDebug(sim);
     const s = sim.readState().state;
     const want = 0.001170 * (s[14] * 2 * Math.PI / 60) * t12.q;
+    /* Less the slipstream's yaw (sim_wing_slip): the gyroscope alone. */
+    d[14] -= wingSlip(sim)[2];
     gate('P12', 'the prop\'s gyroscopic yaw, tail coming up', d[14] > 0 && Math.abs(d[14] / want - 1) <= t12.tolerance,
       `${d[14].toFixed(5)} N m nose left at q ${t12.q} rad/s, formula ${want.toFixed(5)}`, `within ${t12.tolerance * 100} percent, nose left`);
   }
@@ -475,7 +481,8 @@ check: {
   /* P18: the approach, full flap and the gear down, flown at 1.3 Vs with
    * full flap on the elevator and the throttle, the wings on the
    * ailerons, a flare from 1.5 m and the throttle closed, the stick
-   * brought back on the wheels into three points. */
+   * brought back on the wheels into three points, the heading on the
+   * rudder. */
   {
     const t18 = th.p18_landing;
     onStrip(2);
@@ -503,10 +510,17 @@ check: {
         iThr = Math.max(0, Math.min(0.8, iThr + 0.2 * (-0.76 - o.s[6]) * RC_STEP_MS / 1000));
         thr = flare ? 0 : Math.max(0, Math.min(1, iThr + 0.3 * (-0.76 - o.s[6])));
       } else {
-        pitchStick = 1;
+        /* Brought back over a second and a half, not snatched: on the
+         * wheels at 9 m/s a snatched full up pitches the tail into the
+         * grass. With the slipstream the elevator loses the wash's share
+         * as the throttle closes for the flare, so the flare is shallower
+         * and the touch faster than before it (docs/FLIGHTMODEL.md). */
+        pitchStick = Math.min(1, (ms - touched.ms) / 1500);
       }
-      o = step(sim, [roll, pitchStick, 0, thr]);
-      if (o.loaded && touched === null) touched = { v, vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1] };
+      /* The runway's heading on the rudder: under power the swirl on the
+       * fin yaws the approach left (docs/FLIGHTMODEL.md). */
+      o = step(sim, [roll, pitchStick, rudderHold(o.s), thr]);
+      if (o.loaded && touched === null) touched = { v, vg: Math.hypot(o.s[4], o.s[5]), vz: o.s[6], x: o.s[1], ms };
       if (touched !== null) hull = Math.max(hull, o.hull + (o.loads[3] > 0 ? 1 : 0));
     }
     const land = { pitch: attitude(o.s).pitch * DEG, v: Math.hypot(o.s[4], o.s[5]), roll: touched ? o.s[1] - touched.x : 0 };
