@@ -98,7 +98,7 @@ Every layer of an aircraft is drawn into ONE atlas texture per livery (the
 bake), packed by each layer's own shape so a long stripe gets a long cell.
 Geometry is made once when the paint changes; per frame a livery costs one
 draw call per moving part per finish in use. Atlas side by graphics preset:
-low 512, medium 1024, high 2048; the hangar always draws at 2048. Measured
+low 512, medium 1024, high 2048, and never larger than the layers need (up to 4 layers 512, up to 16 1024); the hangar model takes the preset too. Measured
 in the baker PR: the time to dress each family with 32 layers and the frame
 time of a room view with 7 peers wearing 32 layers, on a quiet GPU
 (`nvidia-smi pmon -c 1` shows no other renderer).

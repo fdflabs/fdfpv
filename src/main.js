@@ -216,6 +216,7 @@ import {
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
 import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wearRecordOf, wornPowerBlock, wornQuadBlocks } from '../configs/wear.js';
@@ -564,6 +565,8 @@ async function importMapModule(entry, loading) {
  * that water attached. */
 async function loadMap(shell, id, loading, mapOptions) {
   const options = withTimeOption(mapOptions);
+  /* Liveries dressed in this world draw their layers at its preset. */
+  setAtlasPreset(options.quality);
   const entry = mapById(id);
   /* Track mode's seat is resolved to a world by worldId before anything
    * asks for one, so a seat reaching here is a caller that skipped it. */
