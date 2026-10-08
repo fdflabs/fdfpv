@@ -238,6 +238,8 @@ try {
   await page.sleep(800);
   s = await stats();
   check('in the field hangar, not the main one', s.tier === 'field', s.tier);
+  const crumb = await page.evaluate("document.querySelector('.frame-crumb, .crumb')?.textContent || ''");
+  check('the breadcrumb says Operations / Field hangar', crumb.includes(en['hub.ops']) && crumb.includes(en['walk.field']) && !crumb.includes(en['walk.card']), JSON.stringify(crumb));
   await shot('06-field-door');
   const fieldDoor = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
   check('field: its door goes to the front, not to free flight', fieldDoor === null || (fieldDoor.includes(en['walk.door_war']) && !fieldDoor.includes(en['walk.door'])), JSON.stringify(fieldDoor));
