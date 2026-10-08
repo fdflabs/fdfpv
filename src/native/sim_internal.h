@@ -290,6 +290,7 @@ typedef struct {
 #define SIM_AIRFRAME_INTERCEPTOR 26
 #define SIM_AIRFRAME_STRIKER_PROP 27
 #define SIM_AIRFRAME_STRIKER_JET 28
+#define SIM_AIRFRAME_EXTRA3D1308 29
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -297,8 +298,10 @@ typedef struct {
  * aircraft were removed on 2026-09-29 and the ids stay reserved
  * (sim_abi.h). 24, 25 and 26 are the combat quads of 2026-10-01
  * (docs/COMBAT-DRONES.md); 27 and 28 are the Striker on its piston engine
- * and on its turbojet (the same doc, section 7). */
-#define SIM_AIRFRAME_COUNT 29
+ * and on its turbojet (the same doc, section 7). 29 is the 3D aircraft of
+ * the flight model lane, the Extra 300 3D under a new id, 14 staying
+ * reserved (docs/FLIGHTMODEL.md). */
+#define SIM_AIRFRAME_COUNT 30
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -930,6 +933,41 @@ typedef struct FixedWingParams {
    * is an aircraft without, and then nothing is read.
    */
   double side_cda;
+  /*
+   * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
+   * growing in proportion to its angle past 15 deg or so as the flow
+   * leaves it (DATCOM's K', plain flaps). Where it is set, the aero reads
+   * each surface's angle as delta / sqrt(1 + (delta / surf_knee)^2), rad:
+   * a knee of 0.5 keeps 0.96 of a 15 deg throw and half of a 50 deg one.
+   * The drawn surfaces keep their real angle. Zero on every table built
+   * for throws under 20 deg, which then reads its angles as it always did.
+   */
+  double surf_knee;
+  /*
+   * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
+   * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
+   * moment's stiffness term takes the sine of the zero lift line's angle
+   * and every sideslip term the sine of the sideslip, which are the
+   * linear terms at small angles and stay bounded and continuous all the
+   * way round, where the angles themselves wrap at 180 deg and would flip
+   * the moment. rot_k: the air a slow
+   * aircraft turns through, N m s^2, roll, pitch and yaw: each surface's
+   * strips swept through still air by the rotation, a flat plate's normal
+   * force on each, which the linear rate damping, proportional to the
+   * airspeed, loses as the aircraft stops; the two are taken together as
+   * the root of their squares' sum, so either one alone is itself.
+   * Zero in each is an aircraft without, and leaves its arithmetic as it
+   * was. The prop's precession is j_prop's, above.
+   */
+  int hi_alpha;
+  /* With hi_alpha, the tail's own flow (plant_wing.c): the stabiliser's
+   * lift slope a_t, the fin's a_v, the downwash's d eps / d alpha, and the
+   * normal force coefficient each saturates on, a flat plate's. */
+  double tail_at;
+  double tail_av;
+  double tail_deda;
+  double tail_cn;
+  double rot_k[3];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -948,6 +986,7 @@ extern const FixedWingParams FW_F16878;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
+extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;

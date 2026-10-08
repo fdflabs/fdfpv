@@ -4,7 +4,7 @@
  *
  * The Colours tab (src/ui/hangar.js) opens on PAINT, the schemes and each
  * region's colour, and this adds the region's FINISH under its colours and
- * two more pages beside it, on a switch at the top of the tab:
+ * three more pages beside it, on a switch at the top of the tab:
  *
  *   DECALS    race numbers, stripes, checks, chevrons, stars, roundels and
  *             generic sponsor style marks (configs/paint.js), each put on
@@ -17,6 +17,8 @@
  *             the cursor starts on is Keep); and the livery on the plane
  *             as a code to copy, or a code pasted in and checked field by
  *             field before anything of it is used.
+ *   GALLERY   the liveries other pilots published for this plane
+ *             (src/ui/hangar-gallery.js, docs/LIVERY-GALLERY.md).
  *
  * The racing games' livery editors are the model: the camera turns to the
  * side being worked on, the plane holds still under the aim, the decal
@@ -53,10 +55,12 @@ import {
 } from '../../configs/paint.js';
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
+import { readPilotName } from '../share/pilot.js';
 import { str } from '../strings/index.js';
 import { el } from './dom.js';
+import { Gallery } from './hangar-gallery.js';
 
-export const PAINT_PAGES = ['paint', 'decals', 'saved'];
+export const PAINT_PAGES = ['paint', 'decals', 'saved', 'gallery'];
 
 /* The camera's views for decal work (src/render/hangarstage.js). */
 const DECAL_VIEWS = ['top', 'side_left', 'side_right', 'nose', 'tail'];
@@ -146,6 +150,7 @@ export class PaintShop {
     this.reticle = el('div', 'paint-reticle');
     this.reticle.hidden = true;
     hangar.stage.append(this.reticle);
+    this.gallery = new Gallery(this);
     this.reset();
   }
 
@@ -221,6 +226,9 @@ export class PaintShop {
     this.page = p;
     this.form = null;
     this.adding = false;
+    if (p === 'gallery') {
+      this.gallery.open();
+    }
     this.h.changed(`page-${p}`, 'adjust');
   }
 
@@ -241,7 +249,16 @@ export class PaintShop {
 
   /* The page's body when it is not Paint, which hangar.js draws itself. */
   body() {
+    if (this.page === 'gallery') {
+      return this.gallery.page();
+    }
     return this.page === 'decals' ? this.decalsPage() : this.savedPage();
+  }
+
+  /* A shared code's entry when it is for this plane, to try on. */
+  tryEntry(code) {
+    const got = readCode(code);
+    return !got.error && got.family === this.h.family ? got.entry : null;
   }
 
   /* THE FINISH, under the region's colours on the Paint page. */
@@ -386,7 +403,7 @@ export class PaintShop {
   kindsBox() {
     const box = el('div', 'paint-kinds');
     DECAL_KIND_IDS.forEach((k, i) => {
-      const sample = newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
+      const sample = k === 'text' ? this.callsignText() : newDecal(k, [0, 0, 0], [0, 1, 0], this.style);
       const b = button('paint-kind');
       b.dataset.key = `kind-${k}`;
       b.style.setProperty('--i', String(i));
@@ -396,6 +413,15 @@ export class PaintShop {
       box.append(b);
     });
     return box;
+  }
+
+  /* A new words layer, its words the pilot's callsign where the lettering
+   * can draw it (and the word filter passes it), else the kind's own. */
+  callsignText() {
+    const d = newDecal('text', [0, 0, 0], [0, 1, 0], this.style);
+    /* A handle may hold an underscore, which the lettering has not got. */
+    const t = cleanText((readPilotName() || '').replace(/_/g, ' '));
+    return (t && checkDecal({ ...d, t, a: textAspect(t) }).decal) || d;
   }
 
   /* PLACING: the aim over the plane, a decal under it. `index` is the
@@ -687,6 +713,7 @@ export class PaintShop {
     del.addEventListener('click', () => this.removeDecal(i));
     acts.append(mirror, move, del);
     box.append(acts);
+    box.append(el('p', 'hangar-source', str('hangar.decal_keys')));
     return box;
   }
 
@@ -1214,12 +1241,48 @@ export class PaintShop {
       }
       return true;
     }
+    const shaped = this.page === 'decals' && !typing && !this.form && !this.adding && this.shapeKey(code);
+    if (shaped) {
+      return true;
+    }
     if (code === 'Escape' && this.adding) {
       this.adding = false;
       this.h.changed('decal-add', 'back');
       return true;
     }
     return false;
+  }
+
+  /*
+   * The chosen layer's shape from the keyboard, the mouse hand staying on
+   * the model: [ and ] turn it, - and = size it, comma and full stop lean
+   * it, Page Up and Page Down move it up and down the stack. A locked
+   * layer keeps its shape. Returns whether the key was one of these.
+   */
+  shapeKey(code) {
+    const d = this.decals[this.sel];
+    if (!d) {
+      return false;
+    }
+    if (code === 'PageUp' || code === 'PageDown') {
+      this.moveLayer(this.sel, code === 'PageUp' ? 1 : -1);
+      return true;
+    }
+    const patch = {
+      BracketLeft: { r: this.turned(d.r, -TURN_STEP) },
+      BracketRight: { r: this.turned(d.r, TURN_STEP) },
+      Minus: { s: clamp(d.s / SIZE_STEP, DECAL_LIMITS.size) },
+      Equal: { s: clamp(d.s * SIZE_STEP, DECAL_LIMITS.size) },
+      Comma: { x: clamp((d.x ?? 0) - SKEW_STEP, DECAL_LIMITS.skew) },
+      Period: { x: clamp((d.x ?? 0) + SKEW_STEP, DECAL_LIMITS.skew) },
+    }[code];
+    if (!patch) {
+      return false;
+    }
+    if (!d.l) {
+      this.patch(patch, `decal-${this.sel}`, 'adjust');
+    }
+    return true;
   }
 
   /* The stick while placing: held directions move the aim every poll, A
