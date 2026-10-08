@@ -14221,9 +14221,23 @@ export async function boot({
       intent.right = roll > NAV_DEFLECT;
       intent.left = roll < -NAV_DEFLECT;
     } else {
-      const raw = input.navRaw();
+      /* With no mapping to trust, a standard pad's left stick steers the
+       * four ways; anything else moves up and down off whichever axis
+       * moves, the radio's rule. */
+      const pad = input.padDirections();
+      const raw = pad ? pad.stick : input.navRaw();
       intent.up = raw.up;
       intent.down = raw.down;
+      intent.left = Boolean(raw.left);
+      intent.right = Boolean(raw.right);
+    }
+    /* A standard pad's d-pad steers whatever the flight mapping says: it
+     * flies nothing. */
+    const ways = input.padDirections();
+    if (ways) {
+      for (const k of ['up', 'down', 'left', 'right']) {
+        intent[k] = intent[k] || ways.dpad[k];
+      }
     }
     return intent;
   }
