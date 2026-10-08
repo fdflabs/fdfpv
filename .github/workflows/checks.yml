@@ -114,6 +114,7 @@ jobs:
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
+      - run: npm run platforms:hold
       # The camp changes on screen as its people act: the tarp, the mast
       # and the pushed motorcycles read off the contacts the room tells.
       - run: npm run interior:camp
