@@ -221,6 +221,7 @@
     "contacts:selftest": "node scripts/contacts-selftest.js",
     "roles:deal": "node scripts/roles-deal.js",
     "platforms:hold": "node scripts/platforms-hold-selftest.js",
+    "platforms:hold-ui": "node scripts/platforms-hold-check.js",
     "interior:stages": "node scripts/interior-stages-selftest.js",
     "dev:accounts": "node --disable-warning=ExperimentalWarning scripts/dev-accounts-selftest.js",
     "camera:lock": "node scripts/camera-lock-check.js",

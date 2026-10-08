@@ -137,6 +137,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
+import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
 import { localHour } from './share/interior/clock.js';
@@ -146,7 +147,7 @@ import { OpsHud, heldRolesOf } from './ui/opshud.js';
 import {
   bearingSaid, briefOf, createNudger, focusOf, goalLine, nudgeOf, targetOf,
 } from './share/ops/guide.js';
-import { RolesBoard } from './ui/rolesboard.js';
+import { RolesBoard, roleName } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
 import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
@@ -814,12 +815,142 @@ export async function boot({
   const OPS_CONSENT = {
     [INTERIOR_CAMPAIGN.id]: { given: () => ui.settings.interiorConsent === true, ask: () => interiorConsented() },
   };
+  /* The role key this seat flies now, or null. */
+  function opsActiveKey(v) {
+    const r = v.roles;
+    return r && r.active ? r.active[roomOps.seat()] ?? null : null;
+  }
+  /* The aircraft of role key `key`, or null. */
+  function opsKeyCraft(v, key) {
+    const def = key && ((v.roles && v.roles.defs) || []).find((d) => d.id === String(key).split(':')[0]);
+    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+  }
   /* The aircraft of the role this seat flies now, or null. */
   function opsRoleCraft(v) {
-    const r = v.roles;
-    const key = r && r.active ? r.active[roomOps.seat()] : null;
-    const def = key && (r.defs || []).find((d) => d.id === String(key).split(':')[0]);
-    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+    return opsKeyCraft(v, opsActiveKey(v));
+  }
+
+  /*
+   * PLATFORM HOLDS (docs/campaign/interior/CONTRACT-HOLDS.md, TECH-NEEDS
+   * N15). A pilot holding several roles in a live match keeps one aircraft
+   * per role alive: the one flown is the plant, each other is a hold on
+   * the room clock (src/share/ops/hold.js), drawn as a model. Changing the
+   * active role ([ and ], the pad's shoulders) hands the plant over to
+   * the held aircraft where its hold has it, and the one left takes a
+   * hold where it was. A role never flown yet in this match is launched
+   * where the pilot is, by the hot swap's rules. Outside a live match
+   * nothing here runs, and the hot swap is unchanged.
+   *
+   * opsHolds: role key -> { airframe, hold, yaw, rig }, this page's only.
+   * opsFlownKey: the role key the plant is flying now.
+   */
+  const opsHolds = new Map();
+  let opsFlownKey = null;
+  let opsHoldBusy = false;
+  const holdP = new THREE.Vector3();
+  const holdV = new THREE.Vector3();
+  const holdDoc = { x: 0, y: 0, z: 0 };
+  const holdQ = new THREE.Quaternion();
+  const holdE = new THREE.Euler(0, 0, 0, 'YXZ');
+
+  function opsHoldsClear() {
+    for (const h of opsHolds.values()) {
+      h.rig.group.removeFromParent();
+      h.rig.dispose();
+    }
+    opsHolds.clear();
+    opsFlownKey = null;
+  }
+
+  /* [ or ]: the next role this seat holds, asked of the room; true when
+   * the key was this feature's. */
+  function opsHoldCycle(dir) {
+    const v = roomOps.on() ? roomOps.view() : null;
+    const keys = (v && v.roles && v.roles.held && v.roles.held[roomOps.seat()]) || [];
+    if (!roomOps.live() || keys.length < 2) {
+      return false;
+    }
+    const i = keys.indexOf(opsActiveKey(v));
+    roomOps.active(keys[(i + dir + keys.length) % keys.length]);
+    return true;
+  }
+  ui.cycleHold = opsHoldCycle;
+
+  /* The room clock in whole ms, or null with no clock (no link yet):
+   * a hold is on the room's clock or it is not taken. */
+  let opsClockOverride = null;
+  function holdRoomMs() {
+    const t = opsClockOverride ? opsClockOverride() : roomLinkState.roomNow();
+    return Number.isFinite(t) ? Math.floor(t) : null;
+  }
+
+  /* Where a hold is now, into holdP and holdV (scene frame), and the yaw
+   * it faces. */
+  function holdNow(h) {
+    const q = holdPose(h.hold, Math.max(h.hold.t0, holdRoomMs() ?? h.hold.t0));
+    docPosToThree(q.p[0], q.p[1], q.p[2], holdP);
+    docPosToThree(q.v[0], q.v[1], q.v[2], holdV);
+    return h.hold.kind === 'orbit' ? Math.atan2(-holdV.x, -holdV.z) : h.yaw;
+  }
+
+  /* Each held aircraft drawn where its hold has it: level on a hover or
+   * parked, banked into the turn on an orbit. */
+  function opsHoldsDraw() {
+    for (const h of opsHolds.values()) {
+      const yaw = holdNow(h);
+      h.rig.group.position.copy(holdP);
+      holdE.set(0, yaw, h.hold.kind === 'orbit' ? HOLD_BANK : 0);
+      h.rig.group.quaternion.setFromEuler(holdE);
+      if (h.rig.group.parent !== shell.quad.parent) {
+        shell.quad.parent.add(h.rig.group);
+      }
+    }
+  }
+
+  async function opsHoldSwitch(v, fromKey, toKey) {
+    const toCraft = opsKeyCraft(v, toKey);
+    const t = holdRoomMs();
+    if (!toCraft || t == null) {
+      return;
+    }
+    opsHoldBusy = true;
+    try {
+      const st = readState();
+      poseFromState(st, holdP);
+      simPosToThree(st[4], st[5], st[6], holdV).applyQuaternion(qSpawn);
+      const from = airframeById(runAirframe);
+      const left = {
+        p: Object.values(threePosToDoc(holdP.x, holdP.y, holdP.z, { ...holdDoc })),
+        v: Object.values(threePosToDoc(holdV.x, holdV.y, holdV.z, { ...holdDoc })),
+        airborne: !onSurface(),
+      };
+      const leftHold = {
+        airframe: from.id, hold: holdOf(left, from, t), yaw: craftHeadingYaw(), rig: null,
+      };
+      const to = opsHolds.get(toKey);
+      let at = null;
+      if (to) {
+        const yaw = holdNow(to);
+        at = {
+          pos: holdP.clone(), vel: holdV.clone(), yaw, flying: to.hold.kind !== 'parked',
+        };
+      }
+      const swapped = await hotSwap(toCraft, { refit: toCraft === runAirframe, at });
+      if (!swapped) {
+        return;
+      }
+      if (to) {
+        to.rig.group.removeFromParent();
+        to.rig.dispose();
+        opsHolds.delete(toKey);
+      }
+      leftHold.rig = buildPeerCraft({ airframe: from.id, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
+      leftHold.rig.setLabel(roleName(fromKey));
+      opsHolds.set(fromKey, leftHold);
+      opsFlownKey = toKey;
+    } finally {
+      opsHoldBusy = false;
+    }
   }
   /* The start this page owes a room it made for a mission, until its
    * welcome; the match this page has put itself in the air for. */
@@ -1148,7 +1279,18 @@ export async function boot({
      * taken or swapped since): seated before it is flown, and again when
      * the role changes to another aircraft. */
     const craft = consentDue ? null : opsRoleCraft(v);
-    if (craft && ui.settings.airframe !== craft) {
+    const activeKey = consentDue ? null : opsActiveKey(v);
+    if (!roomOps.live() && opsHolds.size) {
+      opsHoldsClear();
+    }
+    if (activeKey && opsFlownKey && activeKey !== opsFlownKey && opsBegunFor === match && swapLive()) {
+      if (!opsHoldBusy) {
+        opsHoldSwitch(v, opsFlownKey, activeKey).catch((e) => {
+          console.error('hold switch failed', e);
+          throw e;
+        });
+      }
+    } else if (craft && ui.settings.airframe !== craft) {
       seatAirframe(ui.settings, craft);
       ui.persistSettings();
       if (opsBegunFor === match && mode === 'flight') {
@@ -1158,6 +1300,8 @@ export async function boot({
     /* A match begun: into the air, as a war's begins (warBegin). */
     if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
+      opsHoldsClear();
+      opsFlownKey = activeKey;
       const w = roomLinkState.state().welcome;
       if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
         ui.onAction('restart');
@@ -1166,6 +1310,7 @@ export async function boot({
       }
     }
     opsFilmFrame(v, match, consentDue);
+    opsHoldsDraw();
     opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
@@ -1790,6 +1935,17 @@ export async function boot({
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
+    /* The platform holds: the role flown, and each held aircraft, where
+     * its hold has it now and where its model is drawn (scene frame). */
+    holds: () => ({
+      flown: opsFlownKey,
+      held: [...opsHolds].map(([key, h]) => {
+        holdNow(h);
+        return {
+          key, airframe: h.airframe, kind: h.hold.kind, r: h.hold.r ?? null, c: h.hold.c ? h.hold.c.slice() : null, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
+        };
+      }),
+    }),
     /* What the map was last told of the room: mark, hour, contacts. */
     drawn: () => ({ mark: opsCampMark, hour: opsHourTold, looks: opsLooksTold.slice() }),
     /* Checks only: the host's end of the match. */
@@ -1807,6 +1963,8 @@ export async function boot({
     welcome: (w) => roomOps.onWelcome(w),
     inject: (m) => roomOps.onMessage(m),
     useWorld: (w) => { opsWorldOverride = w; opsCaptureFor = null; },
+    /* Checks only: a room clock (page ms to room ms) with no room. */
+    useClock: (f) => { opsClockOverride = f; },
     sent: () => opsSent.slice(),
     /* Checks only: a capture of `item` proposed now, whatever is framed,
      * for the room to judge on this page's real pose and camera. */
@@ -12160,7 +12318,9 @@ export async function boot({
    * state to fly on quietly. */
   /* `refit` swaps the aircraft for itself: the hangar's new motor or pack
    * put in the air where it is, by every rule a swap keeps. */
-  async function hotSwap(id, { refit = false } = {}) {
+  /* `at` { pos, vel, yaw, flying } seats the new aircraft there instead
+   * of where this one is: a platform hold's hand over (PLATFORM HOLDS). */
+  async function hotSwap(id, { refit = false, at = null } = {}) {
     const to = airframeById(id);
     if (swapBusy || to.id !== id || (to.id === runAirframe) !== refit || !swapLive()) {
       return false;
@@ -12172,7 +12332,7 @@ export async function boot({
       if (!swapLive() || (to.id === runAirframe) !== refit) {
         return false;
       }
-      seatSwap(to, next, text);
+      seatSwap(to, next, text, at);
       await seatSwapCourse(to);
       return true;
     } finally {
@@ -12202,15 +12362,22 @@ export async function boot({
     return f[4] + f[5] > 0 || f[6] > 0;
   }
 
-  function seatSwap(to, next, text) {
-    /* Where the old one is, read before anything moves it. */
+  function seatSwap(to, next, text, at = null) {
+    /* Where the old one is, read before anything moves it, or where the
+     * caller seats the new one. */
     const st = readState();
     poseFromState(st, swapAt);
     simPosToThree(st[4], st[5], st[6], swapVel).applyQuaternion(qSpawn);
-    const yaw = craftHeadingYaw();
+    let yaw = craftHeadingYaw();
+    let wasFlying = !onSurface();
+    if (at) {
+      swapAt.copy(at.pos);
+      swapVel.copy(at.vel);
+      yaw = at.yaw;
+      wasFlying = at.flying;
+    }
     const from = runAirframe;
     const quadBefore = shell.quad;
-    const wasFlying = !onSurface();
     const midLap = race.currentLapMs(simTimeMs) != null;
     const onWater = Boolean(waterAt(swapAt.x, swapAt.z));
     const inAir = wasFlying || Boolean(to.floats) !== onWater;
