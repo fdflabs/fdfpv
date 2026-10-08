@@ -25,7 +25,7 @@ twin in src/maps/swiss2/craftlook.js.
 
 1. **Flake** (`flake`, a shop finish). The region's colour under a clear
    coat with metal flake in it: a gloss highlight on top, and below it
-   tiny flakes, each a cell of about 0.4 mm hashed from the model's own
+   tiny flakes, each a cell of about 1 mm hashed from the model's own
    coordinates, turned a little off the surface, so a flake catches the
    light only from some angles and the paint glitters as the camera or
    the aircraft moves. Flakes finer than a pixel blend into an even
@@ -45,14 +45,16 @@ two ids to FINISHES and SHOP_FINISHES and two ITEMS. So:
 
 - **No schema version moves.** The livery code's `v` stays 1: readCode
   refuses any other `v` whole, so bumping it would make every client that
-  has not updated refuse every new code. With `v` kept, an older client
-  reading a `flake` region drops that one finish and counts it in
-  `dropped` (the existing contract), keeping the rest of the livery.
+  has not updated refuse every new code, plain ones too. With `v` kept, an
+  older client refuses only a code that wears flake or brushed (a finish
+  it does not know counts in `entryDrops`, which refuses the code with its
+  reason, the existing contract), and every other code still reads. A
+  page reload brings the new list, so the window is short.
 - **The migration** is the existing normaliser: an old entry loads exactly
   as before; a new id round-trips. `paint:selftest` seeds both (an old
   entry with every pre-existing finish, a new entry with the new ids
-  through encodeLivery/readCode) and checks a reader without the new ids
-  drops them and keeps the rest.
+  through encodeLivery/readCode) and checks that a finish a client does
+  not know is counted as dropped, which is what an older client does.
 - **The shop:** `finish:flake` 800 tokens (above candy, the dearest paint),
   `finish:brushed` 400. Lead decision, reversible; the owner may move the
   prices. The server's wallet reads ITEMS, so buying them **needs a VM
