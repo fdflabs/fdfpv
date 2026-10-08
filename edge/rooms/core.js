@@ -47,9 +47,11 @@ import {
   CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
 } from '../../src/share/roomwire.js';
 import { retiredMap } from '../../src/maps/retired.js';
+import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
+import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
@@ -78,6 +80,10 @@ export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
  * 14, answer 6). A public room's is roomwire.js PUBLIC_CAP, 16. */
 export const PRIVATE_CAP = 8;
+/* Watchers a room seats beside its pilots (docs/FLIGHTCLUB-PROGRESSION.md
+ * section 3): apart from the cap, and capped on their own so a room
+ * cannot be flooded with sockets that each cost a pose stream. */
+export const WATCH_CAP = 8;
 /* A client samples 30 poses a second on its plant's clock and sends each
  * frame's together (src/main.js roomPoseStep), so a slow frame arrives as
  * a burst: a one second window can hold ceil(1000 / P) frames of P / 33
@@ -102,6 +108,9 @@ export const TEXT_CLOSE_PER_S = 20;
  * A seat taken back after a drop is not a new join. */
 export const JOINS_PER_MIN = 2 * PUBLIC_CAP;
 export const KICK_MS = 30 * 60 * 1000;
+/* A room no host has set the air of, and one from before weather. */
+const CALM = { preset: 'calm', seed: 0 };
+
 /*
  * A kick or a removal keeps out that PLAYER, their seat token, for its
  * time, never their address: the owner's decision (2026-09-28), because
@@ -259,6 +268,9 @@ export class RoomCore {
   constructor(meta, options = {}) {
     this.meta = meta;
     this.seats = new Map();   /* conn -> seat record */
+    /* conn -> watcher record (watch()): no seat, no aircraft, never in a
+     * game, the cap or the ready count, so every seats loop leaves it out. */
+    this.watchers = new Map();
     this.pending = new Map(); /* conn -> text rate, before its hello */
     this.kicked = [];         /* { token, address, until, lastJoin } in memory only */
     this.joins = new Map();   /* address -> { since, n } */
@@ -269,6 +281,7 @@ export class RoomCore {
     this.referee = new Referee(meta.friendly);
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
+    this.jam = new RoomJam(); /* Trick Battle, edge/rooms/jam.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
@@ -324,14 +337,17 @@ export class RoomCore {
     const m = this.war.match;
     const r = this.race.race;
     return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished() || this.combat.round.state === 'over'
-      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(r && r.state === 'results');
+      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(this.jam.match && this.jam.match.state === 'results')
+      || Boolean(r && r.state === 'results');
   }
 
   /* The seats as they were before a hibernation, from each socket's
    * attachment. conns is [{ conn, attachment }]. */
   restore(conns) {
     for (const { conn, attachment } of conns) {
-      if (attachment && attachment.seat) {
+      if (attachment && attachment.watch) {
+        this.watchers.set(conn, { ...attachment, sent: new Map(), ...textRates(0) });
+      } else if (attachment && attachment.seat) {
         this.seats.set(conn, { ...attachment, pose: null, recent: [], sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
         this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
@@ -402,7 +418,7 @@ export class RoomCore {
     const seat = this.host();
     if (seat && seat !== h.said) {
       h.said = seat;
-      out.push(...this.others(null, JSON.stringify({ type: 'host', seat })));
+      out.push(...this.roster(null, JSON.stringify({ type: 'host', seat })));
     }
     return out;
   }
@@ -432,6 +448,7 @@ export class RoomCore {
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: minPlayersFor('race', this.meta.mode), end: () => this.race.end(this) },
       { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now) },
+      { id: 'jam', on: this.jam.on(), players: this.jam.players(this), min: minPlayersFor('jam', this.meta.mode), end: () => this.jam.abandon(this, now) },
       { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now) },
       /* No mode registry entry yet: one pilot flies an ops mission alone. */
@@ -483,7 +500,8 @@ export class RoomCore {
    * counts down, and nothing else would move it on until one flies. */
   waiting() {
     return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
-      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
+      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || this.jam.on()
+      || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
   }
 
   wake() {
@@ -510,11 +528,12 @@ export class RoomCore {
    */
   hostCheck(conn, s, msg, now) {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
+      : (msg.type === 'jam' && msg.op === 'start') ? 'jam'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
         : (msg.type === 'war' && msg.op === 'start') ? 'war'
           : (msg.type === 'ops' && msg.op === 'start') ? 'ops'
           : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
-    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
+    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end') || (msg.type === 'jam' && msg.op === 'end')
       || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
       || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock' || msg.op === 'skipIntro'));
     if (!hostOnly) {
@@ -568,6 +587,9 @@ export class RoomCore {
     if (this.tag.on()) {
       return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
     }
+    if (this.jam.on()) {
+      return { game: 'jam', state: this.jam.match.state === 'turn' && this.jam.match.round === 1 && this.jam.match.turn === 0 ? 'countdown' : 'on', round: this.jam.match.round };
+    }
     if (this.combat.on()) {
       /* Its round's number, for "In round n". */
       return { game: 'combat', state: this.combat.round.state, round: this.combat.round.n };
@@ -620,7 +642,7 @@ export class RoomCore {
     this.meta.hidden = true;
     return [
       { store: 'meta', value: this.meta },
-      ...this.others(null, JSON.stringify({ type: 'room', name: null, pick: this.meta.pick, hidden: true })),
+      ...this.roster(null, JSON.stringify({ type: 'room', name: null, pick: this.meta.pick, hidden: true })),
     ];
   }
 
@@ -642,6 +664,12 @@ export class RoomCore {
       }
     }
     return out;
+  }
+
+  /* others(), and every watcher: the news a watcher needs to draw the
+   * pilots (join, leave, profile, host, world), never a game's. */
+  roster(except, data) {
+    return [...this.others(except, data), ...[...this.watchers.keys()].map((conn) => ({ send: conn, data }))];
   }
 
   attachmentOf(s) {
@@ -701,6 +729,67 @@ export class RoomCore {
     return top;
   }
 
+  /* A new join from this address, counted: false when it is over
+   * JOINS_PER_MIN or a kick slows it. */
+  joinAllowed(address, now) {
+    if (!address) {
+      return true;
+    }
+    if (!this.joins.has(address)) {
+      this.joins.set(address, { since: now, n: 0 });
+    }
+    return bump(this.joins.get(address), now, 60000) <= JOINS_PER_MIN && this.slowedJoin(address, now);
+  }
+
+  /*
+   * THE WATCH SEAT (docs/FLIGHTCLUB-PROGRESSION.md section 3): a hello
+   * with watch: true. The watcher gets the room's welcome with seat 0 and
+   * its pilots, then their poses and the roster's news (roster()), and
+   * nothing else: no seat, no token a pilot's tab could take over, no game
+   * join, no say in the clock, the host or ready. Pilots are never told a
+   * watcher came, since there is nothing of it to draw and no public list
+   * of watchers. Up to WATCH_CAP, refused 'full' past it.
+   */
+  watch(conn, msg, now, address, newToken, callsign) {
+    if (!this.joinAllowed(address, now)) {
+      return [{ close: conn, code: CLOSE.rate, reason: 'rate' }];
+    }
+    if (this.watchers.size >= WATCH_CAP) {
+      return [{ close: conn, code: CLOSE.full, reason: 'full' }];
+    }
+    const w = {
+      watch: true, token: newToken(), name: msg.name.slice(), callsign, address: address || '', joined: now,
+      sent: new Map(), ...textRates(now),
+    };
+    this.pending.delete(conn);
+    this.watchers.set(conn, w);
+    return [
+      { attach: conn, value: { watch: true, token: w.token, name: w.name, callsign, address: w.address, joined: now } },
+      {
+        send: conn,
+        data: JSON.stringify({
+          type: 'welcome',
+          watch: true,
+          seat: 0,
+          token: w.token,
+          host: this.host(),
+          roomMs: this.roomMs(now),
+          code: this.meta.code,
+          cap: this.meta.cap,
+          friendly: Boolean(this.meta.friendly),
+          public: Boolean(this.meta.public),
+          name: this.meta.name ?? null,
+          pick: this.meta.pick ?? null,
+          mode: this.meta.mode ?? null,
+          mission: this.meta.mission ?? null,
+          map: this.meta.map,
+          peers: this.peerList(null),
+        }),
+      },
+      ...(this.ticking || !this.seats.size ? [] : [{ tick: true }]),
+    ];
+  }
+
   /*
    * hello: { proto, build, level?, token?, name: [adj, animal, number], profile, session? }.
    * newToken() is the caller's cryptographic source of a fresh seat token.
@@ -736,6 +825,10 @@ export class RoomCore {
     if (!validNamePick(msg.name) || !profile) {
       return [{ close: conn, code: CLOSE.bad, reason: 'bad' }];
     }
+    /* Before the token's takeover: a watcher's tab never closes a seat. */
+    if (msg.watch === true) {
+      return this.watch(conn, msg, now, address, newToken, callsign);
+    }
     const actions = [];
     /* A token that holds a live seat takes it over: the old socket is a
      * tab that lost its network and has not noticed yet. */
@@ -747,7 +840,7 @@ export class RoomCore {
         joined = s.joined;
         actions.push({ close: other, code: CLOSE.replaced, reason: 'replaced' });
         this.seats.delete(other);
-        actions.push(...this.others(other, JSON.stringify({ type: 'leave', seat: s.seat })));
+        actions.push(...this.roster(other, JSON.stringify({ type: 'leave', seat: s.seat })));
       }
     }
     const back = token ? this.recent.get(token) : null;
@@ -762,13 +855,8 @@ export class RoomCore {
     if (!wanted && token && Number.isInteger(msg.seat)) {
       wanted = msg.seat;
     }
-    if (!wanted && address) {
-      if (!this.joins.has(address)) {
-        this.joins.set(address, { since: now, n: 0 });
-      }
-      if (bump(this.joins.get(address), now, 60000) > JOINS_PER_MIN || !this.slowedJoin(address, now)) {
-        return [...actions, { close: conn, code: CLOSE.rate, reason: 'rate' }];
-      }
+    if (!wanted && !this.joinAllowed(address, now)) {
+      return [...actions, { close: conn, code: CLOSE.rate, reason: 'rate' }];
     }
     if (this.seats.size >= this.meta.cap) {
       return [...actions, { close: conn, code: CLOSE.full, reason: 'full' }];
@@ -836,15 +924,17 @@ export class RoomCore {
         mode: this.meta.mode ?? null,
         mission: this.meta.mission ?? null,
         map: this.meta.map,
+        weather: this.meta.weather ?? CALM,
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
+        ...this.jam.welcome(this),
         ...this.war.welcome(this),
         ...this.ops.welcome(this),
         ...this.gameLobby.welcome(this),
       }),
     });
-    actions.push(...this.others(conn, JSON.stringify({
+    actions.push(...this.roster(conn, JSON.stringify({
       type: 'join', seat, name: s.name, ...(callsign ? { callsign } : {}), profile, host: this.host(),
     })));
     actions.push(...wrecks.wrecksFor(this, conn));
@@ -859,6 +949,10 @@ export class RoomCore {
   }
 
   message(conn, data, now, address = '', newToken = null, callsign = null, account = null) {
+    const w = this.watchers.get(conn);
+    if (w) {
+      return this.watcherSaid(conn, w, data, now);
+    }
     const s = this.seats.get(conn);
     if (s) {
       s.heardAt = now;
@@ -920,7 +1014,7 @@ export class RoomCore {
       this.combat.seat(s.seat, profile.airframe);
       return [
         { attach: conn, value: this.attachmentOf(s) },
-        ...this.others(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
+        ...this.roster(conn, JSON.stringify({ type: 'profile', seat: s.seat, profile })),
       ];
     }
     if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
@@ -928,6 +1022,9 @@ export class RoomCore {
     }
     if (msg.type === 'world') {
       return this.world(conn, s, msg, now);
+    }
+    if (msg.type === 'weather') {
+      return this.weather(conn, s, msg);
     }
     /* A game room's lobby: ready from anybody, the round's setting from
      * the host (edge/rooms/gamelobby.js), with the clock its times need. */
@@ -964,6 +1061,11 @@ export class RoomCore {
     if (msg.type === 'tag') {
       return [...first, ...this.tag.message(this, conn, s, msg, now)];
     }
+    /* The jam's clock runs on the room's tick: its runs start and end on
+     * time with nobody posting, the watchers held on the ground. */
+    if (msg.type === 'jam') {
+      return [...first, ...this.jam.message(this, conn, s, msg, now), ...this.wake()];
+    }
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
     if (msg.type === 'track' || msg.type === 'race') {
@@ -971,6 +1073,30 @@ export class RoomCore {
       return [...first, ...this.race.message(this, conn, s, msg, now), ...this.gameLobby.rearm(this, now), ...this.wake()];
     }
     return [];
+  }
+
+  /* A watcher is answered its clock and nothing else: a pose, a ready, a
+   * game's word or a chat line from it would act for a seat it has not. */
+  watcherSaid(conn, w, data, now) {
+    w.heardAt = now;
+    if (typeof data !== 'string') {
+      return [];
+    }
+    const n = bump(w.textRate, now, 1000);
+    if (n > TEXT_CLOSE_PER_S) {
+      return [{ close: conn, code: CLOSE.rate, reason: 'rate' }];
+    }
+    let msg;
+    try {
+      msg = JSON.parse(data);
+    } catch (e) {
+      return [];
+    }
+    if (!msg || msg.type !== 't' || !Number.isFinite(msg.c) || bump(w.clockRate, now, 1000) > CLOCK_PER_S) {
+      return [];
+    }
+    const rtt = conn.netRtt;
+    return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now), ...(Number.isFinite(rtt) ? { rtt } : {}) }) }];
   }
 
   /*
@@ -1004,7 +1130,30 @@ export class RoomCore {
       return [...out, { send: conn, data: JSON.stringify({ type: 'world', map: msg.map }) }];
     }
     this.meta.map = msg.map;
-    return [...out, { store: 'meta', value: this.meta }, ...this.others(null, JSON.stringify({ type: 'world', map: msg.map }))];
+    return [...out, { store: 'meta', value: this.meta }, ...this.roster(null, JSON.stringify({ type: 'world', map: msg.map }))];
+  }
+
+  /*
+   * The host sets the room's air: { type: 'weather', preset }
+   * (docs/WEATHER-CONTRACT.md). The room draws the seed, so every pilot
+   * flies the same air and no client picks it; kept with the meta, handed
+   * to joiners in the welcome, and told to everybody, the host too, as
+   * { type: 'weather', preset, seed }, which a build from before it passes
+   * over. Each pilot's next run flies it.
+   */
+  weather(conn, s, msg) {
+    if (!PRESET_IDS.includes(msg.preset)) {
+      return [];
+    }
+    if (s.seat !== this.host()) {
+      return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'host' }) }];
+    }
+    const seed = msg.preset === 'calm' ? 0 : crypto.getRandomValues(new Uint32Array(1))[0];
+    this.meta.weather = { preset: msg.preset, seed };
+    return [
+      { store: 'meta', value: this.meta },
+      ...this.roster(null, JSON.stringify({ type: 'weather', ...this.meta.weather })),
+    ];
   }
 
   /* A host's kick: gone for the room's life, which is what the token and
@@ -1020,7 +1169,7 @@ export class RoomCore {
         this.ops.leave(seat, this.roomMs(now));
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
-          ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
+          ...this.roster(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
           ...this.settle(now),
         ];
       }
@@ -1076,12 +1225,12 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.jam.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
     let owed = false;
-    for (const [conn, s] of this.seats) {
+    for (const [conn, s] of [...this.seats, ...this.watchers]) {
       /* Where this seat is flying; nowhere once it has stopped sending
        * (a menu, a crash cam), and then it is sent everyone at full rate. */
       const here = s.pose && now - s.poseNow <= HERE_MS ? at.get(s) : null;
@@ -1132,6 +1281,9 @@ export class RoomCore {
    * that treats it as any leave. */
   close(conn, now, code = 1000) {
     this.pending.delete(conn);
+    if (this.watchers.delete(conn)) {
+      return [];
+    }
     const s = this.seats.get(conn);
     if (!s) {
       return this.seats.size ? [] : [{ empty: true, ...(this.finished() ? { now: true } : {}) }];
@@ -1147,7 +1299,7 @@ export class RoomCore {
       }
     }
     this.recent.set(s.token, { seat: s.seat, joined: s.joined, until: now + RESEAT_MS });
-    const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host(), ...(code === 1000 ? {} : { drop: true }) }));
+    const out = this.roster(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host(), ...(code === 1000 ? {} : { drop: true }) }));
     out.push(...this.race.leave(this, s.seat));
     out.push(...this.gameLobby.leave(this, s.seat, now));
     if (!this.seats.size) {

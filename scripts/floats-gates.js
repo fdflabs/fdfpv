@@ -42,7 +42,7 @@ import { startServer } from '../tests/lib/server.js';
 import {
   TIMBERF_AIRFRAME, CUBF_AIRFRAME, FLOAT_REST, floatsWaterPrelude, floatState, floatTakeoffSticks, attitude, must,
   timberFloatRecPrelude, skyPrelude, wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
-  slowstickGroundPrelude, timberRecPrelude, RC_STEP_MS,
+  slowstickGroundPrelude, timberRecPrelude, RC_STEP_MS, rudderHold,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -145,8 +145,14 @@ for (const P of PLANES) {
     const p = [];
     const r = [];
     let worst = 0;
+    /* The heading held on the rudder, as a pilot keeps the bow to the
+     * swell: at idle the prop's torque and its wash's swirl turn a floating
+     * aircraft slowly off it (14.6 deg in 40 s before the slipstream, 22
+     * after, docs/FLIGHTMODEL.md), and an aircraft turned off the swell is
+     * no longer meeting it from where the gate says. */
+    let o = { s: sim.readState().state };
     for (let ms = 0; ms < 40000; ms += RC_STEP_MS) {
-      const o = step(sim, [0, 0, 0, 0]);
+      o = step(sim, [0, 0, rudderHold(o.s), 0]);
       const a = attitude(o.s);
       worst = Math.max(worst, Math.abs(a.pitch), Math.abs(fullBank(o.s)));
       if (ms >= 10000) {
@@ -195,7 +201,7 @@ for (const P of PLANES) {
         onStep = true;
         stepAt = { v: speed(o.s), dist: o.s[1] - x0 };
       }
-      o = step(sim, floatTakeoffSticks(o.s, { onStep, vRotate: want.vRotate }));
+      o = step(sim, floatTakeoffSticks(o.s, { onStep, vRotate: want.vRotate, rotateDeg: want.rotateDeg }));
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s)) * DEG);
       if (o.wet) {
         last = { dist: o.s[1] - x0, v: speed(o.s), t: ms / 1000, pitch: attitude(o.s).pitch * DEG };

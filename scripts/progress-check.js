@@ -576,6 +576,45 @@ async function unlockAll(page) {
     `after a reload: ${kept.xp} XP, the challenges, the switch and what was seen are kept: ${JSON.stringify(kept)}`);
 }
 
+/* Firsts (docs/ECONOMY.md): a profile that already holds a war win and an
+ * hour on the Cub, written as a build before progress v2 would have left
+ * it, is paid once at load; a second load pays nothing; the hangar lights
+ * the Cub's milestones. */
+async function firstsAtLoad(page) {
+  console.log('6. firsts: a v1 profile with a war win and an hour on the Cub');
+  await page.evaluate(`(() => {
+    const k = ${JSON.stringify(SETTINGS_KEY)};
+    const s = JSON.parse(localStorage.getItem(k));
+    s.progress = { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll: false };
+    s.campaign = { v: 1, missions: { 'itaipu-1': { stars: 2, won: true, credits: 300 } }, earned: 300, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} };
+    s.flightTime = { checkdevice1: { first: '2026-10-01', by: { cub1400: { free: 3700 } } } };
+    localStorage.setItem(k, JSON.stringify(s));
+    return true;
+  })()`);
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await shellUp(page);
+  const p = await progress(page);
+  const want = ['mission:itaipu-1:win', 'mission:itaipu-1:star1', 'mission:itaipu-1:star2', 'aircraft:cub1400:flight', 'aircraft:cub1400:ten', 'aircraft:cub1400:hour'];
+  say(p.v === 2 && want.every((k) => p.firsts[k]) && p.xp === 100 + 40 * 2 + 40 + 60 + 150, `migrated to v2 and paid each first once: ${p.xp} XP, ${Object.keys(p.firsts).join(', ')}`);
+  const toast = await page.evaluate("window.__ui.progress.log.filter((t) => /first/.test(t.cls)).map((t) => [t.kicker, t.title, t.sub])");
+  say(toast.length === 1 && /First Light: won/.test(toast[0][1]) && /5 more firsts/.test(toast[0][2]), `one toast says so: ${JSON.stringify(toast)}`);
+  const onDisk = await stored(page);
+  say(onDisk.v === 2 && onDisk.xp === p.xp, `stored as v2 with the XP (${onDisk.xp})`);
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await shellUp(page);
+  const again = await progress(page);
+  say(again.xp === p.xp, `a second load pays nothing (${again.xp} XP)`);
+  await openHangar(page, 'cub1400');
+  const pips = await page.evaluate("[...document.querySelectorAll('.hangar [data-key=\"milestones\"] .hangar-milestone')].map((e) => [e.dataset.milestone, e.classList.contains('on'), e.textContent])");
+  say(pips.length === 3 && pips.every((x) => x[1]), `the Cub's three milestones are lit in the hangar: ${JSON.stringify(pips)}`);
+  await shot(page, '6-hangar-milestones');
+  await closeHangar(page);
+  await openHangar(page, 'timber1500');
+  const none = await page.evaluate("[...document.querySelectorAll('.hangar [data-key=\"milestones\"] .hangar-milestone.on')].length");
+  say(none === 0, `the Timber, never flown, has none lit (${none})`);
+  await closeHangar(page);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -592,6 +631,9 @@ async function main() {
       await casual(page, earned);
       await unlocked(page);
       await unlockAll(page);
+    }
+    if (!only || only === 'firsts') {
+      await firstsAtLoad(page);
     }
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);

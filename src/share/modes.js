@@ -39,6 +39,7 @@
  */
 
 import { GOALS } from './roomtag.js';
+import { RUN_SECONDS } from './roomjam.js';
 
 /* A combat round's lengths in minutes, the host's choice between rounds;
  * the first is a room's until its host picks. */
@@ -132,6 +133,27 @@ export const MODES = [
     consent: false,
     publicOnlyWhenMadeFor: false,
     straightToLobby: true,
+    makeable: true,
+  },
+  {
+    id: 'jam',
+    category: 'flightclub',
+    card: {
+      way: 'jam', label: 'jam.card', blurb: 'jam.card_blurb', facts: ['jam.card_runs', 'jam.card_rounds', 'friends.card_code'],
+      art: 'assets/gate/flight.jpg', home: 'swiss2',
+    },
+    minPlayers: 1,
+    minElsewhere: 2,
+    allowSolo: true,
+    allowAI: false,
+    /* A newcomer watches the match out: its turn order was set at the
+     * start (docs/JAM-PLAN.md). */
+    allowDropIn: false,
+    openEnded: false,
+    setting: { key: 'seconds', choices: RUN_SECONDS },
+    consent: false,
+    publicOnlyWhenMadeFor: false,
+    straightToLobby: false,
     makeable: true,
   },
   {

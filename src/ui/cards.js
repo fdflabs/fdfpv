@@ -34,6 +34,7 @@
 import { airframeById } from '../../configs/airframes.js';
 import { raceGatesOf } from '../builder/course.js';
 import { formatScore } from '../game/score.js';
+import { medalTimes } from '../game/medals.js';
 import { planesFor } from '../game/verify.js';
 import {
   boardConfigured, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
@@ -188,7 +189,7 @@ function gateLinks(ui, links) {
 /* What a My tracks card says under its name: world, who built it (board and
  * server tracks, where the publisher and the builder can differ), gates,
  * when the server last saw it, where it stands online, and its record. */
-function trackFacts(course) {
+function trackFacts(course, medal = '') {
   const { kind, track: t } = course;
   const world = liveWorld(t.map);
   const facts = [
@@ -198,6 +199,7 @@ function trackFacts(course) {
     kind === 'cloud' && t.updatedUtc ? formatDay(t.updatedUtc) : '',
     t.online ? str(`cloud.state_${t.online}`) : '',
     t.recordMs != null ? str('ui.record', { formatTime: formatTime(t.recordMs) }) : '',
+    medal ? str('medal.yours', { medal: str(`medal.${medal}`) }) : '',
   ];
   return facts.filter(Boolean).join(SEP);
 }
@@ -403,7 +405,7 @@ export const cardMethods = {
           node.append(seats);
         }
         pointAt(this, node, i);
-        (it.lobby === 'room' ? rooms : actions).append(node);
+        (it.lobby === 'room' || it.lobby === 'watch' ? rooms : actions).append(node);
         this.titleRoomEls.push({ node, i });
       }
       if (rooms.firstChild) {
@@ -511,7 +513,8 @@ export const cardMethods = {
       return;
     }
     const tracks = this.items().filter((it) => it.course);
-    const shape = tracks.map((it) => `${courseCardKey(it)}:${it.label}:${it.course.track.online || ''}`).join('|');
+    const medal = (it) => this.medalOn(it.course.track.id);
+    const shape = tracks.map((it) => `${courseCardKey(it)}:${it.label}:${it.course.track.online || ''}:${medal(it)}`).join('|');
     if (!this.courseCards || this.courseCardKey !== shape) {
       host.textContent = '';
       this.courseCardKey = shape;
@@ -521,7 +524,7 @@ export const cardMethods = {
         const tag = el('div', 'map-card-tag', '');
         const body = el('div', 'map-card-body');
         body.append(el('div', 'map-card-name', it.label), tag);
-        card.append(el('div', 'map-reel'), body, el('div', 'map-card-meta', trackFacts(it.course)));
+        card.append(el('div', 'map-reel'), body, el('div', 'map-card-meta', trackFacts(it.course, medal(it))));
         pointAt(this, card, i);
         host.append(card);
         return {
@@ -754,6 +757,12 @@ export const cardMethods = {
    * handler calls back into here. Where it was opened from is still kept,
    * as act() does, so Back returns to the track list.
    */
+  /* The medal this pilot holds on a board track, or ''. */
+  medalOn(id) {
+    const medals = this.settings && this.settings.progress && this.settings.progress.medals;
+    return (medals && medals[`track:${id}`]) || '';
+  },
+
   showStandings(track) {
     if (!track || !track.id) {
       return;
@@ -813,6 +822,15 @@ export const cardMethods = {
       this.standingsLede.textContent = t
         ? [t.name, t.gates ? `${t.gates} gates` : '', byLine(t)].filter(Boolean).join(SEP)
         : '';
+      const times = t && medalTimes(t.medals);
+      const mine = t ? this.medalOn(t.id) : '';
+      const line = [
+        times ? str('medal.times', { gold: formatTime(times.gold), silver: formatTime(times.silver), bronze: formatTime(times.bronze) }) : '',
+        mine ? str('medal.yours', { medal: str(`medal.${mine}`) }) : '',
+      ].filter(Boolean).join(SEP);
+      if (line) {
+        this.standingsLede.append(el('div', 'standings-medals', line));
+      }
     }
     if (!t) {
       return;

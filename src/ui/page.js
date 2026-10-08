@@ -718,6 +718,33 @@ function resultsScreen(shell) {
   return ['results', screen];
 }
 
+/* The walkable hangar (src/ui/hangarwalk.js): nothing over the room but
+ * the prompt of the station in front of the pilot; the keys are in the
+ * command bar (nav.js legendFor). A drag
+ * on it turns the camera round the pilot. */
+function walkScreen(shell) {
+  const screen = el('div', 'screen screen-walk');
+  const prompt = keep(shell, 'walkPrompt', 'div', 'walk-prompt', '');
+  prompt.hidden = true;
+  prompt.append(el('kbd', null, 'E'), keep(shell, 'walkPromptLabel', 'span', 'walk-prompt-label', ''));
+  screen.append(prompt);
+  let from = null;
+  screen.addEventListener('pointerdown', (e) => {
+    from = e.clientX;
+    screen.setPointerCapture(e.pointerId);
+  });
+  screen.addEventListener('pointermove', (e) => {
+    if (from != null) {
+      shell.walkDrag(e.clientX - from);
+      from = e.clientX;
+    }
+  });
+  const up = () => { from = null; };
+  screen.addEventListener('pointerup', up);
+  screen.addEventListener('pointercancel', up);
+  return ['walk', screen];
+}
+
 /* Every screen, in the order this.screens holds them and the document
  * shows them. */
 const SCREENS = [
@@ -728,6 +755,7 @@ const SCREENS = [
   padpickScreen,
   menuPage('paused'),
   resultsScreen,
+  walkScreen,
 ];
 
 /* Makes the screens into shell.screens; mountPage puts them in the page. */

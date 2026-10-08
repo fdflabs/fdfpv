@@ -255,7 +255,7 @@ export class RoomSafety {
     this.reports = this.reports.filter((r) => r.target !== s.token);
     return [
       { close: conn, code: CLOSE_REMOVED, reason: 'removed' },
-      ...this.core.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.core.host() })),
+      ...this.core.roster(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.core.host() })),
     ];
   }
 

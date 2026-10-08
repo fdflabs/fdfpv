@@ -123,11 +123,11 @@ export const ESTIMATES = {
   cub1400: {
     stock: {
       '3s2200': {
-        topSpeed: 17.94,
+        topSpeed: 17.95,
         minutes: 22.2
       },
       '3s3200': {
-        topSpeed: 17.99,
+        topSpeed: 18,
         minutes: 30
       }
     }
@@ -147,20 +147,20 @@ export const ESTIMATES = {
   radian2000: {
     stock: {
       '3s1300': {
-        topSpeed: 21.05,
-        minutes: 68.8
+        topSpeed: 21.08,
+        minutes: 68.1
       },
       '3s1500': {
-        topSpeed: 21.1,
-        minutes: 77.9
+        topSpeed: 21.14,
+        minutes: 77.1
       },
       '3s1800': {
-        topSpeed: 21.14,
-        minutes: 87.6
+        topSpeed: 21.17,
+        minutes: 86.7
       },
       '3s2200': {
-        topSpeed: 21.19,
-        minutes: 105
+        topSpeed: 21.22,
+        minutes: 104.1
       }
     }
   },
@@ -181,13 +181,13 @@ export const ESTIMATES = {
   slowstick1180: {
     stock: {
       '2s1300': {
-        topSpeed: 7.93,
+        topSpeed: 7.94,
         minutes: 38.5
       }
     },
     '2212-1047': {
       '2s1300': {
-        topSpeed: 8.01,
+        topSpeed: 8.02,
         minutes: 37.4
       },
       '2s2200': {
@@ -201,14 +201,14 @@ export const ESTIMATES = {
         minutes: 58.7
       },
       '2s2200': {
-        topSpeed: 10.19,
+        topSpeed: 10.2,
         minutes: 77.3
       }
     },
     '2215-1060-3s': {
       '3s1300': {
-        topSpeed: 12.88,
-        minutes: 75.8
+        topSpeed: 12.89,
+        minutes: 75
       },
       '3s2200': {
         topSpeed: 12.82,
@@ -219,29 +219,29 @@ export const ESTIMATES = {
   timber1500: {
     stock: {
       '4s2200': {
-        topSpeed: 23.51,
+        topSpeed: 23.53,
         minutes: 25
       },
       '4s3200': {
-        topSpeed: 23.69,
+        topSpeed: 23.71,
         minutes: 34.6
       },
       '4s4000': {
-        topSpeed: 23.76,
+        topSpeed: 23.78,
         minutes: 41.5
       },
       '4s5000': {
-        topSpeed: 23.8,
+        topSpeed: 23.81,
         minutes: 47.3
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 17.59,
+        topSpeed: 17.6,
         minutes: 20.6
       },
       '3s3200': {
-        topSpeed: 17.64,
+        topSpeed: 17.65,
         minutes: 28.1
       }
     }
@@ -249,29 +249,29 @@ export const ESTIMATES = {
   timber1500f: {
     stock: {
       '4s2200': {
-        topSpeed: 21.86,
+        topSpeed: 21.87,
         minutes: 17.9
       },
       '4s3200': {
-        topSpeed: 22.05,
-        minutes: 25.2
+        topSpeed: 22.07,
+        minutes: 25.1
       },
       '4s4000': {
-        topSpeed: 22.12,
+        topSpeed: 22.14,
         minutes: 30.3
       },
       '4s5000': {
-        topSpeed: 22.16,
+        topSpeed: 22.18,
         minutes: 34.9
       }
     },
     '3s': {
       '3s2200': {
-        topSpeed: 16.36,
+        topSpeed: 16.37,
         minutes: 14.5
       },
       '3s3200': {
-        topSpeed: 16.42,
+        topSpeed: 16.43,
         minutes: 20.1
       }
     }
@@ -279,27 +279,27 @@ export const ESTIMATES = {
   bombshell1118: {
     stock: {
       '8.4cc': {
-        topSpeed: 9.56,
+        topSpeed: 9.61,
         minutes: 5.4
       },
       '5.1cc': {
-        topSpeed: 9.57,
+        topSpeed: 9.62,
         minutes: 3.3
       }
     },
     'cox-rc': {
       '8.4cc': {
-        topSpeed: 13.72,
+        topSpeed: 13.78,
         minutes: 6.3
       },
       '5.1cc': {
-        topSpeed: 13.73,
+        topSpeed: 13.79,
         minutes: 3.8
       }
     },
     electric: {
       '3s850': {
-        topSpeed: 16.52,
+        topSpeed: 16.55,
         minutes: 29.7
       }
     }
@@ -307,38 +307,38 @@ export const ESTIMATES = {
   kadet1981: {
     stock: {
       '355cc': {
-        topSpeed: 18.11,
+        topSpeed: 18.12,
         minutes: 32.2
       },
       '237cc': {
-        topSpeed: 18.13,
+        topSpeed: 18.14,
         minutes: 21.9
       }
     },
     fsa56: {
       '355cc': {
-        topSpeed: 18.71,
+        topSpeed: 18.73,
         minutes: 33.3
       },
       '237cc': {
-        topSpeed: 18.73,
-        minutes: 22.7
+        topSpeed: 18.75,
+        minutes: 22.6
       }
     },
     fs64: {
       '355cc': {
-        topSpeed: 19.24,
+        topSpeed: 19.26,
         minutes: 30
       },
       '237cc': {
-        topSpeed: 19.26,
+        topSpeed: 19.27,
         minutes: 20.4
       }
     },
     electric: {
       '5s5000': {
-        topSpeed: 21.85,
-        minutes: 66.7
+        topSpeed: 21.87,
+        minutes: 66.5
       }
     }
   },
@@ -365,8 +365,30 @@ export const ESTIMATES = {
     },
     fs91: {
       '355cc': {
-        topSpeed: 17.19,
+        topSpeed: 17.18,
         minutes: 13.9
+      }
+    }
+  },
+  extra3d1308: {
+    stock: {
+      '4s2200': {
+        topSpeed: 23.69,
+        minutes: 14.9
+      },
+      '4s3200': {
+        topSpeed: 23.91,
+        minutes: 20.7
+      }
+    },
+    '3s': {
+      '3s2200': {
+        topSpeed: 17.91,
+        minutes: 12.4
+      },
+      '3s3200': {
+        topSpeed: 17.98,
+        minutes: 16.9
       }
     }
   },

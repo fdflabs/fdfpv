@@ -41,10 +41,16 @@ import {
 } from '../src/share/progressmerge.js';
 import { BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS } from './limits.js';
 import { buildsBlob, buildsFromBlob, normaliseFit } from '../src/ui/builds.js';
-import { newDecal, MAX_DECALS } from '../configs/paint.js';
+import { encodeLivery, newDecal, MAX_DECALS } from '../configs/paint.js';
 import {
   FLIGHT_DEVICES_MAX, addFlight, flightTotals, mergeFlightTime,
 } from '../src/share/flighttime.js';
+import { ITEMS, grantsFrom, itemById } from '../src/game/economy.js';
+import { CHALLENGES } from '../src/game/progress.js';
+import { grantEvent } from './wallet.js';
+import {
+  GALLERY_PAGE, GALLERY_PER_ACCOUNT, GALLERY_REPORT_HIDE, GALLERY_WRITE_LIMIT,
+} from './limits.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
 const OLD_CLIENT_ID = 'selftest-client-old.apps.googleusercontent.com';
@@ -187,6 +193,24 @@ console.log('the progress merge');
   check('the higher XP wins', m.data.progress.xp === 900);
   check('courses, challenges and seen are the union', m.data.progress.courses.a && m.data.progress.courses.b && m.data.progress.challenges.c1 && m.data.progress.seen.s);
   check('Unlock all on either side is on', m.data.progress.unlockAll === true);
+  /* Progress v2 (src/game/progress.js PROGRESS_VERSION) meeting a v1
+   * computer: the firsts already paid survive, and the merge stays v2, so
+   * no load migrates it again and pays them twice. */
+  const v2 = mergeBlobs(
+    { v: 1, data: { progress: { v: 1, xp: 50, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll: false } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 40, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: { 'mission:itaipu-1:win': true }, unlockAll: false } }, stamps: {} },
+  );
+  const lm = mergeBlobs(
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 2000, first_turns: 5000 } } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 1000, race_lap: 3000 } } }, stamps: {} },
+  );
+  const fm = mergeBlobs(
+    { v: 1, data: { progress: { v: 2, xp: 1, lessonsFlown: { first_unaided: true } } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 1, lessonsFlown: { race_clean: true } } }, stamps: {} },
+  );
+  check('lessons flown merge as the union', JSON.stringify(Object.keys(fm.data.progress.lessonsFlown).sort()) === '["first_unaided","race_clean"]');
+  check('lessons passed merge as the union at the earliest pass time', JSON.stringify(lm.data.progress.lessons) === '{"first_takeoff":1000,"first_turns":5000,"race_lap":3000}', JSON.stringify(lm.data.progress.lessons));
+  check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
     JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2
     && m.data.liverySaves.zagi1219.length === 1);
@@ -549,6 +573,95 @@ check('and one with a build of the wrong shape', r.status === 422);
 r = await call('GET', '/api/account/progress', undefined, alice);
 check('neither changed what the account holds', Object.keys(r.body.progress.data.builds).join() === 'b1');
 
+console.log('the wallet (wallet.js, docs/ECONOMY.md)');
+{
+  ip = '203.0.113.77';
+  /* A record as an account held it before the wallet existed: progress v1,
+   * a war win at three stars, an hour on the Cub, two challenges; no
+   * grants rows. Written straight into the table, as the VM holds it. */
+  const oldBlob = {
+    v: 1,
+    data: {
+      progress: { v: 1, xp: 900, courses: {}, challenges: { deadstick: true, hoops_10: true, made_up: true }, seen: {}, casual: {}, unlockAll: false },
+      campaign: { v: 1, missions: { 'itaipu-1': { stars: 3, won: true, credits: 400 } }, earned: 400, owned: { wide: 500 }, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
+      flightTime: addFlight({}, 'olddevice001', 'cub1400', 'free', 3700, '2026-09-01'),
+    },
+    stamps: {},
+  };
+  const bobRow = await env.DB.prepare("SELECT id FROM accounts WHERE sub = 'bob'").first();
+  await env.DB.prepare('UPDATE accounts SET progress = ? WHERE id = ?').bind(JSON.stringify(oldBlob), bobRow.id).run();
+  const paid = grantsFrom(oldBlob).reduce((n, g) => n + g.amount, 0);
+  check('the old record pays the win, three stars, the Cub\'s three milestones and two real challenges', paid === 60 + 3 * 30 + 10 + 20 + 60 + 2 * 50, `${paid}`);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('reading the wallet pays what the held record shows', r.status === 200 && r.body.wallet.balance === paid && r.body.wallet.earned === paid, JSON.stringify(r.body));
+  check('and the campaign marking it earned is owned, at no price', r.body.wallet.owned['decal:ribbon'] === 'earned' && !r.body.wallet.owned['finish:gold']);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('a second read pays nothing more', r.body.wallet.balance === paid);
+  r = await call('PUT', '/api/account/progress', { progress: oldBlob }, bob);
+  check('nor does a sync of the same record', r.status === 200 && r.body.wallet.balance === paid, JSON.stringify(r.body.wallet));
+  check('the war\'s credits are untouched by tokens', r.body.progress.data.campaign.earned === 400 && r.body.progress.data.campaign.owned.wide === 500);
+  const more = JSON.parse(JSON.stringify(oldBlob));
+  more.data.progress.challenges = { ...more.data.progress.challenges, ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])) };
+  r = await call('PUT', '/api/account/progress', { progress: more }, bob);
+  check('a sync with new challenges pays only those, and the gold finish is earned with all seven', r.body.wallet.balance === paid + (CHALLENGES.length - 2) * 50
+    && r.body.wallet.owned['finish:gold'] === 'earned', JSON.stringify(r.body.wallet));
+  const before = r.body.wallet.balance;
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:gold' }, bob);
+  check('an earned item is not for sale', r.status === 409 && r.body.why === 'earned');
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:nope' }, bob);
+  check('an unknown item is 404', r.status === 404);
+  const pearl = itemById('finish:pearl').price;
+  const [one, two] = await Promise.all([
+    call('POST', '/api/account/wallet/buy', { item: 'finish:pearl' }, bob),
+    call('POST', '/api/account/wallet/buy', { item: 'finish:pearl' }, bob),
+  ]);
+  check('two computers buying the same item at once buy it once', [one.status, two.status].sort().join() === '200,409', `${one.status} ${two.status}`);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('and pay for it once', r.body.wallet.balance === before - pearl && r.body.wallet.owned['finish:pearl'] === 'bought', JSON.stringify(r.body.wallet));
+  /* Spend down to under the next price, then try it. */
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:candy' }, bob);
+  const afterCandy = r.status === 200 ? r.body.wallet.balance : before - pearl;
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:satin' }, bob);
+  const left = r.status === 200 ? r.body.wallet.balance : afterCandy;
+  check('the balance never goes below nought', left >= 0, `${left}`);
+  const short = ITEMS.find((it) => Number.isInteger(it.price) && it.price > left && !(r.body.wallet || {}).owned?.[it.id]);
+  if (short) {
+    r = await call('POST', '/api/account/wallet/buy', { item: short.id }, bob);
+    check('an item past the balance is 402, and nothing is spent', r.status === 402 && r.body.why === 'short');
+  }
+  check('a Flight Club gold pays every tier once', await grantEvent(env, bobRow.id, '2026-w41-alps-sprint', 'gold') && await grantEvent(env, bobRow.id, '2026-w41-alps-sprint', 'silver'));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('and the gold after the silver adds nothing more', r.body.wallet.balance === left + 20 + 40 + 60 + 100, JSON.stringify(r.body.wallet));
+  check('a bad event id or tier pays nothing', !(await grantEvent(env, bobRow.id, 'Bad Id!', 'gold')) && !(await grantEvent(env, bobRow.id, '2026-w41-x', 'platinum')));
+  /* Flight Club's weekly events (eventpay.js): a stand in for the board's
+   * tiers route, then a dead board. */
+  const BOB_KEY = 'Q'.repeat(87) + '=';
+  await env.DB.prepare('UPDATE accounts SET public_key = ? WHERE id = ?').bind(BOB_KEY, bobRow.id).run();
+  const asked = [];
+  const tierBoard = http.createServer((req, res) => {
+    asked.push(new URL(req.url, 'http://x').searchParams.get('key'));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ tiers: [{ id: '2026-w42-trk-1a2b3c4d', tier: 'silver' }, { id: 'Not An Id', tier: 'gold' }] }));
+  });
+  await new Promise((resolve) => tierBoard.listen(0, '127.0.0.1', resolve));
+  env.BOARD_ORIGIN = `http://127.0.0.1:${tierBoard.address().port}/`;
+  const beforeEvents = (await call('GET', '/api/account/wallet', undefined, bob)).body.wallet.balance;
+  check('the board is asked with the account\'s pilot key', asked.length === 1 && asked[0] === BOB_KEY, JSON.stringify(asked));
+  check('reading the wallet paid the silver it reached (finish, bronze, silver), and not the bad id', beforeEvents === left + 220 + 20 + 40 + 60, String(beforeEvents));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('reading again pays it no second time', r.body.wallet.balance === beforeEvents);
+  await new Promise((resolve) => tierBoard.close(resolve));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('a board that does not answer pays nothing and the wallet still answers', r.status === 200 && r.body.wallet.balance === beforeEvents);
+  delete env.BOARD_ORIGIN;
+  r = await call('GET', '/api/account/wallet');
+  check('the wallet needs a session', r.status === 401);
+  /* Alice synced flight time above: her wallet holds a grant, for the delete below. */
+  r = await call('GET', '/api/account/wallet', undefined, alice);
+  check('another account has its own wallet', r.status === 200 && r.body.wallet.balance > 0 && !r.body.wallet.owned['finish:pearl']);
+  ip = '203.0.113.9';
+}
+
 console.log('signing out and deleting');
 r = await call('DELETE', '/api/account/session', undefined, aliceLaptop);
 check('signing out ends that session', r.status === 200);
@@ -563,10 +676,135 @@ check('its sessions go with it', r.status === 401);
 const gone = await env.DB.prepare("SELECT COUNT(*) AS n FROM accounts WHERE sub = 'alice'").first();
 const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions').first();
 check('nothing of it is left in the database', gone.n === 0 && left.n === 1, `${gone.n} ${left.n}`);
+const aliceId = (await env.DB.prepare('SELECT DISTINCT account_id AS id FROM grants ORDER BY account_id').all()).results.map((x) => x.id);
+check('nor of its wallet', aliceId.length === 1, JSON.stringify(aliceId));
 r = await call('PUT', '/api/account/callsign', { callsign: 'Maverick' }, bob);
 check('and its callsign is free', r.status === 200);
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice' }) });
 check('signing in again starts a new account from nothing', r.status === 200 && r.body.callsign === null && r.body.identity === null);
+
+console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
+{
+  env = freshEnv();
+  let n = 0;
+  const pilot = async (callsign) => {
+    ip = `192.0.2.${(n += 1)}`;
+    const got = await call('POST', '/api/account/google', { credential: await idToken({ sub: `gallery-${callsign || n}` }) });
+    if (callsign) {
+      await call('PUT', '/api/account/callsign', { callsign }, got.body.session);
+    }
+    return got.body.session;
+  };
+  const owner = await pilot('Painter');
+  const fan = await pilot('Fan');
+  const shy = await pilot('');
+  const text = (t) => ({ ...newDecal('text', [0, 0.1, 0], [0, 1, 0]), t });
+  const red = encodeLivery('timber1500', 'Red Baron', { scheme: 'timber_x' });
+  let g = await call('POST', '/api/account/gallery', { code: red });
+  check('publishing needs a session', g.status === 401);
+  g = await call('POST', '/api/account/gallery', { code: red }, shy);
+  check('and a callsign, which the list shows', g.status === 409 && g.body.why === 'callsign', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: red }, owner);
+  check('a paint shop code publishes, named from the code', g.status === 200 && g.body.entry.name === 'Red Baron' && g.body.entry.family === 'timber1500' && g.body.entry.callsign === 'Painter', JSON.stringify(g.body));
+  const redId = g.body.entry.id;
+  g = await call('POST', '/api/account/gallery', { code: red }, owner);
+  check('publishing the same code again is the same entry', g.status === 200 && g.body.entry.id === redId);
+  g = await call('POST', '/api/account/gallery', { code: 'FPV1-garbage' }, owner);
+  check('a code the paint shop cannot read is refused with its reason', g.status === 422 && g.body.why === 'code' && g.body.code === 'not_code', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Nazi plane', {}) }, owner);
+  check('a dirty name is refused', g.status === 422 && g.body.why === 'words', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('SHIT')] }) }, owner);
+  check('and so is dirty lettering on a text decal, by the paint shop\'s own check', g.status === 422 && g.body.code === 'rude', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('ACE')] }) }, owner);
+  check('clean lettering publishes', g.status === 200, JSON.stringify(g.body));
+  const aceId = g.body.entry.id;
+  await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'Fan one', {}) }, fan);
+
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check('the list is public and per aircraft, newest first', g.status === 200 && g.body.items.map((x) => x.id).join() === [aceId, redId].join() && g.body.next === null, JSON.stringify(g.body));
+  check('an entry carries its code to wear', g.body.items[1].code === red);
+  g = await call('GET', '/api/gallery');
+  check('a list with no aircraft is refused', g.status === 400);
+
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('a like counts', g.status === 200 && g.body.likes === 1 && g.body.liked === true, JSON.stringify(g.body));
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('and a second like from the same account does not', g.body.likes === 1);
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, owner);
+  check('nobody likes their own', g.status === 409 && g.body.why === 'own');
+  g = await call('GET', '/api/gallery?family=timber1500&sort=liked');
+  check('most liked first', g.body.items[0].id === redId && g.body.items[0].likes === 1, JSON.stringify(g.body.items));
+  g = await call('GET', '/api/account/gallery/liked', undefined, fan);
+  check('an account reads what it liked', g.status === 200 && g.body.ids.join() === redId);
+  g = await call('DELETE', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('an unlike takes it back', g.status === 200 && g.body.likes === 0);
+  g = await call('PUT', '/api/account/gallery/nope/like', undefined, fan);
+  check('a malformed id is refused', g.status === 400);
+  g = await call('PUT', '/api/account/gallery/AAAAAAAAAAAA/like', undefined, fan);
+  check('an unknown one is not found', g.status === 404);
+
+  g = await call('DELETE', `/api/account/gallery/${aceId}`, undefined, fan);
+  check('only the publisher removes an entry', g.status === 404);
+  const reporters = [fan, await pilot('R2'), await pilot('R3')];
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, fan);
+  g = await call('POST', `/api/account/gallery/${aceId}/report`, undefined, fan);
+  check('a report counts once per account', g.status === 200 && (await call('GET', '/api/admin/gallery', undefined, 'x')).body.items[0].reports === 1);
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[1]);
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check(`${GALLERY_REPORT_HIDE - 1} reports do not hide it`, g.body.items.some((x) => x.id === aceId));
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[2]);
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check(`${GALLERY_REPORT_HIDE} from different accounts do`, !g.body.items.some((x) => x.id === aceId));
+  g = await call('GET', '/api/admin/gallery');
+  check('the admin list is the admin\'s', g.status === 401);
+  g = await call('GET', '/api/admin/gallery', undefined, 'x');
+  check('it shows the hidden entry and its reports', g.body.items[0].id === aceId && g.body.items[0].hidden === true && g.body.items[0].reports === 3, JSON.stringify(g.body));
+  g = await call('POST', `/api/admin/gallery/${aceId}`, { hidden: false }, 'x');
+  check('the admin shows it again', g.status === 200 && (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, await pilot('R4'));
+  check('with its reports cleared, one more report does not hide it again', (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  g = await call('POST', `/api/admin/gallery/${redId}`, { hidden: true }, 'x');
+  check('the admin hides an entry by hand', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === redId));
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('a hidden entry cannot be liked', g.status === 404);
+
+  g = await call('DELETE', `/api/account/gallery/${aceId}`, undefined, owner);
+  check('the publisher removes their own', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  ip = '192.0.2.150';
+  for (let i = 0; i < GALLERY_PER_ACCOUNT - 1; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Cub ${i}`, {}) }, owner);
+  }
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'One too many', {}) }, owner);
+  check(`${GALLERY_PER_ACCOUNT} entries an account, then refused`, g.status === 409 && g.body.why === 'full', JSON.stringify(g.body));
+  ip = '192.0.2.151';
+  for (let i = 0; i < GALLERY_PAGE - GALLERY_PER_ACCOUNT + 1; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Fan cub ${i}`, {}) }, fan);
+  }
+  const first = await call('GET', '/api/gallery?family=cub1400');
+  const second = await call('GET', `/api/gallery?family=cub1400&page=${first.body.next}`);
+  const all = [...first.body.items, ...second.body.items].map((x) => x.id);
+  check(`a page is ${GALLERY_PAGE}, the rest on the next, none twice`, first.body.items.length === GALLERY_PAGE && first.body.next === 1 && second.body.items.length === 1 && second.body.next === null && new Set(all).size === all.length, `${first.body.items.length} ${first.body.next} ${second.body.items.length}`);
+
+  await call('PUT', `/api/account/gallery/${(await call('GET', '/api/gallery?family=cub1400')).body.items.find((x) => x.callsign === 'Fan').id}/like`, undefined, owner);
+  g = await call('DELETE', '/api/account', undefined, owner);
+  const rows = await env.DB.prepare(
+    "SELECT (SELECT COUNT(*) FROM gallery WHERE name LIKE 'Cub %' OR name = 'Red Baron') AS mine, (SELECT likes FROM gallery WHERE name = 'Fan one') AS fanLikes, (SELECT COUNT(*) FROM gallery_reports) AS reports",
+  ).first();
+  check('deleting the account deletes its entries and takes back its likes', g.status === 200 && rows.mine === 0 && rows.fanLikes === 0 && rows.reports === 0, JSON.stringify(rows));
+
+  ip = '192.0.2.200';
+  const busy = await pilot('Busy');
+  const statuses = [];
+  for (let i = 0; i <= GALLERY_WRITE_LIMIT; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    statuses.push((await call('PUT', '/api/account/gallery/AAAAAAAAAAAA/like', undefined, busy)).status);
+  }
+  check(`${GALLERY_WRITE_LIMIT} gallery writes from one address, then 429`, statuses.slice(0, GALLERY_WRITE_LIMIT).every((c) => c === 404) && statuses[GALLERY_WRITE_LIMIT] === 429, statuses.slice(-3).join());
+  g = await call('GET', '/api/gallery?family=cub1400');
+  check('reading is not counted', g.status === 200);
+}
 
 console.log('rate limits');
 env = freshEnv();
