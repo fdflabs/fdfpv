@@ -82,7 +82,7 @@ import {
 import {
   CORS, json, nowUtc, readBody, refuse, spend,
 } from './http.js';
-import { accountRoute, isAdminToken, waitlistRoute } from './accounts.js';
+import { accountRoute, hangarRoute, isAdminToken, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
 import { adminAccounts, adminOverview, adminServer, adminServerSample } from './admin.js';
 
@@ -376,6 +376,9 @@ async function route(request, env) {
   }
   if (path === '/api/tracks' && method === 'GET') {
     return listTracks(env, url);
+  }
+  if (path.startsWith('/api/hangar/') && method === 'GET') {
+    return hangarRoute(env, request, path);
   }
   if (path === '/api/account' || path.startsWith('/api/account/')) {
     return accountRoute(env, request, path);

@@ -428,6 +428,19 @@ export async function fetchWallet() {
   return got.wallet;
 }
 
+/* Another pilot's hangar, read only (docs/HANGAR-VISITS.md): the visit,
+ * or null when it is closed or nobody holds the callsign. No session. */
+export async function fetchHangar(callsign) {
+  try {
+    return (await api('GET', `/api/hangar/${encodeURIComponent(callsign)}`, undefined, null)).visit;
+  } catch (err) {
+    if (err.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 export async function buyItem(item) {
   const got = await api('POST', '/api/account/wallet/buy', { item });
   writeJson(WALLET_KEY, got.wallet);

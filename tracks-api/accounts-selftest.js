@@ -565,6 +565,28 @@ check('and one with a build of the wrong shape', r.status === 422);
 r = await call('GET', '/api/account/progress', undefined, alice);
 check('neither changed what the account holds', Object.keys(r.body.progress.data.builds).join() === 'b1');
 
+console.log('hangar visits (docs/HANGAR-VISITS.md)');
+/* alice is Maverick by now (the callsigns above). */
+r = await call('GET', '/api/hangar/Maverick');
+check('a hangar never opened (no hangarVisit in the blob, every blob before it) is closed: 404', r.status === 404, String(r.status));
+r = await call('GET', '/api/hangar/Nobody%20Here');
+check('a callsign nobody holds answers the same 404', r.status === 404, String(r.status));
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { hangarVisit: { on: true, airframe: 'cub1400' }, livery: { cub1400: { colours: { wing: '#ff0000' } } } }, stamps: { hangarVisit: Date.now(), livery: Date.now() } },
+}, alice);
+check('the switch syncs as a section', r.status === 200 && r.body.progress.data.hangarVisit.on === true, JSON.stringify(r.body && r.body.progress && r.body.progress.data.hangarVisit));
+r = await call('GET', '/api/hangar/maverick');
+const v = r.body && r.body.visit;
+check('open: anyone reads it, by callsign in any case, without a session', r.status === 200 && v && v.callsign === 'Maverick' && v.airframe === 'cub1400', JSON.stringify(r.body));
+check('with the seated aircraft\'s own paint', v && v.look && v.look.colours && v.look.colours.wing === '#ff0000', JSON.stringify(v && v.look));
+check('and the firsts and tier the progress shows', v && Array.isArray(v.firsts) && ['garage', 'workshop', 'airfield'].includes(v.tier), JSON.stringify(v));
+check('and nothing off the allow list (no courses, flight time, builds, wallet)', v && Object.keys(v).sort().join(',') === 'airframe,callsign,firsts,look,parts,tier', Object.keys(v || {}).join(','));
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { hangarVisit: { on: false, airframe: 'cub1400' } }, stamps: { hangarVisit: Date.now() + 1000 } },
+}, alice);
+r = await call('GET', '/api/hangar/Maverick');
+check('closed again: 404', r.status === 404, String(r.status));
+
 console.log('the wallet (wallet.js, docs/ECONOMY.md)');
 {
   ip = '203.0.113.77';

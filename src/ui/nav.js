@@ -712,9 +712,19 @@ export const navMethods = {
         { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
       ];
     }
+    if (this.screen === 'walk' && this.walk && this.walk.visit) {
+      return [
+        { keys: [], text: str('walk.visiting', { callsign: this.walk.visit.callsign }) },
+        { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
+        { keys: [pad ? 'B' : 'Esc'], text: str('walk.home'), action: 'hangar-walk' },
+      ];
+    }
     if (this.screen === 'walk') {
+      const open = this.settings.hangarVisit && this.settings.hangarVisit.on;
       return [
         { keys: ['P'], text: str('walk.photo'), action: 'walk-photo' },
+        { keys: [], text: str('walk.visit'), action: 'walk-visit' },
+        { keys: [], text: str(open ? 'walk.visits_on' : 'walk.visits_off'), action: 'walk-visits' },
         { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
         { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },

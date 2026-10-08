@@ -36,6 +36,7 @@ import { airframeById } from '../../configs/airframes.js';
 import { flightTotals } from '../share/flighttime.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { listClips } from '../replay/store.js';
+import { fetchHangar } from '../share/account.js';
 import { hubWays } from './ways.js';
 
 /*
@@ -87,6 +88,10 @@ const ORBIT_RETURN = 1.5;
 function usable(ui) {
   const w = ui.walk;
   const s = stationNear(w.stations, w.pose);
+  /* Visiting, nothing is used but the door, which goes home. */
+  if (w.visit) {
+    return s && s.id === 'door' ? { id: 'door', action: 'hangar-walk', label: str('walk.home') } : null;
+  }
   const def = s && STATIONS[s.id];
   const action = def && def.action(ui);
   const label = s && s.id === 'door' && ui.walk.tier === 'field' ? 'walk.door_war' : def && def.label;
@@ -111,14 +116,26 @@ export const walkMethods = {
   /* Into a room, at the door: the main hangar, as big as the pilot's
    * level has opened (docs/HANGAR-ROOM.md), or the war's field hangar.
    * Back returns to the hub it came from. */
-  openWalk(which = 'main') {
+  openWalk(which = 'main', visit = null) {
     const p = this.progress && this.progress.state;
-    const tier = which === 'field' ? 'field' : tierFor(levelOf(p ? p.xp : 0), Boolean(p && p.unlockAll));
+    let tier = which === 'field' ? 'field' : tierFor(levelOf(p ? p.xp : 0), Boolean(p && p.unlockAll));
+    if (visit) {
+      tier = ROOMS[visit.tier] && visit.tier !== 'field' ? visit.tier : 'garage';
+    }
+    /* An open hangar shows the aircraft seated when its pilot last walked
+     * in (src/share/hangarvisit.js): kept up to date here. */
+    const open = this.settings.hangarVisit;
+    if (!visit && which === 'main' && open && open.on && open.airframe !== this.settings.airframe) {
+      this.settings.hangarVisit = { on: true, airframe: this.settings.airframe };
+      this.writeSettings();
+    }
     const room = ROOMS[tier];
     const layout = LAYOUTS[tier];
     this.walk = {
       tier,
       hub: tier === 'field' ? 'ops' : 'hangar',
+      /* Another pilot's hangar, read only: the server's visit, or null. */
+      visit,
       layout,
       room,
       occ: occupancy(room, layout),
@@ -208,8 +225,9 @@ export const walkMethods = {
    * and the walk stop, and the command bar says the photo keys. */
   togglePhoto() {
     const w = this.walk;
-    /* A turntable recording is seen through to its end. */
-    if (!w || (w.photo && w.photo.turntable)) {
+    /* A turntable recording is seen through to its end; a visit takes no
+     * pictures of another pilot's hangar. */
+    if (!w || w.visit || (w.photo && w.photo.turntable)) {
       return;
     }
     w.photo = w.photo ? null : { yaw: w.pose.heading + Math.PI, zoom: 1, shoot: false };
@@ -227,6 +245,43 @@ export const walkMethods = {
       p.turntable = { want: true };
       this.onUiSound?.('select');
     }
+  },
+
+  /* Let other pilots walk round this hangar, or stop; the switch is a
+   * synced section the server reads (docs/HANGAR-VISITS.md). */
+  toggleVisits() {
+    const on = !(this.settings.hangarVisit && this.settings.hangarVisit.on);
+    this.settings.hangarVisit = { on, airframe: this.settings.airframe };
+    this.writeSettings();
+    this.onSyncNow?.();
+    this.walkFlash(str(on ? 'walk.visits_opened' : 'walk.visits_closed'));
+    this.syncFrame();
+  },
+
+  /* Another pilot's hangar: their callsign asked for, the server asked,
+   * and the room opened read only, or why not. */
+  async visitHangar() {
+    const got = await this.askForm({
+      title: str('walk.visit_title'),
+      detail: str('walk.visit_detail'),
+      confirmLabel: str('walk.visit_go'),
+      fields: [{ key: 'callsign', label: str('walk.visit_callsign'), maxLength: 24 }],
+    });
+    if (!got || !got.callsign) {
+      return;
+    }
+    let visit = null;
+    try {
+      visit = await fetchHangar(got.callsign.trim());
+    } catch (err) {
+      this.walkFlash(str('walk.visit_failed', { why: err.message }));
+      return;
+    }
+    if (!visit || !visit.airframe) {
+      this.walkFlash(str('walk.visit_none', { callsign: got.callsign.trim() }));
+      return;
+    }
+    this.openWalk('main', visit);
   },
 
   /* A line in the prompt's place for a moment: a photo kept, or why not. */
@@ -261,7 +316,7 @@ export const walkMethods = {
       return false;
     }
     this.onUiSound?.('select');
-    if (near.id === 'door') {
+    if (near.id === 'door' && !this.walk.visit) {
       this.startLineup(near.action);
     } else {
       this.act(near.action);
