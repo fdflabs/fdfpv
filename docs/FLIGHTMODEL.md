@@ -511,3 +511,38 @@ as it was tuned, on the aircraft as it now flies. No check changed.
 
 Stabilised only: Manual and Acro, and every recorded flight, replay to
 the same hashes as on main.
+
+## CL max at the top of the curve: built, and blocked (branch only)
+
+The probe found every stall speed 3 to 12 percent high because the plant's
+lift curve peaked at 0.80 to 0.88 of each table's CL max; UGLYSTIK and
+TIGERMOTH-STAGE1 say the same ("the plant's curve rounds off short of CL
+max, as every aircraft's does"). On branch w34-flightmodel-clmax the curve
+leaves the linear line on the parabola tangent to it a stall_blend short
+of the stall angle and tops out at CL max a stall_blend past it, and the
+stalled section holds CL max (scripts/lib/liftcurve.js mirrors it for the
+derivations). The probe's minimum flying speeds then meet the derivations:
+the Cub 8.07 m/s against 8.1, the Skyhunter 9.18 against 9.2, the Stik
+9.46 against 9.48, the 1000 mm wing 7.21 against 7.25.
+
+It is not proposed for merge, for one reason measured and left open:
+
+- **Powered, held stalls drop a wing on the aft CG aircraft.** Full up at
+  half throttle, the Ugly Stik banks to 33 deg (U11b) and the Tiger Moth
+  to 18 (T8b), against 12 and 8 on main. The roll is the stalled strips'
+  (on the Stik -0.68 N m mean against -0.27 on main; the torque less the
+  wash's roll is -0.03 on both), and the strips' arithmetic is unchanged:
+  what moved is the trim. CL max held at the aerodynamic centre pitches an
+  aircraft whose CG is behind it (stall_arm_ac positive on both) up
+  harder, so full up holds the wing 1.5 to 3 deg deeper (17.3 against
+  15.8 deg on the Stik) and slower, deeper into the strips' autorotation.
+  The Durafly copy of the Stik says it "exhibits no bad stall tendencies"
+  at low speed, so the gates hold. Flying the handbook's power on stall
+  (wings on the rudder, FAA-H-8083-3C ch. 5) did not bring either inside
+  its bands, and the washouts are sourced at 0 on both ("Keep the trailing
+  edge flat"; "built flat"). The open question is the post stall pitching
+  moment on an aft CG wing, not the lift curve.
+- Also open on that branch: the P-51's P19 wing drop rises to pb/2V 0.121
+  against the XP-51 flight test's band top of 0.118, and the Kadet's
+  power on S9b no longer stalls at half throttle (its throttle is to be
+  re-derived on the new mush, where the throw's thrust now out pulls it).
