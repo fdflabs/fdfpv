@@ -217,6 +217,7 @@
     "war:stages": "node scripts/war-stages-selftest.js",
     "war:nudge": "node scripts/war-nudge-selftest.js",
     "war:cards": "node scripts/war-cards-selftest.js",
+    "war:cardspage": "node scripts/war-cards-page.js",
     "contacts:selftest": "node scripts/contacts-selftest.js",
     "roles:deal": "node scripts/roles-deal.js",
     "platforms:hold": "node scripts/platforms-hold-selftest.js",

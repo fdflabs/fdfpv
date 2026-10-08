@@ -198,7 +198,7 @@ export default withWaves({
         { at: 0, radio: 'itaipu-1-g-first' },
         { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-1-s1-eyes' },
         { when: { born: { group: 'eyes' } }, at: 8, radio: 'itaipu-1-s1-why' },
-        { when: { born: { group: 'eyes' } }, at: 12, radio: 'itaipu-1-g-scout' },
+        { when: { born: { group: 'eyes' } }, at: 12, radio: 'itaipu-1-g-scout', skip: { any: [{ down: { group: 'eyes' } }, { left: 1, group: 'eyes' }] } },
         { when: { down: { group: 'eyes' } }, radio: 'itaipu-1-s1-down' },
         { when: { left: 1, group: 'eyes' }, radio: 'itaipu-1-s1-gone' },
         STAGE_LOST,
@@ -269,7 +269,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'swarm' } }, radio: 'itaipu-1-ta-turn' },
         { when: { born: { group: 'swarm' } }, at: 4, radio: 'itaipu-1-ta-why' },
-        { when: { born: { group: 'swarm' } }, at: 8, radio: 'itaipu-1-g-back-door' },
+        { when: { born: { group: 'swarm' } }, at: 8, radio: 'itaipu-1-g-back-door', skip: { down: { group: 'swarm' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
@@ -292,7 +292,7 @@ export default withWaves({
       cues: [
         { when: { crossed: 'east-shore-mid', group: 'boats' }, radio: 'itaipu-1-tb-turn' },
         { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 4, radio: 'itaipu-1-tb-why' },
-        { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 8, radio: 'itaipu-1-g-low-water' },
+        { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 8, radio: 'itaipu-1-g-low-water', skip: { down: { group: 'boats' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
@@ -315,7 +315,7 @@ export default withWaves({
       cues: [
         { when: { born: { group: 'hunters' } }, radio: 'itaipu-1-tc-turn' },
         { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-1-tc-why' },
-        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-1-g-come-for-you' },
+        { when: { born: { group: 'hunters' } }, at: 8, radio: 'itaipu-1-g-come-for-you', skip: { down: { group: 'hunters' } } },
         STAGE_LOST,
       ],
       exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
