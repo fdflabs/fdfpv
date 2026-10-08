@@ -55,14 +55,14 @@ import { badWordIn } from '../tracks-api/words.js';
 
 /* The finishes a region can wear. `film` only on a film region, where it
  * is the kit's own; the others there make the film an opaque paint. */
-export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium', 'satin', 'pearl', 'candy', 'gold'];
+export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium', 'satin', 'pearl', 'candy', 'gold', 'flake', 'brushed'];
 
 /* The finishes and decals that are owned, not unlocked: sold for tokens or
  * earned by a feat (src/game/economy.js ITEMS, docs/ECONOMY.md). Level
  * progression (src/game/progress.js) passes over them; a pilot wears one
  * once the account owns it. Listed here, not read from economy.js, because
  * economy.js imports progress.js, which imports this file. */
-export const SHOP_FINISHES = ['satin', 'pearl', 'candy', 'gold'];
+export const SHOP_FINISHES = ['satin', 'pearl', 'candy', 'gold', 'flake', 'brushed'];
 export const SHOP_DECALS = ['ribbon'];
 
 /*

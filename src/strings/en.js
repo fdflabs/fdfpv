@@ -2285,6 +2285,8 @@ export default {
   "hangar.finish_satin": "Satin",
   "hangar.finish_pearl": "Pearl",
   "hangar.finish_candy": "Candy",
+  "hangar.finish_flake": "Metal flake",
+  "hangar.finish_brushed": "Brushed metal",
   "hangar.finish_gold": "Gold",
   "hangar.decal_ribbon": "Campaign ribbon",
   "progress.locked_buy": "In the shop",
