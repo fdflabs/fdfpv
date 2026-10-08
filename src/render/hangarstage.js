@@ -78,6 +78,9 @@ const VIEWS = {
   top: { yaw: 0, elev: 1.3, zoom: 0.9, along: 0, up: 0.2 },
   side_left: { yaw: Math.PI / 2, elev: 0.1, zoom: 0.78, along: 0, up: 0 },
   side_right: { yaw: -Math.PI / 2, elev: 0.1, zoom: 0.78, along: 0, up: 0 },
+  /* The workshop's nose on and tail on views (src/ui/hangar.js VIEW_PRESETS). */
+  front: { yaw: Math.PI, elev: 0.16, zoom: 0.85, along: 0, up: 0 },
+  rear: { yaw: 0, elev: 0.16, zoom: 0.85, along: 0, up: 0 },
 };
 
 export function viewFor(focus) {
