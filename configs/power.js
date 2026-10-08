@@ -124,6 +124,7 @@ const COX_REVIEW = 'https://www.coxengines.ca/public/files/review.pdf';
 const SAM_RULES = 'https://www.antiquemodeler.org/images/Rulebook/2025%20Final%20-%20Jan%2017%202025.pdf';
 const MENON = 'https://api.drum.lib.umd.edu/server/api/core/bitstreams/3ae6ca8c-b068-4d07-90dc-7f5bf6a95b3c/content';
 const APC = 'https://www.apcprop.com/files/PER3_';
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const OS_FX_MANUAL = 'https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf';
 const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html';
 const RCM_STIK = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
@@ -187,6 +188,10 @@ export const TABLE = {
   },
   uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
   tigermoth1803: { simId: 23, massKg: 4.6493, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 14.41, flightTime: null },
+  extra3d1308: {
+    simId: 29, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
+    flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
+  },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -646,6 +651,30 @@ const STIK = [
  * 36.206 N (docs/TIGERMOTH-STAGE1.md). Great Planes give no tank size; the
  * Stik's 12 oz is taken, ESTIMATED. The flying weight is the kit's 10.25
  * lb, taken with the tank full. */
+/* The Extra 300 3D 1.3m, docs/EXTRA-STAGE1.md: E-flite's 4250 910 kV on
+ * the 13 x 6 wood prop and a 60 A ESC, 4S or 3S, 2200 to 3200 mAh
+ * (E-flite's manual and listing). The thrust and current are ESTIMATED,
+ * the motor against APC's 13 x 6.5E (scripts/extra-derive.js); the 3S
+ * option scales them as the Timber's does. The pack sits to the manual's
+ * CG, so no option shifts it. */
+const EXTRA = [
+  {
+    id: 'stock', name: 'power.extra.stock', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86, currentA: 64.4, rpmNoLoad: 13468, pitchSpeedMs: 29.08, lvcV: 3.0,
+    massKg: 1.51, cgShiftM: 0, packs: [TIMBER_4S[0], TIMBER_4S[1]], pack: '4s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html', `${APC}13x65E.dat`],
+  },
+  {
+    id: '3s', name: 'power.extra.3s', kind: 'electric', voice: 'wing',
+    kv: 910, propIn: 13, pitchIn: 6, blades: 2,
+    thrustN: 37.86 * (11.1 / 14.8) * (11.1 / 14.8), currentA: 64.4 * (11.1 / 14.8) * (11.1 / 14.8),
+    rpmNoLoad: 910 * 11.1, pitchSpeedMs: 29.08 * (11.1 / 14.8), lvcV: 3.0,
+    massKg: 1.51 - 0.270 + 0.16556, cgShiftM: 0, packs: TIMBER_3S, pack: '3s2200',
+    source: [EXTRA_MANUAL, 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'],
+  },
+];
+
 const TIGER_TANKS = [
   tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, GP_TIGER),
 ];
@@ -688,6 +717,7 @@ export const POWER = {
   kadet1981: KADET,
   uglystik1567: STIK,
   tigermoth1803: TIGER,
+  extra3d1308: EXTRA,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,
