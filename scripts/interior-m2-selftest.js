@@ -196,7 +196,14 @@ function goto(e, c, at, h, role) {
 /* A still of an item (or a contact's item) framed at `frac` of the frame. */
 function snap(e, c, id) {
   const it = M.items.find((x) => x.id === id);
-  const at = it.contact ? () => posOf(e, [...view(e).contacts].sort((x, y) => (y.state === 'seen') - (x.state === 'seen')).find((k) => k.id === it.contact || k.group === it.contact)?.id) : () => resolve(it.at, view(e).dials);
+  /* A person the pilot can see now (not under a crown), as a pilot picks. */
+  const who = it.contact ? view(e).contacts.filter((k) => k.id === it.contact || k.group === it.contact)
+    .map((k) => k.id).find((id) => posOf(e, id) && !W.canopyBlocks(c.p, posOf(e, id))) : null;
+  const at = it.contact ? () => (who ? posOf(e, who) : null) : () => resolve(it.at, view(e).dials);
+  if (it.contact && !who) {
+    e.fly(e.clock + 5000);
+    return 'none in sight';
+  }
   c.aim = (t) => at() ?? null;
   const a = at();
   c.th = it.size / (2 * 0.15 * Math.hypot(a[0] - c.p[0], a[1] - c.p[1], a[2] - c.p[2]));
@@ -334,7 +341,7 @@ for (const follow of ['b', 'a']) {
   check(`${follow}: the meeting and both groups: "Different people."`, heard(r.e, 'int2-s4-routes'));
   check(`${follow}: won, three stars, both flags`, r.v.state === 'won' && r.v.result.stars === 3 && r.v.result.flags.M2_SECOND_CAMP_UNDETECTED === true && r.v.result.flags.M2_ALL_WATCHERS_FOUND === true,
     `${r.v.state} ${JSON.stringify(r.v.result)} comparison ${r.comparison}`);
-  check(`${follow}: within 35 min`, r.v.endAt - r.v.goAt < 35 * 60000, `${Math.round((r.v.endAt - r.v.goAt) / 60000)} min`);
+  check(`${follow}: 25 to 35 min, as MISSIONS.md says`, r.v.endAt - r.v.goAt >= 25 * 60000 && r.v.endAt - r.v.goAt <= 35 * 60000, `${Math.round((r.v.endAt - r.v.goAt) / 60000)} min`);
   console.log(`  (flown in ${Math.round((r.v.endAt - r.v.goAt) / 60000)} min)`);
 }
 

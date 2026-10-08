@@ -93,10 +93,9 @@ export default {
     {
       id: 'isr', core: true, guide: 'IBARRA', platforms: ['bramor2300'],
     },
-    /* The recon quad: the owner picks it by feel under canopy (PLAN 6);
-     * both kept quads are offered until then. */
+    /* The recon quad: the 7 inch (lead decision 2026-10-08, PLAN 6). */
     {
-      id: 'recon', core: true, guide: 'IBARRA', platforms: ['7inch', '10inch'],
+      id: 'recon', core: true, guide: 'IBARRA', platforms: ['7inch'],
     },
     {
       id: 'tracker', core: false, guide: 'IBARRA', platforms: ['bramor2300'],

@@ -74,12 +74,12 @@ lint:copy. src/share changes need a VM deploy (the room runs them).
   nearest ground open from seven of eight sides at 250 m (within 25 to
   300 m of 1.9's); Claro Nuevo, the handoffs and A's post sit within a
   short walk or ride of Estancia La Ceniza.
-- **Length.** The scripted solo pilot (Bramor 25 m/s, quad 15 m/s, no
-  searching) wins in 39 min following B and 43 min following A; MISSIONS
-  says 25 to 35. interior:m2 keeps the 35 min check and fails on it. The
-  long legs: Pista Cero to Claro Viejo, the watcher's ride from a far zone
-  to the handoff (up to 6 km), the walk to the property. Owner question
-  in the PR.
+- **Length.** With MISSIONS 1.9's zones the scripted solo pilot (Bramor
+  25 m/s, quad 15 m/s) took 39 min (B) and 43 min (A). Lead decision
+  2026-10-08: the three watcher zones, A's post, the handoffs and the
+  returner's approach moved within 2 km of Estancia La Ceniza; now 30 min
+  (B) and 33 min (A), checked against MISSIONS' 25 to 35 by interior:m2.
+- **Recon quad:** the 7 inch (lead decision 2026-10-08).
 - **Courier by motorcycle.** On foot the A branch took 58 min.
 
 ## 7. The spotted rule (lane spotted, CONTRACT-SPOTTED.md)
