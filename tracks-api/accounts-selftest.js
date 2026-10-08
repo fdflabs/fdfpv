@@ -585,6 +585,12 @@ const v = r.body && r.body.visit;
 check('open: anyone reads it, by callsign in any case, without a session', r.status === 200 && v && v.callsign === 'Maverick' && v.airframe === 'cub1400', JSON.stringify(r.body));
 check('with the seated aircraft\'s own paint', v && v.look && v.look.colours && v.look.colours.wing === '#ff0000', JSON.stringify(v && v.look));
 check('and the firsts and tier the progress shows', v && Array.isArray(v.firsts) && ['garage', 'workshop', 'airfield'].includes(v.tier), JSON.stringify(v));
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { progress: { v: 2, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: { 'lesson:hover': true }, medals: { 'board:abc': 'silver', 'board:xyz': 'gold' }, unlockAll: false } }, stamps: { progress: Date.now() } },
+}, alice);
+r = await call('GET', '/api/hangar/Maverick');
+check('Flight Club medals are trophies too, gold first, before the firsts', r.body && r.body.visit && r.body.visit.firsts.slice(0, 2).join(',') === 'medal:board:xyz:gold,medal:board:abc:silver',
+  JSON.stringify(r.body && r.body.visit && r.body.visit.firsts));
 check('and nothing off the allow list (no courses, flight time, builds, wallet)', v && Object.keys(v).sort().join(',') === 'airframe,callsign,firsts,look,parts,tier', Object.keys(v || {}).join(','));
 r = await call('PUT', '/api/account/progress', {
   progress: { v: 1, data: { hangarVisit: { on: false, airframe: 'cub1400' } }, stamps: { hangarVisit: Date.now() + 1000 } },

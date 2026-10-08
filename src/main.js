@@ -201,6 +201,7 @@ import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
+import { MEDAL_STEPS } from './game/medals.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { retiredMap } from './maps/retired.js';
@@ -2064,8 +2065,8 @@ export async function boot({
     }
     /* The trophy wall: every first paid, in key order so a wall reads the
      * same each visit (src/game/progress.js firsts). */
-    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
-    walkRoom.view.setTrophies(visit ? [...visit.firsts].sort() : Object.keys(firsts).filter((k) => firsts[k]).sort());
+    const state = ui.progress ? ui.progress.state : {};
+    walkRoom.view.setTrophies(visit ? visit.firsts : trophyKeys(state.firsts, state.medals));
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2137,6 +2138,17 @@ export async function boot({
     if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
       tt.rec.stop();
     }
+  }
+
+  /* The trophy wall's keys: medals first, gold before silver before
+   * bronze (src/game/medals.js), then every first paid, each in key order
+   * so a wall reads the same each visit. */
+  function trophyKeys(firsts = {}, medals = {}) {
+    const rank = (step) => MEDAL_STEPS.length - MEDAL_STEPS.indexOf(step);
+    const won = Object.entries(medals || {}).filter(([, m]) => MEDAL_STEPS.includes(m))
+      .sort(([a, ma], [b, mb]) => rank(ma) - rank(mb) || (a < b ? -1 : 1))
+      .map(([course, m]) => `medal:${course}:${m}`);
+    return [...won, ...Object.keys(firsts || {}).filter((k) => firsts[k]).sort()];
   }
 
   /* A visited pilot's aircraft in their own paint and parts, normalised
