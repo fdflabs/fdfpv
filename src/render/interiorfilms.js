@@ -99,8 +99,10 @@ export function landRaster() {
   return rasterJob;
 }
 
+/* opts.film plays a film built at the time (src/share/ops/spotfilm.js)
+ * in place of a registered one; `id` is then its id. */
 export function playInteriorFilm(scene, camera, id, opts = {}) {
-  const film = FILMS[id];
+  const film = opts.film ?? FILMS[id];
   if (!film) {
     throw new Error(`interiorfilms: no film ${id}`);
   }

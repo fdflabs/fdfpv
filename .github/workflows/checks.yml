@@ -67,6 +67,7 @@ jobs:
       - run: npm run ratescurve:selftest
       - run: npm run panels:golden
       - run: npm run rooms:selftest
+      - run: npm run jam:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
@@ -74,6 +75,7 @@ jobs:
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run keynotes:selftest
+      - run: npm run weather:selftest
       # The headless page driver every browser check opens the shell through
       # (tests/lib/page.js): keyInfo, describe and the export list against a
       # pinned transcript. Its browser half, --browser, stays local: it needs
@@ -104,6 +106,8 @@ jobs:
       - run: npm run war:routes
       - run: npm run registry:selftest
       - run: npm run war:stages
+      - run: npm run war:nudge
+      - run: npm run war:cards
       # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
       # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
       - run: npm run contacts:selftest
@@ -112,6 +116,7 @@ jobs:
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
+      - run: npm run platforms:hold
       # The camp changes on screen as its people act: the tarp, the mast
       # and the pushed motorcycles read off the contacts the room tells.
       - run: npm run interior:camp
@@ -159,6 +164,8 @@ jobs:
       - run: npm run dlg:stab
       - run: npm run tigermoth:gates
       - run: npm run tigermoth:stab
+      - run: npm run extra:gates
+      - run: npm run extra:stab
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest
@@ -280,10 +287,17 @@ jobs:
       - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
+      - run: npm run kits:selftest
       # The hangar's workshop in the real shell: Flip, the preset views and a
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # The livery gallery against a local tracks server: list, like, sort,
+      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
+      - run: npm run gallery:check
+      # Every tractor's slipstream terms against their geometry
+      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
+      - run: npm run wash:derive -- --check
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

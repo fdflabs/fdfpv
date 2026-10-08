@@ -393,14 +393,22 @@ check: {
     let n = 0;
     let all = true;
     let o = null;
+    /* The heading's change summed step by step: a turn of about 1.5 rad/s
+     * passes half a circle in the two seconds measured, where the end
+     * points' difference alone wraps and reads the wrong way. */
+    let dh = 0;
     for (let ms = 0; ms < 5000; ms += RC_STEP_MS) {
       o = step(sim, [0, 0, 1, t13.duty]);
       all = all && o.loads.slice(0, 3).every((f) => f > 0);
       if (ms === 3000) h0 = heading(o.s);
-      if (ms > 3000) { vSum += speed(o.s); n += 1; }
+      if (ms > 3000) {
+        vSum += speed(o.s);
+        n += 1;
+        const h = heading(o.s);
+        dh += Math.atan2(Math.sin(h - h0), Math.cos(h - h0));
+        h0 = h;
+      }
     }
-    let dh = heading(o.s) - h0;
-    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
     const radius = (vSum / n) / Math.abs(dh / 1.996);
     gate('T13', 'the rudder steers on the ground', dh < 0 && within(radius, t13) && all,
       `${radius.toFixed(2)} m at ${(vSum / n).toFixed(2)} m/s, ${dh < 0 ? 'turning right' : 'WRONG WAY'}${all ? '' : ', a wheel lifted'}`, `${band(t13)} m, turning right`);
