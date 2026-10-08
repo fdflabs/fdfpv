@@ -936,6 +936,7 @@ export class RoomCore {
         ...this.war.welcome(this),
         ...this.ops.welcome(this),
         ...this.gameLobby.welcome(this),
+        ...this.bots.welcome(),
       }),
     });
     actions.push(...this.roster(conn, JSON.stringify({
@@ -1055,6 +1056,10 @@ export class RoomCore {
     }
     if (msg.type === 'kick' && !this.meta.public && s.seat === this.host() && msg.seat !== s.seat) {
       return this.kick(msg.seat, now);
+    }
+    /* The room's AI pilots: off, or their level (roombots.js). */
+    if (msg.type === 'bots') {
+      return s.seat === this.host() ? [...this.bots.message(this, conn, msg, now), ...this.wake()] : [];
     }
     if (msg.type === 'handhost') {
       return this.handHost(conn, s, msg.seat, now);

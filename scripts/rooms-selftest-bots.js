@@ -124,6 +124,24 @@ export function botsSection(check) {
   }
   {
     const e = tagRoom();
+    e.join(0);
+    e.join(1);
+    const welcome = e.socks[0].got.find((m) => m.type === 'welcome');
+    e.say(1, { type: 'bots', level: 'off' });
+    const notHost = e.bots().length;
+    e.say(0, { type: 'bots', level: 'off' });
+    const off = e.bots().length;
+    const told = e.socks[1].got.filter((m) => m.type === 'bots').map((m) => m.level).join();
+    e.say(0, { type: 'bots', level: 'hard' });
+    const levels = [...e.r.bots.bots.list.values()].map((b) => b.level);
+    e.say(0, { type: 'bots', level: 'silly' });
+    check("the host switches them off, and back on at Hard; nobody else can, and nothing that is not a level",
+      welcome.bots === 'normal' && notHost === FILL_TO - 2 && off === 0 && told === 'off'
+      && levels.length === FILL_TO - 2 && levels.every((l) => l === 'hard') && e.r.bots.level === 'hard',
+      `welcome ${welcome.bots}, ${notHost} after a guest's off, ${off} after the host's, told ${told}, then ${levels.join(',')}`);
+  }
+  {
+    const e = tagRoom();
     e.join(0, 2);
     check('a tab that cannot mark an AI pilot (ROOM_LEVEL 2) gets none', e.bots().length === 0);
     const f = tagRoom({ mode: 'combat' });

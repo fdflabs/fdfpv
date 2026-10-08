@@ -14,8 +14,10 @@ half) is another lane's.
   pilot: `AI Brave Fox 3` in English, `IA Zorro Valiente 3` in Spanish
   (`bots.name` in src/strings). An AI pilot is never shown without the mark.
 - The game lobby shows the AI pilots in its seat list, marked the same way.
-  The host's row (AI pilots, Off / Easy / Normal / Hard) is PR 4; until it
-  lands a room made for tag fills at Normal.
+  The host's row (AI pilots, Off / Easy / Normal / Hard) is PR 4's client
+  half; the room's half (`{ type: 'bots', level }` from the host, told to
+  everybody, `bots` in the welcome) ships in PR 3. A room made for tag
+  starts at Normal.
 - A real pilot joining a room takes a seat an AI pilot held: the AI pilot
   leaves (a normal leave on every screen) and the newcomer is never refused
   `full` because of AI pilots.
@@ -24,6 +26,12 @@ half) is another lane's.
   pilot count, and never earns, sets or appears on a record, a medal, a
   star or any progression. A match won by an AI pilot shows its marked name
   as winner and records nothing for anybody.
+- FOR THE LANES BUILDING RECORDS (progression, Flight Club, debrief): on
+  main at 2026-10-07 nothing records a tag result (checked). Whatever
+  records a room game's result from now on must record nothing when any
+  peer in the room was an AI pilot: the room says so as `bot: true` on the
+  peer (welcome `peers`, `join`), and src/share/rooms.js hands the shell
+  that peer's name as `{ bot: pick }`.
 
 ## The decision: the room flies them
 

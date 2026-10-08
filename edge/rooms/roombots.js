@@ -14,6 +14,11 @@
  *   MARKED   every join and peer list says bot: true; a client names the
  *            seat as an AI pilot (src/share/rooms.js shownName).
  *
+ * THE HOST'S SAY. { type: 'bots', level } from the host: 'off', or a
+ * bots.js LEVELS key. Off, every AI pilot leaves; a level, the ones here
+ * fly at it from their next aim and the room fills again. Everybody is
+ * told { type: 'bots', level }, and the welcome carries `bots`.
+ *
  * An AI seat's key in RoomCore.seats is a BotConn: it swallows what the
  * room sends it, so host.js run() never needs to know. The seat record
  * carries bot: true, which core.js people() leaves out of everything that
@@ -56,6 +61,8 @@ export const FILL_TO = 4;
 export const BOT_ROOM_LEVEL = 3;
 /* The level a room is filled at until its host says otherwise. */
 export const DEFAULT_LEVEL = 'normal';
+/* What the host may set. */
+export const BOT_LEVELS = ['off', ...Object.keys(LEVELS)];
 /* The flight is stored this often while it flies, room ms: a restart
  * resumes from at most this far back. */
 const STORE_MS = 5000;
@@ -101,7 +108,7 @@ export class RoomBots {
       return;
     }
     this.bots.restore(saved.flight);
-    this.level = LEVELS[saved.level] ? saved.level : DEFAULT_LEVEL;
+    this.level = BOT_LEVELS.includes(saved.level) ? saved.level : DEFAULT_LEVEL;
     this.names = new Map((saved.seats ?? []).map((s) => [s.seat, s.name]));
   }
 
@@ -147,6 +154,29 @@ export class RoomBots {
     core.referee.seat(seat, BOT_AIRFRAME);
     core.combat.seat(seat, BOT_AIRFRAME);
     return s;
+  }
+
+  welcome() {
+    return { bots: this.level };
+  }
+
+  /* The host's { type: 'bots', level } (core.js has checked it is the
+   * host). Returns actions. */
+  message(core, conn, msg, now) {
+    if (!BOT_LEVELS.includes(msg.level) || msg.level === this.level) {
+      return [];
+    }
+    this.level = msg.level;
+    for (const b of this.bots.list.values()) {
+      if (LEVELS[msg.level]) {
+        b.level = msg.level;
+      }
+    }
+    return [
+      this.store(),
+      ...core.roster(null, JSON.stringify({ type: 'bots', level: this.level })),
+      ...this.fill(core, now),
+    ];
   }
 
   /* How many AI seats this room should have now. */
