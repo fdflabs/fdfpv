@@ -75,14 +75,20 @@ holdPose(hold, t) -> { p, q, v }       // ops frame, room ms
 holdOf(pose, airframe, t) -> hold      // where it was left
 ```
 
-- Orbit: centre is the point a radius off the craft's side on the turn,
-  radius `r = v^2 / (g tan(bankHold))`, `v` the airframe's loiter speed
-  (`configs/airframes.js`, cited, not invented: for the Bramor, its
-  catalogue cruise), so the circle starts tangent to the craft's track
-  and its position at the hand over equals the craft's.
-- Hover: `p` fixed, `v = 0`, heading kept.
-- Fuel and battery drain on hold at the airframe's loiter draw, so a
-  hold is not free; `down` when empty (the chute rule a Bramor has).
+- Orbit: a left turn onto a circle tangent to the craft's track, so the
+  circle's first point is where the craft was and its first velocity is
+  the craft's track. Speed: the craft's ground speed or its air start
+  speed (`configs/airframes.js` `airStartSpeed`, 1.3 times stall, 16.9
+  m/s for the Bramor), whichever is faster. Radius `r = v^2 / (g
+  tan(25 deg))`, 25 degrees being inside the 30 to 45 degree bank limit
+  small UAV loiter autopilots fly (Beard and McLain, Small Unmanned
+  Aircraft, 2012, ch. 9): 62 m at 16.9 m/s. A fixed wing with no track
+  (on the ground) is not held: `holdOf` throws.
+- Hover: `p` fixed, `v = 0` (lead decision 2026-10-08: quads hover only).
+- Room ms are integers; the orbit is the per ms turn raised to the
+  elapsed ms by squaring, renormalised at each product.
+- Fuel and battery on hold: not modelled yet (no mission asks); a hold
+  lasts as long as the mission.
 
 ### 4.2 The switch
 
@@ -120,8 +126,8 @@ L, about five PRs, in order; each with its own check:
 
 1. `src/share/ops/hold.js` and `platforms:hold` (Node): a Bramor on hold
    stays within its radius for ten minutes of room clock; a quad within
-   0.5 m; `holdPose(holdOf(pose), t0)` equals `pose` (no jump). No
-   caller yet, so it lands with PR 2, not alone.
+   0.5 m; `holdPose(holdOf(pose), t0)` equals `pose` (no jump). Its
+   caller is PR 2.
 2. Client: several aircraft per seat in an ops room, the switch through
    `seatSwap`, the held one drawn. Browser check through
    `run-check-slot.sh`: a real key switches, position delta under 0.1 m.
@@ -138,5 +144,6 @@ per pilot).
 
 - No second physics plant, no autopilot that flies the plant.
 - No holds outside ops rooms; the hot swap is unchanged.
-- No returning-along-path for quads (TECH-NEEDS N15 lists "hovers or
-  returns"): hover only, until a mission asks for return.
+- No returning along the path for quads (TECH-NEEDS N15 lists "hovers
+  or returns"): hover only, the lead's decision 2026-10-08.
+- No fuel or battery drain on hold.
