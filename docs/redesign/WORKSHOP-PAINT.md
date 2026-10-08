@@ -27,7 +27,9 @@ Most of item 23 is built and live. The plan listed it as new; it is not.
    turn about its own nose to tail axis, lifted clear of the floor while it
    turns, so the underside faces the camera from the same views. A button
    on the stage and the key **V**, everywhere in the hangar; a second press
-   rolls it back. Closing the hangar puts it upright. The camera does not go
+   rolls it back, and a pad's right stick pressed in (R3) does the same.
+   Closing the hangar puts it upright. An aircraft whose box is tallest at
+   a fin (the F-16) rests on that fin when flipped; accepted for now. The camera does not go
    under the floor: the floor and its reflection are what make the stand a
    place, and the owner asked for the aircraft to roll.
 2. **Preset views for the whole workshop**: Top, Bottom (top with Flip),

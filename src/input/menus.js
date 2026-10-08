@@ -71,6 +71,11 @@ export function floatsButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, 3);
 }
 
+/* The right stick pressed in (R3), which the hangar takes as Flip. */
+export function lookClick(gp) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 11);
+}
+
 /* The right stick, right and down positive, for orbiting the hangar. */
 export function lookStick(gp) {
   if (!standard(gp) || !gp.axes || gp.axes.length < 4) {
