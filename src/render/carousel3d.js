@@ -286,6 +286,9 @@ export function createCarouselStage(renderer) {
        * is where its lowest point stands under its centre, and its nose's
        * and tail's z. */
       halfY: 0.5 * size.y / radius,
+      /* Half its span in the unit frame, what reaches lowest as it rolls
+       * over on the hangar's Flip. */
+      halfX: 0.5 * size.x / radius,
       /* Metres to the unit frame's one, for the hangar's exploded view. */
       radius,
       noseZ: (box.min.z - centre.z) / radius,
@@ -473,7 +476,7 @@ export function createCarouselStage(renderer) {
         }
         m.yaw = REST_YAW + off * Math.max(0, 1 - RETURN_RATE * dt);
       }
-      m.turn.rotation.y = m.yaw;
+      m.turn.rotation.set(0, m.yaw, 0);
     }
 
     const prevTarget = renderer.getRenderTarget();
@@ -550,7 +553,7 @@ export function createCarouselStage(renderer) {
     set.group.visible = true;
     const k = rig.update(dt, { ...view.hangar, prop: exploder.propAlong(m) }, view.turn ?? 0);
     stats.camera = {
-      focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, moves: k.moves, lift: k.lift, target: k.target,
+      focus: view.hangar.focus, yaw: k.yaw, elev: k.elev, zoom: k.zoom, along: k.along, up: k.up, roll: k.roll, moves: k.moves, lift: k.lift, target: k.target,
     };
     stats.exploded = exploder.update(m, view.hangar.power ?? null, dt);
     /* The Tuning tab's marks, surfaces and prop (src/render/
@@ -560,12 +563,17 @@ export function createCarouselStage(renderer) {
     set.place(floorY, k.reveal, k.pulse);
     /* Set down from a hand's height as it opens. */
     const drop = 0.35 * (1 - k.reveal);
-    m.holder.position.set(0, drop, 0);
+    /* Rolled over on Flip it is lifted so its lowest point, a wing tip
+     * half way round, stays on the floor; the turn is about its own nose
+     * to tail axis, under the yaw. */
+    const rise = Math.abs(Math.cos(k.roll)) * m.halfY + Math.abs(Math.sin(k.roll)) * m.halfX - m.halfY;
+    const hold = drop + rise;
+    m.holder.position.set(0, hold, 0);
     m.holder.scale.setScalar(k.pop * (0.94 + 0.06 * k.reveal));
     m.yaw = k.yaw;
-    m.turn.rotation.y = k.yaw;
+    m.turn.rotation.set(0, k.yaw, k.roll);
     const shadowY = m.shadow.position.y;
-    m.shadow.position.y = floorY + 0.004 - drop;
+    m.shadow.position.y = floorY + 0.004 - hold;
 
     const aspect = buf.x / buf.y;
     camera.aspect = aspect;
@@ -575,7 +583,7 @@ export function createCarouselStage(renderer) {
     const sh = r.height / buf.y;
     const dist = k.zoom * Math.max(1 / (HANGAR_FILL * tanHalf * aspect * sw), 1 / (HANGAR_FILL_HEIGHT * tanHalf * sh));
     const tz = k.along < 0 ? -k.along * m.noseZ : k.along * m.tailZ;
-    aim.set(tz * Math.sin(k.yaw), k.up * m.halfY + drop, tz * Math.cos(k.yaw));
+    aim.set(tz * Math.sin(k.yaw), k.up * m.halfY + hold, tz * Math.cos(k.yaw));
     cam.set(0, Math.sin(k.elev) * dist, Math.cos(k.elev) * dist).add(aim);
     camera.position.copy(cam);
     camera.lookAt(aim);
@@ -602,10 +610,10 @@ export function createCarouselStage(renderer) {
     /* The reflection: the backdrop, and the model turned over the floor. */
     set.floorSet.visible = false;
     m.shadow.visible = false;
-    m.holder.position.y = 2 * floorY - drop;
+    m.holder.position.y = 2 * floorY - hold;
     m.holder.scale.y = -m.holder.scale.y;
     renderer.render(scene, camera);
-    m.holder.position.y = drop;
+    m.holder.position.y = hold;
     m.holder.scale.y = -m.holder.scale.y;
     set.floorSet.visible = true;
     m.shadow.visible = true;

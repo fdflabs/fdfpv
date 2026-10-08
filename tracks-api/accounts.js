@@ -14,7 +14,8 @@
  *
  * WHAT IS KEPT, per account: Google's `sub` (its stable account id), the
  * callsign, the pilot key the account carries (below), the progress blob
- * (src/share/progressmerge.js) and the SHA-256 of each session token. No
+ * (src/share/progressmerge.js), its tokens and items (wallet.js) and the
+ * SHA-256 of each session token. No
  * email, name or picture. Google's token carries an email, and an account
  * never holds it: it is read only to look an invite up, and stored only
  * when its owner asks for a place on the beta waitlist (waitlist.js).
@@ -51,9 +52,15 @@
  *            so only the holder of a key can hand its tracks over
  *   GET    /api/account/progress   { progress }
  *   PUT    /api/account/progress   { progress }  merged with what is held;
- *            answers with the merge. Refused 413 past the blob cap, and
+ *            answers with the merge, and `wallet`, the tokens and items
+ *            after the merge's grants are paid (wallet.js). Refused 413
+ *            past the blob cap, and
  *            413 or 422 when its builds or loadouts are too many, too big
  *            or the wrong shape (progressmerge.js blobRefusal)
+ *   GET    /api/account/wallet     { wallet }  { balance, earned, owned },
+ *            what the held progress pays paid first (wallet.js)
+ *   POST   /api/account/wallet/buy { item }  { wallet }, or 404 no such
+ *            item, 409 { why: 'owned' | 'earned' }, 402 { why: 'short' }
  *
  *   POST   /api/waitlist           { credential }  the GIS ID token of
  *            whoever asks for a place in the beta: { approved }, true when
@@ -96,6 +103,7 @@ import { badWordIn } from './words.js';
 import { GOOGLE_JWKS_URL, googleKeys, verifyGoogleIdToken } from './google.js';
 import { json, nowUtc, readBody, refuse, spend } from './http.js';
 import { inviteOnly, invited, joinWaitlist } from './waitlist.js';
+import { buyItem, deleteWallet, settleWallet } from './wallet.js';
 import {
   ACCOUNT_WRITE_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
 } from './limits.js';
@@ -435,7 +443,7 @@ async function putProgress(env, request, account) {
     const r = await env.DB.prepare('UPDATE accounts SET progress = ?, progress_rev = progress_rev + 1, updated_utc = ? WHERE id = ? AND progress_rev = ?')
       .bind(text, nowUtc(), account.id, row.progress_rev).run();
     if (r.meta.changes) {
-      return json(200, { progress: merged });
+      return json(200, { progress: merged, wallet: await settleWallet(env, account.id, merged) });
     }
   }
   return refuse(503, 'The sync collided with another. Try again.');
@@ -466,7 +474,26 @@ async function adoptTracks(env, request, account) {
   return json(200, { tracks: r.meta.changes });
 }
 
+async function buy(env, request, account) {
+  const read = await readBody(request, SMALL_BODY, 'That request is too big.');
+  if (read.error) {
+    return read.error;
+  }
+  const r = await buyItem(env, account.id, read.body && read.body.item);
+  if (r.wallet) {
+    return json(200, { wallet: r.wallet });
+  }
+  const why = {
+    unknown: 'There is no such item in the shop.',
+    earned: 'That item is earned, not sold.',
+    owned: 'You already own that item.',
+    short: 'Not enough tokens for that item.',
+  };
+  return refuse(r.status, why[r.why], { why: r.why });
+}
+
 async function deleteAccount(env, account) {
+  await deleteWallet(env, account.id);
   await env.DB.prepare('DELETE FROM sessions WHERE account_id = ?').bind(account.id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.id).run();
   return json(200, { deleted: true });
@@ -528,12 +555,16 @@ export async function accountRoute(env, request, path) {
   if (path === '/api/account/progress' && method === 'GET') {
     return json(200, { progress: cleanBlob(heldProgress(account)) });
   }
+  if (path === '/api/account/wallet' && method === 'GET') {
+    return json(200, { wallet: await settleWallet(env, account.id, heldProgress(account)) });
+  }
   if (path === '/api/account/session' && method === 'DELETE') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(account.session_hash).run();
     return json(200, { signedOut: true });
   }
   const writes = new Set([
     'PUT /api/account/callsign', 'PUT /api/account/identity', 'PUT /api/account/progress', 'POST /api/account/adopt', 'DELETE /api/account',
+    'POST /api/account/wallet/buy',
   ]);
   if (!writes.has(`${method} ${path}`)) {
     return refuse(404, 'Nothing here.');
@@ -553,6 +584,9 @@ export async function accountRoute(env, request, path) {
   }
   if (path === '/api/account/adopt') {
     return adoptTracks(env, request, account);
+  }
+  if (path === '/api/account/wallet/buy') {
+    return buy(env, request, account);
   }
   return deleteAccount(env, account);
 }

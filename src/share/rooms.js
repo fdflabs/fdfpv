@@ -308,6 +308,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
    * once the room answers, its code is this tab's and a reconnect uses it. */
   let publicMap = null;
+  /* Joined to watch (edge/rooms/core.js watch): the hello asks for no
+   * seat, and nothing this tab flies is sent. */
+  let watching = false;
   let fullRetried = false;
   /* The server said it was restarting, and the link has not been back
    * since: every retry until the next welcome is waiting on that restart. */
@@ -378,8 +381,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         account: ACCOUNT_JOIN,
         name: h.name,
         profile: h.profile,
-        ...(token ? { token } : {}),
-        ...seat,
+        ...(token && !watching ? { token } : {}),
+        ...(watching ? { watch: true } : seat),
         ...session,
       });
     };
@@ -414,7 +417,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         welcome = m;
         attempt = 0;
         restarting = false;
-        write('session', TOKEN_KEY, m.token);
+        /* A watcher's token names no seat, and would take a pilot's place. */
+        if (!watching) {
+          write('session', TOKEN_KEY, m.token);
+        }
         if (publicMap) {
           code = normaliseCode(m.code);
           publicMap = null;
@@ -589,13 +595,13 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       }
       return body.code;
     },
-    join(wanted) {
+    join(wanted, { watch = false } = {}) {
       const next = normaliseCode(wanted);
       if (!next) {
         setPhase('failed', 'nosuch');
         return;
       }
-      if (gated(() => link.join(wanted))) {
+      if (gated(() => link.join(wanted, { watch }))) {
         return;
       }
       if (next !== code) {
@@ -610,6 +616,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       }
       publicMap = null;
       code = next;
+      watching = watch;
       attempt = 0;
       open();
     },
@@ -621,6 +628,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       leave();
       write('session', TOKEN_KEY, null);
       publicMap = map;
+      watching = false;
       attempt = 0;
       open();
     },
@@ -642,13 +650,13 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       return clock.roomAt(t);
     },
     sendPose(bytes) {
-      if (ws && ws.readyState === 1 && phase === 'open') {
+      if (ws && ws.readyState === 1 && phase === 'open' && !watching) {
         ws.send(bytes);
       }
     },
     /* A later phase's binary message (roomwire.js), while in a room. */
     sendBinary(bytes) {
-      if (ws && ws.readyState === 1 && phase === 'open') {
+      if (ws && ws.readyState === 1 && phase === 'open' && !watching) {
         ws.send(bytes);
       }
     },
