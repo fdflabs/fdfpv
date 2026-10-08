@@ -48,6 +48,7 @@ import { ORIGIN } from '../ops.js';
 import { PLACES } from '../places.js';
 import { M3_AT } from '../routes.js';
 import { CLASSES } from './interior-1.js';
+import { FILMS, briefingMs } from '../films/index.js';
 
 /* A grid point (km east, km north) in ops frame metres. */
 const G = (e, n) => [Math.round(e * 1000 - ORIGIN[0]), Math.round(n * 1000 - ORIGIN[1])];
@@ -87,6 +88,10 @@ export default {
   map: 'interior',
   ground: true,
   z0: 0,
+  /* The briefing: Mission 3's intro film, held for its length, and which
+   * cut it is, so a host's skip waits for everyone to have seen it. */
+  filmMs: briefingMs('interior-3'),
+  film: { id: FILMS['int3-intro'].id, version: FILMS['int3-intro'].version },
   /* Thermal matters more as the light goes (MISSIONS.md M3). */
   sensor: { palette: 'arctic' },
   debrief: {
@@ -159,6 +164,11 @@ export default {
     ...[1, 2, 3].map((k) => ({
       id: `confirm_v${k}`, set: 'confirm', contact: `v${k}`, size: 5,
     })),
+    /* The northern vehicle's still, for the outro (INTROS.md M3): the
+     * squad's when someone captured it, else the reconstruction. */
+    {
+      id: 'north_vehicle', set: 'north-optional', contact: 'north', size: 5,
+    },
     /* The command site (stage 4, RECON forward). */
     {
       id: 'radio_op', set: 'command', contact: 'radio-man', size: 1.7,
