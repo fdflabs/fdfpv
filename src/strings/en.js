@@ -4124,4 +4124,11 @@ export default {
   "walk.trophies": "Trophies",
   "walk.tv": "Replays",
   "walk.tv_refused": "The clip would not play: {why}",
+  "walk.photo": "Photo",
+  "walk.photo_aim": "Turn and zoom",
+  "walk.photo_take": "Take",
+  "walk.photo_done": "Done",
+  "walk.photo_saved": "Photo saved",
+  "walk.photo_failed": "The photo could not be saved: {why}",
+  "walk.photo_none": "The browser gave no picture",
 };

@@ -4129,4 +4129,11 @@ export default {
   "walk.trophies": "Trofeos",
   "walk.tv": "Repeticiones",
   "walk.tv_refused": "El clip no se pudo reproducir: {why}",
+  "walk.photo": "Foto",
+  "walk.photo_aim": "Girar y acercar",
+  "walk.photo_take": "Tomar",
+  "walk.photo_done": "Listo",
+  "walk.photo_saved": "Foto guardada",
+  "walk.photo_failed": "No se pudo guardar la foto: {why}",
+  "walk.photo_none": "El navegador no entregó la imagen",
 };

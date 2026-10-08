@@ -258,6 +258,8 @@ const ACTIONS = {
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
   'hangar-walk'(ui) { ui.openWalk('main'); },
   'field-walk'(ui) { ui.openWalk('field'); },
+  'walk-photo'(ui) { ui.togglePhoto(); },
+  'walk-photo-take'(ui) { ui.takePhoto(); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
   /* The trophy wall: the hangar on its Challenges tab, which lists the

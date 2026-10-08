@@ -35,18 +35,17 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 
 ## 1. Photo mode and photo wall
 
-- In the walkable hangar, P (or the Photo button in the command bar) hides
-  the HUD and the pilot, frees the camera to orbit the aircraft on its
-  stand (drag, wheel to zoom), and a Take button saves a picture.
-- A picture is a JPEG at the canvas's size, at most 1920 wide, kept in
-  IndexedDB (`fdfpv.photos.v1`, at most 24, the oldest go and the save
-  says so) with { id, created, airframe, blob }. Download from the wall.
-- The photo wall: the room's back wall carries up to 6 frames with the
-  newest pictures as textures (each at most 512 wide; 6 textures, inside
-  the room budget's texture headroom, measured in hangar:perf).
+- In the walkable hangar, P (or Photo in the command bar) is photo mode:
+  the pilot steps out of the picture, the camera turns round the aircraft
+  on its stand (drag, wheel to zoom), and Space or Take keeps a picture:
+  a JPEG of the canvas (the DOM is not in it), downloaded at once, as the
+  replay's Photo does, and kept for the photo wall. P or Escape leaves.
+- Kept in IndexedDB (`fdfpv.photos.v1`, src/ui/photostore.js), at most 24,
+  the oldest going, as { id, created, airframe, blob }.
+- The photo wall: the left wall of each room holds the newest six, three
+  by two, from one atlas texture (one draw; budget in docs/HANGAR-ROOM.md).
 - Not synced to the account: pictures are megabytes and the account blob
-  is capped; a picture leaves this computer only when downloaded. Question
-  for the owner below.
+  is capped. Question for the owner below.
 
 ## 2. Turntable GIF or video
 

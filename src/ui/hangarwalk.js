@@ -65,6 +65,11 @@ const BACKWARD = new Set(['KeyS', 'ArrowDown']);
 const LEFT = new Set(['KeyA', 'ArrowLeft']);
 const RIGHT = new Set(['KeyD', 'ArrowRight']);
 const USE = new Set(['KeyE', 'Enter', 'Space']);
+const PHOTO = 'KeyP';
+/* Photo mode's zoom: how far a wheel notch moves it, and its range. */
+const ZOOM_STEP = 0.0012;
+const ZOOM_MIN = 0.45;
+const ZOOM_MAX = 2.2;
 const LEAVE = new Set(['Escape', 'Backspace']);
 /* A drag's turn of the camera, radians a pixel, and how fast it swings
  * back behind the pilot once they walk. */
@@ -117,6 +122,8 @@ export const walkMethods = {
       pad: null,
       promptKey: null,
       clips: 0,
+      /* Photo mode: null, or { yaw, zoom, shoot } while it is on. */
+      photo: null,
     };
     /* How many clips the TV has to play; read once a visit. */
     const w = this.walk;
@@ -132,7 +139,15 @@ export const walkMethods = {
   /* A key press on the walk screen: use, leave; the walking keys are read
    * held, by walkHeld. */
   walkKey(code) {
-    if (USE.has(code)) {
+    if (code === PHOTO) {
+      this.togglePhoto();
+    } else if (this.walk && this.walk.photo) {
+      if (code === 'Space' || code === 'Enter') {
+        this.takePhoto();
+      } else if (code === 'Escape' || code === 'Backspace') {
+        this.togglePhoto();
+      }
+    } else if (USE.has(code)) {
       this.useStation();
     } else if (LEAVE.has(code)) {
       this.back();
@@ -154,8 +169,57 @@ export const walkMethods = {
   },
 
   walkDrag(dx) {
-    if (this.walk) {
+    if (this.walk && this.walk.photo) {
+      this.walk.photo.yaw -= dx * DRAG_TURN;
+    } else if (this.walk) {
       this.walk.orbit -= dx * DRAG_TURN;
+    }
+  },
+
+  walkWheel(dy) {
+    const p = this.walk && this.walk.photo;
+    if (p) {
+      p.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, p.zoom * (1 + dy * ZOOM_STEP)));
+    }
+  },
+
+  /* Photo mode on or off: the pilot steps out of the picture, the prompt
+   * and the walk stop, and the command bar says the photo keys. */
+  togglePhoto() {
+    const w = this.walk;
+    if (!w) {
+      return;
+    }
+    w.photo = w.photo ? null : { yaw: w.pose.heading + Math.PI, zoom: 1, shoot: false };
+    this.walkPrompt.hidden = true;
+    w.promptKey = null;
+    this.screens.walk.classList.toggle('is-photo', Boolean(w.photo));
+    this.syncFrame();
+  },
+
+  /* A line in the prompt's place for a moment: a photo kept, or why not. */
+  walkFlash(text) {
+    if (!this.walkPrompt) {
+      return;
+    }
+    this.walkPrompt.hidden = false;
+    this.walkPrompt.dataset.station = 'flash';
+    this.walkPromptLabel.textContent = text;
+    clearTimeout(this.walkFlashTimer);
+    this.walkFlashTimer = setTimeout(() => {
+      if (this.walk) {
+        this.walk.promptKey = null;
+        this.walkPrompt.hidden = true;
+      }
+    }, 1600);
+  },
+
+  /* main.js takes the picture on the next frame it draws, keeps it for the
+   * photo wall and downloads it. */
+  takePhoto() {
+    if (this.walk && this.walk.photo) {
+      this.walk.photo.shoot = true;
+      this.onUiSound?.('select');
     }
   },
 
@@ -183,7 +247,7 @@ export const walkMethods = {
     const overlay = this.carousel.isOpen || this.hangar.isOpen;
     const has = (set) => [...w.held].some((c) => set.has(c));
     const pad = w.pad || {};
-    const input = overlay ? { forward: 0, turn: 0 } : {
+    const input = overlay || w.photo ? { forward: 0, turn: 0 } : {
       forward: (has(FORWARD) || pad.up ? 1 : 0) - (has(BACKWARD) || pad.down ? 1 : 0),
       turn: (has(RIGHT) || pad.right ? 1 : 0) - (has(LEFT) || pad.left ? 1 : 0),
     };
@@ -191,7 +255,9 @@ export const walkMethods = {
     if (w.pose.moving) {
       w.orbit -= w.orbit * Math.min(1, ORBIT_RETURN * dt);
     }
-    renderPrompt(this);
+    if (!w.photo) {
+      renderPrompt(this);
+    }
     return w.pose;
   },
 };

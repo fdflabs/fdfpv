@@ -206,8 +206,9 @@ import { isMapTrack } from './trackbuilder/model.js';
 import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
-import { createRoomView } from './render/hangarroomview.js';
-import { listClips } from './replay/store.js';
+import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
+import { listClips, downloadBlob, stampedName } from './replay/store.js';
+import { listPhotos, putPhoto } from './ui/photostore.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -2324,6 +2325,7 @@ export async function boot({
       walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
       walkRoom.graphics = graphics;
       walkRoom.craftKey = null;
+      loadPhotoWall(walkRoom.view);
     }
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
@@ -2337,8 +2339,42 @@ export async function boot({
     const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
     walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
-    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit);
+    const photo = ui.walk.photo;
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    if (photo && photo.shoot) {
+      photo.shoot = false;
+      const view = walkRoom.view;
+      view.capture((blob) => {
+        if (!blob) {
+          ui.walkFlash(str('walk.photo_none'));
+          return;
+        }
+        downloadBlob(stampedName('hangar', '.jpg'), blob);
+        putPhoto(blob, ui.settings.airframe).then(() => {
+          ui.walkFlash(str('walk.photo_saved'));
+          return loadPhotoWall(view);
+        }).catch((err) => ui.walkFlash(str('walk.photo_failed', { why: err.message })));
+      });
+    }
     return walkRoom.view;
+  }
+  /* The newest photos onto the room's photo wall, each made small first:
+   * the wall's atlas cell is a few hundred pixels wide. */
+  async function loadPhotoWall(view) {
+    try {
+      const rows = (await listPhotos()).slice(0, PHOTO_FRAMES);
+      const bitmaps = await Promise.all(rows.map((r) => createImageBitmap(r.blob, { resizeWidth: 512, resizeQuality: 'medium' })));
+      if (walkRoom.view === view) {
+        view.setPhotos(bitmaps);
+      }
+    } catch (err) {
+      /* No IndexedDB, or a picture that will not decode: the wall stays
+       * bare, and the console says why. */
+      console.warn('hangar photo wall:', err);
+      if (walkRoom.view === view) {
+        view.setPhotos([]);
+      }
+    }
   }
   function walkRoomShut() {
     if (walkRoom.view) {
