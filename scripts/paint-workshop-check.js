@@ -17,9 +17,10 @@
  *      the model from the Top view names the region and side beside it
  *      and a click puts the colour on that region's top; from the Bottom
  *      view the label says underside and a click paints the underside.
- *   6. Undo on the Timber: a top colour, then an underside; the Undo
+ *   6. Undo and Redo on the Timber: a top colour, then an underside; the Undo
  *      button takes the underside off, Z the top colour, and Undo is then
- *      off with the paint as it opened.
+ *      off with the paint as it opened; Redo and Y bring both back, and a
+ *      new change after an Undo ends what Redo could bring back.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -380,6 +381,19 @@ async function undoSteps(page) {
   await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(start)}`, 5000).catch(() => {});
   const two = await page.evaluate("({ entry: JSON.stringify(window.__ui.hangar.entry), off: document.querySelector('.hangar [data-key=\"undo\"]').disabled })");
   say(two.entry === start && two.off, `Z takes the top colour off, back to how it opened, and Undo is off: ${JSON.stringify(two)}`);
+  await press(page, '.hangar [data-key="redo"]');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
+  say(await page.evaluate('JSON.stringify(window.__ui.hangar.entry)') === topOnly, 'the Redo button puts the top colour back');
+  await page.tap('KeyY');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(JSON.stringify(both))}`, 5000).catch(() => {});
+  const again = await page.evaluate("({ entry: window.__ui.hangar.entry, off: document.querySelector('.hangar [data-key=\"redo\"]').disabled })");
+  say(JSON.stringify(again.entry) === JSON.stringify(both) && again.off, `Y puts the underside back, and Redo is off: ${JSON.stringify(again)}`);
+  await page.tap('KeyZ');
+  await press(page, '.hangar [data-key="side-top"]');
+  await pick(7);
+  await page.sleep(400);
+  const cut = await page.evaluate("document.querySelector('.hangar [data-key=\"redo\"]').disabled");
+  say(cut, `a new change after Undo ends what Redo could bring back (${cut})`);
   await closeHangar(page);
   await page.evaluate('window.__ui.carousel.close(); true');
 }

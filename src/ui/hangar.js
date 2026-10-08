@@ -382,7 +382,12 @@ export class Hangar {
     this.undoBtn.dataset.key = 'undo';
     this.undoBtn.disabled = true;
     this.undoBtn.addEventListener('click', () => this.undo());
+    this.redoBtn = button('hangar-reset hangar-undo', str('hangar.redo'));
+    this.redoBtn.dataset.key = 'redo';
+    this.redoBtn.disabled = true;
+    this.redoBtn.addEventListener('click', () => this.redo());
     this.undoStack = [];
+    this.redoStack = [];
     this.paintNow = '{}';
     this.backBtn.addEventListener('click', () => this.cancel());
     this.saveBtn.addEventListener('click', () => this.save());
@@ -395,7 +400,7 @@ export class Hangar {
     const right = el('div', 'hangar-buttons-end');
     right.append(this.mineBtn, this.backBtn, this.saveBtn);
     const left = el('div', 'hangar-buttons-left');
-    left.append(this.resetBtn, this.undoBtn);
+    left.append(this.resetBtn, this.undoBtn, this.redoBtn);
     buttons.append(left, right);
     this.buttonsEl = buttons;
     this.mineForm = el('div', 'hangar-mine-form');
@@ -558,8 +563,10 @@ export class Hangar {
     this.paintClick = false;
     this.brush = null;
     this.undoStack = [];
+    this.redoStack = [];
     this.paintNow = JSON.stringify(this.entry);
     this.undoBtn.disabled = true;
+    this.redoBtn.disabled = true;
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -874,6 +881,9 @@ export class Hangar {
     }
     this.paintNow = now;
     this.undoBtn.disabled = false;
+    /* A new change starts a new line: what was undone cannot be redone. */
+    this.redoStack = [];
+    this.redoBtn.disabled = true;
   }
 
   /* The paint back as it was before the last change. Power, parts and
@@ -883,13 +893,31 @@ export class Hangar {
     if (prev === undefined) {
       return;
     }
-    this.entry = JSON.parse(prev);
-    this.paintNow = prev;
+    this.redoStack.push(this.paintNow);
+    this.showPaint(prev, 'undo');
+  }
+
+  /* The change Undo last took back, made again. */
+  redo() {
+    const next = this.redoStack.pop();
+    if (next === undefined) {
+      return;
+    }
+    this.undoStack.push(this.paintNow);
+    this.showPaint(next, 'redo');
+  }
+
+  /* Undo's and Redo's step: the paint put on as recorded, not recorded
+   * again. */
+  showPaint(json, key) {
+    this.entry = JSON.parse(json);
+    this.paintNow = json;
     this.undoBtn.disabled = this.undoStack.length === 0;
+    this.redoBtn.disabled = this.redoStack.length === 0;
     this.shop.stopPlacing();
     this.shop.sel = -1;
     this.pulseSeq += 1;
-    this.changed('undo', 'back');
+    this.changed(key, 'back');
   }
 
   /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
@@ -1605,6 +1633,10 @@ export class Hangar {
     }
     if (code === 'KeyZ' && !this.naming) {
       this.undo();
+      return true;
+    }
+    if (code === 'KeyY' && !this.naming) {
+      this.redo();
       return true;
     }
     const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];
