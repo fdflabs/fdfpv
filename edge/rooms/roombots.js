@@ -183,7 +183,10 @@ export class RoomBots {
   wanted(core) {
     const people = core.people();
     const mode = modeOfRoom(core.meta.mode);
-    if (!people.length || !mode || !mode.allowAI || core.meta.map !== BOT_MAP || !LEVELS[this.level]) {
+    /* Public rooms only until the host's lobby row exists (lead,
+     * 2026-10-07): friends in a private room are never left with AI pilots
+     * they cannot remove from the screen. */
+    if (!core.meta.public || !people.length || !mode || !mode.allowAI || core.meta.map !== BOT_MAP || !LEVELS[this.level]) {
       return 0;
     }
     if (people.some((s) => (s.level || 0) < BOT_ROOM_LEVEL)) {

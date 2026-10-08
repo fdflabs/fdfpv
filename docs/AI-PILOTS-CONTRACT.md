@@ -114,6 +114,8 @@ check, the tick's batch recipients). Those 17 go through one helper,
 
 ## Fill and leave
 
+- Until the host's lobby row exists (lead, 2026-10-07), only PUBLIC rooms
+  are filled; a private room gets none.
 - A room made for tag fills up to FILL_TO pilots (people plus AI) while it
   has at least one person, at the host's difficulty; the default is Normal
   in a room made for the game and Off anywhere else.

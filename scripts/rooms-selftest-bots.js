@@ -34,9 +34,11 @@ import {
 } from '../src/share/roomwire.js';
 
 /* A room made for tag on swiss2, as host.js init makes one. */
-function tagRoom({ cap = 8, map = 'swiss2', mode = 'tag' } = {}) {
+function tagRoom({
+  cap = 8, map = 'swiss2', mode = 'tag', open = true,
+} = {}) {
   const r = new RoomCore({
-    code: 'B0TS01', cap, friendly: false, map, epoch: 0, public: true, mode, name: null, pick: [1, 1], mission: null, hidden: false,
+    code: 'B0TS01', cap, friendly: false, map, epoch: 0, public: open, mode, name: null, pick: [1, 1], mission: null, hidden: false,
   });
   let tokens = 0;
   const env = {
@@ -150,6 +152,9 @@ export function botsSection(check) {
     g.join(0);
     const h = tagRoom({ mode: null });
     h.join(0);
+    const q = tagRoom({ open: false });
+    q.join(0);
+    check('none in a private tag room until its host can switch them off', q.bots().length === 0);
     check('none in a combat room, on a world they cannot fly, or in free flight', f.bots().length + g.bots().length + h.bots().length === 0);
   }
   {

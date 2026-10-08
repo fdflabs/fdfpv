@@ -5,7 +5,7 @@
  *
  *   SIM_GPU=1 node scripts/bots-two-page.js [outdir]
  *
- * A makes a room made for Catch the Ace on the Swiss valley, alone: three AI
+ * A makes a public room made for Catch the Ace on the Swiss valley, alone: three AI
  * pilots join it, every one named as one, drawn in the air, inside the
  * valley. A flies and starts a match: the crown moves on A's screen to and
  * between AI pilots, and A's scoreboard names them as AI. B joins: an AI
@@ -95,7 +95,7 @@ let b = null;
 try {
   await a.until('window.__shellReady === true', 300000);
   await a.until('window.__map && window.__map().ready', 400000);
-  const code = await a.evaluate("window.__roomCreate({ map: 'swiss2', mode: 'tag', public: false })");
+  const code = await a.evaluate("window.__roomCreate({ map: 'swiss2', mode: 'tag', public: true })");
   check('A makes a room made for Catch the Ace', /^[A-Z0-9]{6}$/.test(code), code);
   await a.until(`window.__rooms().phase === 'open' && window.__rooms().peers.length === ${FILL_TO - 1}`, 30000);
   let ra = await a.evaluate('window.__rooms()');
