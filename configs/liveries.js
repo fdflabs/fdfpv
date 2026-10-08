@@ -45,8 +45,8 @@
  */
 
 import { airframeById } from './airframes.js';
-import { MAX_SAVED, checkPaint, cleanName, decodeLivery } from './paint.js';
-import { checkKit, checkLights, kitParts } from './kits.js';
+import { CODE_PREFIX, MAX_SAVED, checkPaint, cleanName, decodeLivery, fromBase64Url } from './paint.js';
+import { KIT_VERSION, LIGHTS_VERSION, checkKit, checkLights, kitParts } from './kits.js';
 
 /*
  * THE COVERING ON OFFER, by the makers' own names and numbers. The hex is
@@ -517,7 +517,23 @@ export function normaliseSaves(stored) {
 
 /* A shared code read back against the planes that have paint. */
 export function readCode(code) {
-  return decodeLivery(code, normaliseEntry, entryDrops);
+  const got = decodeLivery(code, normaliseEntry, entryDrops);
+  /* A kit or lights from a newer build would be kept but drawn stock, so
+   * the code is refused with the version sentence instead (docs/KITS.md
+   * section 6); the account still keeps such an entry as it came. */
+  if (!got.error && newerKit(code)) {
+    return { error: 'version' };
+  }
+  return got;
+}
+
+function newerKit(code) {
+  try {
+    const e = JSON.parse(fromBase64Url(code.replace(/\s+/g, '').slice(CODE_PREFIX.length))).e;
+    return (e.kit && e.kit.v > KIT_VERSION) || (e.lights && e.lights.v > LIGHTS_VERSION);
+  } catch {
+    return false;
+  }
 }
 
 /* The swatches a region offers: the see through films for a film region,
