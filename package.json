@@ -404,6 +404,8 @@
     "people:route": "node scripts/people-route.js",
     "lint:copy": "node scripts/copy-lint.js",
     "lint:header": "node scripts/header-lint.js",
+    "weather:selftest": "node scripts/weather-selftest.js",
+    "check:weather": "node scripts/weather-check.js",
     "lint:bf": "node scripts/brand-lint.js",
     "lint:devices": "node scripts/device-check.js",
     "lint:responsive": "node scripts/responsive-check.js",

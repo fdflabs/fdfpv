@@ -75,6 +75,7 @@ jobs:
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run keynotes:selftest
+      - run: npm run weather:selftest
       # The headless page driver every browser check opens the shell through
       # (tests/lib/page.js): keyInfo, describe and the export list against a
       # pinned transcript. Its browser half, --browser, stays local: it needs
