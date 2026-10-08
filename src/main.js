@@ -7050,6 +7050,9 @@ export async function boot({
       if (lesson.tune) {
         s.tune = lesson.tune;
       }
+      if (lesson.mode) {
+        s.flightMode = lesson.mode;
+      }
       ui.progress.startLesson(lesson);
       ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
     },
@@ -11935,7 +11938,9 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun(ctx);
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr) });
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
+      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
+    });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
