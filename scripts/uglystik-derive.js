@@ -29,6 +29,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wash } from './lib/wash.js';
+import { derive as deriveWash } from './wash-derive.js';
+
+const SLIP = deriveWash('FW_UGLYSTIK1567');
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -346,9 +350,14 @@ function deriv(x, de, d, inverted = false) {
   const CL = CLa * a + CLde * de;
   const CD = CD0 + k * CL * CL;
   const L = qb * S * CL, Dr = qb * S * CD, Tt = T(Math.max(0, u), d);
+  /* The prop's wash over the tail, the plant's slip_* (scripts/wash-derive.js). */
+  const ws = wash(SLIP, Tt, u);
+  const xa = -w * Math.cos(SLIP.slip_a0) - u * Math.sin(SLIP.slip_a0);
+  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.fh;
   const Fx = L * (-w / V) - Dr * u / V + Tt;
-  const Fz = L * (u / V) - Dr * w / V;
-  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
+  const Fz = L * (u / V) - Dr * w / V + S * (kh * SLIP.slip_cl_a * xa + ph * CLde * de);
+  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt +
+    S * c * (kh * (SLIP.slip_cm_a * xa + Cmq * q * c / 2) + ph * Cmde * de);
   const gz = inverted ? -1 : 1;
   return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - gz * g * Math.cos(thp) - q * u, My / Iyy, q];
 }
