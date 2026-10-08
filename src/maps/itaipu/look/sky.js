@@ -273,6 +273,10 @@ const CLOUD_LIFT = 350;
 const CLOUD_LIFT_SIZE = 3200;
 const CLOUD_RAG = 30;
 const CLOUD_TOP = CLOUD_BASE + CLOUD_LIFT + CLOUD_DEPTH;
+/* The deck's drift, m/s in x and z: a fair weather trade wind's few
+ * metres a second from the east north east. A sky that never moved read
+ * as painted. */
+const CLOUD_WIND = new THREE.Vector2(-4.3, 2.5);
 const CLOUD_STEPS = 64;
 const CLOUD_SPAN = 4000;
 const CLOUD_SIGMA = 0.032;
@@ -324,6 +328,7 @@ const SKY_GLSL = /* glsl */ `
   uniform float uDisc;
   uniform float uDirect;
   uniform samplerCube uCube;
+  uniform vec2 uWindAt;
   uniform vec3 uCubeFrom;
   uniform samplerCube uCubeOld;
   uniform vec3 uCubeOldFrom;
@@ -428,6 +433,7 @@ const SKY_GLSL = /* glsl */ `
     return (q.y - cloudBase(q.xz)) / ${CLOUD_DEPTH.toFixed(1)};
   }
   float cloudDensity(vec3 q, int octaves) {
+    q.xz -= uWindAt;
     float h = cloudH(q);
     if (h < 0.0 || h > 1.0) {
       return 0.0;
@@ -488,7 +494,7 @@ const SKY_GLSL = /* glsl */ `
         if (dens < 0.002) {
           continue;
         }
-        float h = clamp(cloudH(q), 0.0, 1.0);
+        float h = clamp(cloudH(q - vec3(uWindAt.x, 0.0, uWindAt.y)), 0.0, 1.0);
         /* Two taps toward the sun, the second three times as far: one
          * tap saw only a cell's skin, so a base under 800 m of cloud was
          * lit nearly as its top. Beer's law over both, with a slower
@@ -557,6 +563,9 @@ export function skyBackdrop(sunDir, time) {
       /* Where the cube read was drawn from (THE CUBE IS SEEN FROM WHERE
        * IT WAS DRAWN). */
       uCubeFrom: { value: new THREE.Vector3() },
+      /* How far the deck has drifted (CLOUD_WIND) when the cube being
+       * drawn was started; 0 for the environment. */
+      uWindAt: { value: new THREE.Vector2() },
       /* The cube read before it, and how much of the new one to take:
        * over a refresh the old one is faded out. */
       uCubeOld: { value: null },
@@ -644,7 +653,7 @@ export function skyBackdrop(sunDir, time) {
     const target = new THREE.WebGLCubeRenderTarget(SKY_CUBE_PX, { type: THREE.HalfFloatType });
     target.texture.generateMipmaps = false;
     target.texture.minFilter = THREE.LinearFilter;
-    return { target, from: new THREE.Vector3() };
+    return { target, from: new THREE.Vector3(), at: 0 };
   };
   let front = makeCube();
   let back = makeCube();
@@ -663,6 +672,10 @@ export function skyBackdrop(sunDir, time) {
   const last = new THREE.Vector3();
   let drawn = false;
   let next = 0;
+  /* The wind's clock, seconds since the sky was made. */
+  const born = performance.now() / 1000;
+  const shift = new THREE.Vector3();
+  const drift = (c, now) => shift.set(CLOUD_WIND.x * (now - c.at), 0, CLOUD_WIND.y * (now - c.at));
   /* The new front cube's share, faded in over a refresh so a swap is not
    * a step either. */
   let fade = 1;
@@ -670,6 +683,7 @@ export function skyBackdrop(sunDir, time) {
    * it, from `into.from`. */
   function drawFaces(renderer, into, faces, band = -1) {
     const cube = into.target;
+    mat.uniforms.uWindAt.value.copy(CLOUD_WIND).multiplyScalar(into.at);
     eye.position.copy(into.from);
     eye.updateMatrixWorld();
     const prevTarget = renderer.getRenderTarget();
@@ -719,17 +733,20 @@ export function skyBackdrop(sunDir, time) {
       eye.updateCoordinateSystem();
     }
     at.setFromMatrixPosition(camera.matrixWorld);
+    const now = performance.now() / 1000 - born;
     const cut = !drawn || last.distanceTo(at) > SKY_CUBE_CUT;
     last.copy(at);
     drawn = true;
     if (cut) {
       front.from.copy(at);
+      front.at = now;
       drawFaces(renderer, front, [0, 1, 2, 3, 4, 5]);
       next = 0;
       fade = 1;
     } else {
       if (next === 0) {
         back.from.copy(at);
+        back.at = now;
       }
       drawFaces(renderer, back, [Math.floor(next / SKY_CUBE_BANDS)], next % SKY_CUBE_BANDS);
       next = (next + 1) % (6 * SKY_CUBE_BANDS);
@@ -741,9 +758,11 @@ export function skyBackdrop(sunDir, time) {
     }
     const u = mat.uniforms;
     u.uCube.value = front.target.texture;
-    u.uCubeFrom.value.copy(front.from);
+    /* A cube is read from where it was drawn, moved on by the drift
+     * since: the same as moving its clouds on with the wind. */
+    u.uCubeFrom.value.copy(front.from).add(drift(front, now));
     u.uCubeOld.value = fade < 1 ? old.target.texture : null;
-    u.uCubeOldFrom.value.copy(old.from);
+    u.uCubeOldFrom.value.copy(old.from).add(drift(old, now));
     u.uCubeMix.value = fade;
   };
   sky.disposeCube = () => {
