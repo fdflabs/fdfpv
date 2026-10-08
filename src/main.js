@@ -1742,6 +1742,33 @@ export async function boot({
     return { x: ((x + 1) / 2) * cw, y: ((1 - y) / 2) * ch };
   }
 
+  /* The HUD's aircraft strip: each role this seat holds, when it holds
+   * more than one in a live match (PLATFORM HOLDS). */
+  function opsFleet(v) {
+    const keys = (v.roles && v.roles.held && v.roles.held[roomOps.seat()]) || [];
+    if (keys.length < 2 || !roomOps.live()) {
+      return null;
+    }
+    return keys.map((key) => {
+      const h = opsHolds.get(key);
+      const id = opsKeyCraft(v, key);
+      let state = 'ready';
+      let agl = null;
+      if (key === opsFlownKey) {
+        state = 'flown';
+        agl = opsAgl();
+      } else if (h) {
+        holdNow(h);
+        state = h.hold.kind;
+        agl = holdP.y - view.height(holdP.x, holdP.z, Infinity);
+      }
+      return {
+        key, role: roleName(key), craft: id ? airframeById(id).name : '', state, agl,
+      };
+    });
+  }
+  opsHud.onFleet = (key) => roomOps.active(key);
+
   /* What the quiet HUD draws this frame. */
   function opsHudSrc() {
     const raw = roomOps.view();
@@ -1773,6 +1800,7 @@ export async function boot({
       touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
+      fleet: v ? opsFleet(v) : null,
       /* The guide's line and marks, under the Mission guidance setting. */
       guide: v && ui.settings.missionGuidance && opsGuide.focus ? opsGuide : null,
       edgeDir: opsEdgeDir,
