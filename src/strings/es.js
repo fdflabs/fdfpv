@@ -1949,6 +1949,7 @@ export default {
   "hangar.flip": "Dar vuelta",
   "hangar.side_top": "Arriba",
   "hangar.side_under": "Panza",
+  "hangar.hover_region": "{region}, {side}",
   "hangar.view_top": "Arriba",
   "hangar.view_bottom": "Abajo",
   "hangar.view_left": "Izquierda",
