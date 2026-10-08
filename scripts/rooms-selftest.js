@@ -65,6 +65,7 @@ import { jamSection } from './rooms-selftest-jam.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
+import { weatherSection } from './rooms-selftest-weather.js';
 import { warSection } from './rooms-selftest-war.js';
 import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
 import { RoomTag } from '../edge/rooms/tag.js';
@@ -1903,6 +1904,7 @@ warLobbySection(check);
 gameLobbySection(check);
 emptyRoomSection(check);
 sessionSection(check);
+weatherSection(check);
 await browserSection(check);
 await scaleSection(check);
 
