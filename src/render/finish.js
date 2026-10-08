@@ -97,12 +97,14 @@ const FINISH_VARYINGS = /* glsl */ `
   varying vec3 vFinP;
   varying vec3 vFinN;
   varying vec3 vFinCN;
+  varying vec3 vFinCP;
 `;
 
 const FINISH_VERTEX = /* glsl */ `
   vFinP = vec3(transformed);
   vFinN = vec3(objectNormal);
-  vFinCN = uFinCraft * (mat3(modelMatrix) * objectNormal);
+  vFinCN = mat3(uFinCraft) * (mat3(modelMatrix) * objectNormal);
+  vFinCP = (uFinCraft * modelMatrix * vec4(transformed, 1.0)).xyz;
 `;
 
 const FINISH_HELPERS = /* glsl */ `
@@ -119,6 +121,21 @@ const FINISH_HELPERS = /* glsl */ `
       mix(mix(finHash(i), finHash(i + vec3(1, 0, 0)), f.x), mix(finHash(i + vec3(0, 1, 0)), finHash(i + vec3(1, 1, 0)), f.x), f.y),
       mix(mix(finHash(i + vec3(0, 0, 1)), finHash(i + vec3(1, 0, 1)), f.x), mix(finHash(i + vec3(0, 1, 1)), finHash(i + vec3(1, 1, 1)), f.x), f.y),
       f.z);
+  }
+  /* 1 where a pattern takes its second colour: 1 checks, 2 stripes,
+   * 3 camouflage blobs, 4 splinter. p in the aircraft's frame, metres. */
+  float finPattern(vec3 p, float kind) {
+    if (kind < 1.5) {
+      return mod(floor(p.x / 0.08) + floor(p.z / 0.08), 2.0);
+    }
+    if (kind < 2.5) {
+      return step(0.5, fract((p.x + p.z) / 0.12));
+    }
+    if (kind < 3.5) {
+      return step(0.52, finNoise(p * 7.0) * 0.65 + finNoise(p * 17.0) * 0.35);
+    }
+    vec2 q = mat2(0.8, -0.6, 0.6, 0.8) * p.xz;
+    return step(0.5, finHash(vec3(floor(q.x / 0.11), floor(q.y / 0.07 + floor(q.x / 0.11) * 0.37), 2.0)));
   }
   /* The two coordinates of the face the normal is nearest to, metres. */
   vec2 finFace() {
@@ -176,6 +193,13 @@ const FINISH_CHUNK = /* glsl */ `
      * leaves, a little under the side so a fuselage's flank stays top. */
     if (uFinUnder > 0.5 && normalize(vFinCN).y < -0.1) {
       finPaint = uFinUnderCol;
+      finBase = finShade * finPaint;
+    }
+    /* A PATTERN in the region's second colour, laid out in the aircraft's
+     * own metres (PATTERNS in configs/paint.js), so it runs on across the
+     * region's parts and every machine draws it alike. */
+    if (uFinPat > 0.5 && finPattern(vFinCP, uFinPat) > 0.5) {
+      finPaint = uFinPatCol;
       finBase = finShade * finPaint;
     }
     if (uFinCarbon > 0.5) {
@@ -246,7 +270,9 @@ function wrap(mat) {
     uFinWear: { value: 0 },
     uFinUnder: { value: 0 },
     uFinUnderCol: { value: new THREE.Color() },
-    uFinCraft: { value: new THREE.Matrix3() },
+    uFinCraft: { value: new THREE.Matrix4() },
+    uFinPat: { value: 0 },
+    uFinPatCol: { value: new THREE.Color() },
   };
   const state = { u, rim: null, spec: null, finish: 'kit' };
   const base = mat.onBeforeCompile;
@@ -264,7 +290,7 @@ function wrap(mat) {
     }
     Object.assign(shader.uniforms, u);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\n${FINISH_VARYINGS}\nuniform mat3 uFinCraft;`)
+      .replace('#include <common>', `#include <common>\n${FINISH_VARYINGS}\nuniform mat4 uFinCraft;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>\n${FINISH_VERTEX}`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
@@ -281,6 +307,8 @@ function wrap(mat) {
          uniform float uFinWear;
          uniform float uFinUnder;
          uniform vec3 uFinUnderCol;
+         uniform float uFinPat;
+         uniform vec3 uFinPatCol;
          ${FINISH_HELPERS}`)
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>
         /* Paint, so not in a thermal frame, whose temperature the output
@@ -322,15 +350,16 @@ function apply(state, finish) {
 /*
  * Dress a craft's regions in their finishes: `finishes` region id to a
  * finish id, a region left out (or on `film`) in the kit's, and every
- * region in `wear`, 0 to 1, and `under` region id to the 0xRRGGBB its
- * underside wears, a region left out one colour all round; null leaves
- * the undersides as they are, for the combat aircraft's loadout paint
- * (src/render/combatpaint.js), which redresses finishes and does not own
- * the underside. The regions'
- * materials are the livery's own (craft.livery.materials()); a craft
+ * region in `wear`, 0 to 1. `paint` is the paint over the colours:
+ * `under`, region id to the 0xRRGGBB its underside wears, and
+ * `patterns`, region id to { p, c }, a pattern number (1 up, PATTERNS in
+ * configs/paint.js) and its second colour; a region left out of either
+ * has none. Null leaves both as they are, for the combat aircraft's
+ * loadout paint (src/render/combatpaint.js), which redresses finishes
+ * and does not own them. The regions' materials are the livery's own (craft.livery.materials()); a craft
  * without them has no finishes to wear.
  */
-export function dressFinish(craft, finishes = {}, wear = 0, under = null) {
+export function dressFinish(craft, finishes = {}, wear = 0, paint = null) {
   if (!craft.livery || !craft.livery.materials) {
     return;
   }
@@ -338,11 +367,12 @@ export function dressFinish(craft, finishes = {}, wear = 0, under = null) {
   let hooked = false;
   for (const [id, mats] of Object.entries(craft.livery.materials())) {
     const want = finishes[id] && finishes[id] !== 'film' ? finishes[id] : 'kit';
-    const below = under ? under[id] : undefined;
+    const below = paint ? paint.under[id] : undefined;
+    const pattern = paint ? paint.patterns[id] : undefined;
     for (const mat of mats) {
       let state = mat.userData.finishState;
       if (!state) {
-        if (want === 'kit' && !wear && below === undefined) {
+        if (want === 'kit' && !wear && below === undefined && pattern === undefined) {
           continue;
         }
         state = wrap(mat);
@@ -350,12 +380,17 @@ export function dressFinish(craft, finishes = {}, wear = 0, under = null) {
       }
       apply(state, want);
       state.u.uFinWear.value = wear;
-      if (under) {
+      const k = ((shades[id] || []).find((p) => p.mat === mat) || { k: 1 }).k;
+      if (paint) {
         state.u.uFinUnder.value = below === undefined ? 0 : 1;
+        state.u.uFinPat.value = pattern === undefined ? 0 : pattern.p;
       }
       if (below !== undefined) {
-        const k = ((shades[id] || []).find((p) => p.mat === mat) || { k: 1 }).k;
         state.u.uFinUnderCol.value.setHex(below).multiplyScalar(k);
+        hooked = true;
+      }
+      if (pattern !== undefined) {
+        state.u.uFinPatCol.value.setHex(pattern.c).multiplyScalar(k);
         hooked = true;
       }
       mat.userData.paintFinish = want === 'kit' ? null : want;
@@ -374,13 +409,13 @@ export function dressFinish(craft, finishes = {}, wear = 0, under = null) {
 }
 
 /*
- * Which way is down on the aircraft: its meshes hand their material the
- * craft's own rotation, inverted, just before each draws, so a normal
- * turned into the craft's frame says which faces look down whatever the
- * aircraft's attitude (FINISH_VERTEX). Once a craft, on every mesh that
- * wears a wrapped material, and only written while an underside is on.
+ * The aircraft's own frame: its meshes hand their material the craft's
+ * world matrix, inverted, just before each draws, so a normal turned into
+ * it says which faces look down and a point in it lays a pattern out,
+ * whatever the aircraft's attitude and place (FINISH_VERTEX). Once a
+ * craft, on every mesh, and only written while an underside or a pattern
+ * is on.
  */
-const craftRot = new THREE.Matrix4();
 function hookCraftFrame(craft) {
   if (craft.group.userData.finishHooked) {
     return;
@@ -394,9 +429,8 @@ function hookCraftFrame(craft) {
     o.onBeforeRender = function onBeforeRender(renderer, scene, camera, geometry, material, group) {
       before.call(this, renderer, scene, camera, geometry, material, group);
       const state = material && material.userData.finishState;
-      if (state && state.u.uFinUnder.value > 0.5) {
-        craftRot.extractRotation(craft.group.matrixWorld).invert();
-        state.u.uFinCraft.value.setFromMatrix4(craftRot);
+      if (state && (state.u.uFinUnder.value > 0.5 || state.u.uFinPat.value > 0.5)) {
+        state.u.uFinCraft.value.copy(craft.group.matrixWorld).invert();
       }
     };
   });
@@ -418,7 +452,7 @@ export function readWear(craft) {
 
 /* The finish uniforms each region's first material holds now, for a
  * check: whether its program has the finish in it yet (`compiled`), and
- * the carbon, aluminium, gold, wear and underside colour it draws. */
+ * the carbon, aluminium, gold, wear, underside colour and pattern it draws. */
 export function readFinishUniforms(craft) {
   if (!craft.livery || !craft.livery.materials) {
     return {};
@@ -429,6 +463,7 @@ export function readFinishUniforms(craft) {
     out[id] = s ? {
       compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, gold: s.u.uFinGold.value, wear: s.u.uFinWear.value,
       under: s.u.uFinUnder.value > 0.5 ? `#${s.u.uFinUnderCol.value.getHex().toString(16).padStart(6, '0')}` : null,
+      pattern: s.u.uFinPat.value > 0.5 ? { p: s.u.uFinPat.value, c: `#${s.u.uFinPatCol.value.getHex().toString(16).padStart(6, '0')}` } : null,
     } : null;
   }
   return out;

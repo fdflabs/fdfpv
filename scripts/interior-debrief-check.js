@@ -290,6 +290,19 @@ try {
   await page.tap('Escape');
   await page.sleep(300);
   check('Escape closes it, the same as Continue', before && !(await page.evaluate('window.__debrief().open')), `open before: ${before}`);
+  /* Spotted (CONTRACT-SPOTTED.md): the reason, and what to do better. */
+  const spotted = {
+    ...lost, id: 6, why: 'spotted', spotAdvice: { id: 'pair', advice: 'low', h: 120 },
+  };
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(spotted)} }), true)`);
+  await page.until('window.__debrief().open', 10000).catch(() => {});
+  await page.sleep(500);
+  const d3 = await page.evaluate('window.__debrief()');
+  check('spotted: the failure says they saw you, the advice with the height, the checkpoint offered',
+    /MISSION FAILED · They saw you/.test(d3.text) && /You came in at 120 m over them\. Stay high and use the zoom\./.test(d3.text) && d3.buttons.includes('again'), d3.text.slice(0, 200));
+  await shot('debrief-spotted.png');
+  await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
+  await page.sleep(300);
   /* Mission 2 won: its own items, its stars and flags, its next. */
   const m2 = (id, over) => ({
     ...view(id, over),
@@ -302,9 +315,9 @@ try {
     },
     ...over,
   });
-  await page.evaluate(`(window.__ops.welcome({ seat: 1, host: 1, code: 'DEB000', ops: ${JSON.stringify(m2(6))} }), true)`);
+  await page.evaluate(`(window.__ops.welcome({ seat: 1, host: 1, code: 'DEB000', ops: ${JSON.stringify(m2(7))} }), true)`);
   await page.sleep(300);
-  const won2 = m2(6, {
+  const won2 = m2(7, {
     state: 'won',
     why: 'documented',
     captures: caps([['fire', 2, 'clean'], ['diagram', 2, 'clean'], ['stash', 2, 'usable'], ['nuevo_overview', 2, 'clean']]),
