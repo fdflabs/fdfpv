@@ -81,6 +81,8 @@ export function objectiveCards(was, stage, list) {
 
 /* A stage's title stands this long (TECH-NEEDS T4: 3 s). */
 const LOWER_MS = 3000;
+/* How long this pilot's SPLASH stands, ms. */
+const SPLASH_MS = 2600;
 /* A radio subtitle stays this long after its line, and at most this many
  * wait behind the one shown. */
 const SUB_TAIL_MS = 600;
@@ -239,6 +241,7 @@ export function createWarHud(nameOf, restart = null) {
   let inRounds = false;
   let pipsPulse = 0;
   let splashSeen = false;
+  let splashUntil = 0;
   let hintEl = null;
   let hintTimer = 0;
   let killsPulse = 0;
@@ -365,11 +368,21 @@ export function createWarHud(nameOf, restart = null) {
 
   /* The objectives' cards (objectiveCards below) in the lower third. */
   let goalsWas = { entry: null, states: new Map() };
+  /* Every card shown, for the checks (shown()). */
+  const cardsSaid = [];
   function cardsShown(stage, list) {
     const { now, cards } = objectiveCards(goalsWas, stage, list);
     goalsWas = now;
+    /* A card under this pilot's own SPLASH ran into it (the kill that
+     * settles a kill objective is the splash's): it waits the splash out. */
+    const wait = Math.max(0, splashUntil - performance.now());
     for (const key of cards) {
-      lowerThird(str(key));
+      cardsSaid.push(key);
+      if (wait > 0) {
+        setTimeout(() => lowerThird(str(key)), wait);
+      } else {
+        lowerThird(str(key));
+      }
     }
   }
 
@@ -415,8 +428,9 @@ export function createWarHud(nameOf, restart = null) {
       { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.08 },
       { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.7 },
       { opacity: 0, transform: 'translate(-50%, -50%) scale(1.05)' },
-    ], { duration: 2600, easing: 'ease-out' });
+    ], { duration: SPLASH_MS, easing: 'ease-out' });
     killsPulse = performance.now() + 1500;
+    splashUntil = performance.now() + SPLASH_MS;
     shown = '';
   }
 
@@ -730,6 +744,7 @@ export function createWarHud(nameOf, restart = null) {
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
       splashSeen,
+      cards: cardsSaid.slice(),
     }),
   };
 }
