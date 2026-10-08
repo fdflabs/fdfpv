@@ -59,12 +59,16 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 
 ## 3. Lineup before launch
 
-- Flying from the hangar door (or any launch card), the launch card shows
-  the aircraft as it will fly: its livery and parts on a small turntable
-  in the card, its name, weight, flight time, the map. In a room (rooms
-  server), the lineup is every pilot's aircraft side by side before the
-  start, each in their own livery (the peers already carry their look).
-- Data: what the launch card and the peers already know. Nothing stored.
+- Built: flying from a hangar door (either room), the camera sweeps the
+  aircraft on its stand for 2.6 s with its card (name, size or span,
+  weight, time flown on it), then the door's action runs: Fly, the
+  launch card where the seat is a race, or the war's card from the field
+  hangar. E or Enter goes at once; Escape stays in the room.
+- Not yet: the lineup in a room (every pilot's aircraft side by side in
+  their own livery before a start; src/render/peers.js buildPeerCraft
+  already builds them). It needs a two page check on the rooms server and
+  comes as its own PR after the visits.
+- Data: what the seat already knows. Nothing stored.
 
 ## 4. Read-only friend visits
 
