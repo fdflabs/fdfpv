@@ -700,7 +700,14 @@ export function createCarouselStage(renderer) {
       n.negate();
     }
     n.transformDirection(toGroup);
-    return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z] };
+    /* The paint region the face is in, and whether it looks down, the
+     * same test the underside's shader makes (src/render/finish.js), for
+     * the workshop's click to paint; null on a part no region owns. */
+    const mat = hit.object.material;
+    const owner = m.craft.livery
+      ? Object.entries(m.craft.livery.materials()).find(([, mats]) => mats.includes(mat))
+      : null;
+    return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z], region: owner ? owner[0] : null, under: n.y < -0.1 };
   }
 
   /* A model's region colours as #rrggbb, for a check; null if not built.
