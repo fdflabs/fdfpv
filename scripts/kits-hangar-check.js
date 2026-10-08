@@ -127,6 +127,18 @@ async function quad(page, id) {
   say(tried === JSON.stringify({ v: 1, parts: { [hs]: ho } }) && entry === 'null', `${id}: pointing at ${hs} ${ho} tries it on (${tried}), nothing fitted (${entry})`);
   await shot(page, `${id}-2-tried-${hs}-${ho}`);
 
+  /* Every option of every slot pointed at in turn: the cache keeps one
+   * kitted model per aircraft, so the count stays put. */
+  const before = await page.evaluate('window.__carouselStats().models');
+  const all = await page.evaluate("[...document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]')].map((b) => b.dataset.key)");
+  for (const k of all) {
+    await pointAt(page, `.hangar [data-key="${k}"]`);
+    await page.sleep(250);
+  }
+  await page.sleep(500);
+  const after = await page.evaluate('window.__carouselStats().models');
+  say(after <= before + 1, `${id}: ${all.length} options pointed at, models cached ${before} -> ${after}`);
+
   for (const [s, o] of plan.press) {
     await page.click(`.hangar [data-key="kit-${s}-${o}"]`);
     await page.sleep(300);

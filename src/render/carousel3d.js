@@ -246,7 +246,7 @@ export function createCarouselStage(renderer) {
     if (m) {
       return m;
     }
-    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights, false);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -312,8 +312,42 @@ export function createCarouselStage(renderer) {
       /* The airframe it is as the pilot has it, or null for a build's. */
       own: key === id ? id : null,
     };
+    if (fitted) {
+      evictFitted(at.slice(0, at.length - fitted.length), at);
+    }
     models.set(at, m);
     return m;
+  }
+
+  /* One kitted model per aircraft at a time: pointing along a row of kit
+   * options builds a model each, so the one before is freed rather than
+   * kept for the session. The plain model (the base key) stays. Only the
+   * craft's own geometry and materials are freed; the shadow's are
+   * shared. */
+  function evictFitted(base, keep) {
+    for (const [k, old] of models) {
+      if (k === keep || k === base || !k.startsWith(base) || !/^[~*]/.test(k.slice(base.length))) {
+        continue;
+      }
+      scene.remove(old.holder);
+      old.craft.group.traverse((o) => {
+        if (o.isMesh || o.isLine) {
+          o.geometry.dispose();
+          for (const mat of [].concat(o.material)) {
+            mat.dispose();
+          }
+        }
+      });
+      old.shadow.material.dispose();
+      models.delete(k);
+      for (const map of [lastDrawn, lastByKey]) {
+        for (const [id, v] of map) {
+          if (v === old) {
+            map.delete(id);
+          }
+        }
+      }
+    }
   }
 
   /* A picker card's look on its model: one it brings (`it.look`) or, when
