@@ -60,6 +60,12 @@ const P2 = ([x, z]) => {
 
 /* A checkpoint restart starts on Pista Cero's rail: the seconds a first
  * timer takes to fly back out (interior-1.js TRANSIT_S). */
+/* spot.js's numbers as Mission 1 sets them (interior-1.js SPOT). */
+const SPOT = {
+  height: 200, range: 450, overR: 60, loud: 24, rise: 0.05, fall: 0.05, levels: { looking: 0.25, spotted: 1 }, scene: 6,
+  warn: 'int-spot-warn', lines: { spotted: 'int-spot-seen', low: 'int-spot-low', over: 'int-spot-over', loud: 'int-spot-loud' },
+};
+
 const TRANSIT_S = (at) => {
   const [a, b] = [P2(PLACES.pistaCero.at), at];
   return Math.round(60 + Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) / 18);
@@ -222,10 +228,26 @@ export default {
     take: 'int-take-role',
     downed: 'int-lost-aircraft',
   },
+  /* Who notices a low aircraft (src/share/ops/spot.js, the owner's rule
+   * of 2026-10-08), Mission 1's numbers: the courier at the meeting and
+   * the concealed pair, the two groups the ISR photographs. The strike
+   * run counts over the gate at any height (RUN), so it is flown above
+   * the pair's 200 m like any other look. The command site is the recon
+   * quad's close work and has no spotter. */
+  spotters: [
+    {
+      ...SPOT, id: 'courier', group: 'courier', stage: 'M3_CP_START', scatter: [{ contacts: 'courier', route: 'm3-courier-scatter' }],
+    },
+    {
+      ...SPOT, id: 'pair', group: 'pair', stage: 'M3_CP_CONFIRMED_CONTACT', scatter: ['a', 'b'].map((k) => ({ contacts: `pair-${k}`, route: `m3-pair-scatter-${k}` })),
+    },
+  ],
   /* MISSIONS.md M3 fails: all ISR lost; repeated engagement of
    * civilians; the post overrun (the pair reaching it unstopped stands in
    * for `critical` 60 s: CONTRACT-M3.md gap 3). */
   lost: [
+    { when: { spotted: 'courier' }, why: 'spotted', spot: 'courier' },
+    { when: { spotted: 'pair' }, why: 'spotted', spot: 'pair' },
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
     { when: { all: [ERR('v1'), ERR('v2')] }, why: 'errors', radio: 'int-fail-function' },
     { when: { route: 'pair', point: 'post' }, why: 'post', radio: 'int-fail-function' },
