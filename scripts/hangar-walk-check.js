@@ -33,9 +33,10 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { openPage, keyInfo } from '../tests/lib/page.js';
 import {
-  ROOMS, LAYOUTS, WALK_SPEED, occupancy, blocked, cellAt, cellCentre,
+  ROOMS, LAYOUTS, CELL, WALK_SPEED, TIER_LEVELS, tierFor, occupancy, blocked, cellAt, cellCentre,
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
+import { levelOf, LEVEL_XP } from '../src/game/progress.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = process.argv[2] || join(tmpdir(), 'hangar-walk-check');
@@ -132,8 +133,9 @@ async function walkTo(room, occ, target) {
 
 /* Every steering step, written to OUT_DIR for when a walk falls short. */
 const trace = [];
-const room = ROOMS.garage;
-const occ = occupancy(room, LAYOUTS.garage);
+/* The main room is as big as the pilot's level: read off the shell. */
+let room = null;
+let occ = null;
 const fieldRoom = ROOMS.field;
 const fieldOcc = occupancy(fieldRoom, LAYOUTS.field);
 
@@ -151,7 +153,13 @@ try {
   await page.sleep(800);
   await shot('01-door');
   let s = await stats();
-  check('in the garage corner at the door', s.tier === 'garage' && s.pose.z > 0.9, JSON.stringify(s.pose));
+  const xp = await page.evaluate('window.__ui.progress.state.xp');
+  const unlockAll = await page.evaluate('Boolean(window.__ui.progress.state.unlockAll)');
+  const want = tierFor(levelOf(xp), unlockAll);
+  check('the main room is the size the pilot\'s level opened', s.tier === want, `${s.tier} at ${xp} XP, unlock all ${unlockAll}, want ${want}`);
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  check('at the door', s.pose.z > (room.d * CELL) / 2 - 1.5, JSON.stringify(s.pose));
   const legend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
   check('the command bar names the walk keys', legend.includes(en['walk.walk']) && legend.includes(en['walk.use']), JSON.stringify(legend));
 
@@ -247,11 +255,18 @@ try {
 
   await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
   await page.sleep(300);
+  /* A pilot who has flown to the workshop's level walks into the
+   * workshop: progress as flying leaves it, set in place. */
+  await page.evaluate(`(() => { const p = window.__ui.progress.state; p.unlockAll = false; p.xp = ${LEVEL_XP[TIER_LEVELS.workshop - 1]}; return true; })()`);
   check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
   await page.until("window.__ui.hub === 'hangar'", 10000);
   check('Walk in again', await page.click(walkCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   s = await stats();
+  check('at the workshop\'s level the room is the workshop', s.tier === 'workshop', s.tier);
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  await shot('05-workshop');
   const door = s.stations.find((x) => x.id === 'door');
   s = await walkTo(room, occ, door);
   await page.sleep(200);

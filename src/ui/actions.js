@@ -256,7 +256,7 @@ const ACTIONS = {
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
-  'hangar-walk'(ui) { ui.openWalk(); },
+  'hangar-walk'(ui) { ui.openWalk('main'); },
   'field-walk'(ui) { ui.openWalk('field'); },
   customise(ui) {
     /* The aircraft in the air may be a My Hangar build; a change in the
