@@ -598,6 +598,12 @@ double sim_boost(void);
  * bottom wing's, and the linear lift each would carry at the cell's
  * angle, for the gates. Zeros on a monoplane. Additive, version
  * unchanged.
+ * sim_wing_slip(out[6]): the prop's slipstream as the last step took it,
+ * docs/FLIGHTMODEL.md: its moments about body x, y and z as they were
+ * added, the disc's pressure jump (Pa), the induced speed (m/s) and the
+ * swirl's sideways speed over the fin (m/s), for the gates that take one
+ * term of the moment alone. Zeros on an aircraft without a wash.
+ * Additive, version unchanged.
  */
 int sim_wing_launch(double speed);
 /* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
@@ -614,6 +620,7 @@ int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
+int sim_wing_slip(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
