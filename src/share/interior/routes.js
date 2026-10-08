@@ -205,6 +205,84 @@ ROUTES['colonia-civ-2'] = { pts: col([[60, -40], [62, -30], [60, -40]]), speed: 
 ROUTES['colonia-civ-3'] = { pts: col([[-80, 30], [10, 26], [120, 20], [-80, 30]]), speed: 1.2, loop: true };
 ROUTES['colonia-civ-4'] = { pts: col([[150, -48], [160, -46], [150, -48]]), speed: 0.6, loop: true, dwell: [{ i: 0, s: 60, action: 'stand' }] };
 
+/*
+ * MISSION 3's ROUTES (MISSIONS.md M3), `m3-` prefixed. M3_AT is where its
+ * places stand on the design grid (km): MISSIONS 1.9's first layout, the
+ * northern exit brought inside the boundary's warning line (16.0 km is
+ * the map's edge; the warning is 0.4 km in). WORLD lays them on the land
+ * when the map is built (TECH-NEEDS N1); the mission data reads them here.
+ */
+export const M3_AT = {
+  post: [4, 14],
+  gate: [4.06, 13.93],
+  checkpoint: [4.12, 13.86],
+  farmhouse: [5.2, 13.1],
+  field: [4.5, 13.55],
+  obsA: [4.55, 14.35],
+  obsB: [3.55, 13.45],
+  meet: [6.05, 12.95],
+  coverW: [3.86, 13.98],
+  coverE: [4.2, 14.06],
+  v1Stop: [5.6, 12.4],
+  v2Stop: [4.926, 14.424],
+  command: [7.17, 15.265],
+  relay: [5.6, 14.6],
+  turn: [6.95, 15.1],
+  edge: [6.6, 15.3],
+  exit: [6.5, 15.5],
+};
+const M3_PICKUP = 11;
+const drive = (pts, speed, end, extra = {}) => ({
+  pts: km(pts), speed, end, segments: [{ from: 0, to: pts.length - 1, action: 'drive' }], vehicle: 'pickup', ...extra,
+});
+/* Stage 1's five: A the family's pickup to the farmhouse, B the police
+ * motorcycle to the checkpoint, C two walkers leaving south, E the field
+ * workers, D the parked pickup at its two observation spots in either
+ * order (a dial), then to the meeting on Senda del Vigía. */
+ROUTES['m3-a-pickup'] = drive([[6.4, 12.2], [5.9, 12.6], M3_AT.farmhouse], M3_PICKUP, 'stay', { dwell: [{ i: 2, s: 1, action: 'park' }] });
+ROUTES['m3-a-family'] = { pts: km([M3_AT.farmhouse, [5.205, 13.11], M3_AT.farmhouse]), speed: AMBLE, loop: true, dwell: [{ i: 0, s: 20, action: 'stand' }] };
+ROUTES['m3-b-police'] = {
+  pts: km([[5.4, 12], [4.6, 13.2], M3_AT.checkpoint]), speed: 9, end: 'stay', segments: [{ from: 0, to: 2, action: 'drive' }], dwell: [{ i: 2, s: 1, action: 'park' }], vehicle: 'motorcycle',
+};
+for (const [k, dx] of [['1', 0], ['2', 0.003]]) {
+  ROUTES[`m3-c-walker-${k}`] = { pts: km([[4.1 + dx, 13.8], [4.4 + dx, 13.0], [4.7 + dx, 12.0]]), speed: WALK, end: 'gone' };
+}
+for (let k = 0; k < 3; k += 1) {
+  const [e, n] = [M3_AT.field[0] + 0.012 * k, M3_AT.field[1]];
+  ROUTES[`m3-e-worker-${k + 1}`] = { pts: km([[e, n], [e + 0.006, n + 0.004], [e, n]]), speed: AMBLE, loop: true, dwell: [{ i: 1, s: 30 + 9 * k, action: 'stand' }] };
+}
+for (const [order, [s1, s2]] of [['ab', [M3_AT.obsA, M3_AT.obsB]], ['ba', [M3_AT.obsB, M3_AT.obsA]]]) {
+  ROUTES[`m3-d-${order}`] = drive([[3.3, 14.8], s1, s2, [4.8, 13.4], M3_AT.meet], 8, 'stay', { dwell: [{ i: 1, s: 70, action: 'park' }, { i: 2, s: 70, action: 'park' }, { i: 4, s: 1, action: 'park' }] });
+}
+/* The courier Mission 2 followed, walking Senda del Vigía west to D. */
+ROUTES['m3-courier'] = { pts: km([[6.3, 12.86], [6.17, 12.91], M3_AT.meet]), speed: WALK, end: 'stay', dwell: [{ i: 2, s: 1, action: 'stand' }] };
+/* Stage 2: civilians out of the vegetation by the road; the concealed
+ * pair on the side the dial picks, still a while, then onto the gate
+ * with the long objects raised, and into the post if nobody stops it. */
+ROUTES['m3-leaver-1'] = { pts: km([[3.9, 14.15], [4.3, 13.6], [4.8, 12.8]]), speed: WALK, end: 'gone' };
+ROUTES['m3-leaver-2'] = { pts: km([[4.15, 14.2], [4.5, 13.55], [5, 12.7]]), speed: WALK, end: 'gone' };
+for (const [side, at] of [['w', M3_AT.coverW], ['e', M3_AT.coverE]]) {
+  for (const [k, dx] of [['a', 0], ['b', 0.002]]) {
+    const pts = [[at[0] + dx, at[1]], [at[0] + dx, at[1] + 0.001], [M3_AT.gate[0] + dx, M3_AT.gate[1] + 0.012], [M3_AT.gate[0] + dx, M3_AT.gate[1]], M3_AT.post];
+    ROUTES[`m3-pair-${side}-${k}`] = {
+      pts: km(pts), speed: WALK, end: 'stay', dwell: [{ i: 1, s: 75, action: 'stand' }, { i: 3, s: 90, action: 'stand' }], segments: [{ from: 1, to: 4, action: 'carryLong' }],
+    };
+  }
+}
+/* A stopped threat or a struck vehicle: gone at once (no aftermath). */
+ROUTES['m3-stopped'] = { pts: km([M3_AT.gate, [M3_AT.gate[0] + 0.001, M3_AT.gate[1]]]), speed: 10, end: 'gone' };
+/* Stage 3: three look alike pickups from the post's outskirts. */
+ROUTES['m3-v1'] = drive([[4.2, 13.75], [4.9, 13], M3_AT.v1Stop], M3_PICKUP, 'stay', { dwell: [{ i: 2, s: 1, action: 'park' }] });
+ROUTES['m3-v1-people'] = { pts: km([M3_AT.v1Stop, [5.62, 12.37], [5.7, 12.25]]), speed: WALK, end: 'gone' };
+ROUTES['m3-v2'] = drive([[4.1, 14.15], [4.5, 14.3], M3_AT.v2Stop], M3_PICKUP, 'stay', { dwell: [{ i: 2, s: 1, action: 'park' }] });
+ROUTES['m3-v3'] = drive([[4.25, 14], [5.2, 14.3], [6, 14.6], [6.7, 15], [7.12, 15.215]], M3_PICKUP, 'stay', { dwell: [{ i: 4, s: 1, action: 'park' }] });
+/* Stage 4: the temporary command site's people. */
+ROUTES['m3-radio-op'] = { pts: km([[7.172, 15.267], [7.174, 15.268], [7.172, 15.267]]), speed: AMBLE, loop: true, dwell: [{ i: 0, s: 50, action: 'sit' }] };
+ROUTES['m3-command-2'] = { pts: km([[7.16, 15.255], [7.18, 15.26], [7.16, 15.255]]), speed: AMBLE, loop: true, dwell: [{ i: 1, s: 35, action: 'stand' }] };
+/* Stage 5: the northern vehicle, out of the command site, a turn north
+ * that is wrong, then to the edge of coverage and over it. */
+ROUTES['m3-north'] = drive([[7.15, 15.245], [7.05, 15.18], M3_AT.turn, M3_AT.edge, M3_AT.exit], 9, 'gone');
+
 /* A route walked: its legs, each a hold or a stretch of walking, with
  * when each starts and ends, ms. */
 function plan(route) {
