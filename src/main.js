@@ -17728,7 +17728,7 @@ export async function boot({
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     let flightMode;
     if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0];
+      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
     } else if (turtleWait || turtleFlip.active) {
       flightMode = 'turtle';
     } else {

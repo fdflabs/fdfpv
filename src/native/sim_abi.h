@@ -584,7 +584,9 @@ double sim_boost(void);
  * sim_wing_set_stab(mode), sim_wing_stab(): the stabiliser, 0 Manual (the
  * sticks are the surfaces), 1 Stabilised (roll and pitch stick ask for a
  * bank and a pitch, centred flies level), 2 Acro (sticks ask for a roll
- * and pitch rate, centred holds the attitude). With a rudder, the yaw
+ * and pitch rate, centred holds the attitude), 3 Rate damped (the sticks
+ * are the surfaces, less a damper on the body's rates, as E-flite's AS3X;
+ * Manual on an aircraft without one). With a rudder, the yaw
  * stick is the rudder in every mode, and in 1 and 2 a turn coordinator
  * adds the rudder that keeps a banked turn from slipping. A mode, kept
  * across resets.

@@ -601,6 +601,13 @@ typedef struct FixedWingParams {
   double acro_roll_ki;
   double acro_pitch_ki;
   double acro_i_max;
+  /* The rate damper of mode 3 (E-flite's AS3X with SAFE Select off): each
+   * surface is the stick's, at the full throw and expo, less this many
+   * radians of surface per rad/s of the body's roll, pitch and yaw rate,
+   * clipped at the throw. No attitude, no rate cap, no hold. Zero where
+   * the aircraft has no such receiver, and mode 3 there is Manual.
+   * scripts/as3x-derive.js. */
+  double as3x_k[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */

@@ -1684,6 +1684,7 @@ export default {
   "ui.yours_first_then_the_board_most": "Yours first, then the board, most flown first",
   "ui.free_flight_card": "Free Flight",
   "ui.manual": "Manual",
+  "ui.as3x": "AS3X",
   "ui.every_plane": "Every plane",
   "main.throttle_up_to_take_off_from": "Throttle up to take off from the strip, or press L to throw it. C changes the camera.",
   "ui.track_mode": "Track Day",

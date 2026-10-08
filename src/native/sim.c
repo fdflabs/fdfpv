@@ -2828,7 +2828,7 @@ SIM_EXPORT int sim_wing_set_stab(int mode) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  if (mode < 0 || mode > 2) {
+  if (mode < 0 || mode > 3) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_set_stab(mode);

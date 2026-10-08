@@ -1689,6 +1689,7 @@ export default {
   "ui.other_aircraft_note": "Otros pilotos, atacantes y vehículos.",
   "ui.free_flight_card": "Vuelo Libre",
   "ui.manual": "Manual",
+  "ui.as3x": "AS3X",
   "ui.every_plane": "Todos los aviones",
   "main.throttle_up_to_take_off_from": "Sube el acelerador para despegar desde la pista, o pulsa L para lanzarlo. C cambia la cámara.",
   "ui.track_mode": "Día de pista",
