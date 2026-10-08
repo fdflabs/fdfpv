@@ -47,6 +47,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
@@ -237,13 +238,15 @@ export function createCarouselStage(renderer) {
      * of its own too. */
     const preview = key === id ? previews.get(id) : undefined;
     const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
-    const fitted = kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '';
+    const lights = (preview ?? liveryFor(id))?.lights ?? undefined;
+    const fitted = (kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '')
+      + (lights ? `*${JSON.stringify(lights)}` : '');
     const at = (combat ? `${key}#${JSON.stringify(combat)}` : key) + fitted;
     let m = models.get(at);
     if (m) {
       return m;
     }
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit }), id, preview ?? undefined), id);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -550,6 +553,11 @@ export function createCarouselStage(renderer) {
     lastByKey.set(view.items[0].id, m);
     fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
     animateParts(m.craft, t0 / 1000);
+    /* The kit's LED pattern and strobes previewed on the stand, on the
+     * page's clock (only the flight's own needs the flight clock). */
+    if (m.craft.group.userData.setLights) {
+      m.craft.group.userData.setLights(t0, 0.5, 1);
+    }
     for (const other of models.values()) {
       other.holder.visible = false;
     }
