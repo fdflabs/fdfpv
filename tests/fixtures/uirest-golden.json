@@ -251,6 +251,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -363,6 +367,10 @@
       {
        "value": "tigermoth1803",
        "label": "Tiger Moth"
+      },
+      {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
       },
       {
        "value": "p51d1450",
@@ -2357,6 +2365,159 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -3829,6 +3990,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -3941,6 +4106,10 @@
       {
        "value": "tigermoth1803",
        "label": "Tiger Moth"
+      },
+      {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
       },
       {
        "value": "p51d1450",
@@ -5935,6 +6104,159 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",

@@ -62,7 +62,7 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
  * its plane's kit. */
 export const KITS = {
   sky1800: TRAINER, cub1400: TRAINER, kadet1981: TRAINER, slowstick1180: TRAINER,
-  uglystik1567: TRAINER, timber1500: TRAINER,
+  uglystik1567: TRAINER, timber1500: TRAINER, extra3d1308: TRAINER,
   p51d1450: WARBIRD, tigermoth1803: WARBIRD, bombshell1118: WARBIRD,
   f16878: JET,
   radian2000: GLIDER, nrj1490: GLIDER,
