@@ -23,7 +23,7 @@
 
 import { FreestyleScore } from '../src/game/score.js';
 import {
-  DONE_GAP_MS, SEND_MS, cleanNumbers, createJamRun, createRoomJam,
+  DONE_GAP_MS, SEND_MS, SLACK_MS, TURN_MS, cleanNumbers, createJamRun, createRoomJam,
 } from '../src/share/roomjam.js';
 
 let passed = 0;
@@ -50,7 +50,7 @@ const turn = (runner, extra = {}) => ({
   },
 });
 rj.onMessage(turn(5));
-check('another pilot\'s turn: this one watches, held all of it', rj.watching() && !rj.mine() && rj.holdMs(7000) === Infinity && rj.takeTurn(100) === null);
+check('another pilot\'s turn: this one watches, held to the next count', rj.watching() && !rj.mine() && rj.holdMs(7000) === 51000 - 7000 + SLACK_MS + TURN_MS && rj.takeTurn(100) === null);
 rj.onMessage(turn(2, { goAt: 9000, endAt: 54000 }));
 check('its own turn: held until its go, taken once', rj.mine() && rj.holdMs(8000) === 1000 && rj.takeTurn(8000) && rj.takeTurn(8001) === null);
 rj.onMessage({ type: 'jam', jam: { ...turn(2).jam, state: 'run', goAt: 9000 } });

@@ -173,12 +173,13 @@ export function createRoomJam(send) {
     },
 
     /* ms to hold this pilot's aircraft: until its own run goes, all of
-     * another's turn. 0 when it may fly. */
+     * another's turn and the next one's count (asked again every frame,
+     * so finite: a hold is also a countdown on screen). 0 when it may fly. */
     holdMs(roomNow) {
       if (!api.on() || roomNow == null) {
         return 0;
       }
-      return api.mine() ? Math.max(0, jam.goAt - roomNow) : Infinity;
+      return api.mine() ? Math.max(0, jam.goAt - roomNow) : Math.max(0, jam.endAt - roomNow) + SLACK_MS + TURN_MS;
     },
 
     /* This pilot's turn counting down, once: the shell puts it on its
