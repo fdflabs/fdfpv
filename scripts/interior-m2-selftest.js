@@ -75,6 +75,7 @@ console.log('data');
     keys.add(st.title);
     for (const o of st.objectives ?? []) {
       keys.add(o.text);
+      [o.guide ?? []].flat().flatMap((g) => (typeof g === 'object' ? Object.values(g) : [g])).forEach((x) => radios.add(x));
       walk(o.done);
     }
     for (const x of st.exits ?? []) {
@@ -108,7 +109,7 @@ console.log('data');
   const table = new Set([...doc.matchAll(/^\| (int2-[a-z0-9-]+) \|/gm)].map((x) => x[1]));
   const odd = [...radios].filter((r) => r.startsWith('int2-') && !table.has(r));
   const unused = [...table].filter((r) => !radios.has(r));
-  check(`every int2 line cued is MISSIONS.md's (${radios.size} cued)`, odd.length === 0, odd.join());
+  check(`every int2 line cued or briefed is MISSIONS.md's (${radios.size} cued)`, odd.length === 0, odd.join());
   check(`every int2 line in MISSIONS.md is cued (${table.size})`, unused.length === 0, unused.join());
   const ids = new Set(AIRFRAMES.map((a) => a.id));
   check('every role\'s platforms are airframes', M.roles.every((r) => r.platforms.every((p) => ids.has(p))));
@@ -272,14 +273,14 @@ function fly(follow, { seen = false } = {}) {
   until(e, () => view(e).choices?.split, 1500000, 'the handoff');
   check(`${follow}: the handoff: "Which one?" to "only to see"`, heard(e, 'int2-s2-see'));
   const who = follow === 'a' ? 'watcher' : 'second';
-  shadow(e, c, who, 150, 150);
+  shadow(e, c, who, 250, 250);
   r.choose = snap(e, c, `follow_${follow}`);
   check(`${follow}: Contact ${follow.toUpperCase()} boxed: the choice`, view(e).choices?.follow === follow, `${r.choose} ${JSON.stringify(view(e).choices)}`);
-  shadow(e, c, who, 150, 150);
+  shadow(e, c, who, 250, 250);
   if (follow === 'a') {
     until(e, () => contact(e, 'courier'), 900000, 'the courier');
     check('a: the courier leaves A\'s post, "Follow that one."', heard(e, 'int2-s2-courier'));
-    shadow(e, c, 'courier', 150, 150);
+    shadow(e, c, 'courier', 250, 250);
   }
   until(e, () => view(e).stage?.id === 'M2_CP_PROPERTY', 2400000, 'stage 3');
   mark();

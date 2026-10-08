@@ -42,9 +42,12 @@
 
 import { threePosToDoc } from '../../../render/frame.js';
 import { ORIGIN } from '../ops.js';
-import { CAMP_PROPS, PLACES } from '../places.js';
+import {
+  BUILDINGS, CAMP_PROPS, NUEVO_PROPS, PLACES,
+} from '../places.js';
 import { M2_AT } from '../routes.js';
 import { CLASSES } from './interior-1.js';
+import { FILMS, briefingMs } from '../films/index.js';
 
 /* A grid point (km east, km north) in ops frame metres. */
 const G = (e, n) => [Math.round(e * 1000 - ORIGIN[0]), Math.round(n * 1000 - ORIGIN[1])];
@@ -55,6 +58,7 @@ const P = ([x, z], h = 0) => {
   return [Math.round(d.x * 100) / 100, Math.round(d.y * 100) / 100, h];
 };
 const P2 = (at) => P(at).slice(0, 2);
+const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
 const ZONES = ['cruce', 'loma', 'corral'];
 const HANDOFFS = ['n', 's'];
@@ -84,7 +88,17 @@ export default {
   map: 'interior',
   ground: true,
   z0: 0,
+  /* The briefing: Mission 2's intro film, held for its length, and the
+   * cut it plays, so the host's skip waits for everyone (as Mission 1). */
+  filmMs: briefingMs('interior-2'),
+  film: { id: FILMS['int2-intro'].id, version: FILMS['int2-intro'].version },
   sensor: { palette: 'arctic' },
+  /* The camps as the story has them (life.js setCamp): Claro Viejo
+   * left, its antenna down, its motorcycles gone, its fire cold; Claro
+   * Nuevo up. */
+  camp: { world: {
+    nuevo: true, mast: 1, parked: 0, cold: true,
+  } },
   debrief: {
     required: ['fire', 'cable', 'impressions', 'tracks', 'diagram', 'stash', 'radio', 'notes', 'nuevo_people', 'nuevo_vehicles', 'nuevo_comms', 'nuevo_overview'],
   },
@@ -156,23 +170,23 @@ export default {
     },
     /* Estancia La Ceniza, inside the house (stage 3, RECON). */
     {
-      id: 'stash', set: 'property', at: [...GA('estancia'), 0.4], size: 0.7,
+      id: 'stash', set: 'property', at: P(BUILDING('estancia-stash').at, 0.4), size: 0.7,
     },
     {
-      id: 'radio', set: 'property', at: [...GA('estancia').map((v, k) => v + [3, 2][k]), 1], size: 0.4,
+      id: 'radio', set: 'property', at: P(BUILDING('estancia-radio').at, 0.9), size: 0.4,
     },
     {
-      id: 'notes', set: 'property', at: [...GA('estancia').map((v, k) => v + [-2, 3][k]), 1.6], size: 0.5,
+      id: 'notes', set: 'property', at: P(BUILDING('estancia-notes').at, 1.6), size: 0.5,
     },
     /* Claro Nuevo (stage 4). */
     {
       id: 'nuevo_people', set: 'nuevo', contact: 'nuevo', size: 1.7,
     },
     {
-      id: 'nuevo_vehicles', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [5, 17][k]), 0.6], size: 4,
+      id: 'nuevo_vehicles', set: 'nuevo', at: P(NUEVO_PROPS.motorcycles[1].at, 0.6), size: 4,
     },
     {
-      id: 'nuevo_comms', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [-4, 31][k]), 3], size: 3,
+      id: 'nuevo_comms', set: 'nuevo', at: P(NUEVO_PROPS.mast.at, 5), size: 3,
     },
     {
       id: 'nuevo_overview', set: 'nuevo', at: [...GA('claroNuevo'), 0], size: 60,
@@ -267,10 +281,10 @@ export default {
       ],
       objectives: [
         {
-          id: 'inspect', text: 'ops.interior.m2.obj.inspect', tier: 'primary', done: { captured: { set: 'camp-close' }, n: 5 },
+          id: 'inspect', text: 'ops.interior.m2.obj.inspect', tier: 'primary', done: { captured: { set: 'camp-close' }, n: 5 }, guide: 'int2-g-inspect',
         },
         {
-          id: 'posts', text: 'ops.interior.m2.obj.posts', tier: 'primary', after: 'inspect', done: { discovered: 'watcher' },
+          id: 'posts', text: 'ops.interior.m2.obj.posts', tier: 'primary', after: 'inspect', done: { discovered: 'watcher' }, guide: 'int2-g-posts',
         },
         {
           id: 'watchers', text: 'ops.interior.m2.obj.watchers', tier: 'optional', after: 'inspect', done: { flag: 'M2_ALL_WATCHERS_FOUND' },
@@ -285,10 +299,10 @@ export default {
       restartLead: TRANSIT_S(GA('handoffN')),
       objectives: [
         {
-          id: 'follow', text: 'ops.interior.m2.obj.follow', tier: 'primary', done: { any: [{ route: 'watcher', point: 'handoff-n' }, { route: 'watcher', point: 'handoff-s' }] },
+          id: 'follow', text: 'ops.interior.m2.obj.follow', tier: 'primary', done: { any: [{ route: 'watcher', point: 'handoff-n' }, { route: 'watcher', point: 'handoff-s' }] }, guide: 'int2-g-follow',
         },
         {
-          id: 'choose', text: 'ops.interior.m2.obj.choose', tier: 'primary', show: { chosen: 'split', is: 'done' }, done: { any: [{ chosen: 'follow', is: 'a' }, { chosen: 'follow', is: 'b' }] },
+          id: 'choose', text: 'ops.interior.m2.obj.choose', tier: 'primary', show: { chosen: 'split', is: 'done' }, done: { any: [{ chosen: 'follow', is: 'a' }, { chosen: 'follow', is: 'b' }] }, guide: 'int2-g-choose',
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -352,13 +366,13 @@ export default {
       restartLead: TRANSIT_S(GA('estancia')),
       objectives: [
         {
-          id: 'property', text: 'ops.interior.m2.obj.property', tier: 'primary', done: { captured: { set: 'property' }, n: 3 },
+          id: 'property', text: 'ops.interior.m2.obj.property', tier: 'primary', done: { captured: { set: 'property' }, n: 3 }, guide: 'int2-g-property',
         },
         {
           id: 'avoid', text: 'ops.interior.m2.obj.avoid', tier: 'primary', after: 'property', fail: DETECTED,
         },
         {
-          id: 'observe', text: 'ops.interior.m2.obj.observe', tier: 'primary', after: 'property', done: { route: 'returner', point: 'property-gate' },
+          id: 'observe', text: 'ops.interior.m2.obj.observe', tier: 'primary', after: 'property', done: { route: 'returner', point: 'property-gate' }, guide: 'int2-g-observe',
         },
         { id: 'rule', text: 'ops.rule.no_engagement', tier: 'rule' },
       ],
@@ -397,10 +411,10 @@ export default {
       restartLead: TRANSIT_S(GA('claroNuevo')),
       objectives: [
         {
-          id: 'document', text: 'ops.interior.m2.obj.document', tier: 'primary', done: { captured: { set: 'nuevo' }, n: 4 },
+          id: 'document', text: 'ops.interior.m2.obj.document', tier: 'primary', done: { captured: { set: 'nuevo' }, n: 4 }, guide: 'int2-g-document',
         },
         {
-          id: 'meeting', text: 'ops.interior.m2.obj.meeting', tier: 'primary', after: 'document', done: { vanished: 'old-courier' },
+          id: 'meeting', text: 'ops.interior.m2.obj.meeting', tier: 'primary', after: 'document', done: { vanished: 'old-courier' }, guide: 'int2-g-meeting',
         },
         {
           id: 'comparison', text: 'ops.interior.m2.obj.comparison', tier: 'optional', done: { captured: 'comparison' },

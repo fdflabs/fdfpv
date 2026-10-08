@@ -441,7 +441,7 @@ export function play(scene, camera, opts = {}) {
   let bedSet = false;
   /* line id -> AudioBuffer, decoded at the start; and each line's state. */
   const buffers = new Map();
-  const filmLines = linesOf(timed);
+  const filmLines = linesOf(timed, opts.flags);
   const scheduled = new Map();
   const cued = [];
   let anchorS = null;
@@ -931,7 +931,7 @@ export function play(scene, camera, opts = {}) {
 
   /* The line under way in the page's language, for its own length. */
   function subtitle(tFilm) {
-    const l = lineAt(timed, tFilm, lang);
+    const l = lineAt(timed, tFilm, lang, opts.flags);
     const line = l && lines ? lines[l.line] : null;
     put(sub, 'opacity', line ? '1' : '0');
     if (line && sub.textContent !== line) {

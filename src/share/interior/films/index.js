@@ -29,22 +29,26 @@
 import prologue from './prologue.js';
 import int1Intro from './int1-intro.js';
 import int1Outro from './int1-outro.js';
+import int2Intro from './int2-intro.js';
+import int2Outro from './int2-outro.js';
 import { filmMs } from '../../war/film.js';
 
-export const FILMS = Object.freeze(Object.fromEntries([prologue, int1Intro, int1Outro].map((f) => [f.id, f])));
+export const FILMS = Object.freeze(Object.fromEntries([prologue, int1Intro, int1Outro, int2Intro, int2Outro].map((f) => [f.id, f])));
 /* Every film in story order, for a menu of the films a pilot has seen. */
-export const INTERIOR_FILM_IDS = Object.freeze([prologue, int1Intro, int1Outro].map((f) => f.id));
+export const INTERIOR_FILM_IDS = Object.freeze([prologue, int1Intro, int1Outro, int2Intro, int2Outro].map((f) => f.id));
 
 /* The aircraft The Interior's films may show (PLAN.md 6: the war's "only
- * combat drones" rule is the war's). Mission 1 flies the ISR only. */
-export const FILM_AIRFRAMES = Object.freeze(['bramor2300']);
+ * combat drones" rule is the war's): Mission 1's ISR, Mission 2's recon
+ * quad. */
+export const FILM_AIRFRAMES = Object.freeze(['bramor2300', '7inch']);
 
 /* Each mission's films by moment. `prologue` plays on the pilot's own
  * screen the first time the campaign is opened (INTROS P), `intro` is
  * the room's briefing, `outro` plays on every screen from the mission's
- * end. Missions 2 to 5 have none until they are built. */
+ * end. Missions 3 to 5 have none until they are built. */
 export const MISSION_FILMS = Object.freeze({
   'interior-1': Object.freeze({ prologue: 'interior-prologue', intro: 'int1-intro', outro: 'int1-outro' }),
+  'interior-2': Object.freeze({ intro: 'int2-intro', outro: 'int2-outro' }),
 });
 
 /* A mission's film for a moment, or null when it has none. A name this

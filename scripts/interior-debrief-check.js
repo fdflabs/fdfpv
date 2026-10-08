@@ -19,7 +19,10 @@
  *   - a lost match WITHOUT the symbol: the reconstruction in its place,
  *     and for the host, play again from the checkpoint, which sends the
  *     contract's start
- *   - pictures of both, outside the repository; no page errors
+ *   - Mission 2 won: its own items (a squad capture, a reconstruction,
+ *     an optional missing), its star, the next mission's state, its
+ *     flags into the synced progress
+ *   - pictures of each, outside the repository; no page errors
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -287,6 +290,43 @@ try {
   await page.tap('Escape');
   await page.sleep(300);
   check('Escape closes it, the same as Continue', before && !(await page.evaluate('window.__debrief().open')), `open before: ${before}`);
+  /* Mission 2 won: its own items, its stars and flags, its next. */
+  const m2 = (id, over) => ({
+    ...view(id, over),
+    mission: 'interior-2',
+    stage: {
+      id: 'M2_CP_SECOND_CAMP', n: 4, at: 1000, title: 'ops.interior.m2.s4', text: null, music: null, lockRoles: false,
+    },
+    roles: {
+      defs: [{ id: 'isr', core: true, guide: 'IBARRA' }, { id: 'recon', core: true, guide: 'IBARRA' }], held: { 1: ['isr', 'recon'] }, active: { 1: 'isr' }, locked: false, beat: null, swaps: [],
+    },
+    ...over,
+  });
+  await page.evaluate(`(window.__ops.welcome({ seat: 1, host: 1, code: 'DEB000', ops: ${JSON.stringify(m2(6))} }), true)`);
+  await page.sleep(300);
+  const won2 = m2(6, {
+    state: 'won',
+    why: 'documented',
+    captures: caps([['fire', 2, 'clean'], ['diagram', 2, 'clean'], ['stash', 2, 'usable'], ['nuevo_overview', 2, 'clean']]),
+    flags: { M2_ALL_WATCHERS_FOUND: true, M2_SECOND_CAMP_UNDETECTED: true },
+    result: {
+      won: true, stars: 2, starIds: ['watchers', 'unseen'], flags: { M2_ALL_WATCHERS_FOUND: true, M2_SECOND_CAMP_UNDETECTED: true }, restarted: null,
+    },
+  });
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(won2)} }), true)`);
+  await page.until('window.__debrief().open', 10000).catch(() => {});
+  await page.sleep(500);
+  const dm2 = await page.evaluate('window.__debrief()');
+  const km2 = Object.fromEntries(dm2.frames.map((f) => [f.id, f]));
+  check('Mission 2 won: the debrief over its own items', dm2.open && /MISSION COMPLETE/.test(dm2.text) && km2.nuevo_overview && km2.nuevo_overview.kind === 'squad' && km2.cable && km2.cable.kind === 'rec' && km2.comparison && km2.comparison.kind === 'missing' && !km2.symbol,
+    JSON.stringify(Object.fromEntries(Object.entries(km2).map(([k, f]) => [k, f.kind]))));
+  check('Mission 2: its star and the next mission\'s state', /★ {2}FIND EVERY OBSERVATION POST/.test(dm2.text) && /No Man's Land · Under development/.test(dm2.text), dm2.text.slice(0, 240));
+  const prog2 = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-2']) || null");
+  const flags2 = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
+  check('Mission 2: its stars and flags go into the synced progress', prog2 && prog2.won === true && prog2.stars === 2 && flags2 && flags2.M2_ALL_WATCHERS_FOUND === true && flags2.M2_SECOND_CAMP_UNDETECTED === true, JSON.stringify({ prog2, flags2 }));
+  await shot('debrief-m2-won.png');
+  await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
+  await page.sleep(300);
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

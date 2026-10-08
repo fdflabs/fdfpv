@@ -712,7 +712,7 @@ The intro and outro (M2_00, M2_10) are films (INTROS M2).
 | int2-s3-quiet | after s3-movement | IBARRA | RECON | (new) Stay where he can't see you. Let him come. |
 | int2-s3-seen | `alert(property, high)` | IBARRA | all | (new) He saw you. He's running. Stay on him. |
 | int2-s4-radio | `discovered(claro-nuevo)` | FERRER | all | That's a newer radio. |
-| int2-s4-newer | after s4-radio | IBARRA | all | Everything here is newer. |
+| int2-s4-newer | after s4-radio | IBARRA | all | Everything in this camp is newer. |
 | int2-s4-replacement | after s4-newer | ROJAS | all | Replacement camp? |
 | int2-s4-people | after s4-replacement; group NEW COLUMN (UNCONFIRMED) | IBARRA | all | Replacement people. |
 | int2-s4-hold | the old courier enters | IBARRA | all | Hold. |
@@ -725,6 +725,14 @@ The intro and outro (M2_00, M2_10) are films (INTROS M2).
 | int2-s4-routes | after s4-orgs | IBARRA | all | Same routes. Same symbols. Different people. |
 | int2-tr-zone | a TRACKER dealt a zone | IBARRA | TRACKER | (new) Take that zone. Look for someone who isn't working. |
 | int2-tr-other | a TRACKER on the contact nobody chose | IBARRA | TRACKER | (new) You take the other one. Both of them matter. |
+| int2-g-inspect | stage 1, inspect the camp | IBARRA | that pilot | (new) Claro Viejo is empty. Take the quad in close: the fire, the cable, the marks, the tracks and the board. |
+| int2-g-posts | stage 1, the observation posts | IBARRA | that pilot | (new) Three search areas. Look for a man who is watching the road. |
+| int2-g-follow | stage 2, follow the watcher | IBARRA | that pilot | (new) Stay on the motorcycle from high up. Don't crowd him. |
+| int2-g-choose | stage 2, the choice | IBARRA | that pilot | (new) Two contacts. Box the one you follow. |
+| int2-g-property | stage 3, inspect the property | IBARRA | that pilot | (new) The house. Take the quad inside: the batteries, the radio, the notes. |
+| int2-g-observe | stage 3, observe the contact | IBARRA | that pilot | (new) Watch him from cover. Away from the gate, and keep him in frame. |
+| int2-g-document | stage 4, document the second group | IBARRA | that pilot | (new) Document the second camp from high up. The people, the vehicles, the radio, the whole camp. |
+| int2-g-meeting | stage 4, the meeting | IBARRA | that pilot | (new) Someone's coming in. Keep the frame on him until he's gone. |
 
 Spanish: in the same rows when generated; ustedes to the players;
 "Gracias, Sofía." takes no verb form, so it is safe for the checker.
