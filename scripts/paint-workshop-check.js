@@ -215,8 +215,18 @@ async function steady(page, selector) {
   let last = '';
   let same = 0;
   for (let i = 0; i < 100; i++) {
-    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; const r = b.getBoundingClientRect(); return [r.left, r.top, r.width, getComputedStyle(b).opacity].join(); })()`);
-    same = r === last && r !== 'none' ? same + 1 : 0;
+    /* A control waiting out its entrance delay stands still too, so no
+     * finite animation in the hangar may be pending or running. */
+    const r = await page.evaluate(`(() => {
+      const b = document.querySelector(${JSON.stringify(selector)});
+      if (!b) return 'none';
+      const moving = document.getAnimations().some((a) => a.playState !== 'finished' && a.effect && a.effect.target
+        && a.effect.target.closest && a.effect.target.closest('.hangar') && a.effect.getComputedTiming().endTime !== Infinity);
+      if (moving) return 'moving';
+      const r = b.getBoundingClientRect();
+      return [r.left, r.top, r.width, getComputedStyle(b).opacity].join();
+    })()`);
+    same = r === last && r !== 'none' && r !== 'moving' ? same + 1 : 0;
     if (same >= 2) {
       return;
     }
