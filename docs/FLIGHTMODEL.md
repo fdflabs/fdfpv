@@ -741,3 +741,38 @@ pinned hash with the call made and without; a Radian's glide sinking
 0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
 falling less far in rising air; it outliving a reset and a still wind,
 and 0 taking it away to the bit.
+
+## An electric prop spins up
+
+The owner noticed the throttle reaches the thrust in the step it is
+asked; a real rotor has inertia. It now spins up by the motor's own
+equation, every figure from the table already there (plant_wing.c,
+prop_spool): the rotor's inertia j_prop (PR 3's estimates), turned by
+the motor's torque Kt (d V - Ke w) / R less the prop's. The table's
+speed at full is 0.85 of no load (the plant's rule), so the windings
+drop 0.15 of the pack's voltage at the full current, which sets R; Kt is
+V over the no load speed, so the motor's torque at full is Kt I_f, which
+matches the prop's torque_arm times thrust_static (the Extra's 0.68 and
+0.65 N m). Written over the full speed, J w_f n' = Q_f (5.67 (d - n) + d^2
+- n^2), whose rest is still n = d, the plant's speed at a duty: the
+thrust curve and the trims are where they were, and only the getting
+there takes time. A thrown or launched plane starts at the duty; a cut
+or flat motor coasts down on the prop's drag alone. The glow engines and
+the jet drone still answer in the step (an engine's torque curve is not
+in its table), and the ducted fan keeps its own sourced fan_tau.
+
+spool:derive (in CI) measures it off the plant, 63 and 90 percent of the
+thrust's change, ms:
+
+ Aircraft | half to full | full to half | rest to full
+ --- | --- | --- | ---
+ sky1800 | 88/183 | 48/101 | 117/214
+ cub1400 | 119/248 | 83/207 | 158/290
+ radian2000 | 129/269 | 90/226 | 172/316
+ bramor2300 | 60/126 | 42/105 | 80/147
+ slowstick1180 | 100/209 | 70/174 | 133/244
+ timber1500 | 130/271 | 66/134 | 173/317
+ extra3d1308 | 60/103 | 27/48 | 100/182
+ p51d1450 | 274/555 | 158/375 | 363/640
+ f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
+ zagi1219 | 48/100 | 34/84 | 64/117
