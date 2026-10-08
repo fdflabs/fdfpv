@@ -2735,6 +2735,7 @@ export default {
   "replay.export_no_sound": "This browser cannot encode the sound.",
   "replay.export_wrong_size": "the picture was {got}, the movie {want}",
   "rooms.name": "{adj} {animal} {n}",
+  "rooms.bot_name": "AI {name}",
   "friends.title": "Fly with friends",
   "friends.lede": "Join a room from the list, or make your own and name it: public so everybody can find it, or private for up to eight friends with its code. Everybody sees everybody's aircraft, in their own paint.",
   "friends.row_off": "Join a room from the list, or make your own.",

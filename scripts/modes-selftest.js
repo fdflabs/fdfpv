@@ -69,7 +69,7 @@ for (const m of MODES) {
   check(`${m.id}: flags are booleans`, BOOLS.every((k) => typeof m[k] === 'boolean'), BOOLS.filter((k) => typeof m[k] !== 'boolean').join(','));
   check(`${m.id}: player minimums are whole and at least 1`, [m.minPlayers, m.minElsewhere].every((n) => Number.isInteger(n) && n >= 1));
   check(`${m.id}: allowSolo is a minimum of 1`, m.allowSolo === (m.minPlayers === 1));
-  check(`${m.id}: no AI pilots (none exist)`, m.allowAI === false);
+  check(`${m.id}: AI pilots only where the room flies them (Catch the Ace, edge/rooms/roombots.js)`, m.allowAI === (m.id === 'tag'));
   check(`${m.id}: setting is null or a key with choices`, m.setting === null
     || (typeof m.setting.key === 'string' && (m.setting.choices === null || (Array.isArray(m.setting.choices) && m.setting.choices.length > 0))));
   const c = m.card;

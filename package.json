@@ -170,6 +170,7 @@
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
     "bots:selftest": "node scripts/bots-selftest.js",
+    "bots:twopage": "node scripts/bots-two-page.js",
     "jam:selftest": "node scripts/jam-selftest.js",
     "jam:twopage": "node scripts/jam-two-page.js",
     "voicechat:selftest": "node scripts/voicechat-selftest.js",
