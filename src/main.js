@@ -11595,7 +11595,7 @@ export async function boot({
     weather.at(c.x, c.y, c.z, t, rainAt);
     rain.frame(shell.camera, t, rainAt.x, rainAt.z, rainAt.wet);
   }
-  window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent) });
+  window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal) });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
   window.__weather = (preset, seed) => {

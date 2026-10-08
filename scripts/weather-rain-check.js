@@ -89,6 +89,7 @@ try {
   const inFront = await throwAt(wet, y);
   await shot('rain-front.png');
   check('inside a front it rains', inFront.shown === true, JSON.stringify(inFront));
+  check('and the rain says what it is in the thermal picture (sensor:check coverage)', inFront.thermal === true);
   const outside = await throwAt(dry, y);
   await shot('rain-dry.png');
   check('outside every front it does not', outside.shown === false, JSON.stringify(outside));

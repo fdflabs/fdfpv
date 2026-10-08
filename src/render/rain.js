@@ -25,6 +25,8 @@
 
 import * as THREE from 'three';
 
+import { thermalShader } from './thermal.js';
+
 const STREAKS = 2400;
 /* The box the streaks wrap in, m: wide enough that its edge is lost in the
  * streaks' own thinning with distance, small enough to stay dense. */
@@ -88,6 +90,10 @@ export function createRain() {
     transparent: true,
     depthWrite: false,
   });
+  /* Rain falls from a colder cloud and cools as it evaporates, so its
+   * streaks read a little under the air's temperature, and a thin shower
+   * is mostly seen through in the long wave band. */
+  thermalShader(mat, 'float thT = thEnv.y - 0.05; float thA = 0.3;', 'rain');
   const lines = new THREE.LineSegments(geo, mat);
   lines.frustumCulled = false;
   lines.renderOrder = 4;
