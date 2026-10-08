@@ -105,6 +105,7 @@ jobs:
       - run: npm run registry:selftest
       - run: npm run war:stages
       - run: npm run war:nudge
+      - run: npm run war:cards
       # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
       # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
       - run: npm run contacts:selftest

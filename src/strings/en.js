@@ -3597,6 +3597,8 @@ export default {
   "ops.tier.secondary": "SECONDARY",
   "ops.tier.optional": "OPTIONAL",
   "ops.tier.rule": "MISSION RULE",
+  "card.objective_done": "OBJECTIVE COMPLETE",
+  "card.objective_failed": "OBJECTIVE FAILED",
   "card.primary_updated": "PRIMARY OBJECTIVE UPDATED",
   "card.classification_updated": "CONTACT CLASSIFICATION UPDATED",
   "card.intelligence_updated": "INTELLIGENCE UPDATED",
