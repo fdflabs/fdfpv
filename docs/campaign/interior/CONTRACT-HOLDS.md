@@ -99,6 +99,16 @@ velocity are continuous by construction. Attitude needs
 `sim_set_attitude` (or the reseat taking a quaternion) in the plant ABI;
 until then the reseat is level on the held heading, as the hot swap is.
 
+Built (PR 2): `src/main.js` PLATFORM HOLDS. The keys are `[` and `]`
+(and the pad's shoulders, which already call `ui.cycleSwap`): in a live
+ops match where the seat holds two roles or more, they ask the room for
+the next role (`op: 'active'`) instead of cycling aircraft; the role
+board's FLY THIS is the tap. The hand over happens when the room's view
+says the active role changed. A role not flown yet this match is
+launched where the pilot is, by the hot swap's rules. With no room clock
+(no link) no hold is taken. Holds are cleared when the match is not
+live.
+
 ### 4.3 The wire and the room
 
 - POSE gains a craft index: a new message type `TYPE_POSE_CRAFT` (47
