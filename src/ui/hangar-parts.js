@@ -84,6 +84,30 @@ function changed(hangar, key) {
   hangar.changed(key);
 }
 
+/* What an entry does to the spec sheet's readouts: its grams, and its
+ * prop's full throttle thrust over the option's own. */
+function fitOf(entry, now) {
+  const id = st.id;
+  const p = propOf(id, entry.prop);
+  const est = p.id === 'stock' ? null : PROP_ESTIMATES[id][now.option.id][p.id];
+  return {
+    extraG: partsSummary(id, entry, now.option, baseMass(id, now)).grams,
+    thrustK: est ? est.thrustN / now.option.thrustN : 1,
+  };
+}
+
+/* BEFORE EQUIPPING: a card under the pointer or the focus shows on the
+ * spec sheet what the entry `next` makes of it (src/ui/hangar.js
+ * previewStats). */
+function previewOn(hangar, b, next, now) {
+  const on = () => hangar.previewStats(fitOf(next(), now));
+  const off = () => hangar.previewStats(null);
+  b.addEventListener('pointerenter', on);
+  b.addEventListener('focus', on);
+  b.addEventListener('pointerleave', off);
+  b.addEventListener('blur', off);
+}
+
 function propCards(hangar, box, now) {
   const id = st.id;
   const props = PROPS[id];
@@ -105,6 +129,7 @@ function propCards(hangar, box, now) {
     b.addEventListener('pointerenter', () => {
       hangar.focus = 'nose';
     });
+    previewOn(hangar, b, () => ({ ...st.entry, prop: p.id }), now);
     b.addEventListener('click', () => {
       st.entry.prop = p.id;
       changed(hangar, `prop-${p.id}`);
@@ -139,6 +164,15 @@ function addonCards(hangar, box, now) {
     const grams = partsSummary(id, { prop: 'stock', addons: [a], damage: null }, now.option, baseMass(id, now)).grams;
     b.append(el('span', 'hangar-card-name', str(`parts.addon.${a}`)));
     b.append(el('span', 'hangar-card-detail', str('parts.plus_grams', { n: number(grams) })));
+    previewOn(hangar, b, () => {
+      const set = new Set(st.entry.addons);
+      if (on) {
+        set.delete(a);
+      } else {
+        set.add(a);
+      }
+      return { ...st.entry, addons: fit.filter((x) => set.has(x)) };
+    }, now);
     b.addEventListener('click', () => {
       const set = new Set(st.entry.addons);
       if (on) {
@@ -270,7 +304,12 @@ registerHangarTab({
   /* The grams the chosen add-ons and prop put on, for the spec sheet. */
   grams(hangar) {
     const now = st && st.entry ? optionNow(hangar) : null;
-    return now ? partsSummary(st.id, st.entry, now.option, baseMass(st.id, now)).grams : 0;
+    return now ? fitOf(st.entry, now).extraG : 0;
+  },
+  /* The prop's thrust over the option's own, for the spec sheet. */
+  thrustScale(hangar) {
+    const now = st && st.entry ? optionNow(hangar) : null;
+    return now ? fitOf(st.entry, now).thrustK : 1;
   },
   save() {
     if (!st || !st.entry || sameEntry(st.entry, st.saved)) {

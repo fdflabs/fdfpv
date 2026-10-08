@@ -45,6 +45,9 @@ import { newDecal, MAX_DECALS } from '../configs/paint.js';
 import {
   FLIGHT_DEVICES_MAX, addFlight, flightTotals, mergeFlightTime,
 } from '../src/share/flighttime.js';
+import { ITEMS, grantsFrom, itemById } from '../src/game/economy.js';
+import { CHALLENGES } from '../src/game/progress.js';
+import { grantEvent } from './wallet.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
 const OLD_CLIENT_ID = 'selftest-client-old.apps.googleusercontent.com';
@@ -187,6 +190,19 @@ console.log('the progress merge');
   check('the higher XP wins', m.data.progress.xp === 900);
   check('courses, challenges and seen are the union', m.data.progress.courses.a && m.data.progress.courses.b && m.data.progress.challenges.c1 && m.data.progress.seen.s);
   check('Unlock all on either side is on', m.data.progress.unlockAll === true);
+  /* Progress v2 (src/game/progress.js PROGRESS_VERSION) meeting a v1
+   * computer: the firsts already paid survive, and the merge stays v2, so
+   * no load migrates it again and pays them twice. */
+  const v2 = mergeBlobs(
+    { v: 1, data: { progress: { v: 1, xp: 50, courses: {}, challenges: {}, seen: {}, casual: {}, unlockAll: false } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 40, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: { 'mission:itaipu-1:win': true }, unlockAll: false } }, stamps: {} },
+  );
+  const lm = mergeBlobs(
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 2000, first_turns: 5000 } } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 1000, race_lap: 3000 } } }, stamps: {} },
+  );
+  check('lessons passed merge as the union at the earliest pass time', JSON.stringify(lm.data.progress.lessons) === '{"first_takeoff":1000,"first_turns":5000,"race_lap":3000}', JSON.stringify(lm.data.progress.lessons));
+  check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
     JSON.stringify(m.data.liverySaves.cub1400.map((x) => x.name)) === '["Red","Blue","Green"]' && m.data.liverySaves.cub1400[1].entry.scheme === 2
     && m.data.liverySaves.zagi1219.length === 1);
@@ -549,6 +565,74 @@ check('and one with a build of the wrong shape', r.status === 422);
 r = await call('GET', '/api/account/progress', undefined, alice);
 check('neither changed what the account holds', Object.keys(r.body.progress.data.builds).join() === 'b1');
 
+console.log('the wallet (wallet.js, docs/ECONOMY.md)');
+{
+  ip = '203.0.113.77';
+  /* A record as an account held it before the wallet existed: progress v1,
+   * a war win at three stars, an hour on the Cub, two challenges; no
+   * grants rows. Written straight into the table, as the VM holds it. */
+  const oldBlob = {
+    v: 1,
+    data: {
+      progress: { v: 1, xp: 900, courses: {}, challenges: { deadstick: true, hoops_10: true, made_up: true }, seen: {}, casual: {}, unlockAll: false },
+      campaign: { v: 1, missions: { 'itaipu-1': { stars: 3, won: true, credits: 400 } }, earned: 400, owned: { wide: 500 }, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {} },
+      flightTime: addFlight({}, 'olddevice001', 'cub1400', 'free', 3700, '2026-09-01'),
+    },
+    stamps: {},
+  };
+  const bobRow = await env.DB.prepare("SELECT id FROM accounts WHERE sub = 'bob'").first();
+  await env.DB.prepare('UPDATE accounts SET progress = ? WHERE id = ?').bind(JSON.stringify(oldBlob), bobRow.id).run();
+  const paid = grantsFrom(oldBlob).reduce((n, g) => n + g.amount, 0);
+  check('the old record pays the win, three stars, the Cub\'s three milestones and two real challenges', paid === 60 + 3 * 30 + 10 + 20 + 60 + 2 * 50, `${paid}`);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('reading the wallet pays what the held record shows', r.status === 200 && r.body.wallet.balance === paid && r.body.wallet.earned === paid, JSON.stringify(r.body));
+  check('and the campaign marking it earned is owned, at no price', r.body.wallet.owned['decal:ribbon'] === 'earned' && !r.body.wallet.owned['finish:gold']);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('a second read pays nothing more', r.body.wallet.balance === paid);
+  r = await call('PUT', '/api/account/progress', { progress: oldBlob }, bob);
+  check('nor does a sync of the same record', r.status === 200 && r.body.wallet.balance === paid, JSON.stringify(r.body.wallet));
+  check('the war\'s credits are untouched by tokens', r.body.progress.data.campaign.earned === 400 && r.body.progress.data.campaign.owned.wide === 500);
+  const more = JSON.parse(JSON.stringify(oldBlob));
+  more.data.progress.challenges = { ...more.data.progress.challenges, ...Object.fromEntries(CHALLENGES.map((c) => [c.id, true])) };
+  r = await call('PUT', '/api/account/progress', { progress: more }, bob);
+  check('a sync with new challenges pays only those, and the gold finish is earned with all seven', r.body.wallet.balance === paid + (CHALLENGES.length - 2) * 50
+    && r.body.wallet.owned['finish:gold'] === 'earned', JSON.stringify(r.body.wallet));
+  const before = r.body.wallet.balance;
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:gold' }, bob);
+  check('an earned item is not for sale', r.status === 409 && r.body.why === 'earned');
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:nope' }, bob);
+  check('an unknown item is 404', r.status === 404);
+  const pearl = itemById('finish:pearl').price;
+  const [one, two] = await Promise.all([
+    call('POST', '/api/account/wallet/buy', { item: 'finish:pearl' }, bob),
+    call('POST', '/api/account/wallet/buy', { item: 'finish:pearl' }, bob),
+  ]);
+  check('two computers buying the same item at once buy it once', [one.status, two.status].sort().join() === '200,409', `${one.status} ${two.status}`);
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('and pay for it once', r.body.wallet.balance === before - pearl && r.body.wallet.owned['finish:pearl'] === 'bought', JSON.stringify(r.body.wallet));
+  /* Spend down to under the next price, then try it. */
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:candy' }, bob);
+  const afterCandy = r.status === 200 ? r.body.wallet.balance : before - pearl;
+  r = await call('POST', '/api/account/wallet/buy', { item: 'finish:satin' }, bob);
+  const left = r.status === 200 ? r.body.wallet.balance : afterCandy;
+  check('the balance never goes below nought', left >= 0, `${left}`);
+  const short = ITEMS.find((it) => Number.isInteger(it.price) && it.price > left && !(r.body.wallet || {}).owned?.[it.id]);
+  if (short) {
+    r = await call('POST', '/api/account/wallet/buy', { item: short.id }, bob);
+    check('an item past the balance is 402, and nothing is spent', r.status === 402 && r.body.why === 'short');
+  }
+  check('a Flight Club gold pays every tier once', await grantEvent(env, bobRow.id, '2026-w41-alps-sprint', 'gold') && await grantEvent(env, bobRow.id, '2026-w41-alps-sprint', 'silver'));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('and the gold after the silver adds nothing more', r.body.wallet.balance === left + 20 + 40 + 60 + 100, JSON.stringify(r.body.wallet));
+  check('a bad event id or tier pays nothing', !(await grantEvent(env, bobRow.id, 'Bad Id!', 'gold')) && !(await grantEvent(env, bobRow.id, '2026-w41-x', 'platinum')));
+  r = await call('GET', '/api/account/wallet');
+  check('the wallet needs a session', r.status === 401);
+  /* Alice synced flight time above: her wallet holds a grant, for the delete below. */
+  r = await call('GET', '/api/account/wallet', undefined, alice);
+  check('another account has its own wallet', r.status === 200 && r.body.wallet.balance > 0 && !r.body.wallet.owned['finish:pearl']);
+  ip = '203.0.113.9';
+}
+
 console.log('signing out and deleting');
 r = await call('DELETE', '/api/account/session', undefined, aliceLaptop);
 check('signing out ends that session', r.status === 200);
@@ -563,6 +647,8 @@ check('its sessions go with it', r.status === 401);
 const gone = await env.DB.prepare("SELECT COUNT(*) AS n FROM accounts WHERE sub = 'alice'").first();
 const left = await env.DB.prepare('SELECT COUNT(*) AS n FROM sessions').first();
 check('nothing of it is left in the database', gone.n === 0 && left.n === 1, `${gone.n} ${left.n}`);
+const aliceId = (await env.DB.prepare('SELECT DISTINCT account_id AS id FROM grants ORDER BY account_id').all()).results.map((x) => x.id);
+check('nor of its wallet', aliceId.length === 1, JSON.stringify(aliceId));
 r = await call('PUT', '/api/account/callsign', { callsign: 'Maverick' }, bob);
 check('and its callsign is free', r.status === 200);
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice' }) });

@@ -492,6 +492,10 @@ export function createAccountUi({ ui, identity, say }) {
       view[k] = answer.data[k];
     }
     settled(view, answer);
+    if (changed) {
+      /* Another computer's war or flight time may hold a first not paid here. */
+      ui.progress.checkFirsts();
+    }
     return changed;
   }
 

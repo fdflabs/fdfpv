@@ -56,7 +56,7 @@ const BUDGET = {
   high: { calls: 70, tris: 150000, textures: 3, gpuMs: 4.0 },
 };
 const PRESETS = ['low', 'medium', 'high'];
-const TIERS = ['garage', 'workshop', 'airfield'];
+const TIERS = ['garage', 'workshop', 'airfield', 'field'];
 
 let failed = 0;
 function check(name, ok, detail) {
@@ -103,15 +103,19 @@ try {
   console.log('');
   for (const preset of PRESETS) {
     const b = BUDGET[preset];
-    const r = rows.find((x) => x.preset === preset && x.tier === 'airfield' && !x.naive);
-    check(`${preset}: draw calls`, r.calls <= b.calls, `${r.calls} of ${b.calls}`);
-    check(`${preset}: triangles`, r.tris <= b.tris, `${r.tris} of ${b.tris}`);
-    check(`${preset}: textures`, r.textures <= b.textures, `${r.textures} of ${b.textures}`);
-    if (gpu.timer && r.gpuMs != null) {
-      check(`${preset}: GPU ms, median`, r.gpuMs <= b.gpuMs, `${r.gpuMs.toFixed(2)} of ${b.gpuMs}`);
-    } else {
-      console.log(`skip ${preset}: GPU ms: no timer query on this renderer`);
+    /* The largest tier, and the war's field hangar, its own room. */
+    for (const tier of ['airfield', 'field']) {
+      const t = rows.find((x) => x.preset === preset && x.tier === tier && !x.naive);
+      check(`${preset} ${tier}: draw calls`, t.calls <= b.calls, `${t.calls} of ${b.calls}`);
+      check(`${preset} ${tier}: triangles`, t.tris <= b.tris, `${t.tris} of ${b.tris}`);
+      check(`${preset} ${tier}: textures`, t.textures <= b.textures, `${t.textures} of ${b.textures}`);
+      if (gpu.timer && t.gpuMs != null) {
+        check(`${preset} ${tier}: GPU ms, median`, t.gpuMs <= b.gpuMs, `${t.gpuMs.toFixed(2)} of ${b.gpuMs}`);
+      } else {
+        console.log(`skip ${preset} ${tier}: GPU ms: no timer query on this renderer`);
+      }
     }
+    const r = rows.find((x) => x.preset === preset && x.tier === 'airfield' && !x.naive);
     const n = rows.find((x) => x.preset === preset && x.naive);
     check(`${preset}: merging saves draw calls`, r.calls < n.calls, `merged ${r.calls}, naive ${n.calls}`);
   }

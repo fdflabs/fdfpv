@@ -56,6 +56,7 @@ import {
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { flightTotals } from '../share/flighttime.js';
+import { milestonesOf } from '../game/progress.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
@@ -144,7 +145,19 @@ const COUNT_MS = 520;
  * swatches, so a sweep across a row is a ripple and not a buzz. */
 const HOVER_SOUND_MS = 70;
 /* What pollPad edge triggers on; the right stick's look is read as a level. */
-const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt'];
+const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'flip'];
+/* The workshop's preset views (docs/redesign/WORKSHOP-PAINT.md): a camera
+ * view of src/render/hangarstage.js and whether the plane is flipped for
+ * it, null leaving Flip as it is. Bottom is Top with the plane rolled
+ * over, since the camera never goes under the floor. Keys 1 to 6. */
+const VIEW_PRESETS = [
+  { id: 'top', focus: 'top', flip: false },
+  { id: 'bottom', focus: 'top', flip: true },
+  { id: 'left', focus: 'side_left', flip: null },
+  { id: 'right', focus: 'side_right', flip: null },
+  { id: 'front', focus: 'front', flip: null },
+  { id: 'rear', focus: 'rear', flip: null },
+];
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -213,7 +226,7 @@ const samePower = (a, b) => a.option === b.option && a.pack === b.pack && a.prop
 
 /* The readouts on the Power tab: how each is shown, and which way is up. */
 const STATS = [
-  { key: 'grams', label: 'hangar.weight', text: (v) => str('carousel.grams', { n: number(v) }) },
+  { key: 'grams', label: 'hangar.weight', text: (v) => str('carousel.grams', { n: number(v) }), less: true },
   { key: 'topSpeed', label: 'hangar.top_speed', text: (v) => str('hangar.kmh', { n: number(v * 3.6) }) },
   { key: 'thrustToWeight', label: 'hangar.thrust', text: (v) => str('hangar.thrust_ratio', { n: number(v, 1) }) },
   { key: 'minutes', label: 'hangar.flight_time', text: (v) => str('hangar.minutes', { n: number(v) }) },
@@ -221,7 +234,32 @@ const STATS = [
    * full throttle, which is where a hotter motor costs the pack. */
   { key: 'hoverMinutes', label: 'hangar.hover_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
   { key: 'fullMinutes', label: 'hangar.full_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
+  /* Handling: a plane's wing loading, a quad's motor time constant. Less
+   * of either is better, as less weight is. The wing loading is the spec
+   * sheet's only, beside the parts that change it: the Power tab keeps
+   * its four readouts, which fit the panel without a scroll. */
+  { key: 'wingLoading', label: 'hangar.wing_loading', text: (v) => str('hangar.g_dm2', { n: number(v) }), less: true, specOnly: true },
+  { key: 'responseMs', label: 'hangar.motor_response', text: (v) => str('hangar.ms', { n: number(v) }), less: true },
 ];
+
+/* An estimate with the parts on: their grams on the weight, their thrust
+ * change on the thrust, and both on the thrust to weight and the wing
+ * loading. */
+function fitted(estimate, extraG, thrustK) {
+  const est = { ...estimate };
+  if (!extraG && thrustK === 1) {
+    return est;
+  }
+  const k = est.grams / (est.grams + extraG);
+  if (est.thrustToWeight != null) {
+    est.thrustToWeight *= k * thrustK;
+  }
+  if (est.wingLoading != null) {
+    est.wingLoading /= k;
+  }
+  est.grams += extraG;
+  return est;
+}
 
 export class Hangar {
   constructor(host) {
@@ -236,6 +274,7 @@ export class Hangar {
     this.focus = 'overview';
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
+    this.view = null;
     this.hover = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
@@ -280,7 +319,17 @@ export class Hangar {
     this.flipBtn.setAttribute('aria-pressed', 'false');
     this.flipBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.flipBtn.addEventListener('click', () => this.toggleFlip());
-    this.stage.append(this.flipBtn);
+    this.viewsEl = el('div', 'hangar-views');
+    this.viewBtns = VIEW_PRESETS.map((v) => {
+      const b = button('hangar-view', str(`hangar.view_${v.id}`));
+      b.dataset.key = `view-${v.id}`;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      b.addEventListener('click', () => this.pickView(v.id));
+      return b;
+    });
+    this.viewsEl.append(...this.viewBtns);
+    this.stage.append(this.flipBtn, this.viewsEl);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
@@ -456,9 +505,11 @@ export class Hangar {
     this.turn = 0;
     this.orbit = { elev: 0, zoom: 1 };
     this.setFlip(false);
+    this.setView(null);
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
+    this.pin = null;
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
@@ -479,6 +530,17 @@ export class Hangar {
     for (const f of facts) {
       this.factsEl.append(el('span', 'carousel-fact', f));
     }
+    /* Its mastery milestones (src/game/progress.js MILESTONE_S): each one
+     * reached is lit, the rest wait, so the next one is the reason to fly. */
+    const reached = milestonesOf(flightTotals(settings.flightTime).byAirframe, airframe);
+    const pips = el('span', 'carousel-fact hangar-milestones');
+    pips.dataset.key = 'milestones';
+    for (const [m, on] of Object.entries(reached)) {
+      const pip = el('span', `hangar-milestone${on ? ' on' : ''}`, str(`hangar.milestone.${m}`));
+      pip.dataset.milestone = m;
+      pips.append(pip);
+    }
+    this.factsEl.append(pips);
     /* A plane with a float version has the Floats toggle beside its span and
      * weight (`floats`: { on, set(on) }, src/ui/ui.js openHangar). Flipping
      * it opens the hangar again on the other version, so an unsaved change
@@ -551,7 +613,9 @@ export class Hangar {
   }
 
   triedEntry() {
-    const h = this.hover;
+    /* `pin`: a look a tab keeps on show without the pointer over it (the
+     * Shop's chosen item, src/ui/hangar-shop.js); the pointer still wins. */
+    const h = this.hover ?? this.pin;
     if (!h) {
       return this.entry;
     }
@@ -620,8 +684,10 @@ export class Hangar {
     }
     const dir = HANGAR_TABS.indexOf(t) > HANGAR_TABS.indexOf(this.tab) ? 1 : -1;
     this.shop.stopPlacing();
+    this.setView(null);
     this.tab = t;
     this.hover = null;
+    this.pin = null;
     this.focus = tabFocus(t, this.quad());
     this.paint(dir);
     this.preview();
@@ -841,7 +907,7 @@ export class Hangar {
     this.side.append(tab);
     this.specEl.textContent = '';
     if (this.tab !== 'power') {
-      this.specEl.append(this.statsBlock(this.addedGrams()));
+      this.specEl.append(this.statsBlock(this.addedGrams(), this.thrustScale(), true));
     }
     this.saveBtn.classList.toggle('dirty', this.dirty());
     this.paintHint();
@@ -855,6 +921,16 @@ export class Hangar {
       g += h.grams ? h.grams(this) : 0;
     });
     return g;
+  }
+
+  /* The tabs' change to the full throttle thrust, a ratio (the Parts
+   * tab's prop). */
+  thrustScale() {
+    let k = 1;
+    eachHook((h) => {
+      k *= h.thrustScale ? h.thrustScale(this) : 1;
+    });
+    return k;
   }
 
   /* The tabs' pill slides under the tab that is on. */
@@ -909,6 +985,16 @@ export class Hangar {
     b.addEventListener('pointerleave', off);
   }
 
+  /* A power card's readouts on the pointer or the focus. */
+  previewOn(b, choice) {
+    const on = () => this.previewStats({ choice });
+    const off = () => this.previewStats(null);
+    b.addEventListener('pointerenter', on);
+    b.addEventListener('focus', on);
+    b.addEventListener('pointerleave', off);
+    b.addEventListener('blur', off);
+  }
+
   powerTab() {
     const box = el('div', 'hangar-tab');
     const option = this.power.options.find((o) => o.id === this.choice.option) ?? this.power.options[0];
@@ -929,6 +1015,7 @@ export class Hangar {
       b.addEventListener('pointerenter', () => {
         this.focus = motorFocus(this.quad());
       });
+      this.previewOn(b, { option: o.id });
       b.addEventListener('click', () => this.pickOption(o.id));
       this.lockMark(b, 'power', o.id);
       opts.append(b);
@@ -951,6 +1038,7 @@ export class Hangar {
         b.addEventListener('pointerenter', () => {
           this.focus = motorFocus(this.quad());
         });
+        this.previewOn(b, { prop: p.id });
         b.addEventListener('click', () => this.pickProp(p.id));
         row.append(b);
       });
@@ -973,6 +1061,7 @@ export class Hangar {
         b.addEventListener('pointerenter', () => {
           this.focus = 'pack';
         });
+        this.previewOn(b, { pack: p.id });
         b.addEventListener('click', () => this.pickPack(p.id));
         row.append(b);
       });
@@ -996,15 +1085,11 @@ export class Hangar {
    */
   /* `extraG` grams on the plane beyond the power setup's (the spec
    * sheet's, with the parts fitted): the weight takes them and the
-   * thrust to weight is thrust over that weight. */
-  statsBlock(extraG = 0) {
-    const est = { ...this.power.estimate(this.choice) };
-    if (extraG) {
-      if (est.thrustToWeight != null) {
-        est.thrustToWeight *= est.grams / (est.grams + extraG);
-      }
-      est.grams += extraG;
-    }
+   * thrust to weight is thrust over that weight; `thrustK` the parts'
+   * change to the thrust; `spec` true on the spec sheet. */
+  statsBlock(extraG = 0, thrustK = 1, spec = false) {
+    const est = fitted(this.power.estimate(this.choice), extraG, thrustK);
+    this.statBase = { extraG, thrustK };
     const stock = this.power.estimate(this.power.stock);
     const all = [];
     const props = this.power.props ?? [{ id: undefined }];
@@ -1020,7 +1105,7 @@ export class Hangar {
     this.statEls = {};
     for (const s of STATS) {
       const v = est[s.key];
-      if (v == null) {
+      if (v == null || (s.specOnly && !spec)) {
         continue;
       }
       const top = Math.max(...all.map((e) => e[s.key] ?? 0), v, 1e-9);
@@ -1035,12 +1120,13 @@ export class Hangar {
       if (Math.abs(d) > 1e-9) {
         delta.textContent = `${d > 0 ? '+' : '-'}${s.text(Math.abs(d))}`;
       }
+      const stockText = delta.textContent;
       box.append(el('span', 'hangar-stat-label', str(s.label)), value, bar, delta);
       stats.append(box);
       const c = this.counts[s.key];
       const from = c ? c.shown : v;
       this.counts[s.key] = { from, to: v, shown: from, t0: performance.now() };
-      this.statEls[s.key] = { value, fill, text: s.text, top };
+      this.statEls[s.key] = { value, fill, text: s.text, top, delta, stockText, v, less: Boolean(s.less) };
       value.textContent = s.text(from);
       fill.style.transform = `scaleX(${Math.max(0.02, from / top)})`;
       /* BEFORE AND AFTER: what the choice before this one made, a faint
@@ -1053,6 +1139,35 @@ export class Hangar {
       }
     }
     return stats;
+  }
+
+  /*
+   * BEFORE EQUIPPING: while the pointer or the focus is on a card, each
+   * readout's line under its bar says what that card would make it, in
+   * mint where it is better and amber where it is worse; nothing is
+   * chosen until the card is pressed. `want` is { choice } for a power
+   * card (merged over the choice on show) or { extraG, thrustK } for a
+   * part, or null to put the lines back. The numbers are the same
+   * estimate the readouts show, never a second model.
+   */
+  previewStats(want) {
+    if (!this.statEls || !this.statBase) {
+      return;
+    }
+    const base = this.statBase;
+    const est = want ? fitted(this.power.estimate({ ...this.choice, ...(want.choice || {}) }),
+      want.extraG ?? base.extraG, want.thrustK ?? base.thrustK) : null;
+    for (const [key, e] of Object.entries(this.statEls)) {
+      const v = est ? est[key] : null;
+      e.delta.classList.remove('better', 'worse');
+      /* A change too small to read is no change. */
+      if (v == null || e.text(v) === e.text(e.v)) {
+        e.delta.textContent = e.stockText;
+        continue;
+      }
+      e.delta.textContent = str('hangar.preview', { v: e.text(v) });
+      e.delta.classList.add((v < e.v) === e.less ? 'better' : 'worse');
+    }
   }
 
   /* Count the readouts on toward their values: called every frame. */
@@ -1331,6 +1446,30 @@ export class Hangar {
     this.flipBtn.classList.toggle('on', on);
   }
 
+  /* A preset view holds until another is picked, the same one is picked
+   * again, or the tab changes. */
+  setView(id) {
+    this.view = VIEW_PRESETS.find((v) => v.id === id) ?? null;
+    this.viewBtns.forEach((b, i) => {
+      const on = this.view === VIEW_PRESETS[i];
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  pickView(id) {
+    if (this.view && this.view.id === id) {
+      this.setView(null);
+    } else {
+      this.setView(id);
+      if (this.view.flip !== null) {
+        this.setFlip(this.view.flip);
+      }
+    }
+    this.turn = 0;
+    this.sound('select');
+  }
+
   toggleFlip() {
     this.setFlip(!this.flip);
     this.sound('select');
@@ -1340,6 +1479,11 @@ export class Hangar {
   viewKey(code) {
     if (code === 'KeyV') {
       this.toggleFlip();
+      return true;
+    }
+    const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];
+    if (preset && !this.naming) {
+      this.pickView(preset.id);
       return true;
     }
     const turn = { KeyJ: -KEY_TURN, KeyL: KEY_TURN }[code];
@@ -1440,6 +1584,9 @@ export class Hangar {
     if (edge('down')) {
       this.move(0, 1);
     }
+    if (edge('flip')) {
+      this.toggleFlip();
+    }
     if (edge('alt')) {
       this.cycleTab(1);
     } else if (edge('select')) {
@@ -1483,7 +1630,7 @@ export class Hangar {
       compact: false,
       turn,
       hangar: {
-        focus: (this.tab === 'colours' && this.shop.focus()) || this.focus,
+        focus: (this.view && this.view.focus) || (this.tab === 'colours' && this.shop.focus()) || this.focus,
         orbit: { ...this.orbit },
         flip: this.flip,
         reveal: this.revealSeq,
