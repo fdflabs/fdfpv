@@ -829,7 +829,12 @@ export class OpsHud {
       this.setGoal(goal);
     }
     const bound = v && v.boundary ? v.boundary[src.seat] : null;
-    this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : '');
+    /* The people below noticing the aircraft (CONTRACT-SPOTTED.md) share
+     * the boundary's place: both say "get out of here", and the boundary
+     * is the more urgent. */
+    const levels = Object.values((v && v.spot) || {}).map((x) => x.level);
+    const spot = ['spotted', 'looking'].find((l) => levels.includes(l));
+    this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : spot ? str(`ops.hud.spot_${spot}`) : '');
 
     /* The EO / IR / MAP / TGT / LRF row. */
     const thermal = src.mode === 'ir_wh' || src.mode === 'ir_bh' || src.mode === 'fusion';
