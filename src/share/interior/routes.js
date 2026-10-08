@@ -205,6 +205,119 @@ ROUTES['colonia-civ-2'] = { pts: col([[60, -40], [62, -30], [60, -40]]), speed: 
 ROUTES['colonia-civ-3'] = { pts: col([[-80, 30], [10, 26], [120, 20], [-80, 30]]), speed: 1.2, loop: true };
 ROUTES['colonia-civ-4'] = { pts: col([[150, -48], [160, -46], [150, -48]]), speed: 0.6, loop: true, dwell: [{ i: 0, s: 60, action: 'stand' }] };
 
+/*
+ * MISSION 2's ROUTES (MISSIONS.md M2, routes and spawn sets), `m2-`
+ * prefixed. M2_AT is where its places stand on the design grid (km):
+ * MISSIONS 1.9's first layout, each moved to the nearest ground the
+ * canopy leaves open from seven of eight sides at 250 m (a watcher hid
+ * under a crown is never found), and Claro Nuevo and the handoffs brought
+ * within a walk of Estancia La Ceniza so the follows fit the mission's
+ * 25 to 35 minutes. The props and buildings there are WORLD's to add
+ * (TECH-NEEDS N1); the mission data reads the places from here.
+ */
+export const M2_AT = {
+  cruce: [8.5, 10.2],
+  loma: [9.775, 11.4],
+  corral: [13.2, 8.15],
+  handoffN: [13.3, 12.4],
+  handoffS: [13.55, 12.225],
+  postA: [12.55, 12.15],
+  estancia: [13.95, 12.475],
+  yard: [13.93, 12.455],
+  gate: [14.07, 12.6],
+  claroNuevo: [14.7, 13.225],
+  nuevoEdge: [14.62, 13.15],
+};
+/* Each watcher's spot: off the road, looking at it, beside his machine. */
+const M2_WATCH = {
+  cruce: [[8.5, 10.2], [8.503, 10.202]],
+  loma: [[9.775, 11.4], [9.777, 11.404]],
+  corral: [[13.2, 8.15], [13.203, 8.153]],
+};
+/* From each watcher's spot to the road and along it to each handoff. */
+const M2_RIDE = {
+  cruce: [[8.5, 10.2], [8.6, 10.36], [8.9, 10.52], [9.5, 10.68], [9.85, 10.98], [10.5, 11.38], [11.3, 11.7], [12.2, 12.0], [12.9, 11.95]],
+  loma: [[9.775, 11.4], [10.5, 11.38], [11.3, 11.7], [12.2, 12.0], [12.9, 11.95]],
+  corral: [[13.2, 8.15], [13.1, 9.3], [12.9, 10.4], [12.9, 11.2], [12.9, 11.95]],
+};
+const M2_HANDOFF = { n: M2_AT.handoffN, s: M2_AT.handoffS };
+const MOTO = 11;
+for (const [z, [a, b]] of Object.entries(M2_WATCH)) {
+  ROUTES[`m2-watch-${z}`] = {
+    pts: km([a, b, a]), speed: 0.4, loop: true, dwell: [{ i: 0, s: 40, action: 'park' }, { i: 1, s: 25, action: 'park' }], vehicle: 'motorcycle',
+  };
+  for (const [h, at] of Object.entries(M2_HANDOFF)) {
+    const pts = [...M2_RIDE[z], at];
+    ROUTES[`m2-ride-${z}-${h}`] = {
+      pts: km(pts), speed: MOTO, end: 'stay', segments: [{ from: 0, to: pts.length - 1, action: 'drive' }], vehicle: 'motorcycle',
+    };
+  }
+}
+for (const [h, at] of Object.entries(M2_HANDOFF)) {
+  /* The second person waits at the handoff, then walks to the property. */
+  ROUTES[`m2-second-${h}`] = { pts: km([at, [at[0] + 0.004, at[1]], at]), speed: AMBLE, loop: true, dwell: [{ i: 0, s: 30, action: 'stand' }] };
+  ROUTES[`m2-b-${h}`] = { pts: km([at, [(at[0] + M2_AT.yard[0]) / 2, (at[1] + M2_AT.yard[1]) / 2 - 0.03], M2_AT.yard]), speed: WALK, end: 'gone' };
+  /* Contact A rides on to another post and watches from there. */
+  const toPost = [at, [12.9, 11.95], [12.6, 12.1], M2_AT.postA];
+  ROUTES[`m2-a-${h}`] = {
+    pts: km(toPost), speed: MOTO, end: 'stay', segments: [{ from: 0, to: toPost.length - 1, action: 'drive' }], dwell: [{ i: toPost.length - 1, s: 1, action: 'park' }], vehicle: 'motorcycle',
+  };
+}
+/* The courier (only when A was followed): A's post to the property by
+ * motorcycle, so the branch costs minutes, not a second long walk. */
+const COURIER = [[12.56, 12.17], [12.9, 12.3], [13.5, 12.4], M2_AT.yard];
+ROUTES['m2-courier'] = {
+  pts: km(COURIER), speed: MOTO, end: 'gone', segments: [{ from: 0, to: COURIER.length - 1, action: 'drive' }], vehicle: 'motorcycle',
+};
+/* The zones' civilians, so a watcher is not simply the only person. */
+ROUTES['m2-civ-farmer'] = { pts: km([[13.24, 8.12], [13.27, 8.16], [13.23, 8.19], [13.24, 8.12]]), speed: AMBLE, loop: true, dwell: [{ i: 1, s: 40, action: 'stand' }] };
+ROUTES['m2-civ-fence'] = { pts: km([[8.46, 10.21], [8.48, 10.22], [8.46, 10.21]]), speed: 0.5, loop: true, dwell: [{ i: 0, s: 60, action: 'stand' }] };
+const M2_ROAD = [[7.3, 9.88], [8.2, 10.2], [8.9, 10.52], [9.5, 10.68], [9.85, 10.98], [10.5, 11.38], [11.3, 11.7], [12.2, 12.0]];
+ROUTES['m2-civ-rider'] = {
+  pts: km([...M2_ROAD, ...M2_ROAD.slice(0, -1).reverse()]), speed: 8, loop: true, segments: [{ from: 0, to: 2 * M2_ROAD.length - 2, action: 'drive' }], vehicle: 'motorcycle',
+};
+/* The friendly convoy on Ruta Vieja's north stretch, 60 m apart. */
+const CONVOY = [[6.4, 9.3], [7.3, 9.88], [8.2, 10.2], [8.9, 10.52], [9.5, 10.68], [9.85, 10.98], [10.5, 11.38], [11.3, 11.7], [12.2, 12.0], [13.5, 12.48]];
+for (let k = 0; k < 3; k += 1) {
+  const pts = [[CONVOY[0][0] - 0.05 * k, CONVOY[0][1] - 0.035 * k], ...CONVOY];
+  ROUTES[`m2-convoy-${k + 1}`] = {
+    pts: km(pts), speed: 10, end: 'gone', segments: [{ from: 0, to: pts.length - 1, action: 'drive' }], vehicle: 'pickup',
+  };
+}
+/* The returner: into the yard from the north east, a stop at the stash,
+ * out to Claro Nuevo; calm, or fast once he has seen an aircraft. */
+const RETURN_IN = [[14.25, 12.8], M2_AT.gate, M2_AT.yard];
+const RETURN_OUT = [M2_AT.yard, M2_AT.gate, [14.25, 12.8], [14.45, 13.0], M2_AT.nuevoEdge];
+for (const [how, speed, vehicle] of [['foot', WALK, null], ['moto', MOTO, 'motorcycle']]) {
+  const pts = [...RETURN_IN, ...RETURN_OUT.slice(1)];
+  ROUTES[`m2-returner-${how}`] = {
+    pts: km(pts), speed, end: 'stay', dwell: [{ i: 2, s: 40, action: vehicle ? 'park' : 'stand' }], ...(vehicle ? { vehicle, segments: [{ from: 0, to: pts.length - 1, action: 'drive' }] } : {}),
+  };
+  ROUTES[`m2-returner-${how}-fast`] = {
+    pts: km(RETURN_OUT), speed: vehicle ? 2 * speed : 2.6, end: 'stay', ...(vehicle ? { vehicle, segments: [{ from: 0, to: RETURN_OUT.length - 1, action: 'drive' }] } : {}),
+  };
+}
+/* Claro Nuevo's six (younger), two layouts, each a loop about its middle
+ * (metres east, metres south), more spaced than Claro Viejo's. */
+const [NX, NZ] = gridToWorld(...M2_AT.claroNuevo);
+const nuevo = (pts) => pts.map(([ox, oz]) => [NX + ox, NZ + oz]);
+const NUEVO = {
+  a: [[[-12, -6], [-4, -10]], [[8, -8], [14, 0]], [[0, 10], [6, 14]], [[-14, 8], [-8, 12]], [[18, 10], [12, 16]], [[-2, -18], [4, -14]]],
+  b: [[[-18, 0], [-10, 4]], [[10, -14], [16, -8]], [[-4, 16], [2, 20]], [[-16, -12], [-10, -16]], [[20, 4], [14, 10]], [[2, -4], [8, 0]]],
+};
+for (const [lay, loops] of Object.entries(NUEVO)) {
+  loops.forEach(([a, b], k) => {
+    ROUTES[`m2-nuevo-${k + 1}-${lay}`] = {
+      pts: nuevo([a, b, a]), speed: AMBLE, loop: true, dwell: [{ i: 0, s: 30 + 7 * k, action: k % 2 ? 'sit' : 'stand' }],
+    };
+  });
+}
+/* The older courier from M1's camp: in from the south west, a short
+ * exchange in the middle, out the way he came. */
+ROUTES['m2-old-courier'] = {
+  pts: nuevo([[-110, 80], [-40, 30], [5, 5], [-40, 30], [-130, 90]]), speed: WALK, end: 'gone', dwell: [{ i: 2, s: 35, action: 'stand' }],
+};
+
 /* A route walked: its legs, each a hold or a stretch of walking, with
  * when each starts and ends, ms. */
 function plan(route) {
