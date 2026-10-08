@@ -141,10 +141,17 @@ left, and the room makes the hold itself:
 Mission data needs no new field: `roles[].platforms[0]` is the airframe
 a hold is made for.
 
-### 4.4 HUD and input
+### 4.4 HUD and input (built, PR 4)
 
-A strip in the ops HUD (`src/ui/`), one entry per aircraft; a key (the
-role cycle), a pad button, a tap. Every word in `src/strings` en and es.
+The quiet HUD's aircraft strip (`src/ui/opshud.js` `.ops-fleet`), shown
+only when the seat holds two roles or more in a live match: one button
+per role, its name, its aircraft (hidden on a phone), its state
+(FLYING, ORBIT, HOVER, ON THE GROUND, NOT LAUNCHED) and its height over
+the ground. A tap on a row asks the room for that role. It sits under
+the read panel on the right, or on the left when the right is full (a
+landscape phone). Keys `[` `]` and the pad's shoulders (PR 2). Words in
+`src/strings` en and es (`ops.fleet.*`). Battery and fuel are not shown:
+holds do not drain (section 6).
 
 ## 5. Size and split
 
@@ -160,7 +167,8 @@ L, about five PRs, in order; each with its own check:
 3. Wire and room: the `hold` op, `ops.js` per aircraft, `pilotsAt`
    per role. `ops:selftest` extended: the room sees
    both. Needs a VM deploy.
-4. HUD strip and pad button, strings en and es. `interior:hud`.
+4. HUD strip with a tap per aircraft, strings en and es. `interior:hud`
+   and `platforms:hold-ui`.
 5. Plant attitude at seat time (ABI), if the level hand over is felt.
 
 Mission 2 depends on 1 to 4. Mission 1 needs none of it (one aircraft
