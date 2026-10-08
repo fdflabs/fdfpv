@@ -156,6 +156,7 @@ export const keyMethods = {
       return true;
     }
     if (this.screen === 'flight') return flightKey(this, code);
+    if (this.screen === 'walk') return this.walkKey(code);
     if (this.screen === 'calibrate') {
       calibrationKey(this, code);
       return true;
@@ -211,6 +212,10 @@ export const keyMethods = {
     }
     if (anyHeld) this.lastInput = 'pad';
     const now = Object.fromEntries(PAD_KEYS.map((k) => [k, Boolean(nav[k])]));
+    /* The walk reads the pad's directions held, as it reads the keys. */
+    if (this.walk) {
+      this.walk.pad = now;
+    }
     const was = this.padPrev;
     const pressed = (k) => now[k] && !was[k];
     const done = () => { this.padPrev = now; };

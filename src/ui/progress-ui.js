@@ -31,8 +31,12 @@
 import { airframeById } from '../../configs/airframes.js';
 import { liveryKey } from '../../configs/liveries.js';
 import {
-  CHALLENGES, RunWatch, awardChallenge, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
+  CHALLENGES, RunWatch, awardChallenge, awardFirsts, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
+import { ACT1, INTERIOR } from '../game/campaign.js';
+import { itemById } from '../game/economy.js';
+import { readWallet } from '../share/account.js';
+import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
@@ -216,8 +220,15 @@ export class Progress {
     this.ui.persistSettings();
   }
 
-  /* Whether an item is locked for this pilot now: { level } or null. */
+  /* Whether an item is locked for this pilot now: { level }, { shop }
+   * for a shop item the account does not own (src/game/economy.js; Unlock
+   * all does not open those, docs/ECONOMY.md rule 5), or null. */
   lock(kind, id, airframe = null) {
+    const item = itemById(`${kind}:${id}`);
+    if (item) {
+      const w = readWallet();
+      return w && w.owned[item.id] ? null : { shop: item.earn ? 'earn' : 'buy' };
+    }
     return lockOf(this.state, kind, id, airframe);
   }
 
@@ -263,6 +274,33 @@ export class Progress {
     this.award(this.watch.tick(state));
   }
 
+  /*
+   * The firsts the pilot's own record now shows and has not been paid
+   * for (progress.js awardFirsts): a mission's win and stars from the
+   * campaign, an aircraft's milestones from the flight time. Asked after
+   * whatever can make one: flight time committed, a war result recorded,
+   * a sync that brought another computer's, and once at start, which is
+   * how a profile from before firsts (progress v1) is paid, once.
+   */
+  checkFirsts() {
+    /* A sync answered by a server older than progress v2 can hand back
+     * progress without the map. */
+    if (!this.state.firsts || typeof this.state.firsts !== 'object') {
+      this.state.firsts = {};
+    }
+    const events = awardFirsts(this.state, {
+      campaign: this.ui.settings.campaign,
+      seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
+      lessons: this.state.lessons,
+      flown: this.state.lessonsFlown,
+    });
+    if (events.length) {
+      this.save();
+      this.show(events);
+    }
+    return events;
+  }
+
   award(ids) {
     for (const id of ids) {
       const events = awardChallenge(this.state, id);
@@ -279,10 +317,21 @@ export class Progress {
   show(events) {
     const xp = events.find((e) => e.type === 'xp');
     const ch = events.find((e) => e.type === 'challenge');
+    const firsts = events.filter((e) => e.type === 'first');
     const levels = events.filter((e) => e.type === 'level');
     const up = levels.length ? levels[levels.length - 1].level : 0;
     const info = levelInfo(this.state.xp);
-    if (ch) {
+    if (firsts.length) {
+      this.toast({
+        cls: `first${up ? ' level' : ''}`,
+        icon: up ? String(up) : '\u2691',
+        kicker: up ? str('progress.toast_first_level', { n: up }) : str('progress.toast_first'),
+        title: firstTitle(firsts[0].key),
+        sub: firsts.length > 1 ? str('progress.first_more', { n: firsts.length - 1 }) : '',
+        xp: xp ? xp.xp : 0,
+        frac: info.frac,
+      });
+    } else if (ch) {
       this.toast({
         cls: `challenge${up ? ' level' : ''}`,
         icon: '\u2713',
@@ -450,7 +499,7 @@ export class Progress {
       b.disabled = true;
       b.classList.add('pg-locked');
       b.setAttribute('aria-disabled', 'true');
-      b.append(el('span', 'pg-lock', str('progress.locked_level', { n: lock.level })));
+      b.append(el('span', 'pg-lock', lock.shop ? str(`progress.locked_${lock.shop}`) : str('progress.locked_level', { n: lock.level })));
       return;
     }
     const it = findItem(kind, id, airframe);
@@ -572,6 +621,25 @@ export class Progress {
 /* The Challenges tab, in the hangar's tab registry. Progress is the Ui's;
  * the tab finds it through the settings the hangar is opened with. */
 let active = null;
+
+const MISSION_KEYS = new Map([
+  ...ACT1.map((m) => [m.id, `campaign.m.${m.key}`]),
+  ...INTERIOR.map((m) => [m.id, `ops.campaign.interior.m.${m.key}`]),
+]);
+
+/* A first's words, from its key (progress.js firstsOf). */
+export function firstTitle(key) {
+  const [what, id, part] = key.split(':');
+  if (what === 'lesson') {
+    return str('progress.first.lesson', { lesson: str(`training.lesson.${id}`) });
+  }
+  if (what === 'mission') {
+    const mission = str(MISSION_KEYS.get(id) ?? id);
+    return part === 'win' ? str('progress.first.win', { mission }) : str('progress.first.star', { mission, n: part.slice(4) });
+  }
+  const af = airframeById(id);
+  return str(`progress.first.${part}`, { plane: af ? af.name : id });
+}
 
 export function bindProgress(p) {
   active = p;

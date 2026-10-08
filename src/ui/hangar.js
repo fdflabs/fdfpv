@@ -56,6 +56,7 @@ import {
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { flightTotals } from '../share/flighttime.js';
+import { milestonesOf } from '../game/progress.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
@@ -144,7 +145,19 @@ const COUNT_MS = 520;
  * swatches, so a sweep across a row is a ripple and not a buzz. */
 const HOVER_SOUND_MS = 70;
 /* What pollPad edge triggers on; the right stick's look is read as a level. */
-const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt'];
+const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'flip'];
+/* The workshop's preset views (docs/redesign/WORKSHOP-PAINT.md): a camera
+ * view of src/render/hangarstage.js and whether the plane is flipped for
+ * it, null leaving Flip as it is. Bottom is Top with the plane rolled
+ * over, since the camera never goes under the floor. Keys 1 to 6. */
+const VIEW_PRESETS = [
+  { id: 'top', focus: 'top', flip: false },
+  { id: 'bottom', focus: 'top', flip: true },
+  { id: 'left', focus: 'side_left', flip: null },
+  { id: 'right', focus: 'side_right', flip: null },
+  { id: 'front', focus: 'front', flip: null },
+  { id: 'rear', focus: 'rear', flip: null },
+];
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -194,6 +207,15 @@ function withScheme(entry, scheme) {
     out.wear = entry.wear;
   }
   return out;
+}
+
+/* An entry with a region's underside in `hex`. Kept even when it is the
+ * top's colour in the entry: a combat aircraft's top is drawn in its
+ * loadout finish's colour (src/render/combatpaint.js), not the entry's,
+ * so the entry cannot tell an underside that matches from one that does
+ * not. */
+function withUnder(entry, region, hex) {
+  return { ...entry, under: { ...(entry.under ?? {}), [region]: hex } };
 }
 
 /* The power choice a stored one names, made valid for these options. A
@@ -266,6 +288,9 @@ export class Hangar {
     this.focus = 'overview';
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
+    this.view = null;
+    /* Which side of the region the colours paint: 'top' or 'under'. */
+    this.paintSide = 'top';
     this.hover = null;
     this.pointer = null;
     this.partUnder = null;
@@ -312,7 +337,17 @@ export class Hangar {
     this.flipBtn.setAttribute('aria-pressed', 'false');
     this.flipBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.flipBtn.addEventListener('click', () => this.toggleFlip());
-    this.stage.append(this.flipBtn);
+    this.viewsEl = el('div', 'hangar-views');
+    this.viewBtns = VIEW_PRESETS.map((v) => {
+      const b = button('hangar-view', str(`hangar.view_${v.id}`));
+      b.dataset.key = `view-${v.id}`;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      b.addEventListener('click', () => this.pickView(v.id));
+      return b;
+    });
+    this.viewsEl.append(...this.viewBtns);
+    this.stage.append(this.flipBtn, this.viewsEl);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
@@ -499,9 +534,12 @@ export class Hangar {
     this.turn = 0;
     this.orbit = { elev: 0, zoom: 1 };
     this.setFlip(false);
+    this.setView(null);
+    this.paintSide = 'top';
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
+    this.pin = null;
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
@@ -522,6 +560,17 @@ export class Hangar {
     for (const f of facts) {
       this.factsEl.append(el('span', 'carousel-fact', f));
     }
+    /* Its mastery milestones (src/game/progress.js MILESTONE_S): each one
+     * reached is lit, the rest wait, so the next one is the reason to fly. */
+    const reached = milestonesOf(flightTotals(settings.flightTime).byAirframe, airframe);
+    const pips = el('span', 'carousel-fact hangar-milestones');
+    pips.dataset.key = 'milestones';
+    for (const [m, on] of Object.entries(reached)) {
+      const pip = el('span', `hangar-milestone${on ? ' on' : ''}`, str(`hangar.milestone.${m}`));
+      pip.dataset.milestone = m;
+      pips.append(pip);
+    }
+    this.factsEl.append(pips);
     /* A plane with a float version has the Floats toggle beside its span and
      * weight (`floats`: { on, set(on) }, src/ui/ui.js openHangar). Flipping
      * it opens the hangar again on the other version, so an unsaved change
@@ -594,7 +643,9 @@ export class Hangar {
   }
 
   triedEntry() {
-    const h = this.hover;
+    /* `pin`: a look a tab keeps on show without the pointer over it (the
+     * Shop's chosen item, src/ui/hangar-shop.js); the pointer still wins. */
+    const h = this.hover ?? this.pin;
     if (!h) {
       return this.entry;
     }
@@ -610,7 +661,16 @@ export class Hangar {
     if (h.patch) {
       return this.shop.withDecal(this.entry, h.decal, h.patch);
     }
+    if (h.side === 'under') {
+      return withUnder(this.entry, h.region, h.hex);
+    }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
+  }
+
+  /* Painting the underside of the region on show: not a film's. */
+  underSide() {
+    const r = this.regions.find((x) => x.id === this.region);
+    return this.paintSide === 'under' && Boolean(r) && !r.film;
   }
 
   /* Show the plane in what is on show now. Due rather than done: the
@@ -663,8 +723,10 @@ export class Hangar {
     }
     const dir = HANGAR_TABS.indexOf(t) > HANGAR_TABS.indexOf(this.tab) ? 1 : -1;
     this.shop.stopPlacing();
+    this.setView(null);
     this.tab = t;
     this.hover = null;
+    this.pin = null;
     this.focus = tabFocus(t, this.quad());
     this.paint(dir);
     this.preview();
@@ -685,6 +747,14 @@ export class Hangar {
     this.changed(`scheme-${id}`);
   }
 
+  /* The underside is painted with the plane rolled over, so it faces the
+   * camera; the top with it upright. */
+  pickSide(side) {
+    this.paintSide = side;
+    this.setFlip(side === 'under');
+    this.changed(`side-${side}`, 'move');
+  }
+
   pickRegion(id) {
     this.region = id;
     this.focus = id;
@@ -698,6 +768,11 @@ export class Hangar {
       return;
     }
     const v = hex.toLowerCase();
+    if (this.underSide()) {
+      this.entry = withUnder(this.entry, this.region, v);
+      this.changed(`colour-${v}`);
+      return;
+    }
     const bare = coloursFor(this.id, { scheme: this.entry.scheme })[this.region];
     const regions = { ...(this.entry.regions ?? {}) };
     if (v === bare) {
@@ -1226,11 +1301,25 @@ export class Hangar {
     box.append(list);
 
     const region = this.regions.find((r) => r.id === this.region);
+    if (region && !region.film) {
+      const sides = el('div', 'hangar-sides');
+      for (const side of ['top', 'under']) {
+        const on = this.paintSide === side;
+        const b = button(`hangar-side-btn${on ? ' on' : ''}`, str(`hangar.side_${side}`));
+        b.dataset.key = `side-${side}`;
+        b.dataset.focus = region.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => this.pickSide(side));
+        sides.append(b);
+      }
+      box.append(sides);
+    }
     if (region) {
-      const hex = colours[region.id];
+      const under = this.underSide();
+      const hex = under ? ((this.entry.under && this.entry.under[region.id]) ?? colours[region.id]) : colours[region.id];
       /* The scheme's own colour here, which is the first swatch, so there
        * is always a way back to it. */
-      const kit = coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
+      const kit = under ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
       const named = paletteColour(hex);
       const nameBox = el('div', 'hangar-colour');
       const chip = el('span', `hangar-colour-chip${region.film ? ' film' : ''}`);
@@ -1257,7 +1346,7 @@ export class Hangar {
         b.title = `${c.brand} ${c.name}`;
         b.setAttribute('aria-label', `${c.brand} ${c.name}`);
         b.setAttribute('aria-pressed', String(on));
-        this.trial(b, { region: region.id, hex: c.hex }, region.id);
+        this.trial(b, { region: region.id, hex: c.hex, side: under ? 'under' : 'top' }, region.id);
         b.addEventListener('click', () => this.pickColour(c.hex));
         pal.append(b);
       });
@@ -1423,6 +1512,30 @@ export class Hangar {
     this.flipBtn.classList.toggle('on', on);
   }
 
+  /* A preset view holds until another is picked, the same one is picked
+   * again, or the tab changes. */
+  setView(id) {
+    this.view = VIEW_PRESETS.find((v) => v.id === id) ?? null;
+    this.viewBtns.forEach((b, i) => {
+      const on = this.view === VIEW_PRESETS[i];
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  pickView(id) {
+    if (this.view && this.view.id === id) {
+      this.setView(null);
+    } else {
+      this.setView(id);
+      if (this.view.flip !== null) {
+        this.setFlip(this.view.flip);
+      }
+    }
+    this.turn = 0;
+    this.sound('select');
+  }
+
   toggleFlip() {
     this.setFlip(!this.flip);
     this.sound('select');
@@ -1432,6 +1545,11 @@ export class Hangar {
   viewKey(code) {
     if (code === 'KeyV') {
       this.toggleFlip();
+      return true;
+    }
+    const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];
+    if (preset && !this.naming) {
+      this.pickView(preset.id);
       return true;
     }
     const turn = { KeyJ: -KEY_TURN, KeyL: KEY_TURN }[code];
@@ -1532,6 +1650,9 @@ export class Hangar {
     if (edge('down')) {
       this.move(0, 1);
     }
+    if (edge('flip')) {
+      this.toggleFlip();
+    }
     if (edge('alt')) {
       this.cycleTab(1);
     } else if (edge('select')) {
@@ -1575,7 +1696,7 @@ export class Hangar {
       compact: false,
       turn,
       hangar: {
-        focus: (this.tab === 'colours' && this.shop.focus()) || this.focus,
+        focus: (this.view && this.view.focus) || (this.tab === 'colours' && this.shop.focus()) || this.focus,
         orbit: { ...this.orbit },
         flip: this.flip,
         reveal: this.revealSeq,

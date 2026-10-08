@@ -34,7 +34,11 @@
 import {
   CODE_MAX, CODE_PREFIX, DECAL_KINDS, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
 } from '../configs/paint.js';
-import { normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
+import {
+  LIVERIES, entryDrops, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode,
+} from '../configs/liveries.js';
+import en from '../src/strings/en.js';
+import es from '../src/strings/es.js';
 
 let failed = 0;
 let passed = 0;
@@ -99,7 +103,7 @@ console.log('2. refusals');
     ['a decal colour that is not a colour', rawCode({ ...base, e: { decals: [{ ...stripe, c: 'red' }] } }), 'bad_value'],
     ['a stripe with lettering', rawCode({ ...base, e: { decals: [{ ...stripe, f: 'block' }] } }), 'unknown_field'],
     ['too many decals', rawCode({ ...base, e: { decals: Array.from({ length: MAX_DECALS + 1 }, () => num) } }), 'bad_value'],
-    ['a finish that is not one', rawCode({ ...base, e: { finishes: { wing: 'gold' } } }), 'bad_value'],
+    ['a finish that is not one', rawCode({ ...base, e: { finishes: { wing: 'velvet' } } }), 'bad_value'],
     ['a finish on a region the plane lacks', rawCode({ ...base, e: { finishes: { rotor: 'gloss' } } }), 'bad_value'],
     ['film on a region that is not film', rawCode({ ...base, e: { finishes: { wing: 'film' } } }), 'bad_value'],
     ['a finish on the Kadet\'s trim', rawCode({ ...base, p: 'kadet1981', e: { finishes: { wing_trim: 'chrome' } } }), 'bad_value'],
@@ -116,7 +120,7 @@ console.log('2. refusals');
 console.log('3. the settings');
 {
   const stale = normaliseLiveries({
-    timber1500: { scheme: 'super', finishes: { wing: 'gold', tail: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
+    timber1500: { scheme: 'super', finishes: { wing: 'velvet', tail: 'matte' }, decals: [num, { k: 'logo' }, stripe] },
     kadet1981: { finishes: { wing: 'film', fuselage: 'chrome' } },
     nope: { scheme: 'x' },
   });
@@ -125,7 +129,7 @@ console.log('3. the settings');
     kadet1981: { finishes: { fuselage: 'chrome' } },
   }), JSON.stringify(stale));
   const saves = normaliseSaves({
-    timber1500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'gold' } } }],
+    timber1500: [{ name: '  Race\tday  ', entry }, { name: '', entry }, { name: 'x'.repeat(50), entry: { finishes: { wing: 'velvet' } } }],
     kadet1981: Array.from({ length: MAX_SAVED + 5 }, (_, i) => ({ name: `L${i}`, entry: {} })),
     nope: [{ name: 'a', entry: {} }],
   });
@@ -139,6 +143,34 @@ console.log('4. the decal kinds');
   check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('cub1400', { decals: [d] }).decals.length === 1));
   const text = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].text);
   check('only the number and the words read the right way round when mirrored', same(text, ['num', 'text']));
+}
+
+console.log('5. every region has a name');
+{
+  /* The Colours tab names each region (livery.region.<id>) and throws on a
+   * missing one, which left the F-16's tab empty. */
+  const missing = [];
+  for (const l of Object.values(LIVERIES)) {
+    for (const r of l.regions) {
+      for (const [lang, table] of [['en', en], ['es', es]]) {
+        if (!table[`livery.region.${r.id}`]) {
+          missing.push(`${lang}:${r.id}`);
+        }
+      }
+    }
+  }
+  check(`every paint region is named in en and es${missing.length ? `, missing ${missing.join(' ')}` : ''}`, missing.length === 0);
+}
+
+console.log('6. the underside (docs/redesign/WORKSHOP-PAINT.md)');
+{
+  const old = { scheme: 'stock', regions: { wing: '#112233' }, wear: 20 };
+  check('an entry from before the underside reads exactly as it did', same(normaliseEntry('timber1500', old), { regions: { wing: '#112233' }, wear: 20 }));
+  const e = normaliseEntry('timber1500', { under: { wing: '#AABBCC', nope: '#000000', tail: 'red' } });
+  check('a region underside is kept lower case, an unknown region and a bad colour dropped', same(e, { under: { wing: '#aabbcc' } }));
+  check('the dropped parts are counted, so a code carrying them is refused', entryDrops('timber1500', { under: { nope: '#000000' } }) === 1);
+  check('a film region has no underside of its own', normaliseEntry('kadet1981', { under: { wing: '#aabbcc' } }) === null);
+  check('the look carries the underside as numbers', lookFor('timber1500', e).under.wing === 0xaabbcc && Object.keys(lookFor('timber1500', null).under).length === 0);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

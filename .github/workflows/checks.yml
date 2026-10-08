@@ -209,6 +209,9 @@ jobs:
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
+      # The race results' lap table ends above the menu at 1280x720
+      # (scripts/results-layout-check.js).
+      - run: npm run results:layout
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
@@ -277,12 +280,20 @@ jobs:
       - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
+      # The hangar's workshop in the real shell: Flip, the preset views and a
+      # pad's R3 on one aircraft of every paint family
+      # (docs/redesign/WORKSHOP-PAINT.md).
+      - run: npm run paint:workshop
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # Best laps synced to the account, lower wins (src/share/records.js).
+      - run: npm run records:selftest
+      # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
+      - run: npm run economy:selftest
       # The condition the player reads and its OSD line.
       - run: npm run damage:selftest
       # The pilot's own flight time: only flight counts, and the words
