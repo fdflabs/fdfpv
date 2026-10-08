@@ -45,7 +45,7 @@
  */
 
 import { airframeById } from './airframes.js';
-import { MAX_SAVED, checkPaint, cleanName, decodeLivery } from './paint.js';
+import { MAX_SAVED, PATTERNS, checkPaint, cleanName, decodeLivery } from './paint.js';
 import { checkKit, checkLights, kitParts } from './kits.js';
 
 /*
@@ -414,6 +414,24 @@ function checkEntry(family, entry) {
   } else if (entry.under !== undefined) {
     dropped += 1;
   }
+  /* `patterns`: a region's pattern (configs/paint.js PATTERNS) in a
+   * second colour, { p, c }; not on a film region. */
+  if (entry.patterns && typeof entry.patterns === 'object' && !Array.isArray(entry.patterns)) {
+    const patterns = {};
+    for (const r of l.regions) {
+      const v = entry.patterns[r.id];
+      const c = v && typeof v.c === 'string' ? v.c.toLowerCase() : null;
+      if (!r.film && v && PATTERNS.includes(v.p) && isHex(c)) {
+        patterns[r.id] = { p: v.p, c };
+      }
+    }
+    dropped += Object.keys(entry.patterns).length - Object.keys(patterns).length;
+    if (Object.keys(patterns).length) {
+      out.patterns = patterns;
+    }
+  } else if (entry.patterns !== undefined) {
+    dropped += 1;
+  }
   /* `kit` and `lights`: the visual part kits and lights (configs/kits.js,
    * docs/KITS.md). Pixels only; nothing in the flight reads them. */
   const kit = checkKit(family, entry.kit);
@@ -481,13 +499,15 @@ export function colourNumbers(colours) {
 /*
  * What the renderer dresses a model in (src/render/livery.js): each
  * region's colour as a number, the underside's where a region has one
- * of its own, the finishes, the decals and the wear, a
+ * of its own, each pattern as its number and second colour, the finishes, the decals and the wear, a
  * fraction from 0 (factory new) to 1.
  */
 export function lookFor(airframeId, entry) {
   return {
     colours: colourNumbers(coloursFor(airframeId, entry)),
     under: colourNumbers((entry && entry.under) || {}),
+    patterns: Object.fromEntries(Object.entries((entry && entry.patterns) || {})
+      .map(([k, v]) => [k, { p: PATTERNS.indexOf(v.p) + 1, c: parseInt(v.c.slice(1), 16) }])),
     finishes: (entry && entry.finishes) || {},
     decals: (entry && entry.decals) || [],
     wear: ((entry && entry.wear) || 0) / 100,

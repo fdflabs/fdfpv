@@ -58,7 +58,7 @@ import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { flightTotals } from '../share/flighttime.js';
 import { milestonesOf } from '../game/progress.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
-import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
+import { PATTERNS, WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
 import { el, padLevels } from './dom.js';
 
@@ -150,6 +150,9 @@ const HOVER_SOUND_MS = 70;
 const PAINT_CLICK_SLOP = 6;
 /* How many paint changes Undo goes back through since the hangar opened. */
 const UNDO_MAX = 30;
+/* A new pattern's second colour until the pilot picks one: near black,
+ * which reads over every kit colour. */
+const PATTERN_COLOUR = '#17191b';
 const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'flip'];
 /* The workshop's preset views (docs/redesign/WORKSHOP-PAINT.md): a camera
  * view of src/render/hangarstage.js and whether the plane is flipped for
@@ -212,6 +215,11 @@ function withScheme(entry, scheme) {
     out.wear = entry.wear;
   }
   return out;
+}
+
+/* An entry with a region's pattern in a second colour `hex`. */
+function withPatternColour(entry, region, hex) {
+  return { ...entry, patterns: { ...entry.patterns, [region]: { ...entry.patterns[region], c: hex } } };
 }
 
 /* An entry with a region's underside in `hex`. Kept even when it is the
@@ -726,13 +734,46 @@ export class Hangar {
     if (h.side === 'under') {
       return withUnder(this.entry, h.region, h.hex);
     }
+    if (h.side === 'pattern') {
+      return withPatternColour(this.entry, h.region, h.hex);
+    }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
   }
 
   /* Painting the underside of the region on show: not a film's. */
   underSide() {
+    return this.sidePainted() === 'under';
+  }
+
+  /* What a swatch paints on the region on show: 'top', 'under' or
+   * 'pattern' (its pattern's second colour). A film region is all top. */
+  sidePainted() {
     const r = this.regions.find((x) => x.id === this.region);
-    return this.paintSide === 'under' && Boolean(r) && !r.film;
+    if (!r || r.film) {
+      return 'top';
+    }
+    if (this.paintSide === 'pattern') {
+      return this.entry.patterns && this.entry.patterns[r.id] ? 'pattern' : 'top';
+    }
+    return this.paintSide;
+  }
+
+  /* A pattern on the region on show, or none ('none'); the swatches then
+   * paint its second colour. */
+  pickPattern(p) {
+    const patterns = { ...(this.entry.patterns ?? {}) };
+    if (p === 'none') {
+      delete patterns[this.region];
+      this.paintSide = 'top';
+    } else {
+      patterns[this.region] = { p, c: (patterns[this.region] && patterns[this.region].c) ?? PATTERN_COLOUR };
+      this.paintSide = 'pattern';
+    }
+    this.entry = { ...this.entry, patterns };
+    if (!Object.keys(patterns).length) {
+      delete this.entry.patterns;
+    }
+    this.changed(`pattern-${p}`);
   }
 
   /* Show the plane in what is on show now. Due rather than done: the
@@ -833,6 +874,11 @@ export class Hangar {
     this.brush = v;
     if (this.underSide()) {
       this.entry = withUnder(this.entry, this.region, v);
+      this.changed(`colour-${v}`);
+      return;
+    }
+    if (this.sidePainted() === 'pattern') {
+      this.entry = withPatternColour(this.entry, this.region, v);
       this.changed(`colour-${v}`);
       return;
     }
@@ -1409,13 +1455,29 @@ export class Hangar {
         sides.append(b);
       }
       box.append(sides);
+      /* The pattern over the region, in a second colour the swatches
+       * paint once one is on. */
+      const pats = el('div', 'hangar-sides hangar-patterns');
+      const current = this.entry.patterns && this.entry.patterns[region.id] ? this.entry.patterns[region.id].p : 'none';
+      for (const p of ['none', ...PATTERNS]) {
+        const on = current === p;
+        const b = button(`hangar-side-btn${on ? ' on' : ''}`, str(`hangar.pattern_${p}`));
+        b.dataset.key = `pattern-${p}`;
+        b.dataset.focus = region.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => this.pickPattern(p));
+        pats.append(b);
+      }
+      box.append(pats);
     }
     if (region) {
-      const under = this.underSide();
-      const hex = under ? ((this.entry.under && this.entry.under[region.id]) ?? colours[region.id]) : colours[region.id];
+      const side = this.sidePainted();
+      const under = side === 'under';
+      const own = side === 'pattern' ? this.entry.patterns[region.id].c : under ? (this.entry.under && this.entry.under[region.id]) : null;
+      const hex = own ?? colours[region.id];
       /* The scheme's own colour here, which is the first swatch, so there
        * is always a way back to it. */
-      const kit = under ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
+      const kit = side !== 'top' ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
       const named = paletteColour(hex);
       const nameBox = el('div', 'hangar-colour');
       const chip = el('span', `hangar-colour-chip${region.film ? ' film' : ''}`);
@@ -1442,7 +1504,7 @@ export class Hangar {
         b.title = `${c.brand} ${c.name}`;
         b.setAttribute('aria-label', `${c.brand} ${c.name}`);
         b.setAttribute('aria-pressed', String(on));
-        this.trial(b, { region: region.id, hex: c.hex, side: under ? 'under' : 'top' }, region.id);
+        this.trial(b, { region: region.id, hex: c.hex, side }, region.id);
         b.addEventListener('click', () => this.pickColour(c.hex));
         pal.append(b);
       });
