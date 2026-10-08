@@ -104,6 +104,9 @@ async function openHangar(page, id) {
   await page.tap('KeyC');
   await page.until('window.__ui.hangar.isOpen', 10000);
   await page.until(`window.__ui.hangar.id === ${JSON.stringify(id)}`, 10000);
+  /* Its model built and drawn once, which a software renderer takes a
+   * while over: what the checks read of it is null until then. */
+  await page.until(`Boolean(window.__pickPaint(${JSON.stringify(id)})) && Boolean(window.__carouselStats().camera)`, 120000);
 }
 
 async function closeHangar(page) {
@@ -117,11 +120,11 @@ async function viewsEach(page) {
   console.log(`1. Top and Bottom on every paint family (${FAMILIES.join(', ')})`);
   for (const id of FAMILIES) {
     await openHangar(page, id);
-    await page.click('.hangar [data-key="view-top"]');
+    await press(page, '.hangar [data-key="view-top"]');
     await page.until(LANDED('top'), 60000).catch(() => {});
     await page.until(ROLLED(0), 30000).catch(() => {});
     await shot(page, `${id}-top`);
-    await page.click('.hangar [data-key="view-bottom"]');
+    await press(page, '.hangar [data-key="view-bottom"]');
     await page.until(ROLLED(Math.PI), 60000).catch(() => {});
     await page.until(LANDED('top'), 60000).catch(() => {});
     await page.sleep(500);
@@ -142,7 +145,7 @@ async function viewsEach(page) {
 async function flipAndViews(page) {
   console.log('2. the Flip button, the views by key and button, R3');
   await openHangar(page, 'timber1500');
-  const clicked = await page.click('.hangar [data-key="flip"]');
+  const clicked = await press(page, '.hangar [data-key="flip"]');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
   say(clicked && Math.abs((await cam(page)).roll - Math.PI) < 0.01, 'the Flip button rolls it over');
   for (const [code, focus] of [['Digit3', 'side_left'], ['Digit4', 'side_right'], ['Digit5', 'front'], ['Digit6', 'rear']]) {
@@ -154,7 +157,7 @@ async function flipAndViews(page) {
   await page.tap('Digit1');
   await page.until(ROLLED(0), 60000).catch(() => {});
   say(Math.abs((await cam(page)).roll) < 0.01, 'Top (1) stands it upright');
-  await page.click('.hangar [data-key="view-top"]');
+  await press(page, '.hangar [data-key="view-top"]');
   await page.sleep(400);
   const off = await page.evaluate("document.querySelector('.hangar [data-key=\"view-top\"]').getAttribute('aria-pressed')");
   say(off === 'false', `Top pressed again lets the view go (${off})`);
@@ -204,32 +207,42 @@ const paintOf = (page, id) => page.evaluate(`window.__pickPaint(${JSON.stringify
 /* Paint the first region that is not a film's underside in the third
  * swatch on offer. Returns { region, hex } or null when every region is
  * film (the Kadet). */
-/* A button that has stopped moving: the panel slides its controls in when
- * it is drawn again, and a click on a moving one lands on its neighbour. */
+/* A button that has stopped moving: the side panel scrolls smoothly and
+ * slides its controls in when it is drawn again, and a click on a moving
+ * one lands on its neighbour. Scrolled into view at once, then the same
+ * place on three reads in a row; a slow software renderer can sit still
+ * for one read mid animation. */
 async function steady(page, selector) {
+  await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return true; })()`);
   let last = '';
-  for (let i = 0; i < 50; i++) {
-    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return [r.left, r.top, getComputedStyle(b).opacity].join(); })()`);
-    if (r === last && r !== 'none') {
+  let same = 0;
+  for (let i = 0; i < 100; i++) {
+    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; const r = b.getBoundingClientRect(); return [r.left, r.top, r.width, getComputedStyle(b).opacity].join(); })()`);
+    same = r === last && r !== 'none' ? same + 1 : 0;
+    if (same >= 2) {
       return;
     }
     last = r;
-    await page.sleep(150);
+    await page.sleep(120);
   }
   throw new Error(`${selector} never stood still`);
 }
 
+/* A real pointer click on a button once it stands still. */
+async function press(page, selector) {
+  await steady(page, selector);
+  return page.click(selector);
+}
+
 async function paintUnder(page, id) {
-  await page.click('.hangar [data-key="tab-colours"]');
+  await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const region = await page.evaluate("(window.__ui.hangar.regions.find((r) => !r.film) || {}).id || null");
   if (!region) {
     return null;
   }
-  await steady(page, `.hangar [data-key="region-${region}"]`);
-  await page.click(`.hangar [data-key="region-${region}"]`);
-  await steady(page, '.hangar [data-key="side-under"]');
-  await page.click('.hangar [data-key="side-under"]');
+  await press(page, `.hangar [data-key="region-${region}"]`);
+  await press(page, '.hangar [data-key="side-under"]');
   await page.until("window.__ui.hangar.paintSide === 'under'", 5000).catch(async (e) => {
     await shot(page, `${id}-no-underside`);
     throw e;
@@ -238,8 +251,7 @@ async function paintUnder(page, id) {
   /* A colour the top is not in: the top's own is no underside of its own. */
   const top = (await paintOf(page, id))[region];
   const key = keys.filter((k) => k !== `colour-${top}`)[2];
-  await steady(page, `.hangar [data-key="${key}"]`);
-  await page.click(`.hangar [data-key="${key}"]`);
+  await press(page, `.hangar [data-key="${key}"]`);
   await page.until(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(key.slice('colour-'.length))}`, 5000).catch(() => {});
   /* The pointer off the panel, so no swatch under it is being tried on. */
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
@@ -270,7 +282,7 @@ async function underEach(page) {
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
       `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}`);
     if (id === 'timber1500') {
-      await page.click('.hangar [data-key="save"]');
+      await press(page, '.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
       const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery.timber1500`);
       say(Boolean(stored) && stored.under && stored.under[got.region] === got.hex, `Save keeps the Timber's underside: ${JSON.stringify(stored)}`);
@@ -314,16 +326,15 @@ async function hoverModel(page) {
 async function clickToPaint(page) {
   console.log('5. click to paint on the Timber');
   await openHangar(page, 'timber1500');
-  await page.click('.hangar [data-key="tab-colours"]');
+  await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
   const key = keys[4];
   const hex = key.slice('colour-'.length);
-  await steady(page, `.hangar [data-key="${key}"]`);
-  await page.click(`.hangar [data-key="${key}"]`);
+  await press(page, `.hangar [data-key="${key}"]`);
   await page.until(`window.__ui.hangar.brush === ${JSON.stringify(hex)}`, 5000);
   for (const [view, side] of [['top', 'top'], ['bottom', 'under']]) {
-    await page.click(`.hangar [data-key="view-${view}"]`);
+    await press(page, `.hangar [data-key="view-${view}"]`);
     await page.until(LANDED('top'), 60000).catch(() => {});
     await page.until(ROLLED(view === 'bottom' ? Math.PI : 0), 60000).catch(() => {});
     const at = await hoverModel(page);
@@ -347,28 +358,24 @@ async function clickToPaint(page) {
 async function undoSteps(page) {
   console.log('6. undo on the Timber');
   await openHangar(page, 'timber1500');
-  await page.click('.hangar [data-key="tab-colours"]');
+  await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const start = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
   const pick = async (n) => {
     const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
-    await steady(page, `.hangar [data-key="${keys[n]}"]`);
-    await page.click(`.hangar [data-key="${keys[n]}"]`);
+    await press(page, `.hangar [data-key="${keys[n]}"]`);
     await mouse(page, 'mouseMoved', 400, 450);
   };
-  await steady(page, '.hangar [data-key="side-top"]');
-  await page.click('.hangar [data-key="side-top"]');
+  await press(page, '.hangar [data-key="side-top"]');
   await pick(5);
   await page.until('Boolean(window.__ui.hangar.entry.regions)', 5000).catch(() => {});
   const topOnly = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
-  await steady(page, '.hangar [data-key="side-under"]');
-  await page.click('.hangar [data-key="side-under"]');
+  await press(page, '.hangar [data-key="side-under"]');
   await pick(6);
   await page.until('Boolean(window.__ui.hangar.entry.under)', 5000).catch(() => {});
   const both = await page.evaluate('window.__ui.hangar.entry');
   say(Boolean(both.regions) && Boolean(both.under), `a top colour and an underside on: ${JSON.stringify(both)}`);
-  await steady(page, '.hangar [data-key="undo"]');
-  await page.click('.hangar [data-key="undo"]');
+  await press(page, '.hangar [data-key="undo"]');
   await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
   const one = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
   say(one === topOnly, `the Undo button takes the underside off: ${one}`);
@@ -390,24 +397,23 @@ async function abStock(page) {
   await page.until("(() => { const l = window.__pickLook('timber1500'); return Boolean(l && l.uniforms.wing && l.uniforms.wing.under); })()", 20000).catch(() => {});
   const own = await shows();
   const stockNow = `(() => { const p = window.__pickPaint('timber1500'); const l = window.__pickLook('timber1500'); return JSON.stringify(Object.entries(p).sort()) === ${JSON.stringify(sorted(kit))} && !(l.uniforms.wing && l.uniforms.wing.under); })()`;
-  await page.click('.hangar [data-key="ab"]');
+  await press(page, '.hangar [data-key="ab"]');
   await page.until(stockNow, 10000).catch(() => {});
   const stock = await shows();
   say(sorted(stock.paint) === sorted(kit) && !stock.under && Boolean(own.under),
     `Stock shows the kit's paint and no underside: ${JSON.stringify(stock)}, the pilot's was ${JSON.stringify(own)}`);
   await shot(page, '7-ab-stock');
-  await page.click('.hangar [data-key="ab"]');
+  await press(page, '.hangar [data-key="ab"]');
   await page.until(`(() => { const l = window.__pickLook('timber1500'); return Boolean(l.uniforms.wing && l.uniforms.wing.under); })()`, 10000).catch(() => {});
   const back = await shows();
   say(JSON.stringify(back) === JSON.stringify(own), `pressed again the pilot's paint is back: ${JSON.stringify(back)}`);
   await page.tap('KeyH');
   await page.until(stockNow, 10000).catch(() => {});
   say(await page.evaluate(stockNow), 'H shows stock too');
-  await page.click('.hangar [data-key="tab-colours"]');
+  await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
-  await steady(page, `.hangar [data-key="${keys[7]}"]`);
-  await page.click(`.hangar [data-key="${keys[7]}"]`);
+  await press(page, `.hangar [data-key="${keys[7]}"]`);
   const off = await page.evaluate("({ stock: window.__ui.hangar.stockView, pressed: document.querySelector('.hangar [data-key=\"ab\"]').getAttribute('aria-pressed') })");
   say(!off.stock && off.pressed === 'false', `a swatch picked ends the comparison: ${JSON.stringify(off)}`);
   await closeHangar(page);

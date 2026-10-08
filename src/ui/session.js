@@ -677,6 +677,16 @@ export function watchSessionEvents(ui) {
       e.preventDefault();
     }
   }, true);
+  /* The walkable hangar walks on keys held, not pressed. Up is read
+   * everywhere, so a key let go over another screen is not held when the
+   * room opens again. */
+  window.addEventListener('keydown', (e) => {
+    if (ui.screen === 'walk' && !ui.carousel.isOpen && !ui.hangar.isOpen) {
+      ui.walkHeld(e.code, true);
+    }
+  });
+  window.addEventListener('keyup', (e) => ui.walkHeld(e.code, false));
+  window.addEventListener('blur', () => ui.walk && ui.walk.held.clear());
   ui.root.addEventListener('mousedown', (e) => {
     if (ui.dropEl && !ui.dropEl.contains(e.target) && !e.target.closest('.drop-btn')) {
       ui.closeDrop();

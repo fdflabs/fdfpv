@@ -86,9 +86,12 @@ follows a pilot (J cycles, as in a replay); Leave exits. A watcher can take a
 flying seat between rounds if one is free.
 
 **Data / wire.** The hello carries `watch: true`; the rooms server seats the
-session as a watcher: in the room's roster with `watch: true`, never sent a
-start slot, never counted by the cap or by "everyone ready". Watchers are
-capped separately (8 a room) so a room cannot be flooded. Needs a VM deploy.
+session as a watcher, kept in its own list apart from the pilots' seats:
+never sent a start slot, never counted by the cap, the host or "everyone
+ready", and never announced to the pilots (lead, 2026-10-07: watchers do
+not show in the pilot list). Everything a watcher sends but clock pings is
+dropped. Watchers are capped separately (8 a room). J or [ ] cycles the
+pilot followed. Built in #717.
 
 **Does not:** chat moderation changes, voice for watchers (a follow up if
 asked), a watcher list for the public.
@@ -109,27 +112,39 @@ board picks the week's course the first time anyone asks in that week, by a
 deterministic rotation over published raceable courses that carry
 `medals.goldMs` (sorted by id, index by week number), and stores the pick so
 a course deleted or added mid-week changes nothing. Standings are each pilot
-key's best lap on that course posted inside the window. At the week's close
-the standings freeze (a stored `closed` row with the placements).
+key's best lap on that course posted inside the window, on the board the
+medals were set on (quads, or the plane board when `medals.wing`). Laps
+posted after Monday 00:00 UTC are not in that week: this is how an event
+expires.
 
-**Board data.** `events (week TEXT PRIMARY KEY, track_id, starts_utc,
-ends_utc, closed_utc, placements JSONB)`; routes `GET /api/events/current`
-and `GET /api/events/{week}` (course, window, standings: name, lapMs,
-medal). Pilot keys are never served; placements keep them for the payout.
+**Tiers, final when posted.** What a pilot earns is a tier, never a
+placing: `finish` for any lap in the window, then `bronze`, `silver` or
+`gold` by that lap against the event's gold (stored with the pick). A tier
+is absolute, so it is final the moment the lap is posted, and there is no
+week-close freeze and no top-three prize (the shape the progression lane
+set in docs/ECONOMY.md section 3, superseding this section's first draft).
 
-**Payout (shape proposed to the progression lane through the plan file).**
-The grant is server side: tracks-api reads a closed week's placements from
-the board (same host), maps each pilot key to its account, and credits the
-wallet once per (week, account), idempotent. Shape: a flat amount for a
-clean lap posted in the window, plus one step per medal reached in the
-window (bronze, silver, gold), plus placement for the top three. No amount
-for logging in, nothing for a second lap. Amounts are the economy's.
+**Board data** (fdfpv-leaderboard #37). `events (id, week UNIQUE, track_id,
+name, map, gold_ms, wing, starts_utc, ends_utc)`, written by the week's
+first read; no foreign key, so a removed course leaves its week. Routes:
+`GET /api/events/current` (the event and its standings: name, lapMs, medal;
+no pilot keys) and `GET /api/events/tiers?key=` (the tier that pilot key
+reached in each of the last 8 events). The event id is
+`<yyyy>-w<nn>-<trackId>`.
 
-**Check:** board `npm test` (the pick is stable within a week and moves at
-the boundary, a lap outside the window is not in the standings, a closed
-week never changes, placements are per pilot key best), `game:lobby` (the
-card opens the course and Back returns to Flight Club), the grant check in
-tracks-api's selftest (same week twice credits once).
+**Payout** (#728). tracks-api/eventpay.js asks the board's tiers route with
+the account's pilot key whenever the wallet is read or progress syncs, and
+pays each through wallet.js `grantEvent`: finish 20, bronze 40, silver 60,
+gold 100 tokens, a higher tier paying the lower ones too, each once per
+event per account. A board that does not answer pays nothing then and
+everything on a later read. Nothing for logging in, nothing for a second
+lap. The lead chose (2026-10-07) a rotating track with no admin pick.
+
+**Check:** board `events:check` (ISO week edges, rotation, window both
+sides, one row per pilot at best, plane laps off a quad event, tiers, no
+keys served, the pick outlives its course), tracks-api accounts selftest
+(asked with the account's key, paid once, a dead board pays nothing), and
+`weekly:check` (the hub card with a real pointer, seating the track).
 
 ## Not in this lane
 
