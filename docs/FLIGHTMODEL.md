@@ -661,8 +661,11 @@ NACA 24xx, 00xx and Clark Y class sections; Hoerner, Fluid Dynamic Lift, the
 centre of pressure's travel with separation). Critzos, Heyson and Boswinkle,
 NACA TN 3361 (the NACA 0012 to 180 deg), say the same in words: the
 quarter chord moment "become[s] negative after the stall (alpha = 14 deg)
-and remain[s] negative to 180 deg". How fast the arm moves is the model's
-choice, not a measured curve: over one stall_blend from the stall angle.
+and remain[s] negative to 180 deg". They give the sign, not the speed: how
+fast the arm moves is the model's choice, not a measured curve, and the
+sourced curve would come from TN 3361's figure 1, which is not digitised
+here. It moves over one stall_blend from the stall angle, a choice bounded
+by the P-51's flight test on one side and the trainers' gates on the other.
 Spread over the whole plateau and the fall instead (stall_top and two
 blends), the Stik's U11b reads bank 19.1, the Slow Stick's S9b yaw 28.5
 and the P-51's P19 pb/2V 0.119, past the XP-51's band; over one blend all
