@@ -68,6 +68,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { plateGeometry, profileBands, spinnerFor } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -609,7 +610,14 @@ export function buildExtraCraft(opts = {}) {
   const tailFlap = coat.shade('tail', cel({ color: 0x747a80, rim: 0.28, spec: 0.26, specWidth: 0.014 }));
   const black = cel({ color: 0x16181a, rim: 0.30, spec: 0.45, specWidth: 0.016, specColor: 0xd8e0e8 });
   const metal = cel({ color: 0xb4b0a6, rim: 0.30, spec: 0.70, specWidth: 0.022 });
-  const glass = cel({ color: 0x2f4658, rim: 0.40, spec: 0.55, specWidth: 0.020, specColor: 0xf3ead4 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * The glass is not a paint region, so a tint is its own colour. */
+  const kit = opts.kit ?? {};
+  const glass = cel({
+    color: { smoke: 0x1c242b, gold: 0x8a7440 }[kit.canopy] ?? 0x2f4658,
+    rim: 0.40, spec: kit.canopy ? 0.80 : 0.55, specWidth: 0.020, specColor: 0xf3ead4,
+  });
   const stator = cel({ color: 0x2a322c, rim: 0.24, spec: 0.20 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
   const lens = cel({
@@ -774,6 +782,27 @@ export function buildExtraCraft(opts = {}) {
     group.add(metalMesh);
   }
 
+  /* A kit's side force generators: a black plate on each square tip, a
+   * hand of chord fore and aft and a few centimetres above and below,
+   * set in by half its thickness so the span does not grow. */
+  if (kit.wingtips === 'sfg') {
+    const plates = [-1, 1].map((sign) => {
+      const x = sign * (HALF - 0.003);
+      const le = wingAt(x)(0.06, 1);
+      const te = wingAt(x)(0.94, 1);
+      return plateGeometry([
+        [x, WING_Y + 0.042, le.z + 0.010],
+        [x, WING_Y + 0.042, te.z - 0.020],
+        [x, WING_Y - 0.042, te.z - 0.020],
+        [x, WING_Y - 0.042, le.z + 0.010],
+      ], [sign, 0, 0], 0.004);
+    });
+    const sfg = new THREE.Mesh(merged(plates), black);
+    sfg.name = 'extra-sfg';
+    sfg.castShadow = shade;
+    group.add(sfg);
+  }
+
   /* The canopy, one draw. */
   {
     const glassMesh = new THREE.Mesh(canopyGeometry(lite), glass);
@@ -889,7 +918,22 @@ export function buildExtraCraft(opts = {}) {
       const r = Math.max(0.0005, SPINNER_R * Math.sqrt(1 - u * u));
       prof.push(new THREE.Vector2(r, back + 0.004 + (len - back - 0.004) * u));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 14), noseMat);
+    /* A kit's spinner: another shape in the nose's colour, or the stock
+     * one with a black ring round its middle. */
+    const shape = kit.spinner === 'striped' ? prof : spinnerFor(kit.spinner, prof, SPINNER_R, back, len, m + 2);
+    let spinner;
+    if (kit.spinner === 'striped') {
+      spinner = new THREE.Group();
+      const y = (f) => back + (len - back) * f;
+      profileBands(shape, [y(0.28), y(0.42)]).forEach((band, i) => {
+        const piece = new THREE.Mesh(new THREE.LatheGeometry(band, lite ? 10 : 14), i === 1 ? black : noseMat);
+        piece.name = 'spinner';
+        piece.castShadow = shade;
+        spinner.add(piece);
+      });
+    } else {
+      spinner = new THREE.Mesh(new THREE.LatheGeometry(shape, lite ? 10 : 14), noseMat);
+    }
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

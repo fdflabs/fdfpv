@@ -6067,6 +6067,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
     plant_wind(s->step_index, wa);
     va[0] -= wa[0];
     va[1] -= wa[1];
+    va[2] -= wa[2];
   }
   const double vm = norm(va);
   const double kd = -0.5 * rho * f->cda * vm / f->m;

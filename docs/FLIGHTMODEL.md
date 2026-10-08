@@ -340,7 +340,7 @@ No band was widened. Each change is one of three kinds.
 
 ### An acro tune
 
-- The P-51's Acro roll damping, \`acro_roll_kd\`, 0.70 to 0.80: with the fin
+- The P-51's Acro roll damping, `acro_roll_kd`, 0.70 to 0.80: with the fin
   in the wash the roll a partial roll stops from carried 10.4 deg/s a
   quarter second after centring, against p51:stab's 10, and 9.9 on
   origin/main. 0.80 leaves 9.7. A flight controller's gain, retuned for a
@@ -363,7 +363,7 @@ No band was widened. Each change is one of three kinds.
 
 Gyroscopic precession was set on four tables only (the P-51, the Zagi,
 the Ugly Stik and the Tiger Moth, and the Strikers). Every other powered
-table now carries its prop's and rotor's polar inertia, \`j_prop\`, so a
+table now carries its prop's and rotor's polar inertia, `j_prop`, so a
 pitch rate yaws it and a yaw rate pitches it at J Omega times the rate:
 the 1000 mm wing, Skyhunter, Cub and Cub floats, Radian, Bramor, Slow
 Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
@@ -378,7 +378,7 @@ Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
 - The Slow Stick's EPS-300C turns its rotor the other way through a 6.6:1
   gearbox, which takes a little off the prop's.
 - Torque reaction and P factor were already on every prop table and are
-  unchanged (\`torque_arm\`, \`pfactor\`); the slipstream's swirl is PR 2's.
+  unchanged (`torque_arm`, `pfactor`); the slipstream's swirl is PR 2's.
 
 ### The probe, PR 2 to PR 3
 
@@ -409,30 +409,30 @@ gate.
 
 ### Re-recorded, re-pinned, and what did not move
 
-Re-recorded (\`node scripts/wing-record.js\`), every take off flown on a
-prop with a new gyroscope: \`cub-baseline.rec\`, \`glider-baseline.rec\`,
-\`slowstick-baseline.rec\`, \`timber-baseline.rec\`,
-\`timberf-baseline.rec\`, \`bombshell-baseline.rec\`,
-\`kadet-baseline.rec\`, \`f16-baseline.rec\`. The 1000 mm wing's, the
+Re-recorded (`node scripts/wing-record.js`), every take off flown on a
+prop with a new gyroscope: `cub-baseline.rec`, `glider-baseline.rec`,
+`slowstick-baseline.rec`, `timber-baseline.rec`,
+`timberf-baseline.rec`, `bombshell-baseline.rec`,
+`kadet-baseline.rec`, `f16-baseline.rec`. The 1000 mm wing's, the
 Skyhunter's and the Bramor's committed streams are kept (their recorders
 no longer write the committed bytes even on origin/main) and only their
 hashes are re-pinned. Unmoved, to the bit: the five inch
 (9fdc42323baad668), the Bramor's chute flight (motor cut), the P-51 and
 its air flight, the Ugly Stik, the Tiger Moth, the Zagi and the NRJ,
-whose props already had their inertia; \`war:legacy\` and \`crash:core\`'s
-digests. Regenerated: \`configs/power-estimates.js\`,
-\`tools/audio/flights.json\`.
+whose props already had their inertia; `war:legacy` and `crash:core`'s
+digests. Regenerated: `configs/power-estimates.js`,
+`tools/audio/flights.json`.
 
 ### Checks
 
-- \`timber:gates\` T13 measured the taxi turn's heading change as the
+- `timber:gates` T13 measured the taxi turn's heading change as the
   difference of its two end headings, which wraps past half a circle: at
   1.57 rad/s for 2 s the turn reached 179.6 deg and read as a left turn.
   It now sums the change step by step; on origin/main it reads the same.
-- \`rudderHold\`, the take off pilot's feet, aims the nose back at the
+- `rudderHold`, the take off pilot's feet, aims the nose back at the
   centreline, 0.3 rad per metre off it: the gyroscope's kick as the tail
   comes up put the Cub 0.55 m off the line with the heading held.
-- Left loud, as in PR 2: \`slowstick:stab\` "yaw stick wins over the
+- Left loud, as in PR 2: `slowstick:stab` "yaw stick wins over the
   level hold, right of a quarter of its throw", -7.5 against a -7.5
   limit (passing on origin/main by hundredths): the same rudder only
   aircraft check as the Bombshell's in PR 2.
@@ -442,8 +442,8 @@ digests. Regenerated: \`configs/power-estimates.js\`,
 A knife edge is held by the fuselage's side force and the thrust's share
 at a sideslip. The table's side force is CY beta, linear and the fin's;
 the body's own crossflow, which grows with the sideways speed squared,
-was missing (the removed Extra had it as \`side_cda\`). Now every aircraft
-with a fuselage carries it: \`side_cda\`, eta Cdc S_side, a force against
+was missing (the removed Extra had it as `side_cda`). Now every aircraft
+with a fuselage carries it: `side_cda`, eta Cdc S_side, a force against
 v |v| at the CG. Allen and Perkins' viscous crossflow (NACA TR 1048), with
 the removed Extra's eta Cdc of 0.84 (Cdc 1.2, eta 0.7, Jorgensen, NASA TR
 R-474) on each fuselage's side area from its derivation or render model.
@@ -483,12 +483,12 @@ aircraft holds one level, which is what their reviews say of them. The
 
 ### Re-recorded and unmoved
 
-Re-recorded: \`cub\`, \`glider\`, \`timber\`, \`timberf\`, \`bombshell\`,
-\`kadet\`, \`f16\`, \`uglystik\`, \`tigermoth\`, \`p51\` and \`p51-air\`; the
+Re-recorded: `cub`, `glider`, `timber`, `timberf`, `bombshell`,
+`kadet`, `f16`, `uglystik`, `tigermoth`, `p51` and `p51-air`; the
 Skyhunter's, the Bramor's and its chute's hashes re-pinned on their
 committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
-Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
-Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
+Stick, the Zagi, the NRJ, `war:legacy` and `crash:core`'s digests.
+Regenerated: `configs/power-estimates.js`, `tools/audio/flights.json`.
 No gate changed.
 
 ## The rudder only aircraft's level hold, retuned for the wash
@@ -515,15 +515,15 @@ the same hashes as on main.
 
 E-flite's Extra 300 3D 1.3m (EFL115500), the aircraft docs/EXTRA-STAGE1.md
 derives from E-flite's published figures, its manual's throws and APC's
-data for its prop, is back in the hangar as airframe 29, \`extra3d1308\`.
+data for its prop, is back in the hangar as airframe 29, `extra3d1308`.
 
-- **A new id, not 14.** 14 and \`extra1308\` stay reserved: a recording,
+- **A new id, not 14.** 14 and `extra1308` stay reserved: a recording,
   ghost, clip or room peer that names 14 still names the removed aircraft
-  and is refused, and a stored \`extra1308\` still reseats on the Ugly Stik
+  and is refused, and a stored `extra1308` still reseats on the Ugly Stik
   (configs/airframes.js retiredAirframe). Nothing old replays as this one.
 - **Revived, not redone.** The plant code only it used (the high angles,
-  \`hi_alpha\` and \`tail_*\`; the slow air's damping, \`rot_k\`; the
-  surface knee, \`surf_knee\`), removed in aa21a64a, is back, zero gated:
+  `hi_alpha` and `tail_*`; the slow air's damping, `rot_k`; the
+  surface knee, `surf_knee`), removed in aa21a64a, is back, zero gated:
   with every existing table leaving it zero, every recorded hash replays
   as before (checked before the table went in). Its table, gear, crash
   parts, render model, paint, power, props, tunes and strings are its
@@ -550,3 +550,23 @@ one with roll authority at zero airspeed: its ailerons start 77 mm out,
 inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
+
+## Vertical air at the craft, for the weather
+
+The weather lane asked for vertical air the host can set at the craft:
+thermals over sunlit ground, a ridge's or the dam face's lift, the sink
+beside them (docs/WEATHER-CONTRACT.md). `sim_set_air_vertical(w)`
+(sim_abi.h, additive) sets the air's vertical velocity, -10 to 10 m/s up,
+which the host reads off its weather at the craft's position and sets as
+it changes. It rides on the wind's own path (plant_wind's z, which was
+always 0): every airframe flies through it as through the horizontal
+wind, a plane's aerodynamics, a quad's rotors and drag, the free parts,
+on top of the Radian's own three thermals. A world property kept across
+resets, like the wind. 0 is the default, and a flight that never sets it
+replays to the same hashes as on main.
+
+`npm run air:vertical` (in CI): the refusals; the Cub's recording to its
+pinned hash with the call made and without; a Radian's glide sinking
+0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
+falling less far in rising air; it outliving a reset and a still wind,
+and 0 taking it away to the bit.

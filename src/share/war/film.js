@@ -48,7 +48,10 @@
  *              lines    [{ line, lead, tail, span?, overlap? }], end
  *                       to end; an `overlap` line starts lead after the
  *                       one before it starts, so voices talk over each
- *                       other and the shot holds the last to end
+ *                       other and the shot holds the last to end; `or`
+ *                       { line, flag } is said instead when the
+ *                       player's campaign flag is not set (a callback to
+ *                       an earlier mission), timed as the longer of both
  *              music    a bed from this shot on: a track name ('' is
  *                       silence) or { track, at }, at an anchor; only
  *                       in a film whose `music` is null
@@ -174,13 +177,14 @@ export function timing(film, lengths = VOICE) {
     for (const l of s.lines ?? []) {
       const lead = Math.round((l.lead ?? 0) * 1000);
       const tail = Math.round((l.tail ?? 0) * 1000);
-      const long = longest(l.line, lengths);
+      const said = l.or ? [l.line, l.or.line] : [l.line];
+      const long = Math.max(...said.map((id) => longest(id, lengths)));
       /* An overlapping line starts lead after the line before it starts,
        * not after it ends: voices over each other, built in the mix. */
       const rel = l.overlap && prev != null ? prev + lead : at + lead;
       prev = rel;
       shots[i].lines.push({
-        line: l.line, rel, ms: Object.fromEntries(LANGS.map((lang) => [lang, lineMs(l.line, lang, lengths)])), longest: long,
+        line: l.line, or: l.or ?? null, rel, ms: Object.fromEntries(LANGS.map((lang) => [lang, Math.max(...said.map((id) => lineMs(id, lang, lengths)))])), longest: long,
       });
       at = Math.max(at, rel + long + tail);
       const span = l.span ?? 1;
@@ -520,20 +524,26 @@ export function blackAt(timed, i, t) {
 /* The line playing at film ms t in a language, for the subtitle: { line,
  * start, ms } or null. A subtitle stays SUB_TAIL_MS after its line. */
 export const SUB_TAIL_MS = 500;
-export function lineAt(timed, t, lang) {
+export function lineAt(timed, t, lang, flags = {}) {
   for (const s of timed.shots) {
     for (const l of s.lines) {
       if (t >= l.start && t < l.start + l.ms[lang] + SUB_TAIL_MS) {
-        return { line: l.line, start: l.start, ms: l.ms[lang] };
+        return { line: saidOf(l, flags), start: l.start, ms: l.ms[lang] };
       }
     }
   }
   return null;
 }
 
-/* Every line of the film in order: [{ line, start, ms: { en, es } }]. */
-export function linesOf(timed) {
-  return timed.shots.flatMap((s) => s.lines.map((l) => ({ line: l.line, start: l.start, ms: l.ms })));
+/* The line a timed line says for a player with these campaign flags. */
+export function saidOf(l, flags = {}) {
+  return l.or && !flags[l.or.flag] ? l.or.line : l.line;
+}
+
+/* Every line of the film in order: [{ line, start, ms: { en, es } }],
+ * each the one said for these flags. */
+export function linesOf(timed, flags = {}) {
+  return timed.shots.flatMap((s) => s.lines.map((l) => ({ line: saidOf(l, flags), start: l.start, ms: l.ms })));
 }
 
 /* How long a scope contact's trail is, ms, and its dots' spacing. */

@@ -44,6 +44,15 @@ export const ROOMS = {
   field: { w: 20, d: 14, h: 3.6, look: 'field' },
 };
 export const TIERS = ['garage', 'workshop', 'airfield'];
+/* The pilot's level (src/game/progress.js, XP from flying) each tier opens
+ * at; never bought (lead decision 2026-10-07). Spaced inside the planes'
+ * own unlock levels, so a bigger room comes as the bigger planes do. */
+export const TIER_LEVELS = { garage: 1, workshop: 4, airfield: 7 };
+
+/* The biggest tier a level has opened; everything with unlockAll. */
+export function tierFor(level, unlockAll = false) {
+  return unlockAll ? 'airfield' : TIERS.filter((t) => level >= TIER_LEVELS[t]).pop();
+}
 /* Every room there is: the tiers and the field hangar. */
 export const ROOM_IDS = [...TIERS, 'field'];
 
@@ -71,8 +80,9 @@ export const LAYOUTS = {
     { kind: 'stand', at: [4, 2], rot: 0 },
     { kind: 'bench', at: [0, 0], rot: 0 },
     { kind: 'shelf', at: [9, 0], rot: 0 },
-    { kind: 'chest', at: [11, 3], rot: 1 },
+    { kind: 'trophies', at: [11, 2], rot: 1 },
     { kind: 'tv', at: [0, 4], rot: 3 },
+    { kind: 'shop', at: [11, 6], rot: 1 },
   ],
   workshop: [
     { kind: 'stand', at: [8, 5], rot: 0 },
