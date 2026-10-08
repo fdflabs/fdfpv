@@ -102117,6 +102117,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102130,6 +102135,11 @@
      "blurb": "Your aircraft, its power, paint and parts, and your radio.",
      "facts": [],
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -102150,6 +102160,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102214,6 +102232,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102227,6 +102250,11 @@
      "blurb": "Your aircraft, its power, paint and parts, and your radio.",
      "facts": [],
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -102247,6 +102275,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102326,6 +102362,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102339,6 +102380,11 @@
      "blurb": "Your aircraft, its power, paint and parts, and your radio.",
      "facts": [],
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -102364,6 +102410,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",
@@ -102436,6 +102490,11 @@
        "label": "The Interior",
        "action": "way-interior",
        "key": "interior"
+      },
+      {
+       "label": "Field hangar",
+       "action": "field-walk",
+       "key": "ops-field"
       }
      ],
      "action": "hub-ops"
@@ -102449,6 +102508,11 @@
      "blurb": "Your aircraft, its power, paint and parts, and your radio.",
      "facts": [],
      "links": [
+      {
+       "label": "Walk in",
+       "action": "hangar-walk",
+       "key": "hangar-walk"
+      },
       {
        "label": "Aircraft",
        "action": "hangar-aircraft",
@@ -102469,6 +102533,14 @@
     }
    ],
    "hangar": [
+    {
+     "label": "Walk in",
+     "card": "hangar-walk",
+     "svg": null,
+     "blurb": "Your hangar as a place: the aircraft on its stand, the bench, the door to the field.",
+     "facts": [],
+     "action": "hangar-walk"
+    },
     {
      "label": "Aircraft",
      "card": "hangar-aircraft",

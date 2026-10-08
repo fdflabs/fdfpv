@@ -20,7 +20,7 @@
  */
 
 import {
-  CELL, ROOMS, TIERS, LAYOUTS, checkLayout, occupancy, stations, startPose, walk, stationNear, reachable, BODY_R,
+  CELL, ROOMS, ROOM_IDS, LAYOUTS, checkLayout, occupancy, stations, startPose, walk, stationNear, reachable, BODY_R,
 } from '../src/game/hangarroom.js';
 
 const words = (p) => p.map((x) => `${x.kind} at ${x.at.join(',')} ${x.problem}${x.other ? ` ${x.other}` : ''}`).join('; ');
@@ -33,7 +33,7 @@ function check(name, ok, detail) {
   }
 }
 
-for (const tier of TIERS) {
+for (const tier of ROOM_IDS) {
   const room = ROOMS[tier];
   const layout = LAYOUTS[tier];
   const problems = checkLayout(room, layout);
