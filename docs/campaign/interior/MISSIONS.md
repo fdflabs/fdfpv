@@ -898,6 +898,15 @@ The intro and outro (M3_00, M3_09) are films.
 | int3-re-volume | the RELAY role's volume shown | FERRER | RELAY | (new) That box is where you live now. Don't leave it. |
 | int3-st-ready | the strike role unlocked | ROJAS | STRIKE | (new) You're the one they'll call. Not before. |
 | int3-in-launch | the interceptor role opens | FERRER | INTERCEPTOR | (new) Small, slow, curious. Stay on it. |
+| int3-g-classify | CLASSIFY KEY CONTACTS the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) Five contacts around the post. Watch each until it tells you what it is. |
+| int3-g-strike-wait | stages 1 and 3 on the STRIKE role's screen | ROJAS | STRIKE | (new) Nothing for you yet. Help them watch. |
+| int3-g-threats | IDENTIFY THREATS the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) The tree line round the post. Find who is still there. |
+| int3-g-strike | IDENTIFY THREATS on the STRIKE role's screen | ROJAS | STRIKE | (new) Hold near the gate. You go when Vega clears it. |
+| int3-g-pickups | TRACK DEPARTING VEHICLES the screen's objective | IBARRA | ISR, TRACKER, RECON, RELAY | (new) Three pickups. Stay on each until it shows you something. |
+| int3-g-relay | RESTORE DRONE NETWORK LINK, any role but RELAY | FERRER | ISR, TRACKER, RECON, STRIKE | (new) The relay goes in the box first. Then the command site. |
+| int3-g-relay-hold | RESTORE DRONE NETWORK LINK on the RELAY role's screen | FERRER | RELAY | (new) Into the box and stay there. |
+| int3-g-command | DOCUMENT THE COMMAND SITE the screen's objective | IBARRA | ISR, TRACKER, RECON, STRIKE | (new) Radio, shelter, motorcycles, the markers on the route. |
+| int3-g-north | FOLLOW THE NORTHERN VEHICLE the screen's objective | IBARRA | all | (new) Stay on it. Do not cross the line. |
 
 Spanish: in the same rows; ustedes; Vega's "Autorizado." for "Cleared."
 and "Amenaza neutralizada." for "Threat stopped." (BIBLE 11).
