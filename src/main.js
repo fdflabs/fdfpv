@@ -271,6 +271,7 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
+import { makeWeather } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
@@ -11167,6 +11168,46 @@ export async function boot({
     qSpawnInv.copy(qSpawn).invert();
   }
 
+  /*
+   * THE AIR, docs/WEATHER-CONTRACT.md: null is calm. The plant's wind
+   * outlives sim_reset, so a calm run after a windy one sets still air once;
+   * a run that was calm all along makes no call at all, which keeps every
+   * calm flight's call stream (recorded flights, contact:golden) as it was.
+   * Picked by window.__weather until the room and the settings pick it.
+   */
+  let weatherPick = { preset: 'calm', seed: 0 };
+  let weather = null;
+  let windSet = false;
+  const airPos = new THREE.Vector3();
+  const airOut = { x: 0, z: 0, gust: 0 };
+  const airSim = { x: 0, y: 0, z: 0 };
+  function setWind(vx, vy, gust) {
+    const code = sim.e.sim_set_wind(vx, vy, gust);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+  }
+  function seatWeather() {
+    weather = makeWeather(view.id, weatherPick.preset, weatherPick.seed);
+    if (!weather && windSet) {
+      setWind(0, 0, 0);
+      windSet = false;
+    }
+  }
+  /* Before a step: the air at the craft, on the plant's own clock. */
+  function pushWeather(st) {
+    poseFromState(st, airPos);
+    weather.at(airPos.x, airPos.y, airPos.z, st[0], airOut);
+    worldDirToSim(airOut.x, 0, airOut.z, airSim);
+    setWind(airSim.x, airSim.y, airOut.gust);
+    windSet = true;
+  }
+  window.__weather = (preset, seed) => {
+    makeWeather(view.id, preset, seed);
+    weatherPick = { preset, seed: seed >>> 0 };
+    return true;
+  };
+
   /* The plant's calls here are in the order recorded flights and
    * contact:golden start from, so they stay in it. */
   function restartPlant() {
@@ -11188,6 +11229,7 @@ export async function boot({
     }
     sim.setCellVoltage(runVoltage);
     declareWater();
+    seatWeather();
     crashReset();
     /* sim_reset put the module's step counter back to zero; queued stick
      * samples and the leftover step time belong to the old count, and the
@@ -15785,6 +15827,9 @@ export async function boot({
         crashBeforeStep(st);
       }
       tracePre(st);
+      if (weather) {
+        pushWeather(st);
+      }
       const sound = st;
       sim.step(1);
       st = readState();
