@@ -276,7 +276,7 @@ const Qprop = torqueArm * W;
 /* SWIRL_KEEP, the plant's: the share for which the swirl's whole roll on
  * this aircraft at the hover, the root's (1 - K) Q and the fin's, is 0.40
  * of the prop's torque: Selig, Modeling Propeller Aerodynamics and
- * Slipstream Effects on Small UAVs in Realtime, AIAA 2010-7638, sec. B,
+ * Slipstream Effects on Small UAVs in Realtime, AIAA 2010-7938, sec. B,
  * "for a typical aerobatic RC/UAV configuration capable of hover, the net
  * right rolling moment is near 40% of the propeller torque". The fin's
  * roll is linear in K, so K solves it directly; the fuselage's coil, which

@@ -125,9 +125,6 @@ window.__T = { log: [], done: false };
    * elevator for where the rudder was a quarter turn ago. */
   const KP = 5, KR = 0.3, KI = 1.5;
   /* The person: hover-probe.js's limits and one of its pilots. */
-  /* On AS3X the person leaves the torque to the gyro's heading and trims
-   * nothing; in Manual they learn to hold it on the ailerons. */
-  const TRIM_KI = '${mode}' === 'human-as3x' ? 0 : 0.3;
   const LAG = 0.2, EVERY = 0.1, SETTLE = 3, H = { kp: 1, kd: 0.2, kr: 0.1, kv: 0.3, kt: 0.1 };
   const Y = { x: 0, y: 1, z: 0 };
   const q = (x) => clamp(Math.round(x * 50) / 50);
@@ -203,14 +200,13 @@ window.__T = { log: [], done: false };
         if (d && was) {
           const dt2 = d.t - was.t;
           base = Math.max(0, clamp(base - EVERY * (0.05 * d.h + 0.1 * d.vz)));
-          trim = clamp(trim - TRIM_KI * EVERY * d.p);
+          trim = clamp(trim - 0.3 * EVERY * d.p);
           const lean = (v) => clamp(H.kv * v, -0.3, 0.3);
           hs = [q(trim - H.kr * d.p), q(H.kp * (d.ep - lean(d.lu)) + H.kd * (d.ep - was.ep) / dt2),
             q(-H.kp * (d.ey - lean(d.ll)) - H.kd * (d.ey - was.ey) / dt2), Math.max(0, q(base - H.kt * d.vz))];
         }
       }
       s = hs;
-      if (t >= SETTLE) { T.ail = (T.ail || 0) + Math.abs(hs[0]); T.nAil = (T.nAil || 0) + 1; }
       if (t > SETTLE + 10) {
         let swing = 0;
         const b0 = T.bearing[0] ?? 0;
@@ -220,7 +216,7 @@ window.__T = { log: [], done: false };
           if (i > 0) path += Math.abs(wrap(T.bearing[i] - T.bearing[i - 1]));
         }
         T.path = path * 180 / Math.PI;
-        T.human = { held: T.heldS - SETTLE, worst: T.worst, swing: swing * 180 / Math.PI, path: T.path, thr: hs[3], ail: T.ail / T.nAil };
+        T.human = { held: T.heldS - SETTLE, worst: T.worst, swing: swing * 180 / Math.PI, path: T.path, thr: hs[3] };
         phase = 'end';
       }
     } else if (phase === 'harrier') {
@@ -324,7 +320,7 @@ try {
        * AS3X) and this pilot is one of the 11 only from rest, so Manual's
        * row is printed, not judged. */
       const h = r.human;
-      const what = h ? `${st.tune}: a person's hover held ${f(h.held, 1)} s of 10, nose within ${f(h.worst, 0)} deg of vertical, throttle ${f(h.thr)}, mean aileron stick ${f(h.ail)}` : `${st.tune}: never hovered, stopped in ${r.at}`;
+      const what = h ? `${st.tune}: a person's hover held ${f(h.held, 1)} s of 10, nose within ${f(h.worst, 0)} deg of vertical, throttle ${f(h.thr)}` : `${st.tune}: never hovered, stopped in ${r.at}`;
       if (mode === 'human-as3x') {
         say(Boolean(h) && !r.crashed && h.held >= 10, what);
         /* The travel led camera this replaced turned 342 deg round the

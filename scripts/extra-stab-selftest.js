@@ -167,25 +167,22 @@ check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
-/* AS3X, mode 3, against Manual flown the same way. The lead in is flown
- * in Manual and the mode set at the step, so both meet it from the same
- * state. The receiver's gain fades out as the stick leaves centre (gone at
- * 40 percent, Spektrum's priority 160), so a full stick is Manual's rate,
- * no cap; nothing levels it; and centred, it rejects a disturbance the
- * airframe alone would keep: a 1 rad/s kick on each axis, hanging on the
- * prop at the hover's throttle and level at 16 m/s. */
+/* AS3X, mode 3, against Manual flown the same way: the receiver's damper
+ * fades out as the stick leaves centre (Spektrum's priority), so a full
+ * stick is Manual's rate, no cap; nothing levels it; and centred, it damps
+ * the rate the aircraft is left with harder than the airframe alone. */
+/* The lead in is flown in Manual and the mode set at the step, so both
+ * meet the stick from the same state. */
 function bothModes(fn) {
   const out = {};
   for (const [mode, name] of [[0, 'manual'], [3, 'as3x']]) {
+    must(sim.e.sim_wing_set_stab(0), 'set manual');
     out[name] = fn(() => must(sim.e.sim_wing_set_stab(mode), 'set mode'));
   }
-  must(sim.e.sim_wing_set_stab(0), 'set manual');
   return out;
 }
 console.log('as3x');
-must(sim.e.sim_wing_set_stab(0), 'set manual');
 const rollRates = bothModes((mode) => {
-  must(sim.e.sim_wing_set_stab(0), 'set manual');
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
@@ -193,43 +190,20 @@ const rollRates = bothModes((mode) => {
 });
 check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
 const pullRates = bothModes((mode) => {
-  must(sim.e.sim_wing_set_stab(0), 'set manual');
   throwAt(120, 16);
   fly(0, 0, 0, 1.0, 1);
   mode();
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
-const HOVER_DUTY = 0.625;
-for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.75]]) {
-  for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
-    const left = bothModes((mode) => {
-      mode();
-      must(sim.reset(), 'reset');
-      clockMs = 0;
-      extraPrelude(sim);
-      must(sim.e.sim_set_pose(0, 0, 120, ...pose), 'pose');
-      if (speed > 0) must(sim.e.sim_wing_launch(speed), 'launch');
-      fly(0, 0, 0, duty, 0.3);
-      const s = sim.readState().state;
-      const w = [s[11], s[12], s[13]];
-      w[k - 11] += 1;
-      must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
-      /* Roll and pitch carry the heading, so the angle turned; yaw is the
-       * damper alone, so the rate left 0.1 s on. */
-      let turned = 0;
-      for (let i = 0; i < 125; i += 1) {
-        fly(0, 0, 0, duty, 0.004);
-        turned += (sim.readState().state[k] - s[k]) * 0.004;
-        if (axis === 'yaw' && i === 24) return Math.abs(sim.readState().state[k] - s[k]);
-      }
-      return Math.abs(turned);
-    });
-    const unit = axis === 'yaw' ? ['rate 0.1 s on', 'rad/s', (x) => x.toFixed(3)] : ['angle turned in 0.5 s', 'deg', deg];
-    check(`${where}, sticks centred, a 1 rad/s ${axis} kick: the ${unit[0]} is less under AS3X than Manual`, left.as3x < left.manual, `${unit[2](left.as3x)} against ${unit[2](left.manual)} ${unit[1]}`);
-  }
-}
-
+const released = bothModes((mode) => {
+  throwAt(120, 16);
+  fly(0, 0, 0, 1.0, 1);
+  mode();
+  fly(0, 1, 0, 1.0, 0.3);
+  return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
+});
+check('centred after a pull, the pitch rate 0.1 s on is below Manual\'s: it damps', released.as3x < released.manual, `${deg(released.as3x)} against ${deg(released.manual)} deg/s`);
 must(sim.e.sim_wing_set_stab(3), 'set as3x');
 throwAt(120, 16);
 fly(0, 0, 0, 1.0, 1);

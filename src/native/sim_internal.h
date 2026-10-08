@@ -607,15 +607,13 @@ typedef struct FixedWingParams {
    * clipped at the throw. No attitude, no rate cap, no hold. Zero where
    * the aircraft has no such receiver, and mode 3 there is Manual.
    * scripts/as3x-derive.js. */
-  /* The prop's jet normal force in a hover (Selig, AIAA 2010-7638, eq.
-   * 13 to 16): k_j, the share of the slipstream's sideways momentum the
-   * airframe turns, and prop_x, the disc's distance ahead of the CG, m.
-   * Zero k_j leaves it out. */
+  /* The prop's jet normal force in a hover (Selig, AIAA 2010-7938, eq.
+   * 13 to 16): k_j, the share of the sideways momentum through the disc
+   * the airframe turns into the slipstream's axis, and prop_x, the disc's
+   * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
   double as3x_k[3];
-  /* Heading: surface per rad of attitude the damper has seen turned. */
-  double as3x_kh[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
