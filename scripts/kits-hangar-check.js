@@ -179,10 +179,20 @@ async function leds(page) {
     const leds = [0, 1, 2, 3].map((m) => c.group.getObjectByName('led-' + m));
     const lit = (t) => { c.setLights(t, 0.5, 1); return leds.map((l) => l.material.color.getHex() === 0x00b7ff ? 1 : 0).join(''); };
     const stock = craftBuilderFor('${id}')({ fog: false });
-    return { found: leds.every(Boolean), steps: [0, 110, 220, 330].map(lit), again: lit(110), stock: Boolean(stock.setLights) || Boolean(stock.group.getObjectByName('led-0')) };
+    const t0 = performance.now();
+    for (let i = 0; i < 20000; i += 1) {
+      c.setLights(i * 16.7, 0.5, 1);
+    }
+    const usPerFrame = ((performance.now() - t0) * 1000) / 20000;
+    let meshes = 0;
+    c.group.traverse((o) => { meshes += o.isMesh && o.name.startsWith('led-') ? 1 : 0; });
+    return { found: leds.every(Boolean), steps: [0, 110, 220, 330].map(lit), again: lit(110), stock: Boolean(stock.setLights) || Boolean(stock.group.getObjectByName('led-0')), usPerFrame, meshes };
   })()`);
   say(run.found && run.steps.join() === '1000,0100,0010,0001' && run.again === '0100', `${id}: the LEDs chase round the arms on the flight clock: ${run.steps.join(' ')}`);
   say(!run.stock, `${id}: a quad without lights builds no LEDs`);
+  /* The budget (docs/KITS.md section 4): 4 draws and well under 0.05 ms of
+   * script a frame for the own craft's LEDs. */
+  say(run.meshes === 4 && run.usPerFrame < 50, `${id}: LED cost: ${run.meshes} extra draws, setLights ${run.usPerFrame.toFixed(2)} us a frame`);
 }
 
 async function main() {
