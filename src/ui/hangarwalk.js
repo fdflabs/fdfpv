@@ -27,8 +27,9 @@
  */
 
 import {
-  ROOMS, LAYOUTS, occupancy, stations, startPose, walk, stationNear,
+  ROOMS, LAYOUTS, tierFor, occupancy, stations, startPose, walk, stationNear,
 } from '../game/hangarroom.js';
+import { levelOf } from '../game/progress.js';
 import { str } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { hubWays } from './ways.js';
@@ -91,10 +92,12 @@ function renderPrompt(ui) {
 }
 
 export const walkMethods = {
-  /* Into a room, at the door: the main hangar, whose tier is the garage
-   * corner until the progression lane says otherwise (docs/HANGAR-ROOM.md),
-   * or the war's field hangar. Back returns to the hub it came from. */
-  openWalk(tier = 'garage') {
+  /* Into a room, at the door: the main hangar, as big as the pilot's
+   * level has opened (docs/HANGAR-ROOM.md), or the war's field hangar.
+   * Back returns to the hub it came from. */
+  openWalk(which = 'main') {
+    const p = this.progress && this.progress.state;
+    const tier = which === 'field' ? 'field' : tierFor(levelOf(p ? p.xp : 0), Boolean(p && p.unlockAll));
     const room = ROOMS[tier];
     const layout = LAYOUTS[tier];
     this.walk = {

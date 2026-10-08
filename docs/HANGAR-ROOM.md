@@ -37,9 +37,10 @@ main room with the pilot second, the war field hangar third.
   in its livery (src/render/livery.js and the decals, finish and parts
   dressing carousel3d.js already applies).
 - **Space tiers**: garage corner (6 by 5 m), workshop (10 by 8 m),
-  airfield hangar (20 by 14 m). What unlocks a tier is the progression
-  lane's rule and an owner decision (see Questions); until then the room
-  is the garage corner.
+  airfield hangar (20 by 14 m), opened by the pilot's level from flying
+  (src/game/progress.js): the workshop at level 4, the airfield hangar at
+  level 7 (TIER_LEVELS), all of them with Unlock all. Never bought (lead
+  decision 2026-10-07). The room is the biggest tier opened.
 - **Grid furniture**: the floor is a 0.5 m grid. Furniture is a list of
   `{ kind, at: [i, j], rot }` (rot in quarter turns), each kind a
   footprint in cells; nothing overlaps and nothing leaves the room, held
@@ -151,7 +152,5 @@ shop, trophy or replay screens (other lanes' and item 28's).
 
 ## Questions for the owner
 
-1. What opens the workshop and the airfield hangar tiers? Recommended:
-   the pilot's level from flying (PROGRESSION.md XP), never bought.
-2. Moving furniture by hand: in this item or later? Recommended: later,
-   after the shop has furniture to place.
+Answered 2026-10-07 (lead): the tiers open by level from flying, never
+bought; moving furniture comes later, with the shop's furniture.
