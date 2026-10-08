@@ -32,13 +32,22 @@ export const LIGHTS_VERSION = 1;
 
 const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
 
-const TRAINER = [
-  slot('spinner', 'bullet', 'flat', 'none'),
-  slot('wingtips', 'raked', 'drooped', 'winglet'),
-  slot('wheels', 'pants', 'tundra'),
-  slot('fin', 'swept'),
-  slot('canopy', 'smoke', 'gold'),
-];
+/*
+ * The planes, each its own list (docs/KITS.md section 3): a slot only
+ * where the airframe has the part, an option only where it draws
+ * differently from stock inside the stock model's box. A canopy that is a
+ * paint region already (the Radian's, the F-16's) has no tint slot, since
+ * the Paint page colours it.
+ */
+const CUB = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'tundra')];
+/* The Timber stands on tundra tyres already. */
+const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
+const KADET = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'pants'), slot('canopy', 'smoke', 'gold')];
+const SLOWSTICK = [slot('spinner', 'bullet'), slot('wheels', 'tundra')];
+const UGLYSTIK = [slot('spinner', 'bullet'), slot('wheels', 'pants')];
+/* The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
+ * fins a pair on the booms. */
+const SKY = [slot('spinner', 'bullet'), slot('wingtips', 'winglet')];
 const P51 = [
   slot('spinner', 'twotone', 'striped'),
   slot('exhausts', 'dampers'),
@@ -80,8 +89,8 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 /* By livery key (configs/liveries.js liveryKey), so a float variant wears
  * its plane's kit. */
 export const KITS = {
-  sky1800: TRAINER, cub1400: TRAINER, kadet1981: TRAINER, slowstick1180: TRAINER,
-  uglystik1567: TRAINER, timber1500: TRAINER,
+  sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
+  uglystik1567: UGLYSTIK, timber1500: TIMBER,
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
@@ -94,7 +103,8 @@ export const KITS = {
  * 8); the hangar offers the Kit tab on these only. */
 export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
   'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
-  'p51d1450', 'tigermoth1803', 'bombshell1118']);
+  'p51d1450', 'tigermoth1803', 'bombshell1118',
+  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];

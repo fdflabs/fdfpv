@@ -49,7 +49,12 @@ where the airframe has the part.
 
 | Family (airframes) | Slots and options |
 | --- | --- |
-| Trainers and sport (sky1800, cub1400, kadet1981, slowstick1180, uglystik1567, timber1500) | spinner: stock, bullet, flat cap, none (pointed prop nut); wingtips: stock, raked, drooped (Hoerner), winglet; wheels: stock, pants (spats), tundra (big soft tyres, drawn only); fin: stock, swept cap; canopy tint: clear, smoke, gold |
+| Skyhunter (sky1800) | spinner: stock, bullet (on the pusher, pointing aft); wingtips: stock, winglet. A twin boom pusher with no wheels and no cabin glass |
+| Cub (cub1400, and cub1400f on floats) | spinner: stock, bullet, flat cap; wheels: stock, tundra (the same diameter on a fat balloon, so it sits where it did). On floats the wheels slot draws nothing |
+| Kadet (kadet1981) | spinner: stock, bullet, flat cap; wheels: stock, pants (on the mains, the spinner's red); canopy tint: clear, smoke, gold (the windows; glass is not a paint region) |
+| Slow Stick (slowstick1180) | spinner: stock nut, bullet; wheels: stock, tundra |
+| Ugly Stik (uglystik1567) | spinner: stock nut, bullet (the fuselage's red); wheels: stock, pants |
+| Timber (timber1500, and timber1500f on floats) | spinner: stock, bullet, flat cap; canopy tint: clear, smoke, gold. It stands on tundra tyres already, so no wheels slot |
 | P-51D (p51d1450) | spinner: stock, two tone (black front), striped (yellow ring); exhausts: stock, flame dampers (one shroud a side in place of the six stacks); wheels: stock, covered; canopy tint: clear, smoke |
 | Tiger Moth (tigermoth1803) | spinner: stock, two tone (polished front), striped (yellow ring); exhausts: stock long pipe, short stacks; wheels: stock, covered (the fuselage's colour). Open cockpits, so no canopy |
 | Bombshell (bombshell1118) | spinner: stock Cox nut, bullet; wheels: stock, covered (the wing's red); canopy tint: clear, smoke |
