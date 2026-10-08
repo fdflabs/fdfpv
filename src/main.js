@@ -61,6 +61,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -88,7 +89,7 @@ import {
   adoptShareFromLocation, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
 } from './share/board.js';
-import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
+import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
@@ -200,6 +201,7 @@ import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
+import { MEDAL_STEPS } from './game/medals.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { retiredMap } from './maps/retired.js';
@@ -2063,8 +2065,8 @@ export async function boot({
     }
     /* The trophy wall: every first paid, in key order so a wall reads the
      * same each visit (src/game/progress.js firsts). */
-    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
-    walkRoom.view.setTrophies(visit ? [...visit.firsts].sort() : Object.keys(firsts).filter((k) => firsts[k]).sort());
+    const state = ui.progress ? ui.progress.state : {};
+    walkRoom.view.setTrophies(visit ? visit.firsts : trophyKeys(state.firsts, state.medals));
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2136,6 +2138,17 @@ export async function boot({
     if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
       tt.rec.stop();
     }
+  }
+
+  /* The trophy wall's keys: medals first, gold before silver before
+   * bronze (src/game/medals.js), then every first paid, each in key order
+   * so a wall reads the same each visit. */
+  function trophyKeys(firsts = {}, medals = {}) {
+    const rank = (step) => MEDAL_STEPS.length - MEDAL_STEPS.indexOf(step);
+    const won = Object.entries(medals || {}).filter(([, m]) => MEDAL_STEPS.includes(m))
+      .sort(([a, ma], [b, mb]) => rank(ma) - rank(mb) || (a < b ? -1 : 1))
+      .map(([course, m]) => `medal:${course}:${m}`);
+    return [...won, ...Object.keys(firsts || {}).filter((k) => firsts[k]).sort()];
   }
 
   /* A visited pilot's aircraft in their own paint and parts, normalised
@@ -13155,6 +13168,21 @@ export async function boot({
    * the board already held this one from another browser, and the line the
    * builder shows, because the flight's own notice is hidden while building.
    */
+  /* The builder's best test lap, on the layout it was flown on: the gold
+   * time the course is published with (src/game/medals.js). */
+  let builderBest = null;
+  function noteBuilderLap(ms) {
+    const doc = build.doc;
+    if (!doc || !Number.isFinite(ms)) {
+      return;
+    }
+    const layout = layoutFingerprint(doc);
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || builderBest.wing !== wing || ms < builderBest.ms) {
+      builderBest = { docId: doc.id, layout, ms, wing };
+    }
+  }
+
   async function publishBuiltTrack(doc) {
     const owned = Boolean(readEditKey(doc.id));
     const values = await ui.askForm({
@@ -13184,9 +13212,16 @@ export async function boot({
     if (!values) {
       return null;
     }
+    const layout = layoutFingerprint(doc);
+    const medals = publishMedals(doc.medals, layout, (readBind(doc.id) || {}).layoutFingerprint, builderBest && builderBest.docId === doc.id ? builderBest : null);
+    const sent = { ...doc };
+    delete sent.medals;
+    if (medals) {
+      sent.medals = medals;
+    }
     try {
       const result = await publishCurrentCourse({
-        doc,
+        doc: sent,
         author: values.author,
         origin: (readBind(doc.id) || {}).board,
         courseName: values.course,
@@ -16320,12 +16355,17 @@ export async function boot({
       }
     }
     ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passed);
+    if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
+      noteBuilderLap(race.lastLapMs);
+    }
     if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
       if (passed) {
         ui.progress.gatePass();
       }
       if (race.laps.length > lapsBefore) {
-        ui.progress.lap(progressCourse());
+        const seated = seatedMapTrack();
+        const medals = seated && seated.document && seated.document.medals;
+        ui.progress.lap(progressCourse(), medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing));
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');

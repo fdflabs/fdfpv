@@ -300,7 +300,8 @@ try {
   /* A pilot who has flown to the workshop's level walks into the
    * workshop: progress as flying leaves it, set in place. */
   await page.evaluate(`(() => { const p = window.__ui.progress.state; p.unlockAll = false; p.xp = ${LEVEL_XP[TIER_LEVELS.workshop - 1]};
-    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'aircraft:cub1400:ten': false }; return true; })()`);
+    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'aircraft:cub1400:ten': false };
+    p.medals = { 'board:alps-sprint': 'gold', 'board:swiss-hoops': 'bronze' }; return true; })()`);
   check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
   await page.until("window.__ui.hub === 'hangar'", 10000);
   check('Walk in again', await page.click(walkCard), 'clicked');
@@ -310,7 +311,7 @@ try {
   room = ROOMS[s.tier];
   occ = occupancy(room, LAYOUTS[s.tier]);
   await shot('05-workshop');
-  check('the trophy wall holds one trophy per first paid, none for one unpaid', s.view.trophies === 4, `${s.view.trophies} trophies`);
+  check('the trophy wall holds a trophy per Flight Club medal and per first paid, none for one unpaid', s.view.trophies === 6, `${s.view.trophies} trophies (2 medals, 4 firsts)`);
   const door = s.stations.find((x) => x.id === 'door');
   s = await walkTo(room, occ, door);
   await page.sleep(200);
