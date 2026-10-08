@@ -27,6 +27,9 @@
  *      in the list) on the first region that is not film, a swatch then
  *      its second colour; the model's material draws both, and a picture
  *      of each from above.
+ *   9. The swatch library: a colour kept on the Timber is stored at once,
+ *      offered on the Cub after a reload and paints it, and Forget takes
+ *      it out of the library.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -529,6 +532,50 @@ async function patternsEach(page) {
   }
 }
 
+async function swatchLibrary(page) {
+  console.log('9. the swatch library');
+  const stored = () => page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).swatches || {}).list || []`);
+  const colours = async (id) => {
+    await openHangar(page, id);
+    await press(page, '.hangar [data-key="tab-colours"]');
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  };
+  await colours('timber1500');
+  await press(page, '.hangar [data-key="side-top"]');
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  const hex = keys[12].slice('colour-'.length);
+  await press(page, `.hangar [data-key="${keys[12]}"]`);
+  await mouse(page, 'mouseMoved', 400, 450);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const kept = await stored();
+  say(kept[0] === hex, `Keep stores ${hex} at once: ${JSON.stringify(kept)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('!!window.__shellReady', 300000);
+  await page.until('window.__map && window.__map().ready', 400000);
+  await colours('cub1400');
+  const region = await page.evaluate('window.__ui.hangar.region');
+  await press(page, '.hangar [data-key="side-top"]');
+  const offered = await page.evaluate(`Boolean(document.querySelector('.hangar [data-key="mine-colour-${hex}"]'))`);
+  if (offered) {
+    await press(page, `.hangar [data-key="mine-colour-${hex}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+  }
+  await page.until(`(window.__ui.hangar.entry.regions || {})[${JSON.stringify(region)}] === ${JSON.stringify(hex)}`, 5000).catch(() => {});
+  const cub = await page.evaluate('window.__ui.hangar.entry');
+  say(offered && (cub.regions || {})[region] === hex, `after a reload the Cub offers it and it paints the ${region}: ${JSON.stringify(cub)}`);
+  await steady(page, '.hangar [data-key="keep-colour"]');
+  const label = await page.evaluate(`document.querySelector('.hangar [data-key="keep-colour"]').textContent`);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`!document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const left = await stored();
+  say(label === 'Forget this colour' && !left.includes(hex), `Forget takes it out: "${label}", ${JSON.stringify(left)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -542,7 +589,9 @@ async function main() {
     await page.until('window.__map && window.__map().ready', 400000);
     /* WORKSHOP_STEPS (names of the steps below) and WORKSHOP_REPEAT run a
      * part of the check again and again, to hunt a race on a slow page. */
-    const steps = { viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach };
+    const steps = {
+      viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
+    };
     const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : Object.keys(steps);
     for (let i = 0; i < Number(process.env.WORKSHOP_REPEAT || 1); i++) {
       for (const name of chosen) {

@@ -50,12 +50,13 @@ import { readPilotName } from '../share/pilot.js';
 import {
   readBind, readEditKey, readShareImport, writeShareImport,
 } from '../share/session.js';
-import { str, plural } from '../strings/index.js';
+import { currentLocale, str, plural } from '../strings/index.js';
 import { duplicateTrack, toPlain } from '../trackbuilder/model.js';
 import {
   listMapTracks, loadMapTrack, readOnlineStates, saveTrack,
 } from '../trackbuilder/storage.js';
 import { formatDay, formatTime } from './format.js';
+import { paintPilotStats, pilotStats } from './pilotstats.js';
 import { filmFor, VIEW_LABEL } from './trickfilm.js';
 import { scoreableTricks, trickStatus } from './trickslist.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
@@ -414,6 +415,29 @@ export const cardMethods = {
       host.append(actions);
     }
     this.markCards();
+  },
+
+  /*
+   * FLIGHT CLUB'S PILOT STATS (src/ui/pilotstats.js), shown in that hub
+   * only. Rebuilt when a number on it changes, so a sync that brings
+   * another computer's time repaints it through the same renderMenu.
+   */
+  renderTitleStats() {
+    const host = this.gateStats;
+    if (!host) {
+      return;
+    }
+    const show = this.onGate() && this.hub === 'club';
+    host.hidden = !show;
+    if (!show) {
+      return;
+    }
+    const st = pilotStats(this.settings);
+    const shape = `${currentLocale()}|${JSON.stringify(st)}`;
+    if (this.titleStatsKey !== shape) {
+      this.titleStatsKey = shape;
+      paintPilotStats(host, st);
+    }
   },
 
   /*

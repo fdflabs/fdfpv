@@ -21,10 +21,12 @@
  */
 
 import INTERIOR_1 from '../interior/missions/interior-1.js';
+import INTERIOR_2 from '../interior/missions/interior-2.js';
+import INTERIOR_3 from '../interior/missions/interior-3.js';
 import { readWorldBytes } from '../interior/node.js';
 import { makeOpsWorld } from '../interior/ops.js';
 
-export const MISSIONS = Object.freeze({ 'interior-1': INTERIOR_1 });
+export const MISSIONS = Object.freeze({ 'interior-1': INTERIOR_1, 'interior-2': INTERIOR_2, 'interior-3': INTERIOR_3 });
 
 /* Each map's { canopyBlocks, poseOnRoute, groundAt }, made on first use:
  * the Interior's reads its ground from disk (the room on the VM, the

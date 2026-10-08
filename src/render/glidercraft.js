@@ -77,6 +77,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { plateGeometry, spinnerProfile } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -741,6 +742,9 @@ export function buildGliderCraft(opts = {}) {
   const metal = cel({ color: 0xb4b0a6, rim: 0.30, spec: 0.70, specWidth: 0.022 });
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
   const ink = 0x0c120e;
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
 
   /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
@@ -798,6 +802,19 @@ export function buildGliderCraft(opts = {}) {
       blacks.push(...b);
       const tip = stabGeometry([sign * STAB_TIP_IN, sign * 0.21, sign * 0.225, sign * (STAB_HALF - 0.001)].sort((p, q) => p - q), n);
       reds.push(tip);
+      /* A kit's winglets, red like the tips they stand on: a swept plate
+       * up off the last 25 mm of each tip, inside the span. */
+      if (kit.wingtips === 'winglet') {
+        const x = sign * 0.972;
+        const le = wingAt(x)(0.10, 1);
+        const te = wingAt(x)(0.97, 1);
+        reds.push(plateGeometry([
+          [le.x, le.y, le.z],
+          [te.x, te.y, te.z],
+          [sign * 0.988, te.y + 0.075, te.z + 0.004],
+          [sign * 0.988, te.y + 0.075, te.z - 0.030],
+        ], [sign, 0, 0], 0.003));
+      }
     }
     reds.push(finGeometry([RUD_TOP, 0.22, 0.24, 0.2530, 0.2610, FIN_TOP], n));
     const redMesh = new THREE.Mesh(merged(reds), red);
@@ -892,11 +909,15 @@ export function buildGliderCraft(opts = {}) {
 
     /* The spinner, a lathe about the mount's y, which is forward: its base
      * 3 mm behind the prop's plane, its tip on the station origin. */
-    const prof = [new THREE.Vector2(0.0001, -0.003)];
     const m = lite ? 4 : 7;
-    for (let i = 0; i <= m; i += 1) {
-      const u = i / m;
-      prof.push(new THREE.Vector2(Math.max(0.0005, SPINNER_R * Math.sqrt(1 - u * u)), -0.003 + (PROP_S + 0.003) * (0.15 + 0.85 * u)));
+    let prof = [new THREE.Vector2(0.0001, -0.003)];
+    if (kit.nose === 'pointed') {
+      prof = spinnerProfile('pointed', SPINNER_R, -0.003, PROP_S, m);
+    } else {
+      for (let i = 0; i <= m; i += 1) {
+        const u = i / m;
+        prof.push(new THREE.Vector2(Math.max(0.0005, SPINNER_R * Math.sqrt(1 - u * u)), -0.003 + (PROP_S + 0.003) * (0.15 + 0.85 * u)));
+      }
     }
     const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 16), black);
     spinner.name = 'spinner';

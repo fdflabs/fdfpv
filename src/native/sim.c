@@ -2828,7 +2828,7 @@ SIM_EXPORT int sim_wing_set_stab(int mode) {
   if (!g_initialised) {
     return SIM_ERR_BAD_STATE;
   }
-  if (mode < 0 || mode > 2) {
+  if (mode < 0 || mode > 3) {
     return SIM_ERR_BAD_ARG;
   }
   plant_wing_set_stab(mode);
@@ -3010,7 +3010,16 @@ SIM_EXPORT int sim_set_wind(double vx, double vy, double gust) {
   SIM_WIND[0] = vx;
   SIM_WIND[1] = vy;
   SIM_GUST = gust;
-  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0;
+  SIM_WIND_ON = vx != 0.0 || vy != 0.0 || gust > 0.0 || SIM_AIR_W != 0.0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_set_air_vertical(double w) {
+  if (!finite_d(w) || !(w >= -10.0) || !(w <= 10.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  SIM_AIR_W = w;
+  SIM_WIND_ON = SIM_WIND[0] != 0.0 || SIM_WIND[1] != 0.0 || SIM_GUST > 0.0 || w != 0.0;
   return SIM_OK;
 }
 
