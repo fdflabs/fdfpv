@@ -46,9 +46,9 @@ function say(ok, what) {
 
 /* Per quad: the option pointed at, and the two pressed. */
 const PLAN = {
-  '7inch': { hover: ['arms', 'blade'], press: [['arms', 'tapered'], ['antenna', 'pagoda']] },
+  '7inch': { hover: ['arms', 'blade'], press: [['arms', 'cutout'], ['antenna', 'pagoda']] },
   '10inch': { hover: ['top', 'armoured'], press: [['arms', 'cutout'], ['mount', 'cage']] },
-  interceptor: { hover: ['antenna', 'dualt'], press: [['top', 'armoured'], ['arms', 'blade']] },
+  interceptor: { hover: ['antenna', 'dualt'], press: [['top', 'vented'], ['arms', 'blade']] },
 };
 
 const seed = [`try {
@@ -127,6 +127,18 @@ async function quad(page, id) {
   say(tried === JSON.stringify({ v: 1, parts: { [hs]: ho } }) && entry === 'null', `${id}: pointing at ${hs} ${ho} tries it on (${tried}), nothing fitted (${entry})`);
   await shot(page, `${id}-2-tried-${hs}-${ho}`);
 
+  /* Every option of every slot pointed at in turn: the cache keeps one
+   * kitted model per aircraft, so the count stays put. */
+  const before = await page.evaluate('window.__carouselStats().models');
+  const all = await page.evaluate("[...document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]')].map((b) => b.dataset.key)");
+  for (const k of all) {
+    await pointAt(page, `.hangar [data-key="${k}"]`);
+    await page.sleep(250);
+  }
+  await page.sleep(500);
+  const after = await page.evaluate('window.__carouselStats().models');
+  say(after <= before + 1, `${id}: ${all.length} options pointed at, models cached ${before} -> ${after}`);
+
   for (const [s, o] of plan.press) {
     await page.click(`.hangar [data-key="kit-${s}-${o}"]`);
     await page.sleep(300);
@@ -149,6 +161,38 @@ async function quad(page, id) {
   const pressed = await page.evaluate(`[...document.querySelectorAll('.hangar .kit-tab [aria-pressed="true"]')].map((b) => b.dataset.key).sort().join(',')`);
   const wantPressed = [...plan.press.map(([s, o]) => `kit-${s}-${o}`)];
   say(wantPressed.every((k) => pressed.includes(k)), `${id}: opened again, the fitted options show pressed: ${pressed}`);
+  await page.tap('Escape');
+  await closeAll(page);
+}
+
+/* Shop and earned options (docs/KITS.md section 7): signed out, nothing
+ * is owned, so the 7 inch's sold Tapered arms show a price and, pressed,
+ * open in the Shop chosen without being fitted; its earned Side plates
+ * mount says how it is earned. Pointing at one still tries it on. */
+async function locked(page) {
+  const id = '7inch';
+  await openHangar(page, id);
+  await press(page, '.hangar [data-key="tab-kit"]');
+  await page.until("window.__ui.hangar.tab === 'kit'", 5000);
+  const tag = (k) => page.evaluate(`(document.querySelector('.hangar [data-key="${k}"] .hangar-card-detail') || {}).textContent || ''`);
+  const sold = await tag('kit-arms-tapered');
+  const earned = await tag('kit-mount-plates');
+  const free = await tag('kit-arms-blade');
+  say(/70/.test(sold) && earned.length > 0 && free === '', `${id}: Tapered arms tagged "${sold}", Side plates "${earned}", Blade free "${free}"`);
+  /* The 7 inch wears what quad() saved for it before (cutout arms). */
+  const before = await page.evaluate('JSON.stringify(window.__ui.hangar.entry.kit || null)');
+  await pointAt(page, '.hangar [data-key="kit-arms-tapered"]');
+  await page.sleep(800);
+  const tried = await page.evaluate('(window.__ui.hangar.shownEntry().kit || { parts: {} }).parts.arms');
+  say(tried === 'tapered', `${id}: a sold option is still tried on: arms ${tried}`);
+  await press(page, '.hangar [data-key="kit-arms-tapered"]');
+  await page.until("window.__ui.hangar.tab === 'shop'", 5000).catch(() => {});
+  const shop = await page.evaluate("JSON.stringify({ tab: window.__ui.hangar.tab, sel: (document.querySelector('.hangar .shop-item.on') || {}).dataset?.key || null, kit: window.__ui.hangar.entry.kit || null, items: [...document.querySelectorAll('.hangar .shop-item')].map((b) => b.dataset.key).filter((k) => k.startsWith('shop-kit:')) })");
+  const got = JSON.parse(shop);
+  say(got.tab === 'shop' && got.sel === 'shop-kit:7inch:arms:tapered' && JSON.stringify(got.kit) === before, `${id}: pressing it opens the Shop on it, nothing fitted: ${shop}`);
+  say(got.items.length === 3 && got.items.every((k) => k.startsWith('shop-kit:7inch:')), `${id}: the Shop lists this aircraft's three kit items only`);
+  await page.sleep(1200);
+  await shot(page, `${id}-5-shop`);
   await page.tap('Escape');
   await closeAll(page);
 }
@@ -197,14 +241,14 @@ async function leds(page) {
   say(run.meshes === 4 && run.usPerFrame < 50, `${id}: LED cost: ${run.meshes} extra draws, setLights ${run.usPerFrame.toFixed(2)} us a frame`);
 }
 
-/* A plane's Kit tab: no slot options yet, Nav lights and Strobes pressed,
+/* A plane's Kit tab: its slot options, Nav lights and Strobes pressed,
  * saved, and pictured from the front left. */
 async function navLights(page, id) {
   await openHangar(page, id);
   await press(page, '.hangar [data-key="tab-kit"]');
   await page.until("window.__ui.hangar.tab === 'kit'", 5000);
   const slots = await page.evaluate("document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]').length");
-  say(slots === 0, `${id}: no kit slot options until its models land (${slots})`);
+  say(slots > 0, `${id}: its kit slot options are offered (${slots})`);
   await press(page, '.hangar [data-key="light-nav"]');
   await page.sleep(300);
   await press(page, '.hangar [data-key="light-strobe"]');
@@ -253,6 +297,7 @@ async function main() {
     for (const id of process.env.KITS_LEDS_ONLY ? [] : Object.keys(PLAN)) {
       await quad(page, id);
     }
+    await locked(page);
     await leds(page);
     for (const id of ['sky1800', 'p51d1450', 'f16878']) {
       await navLights(page, id);

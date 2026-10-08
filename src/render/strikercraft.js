@@ -149,7 +149,7 @@ function slab(points, t) {
  * round the fuselage, 'plain' one clean texel), and `spin` true on the
  * prop, which turns about STRIKER_PROP.hub along z.
  */
-export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } = {}) {
+export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16, kit = {} } = {}) {
   if (!STRIKER_PROPULSION.includes(propulsion)) {
     throw new Error(`strikercraft: no propulsion ${JSON.stringify(propulsion)}`);
   }
@@ -179,6 +179,12 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
   const fair = latheZ([[0, 0], [0.10, 0.18], [0.17, 0.55], [0.17, 1.15], [0.12, 1.42], [0.04, 1.52]], seg);
   fair.scale(1.5, 0.55, 1);
   add('fuselage', 'skin', fair, 'body', [0, WING_Y, -0.58]);
+  /* A kit's sensor dome (configs/kits.js): a glazed ball turret under the
+   * nose cap, its bottom above the skid's so the airframe's box holds. */
+  if (kit.nose === 'dome') {
+    add('fuselage', 'nose', cylZ(0.045, 0.045, 0.05, seg), 'plain', [0, -0.15, -1.17]);
+    add('fuselage', 'band', new THREE.SphereGeometry(0.075, seg, Math.max(6, seg / 2)), 'plain', [0, -0.19, -1.17]);
+  }
 
   /* The cranked delta, low on the fuselage: a steep strake inboard, the
    * main sweep outboard, a straight trailing edge, thinning to the tips. */
@@ -198,7 +204,11 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
 
   /* The fins at the tips, above and below the wing, swept, each with its
    * small rudder. */
-  const fin = [[-0.12, 0.70], [-0.12, 1.02], [0.30, 1.10], [0.30, 0.88]];
+  /* A kit's swept fins keep the stock root and height and pull the tip
+   * back, so they stand inside the stock fins' box. */
+  const fin = kit.fins === 'swept'
+    ? [[-0.12, 0.66], [-0.12, 1.02], [0.30, 1.10], [0.30, 1.00]]
+    : [[-0.12, 0.70], [-0.12, 1.02], [0.30, 1.10], [0.30, 0.88]];
   for (const s of [-1, 1]) {
     const g = slab(fin.map(([y, z]) => [y, z]), FIN_T);
     g.rotateZ(Math.PI / 2);
@@ -496,7 +506,7 @@ export function buildStrikerCraft(opts = {}) {
   const lite = Boolean(opts.lite);
   /* The flown and the garage's Striker is one aircraft seen close, so it
    * is drawn rounder than the war's (strikerWarGeometry's 16). */
-  const pieces = strikerParts({ propulsion, antenna, seg: lite ? 12 : 24 });
+  const pieces = strikerParts({ propulsion, antenna, seg: lite ? 12 : 24, kit: opts.kit ?? {} });
   const skin = strikerSkin(lite ? 128 : 256);
   const mats = {};
   for (const [key, hex] of Object.entries(STRIKER_COLOURS)) {

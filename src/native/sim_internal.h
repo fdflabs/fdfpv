@@ -1071,10 +1071,12 @@ double plant_air_lift(const double pos[3]);
  * RMS per axis. SIM_WIND_ON is 0 while all three are zero, and then no
  * step reads any of it, which is what keeps every trace without wind bit
  * identical. plant_wind is the air's velocity at step `step`, world x y
- * (z is always 0), the same everywhere. */
+ * (z is the host's vertical air, SIM_AIR_W, sim_set_air_vertical), the
+ * same everywhere. SIM_WIND_ON is 1 while any of the four is not zero. */
 extern int SIM_WIND_ON;
 extern double SIM_WIND[2];
 extern double SIM_GUST;
+extern double SIM_AIR_W;
 void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.
