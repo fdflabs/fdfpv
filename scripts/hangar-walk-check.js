@@ -340,6 +340,8 @@ try {
   await page.sleep(3000);
   await page.tap('KeyV');
   await page.until('window.__crashCam.live()', 15000);
+  const flightWords = await page.evaluate("[...document.querySelectorAll('.cc-head-actions .cc-btn')].map((b) => b.firstChild.textContent).join('|')");
+  check('a replay opened in flight still says Back to flight', flightWords.includes(en['replay.back_to_flight']), flightWords);
   const saved = await page.evaluate(`(async () => {
     const { encodeReplay } = await import('/src/replay/file.js');
     const store = await import('/src/replay/store.js');
@@ -371,6 +373,8 @@ try {
   check('tv: E plays the newest clip in the replay viewer', played, String(played));
   await page.sleep(1500);
   await shot('09-tv-replay');
+  const exitWords = await page.evaluate("[...document.querySelectorAll('.cc-head-actions .cc-btn')].map((b) => b.firstChild.textContent).join('|')");
+  check('tv: the replay\'s way out says it goes back to the hangar', exitWords.includes(en['replay.back_to_hangar']) && !exitWords.includes(en['replay.back_to_flight']), exitWords);
   check('tv: the replay draws the world, not the room over it', (await page.evaluate('window.__walkStats().view')) === null, 'room view let go');
   await page.tap('Escape');
   await page.until("!window.__crashCam.live() && window.__ui.screen === 'walk'", 20000).then(() => true, () => false);

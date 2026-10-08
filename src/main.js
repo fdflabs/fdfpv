@@ -19083,6 +19083,7 @@ export async function boot({
     enter: () => {
       mode = 'replay';
     },
+    exitLabel: () => (tvReturn ? str('replay.back_to_hangar') : null),
     exit: () => {
       /* A replay the hangar's TV opened goes back to the hangar. */
       if (tvReturn) {

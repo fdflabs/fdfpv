@@ -32,7 +32,7 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 - The screen shows no thumbnail: a picture there is one more texture, and
   Low's budget holds two, both taken (docs/HANGAR-ROOM.md).
 - Data: read only, IndexedDB clips. Nothing new stored.
-- Known: the replay viewer's way out still reads "Back to flight".
+- The replay viewer's way out reads "Back to the hangar" when the TV opened it.
 
 ## 1. Photo mode and photo wall
 
