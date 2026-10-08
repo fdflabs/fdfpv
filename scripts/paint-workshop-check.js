@@ -323,16 +323,15 @@ async function hoverModel(page) {
 async function clickToPaint(page) {
   console.log('5. click to paint on the Timber');
   await openHangar(page, 'timber1500');
-  await page.click('.hangar [data-key="tab-colours"]');
+  await press(page, '.hangar [data-key="tab-colours"]');
   await page.until("window.__ui.hangar.tab === 'colours'", 5000);
   const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
   const key = keys[4];
   const hex = key.slice('colour-'.length);
-  await steady(page, `.hangar [data-key="${key}"]`);
-  await page.click(`.hangar [data-key="${key}"]`);
+  await press(page, `.hangar [data-key="${key}"]`);
   await page.until(`window.__ui.hangar.brush === ${JSON.stringify(hex)}`, 5000);
   for (const [view, side] of [['top', 'top'], ['bottom', 'under']]) {
-    await page.click(`.hangar [data-key="view-${view}"]`);
+    await press(page, `.hangar [data-key="view-${view}"]`);
     await page.until(LANDED('top'), 60000).catch(() => {});
     await page.until(ROLLED(view === 'bottom' ? Math.PI : 0), 60000).catch(() => {});
     const at = await hoverModel(page);
