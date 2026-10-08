@@ -348,6 +348,7 @@ export const navMethods = {
     } else if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
+      this.renderTitleStats();
     }
     if (this.screens && this.screens.title) {
       /* onGate(), the one definition of "the gate is up", and never

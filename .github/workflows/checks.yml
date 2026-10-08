@@ -352,6 +352,10 @@ jobs:
       # only) lists every menu component and token, and only classes the
       # sheet in index.html really styles (docs/redesign/PLAN.md 4.5).
       - run: npm run ui:playground
+      # Flight Club's pilot stats read off the screen in en and es, a sync
+      # moving them, the empty state, and the phone layouts
+      # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
+      - run: npm run pilot:stats
       # The mode registry (src/share/modes.js) whole, and the wire's lists
       # read off it with their values of before (docs/redesign/PLAN.md 3).
       - run: npm run modes:selftest
