@@ -51,8 +51,10 @@ Most of item 23 is built and live. The plan listed it as new; it is not.
    changes since the hangar opened, the Undo button beside Reset or Z. A
    stack of whole entries, since an entry is small. A pad has no Undo:
    every pad button is already taken in the hangar.
-6. **A/B against stock**: hold a button (or H) and the model shows the
-   kit's look, release and it is back. Nothing stored.
+6. **A/B against stock**: a Stock button on the stage (or H) shows the
+   kit's look on the model; pressed again, the pilot's paint is back. A
+   toggle, not a hold, since the hangar's keys arrive as presses only. Any
+   paint change ends it. Nothing stored.
 7. **Patterns masked per region**: camo, splinter, checks, stripes, as a
    pattern id plus a second colour per region, drawn in the same shader
    pass as 3, in the aircraft's own coordinates so every machine, peer and

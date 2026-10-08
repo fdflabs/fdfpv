@@ -20,6 +20,9 @@
  *   6. Undo on the Timber: a top colour, then an underside; the Undo
  *      button takes the underside off, Z the top colour, and Undo is then
  *      off with the paint as it opened.
+ *   7. A/B on the Timber (its saved underside on): Stock pressed shows the
+ *      kit's colours and no underside, pressed again the pilot's paint
+ *      back; H the same; a swatch picked while on stock ends it.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -47,7 +50,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
-import { liveryKey, paintable } from '../configs/liveries.js';
+import { coloursFor, liveryKey, paintable } from '../configs/liveries.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = resolve(process.argv[2] || join(root, 'tmp', 'paint-workshop-check'));
@@ -402,6 +405,39 @@ async function undoSteps(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+async function abStock(page) {
+  console.log('7. A/B against stock on the Timber');
+  /* Region order is the builder's, so compare as sorted pairs. */
+  const sorted = (o) => JSON.stringify(Object.entries(o || {}).sort());
+  const kit = coloursFor('timber1500', null);
+  const shows = () => page.evaluate("(() => { const l = window.__pickLook('timber1500'); return { paint: window.__pickPaint('timber1500'), under: l.uniforms.wing && l.uniforms.wing.under }; })()");
+  await openHangar(page, 'timber1500');
+  await page.until("(() => { const l = window.__pickLook('timber1500'); return Boolean(l && l.uniforms.wing && l.uniforms.wing.under); })()", 20000).catch(() => {});
+  const own = await shows();
+  const stockNow = `(() => { const p = window.__pickPaint('timber1500'); const l = window.__pickLook('timber1500'); return JSON.stringify(Object.entries(p).sort()) === ${JSON.stringify(sorted(kit))} && !(l.uniforms.wing && l.uniforms.wing.under); })()`;
+  await press(page, '.hangar [data-key="ab"]');
+  await page.until(stockNow, 10000).catch(() => {});
+  const stock = await shows();
+  say(sorted(stock.paint) === sorted(kit) && !stock.under && Boolean(own.under),
+    `Stock shows the kit's paint and no underside: ${JSON.stringify(stock)}, the pilot's was ${JSON.stringify(own)}`);
+  await shot(page, '7-ab-stock');
+  await press(page, '.hangar [data-key="ab"]');
+  await page.until(`(() => { const l = window.__pickLook('timber1500'); return Boolean(l.uniforms.wing && l.uniforms.wing.under); })()`, 10000).catch(() => {});
+  const back = await shows();
+  say(JSON.stringify(back) === JSON.stringify(own), `pressed again the pilot's paint is back: ${JSON.stringify(back)}`);
+  await page.tap('KeyH');
+  await page.until(stockNow, 10000).catch(() => {});
+  say(await page.evaluate(stockNow), 'H shows stock too');
+  await press(page, '.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  await press(page, `.hangar [data-key="${keys[7]}"]`);
+  const off = await page.evaluate("({ stock: window.__ui.hangar.stockView, pressed: document.querySelector('.hangar [data-key=\"ab\"]').getAttribute('aria-pressed') })");
+  say(!off.stock && off.pressed === 'false', `a swatch picked ends the comparison: ${JSON.stringify(off)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -413,6 +449,7 @@ async function main() {
     await underEach(page);
     await clickToPaint(page);
     await undoSteps(page);
+    await abStock(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
