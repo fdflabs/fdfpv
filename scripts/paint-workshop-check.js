@@ -163,9 +163,13 @@ async function flipAndViews(page) {
     navigator.getGamepads = () => [pad()];
     return true;
   })()`);
-  await page.sleep(400);
+  /* Each step waits on the hangar's own state, not a clock: a slow
+   * software renderer polls the pad once a frame, a few times a second.
+   * The pad is first seen released (the first poll only learns what is
+   * held), then held in until the hangar has flipped, then let go. */
+  await page.until('Boolean(window.__ui.hangar.padPrev)', 60000);
   await page.evaluate('window.__r3 = true');
-  await page.sleep(400);
+  await page.until('window.__ui.hangar.flip === true', 60000).catch(() => {});
   await page.evaluate('window.__r3 = false');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
   say(Math.abs((await cam(page)).roll - Math.PI) < 0.01, `R3 on a pad flips it: roll ${(await cam(page)).roll.toFixed(3)}`);
@@ -211,15 +215,29 @@ async function steady(page, selector) {
   let last = '';
   let same = 0;
   for (let i = 0; i < 100; i++) {
-    const r = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(selector)}); if (!b) return 'none'; const r = b.getBoundingClientRect(); return [r.left, r.top, r.width, getComputedStyle(b).opacity].join(); })()`);
-    same = r === last && r !== 'none' ? same + 1 : 0;
+    /* A control waiting out its own staggered entrance delay stands still
+     * too, so no finite keyframe animation on it may be pending or
+     * running (a colour transition on hover moves nothing). Only its own: the panel's slide in runs for many seconds on a starved
+     * page, and its movement shows in the place read below anyway. */
+    const r = await page.evaluate(`(() => {
+      const b = document.querySelector(${JSON.stringify(selector)});
+      if (!b) return 'none';
+      const moving = document.getAnimations().some((a) => a.playState !== 'finished' && a.effect && a.effect.target
+        && a.effect.target === b && a.animationName && a.effect.getComputedTiming().endTime !== Infinity);
+      if (moving) {
+        return 'moving ' + document.getAnimations().filter((a) => a.playState !== 'finished' && a.effect && a.effect.target && a.effect.target === b && a.animationName).map((a) => [a.animationName || a.transitionProperty || a.constructor.name, a.playState, a.effect.target.className].join(':')).join(',');
+      }
+      const r = b.getBoundingClientRect();
+      return [r.left, r.top, r.width, getComputedStyle(b).opacity].join();
+    })()`);
+    same = r === last && r !== 'none' && !r.startsWith('moving') ? same + 1 : 0;
     if (same >= 2) {
       return;
     }
     last = r;
     await page.sleep(120);
   }
-  throw new Error(`${selector} never stood still`);
+  throw new Error(`${selector} never stood still: ${last}`);
 }
 
 /* A real pointer click on a button once it stands still. */
