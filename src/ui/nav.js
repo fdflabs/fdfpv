@@ -58,7 +58,6 @@ const CRUMBS = {
   fc: ['ui.quad', 'ui.firmware_bench'],
   paused: ['ui.paused'],
   results: ['ui.run_complete'],
-  walk: ['hub.hangar', 'walk.card'],
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
@@ -313,6 +312,10 @@ function crumbTrail(ui) {
   const hub = ui.screen === 'title' && ui.onGate() && ui.hub ? HUBS.find((h) => h.id === ui.hub) : null;
   if (hub) {
     return [str('ui.product_name'), str(hub.label)];
+  }
+  /* A walkable hangar is under the hub it was opened from. */
+  if (ui.screen === 'walk' && ui.walk) {
+    return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
   }
   return CRUMBS[ui.screen] || [SCREEN_TITLES[ui.screen] || ui.screen];
 }
