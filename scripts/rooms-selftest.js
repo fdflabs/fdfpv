@@ -61,9 +61,11 @@ import { SYNC_GAP_MS } from '../src/share/roomclock.js';
 import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
 import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
+import { jamSection } from './rooms-selftest-jam.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
 import { sessionSection } from './rooms-selftest-session.js';
+import { weatherSection } from './rooms-selftest-weather.js';
 import { warSection } from './rooms-selftest-war.js';
 import { botsSection } from './rooms-selftest-bots.js';
 import { emptyRoomSection, gameLobbySection, warLobbySection } from './rooms-selftest-gamelobby.js';
@@ -1897,12 +1899,14 @@ console.log('catch the ace: starting a match');
 }
 
 combatSection(check);
+jamSection(check);
 warSection(check);
 warLobbySection(check);
 gameLobbySection(check);
 botsSection(check);
 emptyRoomSection(check);
 sessionSection(check);
+weatherSection(check);
 await browserSection(check);
 await scaleSection(check);
 
