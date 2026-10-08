@@ -482,7 +482,8 @@
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
     "kits:selftest": "node scripts/kits-selftest.js",
-    "kits:quads": "node scripts/kits-quads-check.js"
+    "kits:quads": "node scripts/kits-quads-check.js",
+    "kits:hangar": "node scripts/kits-hangar-check.js"
   },
   "dependencies": {
     "nodemailer": "10.0.14",

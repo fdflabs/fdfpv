@@ -59,6 +59,7 @@ import './hangar-tuning.js';
 import './hangar-parts.js';
 import './hangar-shop.js';
 import './hangar-combat.js';
+import './hangar-kit.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
