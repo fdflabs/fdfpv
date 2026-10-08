@@ -36,7 +36,7 @@ import { formatScore } from '../game/score.js';
 import { str, plural } from '../strings/index.js';
 import { withPosted } from '../game/debrief.js';
 import { splitDuration } from '../share/flighttime.js';
-import { formatDelta, formatRunClock, formatTime } from './format.js';
+import { formatDelta, formatRunClock, formatTime, lengthText } from './format.js';
 import { el } from './widgets.js';
 /* A cycle (ui.js installs these methods), so only read inside methods. */
 import { lapCraftOf, seatIsRace } from './ui.js';
@@ -147,7 +147,6 @@ function routeSvg(route) {
   return node;
 }
 
-const lengthText = (m) => (m < 1000 ? str('debrief.metres', { m: Math.round(m) }) : str('debrief.km', { km: (m / 1000).toFixed(1) }));
 
 function hoursText(s) {
   const { h, m } = splitDuration(s);

@@ -125,8 +125,9 @@ export function createWarRoundCard(nameOf) {
   }
 
   /* Once a frame or so: the view, or null to hide it; roomNow the room
-   * clock for the count down. */
-  function update(v, roomNow) {
+   * clock for the count down; you this pilot's debrief line
+   * (docs/DEBRIEF.md), or null. */
+  function update(v, roomNow, you = null) {
     const r = roundOf(v);
     if (!r || r.state !== 'result' || !r.result || (v.state !== 'live' && v.state !== 'countdown')) {
       if (card && shown !== '') {
@@ -140,7 +141,7 @@ export function createWarRoundCard(nameOf) {
     }
     const s = r.nextAt != null && roomNow != null ? Math.max(0, Math.ceil((r.nextAt - roomNow) / 1000)) : null;
     const pilots = (v.scores || []).filter((p) => !p.gone).map((p) => [p.seat, p.kills, spentOf(r, p.seat), allowanceOf(r, p.seat)]);
-    const key = JSON.stringify([r, s, pilots]);
+    const key = JSON.stringify([r, s, pilots, you]);
     if (key === shown) {
       return;
     }
@@ -156,6 +157,13 @@ export function createWarRoundCard(nameOf) {
       });
       return d;
     }));
+    if (you) {
+      const d = document.createElement('div');
+      d.className = 'war-round-you';
+      d.style.color = '#ffffff';
+      d.textContent = you;
+      rows.append(d);
+    }
     next.textContent = s != null ? str(`war.${r.unit}_next`, { s }) : '';
   }
 

@@ -339,8 +339,12 @@ async function roundRows(seatA, seatB, goAt) {
   const want = ended.roundState === 'result' ? cardTitle(ended) : '(no result seen)';
   check('round 1 ends on the real room and both pages show its result card: the title, its colour, a line a pilot, the next round counted down',
     ended.roundState === 'result' && cards.every((c) => c.on && c.title === want && c.colour === CARD_COLOUR[ended.roundResult]
-      && c.rows.length === 2 && /^NEXT ROUND IN [1-6]$/.test(c.next)),
+      && c.rows.length === 3 && /^NEXT ROUND IN [1-6]$/.test(c.next)),
   `room ${ended.roundResult} ${ended.roundMw} MW, want "${want}"; ${cards.map((c) => JSON.stringify(c)).join(' | ')}`);
+  /* Under the pilots' lines, this pilot's debrief line (docs/DEBRIEF.md). */
+  check('the card ends on each pilot\'s own debrief line: time in the air, distance, the replay key',
+    cards.every((c) => c.on && /^You: \d+:\d\d in the air, \d+(\.\d)? k?m\. [VX] replays the last 30 s$/.test(c.rows[c.rows.length - 1])),
+    cards.map((c) => c.rows[c.rows.length - 1]).join(' | '));
   await shot(a, '5-A-round-result');
   await watch(async () => roomWarOf().match.round >= 1 && roomWarOf().match.roundState === 'live', goAt + 400000);
   await a.until('!window.__war().watch.wrecked', 15000).catch(() => {});

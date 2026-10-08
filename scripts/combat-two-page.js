@@ -33,7 +33,8 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
@@ -42,7 +43,15 @@ import { FULL_LINKS as FULL, POINTS_CUT } from '../edge/rooms/combat.js';
 import { hullFor } from '../src/game/midair.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8871';
+/* 'local': the VM's server (edge/rooms/node.js) in this process, on a
+ * scratch database, for a run with no Worker. */
+let rooms = process.argv[2] || 'http://127.0.0.1:8871';
+let localRooms = null;
+if (rooms === 'local') {
+  const { startRooms } = await import('../edge/rooms/node.js');
+  localRooms = await startRooms({ db: join(await mkdtemp(join(tmpdir(), 'fdfpv-combattwo-')), 'rooms.db'), port: 0 });
+  rooms = `http://127.0.0.1:${localRooms.port}`;
+}
 const outDir = process.argv[3] || join(root, 'build', 'combat-two-page');
 
 let failed = 0;
@@ -363,6 +372,10 @@ try {
     && c.peers.every((p) => !p.chains.some((x) => x.id === 0 && x.n > 1))), ended.map((c) => JSON.stringify(c.paper && c.paper.chains.map((x) => x.id))).join(' '));
   check('and it falls: each screen draws the pieces coming down', ended.every((c) => c.paper && c.paper.chains.some((x) => x.id !== 0)));
   check('the results stand big in the middle of both screens', ended.every((c) => c.hud.card && /Results|Resultados/.test(c.hud.board)), ended.map((c) => c.hud.head).join(' | '));
+  /* The debrief's line under them (docs/DEBRIEF.md): this pilot's own
+   * time in the air and distance, and the key that opens the replay. */
+  check('each results card ends on the pilot\'s own debrief line', ended.every((c) => /You: \d+:\d\d in the air, \d+(\.\d)? k?m\. [VX] replays the last 30 s$/.test(c.hud.board)),
+    ended.map((c) => c.hud.board.slice(-70)).join(' | '));
   await a.evaluate(`window.__setCam(${high.x + 25}, ${high.y - 30}, ${high.z + 35}, ${high.x}, ${high.y - 50}, ${high.z}, 70); true`);
   await a.sleep(400);
   await shot(a, 'a-round-over');
@@ -425,6 +438,9 @@ try {
 } finally {
   await a.close();
   await b.close();
+  if (localRooms) {
+    await localRooms.stop();
+  }
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

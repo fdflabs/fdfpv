@@ -202,7 +202,9 @@ export function createCombatHud(nameOf) {
    * roomNow the room clock, paper metres on the aircraft, pull newtons at
    * the tail.
    */
-  function update(round, me, roomNow, paper, pull, speed = 0) {
+  /* you: this pilot's debrief line under the results (docs/DEBRIEF.md),
+   * or null. */
+  function update(round, me, roomNow, paper, pull, speed = 0, you = null) {
     if (round.state === 'idle' || roomNow == null) {
       if (box && shown !== '') {
         box.style.display = 'none';
@@ -244,7 +246,7 @@ export function createCombatHud(nameOf) {
     const live = rows.map((r, i) => ({ r, place: i + 1 })).filter((x, i) => i < LIVE_ROWS - 1 || x.r.seat === me || rows.length <= LIVE_ROWS);
     const three = live.map((x) => str('combat.hud_row', { place: x.place, name: nameOf(x.r.seat), points: x.r.points })).join('   ');
     const warn = round.state === 'on' && paper > 0 ? (speed >= DANGER_MPS ? 'red' : (speed >= WARN_MPS ? 'amber' : '')) : '';
-    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}|${clockText}|${finalText}|${wantCard}|${warn}`;
+    const key = `${text}|${three}|${round.state}|${JSON.stringify(rows)}|${clockText}|${finalText}|${wantCard}|${warn}|${you}`;
     if (key === shown) {
       return;
     }
@@ -274,6 +276,11 @@ export function createCombatHud(nameOf) {
         })));
         board.append(row);
       });
+      if (you) {
+        const line = el({ marginTop: '8px', font: '600 14px system-ui, sans-serif' });
+        line.textContent = you;
+        board.append(line);
+      }
     }
   }
 
