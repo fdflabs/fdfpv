@@ -199,6 +199,8 @@ try {
     return true;
   })()`);
   const skipped = await page.evaluate('Object.keys(window.__ui.settings.progress.lessons).sort().join()');
+  const flown = await page.evaluate('Object.keys(window.__ui.settings.progress.lessonsFlown || {}).sort().join()');
+  check('and only the lesson flown is marked flown', !/first_takeoff|first_turns|first_land/.test(flown) && flown.includes('first_unaided'), flown);
   check('its pass passes the whole First flight track', skipped.includes('first_land,first_takeoff,first_turns,first_unaided'), skipped);
 
   /* A PASS IS KEPT: A lap lesson flown from the page, its lap closed

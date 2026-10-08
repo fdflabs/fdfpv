@@ -291,6 +291,11 @@ export class Progress {
       for (const id of passesOf(w.lesson.id)) {
         this.state.lessons[id] ??= now;
       }
+      /* Only the lesson actually flown pays its first (progress.js
+       * lessonsFlown); what it covers is passed, not flown. The map is
+       * made here when a profile from before it has none. */
+      this.state.lessonsFlown ??= {};
+      this.state.lessonsFlown[w.lesson.id] = true;
       this.save();
       this.toast({ cls: 'challenge', icon: '\u2713', kicker: str('training.toast_passed'), title: str(`training.lesson.${w.lesson.id}`) });
       this.lesson = null;
