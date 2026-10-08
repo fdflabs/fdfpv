@@ -77,26 +77,24 @@ that change drag). Prop COLOUR is here.
 - The lights are visible at night maps and the Interior's dusk because they
   are emissive (unlit by the scene), bloom picks them up on the cel worlds.
 
-### Light cost budget (by quality id)
+### Light cost budget
 
-| Graphics | Own craft | Each peer |
-| --- | --- | --- |
-| low | emissive meshes only, 0 real lights | emissive only |
-| medium | emissive + 1 real point light (underglow / landing light), no shadow | emissive only |
-| high | emissive + up to 2 real point lights, no shadow | emissive only, 0 real lights |
+Built: emissive (unlit) meshes only, at every graphics setting, own craft
+and peers alike: four LED bars a quad, three nav bulbs and two strobes a
+plane, one material each, changed in place, no allocation per frame,
+fogged with the craft. No real point lights: the budget is met without
+them, and a real light count that changes recompiles every shader
+(lead decision, reversible; a landing light on high is the place to add
+one later).
 
-Emissive meshes are a few dozen triangles and share one material per
-colour; patterns change the material's `emissiveIntensity`, no new
-material per frame, no allocation per frame. The real light count is
-FIXED per quality id for the whole session (three.js recompiles every
-shader when the light count changes), so a light that is off has
-intensity 0, it is not removed.
-
-Perf test (`kits:perf`, browser, run through `~/.cache/run-check-slot.sh`
-on a quiet GPU, `nvidia-smi pmon -c 1` recorded first): a 4-pilot room on
-a night map with every pilot's lights on, against all lights off, GPU
-frame time median. Budget: +0.3 ms on high, +0.1 ms on low. The number
-and the pmon output go in each lights PR body.
+Measured by `kits:perf` (tests/kits-perf.html, run on a quiet GPU with
+`nvidia-smi pmon -c 1` printed first): eight aircraft (four quads with
+LEDs, four planes with nav lights and strobes) in a dark fogged field,
+the 36 light meshes shown and hidden on alternate frames, 20 draws per
+timer query so the GPU's clocks stay up, the median of 600 paired
+differences. 2026-10-08, RTX 3060 Ti, GPU0 otherwise idle: +0.103 ms
+(1.42 to 1.52 ms a frame), 36 extra draw calls. Budget: +0.3 ms for
+eight aircraft; the check fails above it.
 
 ## 5. The physics-zero guarantee
 

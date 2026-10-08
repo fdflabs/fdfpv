@@ -100,27 +100,77 @@ async function time(f, n) {
   return ms[Math.floor(ms.length / 2)];
 }
 
-window.kitsPerf = async (rounds = 5, n = 120) => {
+/* One lit field, its light meshes shown and hidden on alternate frames,
+ * so each pair of frames differs only by the lights: the median paired
+ * difference is the lights' cost, free of the drift between rounds. */
+const REPEAT = 20;
+async function frameMs(f, k) {
+  for (const { rig, at } of f.rigs) {
+    rig.pose(at, sample, 0.016, k * 0.0167, 720, 70);
+  }
+  const q = gl.createQuery();
+  /* REPEAT draws in one query keep the GPU busy, so its clocks stay up
+   * and the timer reads the work, not an idle GPU waking (a single small
+   * frame read 10 ms give or take 2.5 at idle clocks). */
+  gl.beginQuery(ext.TIME_ELAPSED_EXT, q);
+  for (let r = 0; r < REPEAT; r += 1) {
+    renderer.render(scene, camera);
+  }
+  gl.endQuery(ext.TIME_ELAPSED_EXT);
+  await new Promise((r) => requestAnimationFrame(r));
+  for (let w = 0; w < 100 && !gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE); w += 1) {
+    await new Promise((r) => setTimeout(r, 1));
+  }
+  const ms = gl.getParameter(ext.GPU_DISJOINT_EXT) ? null : gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6 / REPEAT;
+  gl.deleteQuery(q);
+  return ms;
+}
+
+window.kitsPerf = async (pairs = 600) => {
   if (!ext) {
     return { error: 'no EXT_disjoint_timer_query_webgl2' };
   }
-  const off = field(false);
-  const on = field(true);
-  const out = { off: [], on: [], calls: {} };
-  for (const [name, f] of [['off', off], ['on', on]]) {
-    scene.add(f.group);
-    renderer.render(scene, camera);
-    out.calls[name] = renderer.info.render.calls;
-    scene.remove(f.group);
-  }
-  for (let r = 0; r < rounds; r += 1) {
-    for (const [name, f] of [['off', off], ['on', on]]) {
-      scene.add(f.group);
-      out[name].push(await time(f, n));
-      scene.remove(f.group);
+  const f = field(true);
+  scene.add(f.group);
+  const lights = [];
+  f.group.traverse((o) => {
+    if (/^(led|nav|strobe)-/.test(o.name)) {
+      lights.push(o);
     }
+  });
+  const show = (on) => {
+    for (const o of lights) {
+      o.userData.kitsPerfOff = !on;
+      o.layers.set(on ? 0 : 1);
+    }
+  };
+  const calls = {};
+  for (const on of [false, true]) {
+    show(on);
+    renderer.render(scene, camera);
+    calls[on ? 'on' : 'off'] = renderer.info.render.calls;
   }
-  return out;
+  for (let k = 0; k < 30; k += 1) {
+    await frameMs(f, k);
+  }
+  const off = [];
+  const on = [];
+  const diff = [];
+  for (let k = 0; k < pairs; k += 1) {
+    const first = k % 2 === 0;
+    show(!first);
+    const a = await frameMs(f, k);
+    show(first);
+    const b = await frameMs(f, k);
+    if (a === null || b === null) {
+      continue;
+    }
+    const [x, y] = first ? [a, b] : [b, a];
+    off.push(x);
+    on.push(y);
+    diff.push(y - x);
+  }
+  return { off, on, diff, calls, lights: lights.length };
 };
 window.kitsPerfReady = true;
 </script>

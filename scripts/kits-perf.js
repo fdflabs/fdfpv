@@ -2,9 +2,9 @@
  * kits-perf.js: what the kit's lights cost on the GPU (docs/KITS.md
  * section 4). tests/kits-perf.html draws a dark, fogged field with four
  * quads and four planes as rooms draw other pilots, every light on (arm
- * LEDs on Chase, nav lights and strobes) and every light off, alternated
- * in rounds, each round the median of WebGL timer queries over many
- * frames. Budget: +0.3 ms a frame for all eight. Needs a real GPU
+ * LEDs on Chase, nav lights and strobes) shown and hidden on alternate
+ * frames, each frame timed with a WebGL timer query; the cost is the
+ * median of the paired differences. Budget: +0.3 ms a frame for all eight. Needs a real GPU
  * (SIM_GPU=1) and a quiet one: the GPU's other users are printed first
  * (nvidia-smi pmon), and a busy GPU makes the number say nothing.
  *
@@ -49,19 +49,19 @@ const page = await openPage({ root, width: 1300, height: 760, url: '/tests/kits-
 let failed = 0;
 try {
   await page.until('window.kitsPerfReady === true', 120000);
-  const r = await page.evaluate('window.kitsPerf(7, 150)');
+  const r = await page.evaluate('window.kitsPerf(600)');
   if (r.error) {
     throw new Error(r.error);
   }
   const off = median(r.off);
   const on = median(r.on);
-  const delta = on - off;
-  const result = { off, on, delta, rounds: r, pmon };
-  await writeFile(join(outDir, 'kits-perf.json'), JSON.stringify(result, null, 2));
-  console.log(`draw calls: lights off ${r.calls.off}, on ${r.calls.on}`);
-  console.log(`GPU ms a frame, median of round medians: off ${off.toFixed(3)}, on ${on.toFixed(3)}, delta ${delta.toFixed(3)}`);
-  console.log(`rounds off ${r.off.map((x) => x.toFixed(3)).join(' ')}`);
-  console.log(`rounds on  ${r.on.map((x) => x.toFixed(3)).join(' ')}`);
+  const delta = median(r.diff);
+  const sorted = [...r.diff].sort((a, b) => a - b);
+  const q = (p) => sorted[Math.floor(p * (sorted.length - 1))];
+  await writeFile(join(outDir, 'kits-perf.json'), JSON.stringify({ off, on, delta, ...r, pmon }, null, 2));
+  console.log(`${r.lights} light meshes; draw calls: lights off ${r.calls.off}, on ${r.calls.on}`);
+  console.log(`GPU ms a frame over ${r.diff.length} pairs: off ${off.toFixed(3)}, on ${on.toFixed(3)}`);
+  console.log(`paired cost: median ${delta.toFixed(3)} ms, quartiles ${q(0.25).toFixed(3)} to ${q(0.75).toFixed(3)}`);
   const ok = delta <= BUDGET_MS;
   failed += ok ? 0 : 1;
   console.log(`${ok ? 'ok  ' : 'FAIL'}  eight aircraft's lights cost ${delta.toFixed(3)} ms against a budget of ${BUDGET_MS}`);
