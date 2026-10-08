@@ -4,7 +4,7 @@
  * left wingtip, green at the right, white at the tail, found as the
  * model's furthest points, so no builder is touched. Unlit meshes only,
  * no real light; the strobes run on the flight clock through the craft's
- * setLights, as the quads' LEDs do.
+ * group's userData.setLights, as the quads' LEDs do.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -58,7 +58,7 @@ function furthest(group, dir) {
 
 /*
  * Nav lights and strobes on a built plane, by lights { nav, strobe }.
- * Sets craft.setLights(tMs) when there are strobes. The bulbs are sized
+ * Sets craft.group.userData.setLights(tMs) when there are strobes. The bulbs are sized
  * by the span so a glider's read as a Cub's do.
  */
 export function addNavLights(craft, lights) {
@@ -86,7 +86,7 @@ export function addNavLights(craft, lights) {
   if (lights.strobe) {
     const lift = new THREE.Vector3(0, r * 2.2, 0);
     const strobes = [add(WHITE, left.clone().add(lift), 'strobe-left'), add(WHITE, right.clone().add(lift), 'strobe-right')];
-    craft.setLights = (tMs) => {
+    group.userData.setLights = (tMs) => {
       const on = navLevel(tMs) > 0.5;
       for (const s of strobes) {
         s.visible = on;

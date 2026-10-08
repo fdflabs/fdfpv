@@ -231,9 +231,9 @@ async function navEveryPlane(page) {
     for (const id of Object.keys(KITS).filter((f) => lightsFor(f).nav)) {
       const c = addNavLights(craftBuilderFor(id)({ fog: false }), { v: 1, nav: true, strobe: true });
       const g = (n) => c.group.getObjectByName(n);
-      c.setLights(30);
+      c.group.userData.setLights(30);
       const on = g('strobe-left').visible;
-      c.setLights(600);
+      c.group.userData.setLights(600);
       const off = !g('strobe-left').visible;
       const plain = addNavLights(craftBuilderFor(id)({ fog: false }), null);
       out.push({ id, ok: g('nav-left').position.x < 0 && g('nav-right').position.x > 0 && g('nav-tail').position.z > 0 && on && off && !plain.group.getObjectByName('nav-left') });
