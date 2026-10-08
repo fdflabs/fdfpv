@@ -113,8 +113,13 @@ function corridorRows() {
     worst = Math.max(worst, off);
   }
   check('every pose in two minutes of 8 bots is inside the corridor', out === 0, `widest ${worst.toFixed(1)} m of ${CORRIDOR.half}`);
+  /* Held at the edge is flying along it; what would show is a jump. A
+   * substep at the fastest level moves 1.27 m, so a hold under a tenth of
+   * that is a turn finishing at the edge, never a pop. */
   const substeps = 8 * 120000 / 50;
   check('the turn keeps them inside, the edge seldom has to', bots.clamps < substeps * 0.05, `${bots.clamps} held at the edge in ${substeps} substeps`);
+  check('held at an edge, never jumped: every hold under 0.127 m', bots.clampMax < 0.127,
+    `${bots.clamps} held at the edge in ${substeps} substeps, the largest ${bots.clampMax.toFixed(3)} m`);
 }
 
 function axisRow() {
@@ -172,7 +177,26 @@ function runMs(level, seed) {
   return Infinity;
 }
 
+/* A pilot sat on the strip at the origin, 1 m up: how long a bot on
+ * `level` takes to get within the bubble of it. */
+function groundMs(level, seed) {
+  const bots = new Bots(seed);
+  bots.add(2, level, 0);
+  const tg = { p: [0, 1, 0], v: [0, 0, 0] };
+  for (let t = 0; t <= 90000; t += TICK) {
+    const [{ pose }] = bots.step(Math.round(t), () => ({ chase: tg }));
+    if ((pose.px - tg.p[0]) ** 2 + (pose.py - tg.p[1]) ** 2 + (pose.pz - tg.p[2]) ** 2 <= BUBBLE_M * BUBBLE_M) {
+      return t;
+    }
+  }
+  return Infinity;
+}
+
 function behaviourRows() {
+  for (const level of Object.keys(LEVELS)) {
+    const ms = [1, 2, 3].map((s) => groundMs(level, s));
+    check(`a ${level} hunter catches a pilot sat on the strip, under the height band`, Math.max(...ms) < 90000, ms.map((x) => `${(x / 1000).toFixed(1)} s`).join(', '));
+  }
   for (const level of Object.keys(LEVELS)) {
     const ms = [1, 2, 3].map((s) => catchMs(level, s));
     const worst = Math.max(...ms);

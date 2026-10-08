@@ -16,9 +16,10 @@
  * (src/maps/alps/terrain.js, which this cannot import: it draws with
  * three.js). The floor is flat within FLOOR_HALF of the valley's axis, so
  * an AI pilot keeps within CORRIDOR.half of the axis and between
- * CORRIDOR.yMin and CORRIDOR.yMax: its aim is put inside first, and a
+ * CORRIDOR.yMin and CORRIDOR.yMax (lower only on the last TERMINAL_M to a
+ * target, below): its aim is put inside first, and a
  * position its turn could not keep inside is held at the edge (counted in
- * `clamps`, a number for the checks).
+ * `clamps`, the largest such move in `clampMax`: numbers for the checks).
  *
  * DETERMINISM. warhunt.js's recipe: plain arithmetic, Math.sqrt, and
  * sinDet (src/share/war/routes.js), never Math.sin; elapsed room time in
@@ -90,8 +91,20 @@ const BANK_MAX = 1.05;
 const BANK_PER_TURN = 0.9;
 /* A wander point is done with this close, metres. */
 const WANDER_M = 60;
+/* The last this many metres (horizontally) to a target, an AI pilot may
+ * come down to its height, but never under LOW_M: else a pilot sat on the
+ * strip or skimming the grass could never be caught, tag's bubble being
+ * 6 m. The floor is flat here, and what is built on it is passed through,
+ * as the war's hunters do in their terminal run (warhunt.js). */
+const TERMINAL_M = 150;
+/* A target is aimed at this far over its centre: inside tag's 6 m bubble,
+ * clear of its wings, so a catch is not a mid air that breaks the person
+ * (a real collision still is one, judged by the referee as ever). */
+const ABOVE_M = 3.5;
+const LOW_M = 2;
 /* A hunter this close (horizontally) is what an Ace runs from. */
 const FLEE_M = 300;
+const FLEE_EDGE_M = 25;
 /* The prop's speed in the pose, rad/s: for drawing only. */
 const PROP = 900;
 
@@ -113,11 +126,11 @@ export function nextRandom(state) {
 /* The point put inside the corridor less `inset` metres, in place. An aim
  * is put further in than a position is held, so a turn toward an aim at
  * the edge ends before the edge rather than on it. */
-function inside(a, inset = 0) {
+function inside(a, inset = 0, low = CORRIDOR.yMin) {
   a[2] = Math.max(CORRIDOR.zMin + inset, Math.min(CORRIDOR.zMax - inset, a[2]));
   const x0 = valleyAxis(a[2]);
   a[0] = Math.max(x0 - CORRIDOR.half + inset, Math.min(x0 + CORRIDOR.half - inset, a[0]));
-  a[1] = Math.max(CORRIDOR.yMin + inset / 2, Math.min(CORRIDOR.yMax - inset / 2, a[1]));
+  a[1] = Math.max(low + (low < CORRIDOR.yMin ? 0 : inset / 2), Math.min(CORRIDOR.yMax - inset / 2, a[1]));
   return a;
 }
 const AIM_INSET = 20;
@@ -130,6 +143,7 @@ export class Bots {
     this.list = new Map();
     this.rand = seed >>> 0;
     this.clamps = 0;
+    this.clampMax = 0;
   }
 
   random() {
@@ -174,9 +188,10 @@ export class Bots {
 
   /*
    * Every AI pilot flown to roomMs. orders(seat) is what the game wants of
-   * it, read once per reaction time: { chase: { p, v } } a target to catch
-   * (led by the level's lead), { flee: [p, ...] } the places to run from,
-   * or null to wander. Returns [{ seat, pose }], pose as encodePose takes
+   * it, read once per reaction time: { chase: { p, v }, boost } a target to
+   * catch (led by the level's lead, flown at the level's speed times boost,
+   * tag's CHASE_BOOST for a hunter), { flee: [p, ...] } the places to run
+   * from, or null to wander. Returns [{ seat, pose }], pose as encodePose takes
    * it, t being roomMs.
    */
   step(roomMs, orders) {
@@ -184,7 +199,9 @@ export class Bots {
     for (const b of this.list.values()) {
       const lv = LEVELS[b.level];
       if (roomMs - b.aimAt >= lv.react) {
-        b.aim = this.aimFor(b, lv, orders(b.seat));
+        const order = orders(b.seat);
+        b.aim = this.aimFor(b, lv, order);
+        b.boost = (order && order.chase && order.boost) || 1;
         b.aimAt = roomMs;
       }
       const gap = Math.min(GAP_MS, roomMs - b.ms);
@@ -203,6 +220,7 @@ export class Bots {
 
   aimFor(b, lv, order) {
     const p = b.p;
+    b.low = CORRIDOR.yMin;
     if (order && order.chase) {
       const c = order.chase;
       const dx = c.p[0] - p[0];
@@ -212,7 +230,8 @@ export class Bots {
        * away from the target (warhunt.js's lesson). */
       const behind = b.f[0] * dx + b.f[1] * dy + b.f[2] * dz < 0;
       const lead = behind ? 0 : Math.min(lv.lead, Math.sqrt(dx * dx + dy * dy + dz * dz) / lv.speed);
-      return inside([c.p[0] + c.v[0] * lead, c.p[1] + c.v[1] * lead, c.p[2] + c.v[2] * lead], AIM_INSET);
+      b.low = dx * dx + dz * dz < TERMINAL_M * TERMINAL_M ? Math.max(LOW_M, Math.min(CORRIDOR.yMin, c.p[1])) : CORRIDOR.yMin;
+      return inside([c.p[0] + c.v[0] * lead, c.p[1] + c.v[1] * lead + ABOVE_M, c.p[2] + c.v[2] * lead], AIM_INSET, b.low);
     }
     if (order && order.flee && order.flee.length) {
       let near = null;
@@ -235,8 +254,10 @@ export class Bots {
           z = p[2] - away * 400;
         }
         /* The far side of the valley and the far end of the height band
-         * from the hunter, so it must turn and climb or dive to follow. */
-        const y = near[1] < (CORRIDOR.yMin + CORRIDOR.yMax) / 2 ? CORRIDOR.yMax : CORRIDOR.yMin;
+         * from the hunter, so it must turn and climb or dive to follow;
+         * FLEE_EDGE_M short of the band's edge, where a hunter's pitch,
+         * lagging its aim, would only be held at the edge. */
+        const y = near[1] < (CORRIDOR.yMin + CORRIDOR.yMax) / 2 ? CORRIDOR.yMax - FLEE_EDGE_M : CORRIDOR.yMin + FLEE_EDGE_M;
         return inside([valleyAxis(z) - (near[0] - valleyAxis(near[2])), y, z], AIM_INSET);
       }
     }
@@ -261,46 +282,56 @@ export class Bots {
       hz /= run;
       slope = (a[1] - p[1]) / Math.max(run, 40);
     } else {
-      hx = b.f[0];
-      hz = b.f[2];
+      /* Right over or under the aim: on along the level heading. The
+       * heading itself would do only while it is level, and fed back it
+       * steepens every substep. */
+      const n = Math.sqrt(b.f[0] * b.f[0] + b.f[2] * b.f[2]);
+      hx = n > 1e-6 ? b.f[0] / n : -b.r[2];
+      hz = n > 1e-6 ? b.f[2] / n : b.r[0];
     }
     /* Level off before the band's edges: the heading's pitch lags the aim
      * by the turn rate, and an aim at the edge would carry it past. */
     slope = Math.min(slope, (CORRIDOR.yMax - p[1]) / BAND_LOOK_M, SLOPE_MAX);
-    slope = Math.max(slope, (CORRIDOR.yMin - p[1]) / BAND_LOOK_M, -SLOPE_MAX);
-    const d = unit(hx, slope, hz);
+    slope = Math.max(slope, ((b.low ?? CORRIDOR.yMin) - p[1]) / BAND_LOOK_M, -SLOPE_MAX);
+    /* The turn is a yaw and a pitch, each at most the turn rate: a turn
+     * on the great circle toward an aim behind and above can pass through
+     * the vertical, and flown on from there an AI pilot points at the
+     * ground. */
     const f = b.f;
-    const c = f[0] * d[0] + f[1] * d[1] + f[2] * d[2];
+    const n = Math.sqrt(f[0] * f[0] + f[2] * f[2]);
+    let gx = n > 1e-6 ? f[0] / n : -b.r[2];
+    let gz = n > 1e-6 ? f[2] / n : b.r[0];
+    const s0 = n > 1e-6 ? f[1] / n : 0;
     const turn = lv.turn * dt;
+    const dot = gx * hx + gz * hz;
+    const cross = gx * hz - gz * hx;
     const [ca, sa] = cosSin(turn);
-    let turned = 0;
-    if (c >= ca) {
-      b.f = d;
-      turned = dt > 0 ? Math.sqrt(Math.max(0, 2 - 2 * c)) / dt : 0;
+    let rate;
+    if (dot >= ca) {
+      rate = dt > 0 ? Math.sqrt(Math.max(0, 2 - 2 * dot)) / dt * (cross >= 0 ? 1 : -1) : 0;
+      gx = hx;
+      gz = hz;
     } else {
-      let wx = d[0] - f[0] * c;
-      let wy = d[1] - f[1] * c;
-      let wz = d[2] - f[2] * c;
-      let wn = Math.sqrt(wx * wx + wy * wy + wz * wz);
-      if (wn < 1e-9) {
-        [wx, wy, wz] = [-f[2], 0, f[0]];
-        wn = Math.sqrt(wx * wx + wz * wz) || 1;
-      }
-      b.f = unit(f[0] * ca + wx / wn * sa, f[1] * ca + wy / wn * sa, f[2] * ca + wz / wn * sa);
-      turned = lv.turn;
+      const sg = cross >= 0 ? 1 : -1;
+      const x = gx * ca - gz * sa * sg;
+      gz = gx * sa * sg + gz * ca;
+      gx = x;
+      rate = lv.turn * sg;
     }
-    /* Which way it turned: the level right of the old heading against
-     * the new one. */
-    const side = -f[2] * b.f[0] + f[0] * b.f[2];
-    const rate = side >= 0 ? turned : -turned;
-    const step = lv.speed * dt;
+    const s1 = s0 + Math.max(-turn, Math.min(turn, slope - s0));
+    b.f = unit(gx, s1, gz);
+    const step = lv.speed * (b.boost || 1) * dt;
+    /* Under the band after a terminal run, it climbs back on its slope
+     * and is never lifted at once. */
+    const low = Math.max(LOW_M, Math.min(b.low ?? CORRIDOR.yMin, p[1]));
     p[0] += b.f[0] * step;
     p[1] += b.f[1] * step;
     p[2] += b.f[2] * step;
     const was = [p[0], p[1], p[2]];
-    inside(p);
+    inside(p, 0, low);
     if (was[0] !== p[0] || was[1] !== p[1] || was[2] !== p[2]) {
       this.clamps += 1;
+      this.clampMax = Math.max(this.clampMax, Math.sqrt((was[0] - p[0]) ** 2 + (was[1] - p[1]) ** 2 + (was[2] - p[2]) ** 2));
     }
     return rate;
   }
@@ -325,7 +356,7 @@ export class Bots {
       t: roomMs,
       px: b.p[0], py: b.p[1], pz: b.p[2],
       qx: q[0], qy: q[1], qz: q[2], qw: q[3],
-      vx: f[0] * lv.speed, vy: f[1] * lv.speed, vz: f[2] * lv.speed,
+      vx: f[0] * lv.speed * (b.boost || 1), vy: f[1] * lv.speed * (b.boost || 1), vz: f[2] * lv.speed * (b.boost || 1),
       wx: 0, wy: rate, wz: 0,
       c0: 0, c1: 0, c2: 0, c3: 0,
       motor: PROP,
@@ -337,7 +368,7 @@ export class Bots {
     return {
       rand: this.rand,
       bots: [...this.list.values()].map((b) => ({
-        seat: b.seat, level: b.level, p: b.p, f: b.f, r: b.r, bank: b.bank, aim: b.aim, aimAt: b.aimAt === -Infinity ? null : b.aimAt, wander: b.wander, ms: b.ms,
+        seat: b.seat, level: b.level, p: b.p, f: b.f, r: b.r, bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim, aimAt: b.aimAt === -Infinity ? null : b.aimAt, wander: b.wander, ms: b.ms,
       })),
     };
   }
@@ -347,7 +378,7 @@ export class Bots {
     this.rand = (value?.rand ?? 1) >>> 0;
     for (const b of value?.bots ?? []) {
       this.list.set(b.seat, {
-        seat: b.seat, level: b.level, p: [...b.p], f: [...b.f], r: [...b.r], bank: b.bank, aim: b.aim ? [...b.aim] : null, aimAt: b.aimAt ?? -Infinity, wander: [...b.wander], ms: b.ms,
+        seat: b.seat, level: b.level, p: [...b.p], f: [...b.f], r: [...b.r], bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim ? [...b.aim] : null, aimAt: b.aimAt ?? -Infinity, wander: [...b.wander], ms: b.ms,
       });
     }
   }
