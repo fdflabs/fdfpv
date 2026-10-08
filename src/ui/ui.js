@@ -1508,6 +1508,11 @@ export class Ui {
 
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
+    /* In an ops match with several roles held, they step the role flown
+     * (src/main.js PLATFORM HOLDS) and not the aircraft. */
+    if (this.screen === 'flight' && this.cycleHold && this.cycleHold(dir)) {
+      return;
+    }
     if (this.onHotSwap && this.screen === 'flight') {
       this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }
