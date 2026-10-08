@@ -242,8 +242,8 @@ export function buildPeerCraft(profile, look = null) {
      * with their own screen). The wire has no stick or pack either, so
      * a peer's throttle pattern sits at half and its battery one solid
      * (docs/KITS.md section 4). */
-    if (craft.setLights) {
-      craft.setLights(simT * 1000, 0.5, 1);
+    if (craft.group.userData.setLights) {
+      craft.group.userData.setLights(simT * 1000, 0.5, 1);
     }
     smokeOn = false;
     if (smoke) {
