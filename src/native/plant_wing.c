@@ -643,11 +643,15 @@ static const double GUST_PY[GUST_N] = { 2.9106, 0.5106, 4.3939, 1.9939, 5.8771, 
 int SIM_WIND_ON = 0;
 double SIM_WIND[2] = { 0.0, 0.0 };
 double SIM_GUST = 0.0;
+/* The air's vertical velocity at the craft, m/s up, the host's
+ * (sim_set_air_vertical): a thermal, a ridge's lift, a dam's sink, which
+ * the host reads off its weather at the craft each step. */
+double SIM_AIR_W = 0.0;
 
 void plant_wind(long long step, double out[3]) {
   out[0] = SIM_WIND[0];
   out[1] = SIM_WIND[1];
-  out[2] = 0.0;
+  out[2] = SIM_AIR_W;
   if (!(SIM_GUST > 0.0)) {
     return;
   }
@@ -1412,7 +1416,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
 
   /* Relative wind in the body frame: still air, or for an airframe that
    * flies in it, the thermals' rise, which is a wind from below, and the
-   * horizontal wind when a host has set one. Everything aerodynamic below,
+   * wind when a host has set one, horizontal and vertical. Everything aerodynamic below,
    * the chute's drag with it, reads this. */
   double vb[3];
   double vg[3] = { s->vel[0], s->vel[1], s->vel[2] };
@@ -1421,6 +1425,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     plant_wind(s->step_index, wa);
     vg[0] -= wa[0];
     vg[1] -= wa[1];
+    vg[2] -= wa[2];
   }
   if (fw->air_lift) {
     const double va[3] = { vg[0], vg[1], vg[2] - plant_air_lift(s->pos) };

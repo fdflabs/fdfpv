@@ -147,6 +147,22 @@ async function peers(page) {
   for (const [id, drawn] of Object.entries(got)) {
     say(drawn, `${id}: a peer with a kit is drawn differently from one without`);
   }
+  /* A peer's LEDs run their pattern as it is posed each frame. */
+  const chase = await page.evaluate(`(async () => {
+    const { buildPeerCraft } = await import('./src/render/peers.js');
+    const rig = buildPeerCraft({ airframe: '7inch', map: 'swiss2', figure: 0, parts: null,
+      livery: { lights: { v: 1, led: '#00b7ff', pattern: 'chase' } } });
+    const drawn = { px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1 };
+    const p = { flags: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0, vx: 0, vy: 0, vz: 0 };
+    const lit = (simT) => {
+      rig.pose(drawn, p, 0.016, simT, 720, 70);
+      return [0, 1, 2, 3].map((m) => rig.group.getObjectByName('led-' + m).material.color.getHex() === 0x00b7ff ? 1 : 0).join('');
+    };
+    const out = [0, 0.11, 0.22, 0.33].map(lit);
+    rig.dispose();
+    return out;
+  })()`);
+  say(chase.join() === '1000,0100,0010,0001', `7inch: a peer's LEDs chase as it is posed: ${chase.join(' ')}`);
 }
 
 async function pictures(page) {

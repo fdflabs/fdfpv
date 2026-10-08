@@ -78,6 +78,7 @@
  */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
@@ -333,7 +334,7 @@ function buildElevon(sign, material, shade) {
  * at the top, lofted up the canted, swept span of the winglet. Built for
  * the right tip and mirrored.
  */
-function wingletGeometry(sign, n) {
+function wingletGeometry(sign, n, style = 'stock') {
   const len = WINGLET_LEN;
   const rootC = WINGLET_ROOT_C;
   const topC = WINGLET_TOP_C;
@@ -355,15 +356,31 @@ function wingletGeometry(sign, n) {
     for (let i = n - 2; i >= 1; i -= 1) pts.push(lower[i]);
     return pts;
   };
-  const secs = [at(0, rootC, rootLe), at(len * 0.5, (rootC + topC) / 2, rootLe + len * 0.5 * WINGLET_SWEEP), at(len, topC, rootLe + len * WINGLET_SWEEP)];
   /* Built going up, which is the loft's +x only on the right: the left's
    * sections run the other way round, so reverse its point order. */
-  if (sign < 0) {
-    for (const s of secs) {
-      s.reverse();
+  const blade = (secs) => {
+    if (sign < 0) {
+      for (const s of secs) {
+        s.reverse();
+      }
     }
+    return loft(secs);
+  };
+  /* A kit's winglets keep the stock root, height and aftmost corner, which
+   * bound the drawn height and length: raked closes the top to 40 percent
+   * of its chord along a steeper leading edge; split is a full height
+   * front blade and a short one behind it with a slot between. */
+  const aft = rootLe + len * WINGLET_SWEEP + topC;
+  if (style === 'raked') {
+    const c = 0.4 * topC;
+    return blade([at(0, rootC, rootLe), at(len * 0.5, (rootC + c) / 2, (rootLe + aft - c) / 2), at(len, c, aft - c)]);
   }
-  return loft(secs);
+  if (style === 'split') {
+    const front = blade([at(0, 0.55 * rootC, rootLe), at(len, 0.5 * topC, rootLe + len * WINGLET_SWEEP)]);
+    const back = blade([at(0, 0.32 * rootC, rootLe + 0.68 * rootC), at(len * 0.55, 0.22 * rootC, rootLe + 0.68 * rootC + len * 0.55 * WINGLET_SWEEP)]);
+    return mergeGeometries([front, back], false);
+  }
+  return blade([at(0, rootC, rootLe), at(len * 0.5, (rootC + topC) / 2, rootLe + len * 0.5 * WINGLET_SWEEP), at(len, topC, rootLe + len * WINGLET_SWEEP)]);
 }
 
 /*
@@ -586,7 +603,7 @@ export function buildBramorCraft(opts = {}) {
   group.add(right.pivot);
 
   for (const sign of [-1, 1]) {
-    const winglet = new THREE.Mesh(wingletGeometry(sign, lite ? 7 : 11), skin);
+    const winglet = new THREE.Mesh(wingletGeometry(sign, lite ? 7 : 11, (opts.kit ?? {}).winglets), skin);
     winglet.castShadow = shade;
     group.add(winglet);
   }
