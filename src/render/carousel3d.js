@@ -49,7 +49,7 @@ import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
 import { dressLivery, liveryFor } from './livery.js';
-import { paintTargets, readDecals } from './decals.js';
+import { layerOutline, paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
 import { powerOption } from '../../configs/power.js';
@@ -722,6 +722,23 @@ export function createCarouselStage(renderer) {
     return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z], region: owner ? owner[0] : null, under: n.y < -0.1 };
   }
 
+  /* Layer `d`'s outline on model `id` in client pixels (layerOutline), for
+   * the hangar's transform handles; null if the model is not shown. */
+  function outline(id, d) {
+    const m = lastByKey.get(id);
+    if (!m || !m.holder.visible) {
+      return null;
+    }
+    const rect = renderer.domElement.getBoundingClientRect();
+    const g = m.craft.group;
+    const toScreen = (v) => {
+      const w = v.clone().applyMatrix4(g.matrixWorld).project(camera);
+      return { x: rect.left + ((w.x + 1) / 2) * rect.width, y: rect.top + ((1 - w.y) / 2) * rect.height };
+    };
+    const o = layerOutline(d);
+    return { centre: toScreen(o.centre), corners: o.corners.map(toScreen), top: toScreen(o.top), right: toScreen(o.right) };
+  }
+
   /* The exploded part under client pixels on the hangar's model, or
    * null (src/render/hangar-exploded.js partAt). */
   function pickPart(id, clientX, clientY) {
@@ -765,5 +782,5 @@ export function createCarouselStage(renderer) {
     return c ? { propulsion: c.propulsion ?? null, antenna: c.antenna ?? null } : null;
   }
 
-  return { draw, repaint, paint, pick, pickPart, look, fitted, combat, stats: () => ({ ...stats }) };
+  return { draw, repaint, paint, pick, pickPart, outline, look, fitted, combat, stats: () => ({ ...stats }) };
 }

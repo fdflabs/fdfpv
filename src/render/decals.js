@@ -740,6 +740,16 @@ export function dressDecalsLater(craft, all = [], budgetMs = 4) {
   });
 }
 
+/* A layer's outline on the model, for the hangar's transform handles:
+ * its centre and four corners (top left, top right, bottom right, bottom
+ * left of the picture) and the middle of its top and right edges, in the
+ * craft group's frame. */
+export function layerOutline(d) {
+  const b = boxOf(d, false);
+  const at = (x, y) => b.p.clone().addScaledVector(b.right, x * b.iw + b.k * y * b.hh).addScaledVector(b.up, y * b.hh);
+  return { centre: at(0, 0), corners: [at(-1, 1), at(1, 1), at(1, -1), at(-1, -1)], top: at(0, 1), right: at(1, 0) };
+}
+
 /* The meshes a pick can land on, for the hangar's placing: the same the
  * decals are printed on. */
 export function paintTargets(craft) {
