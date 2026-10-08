@@ -1,18 +1,19 @@
 /*
- * hover-probe.js: can a person hover it? Every powered fixed wing, nose up
- * at no airspeed, flown for 10 s by a pilot with a person's limits rather
- * than flightmodel-probe.js's HOVER, which reads the state the instant it
- * changes. This pilot sees the aircraft 0.2 s late (a trained pilot's
- * effective delay in compensatory tracking, McRuer and Jex, IEEE Trans.
- * HFE 1967), moves the sticks ten times a second in steps of a fiftieth of
- * their travel, and flies by what is visible from the ground: the nose off
- * vertical and how fast it is moving, the roll rate (held out with a slow
- * trim on the ailerons, as a pilot learns to hold the torque), the drift
- * against the background (leaned against with the nose), and the climb
- * (on the throttle, a slow hand on a held setting). Pilots differ, so the
- * gains are a grid; the row is how many of its pilots hold the hover for
- * the 10 s, the nose within 20 deg of vertical and the height within
- * 10 m, and the best one's figures. It measures, it does not judge.
+ * hover-probe.js: can a person hover it? Every powered fixed wing the
+ * hangar offers, nose up at no airspeed, flown for 10 s by a pilot with a
+ * person's limits rather than flightmodel-probe.js's HOVER, which reads
+ * the state the instant it changes. This pilot sees the aircraft 0.2 s
+ * late (a trained pilot's effective delay in compensatory tracking, McRuer
+ * and Jex, IEEE Trans. HFE 1967), moves the sticks ten times a second in
+ * steps of a fiftieth of their travel, and flies by what is visible from
+ * the ground: the nose off vertical and how fast it is moving, the roll
+ * rate (held out with a slow trim on the ailerons, as a pilot learns to
+ * hold the torque), the drift against the background (leaned against with
+ * the nose), and the climb (on the throttle, a slow hand on a held
+ * setting). Pilots differ, so the gains are a grid; the row is how many of
+ * its pilots hold the hover for the 10 s, the nose within 20 deg of
+ * vertical and the height within 10 m, and the best one's figures. It
+ * measures, it does not judge.
  *
  *   node scripts/hover-probe.js [--only key,...]
  *

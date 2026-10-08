@@ -687,6 +687,11 @@ Extra's: 0.028, 0.1224 and 0.1842 rad per rad/s in roll, pitch and yaw.
 It makes the hover far easier to fly, 82 pilots of the 648 against
 Manual's 11, which is what AS3X is sold for.
 
+The swirl (SWIRL_KEEP above) makes the Manual hover harder, not easier:
+on the Extra before it, 48 of the 648 held Manual and 20 Acro, and the
+stationary hover took 0.43 of right aileron against the torque, where
+Selig's net roll now asks 0.58. That is the source's torque, not a fit.
+
 ### In the shell, and how it looks
 
 extra:owner (its airframe id had been left at the retired `extra1308`
