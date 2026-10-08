@@ -16235,6 +16235,7 @@ export async function boot({
    * flight is not a flat panel in between. Prop discs spin at a visibly
    * aliased fraction of true RPM; on the title a cruise spin stands in.
    */
+  const LED_BATTERY = { ok: 1, warning: 0.4, critical: 0 };
   function dressWorld() {
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
@@ -16270,6 +16271,11 @@ export async function boot({
     }
     if (shell.setProp) {
       shell.setProp(stateCurr[14]);
+    }
+    /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
+     * a replay flashes as the flight did; the pack as the OSD bands it. */
+    if (shell.setLights) {
+      shell.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);

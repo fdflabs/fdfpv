@@ -237,13 +237,15 @@ export function createCarouselStage(renderer) {
      * of its own too. */
     const preview = key === id ? previews.get(id) : undefined;
     const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
-    const fitted = kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '';
+    const lights = (preview ?? liveryFor(id))?.lights ?? undefined;
+    const fitted = (kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '')
+      + (lights ? `*${JSON.stringify(lights)}` : '');
     const at = (combat ? `${key}#${JSON.stringify(combat)}` : key) + fitted;
     let m = models.get(at);
     if (m) {
       return m;
     }
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit }), id, preview ?? undefined), id);
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
