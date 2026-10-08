@@ -436,3 +436,57 @@ digests. Regenerated: \`configs/power-estimates.js\`,
   level hold, right of a quarter of its throw", -7.5 against a -7.5
   limit (passing on origin/main by hundredths): the same rudder only
   aircraft check as the Bombshell's in PR 2.
+
+## PR 4, built: the fuselage in a crossflow
+
+A knife edge is held by the fuselage's side force and the thrust's share
+at a sideslip. The table's side force is CY beta, linear and the fin's;
+the body's own crossflow, which grows with the sideways speed squared,
+was missing (the removed Extra had it as \`side_cda\`). Now every aircraft
+with a fuselage carries it: \`side_cda\`, eta Cdc S_side, a force against
+v |v| at the CG. Allen and Perkins' viscous crossflow (NACA TR 1048), with
+the removed Extra's eta Cdc of 0.84 (Cdc 1.2, eta 0.7, Jorgensen, NASA TR
+R-474) on each fuselage's side area from its derivation or render model.
+
+- On: the Skyhunter, Cub and Cub floats, Radian, Bramor, Timber and Timber
+  floats, Bombshell, Kadet, P-51, F-16, Ugly Stik and Tiger Moth. Off: the
+  1000 mm wing and the Zagi (their winglets are their fins, in CY beta
+  already), the Slow Stick (a stick), the NRJ, and both Strikers, whose
+  side force is war:legacy's and is not this lane's to move.
+- The floats' own side area is not in the float versions' figure: the
+  land fuselage's is, ESTIMATED.
+
+### The probe, PR 3 to PR 4
+
+| Aircraft | AUTH roll, pitch, yaw rad/s² | HOVER held of 8 s | HANG roll rate deg/s | HARR pitch deg | KNIFE bank deg, sink m/s | SNAP deg (aileron alone) | STALL m/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 0.0, 0.0, 0.0 | 0.71 | -6.1 | 22.6 | n/a | n/a (115) | 8.03 |
+| Skyhunter | 0.0, 0.0, 0.0 | 0.82 | 0.2 → 0.1 | 11.4 | 71.9, 12.6 → 72.6, 11.2 | 115 (73) | 10.31 |
+| Cub | 0.0, 26.9, 6.3 | 1.12 | 2.0 | 15.7 | 75.1, 9.9 → 76.2, 8.2 | 126 (101) → 126 (100) | 8.94 |
+| Slow Stick | -3.7, 15.5, 9.3 | 0.41 | -0.5 | 6.1 | n/a | n/a (n/a) | 4.82 |
+| Radian | 0.0, 27.6, 10.0 | 1.27 | 2.6 | 20.6 | n/a | n/a (n/a) | 7.11 |
+| Turbo Timber | 0.0, 51.6, 23.0 | 5.68 → 7.05 | 0.4 | 19.6 | 84.3, 12.4 → 86.1, 8.0 | 296 (185) → 292 (184) | 7.98 |
+| Bramor | 0.0, 0.0, 0.0 | 0.32 | 7.4 → 3.7 | 15.2 | n/a | n/a (61) | 14.06 |
+| Bombshell | -2.2, 24.5, 10.1 | 0.46 | -3.2 | 5.0 | n/a | n/a (n/a) | 6.94 |
+| Kadet Senior | -2.4, 28.2, 14.1 | 1.01 | 0.8 | 11.6 | n/a | n/a (n/a) | 8.28 |
+| P-51D | 0.0, 41.9, 8.2 | 1.69 → 1.70 | 4.0 | 29.0 | 72.5, 22.4 → 73.0, 20.6 | 281 (104) → 278 (104) | 11.06 |
+| F-16 | 0.0, 0.0, 0.0 | 0.57 | 1.3 | 28.6 | 55.3, 3.3 → 60.4, 2.6 | 281 (202) | 12.82 |
+| Zagi HP | 0.0, 0.0, 0.0 | 0.17 | 3.3 | 14.8 | n/a | n/a (166) | 7.90 |
+| Ugly Stik | 0.0, 16.9, 12.4 | 3.08 → 3.10 | 1.2 | 13.5 | 68.4, 20.7 → 68.8, 19.9 | 64 (60) | 10.60 |
+| Tiger Moth | 0.0, 15.8, 13.5 | 1.20 | 0.1 | 6.6 | 73.8, 17.6 → 74.5, 15.7 | 139 (66) | 9.89 |
+| Striker | 0.0, 0.0, 0.0 | 2.27 | 17.0 | 19.3 | 82.8, 1.3 | 80 (89) | 7.87 |
+
+The knife edge's sink falls on every aircraft that tries one (the Timber
+12.4 to 8.0 m/s, the Cub 9.9 to 8.2); none of these sport and scale
+aircraft holds one level, which is what their reviews say of them. The
+3D aircraft is PR 5's.
+
+### Re-recorded and unmoved
+
+Re-recorded: \`cub\`, \`glider\`, \`timber\`, \`timberf\`, \`bombshell\`,
+\`kadet\`, \`f16\`, \`uglystik\`, \`tigermoth\`, \`p51\` and \`p51-air\`; the
+Skyhunter's, the Bramor's and its chute's hashes re-pinned on their
+committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
+Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
+Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
+No gate changed.

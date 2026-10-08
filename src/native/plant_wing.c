@@ -1693,6 +1693,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_slip[4] = vi;
     g_slip[5] = xs;
   }
+  /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
+   * against the sideways speed squared. */
+  if (fw->side_cda > 0.0) {
+    F[1] -= 0.5 * PLANT.rho * fw->side_cda * v * sim_fabs(v);
+  }
   /* A fan runs down after its drive is cut rather than stopping. */
   const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
@@ -2181,6 +2186,7 @@ const FixedWingParams FW_SKY1800 = {
   .stall_top = 5.3 * WING_PI / 180.0,
   .strip_c = { 1.132, 1.044, 0.956, 0.868 },
   .washout = 5.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  .side_cda = 0.0722, /* 0.84 of 0.086 m^2, the pod in side view, the render model's, ESTIMATED */
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has
@@ -2273,6 +2279,7 @@ const FixedWingParams FW_CUB1400 = {
   .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
+  .side_cda = 0.0924, /* 0.84 of 0.11 m^2, 0.9 m by 0.14 m of fuselage side, docs/CUB-STAGE1.md */
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -2371,6 +2378,7 @@ const FixedWingParams FW_RADIAN2000 = {
   .slip_r = 0.1238, .slip_yh = 0.2385, .slip_hv = { 0.276, 0.01 }, .slip_ya = { 0.9, 1 },
   .slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043,
   .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
+  .side_cda = 0.0697, /* 0.84 of 0.083 m^2, the fuselage in side view, the render model's */
 };
 
 /* OA Composites' NRJ, docs/DLG-STAGE1.md, where each number has its
@@ -2564,6 +2572,7 @@ const FixedWingParams FW_BRAMOR2300 = {
   .stall_k = 0.89,
   .stall_top = 0.6 * WING_PI / 180.0,
   .strip_c = { 2.041, 0.875, 0.701, 0.527 },
+  .side_cda = 0.047, /* 0.84 of 0.056 m^2, the pod in side view, ESTIMATED */
 };
 
 /* The GWS Slow Stick, docs/SLOWSTICK-STAGE1.md, where each number has its
@@ -2773,6 +2782,7 @@ const FixedWingParams FW_TIMBER1500 = {
   .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
+  .side_cda = 0.105, /* 0.84 of 0.125 m^2, 1.04 m by 0.13 m of fuselage side, docs/TIMBER-STAGE1.md */
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -2885,6 +2895,7 @@ const FixedWingParams FW_TIMBER1500F = {
   .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
   .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
   .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
+  .side_cda = 0.105, /* 0.84 of 0.125 m^2, the Timber's fuselage; the floats' own side is not in it, ESTIMATED */
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -2975,6 +2986,7 @@ const FixedWingParams FW_CUB1400F = {
   .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
   .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
   .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
+  .side_cda = 0.0924, /* 0.84 of 0.11 m^2, the Cub's fuselage; the floats' own side is not in it, ESTIMATED */
 };
 
 /* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
@@ -3090,6 +3102,7 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .slip_r = 0.0889, .slip_yh = 0.206, .slip_hv = { 0.129, 0.01 }, .slip_ya = { 0.5, 0.5588 },
   .slip_a0 = 0.04422, .slip_cl_a = 0.5377, .slip_cm_a = -1.618, .slip_cn_b = 0.09309,
   .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
+  .side_cda = 0.0428, /* 0.84 of 0.051 m^2, the fuselage in side view, scripts/bombshell-derive.js */
 };
 
 /* SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md, where each number
@@ -3200,6 +3213,7 @@ const FixedWingParams FW_KADET1981 = {
   .slip_r = 0.1524, .slip_yh = 0.3935, .slip_hv = { 0.259, 0.114 }, .slip_ya = { 0.89, 0.9906 },
   .slip_a0 = -0.02575, .slip_cl_a = 0.4965, .slip_cm_a = -1.273, .slip_cn_b = 0.1299,
   .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
+  .side_cda = 0.2016, /* 0.84 of 0.24 m^2, the box fuselage in side view, scripts/kadet-derive.js */
 };
 
 /* FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md, where each number
@@ -3316,6 +3330,7 @@ const FixedWingParams FW_P51D1450 = {
   .slip_r = 0.1778, .slip_yh = 0.258, .slip_hv = { 0.18, 0.01 }, .slip_ya = { 0.45, 0.68 },
   .slip_a0 = 0.07222, .slip_cl_a = 0.2949, .slip_cm_a = -0.8361, .slip_cn_b = 0.1152,
   .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
+  .side_cda = 0.0882, /* 0.84 of 0.105 m^2, the fuselage in side view, scripts/p51-derive.js */
 };
 
 /* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
@@ -3421,6 +3436,7 @@ const FixedWingParams FW_F16878 = {
    * 0.2148 m^2 wing, ESTIMATED (f16:derive). */
   .gear_time = 4.0,
   .cd_gear = 0.013,
+  .side_cda = 0.126, /* 0.84 of 0.15 m^2, the fuselage in side view, scripts/f16-derive.js */
 };
 
 /* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its
@@ -3628,6 +3644,7 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .slip_r = 0.1524, .slip_yh = 0.283, .slip_hv = { 0.178, 0.087 }, .slip_ya = { 0.145, 0.784 },
   .slip_a0 = 0.05137, .slip_cl_a = 0.3967, .slip_cm_a = -0.8873, .slip_cn_b = 0.1178,
   .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
+  .side_cda = 0.084, /* 0.84 of 0.1 m^2, the slab fuselage in side view, scripts/uglystik-derive.js */
 };
 
 /* Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md, where
@@ -3760,6 +3777,7 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .slip_r = 0.1524, .slip_yh = 0.3025, .slip_hv = { 0.246, 0.081 }, .slip_ya = { 0.35, 0.89 },
   .slip_a0 = -0.007186, .slip_cl_a = 0.2292, .slip_cm_a = -0.7162, .slip_cn_b = 0.1077,
   .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
+  .side_cda = 0.1436, /* 0.84 of 0.171 m^2, the fuselage in side view, scripts/tigermoth-derive.js */
 };
 
 /* The Striker, docs/COMBAT-DRONES.md section 7: the war's pusher delta as
