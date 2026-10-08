@@ -884,6 +884,52 @@ typedef struct FixedWingParams {
   double discus_pitch;
   double discus_h;
   double discus_de;
+  /*
+   * THE SLIPSTREAM over the tail and the ailerons, docs/FLIGHTMODEL.md,
+   * revived from the removed Extra 300's (docs/EXTRA-STAGE1.md in git at
+   * 1c0872b3^) for every aircraft whose prop blows over its tail. slip_r is
+   * the prop's radius; zero is an aircraft whose surfaces are not in its
+   * wash (a pusher behind its tail, a fan whose exhaust passes nothing, a
+   * glider), and then nothing below is read. By momentum theory the wash
+   * far behind the disc carries the disc's pressure jump, T / A, over the
+   * free stream's dynamic pressure, at 2 v_i over the free stream's speed,
+   * in a stream contracted to R sqrt((V + v_i)/(V + 2 v_i)). The share of
+   * each surface inside that stream: the stabiliser's, the contracted
+   * radius over slip_yh, its half span; the fin's, over its height above
+   * the thrust line slip_hv[0] and below it slip_hv[1]; the ailerons', the
+   * share of their roll moment inboard of the contracted radius, from
+   * slip_ya[0] to slip_ya[1] out along the span. A control in the wash
+   * meets the pressure jump on top of the free stream's; an angle or rate
+   * term, a crossflow over a faster stream, meets rho v_i times the
+   * crossflow, which is what makes it act with the aircraft standing still
+   * in the air. The tail's shares of the table's derivatives: its lift
+   * slope and pitch stiffness, taken about slip_a0, the body's angle of
+   * attack at which the stabiliser carries no lift with the elevator
+   * neutral, and the fin's weathercock, yaw damping, side force and roll
+   * per sideslip. cm_q, cm_de, cl_de, cn_dr, cy_dr, cl_dr and cl_da are the
+   * surfaces' alone. scripts/wash-derive.js derives every table's.
+   */
+  double slip_r;
+  double slip_yh;
+  double slip_hv[2];
+  double slip_ya[2];
+  double slip_a0;
+  double slip_cl_a;
+  double slip_cm_a;
+  double slip_cn_b;
+  double slip_cn_r;
+  double slip_cy_b;
+  double slip_cl_b;
+  /*
+   * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
+   * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
+   * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
+   * fineness (NASA TR R-474): a force against the sideways speed squared,
+   * which the table's linear side force leaves out and which carries the
+   * weight in a knife edge with the thrust's share. Taken at the CG. Zero
+   * is an aircraft without, and then nothing is read.
+   */
+  double side_cda;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -959,6 +1005,7 @@ void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
+void plant_wing_slip(double out[6]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any

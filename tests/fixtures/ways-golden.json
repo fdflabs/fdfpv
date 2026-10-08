@@ -48,8 +48,10 @@
   "freestyle-wing1000",
   "combat",
   "ace",
+  "jam",
   "campaign",
-  "interior"
+  "interior",
+  "training"
  ],
  "hubOfAction": {
   "fly": null,
@@ -59,8 +61,10 @@
   "way-freestyle-wing1000": "club",
   "way-friends": null,
   "way-interior": "ops",
+  "way-jam": "club",
   "way-nope": null,
   "way-race-5inch": "club",
+  "way-training": "club",
   "way-war": null
  },
  "hubWays": {
@@ -68,7 +72,9 @@
    "race-5inch",
    "freestyle-wing1000",
    "combat",
-   "ace"
+   "ace",
+   "jam",
+   "training"
   ],
   "hangar": [],
   "nope": [],
@@ -205,7 +211,9 @@
   "freestyle-wing1000": "plane",
   "friends": "all",
   "interior": "plane",
+  "jam": "all",
   "race-5inch": "all",
+  "training": "plane",
   "war": "all"
  },
  "ways": [
@@ -398,6 +406,46 @@
    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z\" fill=\"currentColor\" fill-opacity=\"0.45\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><rect x=\"50\" y=\"222\" width=\"200\" height=\"26\" rx=\"6\" fill=\"currentColor\" fill-opacity=\"0.7\"/></svg>"
   },
   {
+   "action": "way-jam",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/flight.jpg",
+   "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
+   "facts": [
+    "45 to 90 second runs",
+    "Best of three rounds",
+    "Invite code"
+   ],
+   "game": "jam",
+   "home": "swiss2",
+   "id": "jam",
+   "label": "Trick Battle",
+   "lobby": "jam",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 150 236 A 86 86 0 1 1 236 150\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"14\" stroke-opacity=\"0.8\" stroke-linecap=\"round\"/><path d=\"M 206 140 L 236 182 L 266 140 Z\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
+  },
+  {
    "action": "way-war",
    "airframes": [
     "7inch",
@@ -495,6 +543,25 @@
    "mode": "freestyle",
    "opsCampaign": "interior",
    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><circle cx=\"150\" cy=\"150\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.7\"/><circle cx=\"150\" cy=\"150\" r=\"14\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
+  },
+  {
+   "action": "way-training",
+   "airframes": [
+    "timber1500"
+   ],
+   "art": "assets/posters/swiss2.jpg",
+   "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+   "category": "flightclub",
+   "facts": [
+    "Short lessons, in order",
+    "Stabilised first, then Acro",
+    "Nothing waits on them"
+   ],
+   "id": "training",
+   "label": "Learn to fly",
+   "mode": "freestyle",
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+   "training": true
   }
  ],
  "waysEs": [
@@ -548,6 +615,16 @@
    "label": "¡Atrapa al As!"
   },
   {
+   "blurb": "Un lugar, una pasada cada uno mientras los demás miran. Trucos difíciles, aterrizajes limpios, sin repetir.",
+   "facts": [
+    "Pasadas de 45 a 90 segundos",
+    "Al mejor de tres rondas",
+    "Código de invitación"
+   ],
+   "id": "jam",
+   "label": "Batalla de Trucos"
+  },
+  {
    "blurb": "Drones de ataque vienen por Itaipú. Trae a tu escuadrón y defiende la represa.",
    "facts": [
     "Defiende la represa",
@@ -576,6 +653,16 @@
    ],
    "id": "interior",
    "label": "El Interior"
+  },
+  {
+   "blurb": "Lecciones desde el primer despegue hasta ganarle a tu fantasma, paso a paso.",
+   "facts": [
+    "Lecciones cortas, en orden",
+    "Primero Stabilised, después Acro",
+    "Nada depende de ellas"
+   ],
+   "id": "training",
+   "label": "Aprender a volar"
   }
  ]
 }
