@@ -61,6 +61,7 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
@@ -88,7 +89,7 @@ import {
   adoptShareFromLocation, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
 } from './share/board.js';
-import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
+import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
   addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
@@ -13188,6 +13189,21 @@ export async function boot({
    * the board already held this one from another browser, and the line the
    * builder shows, because the flight's own notice is hidden while building.
    */
+  /* The builder's best test lap, on the layout it was flown on: the gold
+   * time the course is published with (src/game/medals.js). */
+  let builderBest = null;
+  function noteBuilderLap(ms) {
+    const doc = build.doc;
+    if (!doc || !Number.isFinite(ms)) {
+      return;
+    }
+    const layout = layoutFingerprint(doc);
+    const wing = Boolean(airframeById(runAirframe).fixedWing);
+    if (!builderBest || builderBest.docId !== doc.id || builderBest.layout !== layout || builderBest.wing !== wing || ms < builderBest.ms) {
+      builderBest = { docId: doc.id, layout, ms, wing };
+    }
+  }
+
   async function publishBuiltTrack(doc) {
     const owned = Boolean(readEditKey(doc.id));
     const values = await ui.askForm({
@@ -13217,9 +13233,16 @@ export async function boot({
     if (!values) {
       return null;
     }
+    const layout = layoutFingerprint(doc);
+    const medals = publishMedals(doc.medals, layout, (readBind(doc.id) || {}).layoutFingerprint, builderBest && builderBest.docId === doc.id ? builderBest : null);
+    const sent = { ...doc };
+    delete sent.medals;
+    if (medals) {
+      sent.medals = medals;
+    }
     try {
       const result = await publishCurrentCourse({
-        doc,
+        doc: sent,
         author: values.author,
         origin: (readBind(doc.id) || {}).board,
         courseName: values.course,
@@ -16333,12 +16356,17 @@ export async function boot({
       }
     }
     ghostOnRaceStep(simNow, nowWall, lapStartBefore, lapsBefore, passed);
+    if (!race.freestyle && build && build.testing && race.laps.length > lapsBefore) {
+      noteBuilderLap(race.lastLapMs);
+    }
     if (!race.freestyle && (!(build && build.testing) || ui.progress.isCasual(build.docId))) {
       if (passed) {
         ui.progress.gatePass();
       }
       if (race.laps.length > lapsBefore) {
-        ui.progress.lap(progressCourse());
+        const seated = seatedMapTrack();
+        const medals = seated && seated.document && seated.document.medals;
+        ui.progress.lap(progressCourse(), medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing));
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
