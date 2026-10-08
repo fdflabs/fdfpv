@@ -40,11 +40,12 @@ import {
   CODE_MAX, CODE_PREFIX, DECAL_KINDS, checkDecal, packEntry, unpackEntry, packDecal, unpackDecal, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
 } from '../configs/paint.js';
 import {
-  LIVERIES, entryDrops, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode,
+  LIVERIES, MAX_SWATCHES, entryDrops, normaliseSwatches, toggleSwatch, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode,
 } from '../configs/liveries.js';
 import { checkProfile } from '../src/share/roomwire.js';
 import { snapHit } from '../src/ui/hangar-paint.js';
 import en from '../src/strings/en.js';
+import { mergeBlobs } from '../src/share/progressmerge.js';
 import es from '../src/strings/es.js';
 
 let failed = 0;
@@ -242,6 +243,20 @@ console.log('8. patterns');
   check('the look carries a pattern as its number and colour', same(lookFor('timber1500', e).patterns, { wing: { p: 3, c: 0xaa0000 } }));
   const back = readCode(encodeLivery('timber1500', 'Camo', e));
   check(`a pattern survives a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
+}
+
+console.log('8. the swatch library');
+{
+  check('settings from before the library read as an empty one', same(normaliseSwatches(undefined), { list: [] }));
+  check('a stored array, a string or junk reads as empty', [[], 'x', { list: 'x' }, 7].every((v) => same(normaliseSwatches(v), { list: [] })));
+  check('colours are lower cased, kept once, bad ones dropped', same(normaliseSwatches({ list: ['#AABBCC', '#aabbcc', 'red', '#123'] }), { list: ['#aabbcc'] }));
+  const many = { list: Array.from({ length: 20 }, (_, i) => `#0000${String(i).padStart(2, '0')}`) };
+  check(`at most ${MAX_SWATCHES}, the newest kept`, normaliseSwatches(many).list.length === MAX_SWATCHES && normaliseSwatches(many).list[0] === '#000000');
+  const lib = toggleSwatch(toggleSwatch({ list: [] }, '#111111'), '#222222');
+  check('Keep puts a colour first, Forget takes it out', same(lib, { list: ['#222222', '#111111'] }) && same(toggleSwatch(lib, '#222222'), { list: ['#111111'] }));
+  const a = { v: 1, data: { swatches: { list: ['#111111'] } }, stamps: { swatches: 100 } };
+  const b = { v: 1, data: { swatches: { list: ['#222222'] } }, stamps: { swatches: 200 } };
+  check('two computers merge to the newer library', same(mergeBlobs(a, b).data.swatches, { list: ['#222222'] }) && same(mergeBlobs(b, a).data.swatches, { list: ['#222222'] }));
 }
 
 console.log('10. flake and brushed (docs/redesign/MATERIALS.md)');

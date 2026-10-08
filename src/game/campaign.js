@@ -115,7 +115,7 @@ export const INTERIOR_CAMPAIGN = Object.freeze({ id: 'interior', consent: true }
 export const INTERIOR = [
   { id: 'interior-1', key: 'oldwar', release: 'development' },
   { id: 'interior-2', key: 'forest', release: 'soon', label: 'development' },
-  { id: 'interior-3', key: 'nomansland', release: 'soon', label: 'development' },
+  { id: 'interior-3', key: 'nomansland', release: 'development' },
   { id: 'interior-4', key: 'otherwar', release: 'soon', label: 'development' },
   { id: 'interior-5', key: 'lastcolumn', release: 'soon', label: 'development' },
 ];

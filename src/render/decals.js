@@ -686,6 +686,70 @@ export function dressDecals(craft, all = []) {
   return s.meshes.length;
 }
 
+/*
+ * A craft's decals dressed over several frames: each layer's projection
+ * (the costly part) done in slices of at most `budgetMs` a frame into the
+ * cache dressDecals reads, then dressDecals itself, which then only draws
+ * the atlas and joins the meshes. For a room's peers, so a pilot joining
+ * with a full livery is not one long frame on everyone else's screen.
+ * A later call for the same craft cancels an earlier one still running.
+ * Returns a promise of how many meshes it drew, or null if cancelled.
+ */
+export function dressDecalsLater(craft, all = [], budgetMs = 4) {
+  const decals = all.filter((d) => !d.h);
+  const s = layerOf(craft);
+  const run = (s.spreadRun ?? 0) + 1;
+  s.spreadRun = run;
+  const side = atlasSide(decals.length);
+  const jobs = [];
+  decals.forEach((d, i) => {
+    const uv = cellUv(i, decals.length, side);
+    for (const mirror of d.m ? [false, true] : [false]) {
+      const flip = mirror && !DECAL_KINDS[d.k].text;
+      jobs.push({ d, mirror, flip, uv, ck: `${d.p}|${d.n}|${d.s}|${d.a}|${d.r}|${d.x ?? 0}|${mirror}|${flip}|${uv}` });
+    }
+  });
+  const slices = [];
+  return new Promise((resolve) => {
+    const step = () => {
+      if (s.spreadRun !== run) {
+        resolve(null);
+        return;
+      }
+      const t0 = performance.now();
+      while (jobs.length && performance.now() - t0 < budgetMs) {
+        const j = jobs.shift();
+        if (!s.cache.has(j.ck)) {
+          const box = boxOf(j.d, j.mirror);
+          const cover = coverOf(box, s.targets);
+          s.cache.set(j.ck, s.targets.map((t) => project(box, t, j.uv, j.flip, cover)));
+        }
+      }
+      if (jobs.length) {
+        slices.push(performance.now() - t0);
+        requestAnimationFrame(step);
+        return;
+      }
+      const t1 = performance.now();
+      const n = dressDecals(craft, all);
+      slices.push(t1 - t0 + (performance.now() - t1));
+      s.spread = { frames: slices.length, worstMs: Math.max(...slices), totalMs: slices.reduce((x, y) => x + y, 0) };
+      resolve(n);
+    };
+    step();
+  });
+}
+
+/* A layer's outline on the model, for the hangar's transform handles:
+ * its centre and four corners (top left, top right, bottom right, bottom
+ * left of the picture) and the middle of its top and right edges, in the
+ * craft group's frame. */
+export function layerOutline(d) {
+  const b = boxOf(d, false);
+  const at = (x, y) => b.p.clone().addScaledVector(b.right, x * b.iw + b.k * y * b.hh).addScaledVector(b.up, y * b.hh);
+  return { centre: at(0, 0), corners: [at(-1, 1), at(1, 1), at(1, -1), at(-1, -1)], top: at(0, 1), right: at(1, 0) };
+}
+
 /* The meshes a pick can land on, for the hangar's placing: the same the
  * decals are printed on. */
 export function paintTargets(craft) {
@@ -702,6 +766,6 @@ export function readDecals(craft) {
   const triangles = s.meshes.reduce((n, m) => n + m.geometry.attributes.position.count / 3, 0);
   return {
     meshes: s.meshes.length, triangles, decals: s.key ? JSON.parse(s.key).length : 0,
-    atlas: s.canvas ? s.canvas.width : 0, ms: s.ms ?? 0, finishes: Object.keys(s.materials).length,
+    atlas: s.canvas ? s.canvas.width : 0, ms: s.ms ?? 0, finishes: Object.keys(s.materials).length, spread: s.spread ?? null,
   };
 }

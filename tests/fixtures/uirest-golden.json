@@ -811,10 +811,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -844,10 +841,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -879,10 +873,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -916,10 +907,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -957,10 +945,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -991,10 +976,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1027,10 +1009,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1065,10 +1044,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1107,8 +1083,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -1140,8 +1115,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -1175,8 +1149,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -1212,8 +1185,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -1247,8 +1219,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -1275,8 +1246,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -1305,8 +1275,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -1337,8 +1306,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -1375,10 +1343,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1408,10 +1373,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1443,10 +1405,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1480,10 +1439,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1522,9 +1478,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1557,9 +1510,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1594,9 +1544,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1633,9 +1580,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1676,9 +1620,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1715,9 +1656,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -1758,10 +1696,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1796,10 +1731,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -1838,7 +1770,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -1871,7 +1802,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -1906,7 +1836,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -1943,7 +1872,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -1983,9 +1911,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -2017,9 +1943,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -2053,9 +1977,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -2091,9 +2013,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -2133,10 +2053,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2168,10 +2085,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2205,10 +2119,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2244,10 +2155,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2288,8 +2196,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2323,8 +2230,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2360,8 +2266,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2399,8 +2304,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -2438,13 +2342,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -2474,13 +2372,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -2512,13 +2404,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -2552,13 +2438,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -2745,8 +2625,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -2778,8 +2657,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -2813,8 +2691,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -2850,8 +2727,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -3026,9 +2902,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -3051,9 +2925,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -3078,9 +2950,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -3105,9 +2975,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -4630,10 +4498,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4663,10 +4528,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4698,10 +4560,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4735,10 +4594,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4776,10 +4632,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -4810,10 +4663,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -4846,10 +4696,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -4884,10 +4731,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -4926,8 +4770,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4959,8 +4802,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -4994,8 +4836,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -5031,8 +4872,7 @@
       "wear": 0,
       "kit": {
        "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "wingtips": "stock"
       },
       "lights": null
      },
@@ -5066,8 +4906,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -5094,8 +4933,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -5124,8 +4962,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -5156,8 +4993,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "winglets": "stock",
-       "nose": "stock"
+       "winglets": "stock"
       },
       "lights": null
      },
@@ -5194,10 +5030,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5227,10 +5060,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5262,10 +5092,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5299,10 +5126,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5341,9 +5165,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5376,9 +5197,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5413,9 +5231,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5452,9 +5267,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5495,9 +5307,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5534,9 +5343,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5577,10 +5383,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5615,10 +5418,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5657,7 +5457,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -5690,7 +5489,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -5725,7 +5523,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -5762,7 +5559,6 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "exhausts": "stock",
        "wheels": "stock",
        "canopy": "stock"
       },
@@ -5802,9 +5598,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5836,9 +5630,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5872,9 +5664,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5910,9 +5700,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
        "wheels": "stock",
-       "fin": "stock",
        "canopy": "stock"
       },
       "lights": null
@@ -5952,10 +5740,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -5987,10 +5772,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6024,10 +5806,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6063,10 +5842,7 @@
       "wear": 0,
       "kit": {
        "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6107,8 +5883,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6142,8 +5917,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6179,8 +5953,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6218,8 +5991,7 @@
       "kit": {
        "spinner": "stock",
        "exhausts": "stock",
-       "wheels": "stock",
-       "canopy": "stock"
+       "wheels": "stock"
       },
       "lights": null
      },
@@ -6257,13 +6029,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -6293,13 +6059,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -6331,13 +6091,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -6371,13 +6125,7 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {
-       "spinner": "stock",
-       "wingtips": "stock",
-       "wheels": "stock",
-       "fin": "stock",
-       "canopy": "stock"
-      },
+      "kit": {},
       "lights": null
      },
      "fit": {
@@ -6564,8 +6312,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -6597,8 +6344,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -6632,8 +6378,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -6669,8 +6414,7 @@
       "kit": {
        "nose": "stock",
        "fincap": "stock",
-       "exhaust": "stock",
-       "canopy": "stock"
+       "exhaust": "stock"
       },
       "lights": null
      },
@@ -6845,9 +6589,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -6870,9 +6612,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -6897,9 +6637,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },
@@ -6924,9 +6662,7 @@
       "decals": [],
       "wear": 0,
       "kit": {
-       "nose": "stock",
-       "wingtips": "stock",
-       "canopy": "stock"
+       "nose": "stock"
       },
       "lights": null
      },

@@ -533,7 +533,7 @@ export function startRooms({
    * listed without its code, which is a key to it (health.js report). */
   env.WHO = () => {
     const now = Date.now();
-    const rooms = [...env.ROOMS.objects.values()].map((room) => room.host.core).filter((core) => core && core.seats.size);
+    const rooms = [...env.ROOMS.objects.values()].map((room) => room.host.core).filter((core) => core && core.people().length);
     return {
       at: new Date(now).toISOString(),
       rooms: rooms.map((core) => ({
@@ -548,7 +548,7 @@ export function startRooms({
   };
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
     const core = room.host.core;
-    return { counters: room.counters, pilots: core ? core.seats.size : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };
+    return { counters: room.counters, pilots: core ? core.people().length : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };
   }));
 
   /* Rooms stored before a restart: each gets its alarm back, or a purge
