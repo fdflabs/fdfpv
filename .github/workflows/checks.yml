@@ -283,6 +283,8 @@ jobs:
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
+      - run: npm run economy:selftest
       # The condition the player reads and its OSD line.
       - run: npm run damage:selftest
       # The pilot's own flight time: only flight counts, and the words

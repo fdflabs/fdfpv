@@ -1390,6 +1390,9 @@
       .gate-room-name { font-size: 13px; letter-spacing: 0.04em; color: var(--cream); }
       .gate-room-value { font-size: 11px; color: var(--slate); }
       .gate-room-all, .gate-room-make { align-items: center; }
+      /* Watch sits beside its room as a narrow button, not a room's width. */
+      .gate-room-watch { flex: 0 0 auto; align-items: center; }
+      .gate-room-watch .gate-room-name { text-transform: uppercase; letter-spacing: 0.12em; color: var(--pdcs-blue); }
       .gate-room-all .gate-room-name, .gate-room-make .gate-room-name { text-transform: uppercase; letter-spacing: 0.12em; }
       .gate-room-make .gate-room-name { color: var(--mint); }
       .gate-room-join { color: var(--pdcs-blue); text-transform: uppercase; letter-spacing: 0.1em; }
@@ -3992,6 +3995,11 @@
         background: rgba(10, 13, 14, 0.62); border: 1px solid var(--pdcs-line-soft);
         text-shadow: none;
       }
+      .hangar-milestones { display: inline-flex; gap: 10px; }
+      .hangar-milestone { opacity: 0.4; }
+      .hangar-milestone::before { content: '\25CB\00a0'; }
+      .hangar-milestone.on { opacity: 1; color: var(--cream); }
+      .hangar-milestone.on::before { content: '\25CF\00a0'; }
       .carousel-note { margin: 10px auto 0; max-width: 40em; font-family: var(--pdcs-read); font-size: 15px; line-height: 1.45; }
       .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
       .carousel-dot {
@@ -4408,6 +4416,40 @@
       .paint-finish .paint-finish-chrome::before {
         background: linear-gradient(180deg, #f4f8ff 0 38%, #7d8da3 44%, #fffbe8 50%, #3a332b 56%, #15130f 100%);
       }
+      .paint-finish .paint-finish-satin::before, .shop-swatch.paint-finish-satin {
+        background: radial-gradient(circle at 36% 32%, #e8807a 0 20%, #c23a32 45%, #6e1d18 100%);
+      }
+      .paint-finish .paint-finish-pearl::before, .shop-swatch.paint-finish-pearl {
+        background: radial-gradient(circle at 34% 30%, #fff 0 14%, #f3d6e6 26%, #c7d8f2 52%, #8c7f9c 100%);
+      }
+      .paint-finish .paint-finish-candy::before, .shop-swatch.paint-finish-candy {
+        background: radial-gradient(circle at 34% 30%, #ffd2cc 0 10%, #e0141f 24%, #4a0207 90%);
+      }
+      .paint-finish .paint-finish-gold::before, .shop-swatch.paint-finish-gold {
+        background: radial-gradient(circle at 34% 30%, #fff6d0 0 12%, #e7b64a 28%, #8a5a12 85%);
+      }
+      /* The Shop tab (src/ui/hangar-shop.js). */
+      .shop-balance { margin: 4px 0 0; font: 600 20px/1.2 var(--ui-font); letter-spacing: 0.04em; color: var(--cream); }
+      .shop-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+      .shop-item {
+        appearance: none; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 3px;
+        align-items: center; text-align: left; padding: 9px 10px; border-radius: 0; cursor: pointer; color: var(--cream);
+        border: 1px solid rgba(215, 221, 221, 0.14); background: rgba(0, 0, 0, 0.28); font: 600 12px/1.2 var(--ui-font);
+        transition: transform 240ms var(--hg-spring), border-color 160ms, background 160ms;
+      }
+      .shop-item > :first-child { grid-row: 1 / 3; }
+      .shop-item:hover, .shop-item:focus-visible { transform: translateY(-2px); border-color: rgba(215, 221, 221, 0.5); }
+      .shop-item.on { border-color: var(--mint); background: rgba(111, 207, 162, 0.1); }
+      .shop-item .paint-thumb { width: 64px; height: 28px; }
+      .shop-swatch { width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+      .shop-item-tag { font-weight: 500; font-size: 11px; color: var(--slate); }
+      .shop-item.owned .shop-item-tag { color: var(--mint); }
+      .shop-item.earn .shop-item-tag { color: #e7b64a; }
+      .shop-detail { margin-top: 14px; padding: 12px; border: 1px solid rgba(215, 221, 221, 0.14); background: rgba(0, 0, 0, 0.22); }
+      .shop-detail .hangar-h { margin-top: 0; }
+      .shop-detail .paint-wide { margin: 10px 0 0; }
+      .shop-msg { min-height: 1.4em; margin: 10px 0 0; font-size: 13px; color: var(--mint); }
+      @media (max-width: 640px) { .shop-items { grid-template-columns: minmax(0, 1fr); } }
       .paint-decals { display: flex; flex-wrap: wrap; gap: 8px; }
       .paint-decal, .paint-kind {
         appearance: none; display: flex; flex-direction: column; align-items: center; gap: 5px;
