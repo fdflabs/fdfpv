@@ -51,7 +51,8 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import {
-  coloursFor, liveryKey, lookFor, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
+  coloursFor, liveryKey, lookFor, normaliseEntry, normaliseSwatches, paletteColour, paletteFor, regionsFor, schemesFor,
+  toggleSwatch,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
@@ -545,7 +546,7 @@ export class Hangar {
    * `suggest` the name a new build is offered, `full` when there is no
    * room for one; a save as a new build hands onSave `asNew: { name }`.
    */
-  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onSwatches = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.closeMine(false);
     this.mine = mine;
@@ -586,6 +587,10 @@ export class Hangar {
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
+    /* The pilot's own colours, every plane's, written at once like the
+     * saved liveries, since they are a library and not this plane's paint. */
+    this.swatchLib = normaliseSwatches(settings.swatches);
+    this.onSwatches = onSwatches;
     this.revealSeq += 1;
     this.focus = tabFocus(this.tab, this.quad());
     this.isOpen = true;
@@ -960,6 +965,37 @@ export class Hangar {
     this.shop.sel = -1;
     this.pulseSeq += 1;
     this.changed('undo', 'back');
+  }
+
+  /* THE PILOT'S OWN COLOURS: the library's swatches, tried on and
+   * picked like the palette's, and Keep (or Forget) for the colour on show. */
+  swatchRow(region, hex, side) {
+    const row = el('div', 'hangar-palette hangar-mine-colours');
+    this.swatchLib.list.forEach((c, i) => {
+      const b = button(`hangar-swatch${c === hex ? ' on' : ''}`);
+      b.dataset.key = `mine-colour-${c}`;
+      b.style.setProperty('--swatch', c);
+      b.style.setProperty('--i', String(i));
+      b.title = c;
+      b.setAttribute('aria-label', c);
+      this.trial(b, { region: region.id, hex: c, side }, region.id);
+      b.addEventListener('click', () => this.pickColour(c));
+      row.append(b);
+    });
+    const kept = this.swatchLib.list.includes(hex);
+    const keep = button('hangar-side-btn hangar-keep-colour', str(kept ? 'hangar.forget_colour' : 'hangar.keep_colour'));
+    keep.dataset.key = 'keep-colour';
+    keep.dataset.focus = region.id;
+    keep.addEventListener('click', () => {
+      this.swatchLib = toggleSwatch(this.swatchLib, hex);
+      if (this.onSwatches) {
+        this.onSwatches(this.swatchLib);
+      }
+      this.changed('keep-colour');
+    });
+    const box = el('div', 'hangar-mine-box');
+    box.append(el('h3', 'hangar-h', str('hangar.my_colours')), row, keep);
+    return box;
   }
 
   /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
@@ -1504,6 +1540,7 @@ export class Hangar {
       });
       pal.append(custom);
       box.append(pal);
+      box.append(this.swatchRow(region, hex, side));
       if (region.film) {
         box.append(el('p', 'hangar-source', str('hangar.film_note')));
       }
