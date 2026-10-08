@@ -795,6 +795,8 @@ export default {
   "osd.crash_flip": "> CRASH FLIP <",
   /* The OSD font has no accents, so the damage words are written without them. */
   "osd.damaged": "AVERIA: {part}",
+  "osd.repair": "REPARAR: {part}",
+  "osd.worn": "GASTADO: {part}",
   "osd.part_battery": "BATERIA",
   "osd.part_wing": "ALA",
   "osd.part_tail": "COLA",
@@ -3342,6 +3344,8 @@ export default {
   "avionics.hud.cpu": "CPU",
   "avionics.hud.temp": "TEMP",
   "avionics.hud.dmg": "DAÑO",
+  "avionics.hud.cond_repair": "REPARAR",
+  "avionics.hud.cond_worn": "GASTADO",
   "avionics.hud.cond_operational": "OK",
   "avionics.hud.cond_impaired": "AVERIADO",
   "avionics.hud.cond_destroyed": "DESTRUIDO",
