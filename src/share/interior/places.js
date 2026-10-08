@@ -115,7 +115,7 @@ export const M2_AT = {
   handoffS: [13.625, 12.225],
   postA: [13.35, 12.725],
   estancia: [13.95, 12.475],
-  yard: [13.93, 12.455],
+  yard: [13.95, 12.44],
   gate: [14.07, 12.6],
   claroNuevo: [14.7, 13.225],
   nuevoEdge: [14.62, 13.15],
