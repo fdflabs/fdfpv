@@ -4187,6 +4187,12 @@
       }
       .hangar-side-btn:hover, .hangar-side-btn:focus-visible { border-color: var(--cream); }
       .hangar-side-btn.on { color: var(--deep); background: var(--cream); }
+      /* The region and side under the pointer, beside it. */
+      .hangar-hover-label {
+        position: absolute; left: 0; top: 0; pointer-events: none; white-space: nowrap;
+        padding: 5px 8px; font: 600 12px/1 var(--ui-font); color: var(--cream);
+        background: rgba(10, 13, 14, 0.8); border: 1px solid rgba(255, 255, 255, 0.18);
+      }
       /* The preset views, a row beside Flip. */
       .hangar-views { position: absolute; left: 96px; bottom: 0; display: flex; gap: 4px; flex-wrap: wrap; }
       .hangar-view {
