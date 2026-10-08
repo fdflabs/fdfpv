@@ -169,6 +169,8 @@ async function leds(page) {
   await page.click('.hangar [data-key="view-left"]');
   await page.sleep(2500);
   await shot(page, `${id}-4-leds`);
+  await page.sleep(170);
+  await shot(page, `${id}-4-leds-later`);
   await page.click('.hangar [data-key="save"]');
   await page.until(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null) === ${JSON.stringify(lights)}`, 10000).catch(() => {});
   say(await page.evaluate(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null)`) === lights, `${id}: Save keeps the lights`);

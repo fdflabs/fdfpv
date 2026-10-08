@@ -2498,7 +2498,7 @@ export default {
   "kit.pattern.strobe": "Estroboscópico",
   "kit.pattern.throttle": "Acelerador",
   "kit.pattern.battery": "Batería",
-  "kit.pattern_note": "Los patrones se ven en vuelo y en las repeticiones. Batería se pone roja cuando la batería se agota; los demás pilotos lo ven fijo.",
+  "kit.pattern_note": "Los patrones se ven en vuelo y en el soporte. Batería se pone roja cuando la batería se agota; los demás pilotos lo ven fijo.",
   "kit.lights": "Luces",
   "kit.light.nav": "Luces de navegación",
   "kit.light.strobe": "Estrobos de punta de ala",

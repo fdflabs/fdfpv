@@ -553,6 +553,11 @@ export function createCarouselStage(renderer) {
     lastByKey.set(view.items[0].id, m);
     fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
     animateParts(m.craft, t0 / 1000);
+    /* The kit's LED pattern and strobes previewed on the stand, on the
+     * page's clock (only the flight's own needs the flight clock). */
+    if (m.craft.setLights) {
+      m.craft.setLights(t0, 0.5, 1);
+    }
     for (const other of models.values()) {
       other.holder.visible = false;
     }

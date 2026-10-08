@@ -2493,7 +2493,7 @@ export default {
   "kit.pattern.strobe": "Strobe",
   "kit.pattern.throttle": "Throttle",
   "kit.pattern.battery": "Battery",
-  "kit.pattern_note": "Patterns run in flight and replays. Battery turns red as the pack runs down; other pilots see it solid.",
+  "kit.pattern_note": "Patterns run in flight and on the stand. Battery turns red as the pack runs down; other pilots see it solid.",
   "kit.lights": "Lights",
   "kit.light.nav": "Nav lights",
   "kit.light.strobe": "Wingtip strobes",
