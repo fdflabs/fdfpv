@@ -39,12 +39,21 @@ const TRAINER = [
   slot('fin', 'swept'),
   slot('canopy', 'smoke', 'gold'),
 ];
-const WARBIRD = [
+const P51 = [
   slot('spinner', 'twotone', 'striped'),
-  slot('exhausts', 'stacks', 'dampers'),
+  slot('exhausts', 'dampers'),
   slot('wheels', 'covered'),
-  slot('canopy', 'bubble'),
+  slot('canopy', 'smoke'),
 ];
+/* The Tiger Moth's cockpits are open, so no canopy slot. */
+const TIGERMOTH = [
+  slot('spinner', 'twotone', 'striped'),
+  slot('exhausts', 'stacks'),
+  slot('wheels', 'covered'),
+];
+/* The Bombshell's Cox spinner nut is too small to band, and its glow
+ * engine has no exhaust stacks to change. */
+const BOMBSHELL = [slot('spinner', 'bullet'), slot('wheels', 'covered'), slot('canopy', 'smoke')];
 /* The F-16's canopy is already gold tinted and a paint region of its own,
  * so a tint slot would only repeat the Paint page. */
 const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
@@ -73,7 +82,7 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 export const KITS = {
   sky1800: TRAINER, cub1400: TRAINER, kadet1981: TRAINER, slowstick1180: TRAINER,
   uglystik1567: TRAINER, timber1500: TRAINER,
-  p51d1450: WARBIRD, tigermoth1803: WARBIRD, bombshell1118: WARBIRD,
+  p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
   zagi1219: ZAGI, bramor2300: BRAMOR,
@@ -84,7 +93,8 @@ export const KITS = {
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
 export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
-  'radian2000', 'nrj1490', 'zagi1219', 'bramor2300']);
+  'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
+  'p51d1450', 'tigermoth1803', 'bombshell1118']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];

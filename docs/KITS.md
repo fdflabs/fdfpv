@@ -50,7 +50,9 @@ where the airframe has the part.
 | Family (airframes) | Slots and options |
 | --- | --- |
 | Trainers and sport (sky1800, cub1400, kadet1981, slowstick1180, uglystik1567, timber1500) | spinner: stock, bullet, flat cap, none (pointed prop nut); wingtips: stock, raked, drooped (Hoerner), winglet; wheels: stock, pants (spats), tundra (big soft tyres, drawn only); fin: stock, swept cap; canopy tint: clear, smoke, gold |
-| Warbirds and classics (p51d1450, tigermoth1803, bombshell1118) | spinner: stock, two tone, striped; exhausts: stock, short stacks, flame dampers; wheels: stock, covered; canopy: stock, bubble tint |
+| P-51D (p51d1450) | spinner: stock, two tone (black front), striped (yellow ring); exhausts: stock, flame dampers (one shroud a side in place of the six stacks); wheels: stock, covered; canopy tint: clear, smoke |
+| Tiger Moth (tigermoth1803) | spinner: stock, two tone (polished front), striped (yellow ring); exhausts: stock long pipe, short stacks; wheels: stock, covered (the fuselage's colour). Open cockpits, so no canopy |
+| Bombshell (bombshell1118) | spinner: stock Cox nut, bullet; wheels: stock, covered (the wing's red); canopy tint: clear, smoke |
 | Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium (straw collar, blued petals). The canopy is a paint region and gold already, so no tint slot |
 | Radian (radian2000) | nose: stock, long pointed spinner (in the stock spinner's length); wingtips: stock, winglet. The canopy is a paint region, so no tint slot |
 | NRJ (nrj1490) | nose: stock, long pointed cone. A throw glider: no canopy, no tips a winglet belongs on |
