@@ -87,7 +87,7 @@ export function buildable(id) {
 export function normaliseFit(id, fit) {
   const f = isRecord(fit) ? fit : {};
   const power = choosesPower(id) && isRecord(f.power) ? powerChoice(id, { [id]: f.power }) : null;
-  const plane = isRecord(f.parts) ? normalisePlane(id, { ...f.parts, damage: null }) : null;
+  const plane = isRecord(f.parts) ? normalisePlane(id, { ...f.parts, damage: null, wear: null }) : null;
   const tuning = tuningFor(id) && isRecord(f.tuning)
     ? normalizeEntry(id, f.tuning, setupFor(id, powerChoice(id, power ? { [id]: power } : {})).limits)
     : null;
@@ -124,14 +124,14 @@ function withEntry(map, key, value) {
 
 /* A fit into the slots of one airframe, each map replaced rather than
  * written through, since a settings map may be DEFAULTS' own. The parts
- * keep the airframe's own damage. */
+ * keep the airframe's own damage and wear. */
 export function putFit(s, id, fit) {
   s.livery = withEntry(s.livery, liveryKey(id), fit.livery);
   if (choosesPower(id)) {
     s.power = withEntry(s.power, id, fit.power);
   }
-  const damage = s.parts && isRecord(s.parts[id]) ? s.parts[id].damage : null;
-  s.parts = withEntry(s.parts, id, normalisePlane(id, { prop: 'stock', addons: [], ...(fit.parts ?? {}), damage }));
+  const own = s.parts && isRecord(s.parts[id]) ? s.parts[id] : {};
+  s.parts = withEntry(s.parts, id, normalisePlane(id, { prop: 'stock', addons: [], ...(fit.parts ?? {}), damage: own.damage ?? null, wear: own.wear ?? null }));
   if (tuningFor(id)) {
     s.tuning = withEntry(s.tuning, id, fit.tuning);
   }

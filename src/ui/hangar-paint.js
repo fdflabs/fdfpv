@@ -48,7 +48,7 @@
  */
 
 import {
-  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, MAX_DECALS, MAX_SAVED, TEXT_MAX,
+  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, LAYER_FINISHES, MAX_DECALS, OPACITY_STEP, MAX_SAVED, TEXT_MAX,
   checkDecal, cleanName, cleanText, encodeLivery, finishOf, newDecal, numberAspect, textAspect,
 } from '../../configs/paint.js';
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
@@ -69,6 +69,34 @@ const CLICK_SLOP = 6;
  * degrees. */
 const SIZE_STEP = 1.12;
 const TURN_STEP = 15;
+/* A layer's lean and opacity change by these a press: degrees, percent. */
+const SKEW_STEP = 5;
+const OPACITY_STEPS = 2 * OPACITY_STEP;
+/* The aim snaps to the centreline, and to another layer's centre, within
+ * this many metres: a stripe down the spine lands on it exactly. */
+const SNAP = 0.012;
+/* What a group's members share when one of them changes: the factor of a
+ * size or stretch, the change of a turn or lean, the rest as set. */
+const GROUP_SCALED = ['s', 'a'];
+const GROUP_ADDED = ['r', 'x'];
+const GROUP_SET = ['o', 'fi', 'c', 'c2', 'm', 'h'];
+
+/* A hit on the model snapped (docs/redesign/LIVERY-LAYERS.md section 2):
+ * onto another layer's centre if one is that near, else onto the
+ * centreline. `others` the layers not being placed. */
+export function snapHit(hit, others) {
+  if (!hit) {
+    return hit;
+  }
+  const near = others.find((d) => Math.hypot(d.p[0] - hit.p[0], d.p[1] - hit.p[1], d.p[2] - hit.p[2]) < SNAP);
+  if (near) {
+    return { ...hit, p: [...near.p], n: [...near.n], snap: 'layer' };
+  }
+  if (Math.abs(hit.p[0]) < SNAP) {
+    return { ...hit, p: [0, hit.p[1], hit.p[2]], n: [0, hit.n[1], hit.n[2]], snap: 'centre' };
+  }
+  return hit;
+}
 
 function button(cls, text) {
   const b = el('button', cls, text);
@@ -292,7 +320,9 @@ export class PaintShop {
     list.forEach((d, i) => {
       const b = button(`paint-decal${i === this.sel ? ' on' : ''}`);
       b.dataset.key = `decal-${i}`;
-      b.append(thumb(d), el('span', 'paint-decal-name', this.decalName(d)));
+      const marks = [d.g ? str('hangar.decal_in_group', { g: d.g }) : '', d.h ? str('hangar.decal_hidden') : '', d.l ? str('hangar.decal_locked') : ''].filter(Boolean).join(', ');
+      b.append(thumb(d), el('span', 'paint-decal-name', marks ? `${this.decalName(d)} (${marks})` : this.decalName(d)));
+      b.classList.toggle('hidden-layer', Boolean(d.h));
       b.setAttribute('aria-pressed', String(i === this.sel));
       b.addEventListener('click', () => this.select(i));
       row.append(b);
@@ -431,6 +461,7 @@ export class PaintShop {
     if (!p) {
       return;
     }
+    hit = snapHit(hit, this.decals.filter((_, k) => k !== p.index));
     const same = JSON.stringify(hit) === JSON.stringify(p.hit);
     p.hit = hit;
     this.reticle.classList.toggle('on', Boolean(hit));
@@ -453,10 +484,16 @@ export class PaintShop {
     if (!d) {
       return;
     }
-    const list = [...this.decals];
+    let list = [...this.decals];
     let at = p.index;
     if (at >= 0) {
+      const was = list[at];
       list[at] = d;
+      /* A group moves as one: the others by the same step. */
+      if (was.g) {
+        const step = d.p.map((v, k) => v - was.p[k]);
+        list = list.map((o, k) => (k === at || o.g !== was.g || o.l ? o : checkDecal({ ...o, p: o.p.map((v, j) => v + step[j]) }).decal ?? o));
+      }
     } else {
       list.push(d);
       at = list.length - 1;
@@ -576,7 +613,12 @@ export class PaintShop {
       ['size', { s: clamp(d.s * SIZE_STEP, DECAL_LIMITS.size) }, { s: clamp(d.s / SIZE_STEP, DECAL_LIMITS.size) }, `${Math.round(d.s * 1000)} mm`],
       ['stretch', { a: clamp(d.a * SIZE_STEP, DECAL_LIMITS.aspect) }, { a: clamp(d.a / SIZE_STEP, DECAL_LIMITS.aspect) }, `${d.a.toFixed(2)}`],
       ['turn', { r: this.turned(d.r, TURN_STEP) }, { r: this.turned(d.r, -TURN_STEP) }, `${d.r}°`],
+      ['skew', { x: clamp((d.x ?? 0) + SKEW_STEP, DECAL_LIMITS.skew) }, { x: clamp((d.x ?? 0) - SKEW_STEP, DECAL_LIMITS.skew) }, `${d.x ?? 0}°`],
+      ['opacity', { o: clamp((d.o ?? 100) + OPACITY_STEPS, DECAL_LIMITS.opacity) }, { o: clamp((d.o ?? 100) - OPACITY_STEPS, DECAL_LIMITS.opacity) }, `${d.o ?? 100}%`],
     ];
+    /* A locked layer keeps its place, size and shape: only its look and
+     * its lock change. */
+    const locked = Boolean(d.l);
     const grid = el('div', 'paint-steps');
     for (const [id, up, down, value] of steps) {
       grid.append(el('span', 'paint-label', str(`hangar.decal_${id}`)));
@@ -584,15 +626,51 @@ export class PaintShop {
       minus.dataset.key = `${id}-down`;
       minus.setAttribute('aria-label', str(`hangar.decal_${id}_down`));
       this.h.trial(minus, { decal: i, patch: down }, this.view);
+      minus.disabled = locked && id !== 'opacity';
       minus.addEventListener('click', () => this.patch(down, `${id}-down`, 'adjust'));
       const plus = button('paint-step', '+');
       plus.dataset.key = `${id}-up`;
       plus.setAttribute('aria-label', str(`hangar.decal_${id}_up`));
       this.h.trial(plus, { decal: i, patch: up }, this.view);
+      plus.disabled = locked && id !== 'opacity';
       plus.addEventListener('click', () => this.patch(up, `${id}-up`, 'adjust'));
       grid.append(minus, el('span', 'paint-value', value), plus);
     }
     box.append(grid);
+
+    const finishes = el('div', 'paint-row');
+    finishes.append(el('span', 'paint-label', str('hangar.decal_finish')));
+    for (const fi of LAYER_FINISHES) {
+      const on = (d.fi ?? 'gloss') === fi;
+      const b = button(`paint-chip${on ? ' on' : ''}`, str(`hangar.finish_${fi}`));
+      b.dataset.key = `lfinish-${fi}`;
+      b.setAttribute('aria-pressed', String(on));
+      this.h.trial(b, { decal: i, patch: { fi } }, this.view);
+      b.addEventListener('click', () => this.patch({ fi }, `lfinish-${fi}`));
+      finishes.append(b);
+    }
+    box.append(finishes);
+
+    const order = el('div', 'paint-row paint-acts');
+    const chip = (key, text, on, fn, disabled = false) => {
+      const b = button(`paint-chip${on ? ' on' : ''}`, text);
+      b.dataset.key = key;
+      if (on !== null) {
+        b.setAttribute('aria-pressed', String(on));
+      }
+      b.disabled = disabled;
+      b.addEventListener('click', fn);
+      return b;
+    };
+    order.append(
+      chip('layer-hide', str('hangar.decal_hide'), Boolean(d.h), () => this.patch({ h: !d.h }, 'layer-hide')),
+      chip('layer-lock', str('hangar.decal_lock'), locked, () => this.patch({ l: !d.l }, 'layer-lock')),
+      chip('layer-up', str('hangar.decal_raise'), null, () => this.moveLayer(i, 1), i >= this.decals.length - 1),
+      chip('layer-down', str('hangar.decal_lower'), null, () => this.moveLayer(i, -1), i <= 0),
+      chip('layer-dup', str('hangar.decal_duplicate'), null, () => this.duplicateLayer(i), this.decals.length >= MAX_DECALS),
+      chip('layer-group', str(d.g ? 'hangar.decal_ungroup' : 'hangar.decal_group'), Boolean(d.g), () => this.toggleGroup(i), !d.g && i === 0),
+    );
+    box.append(order);
 
     const acts = el('div', 'paint-row paint-acts');
     const mirror = button(`paint-chip${d.m ? ' on' : ''}`, str('hangar.decal_mirror'));
@@ -601,9 +679,11 @@ export class PaintShop {
     mirror.addEventListener('click', () => this.patch({ m: !d.m }, 'mirror'));
     const move = button('paint-chip', str('hangar.decal_move'));
     move.dataset.key = 'move';
+    move.disabled = locked;
     move.addEventListener('click', () => this.startPlacing(d, i));
     const del = button('paint-chip paint-danger', str('hangar.decal_delete'));
     del.dataset.key = 'decal-delete';
+    del.disabled = locked;
     del.addEventListener('click', () => this.removeDecal(i));
     acts.append(mirror, move, del);
     box.append(acts);
@@ -692,6 +772,7 @@ export class PaintShop {
   }
 
   patch(patch, focusKey, sound = 'select') {
+    const was = this.decals[this.sel];
     const d = this.patched(this.sel, patch);
     if (!d) {
       return;
@@ -702,9 +783,64 @@ export class PaintShop {
     if (patch.c2) {
       this.style.c2 = patch.c2;
     }
-    const list = [...this.decals];
-    list[this.sel] = d;
+    const list = this.withGroup(this.decals, this.sel, was, d);
     this.setDecals(list, focusKey, sound);
+  }
+
+  /* The list with layer i changed from `was` to `d`, and the rest of its
+   * group (unlocked) changed the same way. */
+  withGroup(decals, i, was, d) {
+    const list = [...decals];
+    list[i] = d;
+    if (!was.g) {
+      return list;
+    }
+    return list.map((o, k) => {
+      if (k === i || o.g !== was.g || o.l) {
+        return o;
+      }
+      const next = { ...o };
+      for (const key of GROUP_SCALED) {
+        next[key] = o[key] * (d[key] / was[key]);
+      }
+      for (const key of GROUP_ADDED) {
+        next[key] = ((o[key] ?? 0) + (d[key] ?? 0) - (was[key] ?? 0));
+      }
+      next.r = ((next.r + 540) % 360) - 180;
+      next.x = clamp(next.x, DECAL_LIMITS.skew);
+      next.s = clamp(next.s, DECAL_LIMITS.size);
+      next.a = clamp(next.a, DECAL_LIMITS.aspect);
+      for (const key of GROUP_SET) {
+        if (d[key] !== was[key]) {
+          next[key] = d[key];
+        }
+      }
+      return checkDecal(next).decal ?? o;
+    });
+  }
+
+  /* Group a layer with the one under it, or take it out of its group (and
+   * end a group left with one layer). */
+  toggleGroup(i) {
+    const list = [...this.decals];
+    const d = list[i];
+    const ungrouped = (o) => {
+      const out = { ...o };
+      delete out.g;
+      return out;
+    };
+    if (d.g) {
+      list[i] = ungrouped(d);
+      const left = list.filter((o) => o.g === d.g);
+      if (left.length === 1) {
+        list[list.indexOf(left[0])] = ungrouped(left[0]);
+      }
+    } else if (i > 0) {
+      const g = list[i - 1].g ?? 1 + Math.max(0, ...list.map((o) => o.g ?? 0));
+      list[i - 1] = { ...list[i - 1], g };
+      list[i] = { ...d, g };
+    }
+    this.setDecals(list, 'layer-group');
   }
 
   setColour(hex) {
@@ -743,6 +879,31 @@ export class PaintShop {
     const n = (Number(d.t) + by + 1000) % 1000;
     this.setNumber(String(n));
     this.h.focusKey(by > 0 ? 'digits-up' : 'digits-down');
+  }
+
+  /* A layer one place up the stack (drawn later, over the others) for
+   * by = 1, down for -1; the selection goes with it. */
+  moveLayer(i, by) {
+    const j = i + by;
+    const list = [...this.decals];
+    if (j < 0 || j >= list.length) {
+      return;
+    }
+    [list[i], list[j]] = [list[j], list[i]];
+    this.sel = j;
+    this.setDecals(list, by > 0 ? 'layer-up' : 'layer-down', 'move');
+  }
+
+  /* A copy of a layer straight over it, unlocked, and chosen. */
+  duplicateLayer(i) {
+    const list = [...this.decals];
+    if (list.length >= MAX_DECALS || !list[i]) {
+      return;
+    }
+    const { l, ...copy } = list[i];
+    list.splice(i + 1, 0, copy);
+    this.sel = i + 1;
+    this.setDecals(list, 'layer-dup');
   }
 
   removeDecal(i) {
