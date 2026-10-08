@@ -289,6 +289,7 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
     this.view = null;
+    this.stockView = false;
     /* CLICK TO PAINT (docs/redesign/WORKSHOP-PAINT.md): where the pointer
      * is over the stage on the Colours tab's paint page, client pixels, a
      * click waiting on the renderer's answer for it, and the last colour
@@ -356,7 +357,14 @@ export class Hangar {
     /* The name of the region and side under the pointer, beside it. */
     this.hoverLabel = el('div', 'hangar-hover-label');
     this.hoverLabel.hidden = true;
-    this.stage.append(this.flipBtn, this.viewsEl, this.hoverLabel);
+    /* A/B: the kit's own paint on the model while pressed, the pilot's
+     * back when let go; nothing changes in what is kept. */
+    this.stockBtn = button('hangar-flip hangar-stock', str('hangar.ab_stock'));
+    this.stockBtn.dataset.key = 'ab';
+    this.stockBtn.setAttribute('aria-pressed', 'false');
+    this.stockBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    this.stockBtn.addEventListener('click', () => this.setStockView(!this.stockView));
+    this.stage.append(this.flipBtn, this.viewsEl, this.hoverLabel, this.stockBtn);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
@@ -560,6 +568,9 @@ export class Hangar {
     this.undoStack = [];
     this.paintNow = JSON.stringify(this.entry);
     this.undoBtn.disabled = true;
+    this.stockView = false;
+    this.stockBtn.classList.remove('on');
+    this.stockBtn.setAttribute('aria-pressed', 'false');
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -663,7 +674,18 @@ export class Hangar {
   /* The entry on show: the chosen one, with whatever the cursor or the
    * pointer is over tried on it. */
   shownEntry() {
-    return this.shop.shownEntry(this.triedEntry());
+    return this.stockView ? {} : this.shop.shownEntry(this.triedEntry());
+  }
+
+  setStockView(on) {
+    if (on === this.stockView) {
+      return;
+    }
+    this.stockView = on;
+    this.stockBtn.classList.toggle('on', on);
+    this.stockBtn.setAttribute('aria-pressed', String(on));
+    this.preview();
+    this.sound('select');
   }
 
   triedEntry() {
@@ -855,6 +877,8 @@ export class Hangar {
 
   changed(focusKey, sound = 'select') {
     this.recordPaint();
+    /* A change is seen on the model, so the comparison with stock ends. */
+    this.setStockView(false);
     this.hover = null;
     this.paint(0);
     this.preview();
@@ -1601,6 +1625,10 @@ export class Hangar {
   viewKey(code) {
     if (code === 'KeyV') {
       this.toggleFlip();
+      return true;
+    }
+    if (code === 'KeyH' && !this.naming) {
+      this.setStockView(!this.stockView);
       return true;
     }
     if (code === 'KeyZ' && !this.naming) {
