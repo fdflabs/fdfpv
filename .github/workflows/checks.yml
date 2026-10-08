@@ -290,6 +290,10 @@ jobs:
       # The lessons: data that exists, words in en and es, each judge.
       - run: npm run training:selftest
       - run: npm run progress:selftest
+      # Medals on built courses (src/game/medals.js): times, award, merge.
+      - run: npm run medals:selftest
+      # Best laps synced to the account, lower wins (src/share/records.js).
+      - run: npm run records:selftest
       # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
       - run: npm run economy:selftest
       # The condition the player reads and its OSD line.
