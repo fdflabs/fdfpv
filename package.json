@@ -452,6 +452,7 @@
     "progress:selftest": "node scripts/progress-selftest.js",
     "medals:selftest": "node scripts/medals-selftest.js",
     "medals:check": "node scripts/medals-check.js",
+    "records:selftest": "node scripts/records-selftest.js",
     "economy:selftest": "node scripts/economy-selftest.js",
     "shop:check": "node scripts/shop-check.js",
     "training:selftest": "node scripts/training-selftest.js",

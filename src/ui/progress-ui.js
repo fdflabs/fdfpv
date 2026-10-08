@@ -296,6 +296,7 @@ export class Progress {
       campaign: this.ui.settings.campaign,
       seconds: flightTotals(this.ui.settings.flightTime).byAirframe,
       lessons: this.state.lessons,
+      flown: this.state.lessonsFlown,
     });
     if (events.length) {
       this.save();
