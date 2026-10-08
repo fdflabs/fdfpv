@@ -984,11 +984,11 @@ const SKY_FRAGMENT = /* glsl */ `
       vec2 at = (dir.xz * (${CEL_CLOUD_Y.toFixed(1)} / dir.y) + uDrift) / ${CEL_CLOUD_SIZE.toFixed(1)};
       float n = celCloud(at);
       float w = fwidth(n);
-      float body = smoothstep(0.66 - w, 0.66 + w, n);
+      float body = smoothstep(0.72 - w, 0.72 + w, n);
       /* The same noise a step toward the sun: where it is thinner there,
        * this side faces the sun and is lit. */
       float lit = smoothstep(-w, w, n - celCloud(at + normalize(uSun.xz) * 0.2) + 0.035);
-      vec3 cloud = mix(vec3(0.55, 0.60, 0.70), vec3(0.80, 0.79, 0.76), lit);
+      vec3 cloud = mix(vec3(0.46, 0.52, 0.63), vec3(0.66, 0.66, 0.64), lit);
       float far = smoothstep(0.02, 0.22, dir.y);
       sky = mix(sky, mix(uHorizon, cloud, far), body * far);
     }
