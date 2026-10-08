@@ -89,6 +89,17 @@ export const DECAL_KINDS = {
   flag_py: { aspect: 1.8, size: 0.06 },
   text: { aspect: 3, text: true, size: 0.05 },
   ribbon: { aspect: 2.6, size: 0.05 },
+  /* The layer editor's shape library (docs/redesign/LIVERY-LAYERS.md):
+   * plain shapes a livery is built up from, `free` so the level ladder
+   * the kinds above keep is not stretched by them. */
+  circle: { aspect: 1, size: 0.08, free: true },
+  ring: { aspect: 1, size: 0.08, free: true },
+  triangle: { aspect: 1.15, size: 0.08, free: true },
+  diamond: { aspect: 0.7, size: 0.08, free: true },
+  block: { aspect: 2, size: 0.05, free: true },
+  arrow: { aspect: 2.2, size: 0.06, free: true },
+  hexagon: { aspect: 1.15, size: 0.08, free: true },
+  swoosh: { aspect: 4, size: 0.06, free: true },
 };
 export const DECAL_KIND_IDS = Object.keys(DECAL_KINDS);
 
