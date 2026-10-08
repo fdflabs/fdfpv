@@ -3822,4 +3822,5 @@ export default {
   "walk.lineup_room": "Lineup",
   "walk.lineup_room_note": "Every pilot's aircraft side by side, in their own paint.",
   "walk.lineup_you": "You",
+  "replay.back_to_hangar": "Back to the hangar",
 };
