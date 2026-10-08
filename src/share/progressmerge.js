@@ -114,7 +114,7 @@ export const SYNCED_SECTIONS = {
   records: 'best',
 };
 
-const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts'];
+const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts', 'lessonsFlown'];
 
 function isRecord(o) {
   return Boolean(o) && typeof o === 'object' && !Array.isArray(o);
