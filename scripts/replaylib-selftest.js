@@ -71,11 +71,13 @@ const PINNED = {
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': '39baf1fb639f06ae323895d5f5637006ae9b4983e805adc7aa684efadfc03a89',
+  /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': '280e23059aa4f12674c7c816e7c3c80ecfe02c5ecb3beee524eb5aee58f9eaf2',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
-  'trace.p51.72.25': '4996cd1d34b4c9cee45f84eed7fb1df61cced965ad84fc802cb3348d5f3141aa',
+  /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
+  'trace.p51.72.25': '654b2ad38b64ad666719d65168a646ebf1c27a604f165d174a58af4b53fc8fef',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
   'sched.synth.60.10.one': 'c7b0d1d856cfdc00c800f8192e144d73df5243b9610b43180cd93b45c97433ce',

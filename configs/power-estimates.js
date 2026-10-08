@@ -160,7 +160,7 @@ export const ESTIMATES = {
       },
       '3s2200': {
         topSpeed: 21.22,
-        minutes: 105
+        minutes: 105.1
       }
     }
   },
