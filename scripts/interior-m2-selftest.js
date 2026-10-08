@@ -266,7 +266,7 @@ function fly(follow, { seen = false } = {}) {
   check(`${follow}: the handoff: "Which one?" to "only to see"`, heard(e, 'int2-s2-see'));
   const who = follow === 'a' ? 'watcher' : 'second';
   shadow(e, c, who, 150, 150);
-  r.choose = snap(e, c, `follow-${follow}`);
+  r.choose = snap(e, c, `follow_${follow}`);
   check(`${follow}: Contact ${follow.toUpperCase()} boxed: the choice`, view(e).choices?.follow === follow, `${r.choose} ${JSON.stringify(view(e).choices)}`);
   shadow(e, c, who, 150, 150);
   if (follow === 'a') {
@@ -306,7 +306,7 @@ function fly(follow, { seen = false } = {}) {
   c.th = 0.02;
   until(e, () => contact(e, 'nuevo-1')?.cls, 120000, 'Claro Nuevo seen');
   r.nuevo = {};
-  for (const id of ['nuevo-people', 'nuevo-vehicles', 'nuevo-comms', 'nuevo-overview']) {
+  for (const id of ['nuevo_people', 'nuevo_vehicles', 'nuevo_comms', 'nuevo_overview']) {
     /* A person under the crowns is taken again when the frame is
      * blocked, as a pilot would wait for a gap. */
     for (let k = 0; k < 6 && r.nuevo[id] !== 'clean'; k += 1) {

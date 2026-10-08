@@ -86,7 +86,7 @@ export default {
   z0: 0,
   sensor: { palette: 'arctic' },
   debrief: {
-    required: ['fire', 'cable', 'impressions', 'tracks', 'diagram', 'stash', 'radio', 'notes', 'nuevo-people', 'nuevo-vehicles', 'nuevo-comms', 'nuevo-overview'],
+    required: ['fire', 'cable', 'impressions', 'tracks', 'diagram', 'stash', 'radio', 'notes', 'nuevo_people', 'nuevo_vehicles', 'nuevo_comms', 'nuevo_overview'],
   },
   classes: CLASSES,
   roles: [
@@ -150,10 +150,10 @@ export default {
     },
     /* The box on a contact at the handoff is the choice (stage 2). */
     {
-      id: 'follow-a', set: 'choice', contact: 'watcher', size: 1.8,
+      id: 'follow_a', set: 'choice', contact: 'watcher', size: 1.8,
     },
     {
-      id: 'follow-b', set: 'choice', contact: 'second', size: 1.7,
+      id: 'follow_b', set: 'choice', contact: 'second', size: 1.7,
     },
     /* Estancia La Ceniza, inside the house (stage 3, RECON). */
     {
@@ -167,16 +167,16 @@ export default {
     },
     /* Claro Nuevo (stage 4). */
     {
-      id: 'nuevo-people', set: 'nuevo', contact: 'nuevo', size: 1.7,
+      id: 'nuevo_people', set: 'nuevo', contact: 'nuevo', size: 1.7,
     },
     {
-      id: 'nuevo-vehicles', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [5, 17][k]), 0.6], size: 4,
+      id: 'nuevo_vehicles', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [5, 17][k]), 0.6], size: 4,
     },
     {
-      id: 'nuevo-comms', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [-4, 31][k]), 3], size: 3,
+      id: 'nuevo_comms', set: 'nuevo', at: [...GA('claroNuevo').map((v, k) => v + [-4, 31][k]), 3], size: 3,
     },
     {
-      id: 'nuevo-overview', set: 'nuevo', at: [...GA('claroNuevo'), 0], size: 60,
+      id: 'nuevo_overview', set: 'nuevo', at: [...GA('claroNuevo'), 0], size: 60,
     },
     {
       id: 'comparison', set: 'nuevo-optional', contact: 'old-courier', size: 1.7,
@@ -223,7 +223,7 @@ export default {
   stars: [
     { id: 'watchers', card: 'watchers', when: { flag: 'M2_ALL_WATCHERS_FOUND' } },
     { id: 'unseen', card: null, when: { flag: 'M2_SECOND_CAMP_UNDETECTED' } },
-    { id: 'both', card: 'comparison', when: { captured: ['comparison', 'nuevo-vehicles', 'nuevo-comms'] } },
+    { id: 'both', card: 'comparison', when: { captured: ['comparison', 'nuevo_vehicles', 'nuevo_comms'] } },
   ],
   stages: [
     {
@@ -320,10 +320,10 @@ export default {
         },
         { when: { chosen: 'split', is: 'done' }, at: 3, radio: 'int2-tr-other', heard: { role: ['tracker'] } },
         {
-          when: { all: [{ chosen: 'split', is: 'done' }, { captured: 'follow-a' }] }, unless: { chosen: 'follow', is: 'b' }, choose: { name: 'follow', value: 'a' },
+          when: { all: [{ chosen: 'split', is: 'done' }, { captured: 'follow_a' }] }, unless: { chosen: 'follow', is: 'b' }, choose: { name: 'follow', value: 'a' },
         },
         {
-          when: { all: [{ chosen: 'split', is: 'done' }, { captured: 'follow-b' }] }, unless: { chosen: 'follow', is: 'a' }, choose: { name: 'follow', value: 'b' },
+          when: { all: [{ chosen: 'split', is: 'done' }, { captured: 'follow_b' }] }, unless: { chosen: 'follow', is: 'a' }, choose: { name: 'follow', value: 'b' },
         },
         /* Choosing "wrong" is no fail: a courier leaves A's post 3 to 5
          * minutes later for the same property. */
