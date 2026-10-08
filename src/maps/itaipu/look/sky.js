@@ -489,10 +489,22 @@ const SKY_GLSL = /* glsl */ `
           continue;
         }
         float h = clamp(cloudH(q), 0.0, 1.0);
-        float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3);
-        float sunT = exp(-${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens)) * mix(0.45, 1.0, h);
-        vec3 lq = uSunCol * (sunT * (${CLOUD_LIT.toFixed(3)} + 0.5 * hg * (1.0 - dens)))
-          + sky * mix(0.55, 1.0, h);
+        /* Two taps toward the sun, the second three times as far: one
+         * tap saw only a cell's skin, so a base under 800 m of cloud was
+         * lit nearly as its top. Beer's law over both, with a slower
+         * second order so the shade is grey, not black (the powder
+         * term then darkens the creases a thin skin of cloud leaves
+         * facing away from the sun). */
+        float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3)
+          + 1.5 * cloudDensity(q + uSun * ${(CLOUD_PROBE * 3).toFixed(1)}, 2);
+        float od = ${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens);
+        float sunT = (exp(-od) + 0.3 * exp(-0.25 * od)) / 1.3;
+        float powder = 1.0 - 0.6 * exp(-4.0 * dens) * (0.5 - 0.5 * mu);
+        /* The silver lining: toward the sun a thin edge scatters forward
+         * far more than it reflects, a narrow lobe on the thin parts. */
+        float silver = 2.2 * hg * (1.0 - dens) * exp(-0.5 * od);
+        vec3 lq = uSunCol * (sunT * ${CLOUD_LIT.toFixed(3)} * powder * mix(0.35, 1.0, h) + silver)
+          + sky * mix(0.32, 1.0, h * h);
         if (uCityOn > 0.0) {
           lq += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(q.xz) * (1.0 - h));
         }
