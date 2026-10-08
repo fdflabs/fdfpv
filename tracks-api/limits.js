@@ -88,3 +88,15 @@ export const BUILD_MAX_CHARS = 8 * 1024;
 /* Loadouts, settings.combat, one per combat aircraft (configs/combat.js):
  * there are four today, and 64 is that with room for many more. */
 export const COMBAT_MAX_ENTRIES = 64;
+/*
+ * THE LIVERY GALLERY (gallery.js, docs/LIVERY-GALLERY.md). Twenty entries
+ * an account: more than a pilot paints for every aircraft they fly, and
+ * at the code's 6000 character cap 120 kB a head. Forty writes per address
+ * per window: liking through a page of 24 and publishing a few, twice. Three
+ * reports from different accounts hide an entry until the admin looks, so
+ * one account alone cannot hide anybody's work.
+ */
+export const GALLERY_PER_ACCOUNT = 20;
+export const GALLERY_WRITE_LIMIT = 40;
+export const GALLERY_PAGE = 24;
+export const GALLERY_REPORT_HIDE = 3;
