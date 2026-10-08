@@ -48,8 +48,16 @@ const WARBIRD = [
 /* The F-16's canopy is already gold tinted and a paint region of its own,
  * so a tint slot would only repeat the Paint page. */
 const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
-const GLIDER = [slot('nose', 'pointed'), slot('wingtips', 'winglet'), slot('canopy', 'smoke')];
-const WING = [slot('winglets', 'tall', 'split'), slot('nose', 'bubble')];
+/* The Radian's canopy is a paint region, so no tint slot; the NRJ is a
+ * throw glider with no canopy and no tips a winglet belongs on. */
+const RADIAN = [slot('nose', 'pointed'), slot('wingtips', 'winglet')];
+const NRJ = [slot('nose', 'pointed')];
+/* The Zagi's winglets already set its height and its aftmost point, so a
+ * taller one would grow the box the referee meets: raked and split keep
+ * the stock outline's corners instead. */
+const ZAGI = [slot('winglets', 'raked', 'split'), slot('nose', 'bubble')];
+/* The Bramor's nose is its gimbal ball, the box's front, so no bubble. */
+const BRAMOR = [slot('winglets', 'raked', 'split')];
 const QUAD = [
   slot('arms', 'cutout', 'blade', 'tapered'),
   slot('top', 'vented', 'armoured'),
@@ -67,15 +75,16 @@ export const KITS = {
   uglystik1567: TRAINER, timber1500: TRAINER,
   p51d1450: WARBIRD, tigermoth1803: WARBIRD, bombshell1118: WARBIRD,
   f16878: JET,
-  radian2000: GLIDER, nrj1490: GLIDER,
-  zagi1219: WING, bramor2300: WING,
+  radian2000: RADIAN, nrj1490: NRJ,
+  zagi1219: ZAGI, bramor2300: BRAMOR,
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,
 };
 
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
-export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878']);
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
+  'radian2000', 'nrj1490', 'zagi1219', 'bramor2300']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
