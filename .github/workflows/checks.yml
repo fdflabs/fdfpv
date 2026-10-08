@@ -301,6 +301,8 @@ jobs:
       # Every tractor's slipstream terms against their geometry
       # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
       - run: npm run wash:derive -- --check
+      # The host's vertical air at the craft (sim_set_air_vertical).
+      - run: npm run air:vertical
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

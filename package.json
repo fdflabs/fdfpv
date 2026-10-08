@@ -310,6 +310,7 @@
     "stall:derive": "node scripts/stall-derive.js",
     "stall:probe": "node scripts/stall-probe.js",
     "wash:derive": "node scripts/wash-derive.js",
+    "air:vertical": "node scripts/air-vertical-selftest.js",
     "extra:gates": "node scripts/extra-gates.js",
     "extra:stab": "node scripts/extra-stab-selftest.js",
     "extra:record": "node scripts/wing-record.js extra",
