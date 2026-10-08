@@ -9,7 +9,9 @@
  *    stream is the one from before weather existed.
  * 2. window.__weather('gusty', 42) and a fresh run: the shell sets the wind
  *    before steps, the plant reports wind (sim_wind), the page logs nothing.
- * 3. Calm again and a fresh run: exactly one still call, and still air.
+ * 3. Gusty again: the new run's first call is still air, so the launch
+ *    stand never steps in the last run's wind.
+ * 4. Calm again and a fresh run: exactly one still call, and still air.
  * Exit 0 on a pass, 1 otherwise.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -101,12 +103,17 @@ try {
   check('gusty: the wind is set before the steps', windy > 100, `${windy} calls`);
   check('and the plant flies in it', speed > 1, `sim_wind ${speed.toFixed(2)} m/s`);
 
+  await page.evaluate(fly);
+  const first = JSON.parse(await page.evaluate(`JSON.stringify(window.__windTest.calls[${windy}])`));
+  check('a windy run after a windy one starts in still air, for the stand', first.every((v) => v === 0), `${first}`);
+  const windy2 = await calls();
+
   await page.evaluate("window.__weather('calm', 0)");
   await page.evaluate(fly);
   const after = await calls();
   const last = JSON.parse(await page.evaluate('JSON.stringify(window.__windTest.calls.at(-1))'));
   const w2 = JSON.parse(await page.evaluate('JSON.stringify(window.__windTest.wind())'));
-  check('calm after wind: one still call, then none', after === windy + 1 && last.every((v) => v === 0), `${after - windy} calls, last ${last}`);
+  check('calm after wind: one still call, then none', after === windy2 + 1 && last.every((v) => v === 0), `${after - windy2} calls, last ${last}`);
   check('and still air', w2[0] === 0 && w2[1] === 0, `${w2}`);
   /* The local server has no rooms or accounts behind it: their refused
    * connections are the harness's, not the weather's. */

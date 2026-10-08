@@ -52,7 +52,8 @@ The flightmodel lane owns src/native/plant_wing.c. The only existing input is
   to the ABI's limits (speed 30, gust 0 to 10), `sim_set_wind`. Once per sim
   step, keyed on the plant's own clock (state[0]), never per animation frame.
 - Calm makes no call, except ONE `sim_set_wind(0, 0, 0)` when a run starts
-  after a windy run: the wind is a world property kept across `sim_reset`, so
+  after a windy run (any run after a windy one makes that call, so the
+  launch stand never steps in the last run's wind): the wind is a world property kept across `sim_reset`, so
   "never call it" would leave a windy run's air in the next calm one, and
   "always call it" would change every calm flight's call stream (recorded
   flights, contact:golden start from restartPlant's order).
@@ -63,7 +64,9 @@ The flightmodel lane owns src/native/plant_wing.c. The only existing input is
   model mid flight.
 - Replays: the journal (src/replay/journal.js) records every call into the
   module with its doubles, so the per step `sim_set_wind` replays itself.
-  Recorded flights from before this are calm and unchanged.
+  Recorded flights from before this are calm and unchanged. A TAKE OVER
+  restores the plant's whole region, the wind with it, so it counts as wind
+  having been set: the next run clears it.
 
 ## Data shapes
 
