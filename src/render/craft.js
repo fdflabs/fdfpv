@@ -36,6 +36,7 @@ import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
 import { buildUglystikCraft } from './uglystikcraft.js';
 import { buildTigermothCraft } from './tigermothcraft.js';
+import { buildExtraCraft } from './extracraft.js';
 import { buildDlgCraft } from './dlgcraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
@@ -48,6 +49,7 @@ import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '..
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { dressParts } from './partsfit.js';
+import { addNavLights } from './navlights.js';
 
 /* A builder on floats: the same airframe with the float set for gear. */
 const onFloats = (build) => (opts) => build({ ...opts, floats: true });
@@ -106,6 +108,7 @@ const BUILDERS = {
   kadet1981: buildKadetCraft,
   uglystik1567: buildUglystikCraft,
   tigermoth1803: buildTigermothCraft,
+  extra3d1308: buildExtraCraft,
   nrj1490: buildDlgCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,
@@ -167,11 +170,12 @@ export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
   const look = liveryFor(lastBuiltId);
   const built = craftBuilderFor(lastBuiltId)({
     kit: (look && look.kit) ?? undefined,
+    lights: (look && look.lights) ?? undefined,
     name: 'craft',
     fog: true,
     worldScale: true,
     measure: true,
     combat: combat ?? combatFor(lastBuiltId) ?? undefined,
   });
-  return dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId);
+  return addNavLights(dressParts(dressLivery(built, lastBuiltId, look), lastBuiltId), look && look.lights);
 }
