@@ -249,9 +249,9 @@ try {
   await page.until(`${INTERIOR_PAGE} !== null`, 10000).catch(() => {});
   const interior = await page.evaluate(INTERIOR_PAGE);
   const iUnasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.interiorConsent === true })");
-  check('The Interior: its page lists interior-1 to interior-5, Mission 1 held until release, 2 to 5 Under development, none playable, no consent, no room',
+  check('The Interior: its page lists interior-1 to interior-5, Missions 1 and 2 held until release, 3 to 5 Under development, none playable, no consent, no room',
     interior && interior.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5'
-    && interior[0].play === 'Held until release' && interior.slice(1).every((m) => m.play === 'Under development') && interior.every((m) => !m.on)
+    && interior.slice(0, 2).every((m) => m.play === 'Held until release') && interior.slice(2).every((m) => m.play === 'Under development') && interior.every((m) => !m.on)
     && iUnasked.phase === 'idle' && !iUnasked.consent, JSON.stringify({ interior, iUnasked }));
   await shot(page, 'interior');
   await page.tap('Escape');

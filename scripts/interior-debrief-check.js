@@ -91,7 +91,7 @@ console.log('the rules');
   const of = (id) => frames.find((f) => f.id === id).kind;
   check('frames: my still mine, a squadmate\'s the record, a required gap the reconstruction, an optional gap missing', of('symbol') === 'mine' && of('bridge') === 'squad' && of('shelters') === 'rec' && of('burned') === 'missing');
   const states = INTERIOR.map((m) => missionState(m, false));
-  check('the card: Mission 1 held, 2 to 5 Under development', states.join() === 'held,development,development,development,development', states.join());
+  check('the card: Missions 1 and 2 held, 3 to 5 Under development', states.join() === 'held,held,development,development,development', states.join());
   check('a developer\'s page plays Mission 1', missionState(INTERIOR[0], true) === 'available');
 }
 
@@ -168,7 +168,7 @@ try {
   await page.until(`${CARD} !== null`, 10000).catch(() => {});
   const card = await page.evaluate(CARD);
   check('the campaign page lists its five missions, no consent asked yet', card && card.missions.length === 5 && !(await page.evaluate('window.__ui.settings.interiorConsent === true')), JSON.stringify(card));
-  check('a developer\'s page: Mission 1 playable, 2 to 5 Under development and not', card && card.missions[0].on && card.missions.slice(1).every((m) => !m.on && m.play === 'Under development'),
+  check('a developer\'s page: Missions 1 and 2 playable, 3 to 5 Under development and not', card && card.missions.slice(0, 2).every((m) => m.on) && card.missions.slice(2).every((m) => !m.on && m.play === 'Under development'),
     JSON.stringify(card && card.missions.map((m) => m.play)));
   const PLAY1 = "(document.querySelector('[data-mission=\"interior-1\"] .campaign-play').click(), true)";
   await page.evaluate(PLAY1);
@@ -219,7 +219,7 @@ try {
   check('a squadmate\'s capture is the room\'s record, credited, with no picture', k1.bridge && k1.bridge.kind === 'squad' && /CAPTURED BY/.test(d1.text) && !k1.bridge.image);
   check('a required item nobody captured: the analyst reconstruction, marked', k1.shelters && k1.shelters.kind === 'rec' && /Not a capture/.test(d1.text));
   check('an optional item nobody captured: not captured', k1.burned && k1.burned.kind === 'missing');
-  check('the star earned, and the next mission\'s state', /★ {2}HISTORICAL SYMBOL/.test(d1.text) && /Eyes in the Forest · Under development/.test(d1.text), d1.text.slice(0, 200));
+  check('the star earned, and the next mission\'s state', /★ {2}HISTORICAL SYMBOL/.test(d1.text) && /Eyes in the Forest · Available/.test(d1.text), d1.text.slice(0, 200));
   check('no play again on a win', !d1.buttons.includes('again') && d1.buttons.includes('continue'));
   const prog = await page.evaluate("(window.__ui.settings.campaign && window.__ui.settings.campaign.missions['interior-1']) || null");
   const flags = await page.evaluate('(window.__ui.settings.campaign && window.__ui.settings.campaign.flags) || null');
