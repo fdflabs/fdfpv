@@ -750,6 +750,15 @@ export function layerOutline(d) {
   return { centre: at(0, 0), corners: [at(-1, 1), at(1, 1), at(1, -1), at(-1, -1)], top: at(0, 1), right: at(1, 0) };
 }
 
+/* Stop a dressDecalsLater still running for a craft: a peer that left
+ * the room takes no more of the frame. */
+export function cancelDecals(craft) {
+  const s = craft.group.userData.decalLayer;
+  if (s) {
+    s.spreadRun = (s.spreadRun ?? 0) + 1;
+  }
+}
+
 /* The meshes a pick can land on, for the hangar's placing: the same the
  * decals are printed on. */
 export function paintTargets(craft) {
