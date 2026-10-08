@@ -3801,4 +3801,7 @@ export default {
   "walk.visits_off": "Cerrado a visitas",
   "walk.visits_opened": "Tu hangar está abierto a visitas",
   "walk.visits_closed": "Tu hangar está cerrado a visitas",
+  "walk.lineup_room": "Formación",
+  "walk.lineup_room_note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+  "walk.lineup_you": "Tú",
 };

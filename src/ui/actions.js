@@ -263,6 +263,7 @@ const ACTIONS = {
   'walk-turntable'(ui) { ui.takeTurntable(); },
   'walk-visit'(ui) { ui.visitHangar(); },
   'walk-visits'(ui) { ui.toggleVisits(); },
+  'room-lineup'(ui) { ui.openRoomLineup(); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
   /* The trophy wall: the hangar on its Challenges tab, which lists the
@@ -516,6 +517,10 @@ const needsAccount = (action) => typeof action === 'string' && !OPEN_ACTIONS.has
 const BACK_FROM = {
   /* A walkable hangar backs out to the cards of the hub it came from. */
   walk(ui) {
+    if (ui.walk && ui.walk.roomLineup) {
+      ui.show('friends');
+      return true;
+    }
     /* From a visit, Back is home. */
     if (ui.walk && ui.walk.visit) {
       ui.openWalk('main');

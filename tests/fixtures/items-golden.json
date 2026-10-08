@@ -1399,6 +1399,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Back",
      "action": "back",
@@ -1441,6 +1449,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Back",
      "action": "back",
@@ -1472,6 +1488,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -1649,6 +1673,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:aircraft",
      "label": "Aircraft",
      "value": "Seven inch",
@@ -1815,6 +1847,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Back",
      "action": "back",
@@ -1963,6 +2003,14 @@
      }
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-friends-leave",
      "label": "Leave the room",
      "note": "Back to flying alone.",
@@ -1991,6 +2039,14 @@
      "value": "OWLS",
      "note": "The code.",
      "action": "friends-room",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Lineup",
+     "note": "Every pilot's aircraft side by side, in their own paint.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -24850,6 +24906,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Volver",
      "action": "back",
@@ -24892,6 +24956,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Volver",
      "action": "back",
@@ -24923,6 +24995,14 @@
      "label": "Leave the room",
      "note": "Back to flying alone.",
      "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
@@ -25100,6 +25180,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:aeronave",
      "label": "Aeronave",
      "value": "Seven inch",
@@ -25266,6 +25354,14 @@
      "drives": {}
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-back",
      "label": "Volver",
      "action": "back",
@@ -25414,6 +25510,14 @@
      }
     },
     {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
+     "drives": {}
+    },
+    {
      "id": "friends:a-friends-leave",
      "label": "Leave the room",
      "note": "Back to flying alone.",
@@ -25442,6 +25546,14 @@
      "value": "OWLS",
      "note": "The code.",
      "action": "friends-room",
+     "drives": {}
+    },
+    {
+     "id": "friends:a-room-lineup",
+     "label": "Formación",
+     "note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
+     "action": "room-lineup",
+     "rowClass": "row-lineup",
      "drives": {}
     },
     {
