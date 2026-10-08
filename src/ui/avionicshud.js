@@ -666,9 +666,12 @@ export class AvionicsHud {
     this.fCpu.set(str('avionics.hud.cpu_load', { pct: Math.round(tel.compute.load * 100) }));
     this.fTemp.set(str('avionics.hud.degc', { n: Math.round(tel.compute.tempC) }));
     const A = tel.airframe;
-    const aCls = { operational: 'avx-ok', impaired: 'avx-warn', destroyed: 'avx-bad' }[A.condition];
-    this.fDmg.set(str(`avionics.hud.cond_${A.condition}`), aCls);
-    this.fDmgPart.set(A.condition === 'impaired' && A.part ? str(`osd.part_${A.part}`) : '', aCls);
+    /* Whole but worn (career and war): the worn band's word and the part. */
+    const state = A.condition === 'operational' && A.worn ? A.worn.band : A.condition;
+    const aCls = { operational: 'avx-ok', worn: 'avx-warn', repair: 'avx-warn', impaired: 'avx-warn', destroyed: 'avx-bad' }[state];
+    const part = state === 'impaired' ? A.part : state === 'worn' || state === 'repair' ? A.worn.part : null;
+    this.fDmg.set(str(`avionics.hud.cond_${state}`), aCls);
+    this.fDmgPart.set(part ? str(`osd.part_${part}`) : '', aCls);
 
     const B = tel.battery;
     this.fBatt.set(str('avionics.hud.batt_line', {

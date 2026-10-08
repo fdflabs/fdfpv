@@ -1528,6 +1528,8 @@ export class FpvOsd {
       blink = true;
     } else if (x.condition === 'impaired' && x.damagedPart) {
       warning = str('osd.damaged', { part: str(`osd.part_${x.damagedPart}`) });
+    } else if (!x.armed && !x.flown && x.worn) {
+      warning = str(x.worn.band === 'repair' ? 'osd.repair' : 'osd.worn', { part: str(`osd.part_${x.worn.part}`) });
     } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
       warning = str('osd.batt_not_full');
     }
