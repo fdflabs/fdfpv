@@ -452,6 +452,12 @@ const CROWN_FRAG_COLOUR = /* glsl */ `
     float crC = crCG.x;
     float crL = crN(vCrW * 2.1 + 7.0);
     crShade *= mix(1.0, 0.6 + 0.8 * crC, crK1) * mix(1.0, 0.78 + 0.44 * crL, crK2);
+    /* A crown's few big lobes, a third of it across, lit and shaded on
+     * their own: past the clumps' reach every crown was one smooth
+     * ellipsoid, and from the orbits the canopy read as a tray of balls.
+     * Light only; the outline canopyBlocks tests is crHit's. */
+    vec4 crLb = crNG((vCrW - vCrC) / vec3(vCrR.x, vCrR.y, vCrR.x) * 1.7 + vCrC * 0.37);
+    crShade *= 0.7 + 0.6 * crLb.x;
   #endif
   diffuseColor.rgb *= crShade;
   /* The top's lift: warm on the near balls, where the golden hour's
@@ -473,7 +479,7 @@ const CROWN_FRAG_COLOUR = /* glsl */ `
 const CROWN_FRAG_NORMAL = /* glsl */ `
   #if CROWN_MODE < 2
     {
-      vec3 crG = crCG.yzw * (0.62 * 0.9 * crK1);
+      vec3 crG = crCG.yzw * (0.62 * 0.9 * crK1) + crLb.yzw * (1.7 * 0.3 / vCrR.x);
       vec3 crNb = normalize(crNW - (crG - dot(crG, crNW) * crNW));
       normal = normalize((viewMatrix * vec4(crNb, 0.0)).xyz);
     }

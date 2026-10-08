@@ -410,6 +410,67 @@ const DRAW = {
   },
 };
 
+/* The shape library's kinds: a filled outline in `c`, edged in `c2`. */
+function edged(g, d, path) {
+  g.lineJoin = 'miter';
+  path();
+  g.lineWidth = 0.06;
+  g.strokeStyle = d.c2;
+  g.stroke();
+  g.fillStyle = d.c;
+  g.fill();
+}
+
+function ellipse(g, cx, cy, rx, ry) {
+  g.beginPath();
+  g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+}
+
+Object.assign(DRAW, {
+  circle(g, d, w) {
+    edged(g, d, () => ellipse(g, w / 2, 0.5, w * 0.46, 0.46));
+  },
+  ring(g, d, w) {
+    ellipse(g, w / 2, 0.5, w * 0.42, 0.42);
+    g.lineWidth = 0.16;
+    g.strokeStyle = d.c2;
+    g.stroke();
+    g.lineWidth = 0.1;
+    g.strokeStyle = d.c;
+    g.stroke();
+  },
+  triangle(g, d, w) {
+    edged(g, d, () => fillPath(g, [[w / 2, 0.05], [w * 0.96, 0.95], [w * 0.04, 0.95]]));
+  },
+  diamond(g, d, w) {
+    edged(g, d, () => fillPath(g, [[w / 2, 0.04], [w * 0.96, 0.5], [w / 2, 0.96], [w * 0.04, 0.5]]));
+  },
+  block(g, d, w) {
+    edged(g, d, () => fillPath(g, [[0.04, 0.06], [w - 0.04, 0.06], [w - 0.04, 0.94], [0.04, 0.94]]));
+  },
+  arrow(g, d, w) {
+    const head = Math.min(w * 0.45, 0.9);
+    edged(g, d, () => fillPath(g, [[0.04, 0.32], [w - head, 0.32], [w - head, 0.06], [w - 0.04, 0.5], [w - head, 0.94], [w - head, 0.68], [0.04, 0.68]]));
+  },
+  hexagon(g, d, w) {
+    const pts = [];
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i * Math.PI) / 3;
+      pts.push([w / 2 + Math.cos(a) * w * 0.47, 0.5 + Math.sin(a) * 0.46]);
+    }
+    edged(g, d, () => fillPath(g, pts));
+  },
+  swoosh(g, d, w) {
+    edged(g, d, () => {
+      g.beginPath();
+      g.moveTo(0.04, 0.9);
+      g.quadraticCurveTo(w * 0.5, 0.05, w - 0.04, 0.12);
+      g.quadraticCurveTo(w * 0.45, 0.8, 0.04, 0.9);
+      g.closePath();
+    });
+  },
+});
+
 /*
  * Draw decal `d` (its kind, colours, number and lettering) into a box
  * `w` wide and 1 high, y down, in the context's current transform. A

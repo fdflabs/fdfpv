@@ -88,3 +88,7 @@ export const BUILD_MAX_CHARS = 8 * 1024;
 /* Loadouts, settings.combat, one per combat aircraft (configs/combat.js):
  * there are four today, and 64 is that with room for many more. */
 export const COMBAT_MAX_ENTRIES = 64;
+
+/* Career and war packs (configs/wear.js): two starters a spec an
+ * airframe flies, a few dozen, with room for bought ones. */
+export const PACKS_MAX = 256;
