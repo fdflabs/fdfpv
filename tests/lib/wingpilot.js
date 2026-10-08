@@ -324,7 +324,9 @@ export function propTorque(sim) {
   must(sim.input(0, 0, 0, 0, 1), 'sim_input');
   must(sim.step(1), 'sim_step');
   const d = wingDebug(sim);
-  return { rollMoment: d[12], thrust: d[8], aeroRoll: d[5] };
+  /* The motor's roll alone: the slipstream's (sim_wing_slip,
+   * docs/FLIGHTMODEL.md) is taken out. */
+  return { rollMoment: d[12] - wingSlip(sim)[0], thrust: d[8], aeroRoll: d[5] };
 }
 
 /*
@@ -589,9 +591,18 @@ export function recordScriptedFlight(sim, { prelude = wingPrelude, rudder = fals
  * to bring the tail up to 2 deg of pitch, and at the rotation speed back to
  * 8 deg, which it holds into the climb. The phase is the airspeed's, not
  * the wheels', so a hop as the tail comes up does not rotate early. The
- * rudder stays centred, so any swing is the aircraft's own. Returns the
- * sticks for this step from the state.
+ * runway's heading is held on the rudder, the P-51's feet (p51TakeoffSticks
+ * below): the prop's swirl on the fin swings a tractor left as the power
+ * comes on (docs/FLIGHTMODEL.md), and a pilot holds it with right rudder.
+ * Returns the sticks for this step from the state.
  */
+/* A pilot's feet on the take off roll: the runway's heading held on the
+ * rudder, full rudder by 10 deg off it. The swirl on the fin swings a
+ * tractor faster than the gains of before the slipstream caught. */
+export function rudderHold(s) {
+  return Math.max(-1, Math.min(1, 6.0 * runwayHeading(s) + 0.6 * s[13]));
+}
+
 export function takeoffSticks(s, { vRotate = 8.9 } = {}) {
   const { pitch, bank } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
@@ -599,7 +610,7 @@ export function takeoffSticks(s, { vRotate = 8.9 } = {}) {
   const pitchT = (v < vRotate ? 2 : 8) * Math.PI / 180;
   const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
   const pitchStick = Math.max(-1, Math.min(1, 4 * (pitchT - pitch) - 0.5 * qAero));
-  return [roll, pitchStick, 0, 1];
+  return [roll, pitchStick, rudderHold(s), 1];
 }
 
 /*
@@ -993,7 +1004,8 @@ export function p51GroundPrelude(sim, { mu = 1.4, e = 0, flaps = 0 } = {}) {
 }
 
 /* The heading of a state, about world z, left positive. */
-const p51Heading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+/* The nose's heading off the runway's, world +x, radians, left positive. */
+export const runwayHeading = (s) => Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
 
 /*
  * A warbird's take off: the throttle opened over a second and a half, the
@@ -1011,7 +1023,7 @@ export function p51TakeoffSticks(s, ms) {
   const pt = (v < 11 ? 4 : 8) * Math.PI / 180;
   const ps = Math.max(-1, Math.min(1, 3 * (pt - pitch) + 0.3 * s[12]));
   const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
-  const yaw = Math.max(-1, Math.min(1, 2.0 * p51Heading(s) + 0.4 * s[13] + 1.3 * s[12]));
+  const yaw = Math.max(-1, Math.min(1, 6.0 * runwayHeading(s) + 0.6 * s[13] + 1.3 * s[12]));
   return [roll, ps, yaw, Math.min(1, ms / 1500)];
 }
 
@@ -1342,17 +1354,25 @@ export function floatState(sim) {
  * elevator holds; the wings held level on the ailerons, the rudder
  * centred. `onStep` is the pilot's own judgement, the floats carrying
  * under a quarter of the weight on their buoyancy, which the caller
- * passes in; once on the step the pilot does not go back.
+ * passes in; once on the step the pilot does not go back. With
+ * `rotateDeg` the rotation is to that attitude and no further, and the
+ * heading is held on the rudder: under power the wash over the tail
+ * (docs/FLIGHTMODEL.md) makes full up elevator pitch the floats onto their
+ * heels, which holds them in the water, and its swirl swings the nose.
  */
-export function floatTakeoffSticks(s, { onStep, vRotate, stepDeg = 4 }) {
+export function floatTakeoffSticks(s, { onStep, vRotate, stepDeg = 4, rotateDeg = null }) {
   const { pitch, bank } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
   const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.12 * s[11]));
+  if (rotateDeg !== null && onStep && v >= vRotate) {
+    const ps = Math.max(-1, Math.min(1, 10 * (rotateDeg * Math.PI / 180 - pitch) - 0.5 * -s[12]));
+    return [roll, ps, rudderHold(s), 1];
+  }
   if (!onStep || v >= vRotate) {
-    return [roll, 1, 0, 1];
+    return [roll, 1, rotateDeg !== null ? rudderHold(s) : 0, 1];
   }
   const pitchStick = Math.max(-1, Math.min(1, 10 * (stepDeg * Math.PI / 180 - pitch) - 0.5 * -s[12]));
-  return [roll, pitchStick, 0, 1];
+  return [roll, pitchStick, rotateDeg !== null ? rudderHold(s) : 0, 1];
 }
 
 /*
@@ -1715,6 +1735,18 @@ export function wingBiplane(sim) {
   return Array.from(new Float64Array(sim.e.memory.buffer, sim.bipPtr, 4));
 }
 
+/* The prop's slipstream as the last step took it, sim_wing_slip: its roll,
+ * pitch and yaw moments in the body frame, the disc's pressure jump, the
+ * induced speed and the swirl's sideways speed over the fin. Zeros without
+ * a wash. */
+export function wingSlip(sim) {
+  if (!sim.slipPtr) {
+    sim.slipPtr = sim.e.malloc(6 * 8);
+  }
+  must(sim.e.sim_wing_slip(sim.slipPtr), 'sim_wing_slip');
+  return Array.from(new Float64Array(sim.e.memory.buffer, sim.slipPtr, 6));
+}
+
 /*
  * Great Planes' Tiger Moth ARF, airframe 23, docs/TIGERMOTH-STAGE1.md: a
  * scale biplane on a taildragger's gear whose tail wheel turns with the
@@ -1760,7 +1792,7 @@ export function tigermothTakeoffSticks(s, ms, { vRotate = 11.4, yawHold = 1 } = 
     const pitchT = (v < vRotate ? 1 : 6) * Math.PI / 180;
     pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
   }
-  const yaw = Math.max(-1, Math.min(1, yawHold * (2.0 * edgeHeading(s) + 0.3 * s[13])));
+  const yaw = Math.max(-1, Math.min(1, yawHold * (6.0 * edgeHeading(s) + 0.6 * s[13])));
   return [roll, pitchStick, yaw, Math.min(1, ms / 2000)];
 }
 

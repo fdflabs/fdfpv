@@ -287,6 +287,9 @@ jobs:
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # Every tractor's slipstream terms against their geometry
+      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
+      - run: npm run wash:derive -- --check
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

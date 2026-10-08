@@ -232,6 +232,28 @@ void plant_wing_biplane(double out[4]) {
   }
 }
 
+/* The share of a prop's swirl that reaches the fin past the wing's root,
+ * the rest turned straight by the root (plant_wing_step, the slipstream).
+ * FITTED: no published figure gives it for a model; the literature says
+ * only that the wing recovers a significant part (Veldhuis 2005). Half,
+ * the middle of what is unknown, and docs/FLIGHTMODEL.md has what the
+ * take off roll does at a quarter and at all of it. */
+#define SWIRL_KEEP 0.5
+
+/* The slipstream as the last step took it (FixedWingParams.slip_r): its
+ * roll, pitch and yaw moments in the body frame as they were added, the
+ * disc's pressure jump, the induced speed and the swirl's sideways speed
+ * over the fin. Zero without a wash. Read only by sim_wing_slip, for the
+ * gates that take one term of the moment alone; nothing in a step reads
+ * it. */
+static double g_slip[6];
+
+void plant_wing_slip(double out[6]) {
+  for (int i = 0; i < 6; i += 1) {
+    out[i] = g_slip[i];
+  }
+}
+
 void plant_wing_debug(double out[20]) {
   for (int i = 0; i < 20; i += 1) {
     out[i] = g_debug[i];
@@ -1300,6 +1322,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     fw_dmg.cn_dr = fw->cn_dr * r;
     fw_dmg.cl_dr = fw->cl_dr * r;
     fw_dmg.cy_dr = fw->cy_dr * r;
+    fw_dmg.slip_cl_a = fw->slip_cl_a * h;
+    fw_dmg.slip_cm_a = fw->slip_cm_a * h;
+    fw_dmg.slip_cn_b = fw->slip_cn_b * f;
+    fw_dmg.slip_cn_r = fw->slip_cn_r * f;
+    fw_dmg.slip_cy_b = fw->slip_cy_b * f;
+    fw_dmg.slip_cl_b = fw->slip_cl_b * f;
     fw = &fw_dmg;
   }
   double roll = rc[0];
@@ -1590,6 +1618,81 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The chase boost's faster prop, last; exact at 1.0 (sim_set_boost). */
   thrust *= SIM_BOOST * SIM_BOOST;
   F[0] += thrust;
+  /*
+   * THE SLIPSTREAM over the tail and the ailerons, where the table has one
+   * (FixedWingParams.slip_r). Momentum theory: the disc's pressure jump
+   * dp = T / A, the induced speed v_i at the disc, the far wake 2 v_i
+   * faster than the free stream and contracted to rw. Each surface's share
+   * of the wash is how much of it rw covers. The controls meet dp on the
+   * share; the angle and rate terms meet rho v_i times the crossflow over
+   * the surface, which is the free stream's q times the angle, 1/2 rho V
+   * (V alpha), with the wash's 2 v_i in place of V: so a still aircraft's
+   * own rotation meets the wash too, and is damped by it. The tail's force
+   * is along the body's axes, the wash's own direction. Taken after the
+   * boost, so a faster prop blows harder. Nothing here runs without a
+   * slipstream, and the three moments stay zero.
+   */
+  double m_slip = 0.0, n_slip = 0.0, l_slip = 0.0;
+  for (int i = 0; i < 6; i += 1) {
+    g_slip[i] = 0.0;
+  }
+  if (fw->slip_r > 0.0 && thrust > 0.0) {
+    const double dp = thrust / (WING_PI * fw->slip_r * fw->slip_r);
+    const double vi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * dp / PLANT.rho) - u_pos);
+    const double rw = fw->slip_r * sim_sqrt((u_pos + vi) / (u_pos + 2.0 * vi));
+    const double fh = rw < fw->slip_yh ? rw / fw->slip_yh : 1.0;
+    const double up = rw < fw->slip_hv[0] ? rw : fw->slip_hv[0];
+    const double dn = rw < fw->slip_hv[1] ? rw : fw->slip_hv[1];
+    const double fv = (up + dn) / (fw->slip_hv[0] + fw->slip_hv[1]);
+    double fa = 0.0;
+    if (rw > fw->slip_ya[0]) {
+      const double ye = rw < fw->slip_ya[1] ? rw : fw->slip_ya[1];
+      const double y0 = fw->slip_ya[0], y1 = fw->slip_ya[1];
+      fa = (ye * ye - y0 * y0) / (y1 * y1 - y0 * y0);
+    }
+    /* The crossflows: over the stabiliser from its zero lift, V sin(alpha
+     * - a0) in the body's velocities; over the fin, the sideways speed. */
+    const double xa = -w * sim_cos_small(fw->slip_a0) - u * sim_sin_small(fw->slip_a0);
+    /* The swirl: the prop's torque, torque_arm times the thrust, is the
+     * wash's angular momentum flux, the mass flow rho pi R^2 (u + v_i)
+     * turning as a solid body at Omega, Q = mdot Omega rw^2 / 2. Every prop
+     * here turns clockwise seen from behind, and so does its wash: over
+     * the fin above the thrust line it blows from the left, under it from
+     * the right, Omega y at height y. Over the fin's span in the wash the
+     * mean of the two, weighted by each part's share, is Omega (up - dn) /
+     * 2, which the fin's terms take as a sideways speed: the nose yaws left
+     * under power and right rudder holds it, the tractor's left turning
+     * tendency on the take off roll, and the fin's side force rolls the
+     * airframe against the torque. The wing's root, in the wash ahead of
+     * the fin, is a stator: it turns part of the swirl back straight and
+     * takes that part's angular momentum as a roll moment the prop's way,
+     * against the torque reaction (Veldhuis, Propeller Wing Aerodynamic
+     * Interference, TU Delft 2005: the wing recovers a significant part of
+     * the swirl). SWIRL_KEEP of the swirl reaches the fin; the rest is the
+     * root's. */
+    const double q_prop = fw->torque_arm * thrust;
+    const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
+    const double xs = SWIRL_KEEP * q_prop * (up - dn) / (mdot * rw * rw);
+    const double xb = add_term(-v, -xs);
+    const double kh = PLANT.rho * vi * fh, kv = PLANT.rho * vi * fv;
+    const double ph = dp * fh, pv = dp * fv;
+    F[2] += fw->area * (kh * fw->slip_cl_a * xa + ph * fw->cl_de * delta_e);
+    F[1] -= fw->area * (kv * fw->slip_cy_b * xb + pv * fw->cy_dr * delta_r);
+    const double q_a = -s->omega[1], r_a = -s->omega[2];
+    m_slip = fw->area * fw->chord *
+             (kh * (fw->slip_cm_a * xa + fw->cm_q * q_a * 0.5 * fw->chord) + ph * fw->cm_de * delta_e);
+    n_slip = fw->area * fw->span *
+             (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
+    l_slip = fw->area * fw->span *
+             (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * fw->cl_da * delta_a);
+    l_slip += (1.0 - SWIRL_KEEP) * q_prop;
+    g_slip[0] = l_slip;
+    g_slip[1] = -m_slip;
+    g_slip[2] = -n_slip;
+    g_slip[3] = dp;
+    g_slip[4] = vi;
+    g_slip[5] = xs;
+  }
   /* A fan runs down after its drive is cut rather than stopping. */
   const double rpm = (folded || ((g_chute || dead) && !fan)) ? 0.0 : 0.85 * n * fw->rpm_no_load;
   s->motor_omega[0] = rpm * 2.0 * WING_PI / 60.0;
@@ -1681,6 +1784,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
   M[2] = -n_aero;
+  if (fw->slip_r > 0.0) {
+    M[0] += l_slip;
+    M[1] -= m_slip;
+    M[2] -= n_slip;
+  }
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
   if (s->motor_omega[0] > 0.0) {
@@ -2158,6 +2266,10 @@ const FixedWingParams FW_CUB1400 = {
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
+  .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
+  .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
 };
 
 /* The E-flite Radian Pro, docs/GLIDER-STAGE1.md, where each number has its
@@ -2251,6 +2363,10 @@ const FixedWingParams FW_RADIAN2000 = {
   .stall_top = 1.4 * WING_PI / 180.0,
   .strip_c = { 1.101, 1.096, 1.074, 0.775 },
   .washout = 6.0 * WING_PI / 180.0, /* FITTED, past the 5 deg bound by lead decision, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1238, .slip_yh = 0.2385, .slip_hv = { 0.276, 0.01 }, .slip_ya = { 0.9, 1 },
+  .slip_a0 = 0.04411, .slip_cl_a = 0.3737, .slip_cm_a = -1.382, .slip_cn_b = 0.1043,
+  .slip_cn_r = -0.06673, .slip_cy_b = -0.3254, .slip_cl_b = -0.02115,
 };
 
 /* OA Composites' NRJ, docs/DLG-STAGE1.md, where each number has its
@@ -2538,6 +2654,10 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stall_top = 4.4 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.22, .slip_hv = { 0.2, 0.01 }, .slip_ya = { 0.53, 0.588 },
+  .slip_a0 = 0.04292, .slip_cl_a = 0.311, .slip_cm_a = -0.5746, .slip_cn_b = 0.1232,
+  .slip_cn_r = -0.1111, .slip_cy_b = -0.2735, .slip_cl_b = -0.01814,
 };
 
 /* The E-flite Turbo Timber Evolution 1.5 m, docs/TIMBER-STAGE1.md, where
@@ -2642,6 +2762,10 @@ const FixedWingParams FW_TIMBER1500 = {
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
+  .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
+  .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
 };
 
 /* The Timber on its floats, docs/FLOATS-STAGE1.md: FW_TIMBER1500 with
@@ -2749,6 +2873,10 @@ const FixedWingParams FW_TIMBER1500F = {
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 2.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.28, .slip_hv = { 0.195, 0.036 }, .slip_ya = { 0.34, 0.7 },
+  .slip_a0 = -0.002314, .slip_cl_a = 0.4134, .slip_cm_a = -0.9753, .slip_cn_b = 0.1042,
+  .slip_cn_r = -0.08373, .slip_cy_b = -0.2589, .slip_cl_b = -0.01498,
 };
 
 /* The Cub on its floats, docs/FLOATS-STAGE1.md: FW_CUB1400 with what the
@@ -2834,6 +2962,10 @@ const FixedWingParams FW_CUB1400F = {
   .stall_top = 4.6 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.19, .slip_hv = { 0.158, 0.01 }, .slip_ya = { 0.28, 0.66 },
+  .slip_a0 = 0.01331, .slip_cl_a = 0.3197, .slip_cm_a = -0.8266, .slip_cn_b = 0.07783,
+  .slip_cn_r = -0.06304, .slip_cy_b = -0.1924, .slip_cl_b = -0.01429,
 };
 
 /* BMJR's 1/2A Texaco Buzzard Bombshell, docs/BOMBSHELL-STAGE1.md, where
@@ -2944,6 +3076,10 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stall_top = 3.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.0889, .slip_yh = 0.206, .slip_hv = { 0.129, 0.01 }, .slip_ya = { 0.5, 0.5588 },
+  .slip_a0 = 0.04422, .slip_cl_a = 0.5377, .slip_cm_a = -1.618, .slip_cn_b = 0.09309,
+  .slip_cn_r = -0.08896, .slip_cy_b = -0.1948, .slip_cl_b = -0.009061,
 };
 
 /* SIG's Kadet Senior, kit RC58, docs/KADET-STAGE1.md, where each number
@@ -3049,6 +3185,10 @@ const FixedWingParams FW_KADET1981 = {
   .stall_top = 6.7 * WING_PI / 180.0,
   .strip_c = { 1.0, 1.0, 1.0, 1.0 },
   .washout = 3.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1524, .slip_yh = 0.3935, .slip_hv = { 0.259, 0.114 }, .slip_ya = { 0.89, 0.9906 },
+  .slip_a0 = -0.02575, .slip_cl_a = 0.4965, .slip_cm_a = -1.273, .slip_cn_b = 0.1299,
+  .slip_cn_r = -0.1269, .slip_cy_b = -0.2654, .slip_cl_b = -0.01018,
 };
 
 /* FMS's 1450 mm P-51D Mustang V8, docs/P51-STAGE1.md, where each number
@@ -3120,7 +3260,7 @@ const FixedWingParams FW_P51D1450 = {
   .acro_expo = 0.30,
   .acro_err_max = 5.0 * WING_PI / 180.0,
   .acro_roll_kp = 4.0,
-  .acro_roll_kd = 0.70,
+  .acro_roll_kd = 0.80,   /* retuned with the slipstream: 0.70 left 10.4 deg/s 0.25 s after a partial roll stopped, 0.80 leaves 9.7, docs/FLIGHTMODEL.md */
   .acro_roll_ff = 0.20,
   .acro_pitch_kp = 4.0,
   .acro_pitch_kd = 0.5,
@@ -3161,6 +3301,10 @@ const FixedWingParams FW_P51D1450 = {
    * TN 2502: a sharp peak, and 0.57 of it kept), linear between. */
   .strip_top = { 3.69 * WING_PI / 180.0, 2.40 * WING_PI / 180.0, 1.10 * WING_PI / 180.0, 0.0 },
   .strip_kfall = { 0.737, 0.678, 0.620, 0.570 },
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1778, .slip_yh = 0.258, .slip_hv = { 0.18, 0.01 }, .slip_ya = { 0.45, 0.68 },
+  .slip_a0 = 0.07222, .slip_cl_a = 0.2949, .slip_cm_a = -0.8361, .slip_cn_b = 0.1152,
+  .slip_cn_r = -0.1126, .slip_cy_b = -0.236, .slip_cl_b = -0.02099,
 };
 
 /* Freewing's F-16 Fighting Falcon V3, the 70 mm EDF, 6S High Performance
@@ -3468,6 +3612,10 @@ const FixedWingParams FW_UGLYSTIK1567 = {
    * the rest. */
   .strip_tau = { 0.055, 0.22, 0.22, 0.22 },
   .j_prop = 0.00027,      /* the 12 x 6's 46 g of wood blades and the crank's front, ESTIMATED */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1524, .slip_yh = 0.283, .slip_hv = { 0.178, 0.087 }, .slip_ya = { 0.145, 0.784 },
+  .slip_a0 = 0.05137, .slip_cl_a = 0.3967, .slip_cm_a = -0.8873, .slip_cn_b = 0.1178,
+  .slip_cn_r = -0.1107, .slip_cy_b = -0.2505, .slip_cl_b = -0.01054,
 };
 
 /* Great Planes' Tiger Moth ARF, GPMA1330, docs/TIGERMOTH-STAGE1.md, where
@@ -3596,6 +3744,10 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .bip_x = { 0.1729, -0.2277 },
   .bip_ki = { 0.02655, 0.02399 },
   .bip_kx = { 0.01361, 0.01361 },
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1524, .slip_yh = 0.3025, .slip_hv = { 0.246, 0.081 }, .slip_ya = { 0.35, 0.89 },
+  .slip_a0 = -0.007186, .slip_cl_a = 0.2292, .slip_cm_a = -0.7162, .slip_cn_b = 0.1077,
+  .slip_cn_r = -0.1117, .slip_cy_b = -0.2081, .slip_cl_b = -0.01166,
 };
 
 /* The Striker, docs/COMBAT-DRONES.md section 7: the war's pusher delta as

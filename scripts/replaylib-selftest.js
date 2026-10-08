@@ -68,7 +68,8 @@ const PINNED = {
   'trace.wing.60.10': 'e64fe348cd9c35730fc0ab52e7acf31d36b90f26dab781b069f78e1564787a4d',
   'trace.wing.50.10.v3.9': 'e64fe348cd9c35730fc0ab52e7acf31d36b90f26dab781b069f78e1564787a4d',
   'trace.sky.60.10': 'ee4a13a82bfcd75dcc972303326fc921aaefcd3bd0090a731f67589e462fc14d',
-  'trace.p51.72.25': '79a9f65f36aabf831e734eb98e284f0a7428f405156e25fc31ca9442f7a466ad',
+  /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
+  'trace.p51.72.25': '4e0444d6dc3c46acf1face65b45ff1bb6d27d5c72504edc89560948785eefff6',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
   'sched.synth.60.10.one': 'c7b0d1d856cfdc00c800f8192e144d73df5243b9610b43180cd93b45c97433ce',
