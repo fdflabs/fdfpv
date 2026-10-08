@@ -55,7 +55,7 @@ import {
   KADET_AIRFRAME, kadetGroundPrelude, kadetTakeoffSticks, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude,
   slowstickGroundPrelude, skyPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
-  timberFloatRecPrelude, RC_STEP_MS,
+  timberFloatRecPrelude, RC_STEP_MS, wingSlip
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -311,6 +311,9 @@ check: {
     must(sim.input(0, 0, 0, 0, 1), 'sim_input');
     must(sim.step(1), 'sim_step');
     const d = wingDebug(sim);
+    /* The slipstream's own roll (sim_wing_slip, docs/FLIGHTMODEL.md) is
+     * taken out: this gate is the motor's term alone. */
+    d[12] -= wingSlip(sim)[0];
     gate('S11', 'prop torque, static full throttle', d[12] < 0 && within(-d[12], th.s11_prop_torque), `${(-d[12]).toFixed(4)} N m ${d[12] < 0 ? 'rolling left' : 'WRONG WAY'} at ${d[8].toFixed(2)} N`, `${band(th.s11_prop_torque)} N m, rolling left`);
   }
 
