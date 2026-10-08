@@ -36,7 +36,7 @@ import { clearPidsFor } from '../../configs/pids.js';
 import { RATE_DEFAULTS, normaliseRates } from '../../configs/rates.js';
 import { deleteRatePreset, presetMatching, saveRatePreset } from '../../configs/ratepresets.js';
 import { needSignIn } from '../share/account.js';
-import { boardPageUrl, fetchTrackDocument } from '../share/board.js';
+import { boardConfigured, boardOrigin, boardPageUrl, fetchCurrentEvent, fetchTrackDocument } from '../share/board.js';
 import { tracksConfigured } from '../share/cloud.js';
 import { hasFlyableTrack } from '../share/listing.js';
 import { clearShareImport, readShareImport } from '../share/session.js';
@@ -291,6 +291,12 @@ const ACTIONS = {
       return;
     }
     if (ui.standingsFor) boardTab(ui, ui.standingsFor.board);
+  },
+  'weekly-event'(ui) {
+    const e = ui.weeklyEvent;
+    /* The event is all the hub has of the track: enough to seat it, since
+     * its document is fetched by id. */
+    if (e && e.trackId) ui.openBoardCourse(e.trackId, () => ui.play(), { id: e.trackId, name: e.name, map: e.map, author: '', board: boardOrigin() });
   },
   'standings-fly'(ui) {
     const t = ui.standingsFor;
@@ -759,8 +765,29 @@ export const actionMethods = {
 
   openHub(id) {
     this.hub = id;
+    if (id === 'club') {
+      this.loadWeeklyEvent();
+    }
     this.setCursor(this.firstStop(this.items()));
     this.renderMenu();
+  },
+
+  /* This week's event, read each time Flight Club opens so its standings
+   * are fresh; until it answers (or with no board) the hub has no card
+   * for it. */
+  loadWeeklyEvent() {
+    if (!boardConfigured()) {
+      return;
+    }
+    fetchCurrentEvent().then((event) => {
+      const had = JSON.stringify(this.weeklyEvent || null);
+      this.weeklyEvent = event;
+      if (had !== JSON.stringify(event) && this.hub === 'club') {
+        this.renderMenu();
+      }
+    }).catch(() => {
+      /* No board this time: the hub reads as it did before events. */
+    });
   },
 
   /* The one place a world or track becomes the seat: written, handed to
@@ -847,9 +874,9 @@ export const actionMethods = {
 
   /* Seat a board track through the shell, which owns the fetch, then
    * `then`. One at a time: a second press while one loads is ignored. */
-  openBoardCourse(id, then = null) {
+  openBoardCourse(id, then = null, known = null) {
     const listed = (this.boardCourses || []).find((t) => t.id === id);
-    const track = listed || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
+    const track = listed || known || (this.standingsFor && this.standingsFor.id === id ? this.standingsFor : null);
     if (!track || this.openingBoardCourse) return;
     const failed = (why) => {
       this.openingBoardCourse = false;

@@ -251,6 +251,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -365,6 +369,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -427,9 +435,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -448,9 +465,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -471,9 +497,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -494,9 +529,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -520,9 +564,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -541,9 +594,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -564,9 +626,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -587,9 +658,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -611,9 +691,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -630,9 +718,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -651,9 +747,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -672,9 +776,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -692,9 +804,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -715,9 +837,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -740,9 +872,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -767,9 +909,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -798,9 +950,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -822,9 +984,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -848,9 +1020,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -876,9 +1058,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -908,9 +1100,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -933,9 +1133,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -960,9 +1168,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -989,9 +1205,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -1017,9 +1241,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -1038,9 +1269,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -1061,9 +1299,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -1086,9 +1331,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -1116,9 +1368,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -1139,9 +1401,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -1164,9 +1436,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -1191,9 +1473,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -1223,9 +1515,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -1248,9 +1550,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -1275,9 +1587,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -1304,9 +1626,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -1337,9 +1669,19 @@
        "stripe": 1513755,
        "floats": 15855850
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500f",
@@ -1366,9 +1708,19 @@
        "stripe": 1513755,
        "floats": 15855850
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500f",
@@ -1399,9 +1751,19 @@
        "trim": 1447962,
        "floats": 15921644
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400f",
@@ -1427,9 +1789,19 @@
        "trim": 1447962,
        "floats": 15921644
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400f",
@@ -1459,9 +1831,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -1483,9 +1864,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -1509,9 +1899,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -1537,9 +1936,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -1568,9 +1976,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -1592,9 +2010,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -1618,9 +2046,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -1646,9 +2084,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -1678,9 +2126,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -1703,9 +2161,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -1730,9 +2198,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -1759,9 +2237,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -1792,9 +2280,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -1818,9 +2315,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -1846,9 +2352,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -1876,9 +2391,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -1897,6 +2421,163 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -1908,9 +2589,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -1933,9 +2623,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -1960,9 +2659,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -1989,9 +2697,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -2020,9 +2737,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -2044,9 +2770,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -2070,9 +2805,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -2098,9 +2842,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -2129,9 +2882,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -2153,9 +2913,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -2179,9 +2946,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -2207,9 +2981,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -2239,9 +3020,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -2256,9 +3045,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -2275,9 +3072,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -2294,9 +3099,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -2317,9 +3130,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -2335,9 +3155,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -2355,9 +3182,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -2375,9 +3209,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -2529,7 +3370,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2539,7 +3380,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2549,7 +3390,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2569,7 +3410,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2579,7 +3420,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2589,7 +3430,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2609,7 +3450,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2619,7 +3460,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2629,7 +3470,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2649,7 +3490,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2659,7 +3500,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2669,7 +3510,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2689,7 +3530,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2699,7 +3540,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2709,7 +3550,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2729,7 +3570,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -2739,7 +3580,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2749,7 +3590,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2774,7 +3615,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2784,7 +3625,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2809,7 +3650,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2819,7 +3660,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -2844,7 +3685,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -2854,7 +3695,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -3229,6 +4070,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -3343,6 +4188,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -3405,9 +4254,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3426,9 +4284,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3449,9 +4316,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3472,9 +4348,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3498,9 +4383,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3519,9 +4413,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3542,9 +4445,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3565,9 +4477,18 @@
        "legs": 1579291,
        "props": 2303271
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "mount": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3589,9 +4510,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3608,9 +4537,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -3629,9 +4566,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3650,9 +4595,17 @@
        "payload": 5067056,
        "legs": 1579291
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "arms": "stock",
+       "top": "stock",
+       "antenna": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -3670,9 +4623,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -3693,9 +4656,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -3718,9 +4691,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -3745,9 +4728,19 @@
        "tail": 13951726,
        "pod": 13951726
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "sky1800",
@@ -3776,9 +4769,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -3800,9 +4803,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -3826,9 +4839,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -3854,9 +4877,19 @@
        "tail": 15777322,
        "trim": 1447962
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400",
@@ -3886,9 +4919,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -3911,9 +4952,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -3938,9 +4987,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -3967,9 +5024,17 @@
        "tips": 13576742,
        "canopy": 1777959
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "radian2000",
@@ -3995,9 +5060,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -4016,9 +5088,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -4039,9 +5118,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -4064,9 +5150,16 @@
       "colours": {
        "airframe": 11122113
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bramor2300",
@@ -4094,9 +5187,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -4117,9 +5220,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -4142,9 +5255,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -4169,9 +5292,19 @@
        "tail": 15024170,
        "tape": 16052714
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "slowstick1180",
@@ -4201,9 +5334,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -4226,9 +5369,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -4253,9 +5406,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -4282,9 +5445,19 @@
        "trim": 13969183,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500",
@@ -4315,9 +5488,19 @@
        "stripe": 1513755,
        "floats": 15855850
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500f",
@@ -4344,9 +5527,19 @@
        "stripe": 1513755,
        "floats": 15855850
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "timber1500f",
@@ -4377,9 +5570,19 @@
        "trim": 1447962,
        "floats": 15921644
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400f",
@@ -4405,9 +5608,19 @@
        "trim": 1447962,
        "floats": 15921644
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "cub1400f",
@@ -4437,9 +5650,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -4461,9 +5683,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -4487,9 +5718,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -4515,9 +5755,18 @@
        "tail": 1513242,
        "swoop": 13112858
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "bombshell1118",
@@ -4546,9 +5795,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -4570,9 +5829,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -4596,9 +5865,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -4624,9 +5903,19 @@
        "fuselage": 14029332,
        "fuse_trim": 16767770
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "kadet1981",
@@ -4656,9 +5945,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -4681,9 +5980,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -4708,9 +6017,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -4737,9 +6056,19 @@
        "panels": 15921126,
        "crosses": 1315862
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "uglystik1567",
@@ -4770,9 +6099,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -4796,9 +6134,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -4824,9 +6171,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -4854,9 +6210,18 @@
        "bands": 16101916,
        "trim": 1513498
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "tigermoth1803",
@@ -4875,6 +6240,163 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -4886,9 +6408,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -4911,9 +6442,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -4938,9 +6478,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -4967,9 +6516,18 @@
        "trim": 13112858,
        "stripe": 1513755
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "exhausts": "stock",
+       "wheels": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "p51d1450",
@@ -4998,9 +6556,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -5022,9 +6589,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -5048,9 +6624,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -5076,9 +6661,18 @@
        "light": 11120820,
        "canopy": 9073728
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fincap": "stock",
+       "exhaust": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "f16878",
@@ -5107,9 +6701,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -5131,9 +6732,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -5157,9 +6765,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -5185,9 +6800,16 @@
        "winglets": 1513755,
        "canopy": 3422268
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "winglets": "stock",
+       "nose": "stock"
+      },
+      "lights": null
      },
      "fit": {
       "id": "zagi1219",
@@ -5217,9 +6839,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -5234,9 +6864,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -5253,9 +6891,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -5272,9 +6918,17 @@
        "cone": 3840729,
        "tail": 1710877
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "wingtips": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -5295,9 +6949,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -5313,9 +6974,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": null
@@ -5333,9 +7001,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -5353,9 +7028,16 @@
        "nose_band": 2500650,
        "engine": 10133670
       },
+      "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
-      "wear": 0
+      "wear": 0,
+      "kit": {
+       "nose": "stock",
+       "fins": "stock"
+      },
+      "lights": null
      },
      "fit": null,
      "combat": {
@@ -5507,7 +7189,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5517,7 +7199,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5527,7 +7209,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5547,7 +7229,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5557,7 +7239,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5567,7 +7249,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5587,7 +7269,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5597,7 +7279,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5607,7 +7289,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5627,7 +7309,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5637,7 +7319,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5647,7 +7329,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5667,7 +7349,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5677,7 +7359,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5687,7 +7369,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5707,7 +7389,7 @@
      "log": [
       [
        "firstStop",
-       12
+       14
       ]
      ]
     },
@@ -5717,7 +7399,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5727,7 +7409,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5752,7 +7434,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5762,7 +7444,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5787,7 +7469,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5797,7 +7479,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },
@@ -5822,7 +7504,7 @@
      "log": [
       [
        "firstStop",
-       9
+       11
       ]
      ]
     },
@@ -5832,7 +7514,7 @@
      "log": [
       [
        "firstStop",
-       11
+       13
       ]
      ]
     },

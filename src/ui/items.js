@@ -63,6 +63,7 @@ import {
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
 import { formatTime } from './format.js';
+import { EVENT_TIERS } from '../game/economy.js';
 import { MARK_STYLES } from './peermarks.js';
 import { choice, number, stampIds, stepper, toggle } from './rows.js';
 import {
@@ -259,7 +260,41 @@ function gateRows(ui) {
   const field = ui.hub === 'ops' ? [{
     label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
   }] : [];
-  return [...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
+  const weekly = ui.hub === 'club' && ui.weeklyEvent ? [weeklyCard(ui.weeklyEvent)] : [];
+  return [...weekly, ...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
+}
+
+const POSTERS = new Set(['alps', 'itaipu', 'swiss2']);
+
+/*
+ * Flight Club's weekly event as a card at the front of the hub
+ * (docs/FLIGHTCLUB-PROGRESSION.md section 4): the course, when it ends in
+ * the pilot's own time, the gold to beat, where the pilot stands, and
+ * what each tier pays (src/game/economy.js EVENT_TIERS). The end is the
+ * only clock the game shows.
+ */
+function weeklyCard(e) {
+  const fold = (n) => String(n || '').trim().toLowerCase();
+  const me = fold(readPilotName());
+  const at = e.standings.findIndex((r) => me && fold(r.name) === me);
+  const mine = at < 0 ? null : e.standings[at];
+  const ends = new Date(e.endsUtc).toLocaleString(currentLocale(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const pays = Object.entries(EVENT_TIERS).map(([tier, n]) => str('event.pays_tier', { tier: str(`event.tier.${tier}`), n })).join(', ');
+  return {
+    label: str('event.card', { name: e.name }),
+    card: 'weekly',
+    art: `assets/posters/${POSTERS.has(e.map) ? e.map : 'swiss2'}.jpg`,
+    blurb: str('event.blurb'),
+    facts: [
+      str('event.ends', { when: ends }),
+      str('event.gold', { time: formatTime(e.goldMs) }),
+      mine
+        ? str('event.yours', { time: formatTime(mine.lapMs), tier: str(`event.tier.${mine.medal || 'finish'}`), place: at + 1, of: e.standings.length })
+        : str('event.not_flown', { pilots: plural('count.pilots_in', e.standings.length) }),
+      str('event.pays', { pays }),
+    ],
+    action: 'weekly-event',
+  };
 }
 
 /* ---- rooms ---- */

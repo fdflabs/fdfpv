@@ -100,10 +100,12 @@ import {
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { badWordIn } from './words.js';
+import { deleteGalleryAccount, galleryAccountRoute } from './gallery.js';
 import { GOOGLE_JWKS_URL, googleKeys, verifyGoogleIdToken } from './google.js';
 import { json, nowUtc, readBody, refuse, spend } from './http.js';
 import { inviteOnly, invited, joinWaitlist } from './waitlist.js';
 import { buyItem, deleteWallet, settleWallet } from './wallet.js';
+import { payEvents } from './eventpay.js';
 import {
   ACCOUNT_WRITE_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
 } from './limits.js';
@@ -443,6 +445,7 @@ async function putProgress(env, request, account) {
     const r = await env.DB.prepare('UPDATE accounts SET progress = ?, progress_rev = progress_rev + 1, updated_utc = ? WHERE id = ? AND progress_rev = ?')
       .bind(text, nowUtc(), account.id, row.progress_rev).run();
     if (r.meta.changes) {
+      await payEvents(env, account);
       return json(200, { progress: merged, wallet: await settleWallet(env, account.id, merged) });
     }
   }
@@ -494,6 +497,7 @@ async function buy(env, request, account) {
 
 async function deleteAccount(env, account) {
   await deleteWallet(env, account.id);
+  await deleteGalleryAccount(env, account.id);
   await env.DB.prepare('DELETE FROM sessions WHERE account_id = ?').bind(account.id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.id).run();
   return json(200, { deleted: true });
@@ -556,7 +560,11 @@ export async function accountRoute(env, request, path) {
     return json(200, { progress: cleanBlob(heldProgress(account)) });
   }
   if (path === '/api/account/wallet' && method === 'GET') {
+    await payEvents(env, account);
     return json(200, { wallet: await settleWallet(env, account.id, heldProgress(account)) });
+  }
+  if (path === '/api/account/gallery' || path.startsWith('/api/account/gallery/')) {
+    return galleryAccountRoute(env, request, path, account);
   }
   if (path === '/api/account/session' && method === 'DELETE') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(account.session_hash).run();
