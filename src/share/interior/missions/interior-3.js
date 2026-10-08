@@ -102,10 +102,9 @@ export default {
     {
       id: 'isr', core: true, guide: 'IBARRA', platforms: ['bramor2300'],
     },
-    /* The recon quad: the owner picks it by feel (PLAN 6); interior2's
-     * pair until then. */
+    /* The recon quad: the 7 inch (lead decision 2026-10-08). */
     {
-      id: 'recon', core: true, guide: 'IBARRA', platforms: ['7inch', '10inch'],
+      id: 'recon', core: true, guide: 'IBARRA', platforms: ['7inch'],
     },
     {
       id: 'strike', core: true, guide: 'ROJAS', platforms: ['striker2500'],
