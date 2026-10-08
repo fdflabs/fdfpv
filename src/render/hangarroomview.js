@@ -99,6 +99,8 @@ const CAM_BACK = 3.0;
 const CAM_UP = 1.7;
 const LOOK_UP = 1.15;
 const CAM_FOV = 60;
+/* How far out of the open door the camera may stand, m. */
+const OUTSIDE = 1.8;
 /* The follow spring, radians a second. */
 const CAM_OMEGA = 6;
 
@@ -572,8 +574,14 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     if (Math.abs(pose.x + bx) > W) {
       s = Math.min(s, (W * Math.sign(bx) - pose.x) / bx);
     }
-    if (Math.abs(pose.z + bz) > D) {
-      s = Math.min(s, (D * Math.sign(bz) - pose.z) / bz);
+    /* The door is open: a camera behind a pilot standing in it looks in
+     * from outside, rather than being pulled in to their shoulder (in the
+     * garage corner it was 1 m behind them). Only where the line to the
+     * camera passes through the opening, under its top. */
+    const xDoor = bz > 0 ? pose.x + bx * ((D - pose.z) / bz) : Infinity;
+    const front = Math.abs(xDoor) < DOOR_W[tier] / 2 - 0.25 && CAM_UP < DOOR_H[tier] - 0.2 ? D + OUTSIDE : D;
+    if (pose.z + bz > front || pose.z + bz < -D) {
+      s = Math.min(s, ((bz > 0 ? front : -D) - pose.z) / bz);
     }
     s = Math.max(0.25, s);
     bx *= s;
@@ -644,7 +652,8 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       renderer.autoClear = was.autoClear;
       renderer.shadowMap.enabled = was.shadows;
     },
-    stats: () => ({ ...info, tier }),
+    /* camBack: the camera's distance from the pilot along the floor, m. */
+    stats: () => ({ ...info, tier, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
     dispose() {
       if (built) {
         built.dispose();

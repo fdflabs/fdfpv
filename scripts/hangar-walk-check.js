@@ -160,6 +160,7 @@ try {
   room = ROOMS[s.tier];
   occ = occupancy(room, LAYOUTS[s.tier]);
   check('at the door', s.pose.z > (room.d * CELL) / 2 - 1.5, JSON.stringify(s.pose));
+  check('at the door the camera stands well back, out of the open door', s.view.camBack > 2.5, `${s.view.camBack.toFixed(2)} m behind`);
   const legend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
   check('the command bar names the walk keys', legend.includes(en['walk.walk']) && legend.includes(en['walk.use']), JSON.stringify(legend));
 
