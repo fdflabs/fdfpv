@@ -358,6 +358,10 @@ try {
   await page.sleep(400);
   check('the people below looking up: "climb" where the boundary warns', /LOOKING UP: CLIMB/.test((await page.evaluate('window.__opsHud()')).boundary || ''));
   await shot('hud-spot-looking.png');
+  const spotted = { ...looking, value: 1, level: 'spotted', at: { looking: 9000, spotted: 20000 } };
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(baseView({ spot: { pair: looking, camp: spotted } }))} }), true)`);
+  await page.sleep(400);
+  check('two groups on alert: the HUD shows the higher (spotted over looking up)', /^SPOTTED$/.test((await page.evaluate('window.__opsHud()')).boundary || ''));
   const start = baseView({
     stage: {
       id: 'M1_CP_START', n: 1, at: 5000, title: 'ops.interior.m1.s1', text: null, music: null, lockRoles: false,

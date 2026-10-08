@@ -13,7 +13,10 @@ last checkpoint.
 3. Stay and the group SPOTS you: radio "They've seen you." then one advice
    line chosen from what happened (below); the people run their scatter
    routes for SCENE seconds (the end scene, the match still live so every
-   screen draws them going), then the match is lost with why `spotted`.
+   screen draws them going) while every screen cuts to a wide, slow orbit
+   high over them (src/share/ops/spotfilm.js, played by the films' player
+   on the room's clock from the spotted moment), then the match is lost
+   with why `spotted`. With two groups on alert the HUD shows the higher.
 4. The fail card / debrief shows the same advice, with the height you came in
    at, and offers the checkpoint restart (the existing path).
 
@@ -79,9 +82,9 @@ pipeline, src/ui/debrief.js.
 
 ## Does NOT do
 
-No per-person AI, no hiding animation beyond the scatter routes, no camera
-cut (the scene is the people leaving, seen live), no change to alert.js
-sites (a site is a place's alertness; a spotter is people noticing you).
+No per-person AI, no hiding animation beyond the scatter routes, no stills
+montage (the debrief's own stills follow), no change to alert.js sites (a
+site is a place's alertness; a spotter is people noticing you).
 
 ## Checks
 
