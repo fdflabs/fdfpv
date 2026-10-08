@@ -71,7 +71,7 @@
 
 import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
-import { thermalShader } from '../../../render/thermal.js';
+import { thermalShader, T_SCALE } from '../../../render/thermal.js';
 import {
   EXPOSURE, METER_KEY, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
 } from './light.js';
@@ -277,6 +277,10 @@ const CLOUD_TOP = CLOUD_BASE + CLOUD_LIFT + CLOUD_DEPTH;
  * metres a second from the east north east. A sky that never moved read
  * as painted. */
 const CLOUD_WIND = new THREE.Vector2(-4.3, 2.5);
+/* How far under the air at the ground a cumulus base reads in the
+ * thermal picture, kelvin: about 1.5 km over the plateau at the dry
+ * adiabat's lower half, 6.5 K a kilometre. */
+const CLOUD_COLD_K = 10;
 const CLOUD_STEPS = 64;
 const CLOUD_SPAN = 4000;
 const CLOUD_SIGMA = 0.032;
@@ -458,7 +462,11 @@ const SKY_GLSL = /* glsl */ `
     return smoothstep(edge, edge + ${CLOUD_SOFT.toFixed(3)}, n) * smoothstep(0.0, 0.06, h);
   }
 
+  /* The share of skyAt's last ray the cloud stopped, veiled as its
+   * colour is: the cube keeps it in alpha for the thermal picture. */
+  float skyCover = 0.0;
   vec3 skyAt(vec3 d) {
+    skyCover = 0.0;
     /* post.js airT's light at the end of an endless ray. */
     const float g = 0.72;
     float mu = dot(d, uSun);
@@ -523,6 +531,7 @@ const SKY_GLSL = /* glsl */ `
         vec3 cloud = light / cover;
         float air = 1.0 - exp(-t0 / ${CLOUD_FADE.toFixed(1)});
         c = mix(c, mix(cloud, c, air), cover * horizon);
+        skyCover = cover * horizon * (1.0 - air);
         starsSeen *= 1.0 - cover * horizon;
       }
     }
@@ -596,7 +605,7 @@ export function skyBackdrop(sunDir, time) {
     fragmentShader: /* glsl */ `
       #include <common>
       ${SKY_GLSL}
-      vec3 cubeAt(samplerCube cube, vec3 from, vec3 d) {
+      vec4 cubeAt(samplerCube cube, vec3 from, vec3 d) {
         if (d.y > 0.0 && uCam.y < ${SKY_CUBE_AT.toFixed(1)}) {
           vec3 hit = uCam + d * ((${SKY_CUBE_AT.toFixed(1)} - uCam.y) / d.y);
           d = normalize(hit - from);
@@ -604,9 +613,9 @@ export function skyBackdrop(sunDir, time) {
         vec3 tu = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
         vec3 tv = cross(d, tu);
         float k = uCubeTexel;
-        return 0.4 * textureCube(cube, d).rgb
-          + 0.15 * (textureCube(cube, d + (tu + tv) * k).rgb + textureCube(cube, d + (tu - tv) * k).rgb
-            + textureCube(cube, d - (tu + tv) * k).rgb + textureCube(cube, d - (tu - tv) * k).rgb);
+        return 0.4 * textureCube(cube, d)
+          + 0.15 * (textureCube(cube, d + (tu + tv) * k) + textureCube(cube, d + (tu - tv) * k)
+            + textureCube(cube, d - (tu + tv) * k) + textureCube(cube, d - (tu - tv) * k));
       }
       void main() {
         vec3 d = normalize(vDir);
@@ -620,19 +629,32 @@ export function skyBackdrop(sunDir, time) {
            * seen from there. Under the horizon and over the deck there are
            * no clouds to slide, and toward the horizon the deck is so far
            * off that both rays agree, so the two ways meet smoothly. */
-          c = cubeAt(uCube, uCubeFrom, d);
+          vec4 cc = cubeAt(uCube, uCubeFrom, d);
           if (uCubeMix < 1.0) {
-            c = mix(cubeAt(uCubeOld, uCubeOldFrom, d), c, uCubeMix);
+            cc = mix(cubeAt(uCubeOld, uCubeOldFrom, d), cc, uCubeMix);
           }
+          c = cc.rgb;
+          skyCover = cc.a;
         }
         float disc = smoothstep(0.99998, 0.999992, dot(d, uSun));
-        gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, 1.0);
+        /* Into a cube the cover goes with the colour (skyCover); on the
+         * screen the sky is opaque. */
+        gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, uDirect > 0.5 ? skyCover : 1.0);
       }
     `,
   });
-  /* The clear sky's own temperature along the look (thermal.js thSky):
-   * the coldest thing in a thermal picture. */
-  thermalShader(mat, 'float thT = thSky(normalize(vDir).y);', 'itaipu-sky');
+  /* The clear sky's own temperature along the look (thermal.js thSky),
+   * the coldest thing in a thermal picture, and the cloud over it as a
+   * long wave camera sees one: a thick cumulus is near a black body at
+   * the temperature of its base, the air's less the lapse to it
+   * (CLOUD_COLD_K), so it reads warmer than the clear sky and colder
+   * than the ground; a thin edge lets the cold sky through. Never colder
+   * than the clear sky the same way: toward the horizon the slant of
+   * humid air is itself near the air's temperature, and a cloud there
+   * only hides more of the same (taken as the cloud's own, the low
+   * deck drew as dark holes in a warm horizon). */
+  thermalShader(mat, `float thClear = thSky(normalize(vDir).y);
+    float thT = mix(thClear, max(thClear, thEnv.y - ${(CLOUD_COLD_K / T_SCALE).toFixed(4)}), skyCover);`, 'itaipu-sky');
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), mat);
   /* Last of the opaque things, depth tested on the far plane (the vertex
    * shader puts it there), so it reads the sky cube only on the pixels
