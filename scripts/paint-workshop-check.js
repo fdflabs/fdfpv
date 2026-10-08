@@ -314,8 +314,20 @@ async function paintUnder(page, id) {
   /* A colour the top is not in: the top's own is no underside of its own. */
   const top = (await paintOf(page, id))[region];
   const key = keys.filter((k) => k !== `colour-${top}`)[2];
+  /* The press is checked where it lands: the entry must hold the swatch
+   * pressed. A press that took another (a pointer one swatch over on a
+   * slow software renderer, seen once on CI on the Timber, #825; the class
+   * #776 fixed for R3) is pressed once more, said, and then must hold. */
+  const want = key.slice('colour-'.length);
+  const holds = `(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(want)}`;
   await press(page, `.hangar [data-key="${key}"]`);
-  await page.until(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(key.slice('colour-'.length))}`, 5000).catch(() => {});
+  const landed = await page.until(holds, 5000).then(() => true).catch(() => false);
+  if (!landed) {
+    const got = await page.evaluate(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] || null`);
+    console.log(`  note  ${id}: pressed ${key} (top ${top}, palette ${keys.slice(0, 5).join(' ')}...) and the entry took ${got}; pressed again`);
+    await press(page, `.hangar [data-key="${key}"]`);
+    await page.until(holds, 5000).catch(() => {});
+  }
   /* The pointer off the panel, so no swatch under it is being tried on. */
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
   return { region, hex: key.slice('colour-'.length) };
