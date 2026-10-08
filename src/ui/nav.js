@@ -45,6 +45,10 @@ const LINK_ACTIONS = new Set(['leaderboard']);
 /* The breadcrumb per screen, root first. A room inside a room shows the
  * trail, so Escape has one obvious destination. Resolved once, at load,
  * in the locale the page booted with, the same as the screen titles. */
+/* How many pilots of the room the walkable hangar's command bar offers to
+ * visit by name; the rest are a typed callsign away. */
+const VISIT_PEERS = 3;
+
 const CRUMBS = {
   title: ['ui.product_name'],
   courses: ['ui.track_mode', 'ui.my_tracks'],
@@ -730,6 +734,10 @@ export const navMethods = {
       return [
         { keys: ['P'], text: str('walk.photo'), action: 'walk-photo' },
         { keys: [], text: str('walk.visit'), action: 'walk-visit' },
+        /* The pilots in the room this pilot is in, one press each: in an
+         * accounts room a pilot's name is their callsign. */
+        ...(this.roomLineupList ? this.roomLineupList() : []).filter((e) => !e.own).slice(0, VISIT_PEERS)
+          .map((e) => ({ keys: [], text: str('walk.visit_peer', { callsign: e.name }), action: `walk-visit:${e.name}` })),
         { keys: [], text: str(open ? 'walk.visits_on' : 'walk.visits_off'), action: 'walk-visits' },
         { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },

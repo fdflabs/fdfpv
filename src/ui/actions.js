@@ -499,6 +499,9 @@ const PREFIXES = [
   ['newtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map }); }],
   ['casualtrack:', (ui, action, map) => { ui.newTrackOpen = false; ui.openBuilder({ map, casual: true }); }],
   ['friends-', (ui, action) => { if (ui.onFriends) ui.onFriends(action); }],
+  /* A pilot in the room the pilot is in, visited straight from the
+   * walkable hangar's command bar (src/ui/hangarwalk.js). */
+  ['walk-visit:', (ui, action, callsign) => ui.visitHangar(callsign)],
   /* The gate's rooms panel: the friends card's way in, then the room,
    * the lobby or Make a room, with the card's world left unbuilt because
    * the room's welcome seats its own. */
