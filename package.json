@@ -225,6 +225,7 @@
     "platforms:hold": "node scripts/platforms-hold-selftest.js && node scripts/platforms-hold-room.js",
     "platforms:hold-ui": "node scripts/platforms-hold-check.js",
     "interior:stages": "node scripts/interior-stages-selftest.js",
+    "interior:m2": "node scripts/interior-m2-selftest.js",
     "dev:accounts": "node --disable-warning=ExperimentalWarning scripts/dev-accounts-selftest.js",
     "camera:lock": "node scripts/camera-lock-check.js",
     "capture:score": "node scripts/capture-score-check.js",

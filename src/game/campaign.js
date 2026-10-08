@@ -103,7 +103,8 @@ export function released(id, dev = false) {
  * flown in order, its missions the room's ops missions
  * (src/share/ops/missions.js). The same gate as Act 1: Mission 1 is
  * 'development' until it is 100 % and the owner has flown it, then
- * 'available' here and nowhere else; 2 to 5 have no mission file yet, so
+ * 'available' here and nowhere else; Mission 2 has its mission file and
+ * is held the same way; 3 to 5 have none yet, so
  * 'soon' in the gate's meaning, and `label` is the word the card shows
  * instead of the release's own: the owner asked for Under development
  * on all four (PLAN.md section 3; TECH-NEEDS.md F6 records the choice).
@@ -114,7 +115,7 @@ export function released(id, dev = false) {
 export const INTERIOR_CAMPAIGN = Object.freeze({ id: 'interior', consent: true });
 export const INTERIOR = [
   { id: 'interior-1', key: 'oldwar', release: 'development' },
-  { id: 'interior-2', key: 'forest', release: 'soon', label: 'development' },
+  { id: 'interior-2', key: 'forest', release: 'development' },
   { id: 'interior-3', key: 'nomansland', release: 'development' },
   { id: 'interior-4', key: 'otherwar', release: 'soon', label: 'development' },
   { id: 'interior-5', key: 'lastcolumn', release: 'soon', label: 'development' },

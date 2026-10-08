@@ -999,6 +999,8 @@ export async function boot({
    * last told. */
   let opsDrawn = false;
   let opsCampMark = null;
+  /* Which mission's camps the map shows (mission.camp.world), told once. */
+  let opsCampWorld = null;
   /* What the map was last told, for the checks: the hour, the looks. */
   let opsHourTold = null;
   let opsLooksTold = [];
@@ -1460,6 +1462,14 @@ export async function boot({
       }
       return;
     }
+    if (opsCampWorld !== mission.id && typeof view.setCamp === 'function') {
+      /* A mission's camps as its story has them (Mission 2: Claro Viejo
+       * stripped, Claro Nuevo standing); Mission 1's are the default. */
+      opsCampWorld = mission.id;
+      view.setCamp({
+        nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
+      });
+    }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];
     for (const c of v.contacts || []) {
@@ -1529,6 +1539,8 @@ export async function boot({
       audio,
       ground: (x, z) => view.height(x, z, Infinity),
       seen: seenFilm(opsFilmStore.load(), id, film.version),
+      /* The story flags a film's callback lines read (film.js `or`). */
+      flags: opsFilmStore.load().flags,
       onSeen: () => {
         opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version));
         opsSeenTell();

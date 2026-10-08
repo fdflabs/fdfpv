@@ -190,7 +190,7 @@ check('Mission 1 is held in development: not started on the live server, started
 const built = (m) => Object.hasOwn(OPS_MISSIONS, m.id);
 check('2 to 5: with a mission file held in development (dev only), without one soon and never started', INTERIOR.slice(1).every((m) => (built(m)
   ? m.release === 'development' && !released(m.id) && released(m.id, true)
-  : m.release === 'soon' && !released(m.id) && !released(m.id, true))) && built(INTERIOR[2]));
+  : m.release === 'soon' && !released(m.id) && !released(m.id, true))) && built(INTERIOR[1]) && built(INTERIOR[2]));
 check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1'));
 check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
   && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');

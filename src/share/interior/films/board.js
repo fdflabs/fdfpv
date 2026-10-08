@@ -111,6 +111,25 @@ export const BOARD_MAP = Object.freeze({
     },
     forest: { kind: 'ring', style: 'forest', items: [{ at: PLACES.monteCerrado.at, r: PLACES.monteCerrado.r * 0.55, name: PLACES.monteCerrado.name }] },
     camp: { kind: 'dot', style: 'alert', items: [{ at: PLACES.claroViejo.at }] },
+    /* Mission 2's (INTROS.md M2): the places a watcher could see the road
+     * from, a line from each to the camp they warned; both camps, named;
+     * the remote post whose alarm ends the mission (Mission 3's `post`). */
+    'm2-zones': {
+      kind: 'tick',
+      style: 'mark',
+      items: [PLACES.cruceTranquera, PLACES.lomaDelVigia, PLACES.corralViejo].map((p) => ({ at: p.at, name: p.name })),
+    },
+    'm2-sight': {
+      kind: 'line',
+      style: 'mark',
+      items: [PLACES.cruceTranquera, PLACES.lomaDelVigia, PLACES.corralViejo].map((p) => ({ points: [p.at, PLACES.claroViejo.at] })),
+    },
+    'm2-camps': {
+      kind: 'point',
+      style: 'place',
+      items: [PLACES.claroViejo, PLACES.claroNuevo].map((p) => ({ at: p.at, name: p.name })),
+    },
+    'm2-arenal': { kind: 'dot', style: 'alert', items: [{ at: gridToWorld(...M3_AT.post), name: 'interior.place.puesto_arenal' }] },
     post: { kind: 'point', style: 'place', items: [{ at: gridToWorld(...M3_AT.post), name: 'interior.place.puesto_arenal' }] },
     'post-unknown': { kind: 'dot', style: 'mark', items: M3_DOTS },
     'post-find': { kind: 'dot', style: 'mark', items: M3_DOTS.slice(0, 1) },
