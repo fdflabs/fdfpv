@@ -13,6 +13,11 @@
  * 4. Every decal kind makes a valid new decal, and a mirror of a number
  *    is the only kind kept reading the right way round.
  *
+ * 7. The layer keys (docs/redesign/LIVERY-LAYERS.md): skew, opacity,
+ *    finish, group, hidden, locked kept and checked; the packed form is
+ *    the object form; a version 2 code carries MAX_DECALS full layers;
+ *    old data seeded as it was stored before layers reads unchanged.
+ *
  * Run with npm run paint:selftest.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -32,11 +37,13 @@
  */
 
 import {
-  CODE_MAX, CODE_PREFIX, DECAL_KINDS, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
+  CODE_MAX, CODE_PREFIX, DECAL_KINDS, checkDecal, packEntry, unpackEntry, packDecal, unpackDecal, DECAL_KIND_IDS, MAX_DECALS, MAX_SAVED, encodeLivery, newDecal,
 } from '../configs/paint.js';
 import {
   LIVERIES, entryDrops, lookFor, normaliseEntry, normaliseLiveries, normaliseSaves, readCode,
 } from '../configs/liveries.js';
+import { checkProfile } from '../src/share/roomwire.js';
+import { snapHit } from '../src/ui/hangar-paint.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 
@@ -93,7 +100,9 @@ console.log('2. refusals');
     ['the prefix and garbage', `${CODE_PREFIX}!!!`, 'not_code'],
     ['the prefix and base64 of not JSON', `${CODE_PREFIX}bm90IGpzb24`, 'not_code'],
     ['over CODE_MAX', CODE_PREFIX + 'A'.repeat(CODE_MAX), 'too_long'],
-    ['a newer version', rawCode({ ...base, v: 2 }), 'version'],
+    ['a newer version', rawCode({ ...base, v: 3 }), 'version'],
+    ['a version 2 code with object decals', rawCode({ ...base, v: 2 }), 'unknown_field'],
+    ['a version 1 code with packed decals', rawCode({ ...base, e: { d: [] } }), 'unknown_field'],
     ['an unknown top field', rawCode({ ...base, x: 1 }), 'unknown_field'],
     ['an unknown entry field', rawCode({ ...base, e: { ...entry, script: 'alert(1)' } }), 'unknown_field'],
     ['an unknown decal field', rawCode({ ...base, e: { decals: [{ ...num, url: 'x' }] } }), 'unknown_field'],
@@ -171,6 +180,48 @@ console.log('6. the underside (docs/redesign/WORKSHOP-PAINT.md)');
   check('the dropped parts are counted, so a code carrying them is refused', entryDrops('timber1500', { under: { nope: '#000000' } }) === 1);
   check('a film region has no underside of its own', normaliseEntry('kadet1981', { under: { wing: '#aabbcc' } }) === null);
   check('the look carries the underside as numbers', lookFor('timber1500', e).under.wing === 0xaabbcc && Object.keys(lookFor('timber1500', null).under).length === 0);
+}
+
+console.log('7. layers');
+{
+  const layer = { ...newDecal('star', [-0.123, 0.045, -0.2], [0, -1, 0]), x: 20, o: 65, fi: 'metallic', g: 3, h: true, l: true };
+  const got = checkDecal(layer);
+  check('a layer keeps skew, opacity, finish, group, hidden and locked', same(got.decal, layer), JSON.stringify(got.decal));
+  check('defaults are not stored', same(Object.keys(checkDecal({ ...layer, x: 0, o: 100, fi: 'gloss', h: false, l: false, g: undefined }).decal).sort(), Object.keys(newDecal('star', [-0.123, 0.045, -0.2], [0, -1, 0])).sort()));
+  check('opacity snaps to steps of 5', checkDecal({ ...layer, o: 62 }).decal.o === 60);
+  for (const [what, patch] of [['skew past 60', { x: 61 }], ['opacity under 5', { o: 2 }], ['a finish layers lack', { fi: 'gold' }], ['group 0', { g: 0 }], ['group 1.5', { g: 1.5 }], ['hidden as a word', { h: 'yes' }]]) {
+    check(`refused: ${what}`, checkDecal({ ...layer, ...patch }).error === 'bad_value');
+  }
+  const kinds = DECAL_KIND_IDS.map((k, i) => ({ ...newDecal(k, [0.3 - i * 0.01, 0.06, 0.02 * i], [0.577, 0.577, -0.577]), x: i % 2 ? -15 : 0, o: Math.min(100, 50 + i * 5) })).map((d) => checkDecal(d).decal);
+  check('every kind packs and unpacks to itself', kinds.every((d) => same(unpackDecal(packDecal(d)).decal, d)), `${JSON.stringify(packDecal(kinds[0]))}`);
+  check('a packed layer is held to the same rules', unpackDecal([...packDecal(layer).slice(0, 7), 900000, ...packDecal(layer).slice(8)]).error === 'bad_value');
+  const full = normaliseEntry('timber1500', {
+    scheme: 'super', finishes: { wing: 'chrome' },
+    decals: Array.from({ length: MAX_DECALS }, (_, i) => ({ ...newDecal('text', [0.123456, -0.654321, 0.01 * i], [0.577, 0.577, 0.577]), x: -45, o: 55, fi: 'metallic', g: 99, h: true, l: true })),
+  });
+  const code = encodeLivery('timber1500', 'x'.repeat(32), full);
+  check(`${MAX_DECALS} full text layers fit a version 2 code`, code.length <= CODE_MAX && same(readCode(code).entry, full), `${code.length} of ${CODE_MAX}`);
+  const profile = checkProfile({ airframe: 'timber1500', map: 'swiss2', figure: 0, livery: packEntry(full), parts: { prop: 'apc_10x7', addons: [] } });
+  check(`${MAX_DECALS} full layers, packed, fit a room profile`, Boolean(profile) && same(unpackEntry(profile.livery).entry, full), `${JSON.stringify(packEntry(full)).length} bytes`);
+  const asObjects = JSON.stringify(full).length;
+  check(`${MAX_DECALS} full layers stored as objects leave 1 kB of a build's 8 kB for the rest of it`, asObjects < 7 * 1024, `${asObjects} characters`);
+  /* OLD DATA, as stored before layers: a version 1 code, settings and a
+   * saves list holding 16 decals of the old keys only. */
+  const old = { scheme: 'super', regions: { stripe: '#3355aa' }, finishes: { wing: 'chrome' }, decals: Array.from({ length: 16 }, () => num) };
+  const v1 = rawCode({ v: 1, p: 'timber1500', n: 'Old', e: old });
+  check('a version 1 code from before layers still reads, unchanged', same(readCode(v1).entry, old));
+  check('stored settings from before layers read unchanged', same(normaliseLiveries({ timber1500: old }), { timber1500: old }));
+  check('a saves list from before layers reads unchanged', same(normaliseSaves({ timber1500: [{ name: 'Old', entry: old }] }), { timber1500: [{ name: 'Old', entry: old }] }));
+  check('an old entry\'s look draws the same decals', same(lookFor('timber1500', old).decals, old.decals));
+}
+
+console.log('8. snapping');
+{
+  const up = [0, 1, 0];
+  check('an aim 8 mm off the centreline lands on it', same(snapHit({ p: [0.008, 0.05, 0.1], n: [0.05, 0.99, 0] }, []).p, [0, 0.05, 0.1]));
+  check('an aim 30 mm off stays where it is', snapHit({ p: [0.03, 0.05, 0.1], n: up }, []).snap === undefined);
+  check('an aim near another layer lands on its centre', same(snapHit({ p: [0.205, 0.05, 0.1], n: up }, [{ p: [0.2, 0.055, 0.1], n: up }]).p, [0.2, 0.055, 0.1]));
+  check('no hit stays no hit', snapHit(null, []) === null);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

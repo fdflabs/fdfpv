@@ -51,6 +51,7 @@ import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
+import { RoomJam } from './jam.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
 import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
@@ -280,6 +281,7 @@ export class RoomCore {
     this.referee = new Referee(meta.friendly);
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
+    this.jam = new RoomJam(); /* Trick Battle, edge/rooms/jam.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
@@ -335,7 +337,8 @@ export class RoomCore {
     const m = this.war.match;
     const r = this.race.race;
     return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished() || this.combat.round.state === 'over'
-      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(r && r.state === 'results');
+      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(this.jam.match && this.jam.match.state === 'results')
+      || Boolean(r && r.state === 'results');
   }
 
   /* The seats as they were before a hibernation, from each socket's
@@ -445,6 +448,7 @@ export class RoomCore {
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: minPlayersFor('race', this.meta.mode), end: () => this.race.end(this) },
       { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now) },
+      { id: 'jam', on: this.jam.on(), players: this.jam.players(this), min: minPlayersFor('jam', this.meta.mode), end: () => this.jam.abandon(this, now) },
       { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now) },
       /* No mode registry entry yet: one pilot flies an ops mission alone. */
@@ -496,7 +500,8 @@ export class RoomCore {
    * counts down, and nothing else would move it on until one flies. */
   waiting() {
     return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
-      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
+      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || this.jam.on()
+      || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
   }
 
   wake() {
@@ -523,11 +528,12 @@ export class RoomCore {
    */
   hostCheck(conn, s, msg, now) {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
+      : (msg.type === 'jam' && msg.op === 'start') ? 'jam'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
         : (msg.type === 'war' && msg.op === 'start') ? 'war'
           : (msg.type === 'ops' && msg.op === 'start') ? 'ops'
           : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
-    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
+    const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end') || (msg.type === 'jam' && msg.op === 'end')
       || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
       || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock' || msg.op === 'skipIntro'));
     if (!hostOnly) {
@@ -580,6 +586,9 @@ export class RoomCore {
     const m = this.tag.match;
     if (this.tag.on()) {
       return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
+    }
+    if (this.jam.on()) {
+      return { game: 'jam', state: this.jam.match.state === 'turn' && this.jam.match.round === 1 && this.jam.match.turn === 0 ? 'countdown' : 'on', round: this.jam.match.round };
     }
     if (this.combat.on()) {
       /* Its round's number, for "In round n". */
@@ -919,6 +928,7 @@ export class RoomCore {
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
+        ...this.jam.welcome(this),
         ...this.war.welcome(this),
         ...this.ops.welcome(this),
         ...this.gameLobby.welcome(this),
@@ -1050,6 +1060,11 @@ export class RoomCore {
     }
     if (msg.type === 'tag') {
       return [...first, ...this.tag.message(this, conn, s, msg, now)];
+    }
+    /* The jam's clock runs on the room's tick: its runs start and end on
+     * time with nobody posting, the watchers held on the ground. */
+    if (msg.type === 'jam') {
+      return [...first, ...this.jam.message(this, conn, s, msg, now), ...this.wake()];
     }
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
@@ -1210,7 +1225,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.jam.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));

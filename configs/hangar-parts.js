@@ -60,6 +60,8 @@
 import { POWER, SIM_POWER } from './power.js';
 import { PART_KINDS } from './parts.js';
 import { PROP_ESTIMATES } from './prop-estimates.js';
+import { MOTORS, hasMotors } from './motors.js';
+import { normaliseWearRecord } from './wear.js';
 
 /* sim_abi.h's SIM_ADDON_* layout. */
 export const SIM_ADDON = { MASS: 0, CG: 1, CDA: 4, DRAG: 5, WHEEL_R: 8, ROLL_K: 9 };
@@ -378,19 +380,23 @@ export function partSubtree(damage, i) {
   return out;
 }
 
-/* One plane's entry, valid, or null for nothing fitted and nothing broken. */
+/* One plane's entry, valid, or null for nothing fitted, nothing broken
+ * and nothing worn. `wear` is career and war's (configs/wear.js), left
+ * out when there is none; a quad has an entry for its wear alone. */
 export function normalisePlane(id, e) {
-  if (!PROPS[id] || !e || typeof e !== 'object' || Array.isArray(e)) {
+  if (!(PROPS[id] || hasMotors(id)) || !e || typeof e !== 'object' || Array.isArray(e)) {
     return null;
   }
-  const prop = PROPS[id].some((p) => p.id === e.prop) ? e.prop : 'stock';
+  const props = PROPS[id] || [STOCK];
+  const prop = props.some((p) => p.id === e.prop) ? e.prop : 'stock';
   const fit = addonsFor(id);
   const addons = Array.isArray(e.addons) ? fit.filter((a) => e.addons.includes(a)) : [];
-  const damage = normaliseDamage(e.damage);
-  if (prop === 'stock' && !addons.length && !damage) {
+  const damage = PROPS[id] ? normaliseDamage(e.damage) : null;
+  const wear = normaliseWearRecord(e.wear);
+  if (prop === 'stock' && !addons.length && !damage && !wear) {
     return null;
   }
-  return { prop, addons, damage };
+  return wear ? { prop, addons, damage, wear } : { prop, addons, damage };
 }
 
 /* A stored settings.parts map, validated. */
@@ -399,7 +405,7 @@ export function normaliseParts(stored) {
   if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
     return out;
   }
-  for (const id of PARTS_PLANES) {
+  for (const id of [...PARTS_PLANES, ...Object.keys(MOTORS)]) {
     const e = normalisePlane(id, stored[id]);
     if (e) {
       out[id] = e;
