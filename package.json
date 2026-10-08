@@ -213,6 +213,7 @@
     "war:balance": "node scripts/war-balance.js",
     "war:legacy": "node scripts/war-legacy-games.js",
     "war:stages": "node scripts/war-stages-selftest.js",
+    "war:nudge": "node scripts/war-nudge-selftest.js",
     "contacts:selftest": "node scripts/contacts-selftest.js",
     "roles:deal": "node scripts/roles-deal.js",
     "interior:stages": "node scripts/interior-stages-selftest.js",

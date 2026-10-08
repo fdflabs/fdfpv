@@ -156,6 +156,9 @@ import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
 import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import {
+  createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
+} from './share/war/nudge.js';
 import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
@@ -5360,6 +5363,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    warNudgeFrame(v, live, wallMs);
     worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
@@ -5384,6 +5388,30 @@ export async function boot({
     const m = roomWar.mission();
     warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
     warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
+  }
+
+  /* The war's guide nudge (src/share/war/nudge.js), for a mission that
+   * asks for it: after no progress for a while, and only into a quiet
+   * radio, where the attacker nearest the targets is. Progress is the
+   * stage moving on, a kill, the nearest threat changing, or closing on
+   * it. */
+  const warNudger = createWarNudger();
+  let warNudgeAt = 0;
+  function warNudgeFrame(v, live, wallMs) {
+    const m = roomWar.mission();
+    if (!m || !m.nudge || !roomWar.live() || mode !== 'flight' || ui.screen !== 'flight' || warIntro || wallMs < warNudgeAt) {
+      return;
+    }
+    warNudgeAt = wallMs + 1000;
+    const here = warGround([pCurr.x, pCurr.y, pCurr.z]);
+    const threat = warThreatOf(live, m.targets);
+    const dist = threat ? Math.hypot(threat.at[0] - here[0], threat.at[1] - here[1]) : null;
+    warNudger.progress(`${v.stage ? v.stage.id : ''}|${live.length}|${threat ? threat.id : ''}`, wallMs, dist);
+    if (!threat || !radioQuiet() || !warNudger.due(wallMs)) {
+      return;
+    }
+    warSay([warNudgeOf(threat, here, warHeadingOf([camFwd.x, camFwd.y, camFwd.z]))], 'guide');
+    warNudger.nudged(wallMs);
   }
 
   /* The game running in this room, as this screen knows it, or null. */
