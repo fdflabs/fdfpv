@@ -530,6 +530,7 @@ one with roll authority at zero airspeed: its ailerons start 77 mm out,
 inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
+
 ## The rudder only aircraft's level hold, retuned for the wash
 
 PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
