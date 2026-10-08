@@ -2329,6 +2329,10 @@ export async function boot({
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
+    /* The trophy wall: every first paid, in key order so a wall reads the
+     * same each visit (src/game/progress.js firsts). */
+    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
+    walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
     walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit);
     return walkRoom.view;

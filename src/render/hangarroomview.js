@@ -94,6 +94,26 @@ const DOOR_H = { garage: 2.2, workshop: 3.2, airfield: 5.6, field: 3 };
 /* The stand's deck height, m. */
 export const STAND_TOP = 0.55;
 
+/* The trophy wall's slots, in the board's own frame: three shelves of six. */
+const TROPHY_ROWS = 3;
+const TROPHY_COLS = 6;
+const TROPHY_SLOTS = [];
+for (let k = 0; k < TROPHY_ROWS; k += 1) {
+  for (let t = 0; t < TROPHY_COLS; t += 1) {
+    TROPHY_SLOTS.push([-0.75 + t * 0.3, 1.08 + k * 0.38, -0.1]);
+  }
+}
+/* A first's trophy colour, linear, by its kind (src/game/progress.js
+ * firstsOf keys): a mission won gold, a star silver, an aircraft's
+ * milestone bronze, a lesson passed steel blue. */
+const TROPHY_COLOUR = { win: [0.62, 0.42, 0.1], star: [0.5, 0.52, 0.55], aircraft: [0.4, 0.2, 0.08], lesson: [0.12, 0.22, 0.4] };
+export function trophyKind(key) {
+  if (key.startsWith('mission:')) {
+    return key.endsWith(':win') ? 'win' : 'star';
+  }
+  return key.startsWith('aircraft:') ? 'aircraft' : 'lesson';
+}
+
 /* The follow camera: behind the pilot and above, looking at the chest. */
 const CAM_BACK = 3.0;
 const CAM_UP = 1.7;
@@ -188,16 +208,12 @@ const FURNITURE = {
     lit.box(0.36, 0.24, 0.015, C.black, 0, 0.79, -0.07, 0);
     glow.quad(0.32, 0.2, L.screen, 0, 0.91, -0.06);
   },
+  /* The board and its shelves; the trophies on them are the pilot's
+   * (setTrophies), in TROPHY_SLOTS. */
   trophies(lit) {
     lit.box(1.9, 1.3, 0.04, C.wood, 0, 0.9, -0.21);
-    for (let k = 0; k < 3; k += 1) {
-      const y = 1.05 + k * 0.38;
-      lit.box(1.8, 0.03, 0.2, C.wood, 0, y, -0.1);
-      for (let t = 0; t < 4; t += 1) {
-        const x = -0.66 + t * 0.44;
-        lit.cyl(0.04, 0.05, C.black, x, y + 0.03, -0.1);
-        lit.cyl(0.05, 0.16, (t + k) % 3 ? C.silver : C.gold, x, y + 0.08, -0.1, 7);
-      }
+    for (let k = 0; k < TROPHY_ROWS; k += 1) {
+      lit.box(1.8, 0.03, 0.2, C.wood, 0, 1.05 + k * 0.38, -0.1);
     }
   },
   tv(lit, glow) {
@@ -426,6 +442,18 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
   }
   const pilot = makeFigures(THREE, { cap: 1 });
   scene.add(pilot.group);
+  /* The pilot's trophies, one instanced cup per first: one draw. */
+  const cupGeo = mergeGeometries([
+    new THREE.CylinderGeometry(0.045, 0.045, 0.04, 8).translate(0, 0.02, 0),
+    new THREE.CylinderGeometry(0.012, 0.012, 0.06, 6).translate(0, 0.07, 0),
+    new THREE.CylinderGeometry(0.06, 0.03, 0.09, 8).translate(0, 0.145, 0),
+  ]);
+  const cups = new THREE.InstancedMesh(cupGeo, new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.6, flatShading: true }), TROPHY_SLOTS.length);
+  cups.count = 0;
+  cups.castShadow = true;
+  scene.add(cups);
+  let wallMatrix = null;
+  let trophyKey = '';
   const craftSlot = new THREE.Group();
   scene.add(craftSlot);
 
@@ -466,6 +494,14 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       Object.assign(sun.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 0.05, far: room.h * 2 });
       sun.shadow.camera.updateProjectionMatrix();
     }
+    const wall = layout.find((it) => it.kind === 'trophies');
+    wallMatrix = null;
+    if (wall) {
+      const p = placement(room, wall);
+      wallMatrix = new THREE.Matrix4().makeRotationY(Math.PI - frontHeading(wall)).setPosition(p.x, 0, p.z);
+    }
+    trophyKey = null;
+    cups.count = 0;
     const stand = layout.find((it) => it.kind === 'stand');
     if (stand) {
       const p = placement(room, stand);
@@ -607,12 +643,36 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
     camera.lookAt(look);
   }
 
+  /* The trophies: first keys (progress.firsts), in the order given; as
+   * many as the wall has slots. */
+  function setTrophies(keys) {
+    const key = keys.join('|');
+    if (key === trophyKey) {
+      return;
+    }
+    trophyKey = key;
+    const m = new THREE.Matrix4();
+    const colour = new THREE.Color();
+    cups.count = wallMatrix ? Math.min(keys.length, TROPHY_SLOTS.length) : 0;
+    for (let i = 0; i < cups.count; i += 1) {
+      m.makeTranslation(...TROPHY_SLOTS[i]).premultiply(wallMatrix);
+      cups.setMatrixAt(i, m);
+      cups.setColorAt(i, colour.setRGB(...TROPHY_COLOUR[trophyKind(keys[i])]));
+    }
+    cups.instanceMatrix.needsUpdate = true;
+    if (cups.instanceColor) {
+      cups.instanceColor.needsUpdate = true;
+    }
+    cups.computeBoundingSphere();
+  }
+
   return {
     scene,
     camera,
     craftSlot,
     setRoom,
     setCraft,
+    setTrophies,
     /* pose { x, z, heading, moving } from hangarroom.js's walk; ms the
      * clock for the stride. */
     update(dt, pose, ms, orbit = 0) {
@@ -653,12 +713,14 @@ export function createRoomView(renderer, { graphics, naive = false } = {}) {
       renderer.shadowMap.enabled = was.shadows;
     },
     /* camBack: the camera's distance from the pilot along the floor, m. */
-    stats: () => ({ ...info, tier, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
+    stats: () => ({ ...info, tier, trophies: cups.count, camBack: Math.hypot(cam.x - look.x, cam.z - look.z) }),
     dispose() {
       if (built) {
         built.dispose();
       }
       setCraft(null);
+      cupGeo.dispose();
+      cups.material.dispose();
       pilot.dispose();
       sun.shadow.dispose();
       target.dispose();

@@ -60,6 +60,8 @@ window.__run = async ({ preset, tier, naive = false, craft = 'cub1400', frames =
   view.setRoom(tier);
   const model = craft ? dressLivery(craftBuilderFor(craft)({ name: 'room-craft', fog: false }), craft) : null;
   view.setCraft(model);
+  /* A full trophy wall, every slot taken. */
+  view.setTrophies(Array.from({ length: 18 }, (_, i) => `mission:m${i}:win`));
   const room = ROOMS[tier];
   const occ = occupancy(room, LAYOUTS[tier]);
   let pose = startPose(room);

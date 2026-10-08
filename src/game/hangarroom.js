@@ -80,7 +80,7 @@ export const LAYOUTS = {
     { kind: 'stand', at: [4, 2], rot: 0 },
     { kind: 'bench', at: [0, 0], rot: 0 },
     { kind: 'shelf', at: [9, 0], rot: 0 },
-    { kind: 'chest', at: [11, 3], rot: 1 },
+    { kind: 'trophies', at: [11, 2], rot: 1 },
     { kind: 'tv', at: [0, 4], rot: 3 },
     { kind: 'shop', at: [11, 6], rot: 1 },
   ],
