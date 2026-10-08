@@ -570,3 +570,39 @@ one with roll authority at zero airspeed: its ailerons start 77 mm out,
 inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
+
+### What deepens a spin, measured
+
+Two more columns in row B and a row G, still no plant change:
+
+- **B** gives the inertial pitch, -(Iz - Ix) p r, nose up, which in a real
+  spin holds the nose up against the aerodynamics (Bowman, NASA TN D-6575,
+  p. 6: "As the one-turn point is approached, the nose comes back up and
+  the angle of attack continues to increase"), against the aerodynamic
+  pitching moment; and how much of the time the stalled strips' roll has
+  the roll rate's sign, which is autorotation.
+- **G**, the accelerated stall a snap roll is: full back, right rudder and
+  right aileron at once from 1.4 Vs at half throttle, 1 s: the angle of
+  attack reached past the stall, the peak pitch and roll rates.
+
+The targets, where a source gives one: a developed light aircraft spin
+at 32 to 79 deg of angle of attack and 122 to 261 deg/s (Stough, AIAA
+90-1317, four aircraft, recovery parachute tests), reached after about two
+turns in 4 to 6 s (Bowman, p. 6 and 13); recovery from a one turn spin in
+not more than one more turn (14 CFR 23.221(a), normal category); one RC
+aerobat measured, a 35 percent Extra 260, rolling at 235 deg/s with its
+nose 55 deg down and sinking 15 m/s (Ragheb, Dantsker and Selig, AIAA
+2013-2806). For the aircraft here, only the Tiger Moth has a source that
+says it spins ("Stalls, spins, aerobatics are straightforward",
+Phillips, docs/TIGERMOTH-STAGE1.md) and only the Ugly Stik one that says
+it snaps (RCM, "four point and snap rolls"); nothing found says the Cub,
+Kadet, Skyhunter, Timber or Slow Stick does or does not.
+
+On #854's module: the trainers sit 1.5 to 2 deg past their stall turning
+at 47 to 55 deg/s, the inertial pitch a few hundredths of a newton metre,
+the strips with the roll; the Tiger Moth turns at 62 deg/s at 14.6 deg
+with 0.133 N m of inertial pitch up against 0.070 of aerodynamic pitch
+down. G: the Stik reaches 2.6 deg past its stall at 65 deg/s of pitch and
+rolls at 73 deg/s, the P-51 (not in this probe; flightmodel-probe's SNAP)
+snaps. None of them is near Stough's envelope: the plant's spins are
+shallow, the next step's subject.
