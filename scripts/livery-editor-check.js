@@ -176,10 +176,13 @@ async function everyFamily(page) {
 
 async function shapes(page) {
   const free = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].free);
-  console.log(`3. the shape library on the Timber (${free.join(', ')})`);
+  console.log(`3. the shape and stamp library on the Timber (${free.join(', ')})`);
   await openHangar(page, 'timber1500');
   await press(page, 'view-top');
   await page.sleep(1500);
+  await press(page, 'decal-add');
+  await shot(page, 'library');
+  await press(page, 'decal-add');
   for (const k of free) {
     const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
     await press(page, 'decal-add');
