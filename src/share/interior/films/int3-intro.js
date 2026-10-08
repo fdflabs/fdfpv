@@ -3,10 +3,10 @@
  * interior/INTROS.md M3 intro, M3_00): the post closing up, the map
  * filling with UNKNOWN round it, Vega's mantra, then the launch.
  *
- * Shots 1 to 3 of INTROS (the gate from a mast camera, cars leaving, a
- * blocked road) need Puesto Arenal and its roads on the land, which WORLD
- * has not built (CONTRACT-M3.md gap 8): until then the BOARD carries
- * them, the post marked and zoomed to, and Rojas's line plays over it.
+ * INTROS shots 1 and 2 are world shots of Puesto Arenal and its road
+ * (places.js); the films draw no ground vehicles, so the cars leaving
+ * and shot 3's blocked road are an empty road and are left out, and the
+ * BOARD then zooms from the whole Interior to the post.
  *
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -55,17 +55,44 @@ export default {
   },
   shots: [
     {
+      id: 'gate',
+      min: 4,
+      grade: 'air',
+      music: 'wind',
+      /* Puesto Arenal from a mast camera, high and long: the gate, the
+       * yard, the barracks; nobody in frame (people from the air only,
+       * and the films draw none). */
+      camera: {
+        type: 'telephoto', agl: true, lens: [400, 500], ease: 'lin', at: at(3.44, 13.34, 300), look: [at(4.044, 13.935, 2), at(4.0, 13.99, 3)],
+      },
+      ball: { on: 0.2, hud: 0.6 },
+      out: 'smash',
+    },
+    {
+      id: 'road',
+      min: 4,
+      grade: 'air',
+      /* The road south from the gate, empty, the dust settled: whoever
+       * was leaving has left. */
+      camera: {
+        type: 'telephoto', agl: true, lens: 600, ease: 'lin', at: at(4.33, 12.8, 350), look: [at(4.4, 13.0, 0), at(4.28, 13.4, 0)],
+      },
+      ball: {},
+      lines: [{ line: 'film-int3-1', lead: 0.5, tail: 0.9 }],
+      out: 'smash',
+    },
+    {
       id: 'post',
-      min: 7,
+      min: 4,
       grade: 'room',
+      music: 'room',
       camera: BOARD_CAMERA,
       board: {
         view: {
-          from: WHOLE, to: POST, a: 0.4, b: { at: 'vo.end', s: 0.6 },
+          from: WHOLE, to: POST, a: 0.2, b: { at: 'end', s: -0.6 },
         },
         layers: [...BASE, { id: 'pista' }, { id: 'post', from: 0.6 }],
       },
-      lines: [{ line: 'film-int3-1', lead: 0.5, tail: 1.2 }],
       out: 'cut',
     },
     {
