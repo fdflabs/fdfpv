@@ -173,5 +173,14 @@ console.log('6. the underside (docs/redesign/WORKSHOP-PAINT.md)');
   check('the look carries the underside as numbers', lookFor('timber1500', e).under.wing === 0xaabbcc && Object.keys(lookFor('timber1500', null).under).length === 0);
 }
 
+console.log('7. a code carries every field of a livery');
+{
+  /* A livery with an underside colour and wear made a code its own paste
+   * refused (unknown_field): the reader knew fewer fields than the entry. */
+  const e = normaliseEntry('timber1500', { regions: { wing: '#112233' }, under: { wing: '#aabbcc' }, wear: 20 });
+  const back = readCode(encodeLivery('timber1500', 'Belly', e));
+  check(`an underside colour and wear survive a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;
