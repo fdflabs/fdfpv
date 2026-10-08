@@ -2238,6 +2238,7 @@ export default {
   "hangar.decal_mirror": "Both sides",
   "hangar.decal_move": "Move",
   "hangar.decal_delete": "Remove",
+  "hangar.decal_keys": "Keys: [ and ] turn, - and = size, comma and full stop lean, Page Up and Page Down move it in the stack.",
   "hangar.decal_group": "Group with below",
   "hangar.decal_ungroup": "Ungroup",
   "hangar.decal_in_group": "group {g}",
