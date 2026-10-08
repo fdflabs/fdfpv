@@ -3779,4 +3779,8 @@ export default {
   "walk.photo_saved": "Foto guardada",
   "walk.photo_failed": "No se pudo guardar la foto: {why}",
   "walk.photo_none": "El navegador no entregó la imagen",
+  "walk.turntable": "Giro",
+  "walk.turntable_on": "Grabando el giro",
+  "walk.turntable_saved": "Giro guardado",
+  "walk.turntable_failed": "No se pudo grabar el giro: {why}",
 };

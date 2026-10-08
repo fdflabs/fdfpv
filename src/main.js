@@ -2018,7 +2018,7 @@ export async function boot({
    */
   /* Where a replay the hangar's TV opened goes back to: { mode, which }. */
   let tvReturn = null;
-  const walkRoom = { view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
+  const walkRoom = { lastTurntable: null, view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
   function walkRoomFrame(dt) {
     const pose = ui.walkFrame(dt);
     const graphics = ui.settings.graphics;
@@ -2046,6 +2046,7 @@ export async function boot({
     walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
+    turntableStep(photo);
     walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
     if (photo && photo.shoot) {
       photo.shoot = false;
@@ -2064,6 +2065,51 @@ export async function boot({
     }
     return walkRoom.view;
   }
+  /*
+   * THE TURNTABLE (docs/SHOW-IT-OFF.md part 2): the camera once round the
+   * stand in TURNTABLE_S while a MediaRecorder takes the canvas, then the
+   * WebM downloaded. Turned by the wall clock, so a slow machine records a
+   * slower frame rate, never a shorter turn.
+   */
+  const TURNTABLE_S = 6;
+  function turntableStep(photo) {
+    const tt = photo && photo.turntable;
+    if (!tt) {
+      return;
+    }
+    if (tt.want) {
+      tt.want = false;
+      const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+      try {
+        tt.chunks = [];
+        tt.rec = new MediaRecorder(shell.canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 8e6 });
+      } catch (err) {
+        photo.turntable = null;
+        ui.walkFlash(str('walk.turntable_failed', { why: err.message }));
+        return;
+      }
+      tt.rec.ondataavailable = (e) => e.data.size && tt.chunks.push(e.data);
+      tt.rec.onstop = () => {
+        const blob = new Blob(tt.chunks, { type: tt.rec.mimeType });
+        walkRoom.lastTurntable = { bytes: blob.size, type: blob.type, s: (performance.now() - tt.t0) / 1000 };
+        downloadBlob(stampedName('turntable', '.webm'), blob);
+        ui.walkFlash(str('walk.turntable_saved'));
+        if (ui.walk && ui.walk.photo === photo) {
+          photo.turntable = null;
+        }
+      };
+      tt.yaw0 = photo.yaw;
+      tt.t0 = performance.now();
+      tt.rec.start(500);
+      ui.walkFlash(str('walk.turntable_on'));
+    }
+    const t = (performance.now() - tt.t0) / 1000;
+    photo.yaw = tt.yaw0 + (2 * Math.PI * Math.min(t, TURNTABLE_S)) / TURNTABLE_S;
+    if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
+      tt.rec.stop();
+    }
+  }
+
   /* The newest photos onto the room's photo wall, each made small first:
    * the wall's atlas cell is a few hundred pixels wide. */
   async function loadPhotoWall(view) {
@@ -17528,7 +17574,7 @@ export async function boot({
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
