@@ -736,6 +736,10 @@ function walkScreen(shell) {
       from = e.clientX;
     }
   });
+  screen.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    shell.walkWheel(e.deltaY);
+  }, { passive: false });
   const up = () => { from = null; };
   screen.addEventListener('pointerup', up);
   screen.addEventListener('pointercancel', up);

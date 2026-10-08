@@ -148,6 +148,7 @@ try {
   for (const p of [a, b]) {
     await p.until('window.__rooms().peers[0].drawn', 30000);
   }
+  await a.until(`(window.__rooms().peers[0].decals || {}).decals === ${MAX_DECALS - 1}`, 30000).catch(() => {});
   const pa = (await a.evaluate('window.__rooms()')).peers[0];
   const pb = (await b.evaluate('window.__rooms()')).peers[0];
   check(`A draws B as a ${B_NAME}`, pa.drawnAirframe === B_AF, pa.drawnAirframe);
@@ -155,6 +156,9 @@ try {
   check('in B\'s blue', painted(pa.paint, B_AF, BLUE), JSON.stringify(pa.paint));
   check('in A\'s red', painted(pb.paint, 'cub1400', RED), JSON.stringify(pb.paint));
   check(`A draws B's ${MAX_DECALS - 1} shown layers of ${MAX_DECALS}`, Boolean(pa.decals) && pa.decals.decals === MAX_DECALS - 1 && pa.decals.triangles > 0, JSON.stringify(pa.decals));
+  /* Spread over frames (dressDecalsLater): no one frame of it past 50 ms,
+   * the longest a frame may stall before a pilot feels it. */
+  check('B\'s layers were dressed over several frames, none long', Boolean(pa.decals && pa.decals.spread) && pa.decals.spread.frames > 1 && pa.decals.spread.worstMs < 50, JSON.stringify(pa.decals && pa.decals.spread));
   const spawn = await a.evaluate('window.__craftState().spawn || null');
   const mapSpawn = await a.evaluate('(() => { const m = window.__map(); return m.spawn || null; })()');
   const sp = mapSpawn || spawn;

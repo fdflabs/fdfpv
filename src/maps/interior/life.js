@@ -40,7 +40,7 @@
  */
 
 import { makeRoutes } from '../../share/interior/routes.js';
-import { CAMP_PROPS } from '../../share/interior/places.js';
+import { CAMP_PROPS, NUEVO_PROPS } from '../../share/interior/places.js';
 import { hash01 } from '../../share/interior/canopy.js';
 import { makeFigures } from '../../render/interior/figures.js';
 import { makeVehicles } from '../../render/interior/vehicles.js';
@@ -73,10 +73,35 @@ export function buildLife({
   const camp = buildCamp({
     THREE, world, colliders, roofs,
   });
+  /* Claro Nuevo, Mission 2's second camp: built with the map so its
+   * solids are in the colliders' build, shown and made solid only while a
+   * mission asks for it (setCamp nuevo); sunk otherwise, so no one hits an
+   * unseen shelter. */
+  const nuevoFrom = colliders.ax.length;
+  const nuevo = buildCamp({
+    THREE, world, colliders, roofs, props: NUEVO_PROPS, name: 'interior-camp-nuevo',
+  });
+  const nuevoTo = colliders.ax.length;
+  nuevo.setCamp({ mark: null });
+  let nuevoShown = null;
+  function showNuevo(on) {
+    if (on === nuevoShown) {
+      return;
+    }
+    nuevoShown = on;
+    nuevo.group.visible = on;
+    for (let i = nuevoFrom; i < nuevoTo; i += 1) {
+      if (on) {
+        colliders.restore(i);
+      } else {
+        colliders.retire(i);
+      }
+    }
+  }
   const ambient = buildAmbient({ THREE, world, colliders });
   const group = new THREE.Group();
   group.name = 'interior-life';
-  group.add(figures.group, vehicles.group, camp.group, ambient.group);
+  group.add(figures.group, vehicles.group, camp.group, nuevo.group, ambient.group);
   /* The clearing's fill and lamps light its floor, its people and their
    * motorcycles as they light the camp's props (camp.js). */
   const lit = new Set([groundMaterial]);
@@ -196,6 +221,9 @@ export function buildLife({
       draw();
     },
     setCamp(state) {
+      if (state.nuevo != null || nuevoShown == null) {
+        showNuevo(Boolean(state.nuevo));
+      }
       if (state.parked != null) {
         parked = Math.max(0, Math.min(CAMP_PROPS.motorcycles.length, state.parked));
       }
@@ -205,7 +233,7 @@ export function buildLife({
     demo(ms) {
       const list = [];
       for (const id of routes.ids) {
-        if (/^camp-.*-loop$/.test(id) || /^colonia-civ/.test(id)) {
+        if (/^camp-.*-loop$/.test(id) || /^colonia-civ/.test(id) || /^m2-nuevo-\d-a$/.test(id)) {
           list.push({ id, kind: 'person', route: id, ms });
         }
       }
@@ -221,10 +249,14 @@ export function buildLife({
       seconds = s;
       ambient.update(s);
       camp.update(s);
+      if (nuevoShown) {
+        nuevo.update(s);
+      }
       draw();
     },
     setSun(irradiance) {
       camp.light.setSun(irradiance);
+      nuevo.light.setSun(irradiance);
     },
     stats: () => ({
       people: figures.stats().drawn, vehicles: vehicles.stats().drawn, camp: camp.stats(), ambient: ambient.stats(), parked: parked - campDone().taken.size,
@@ -233,6 +265,7 @@ export function buildLife({
       figures.dispose();
       vehicles.dispose();
       camp.dispose();
+      nuevo.dispose();
       ambient.dispose();
       group.removeFromParent();
     },
