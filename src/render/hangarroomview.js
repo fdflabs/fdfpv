@@ -67,6 +67,17 @@ const C = {
   plinth: [0.1, 0.11, 0.12],
   door: [0.3, 0.33, 0.33],
 };
+/* The field hangar's: dirt underfoot, olive canvas, sandbags, timber
+ * poles. Plain cloth and earth, no markings of any army. */
+const FIELD = {
+  floor: [0.2, 0.15, 0.09],
+  floorB: [0.18, 0.135, 0.08],
+  wall: [0.16, 0.17, 0.08],
+  wallB: [0.13, 0.14, 0.065],
+  ceiling: [0.11, 0.12, 0.055],
+  sandbag: [0.42, 0.36, 0.24],
+  sandbagB: [0.36, 0.31, 0.2],
+};
 /* Unlit colours, linear: what is seen through the door, a lamp, a screen. */
 const L = {
   skyTop: [0.5, 0.62, 0.78],
@@ -78,8 +89,8 @@ const L = {
 };
 
 /* The roller door's opening, m: wide enough to carry the Bramor out. */
-const DOOR_W = { garage: 2.6, workshop: 3.6, airfield: 14 };
-const DOOR_H = { garage: 2.2, workshop: 3.2, airfield: 5.6 };
+const DOOR_W = { garage: 2.6, workshop: 3.6, airfield: 14, field: 6 };
+const DOOR_H = { garage: 2.2, workshop: 3.2, airfield: 5.6, field: 3 };
 /* The stand's deck height, m. */
 export const STAND_TOP = 0.55;
 
@@ -221,12 +232,14 @@ function buildShell(tier, lit, glow) {
   const W = room.w * CELL;
   const D = room.d * CELL;
   const H = room.h;
+  const field = room.look === 'field';
+  const P = field ? { ...C, ...FIELD } : C;
   /* Floor slabs a metre square, alternately a shade apart. */
   for (let x = 0; x < W; x += 1) {
     for (let z = 0; z < D; z += 1) {
       const w = Math.min(1, W - x);
       const d = Math.min(1, D - z);
-      lit.box(w, 0.02, d, (Math.floor(x) + Math.floor(z)) % 2 ? C.floor : C.floorB, x + w / 2 - W / 2, -0.02, z + d / 2 - D / 2);
+      lit.box(w, 0.02, d, (Math.floor(x) + Math.floor(z)) % 2 ? P.floor : P.floorB, x + w / 2 - W / 2, -0.02, z + d / 2 - D / 2);
     }
   }
   /* Walls: corrugated, strips a quarter metre wide in two shades. */
@@ -237,21 +250,21 @@ function buildShell(tier, lit, glow) {
     }
   };
   strips(W, 0, (s, w) => {
-    lit.box(w / 2, H, 0.04, C.wall, s + w / 4 - W / 2, 0, -D / 2 - 0.02);
-    lit.box(w / 2, H, 0.04, C.wallB, s + (3 * w) / 4 - W / 2, 0, -D / 2 - 0.01);
+    lit.box(w / 2, H, 0.04, P.wall, s + w / 4 - W / 2, 0, -D / 2 - 0.02);
+    lit.box(w / 2, H, 0.04, P.wallB, s + (3 * w) / 4 - W / 2, 0, -D / 2 - 0.01);
   });
   for (const side of [-1, 1]) {
     strips(D, 0, (s, w) => {
-      lit.box(0.04, H, w / 2, C.wall, side * (W / 2 + 0.02), 0, s + w / 4 - D / 2);
-      lit.box(0.04, H, w / 2, C.wallB, side * (W / 2 + 0.01), 0, s + (3 * w) / 4 - D / 2);
+      lit.box(0.04, H, w / 2, P.wall, side * (W / 2 + 0.02), 0, s + w / 4 - D / 2);
+      lit.box(0.04, H, w / 2, P.wallB, side * (W / 2 + 0.01), 0, s + (3 * w) / 4 - D / 2);
     });
   }
   const dw = DOOR_W[tier];
   const dh = DOOR_H[tier];
   const side = (W - dw) / 2;
-  lit.box(side, H, 0.06, C.wall, -W / 2 + side / 2, 0, D / 2);
-  lit.box(side, H, 0.06, C.wall, W / 2 - side / 2, 0, D / 2);
-  lit.box(dw, H - dh, 0.06, C.wall, 0, dh, D / 2);
+  lit.box(side, H, 0.06, P.wall, -W / 2 + side / 2, 0, D / 2);
+  lit.box(side, H, 0.06, P.wall, W / 2 - side / 2, 0, D / 2);
+  lit.box(dw, H - dh, 0.06, P.wall, 0, dh, D / 2);
   /* The door rolled up into its drum, and its frame. */
   lit.box(dw + 0.2, 0.3, 0.3, C.door, 0, dh, D / 2 - 0.1);
   for (const sx of [-1, 1]) {
@@ -264,8 +277,24 @@ function buildShell(tier, lit, glow) {
   }
   /* The ceiling, and in the bigger rooms steel beams under it every few
    * metres. */
-  lit.box(W, 0.04, D, C.ceiling, 0, H, 0);
-  if (tier !== 'garage') {
+  lit.box(W, 0.04, D, P.ceiling, 0, H, 0);
+  if (field) {
+    /* Timber poles along the walls and a ridge beam, and a low wall of
+     * sandbags against each side, thin enough that the walk needs no cells for them. */
+    for (let z = -D / 2 + 1; z < D / 2 - 0.5; z += 2.5) {
+      for (const sx of [-1, 1]) {
+        lit.box(0.14, H, 0.14, C.wood, sx * (W / 2 - 0.1), 0, z);
+      }
+    }
+    lit.box(0.16, 0.2, D, C.wood, 0, H - 0.2, 0);
+    for (const sx of [-1, 1]) {
+      for (let row = 0; row < 3; row += 1) {
+        for (let z = -D / 2 + 0.4 + (row % 2) * 0.3; z < D / 2 - 0.6; z += 0.6) {
+          lit.box(0.2, 0.17, 0.55, (row + Math.round(z * 2)) % 2 ? P.sandbag : P.sandbagB, sx * (W / 2 - 0.12), row * 0.17, z);
+        }
+      }
+    }
+  } else if (tier !== 'garage') {
     const step = tier === 'airfield' ? 4 : 2.5;
     for (let z = -D / 2 + step; z < D / 2 - 0.1; z += step) {
       lit.box(W, 0.25, 0.12, C.steel, 0, H - 0.25, z);

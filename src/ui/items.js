@@ -255,7 +255,11 @@ function gateRows(ui) {
     facts: w.facts,
     action: w.action,
   }));
-  return [...ways, ...(ui.hub === 'club' ? panel : []), ...trouble];
+  /* The war's field hangar, a card of its own under Operations. */
+  const field = ui.hub === 'ops' ? [{
+    label: str('walk.field'), card: 'ops-field', svg: null, blurb: str('walk.field_blurb'), facts: [], action: 'field-walk',
+  }] : [];
+  return [...ways, ...field, ...(ui.hub === 'club' ? panel : []), ...trouble];
 }
 
 /* ---- rooms ---- */
