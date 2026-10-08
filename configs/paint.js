@@ -55,6 +55,10 @@ import { badWordIn } from '../tracks-api/words.js';
 
 /* The finishes a region can wear. `film` only on a film region, where it
  * is the kit's own; the others there make the film an opaque paint. */
+/* The patterns a region can wear in a second colour, drawn by
+ * src/render/finish.js finPattern as their place in this list plus one. */
+export const PATTERNS = ['checks', 'stripes', 'camo', 'splinter'];
+
 export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium', 'satin', 'pearl', 'candy', 'gold'];
 
 /* The finishes and decals that are owned, not unlocked: sold for tokens or
@@ -511,6 +515,11 @@ export function encodeLivery(family, name, entry) {
   return CODE_PREFIX + toBase64Url(JSON.stringify({ v: 2, p: family, n: cleanName(name), e: packEntry(entry ?? {}) }));
 }
 
+/* The livery entry's fields a code may carry: every field
+ * configs/liveries.js normaliseEntry keeps, so a code made from any
+ * livery reads back. */
+const CODE_FIELDS = ['scheme', 'regions', 'under', 'patterns', 'finishes', 'decals', 'kit', 'lights', 'wear'];
+
 /*
  * A code read back: { family, name, entry } or { error }, the error one
  * of the ids the hangar has a sentence for (hangar.code_<error>).
@@ -563,7 +572,7 @@ export function decodeLivery(code, normalise, countDropped) {
     return { error: 'unknown_field' };
   }
   for (const key of Object.keys(obj.e)) {
-    if (!['scheme', 'regions', 'finishes', 'decals', 'kit', 'lights'].includes(key)) {
+    if (!CODE_FIELDS.includes(key)) {
       return { error: 'unknown_field' };
     }
   }

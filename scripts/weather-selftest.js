@@ -124,6 +124,24 @@ const open = speed(br, 3000, 240, 3000, 0);
 const crest = speed(br, 142, 240, -1718, 0);
 check('over the dam crest: less mean, more gust', crest[0] < open[0] && crest[1] > open[1] + 2,
   `mean ${open[0].toFixed(2)} -> ${crest[0].toFixed(2)}, gust ${open[1].toFixed(2)} -> ${crest[1].toFixed(2)}`);
+const crestHigh = speed(br, 142, 220 + 400, -1718, 0);
+const openHigh = speed(br, 3000, 220 + 400, 3000, 0);
+check('400 m over the dam the air is the open air\'s', crestHigh[0] === openHigh[0] && crestHigh[1] === openHigh[1]);
+for (const m of ['swiss2', 'alps']) {
+  const v = makeWeather(m, 'breeze', 3);
+  const floor = speed(v, 0, 20, 0, 0);
+  const rim = speed(v, -1700, 1300, 0, 0);
+  const mid = speed(v, -900, 20, 0, 0);
+  check(`${m}: the valley floor is sheltered, the rim is rough`, floor[0] < mid[0] && rim[1] > floor[1] + 1.5,
+    `floor ${floor[0].toFixed(2)} m/s gust ${floor[1].toFixed(2)}, rim gust ${rim[1].toFixed(2)}`);
+  v.at(0, 500, 0, 0, o);
+  check(`${m}: the wind runs along the valley`, Math.abs(o.z) > 2 * Math.abs(o.x), `${o.x.toFixed(2)}, ${o.z.toFixed(2)}`);
+}
+const inr = makeWeather('interior', 'breeze', 3);
+const river = speed(inr, 1098, 250, 210, 0);
+const plain = speed(inr, -4000, 300, 4000, 0);
+check('the Interior: Rio Sereno\'s lowland is calmer and rougher than the plain', river[0] < plain[0] && river[1] > plain[1],
+  `river ${river[0].toFixed(2)} gust ${river[1].toFixed(2)}, plain ${plain[0].toFixed(2)} gust ${plain[1].toFixed(2)}`);
 const fr = makeWeather('itaipu', 'front', 9);
 let lo = Infinity;
 let hi = 0;
