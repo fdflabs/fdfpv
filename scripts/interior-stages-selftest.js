@@ -88,6 +88,8 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
+import { SPOT_ORBIT, spotFilm } from '../src/share/ops/spotfilm.js';
+import { cameraAt, timing } from '../src/share/war/film.js';
 import {
   CLOSE_M, NUDGE_GAP_MS, NUDGE_IDLE_MS, bearingSaid, briefOf, clockOf, createNudger, distLine, focusOf, goalLine, nudgeOf, targetOf,
 } from '../src/share/ops/guide.js';
@@ -1249,6 +1251,21 @@ for (const [name, opts, want] of [['low', { off: 150 }, 'low'], ['over', { off: 
   const v = e.view(0);
   check('warned then climbed out: never spotted, calm again, still flying', v.state === 'live' && v.spot.pair.at.spotted == null && v.spot.pair.level === 'calm'
     && !heard(e, 0, 'int-spot-seen'), JSON.stringify(v.spot.pair));
+}
+
+{
+  /* The end scene's film: as long as the scene, a wide orbit high over
+   * the people, looking at them throughout. */
+  const sp = M.spotters[0];
+  const t = timing(spotFilm('interior', [1000, -2000], sp.scene, 0.5));
+  const shot = t.shots[0];
+  const ground = { ground: () => 30 };
+  const ok = [0, shot.ms / 2, shot.ms].every((ms) => {
+    const c = cameraAt(shot, ms, ground);
+    const r = Math.hypot(c.p[0] - 1000, c.p[2] + 2000);
+    return Math.abs(r - SPOT_ORBIT.r) < 1e-6 && Math.abs(c.p[1] - 30 - SPOT_ORBIT.h) < 1e-6 && c.look[0] === 1000 && c.look[2] === -2000;
+  });
+  check(`the spotted end scene: ${sp.scene} s, an orbit ${SPOT_ORBIT.r} m out and ${SPOT_ORBIT.h} m up looking at the people`, shot.ms === sp.scene * 1000 && ok, JSON.stringify(cameraAt(shot, 0, ground)));
 }
 
 console.log('the pilots');

@@ -148,6 +148,7 @@ import {
 } from './share/ops/guide.js';
 import { RolesBoard } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
+import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
@@ -1317,6 +1318,8 @@ export async function boot({
   /* The match whose mission palette the thermal core has been set to. */
   let opsPaletteFor = null;
   let opsOutroShown = null;
+  /* The spotted end scene last played: match, spotter and moment. */
+  let opsSpotShown = null;
   /* The prologue owed before the campaign's page: its film id, or null. */
   let opsPrologueDue = null;
   /* Own stills as pictures the film can draw, by item. */
@@ -1330,7 +1333,7 @@ export async function boot({
     warIntroStop();
     warIntroFor = `ops:${id}`;
     warIntroFov = shell.camera.fov;
-    const film = OPS_FILMS[id];
+    const film = opts.film ?? OPS_FILMS[id];
     const h = playInteriorFilm(shell.quad.parent || view.scene, shell.camera, id, {
       map: view.id,
       canvas: shell.canvas,
@@ -1445,6 +1448,30 @@ export async function boot({
       });
     } else if (intro && opsFilmOn(intro) && !briefing) {
       warIntroStop();
+    }
+    /* Spotted (CONTRACT-SPOTTED.md): the cut to the people scattering,
+     * on the room's clock from the moment they saw you, then the fail. */
+    const spot = v.state === 'live' && mission && mode !== 'replay' && map && opsWorldUp(map)
+      ? (mission.spotters ?? []).find((sp) => v.spot?.[sp.id]?.at.spotted != null) : null;
+    const spotKey = spot ? `${match}:${spot.id}:${v.spot[spot.id].at.spotted}` : null;
+    if (spot && opsSpotShown !== spotKey) {
+      opsSpotShown = spotKey;
+      const t0 = v.spot[spot.id].at.spotted;
+      const world = opsWorld(mission);
+      const ps = (v.contacts || []).filter((c) => (c.id === spot.group || c.group === spot.group) && c.route)
+        .map((c) => world.poseOnRoute(c.route, t0 - c.t0)).filter((p) => p && p.action !== 'gone');
+      if (ps.length) {
+        /* Ops frame (x east, y north) to the world's (x, -z). */
+        const at = [ps.reduce((a, p) => a + p.x, 0) / ps.length, -ps.reduce((a, p) => a + p.y, 0) / ps.length];
+        const cam = shell.camera.position;
+        const from = Math.atan2(cam.x - at[0], cam.z - at[1]);
+        opsFilmPlay('spotted', {
+          film: spotFilm(map, at, spot.scene, from),
+          clock: () => roomLinkState.roomNow() - t0,
+          seen: true,
+          onSeen: () => {},
+        });
+      }
     }
     /* The outro on a win, then the debrief. */
     const outro = opsFilmOf(v.mission, 'outro');
