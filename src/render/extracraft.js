@@ -915,8 +915,23 @@ export function buildExtraCraft(opts = {}) {
       }),
     );
     disc.renderOrder = 1;
+    disc.visible = false;
     propMount.add(disc);
     discs.push(disc);
+  }
+
+  /* The blur: a 13 in prop at speed reads as a disc, at rest as two
+   * blades. Its density follows the motor's rate, omega rad/s off the
+   * plant (stateCurr[14]), so a hover's half throttle shows a fainter
+   * disc than a punch; a stopped prop shows none. Full is the plant's
+   * 0.85 of the 4250's 13,468 rpm no load, 1,199 rad/s. */
+  const DISC_FULL = 1199;
+  function setProp(omega) {
+    const disc = discs[0];
+    const n = Math.min(1, Math.max(0, omega) / DISC_FULL);
+    disc.visible = n > 0.04;
+    disc.material.opacity = 0.32 * n;
+    return 0;
   }
   for (let k = 1; k < 4; k += 1) {
     const none = new THREE.Group();
@@ -971,6 +986,7 @@ export function buildExtraCraft(opts = {}) {
     stator,
     propSpin: EXTRA_PROP_SPIN,
     setSurfaces,
+    setProp,
     livery: coat.livery,
   };
 }
