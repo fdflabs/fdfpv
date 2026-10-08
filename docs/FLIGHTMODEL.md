@@ -490,3 +490,43 @@ committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
 Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
 Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
 No gate changed.
+
+## PR 5, built: the 3D aircraft
+
+E-flite's Extra 300 3D 1.3m (EFL115500), the aircraft docs/EXTRA-STAGE1.md
+derives from E-flite's published figures, its manual's throws and APC's
+data for its prop, is back in the hangar as airframe 29, \`extra3d1308\`.
+
+- **A new id, not 14.** 14 and \`extra1308\` stay reserved: a recording,
+  ghost, clip or room peer that names 14 still names the removed aircraft
+  and is refused, and a stored \`extra1308\` still reseats on the Ugly Stik
+  (configs/airframes.js retiredAirframe). Nothing old replays as this one.
+- **Revived, not redone.** The plant code only it used (the high angles,
+  \`hi_alpha\` and \`tail_*\`; the slow air's damping, \`rot_k\`; the
+  surface knee, \`surf_knee\`), removed in aa21a64a, is back, zero gated:
+  with every existing table leaving it zero, every recorded hash replays
+  as before (checked before the table went in). Its table, gear, crash
+  parts, render model, paint, power, props, tunes and strings are its
+  own of 1c0872b3^, under the new id; it opens at its old level, 9.
+- **On today's plant.** Its wash takes the swirl, the root's recovery and
+  the side force of PRs 2 to 4. That moved two of its gates, re-derived in
+  scripts/extra-derive.js with the same tolerances: E8, the torque roll
+  hanging with the ailerons let go, derived 146 deg/s (230 before: the
+  root and the fin take 0.152 of the prop's 0.255 N m back), the plant
+  179; E9, full aileron in the wash, derived 232 deg/s (149), the plant
+  235. Every other E gate held as it was: E6 hovers at stick 0.627, E7
+  climbs straight up at 15.3 m/s, E10 and E10b give 37.0 and 31.3 rad/s²
+  at zero airspeed, E11 harriers at 40 deg of alpha at 7.1 m/s, E12 knife
+  edges at 34 deg of sideslip, E16 Node and Chrome agree.
+
+### The probe
+
+| | TW | AUTH roll, pitch, yaw rad/s² | HOVER | HARR pitch | KNIFE bank, sink | SNAP (aileron alone) | STALL |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Extra 300 3D | 2.55 | 20.2, 98.1, 87.2 | 8.00 of 8 s | 28.9 deg | 93.5 deg, 4.7 m/s | 385 deg (405) | 9.32 m/s |
+
+The only aircraft that holds the probe's hover for all 8 s, and the only
+one with roll authority at zero airspeed: its ailerons start 77 mm out,
+inside the wash. The probe's harrier pilot is integrator limited at 29
+deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
+of full stick, the gates' E10 a 20 ms average from rest.
