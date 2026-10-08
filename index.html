@@ -4336,6 +4336,10 @@
         background: rgba(255, 59, 47, 0.08); border: 1px solid rgba(255, 90, 70, 0.4);
       }
       .parts-damage-row.taped { background: rgba(169, 173, 177, 0.08); border-color: rgba(200, 205, 210, 0.35); }
+      /* Wear below the repair band, and a pack still in service, read as
+       * taped does: noted, not broken. */
+      .parts-damage-row.worn, .parts-damage-row.pack:not(.retired) { background: rgba(169, 173, 177, 0.08); border-color: rgba(200, 205, 210, 0.35); }
+      .parts-damage-row.worn .parts-damage-state, .parts-damage-row.pack:not(.retired) .parts-damage-state { color: #c9cdd1; }
       .parts-damage-words { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
       .parts-damage-name { font: 700 14px/1.2 var(--ui-font); color: var(--cream); }
       .parts-damage-state {
