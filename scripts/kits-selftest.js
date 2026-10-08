@@ -108,7 +108,7 @@ check('a pattern is the same at the same flight time', same(lv('chase', 1, 98765
  * peers' livery: they draw, they do not fly.
  */
 console.log('physics zero');
-const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js')]);
+const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js'), join(ROOT, 'src/render/kitshapes.js')]);
 const seen = new Map();
 function reaches(file) {
   if (seen.has(file)) {

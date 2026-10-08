@@ -162,12 +162,13 @@ Lead decision 2026-10-08: per family two options sold, one earned, the
 rest free; lights are free and off by default. `ITEMS`
 (src/game/economy.js) carries `kind: 'kit'` items, ids
 `kit:<family>:<slot>:<option>`, read off the catalogue: the last option
-of the first two slots is sold, the last option of the third slot (the
-second when a family has two) is earned by an hour flown on that
-aircraft (`hour:<airframe>`, from the synced flight time). Price: 70
-tokens each, because ECONOMY.md's rule "flying everything once buys the
-whole shop" must hold: 1,400 (paint) + 33 x 70 = 3,710 against a ceiling
-of 4,050 (economy-selftest holds it). Prices are the owner's to change.
+of the third slot (with fewer slots, of the last one) is earned by an
+hour flown on that aircraft (`hour:<airframe>`, from the synced flight
+time), and the last option of each of the first two slots not earned is
+sold, so a family with one slot (the NRJ, the Bramor) has only its
+earned option. Price: 70 tokens each, because ECONOMY.md's rule "flying
+everything once buys the whole shop" must hold: 1,400 (paint) + 24 x 70
+= 3,080 against a ceiling of 4,050 (economy-selftest holds it). Prices are the owner's to change.
 
 In the Kit tab a sold or earned option not owned shows its price or
 "Earned only", is tried on when pointed at, and when pressed opens in the
