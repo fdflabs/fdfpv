@@ -390,7 +390,7 @@ export function decodeLivery(code, normalise, countDropped) {
     return { error: 'not_code' };
   }
   for (const key of Object.keys(obj.e)) {
-    if (!['scheme', 'regions', 'finishes', 'decals'].includes(key)) {
+    if (!['scheme', 'regions', 'finishes', 'decals', 'kit', 'lights'].includes(key)) {
       return { error: 'unknown_field' };
     }
   }
