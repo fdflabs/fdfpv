@@ -14,7 +14,12 @@
  *
  * Page ES, the same seed with ?lang=es: the same numbers in Spanish.
  *
- * Page EMPTY, a brand new pilot: zeros, level 1 and the one line nudge.
+ * Page EMPTY, a brand new pilot, in en and es: zeros, level 1 and the
+ * one line nudge.
+ *
+ * A rooms server of the check's own is up, so Flight Club has its room
+ * modes' cards as on the site: without one it shows three, and a layout
+ * measured on three says nothing about six.
  *
  * Each at 390 by 844 and 360 by 640 too: the panel inside the window,
  * on no card, every card's tags clear of the command bar, no sideways
@@ -40,6 +45,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 import { firstsOf } from '../src/game/progress.js';
 import { flightTotals } from '../src/share/flighttime.js';
 import { SETTINGS_KEY } from '../src/ui/settings.js';
@@ -172,7 +178,7 @@ async function toClub(page) {
   await page.until('window.__shellReady === true', 300000);
   await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000);
   await page.click('.gate-card-hub-club .gate-card-name');
-  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length > 1", 10000).catch(async (e) => {
+  await page.until("window.__ui.hub === 'club' && document.querySelectorAll('.screen-title .gate-card').length >= 6", 30000).catch(async (e) => {
     await shot(page, 'no-club');
     console.log(await page.evaluate("JSON.stringify({ screen: window.__ui.screen, hub: window.__ui.hub, cards: document.querySelectorAll('.screen-title .gate-card').length, dialog: [...document.querySelectorAll('[role=dialog]:not([hidden]), .name-dialog:not([hidden])')].map((d) => d.textContent.slice(0, 120)) })"));
     throw e;
@@ -190,7 +196,7 @@ async function phones(page, tag) {
     const inside = l.panel[0] >= 0 && l.panel[1] >= 0 && l.panel[2] <= l.w && l.panel[3] <= l.bar;
     const clear = l.cards.every((c) => !overlaps(c.box, l.panel) && c.box[0] >= 0 && c.box[2] <= l.w && c.facts <= l.bar);
     check(`${tag} ${w} by ${h}: the panel inside the window and on no card, every card's tags clear of the bar, no sideways scroll`,
-      l.cards.length > 1 && inside && clear && l.sw <= l.w && l.time.length > 0,
+      l.cards.length >= 6 && inside && clear && l.sw <= l.w && l.time.length > 0,
       `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar} scroll ${l.sw}`);
     await shot(page, `${tag}-${w}x${h}`);
   }
@@ -205,11 +211,15 @@ function numbers(got, want, tag) {
 }
 
 console.log('Flight Club\'s pilot stats');
-const en = await openPage({ root, url: '/index.html?lang=en', width: 1280, height: 720, seed: [SEEDED], account: 'StatsPilot' });
+const rooms = await roomsServer('', 'pilotstats');
+const at = (lang) => `/index.html?lang=${lang}&rooms=${encodeURIComponent(rooms.url)}`;
+const en = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED], account: 'StatsPilot' });
 try {
   await toClub(en);
   const got = await en.evaluate(READ);
   check('en: the panel is up on Flight Club', got.shown);
+  const names = await en.evaluate("[...document.querySelectorAll('.screen-title .gate-card-name')].map((n) => n.textContent)");
+  check('en: Flight Club shows its room modes too, as on the site', ['Streamer Combat', 'Catch the Ace!', 'Trick Battle'].every((n) => names.includes(n)), names.join());
   numbers(got, WANT.en, 'en:');
   check('en: no nudge for a pilot with hours', got.nudge === null, got.nudge);
   const l = await en.evaluate(LAYOUT);
@@ -267,12 +277,16 @@ try {
   await en.close();
 }
 
-const es = await openPage({ root, url: '/index.html?lang=es', width: 1280, height: 720, seed: [SEEDED] });
+const es = await openPage({ root, url: at('es'), width: 1280, height: 720, seed: [SEEDED] });
 try {
   await toClub(es);
   const got = await es.evaluate(READ);
   check('es: the panel is up on Flight Club', got.shown);
   numbers(got, WANT.es, 'es:');
+  const l = await es.evaluate(LAYOUT);
+  check('es 1280 by 720: the panel on no card, every card\'s tags clear of the bar, no sideways scroll',
+    l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+    `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
   await shot(es, 'es-1280x720');
   await resize(es, 1920, 1080);
   await shot(es, 'es-1920x1080');
@@ -283,20 +297,30 @@ try {
   await es.close();
 }
 
-const fresh = await openPage({ root, url: '/index.html?lang=en', width: 1280, height: 720 });
-try {
-  await toClub(fresh);
-  const got = await fresh.evaluate(READ);
-  numbers(got, {
-    time: '0 h 0 min', level: '1', xp: '0 of 60 XP', planes: '0', top: 'None yet', medals: '0', tracks: '0', won: '0',
-    nudge: 'Take off on any card below and your hours start counting here.',
-  }, 'empty:');
-  await shot(fresh, 'empty-1280x720');
-  await phones(fresh, 'empty');
-  check('empty: no page error', errorsOf(fresh).length === 0, errorsOf(fresh).slice(0, 3).join(' | '));
-} finally {
-  await fresh.close();
+const NUDGE = {
+  en: { xp: '0 of 60 XP', top: 'None yet', nudge: 'Take off on any card below and your hours start counting here.' },
+  es: { xp: '0 de 60 XP', top: 'Ninguna todavía', nudge: 'Despega en cualquier tarjeta de abajo y tus horas empiezan a contar aquí.' },
+};
+for (const lang of ['en', 'es']) {
+  const fresh = await openPage({ root, url: at(lang), width: 1280, height: 720 });
+  try {
+    await toClub(fresh);
+    const got = await fresh.evaluate(READ);
+    numbers(got, {
+      time: '0 h 0 min', level: '1', planes: '0', medals: '0', tracks: '0', won: '0', ...NUDGE[lang],
+    }, `empty ${lang}:`);
+    const l = await fresh.evaluate(LAYOUT);
+    check(`empty ${lang} 1280 by 720: the panel on no card, every card's tags clear of the bar`,
+      l.cards.length >= 6 && l.cards.every((c) => !overlaps(c.box, l.panel) && c.facts <= l.bar) && l.sw <= l.w,
+      `panel ${JSON.stringify(l.panel)} cards ${JSON.stringify(l.cards.map((c) => [...c.box, c.facts]))} bar ${l.bar}`);
+    await shot(fresh, `empty-${lang}-1280x720`);
+    await phones(fresh, `empty-${lang}`);
+    check(`empty ${lang}: no page error`, errorsOf(fresh).length === 0, errorsOf(fresh).slice(0, 3).join(' | '));
+  } finally {
+    await fresh.close();
+  }
 }
+await rooms.stop();
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

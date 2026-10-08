@@ -124,9 +124,6 @@ export function paintPilotStats(host, st) {
     el('span', 'gate-stats-time', st.seconds > 0 ? flightTimeText(st.seconds) : str('stats.zero_time')),
     el('span', 'gate-stats-time-label', str('stats.total_time')),
   );
-  if (st.seconds === 0) {
-    head.append(el('span', 'gate-stats-nudge', str('stats.nudge')));
-  }
   const level = tile('level', str('stats.level'), num(st.level), str('progress.xp_of', { xp: num(st.xp), to: num(st.to) }));
   const bar = el('span', 'gate-stat-bar');
   bar.style.setProperty('--frac', String(Math.max(0, Math.min(1, st.frac))));
@@ -143,6 +140,12 @@ export function paintPilotStats(host, st) {
     tile('tracks', str('stats.tracks'), num(st.tracks), str('stats.tracks_sub')),
     tile('war', str('stats.missions'), num(st.won), str('stats.stars', { n: num(st.stars), max: num(st.starsMax) })),
   );
+  /* A pilot with no time sees the nudge where the modes' times go: five
+   * zeros say nothing, and the panel keeps one height for the cards. */
+  if (st.seconds === 0) {
+    host.append(head, tiles, el('div', 'gate-stats-modes gate-stats-nudge', str('stats.nudge')));
+    return;
+  }
   const modes = el('div', 'gate-stats-modes');
   modes.dataset.stat = 'modes';
   MODE_TIME.forEach(([id, key], i) => {

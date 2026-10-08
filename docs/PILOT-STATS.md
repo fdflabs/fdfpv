@@ -16,10 +16,12 @@ glass of the rooms panel, the cards' name face for the numbers.
   lapped; campaign missions won with stars out of every mission's three.
 - Along the foot: the time flown in each Flight Club mode (Track Day, Free
   Flight, Streamer Combat, Catch the Ace!, Trick Battle).
-- A new or signed out pilot with no time: zeros, level 1 and one line,
-  "Take off on any card below and your hours start counting here."
+- A new or signed out pilot with no time: zeros, level 1 and one line in
+  the modes' place, "Take off on any card below and your hours start
+  counting here."
 - On a phone (under 861 wide or under 521 tall) one line: the total time and
-  the level, so the stacked cards keep their height.
+  the level, so six stacked cards keep their height. Under 821 tall the
+  tiles drop their second lines for the same reason.
 
 Only on Flight Club. Home keeps its rooms band in that place; Operations and
 the Hangar are not asked for.

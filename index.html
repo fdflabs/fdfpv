@@ -1435,13 +1435,13 @@
         letter-spacing: 0.04em; color: var(--pdcs-bright); white-space: nowrap;
       }
       .gate-stats-time-label { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cream); }
-      .gate-stats-nudge { max-width: 26em; font-size: 12.5px; line-height: 1.4; color: var(--slate); }
+      .gate-stats-nudge { color: var(--cream); }
       .gate-stats-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; min-width: 0; }
       .gate-stat {
         display: flex; flex-direction: column; gap: 3px; min-width: 0;
         padding: 9px 12px 10px; box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
-      .gate-stat-label { font-size: 10.5px; letter-spacing: 0.14em; overflow-wrap: anywhere; }
+      .gate-stat-label { font-size: 10.5px; letter-spacing: 0.1em; overflow-wrap: anywhere; }
       .gate-stat-value {
         font-family: var(--type-name); font-synthesis: none;
         font-size: clamp(20px, 2.2vw, 32px); line-height: 1.1; font-weight: 500; color: var(--cream);
@@ -1462,10 +1462,13 @@
       .gate-stats-mode { display: inline-flex; gap: 8px; min-width: 0; }
       .gate-stats-mode-name { color: var(--slate); text-transform: uppercase; letter-spacing: 0.1em; }
       .gate-stats-mode-time { color: var(--cream); }
-      /* A window under 820 tall (1280 by 720 is the common laptop): the
-         panel gives back its air so the cards' tags stay clear of the
-         command bar; nothing on it is dropped. */
+      /* A window under 820 tall (1280 by 720 is the common laptop): six
+         cards in a row need the height, so the panel gives back its air
+         and the tiles their second lines (the most flown, the medal
+         split, the stars), and the cards' tags stay clear of the command
+         bar in Spanish too (pilot:stats). */
       @media (max-height: 820px) {
+        .gate-stat-sub, .gate-stats-time-label { display: none; }
         .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
           margin: 6px 0 8px; padding: 8px 14px; row-gap: 6px;
         }
@@ -1481,17 +1484,18 @@
         .gate-stats-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       }
       /* A phone, upright or on its side: one line, the total time and the
-         level, because the stacked cards need the height (friends:card
-         measures them clear of the command bar at 360 by 640). The rest
-         stays on the wider page and the Pilot rows in Settings. */
+         level, because six stacked cards need the height (pilot:stats
+         measures them clear of the command bar at 360 by 640, in Spanish,
+         where the tags wrap). The rest stays on the wider page and the
+         Pilot rows in Settings. */
       @media (max-width: 860px), (max-height: 520px) {
         .screen-title.is-gate[data-hub="club"] .gate-stats:not([hidden]) {
-          display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px;
-          margin: 8px 0; padding: 8px 12px;
+          display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px;
+          margin: 4px 0; padding: 5px 12px;
         }
-        .gate-stats-head { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
-        .gate-stats-time { font-size: 22px; }
-        .gate-stats-time-label, .gate-stats-nudge, .gate-stats-modes,
+        .gate-stats-head { flex-direction: row; align-items: baseline; gap: 10px; }
+        .gate-stats-time { font-size: 20px; }
+        .gate-stats-title, .gate-stats-time-label, .gate-stats-nudge, .gate-stats-modes, .gate-stat-level .gate-stat-sub,
         .gate-stats-tiles .gate-stat:not(.gate-stat-level) { display: none; }
         .gate-stats-tiles { display: flex; }
         .gate-stat-level { flex-direction: row; align-items: baseline; gap: 6px; padding: 0; box-shadow: none; }
