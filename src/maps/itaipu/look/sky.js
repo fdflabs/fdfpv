@@ -251,7 +251,7 @@ const STAR_CHANCE = 0.9935;
  *   (SKY_CUBE_AT) as seen from the point the cube was drawn from, so the
  *   clouds slide with the camera every frame, and what one flat height
  *   gets wrong about a 800 m deep deck over the few metres flown is
- *   faded, not stepped. The third cube costs 20 MB of video memory.
+ *   faded, not stepped. The three cubes cost 150 MB of video memory.
  */
 const CLOUD_BASE = 1600;
 const CLOUD_SIZE = 850;
@@ -302,8 +302,8 @@ const ENV_PX = 256;
 /* The sky cube's side, the bands each face is drawn in, one band a
  * frame, and the jump in one frame, metres, past which all six faces are
  * drawn at once (THE SKY IS A CUBE, in the module doc). */
-const SKY_CUBE_PX = 640;
-const SKY_CUBE_BANDS = 4;
+const SKY_CUBE_PX = 1024;
+const SKY_CUBE_BANDS = 8;
 const SKY_CUBE_CUT = 40;
 /* The height the backdrop takes a cloud to stand at when it reads the
  * cube from where the cube was drawn: the deck's lower middle, where most
@@ -571,7 +571,7 @@ export function skyBackdrop(sunDir, time) {
       uCubeOld: { value: null },
       uCubeOldFrom: { value: new THREE.Vector3() },
       uCubeMix: { value: 1 },
-      uCubeTexel: { value: 1.5 / SKY_CUBE_PX },
+      uCubeTexel: { value: 1 / SKY_CUBE_PX },
       /* 1 but while the environment is drawn (skyEnvironment). */
       uGain: { value: 1 },
       uStars: { value: night ? 1 : 0 },
@@ -724,7 +724,7 @@ export function skyBackdrop(sunDir, time) {
    * where the camera now is when there is no cube yet or the camera has
    * jumped since the last frame, and the back one started over. (The
    * jump is measured against the last frame, not against when a cube was
-   * drawn: against the cube, a camera moving 40 m in the 24 frames a
+   * drawn: against the cube, a camera moving 40 m in the 48 frames a
    * refresh takes, a plane's cruise, redrew all six faces every frame,
    * 26 ms of GPU each.) */
   sky.updateCube = (renderer, camera) => {
