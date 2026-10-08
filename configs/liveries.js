@@ -560,3 +560,30 @@ export function paletteFor(region) {
 export function paletteColour(hex) {
   return PALETTE.find((c) => c.hex === hex) ?? null;
 }
+
+/*
+ * THE SWATCH LIBRARY: the pilot's own colours, the newest first, kept
+ * once each, at most MAX_SWATCHES. Kept as { list } so it syncs as one
+ * whole section (src/share/progressmerge.js), the newest list winning.
+ * Anything else stored there, from an older build or a hand edit, reads
+ * as the empty library.
+ */
+export const MAX_SWATCHES = 16;
+
+export function normaliseSwatches(raw) {
+  const list = raw && Array.isArray(raw.list) ? raw.list : [];
+  const out = [];
+  for (const v of list) {
+    const hex = typeof v === 'string' ? v.toLowerCase() : null;
+    if (isHex(hex) && !out.includes(hex) && out.length < MAX_SWATCHES) {
+      out.push(hex);
+    }
+  }
+  return { list: out };
+}
+
+/* The library with `hex` kept first, or taken out when it is there. */
+export function toggleSwatch(lib, hex) {
+  const list = lib.list.includes(hex) ? lib.list.filter((h) => h !== hex) : [hex, ...lib.list];
+  return normaliseSwatches({ list });
+}
