@@ -251,7 +251,17 @@ export const LIVERIES = {
       { id: 'stock', source: src('Great Planes, Tiger Moth ARF GPMA1330 instruction manual', 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf'), colours: {} },
       { id: 'raf_silver', source: src('RAF Museum, Training Aircraft Colour Schemes', 'https://www.rafmuseum.org.uk/research/online-exhibitions/taking-flight/training-aircraft-colour-schemes/'), colours: { wing: '#c9ccce', fuselage: '#c9ccce', tail: '#c9ccce', cowl: '#b7babd', bands: '#f2c200', trim: '#17181a' } },
     ],
+  },  extra3d1308: {
+    /* E-flite's moulded foam in its own paint: the nose and spats yellow
+     * orange, the wing's top white with grey outer panels (the tail's
+     * grey), its underside in yellow and black squares. */
+    regions: [r('wing', '#eceef0'), r('fuselage', '#eceef0'), r('nose', '#f2a81d'), r('tail', '#8a9096'), r('trim', '#16181a'), r('checks', '#f2b21d')],
+    schemes: [
+      { id: 'stock', source: src('E-flite Extra 300 3D 1.3m, EFL115500', 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'), colours: {} },
+      { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
+    ],
   },
+
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all
      * over, the red of the nose band, the spinner and the fin's top, and
