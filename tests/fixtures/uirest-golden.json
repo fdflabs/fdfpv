@@ -2342,7 +2342,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -2372,7 +2376,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -2404,7 +2412,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -2438,7 +2450,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -6029,7 +6045,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -6059,7 +6079,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -6091,7 +6115,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {
@@ -6125,7 +6153,11 @@
       "finishes": {},
       "decals": [],
       "wear": 0,
-      "kit": {},
+      "kit": {
+       "spinner": "stock",
+       "canopy": "stock",
+       "wingtips": "stock"
+      },
       "lights": null
      },
      "fit": {

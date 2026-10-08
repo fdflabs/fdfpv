@@ -48,6 +48,9 @@ const UGLYSTIK = [slot('spinner', 'bullet'), slot('wheels', 'pants')];
 /* The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
  * fins a pair on the booms. */
 const SKY = [slot('spinner', 'bullet'), slot('wingtips', 'winglet')];
+/* The Extra's spats are stock, so no wheels slot; side force generators
+ * are the aerobatic tip it is known for. */
+const EXTRA = [slot('spinner', 'bullet', 'striped'), slot('canopy', 'smoke', 'gold'), slot('wingtips', 'sfg')];
 const P51 = [
   slot('spinner', 'twotone', 'striped'),
   slot('exhausts', 'dampers'),
@@ -91,8 +94,7 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 export const KITS = {
   sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
-  /* The Extra arrived after the kit models: no slots until it has its own. */
-  extra3d1308: [],
+  extra3d1308: EXTRA,
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
@@ -106,7 +108,7 @@ export const KITS = {
 export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
   'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
   'p51d1450', 'tigermoth1803', 'bombshell1118',
-  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500']);
+  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500', 'extra3d1308']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];

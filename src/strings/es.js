@@ -2540,6 +2540,7 @@ export default {
   "kit.slot.mount": "Soporte de cámara",
   "kit.slot.antenna": "Antenas",
   "kit.slot.fins": "Aletas",
+  "kit.option.sfg": "Generadores de fuerza lateral",
   "kit.option.stock": "De fábrica",
   "kit.option.bullet": "Bala",
   "kit.option.flat": "Tapa plana",
