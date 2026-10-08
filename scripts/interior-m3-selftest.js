@@ -274,7 +274,7 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => contact(e, 'north'), 120000, 'the northern vehicle');
     watch(e, c, 'north', () => ended(e), 600000, 'over the northern exit');
     const v = view(e);
-    check('won at the northern exit', v.state === 'won', `${v.state} ${v.why ?? ''}`);
+    check(`won at the northern exit, ${Math.round((e.clock - v.goAt) / 60000)} min after the go (MISSIONS.md: 30 to 40)`, v.state === 'won', `${v.state} ${v.why ?? ''}`);
     check('POSITIVE ID and the command site\'s star; NOT ALONE not (no drone yet)', v.result?.starIds.join() === 'positive,command',
       JSON.stringify(v.result));
     check('the flags: M3_ZERO_CIVILIAN_ERRORS', v.flags?.M3_ZERO_CIVILIAN_ERRORS === true, JSON.stringify(v.flags));
@@ -306,6 +306,11 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   snap(e, c, 'confirm_pair', 'pair-a');
   e.fly(e.clock + 4000);
   check('"We don\'t have that yet."; the pair not cleared', e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-notyet')) && clsOf(e, 'pair-a') === 'poi');
+  /* Lenient by choice (CONTRACT-M3.md gap 2): the early box stands, so
+   * the clearance comes with the action without a second one. */
+  watch(e, c, 'pair-a', () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 300000, 'the action');
+  check('the early designation stands: cleared when the pair reaches the gate, no second box', clsOf(e, 'pair-a') === 'hostile'
+    && e.r.ops.match.captures.filter((x) => x.item === 'confirm_pair').length === 1);
 }
 
 console.log('two civilian pickups struck: an error each, the second fails the mission');
