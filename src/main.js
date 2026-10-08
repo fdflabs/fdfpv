@@ -222,6 +222,7 @@ import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wear
 import { learnPartTable } from './ui/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
+import { packEntry } from '../configs/paint.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -3202,7 +3203,9 @@ export async function boot({
       airframe: id,
       map: view ? view.id : worldId(),
       figure: figurePick(),
-      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
+      /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
+       * room's PROFILE_MAX_BYTES. */
+      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
