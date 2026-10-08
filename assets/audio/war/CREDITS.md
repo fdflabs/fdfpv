@@ -184,6 +184,14 @@ the text they are spoken from.
 | itaipu-2-s4-order | `voice/en/itaipu-2-s4-order.webm`, `voice/en/itaipu-2-s4-order.mp3`, `voice/es/itaipu-2-s4-order.webm`, `voice/es/itaipu-2-s4-order.mp3` |
 | itaipu-2-s4-hold | `voice/en/itaipu-2-s4-hold.webm`, `voice/en/itaipu-2-s4-hold.mp3`, `voice/es/itaipu-2-s4-hold.webm`, `voice/es/itaipu-2-s4-hold.mp3` |
 | itaipu-1-s5-order | `voice/en/itaipu-1-s5-order.webm`, `voice/en/itaipu-1-s5-order.mp3`, `voice/es/itaipu-1-s5-order.webm`, `voice/es/itaipu-1-s5-order.mp3` |
+| itaipu-1-g-first | `voice/en/itaipu-1-g-first.webm`, `voice/en/itaipu-1-g-first.mp3`, `voice/es/itaipu-1-g-first.webm`, `voice/es/itaipu-1-g-first.mp3` |
+| itaipu-1-g-scout | `voice/en/itaipu-1-g-scout.webm`, `voice/en/itaipu-1-g-scout.mp3`, `voice/es/itaipu-1-g-scout.webm`, `voice/es/itaipu-1-g-scout.mp3` |
+| itaipu-1-g-intakes | `voice/en/itaipu-1-g-intakes.webm`, `voice/en/itaipu-1-g-intakes.mp3`, `voice/es/itaipu-1-g-intakes.webm`, `voice/es/itaipu-1-g-intakes.mp3` |
+| itaipu-1-g-face | `voice/en/itaipu-1-g-face.webm`, `voice/en/itaipu-1-g-face.mp3`, `voice/es/itaipu-1-g-face.webm`, `voice/es/itaipu-1-g-face.mp3` |
+| itaipu-1-g-back-door | `voice/en/itaipu-1-g-back-door.webm`, `voice/en/itaipu-1-g-back-door.mp3`, `voice/es/itaipu-1-g-back-door.webm`, `voice/es/itaipu-1-g-back-door.mp3` |
+| itaipu-1-g-low-water | `voice/en/itaipu-1-g-low-water.webm`, `voice/en/itaipu-1-g-low-water.mp3`, `voice/es/itaipu-1-g-low-water.webm`, `voice/es/itaipu-1-g-low-water.mp3` |
+| itaipu-1-g-come-for-you | `voice/en/itaipu-1-g-come-for-you.webm`, `voice/en/itaipu-1-g-come-for-you.mp3`, `voice/es/itaipu-1-g-come-for-you.webm`, `voice/es/itaipu-1-g-come-for-you.mp3` |
+| itaipu-1-g-all | `voice/en/itaipu-1-g-all.webm`, `voice/en/itaipu-1-g-all.mp3`, `voice/es/itaipu-1-g-all.webm`, `voice/es/itaipu-1-g-all.mp3` |
 | int-boundary | `voice/en/int-boundary.webm`, `voice/en/int-boundary.mp3`, `voice/es/int-boundary.webm`, `voice/es/int-boundary.mp3` |
 | int-boundary-final | `voice/en/int-boundary-final.webm`, `voice/en/int-boundary-final.mp3`, `voice/es/int-boundary-final.webm`, `voice/es/int-boundary-final.mp3` |
 | int-lost-aircraft | `voice/en/int-lost-aircraft.webm`, `voice/en/int-lost-aircraft.mp3`, `voice/es/int-lost-aircraft.webm`, `voice/es/int-lost-aircraft.mp3` |

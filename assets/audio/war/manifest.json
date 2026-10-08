@@ -10061,6 +10061,562 @@
     }
    }
   },
+  "itaipu-1-g-all.en": {
+   "text": "Protect the plant. Three groups at once. The closest to the dam first, then the next.",
+   "speaker": "crest",
+   "seconds": 6.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2291565276,
+     "heard": "Protect the plant, three groups at once, the closest to the dam first, then the next.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27340,
+     "sha256": "92706a79238e75fbd9737a8fe4713aa58e448fdc1af1766b9823f172b149d5a1"
+    },
+    "mp3": {
+     "bytes": 23444,
+     "sha256": "4f6ec7e9ac508d055ec07642f4a886934541f6bc0982588548eb38feb3f753fc"
+    }
+   }
+  },
+  "itaipu-1-g-all.es": {
+   "text": "Protejan la planta. Tres grupos a la vez. Primero el más cercano a la represa, después el siguiente.",
+   "speaker": "crest",
+   "seconds": 6.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2055671377,
+     "heard": "Protejan la planta. Tres grupos a la vez. Primero el más cercano a la represa, después el siguiente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29138,
+     "sha256": "b07ae124f8b2ddef9c61baff52f340071f001aaf3e530dd2673786fdfc2c6445"
+    },
+    "mp3": {
+     "bytes": 26084,
+     "sha256": "83c83ae41a0e08f3ceffc7a050b557473d6883613fcd20fe5e7430358ef971af"
+    }
+   }
+  },
+  "itaipu-1-g-back-door.en": {
+   "text": "Cross the crest and drop down the far side. Stop the swarm before the penstocks.",
+   "speaker": "crest",
+   "seconds": 5.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2895199811,
+     "heard": "Cross the crest and drop down the far side. Stop the swarm before the penstocks.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 870
+    },
+    {
+     "attempt": 1,
+     "seed": 3314053481,
+     "heard": "Cross the crest and drop down the far side. Stop the swarm before the pentstocks.",
+     "wer": 0.067,
+     "extra": 0,
+     "missing": [
+      "penstocks"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2375066617,
+     "heard": "Cross the crest and drop down the far side. Stop the swarm before the pen stalks.",
+     "wer": 0.133,
+     "extra": 1,
+     "missing": [
+      "penstocks"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 1642863746,
+     "heard": "Cross the crest and drop down the far side. Stop the swarm before the pinstocks.",
+     "wer": 0.067,
+     "extra": 0,
+     "missing": [
+      "penstocks"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 1173686162,
+     "heard": "Cross the crest and drop down the far side. Stop the swarm before the penstocks.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23877,
+     "sha256": "fca689d366616a63d78fd67fe55f9586b93f9891f71bdc7a92e0f9aa236caebc"
+    },
+    "mp3": {
+     "bytes": 22340,
+     "sha256": "59223333727cbc5ba2d30140349e2bff99e1d4447b1b0437a226bcb3ae1de7cf"
+    }
+   }
+  },
+  "itaipu-1-g-back-door.es": {
+   "text": "Crucen la cresta y bajen del otro lado. Paren el enjambre antes de las tuberías.",
+   "speaker": "crest",
+   "seconds": 5.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3062843076,
+     "heard": "Crucen la cresta y bajen del otro lado. Paren el enjambre antes de las tuberías.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24857,
+     "sha256": "10cad2f253158e7e2d66495d4f7528ff77bf02c166223085a377eb85885b90b1"
+    },
+    "mp3": {
+     "bytes": 22676,
+     "sha256": "5526f7f2a37d9f889fc0efb3a3cba2741b88f5d43d66d2ba81ab969944644e07"
+    }
+   }
+  },
+  "itaipu-1-g-come-for-you.en": {
+   "text": "The Hunters chase your bird. Don't fly straight. Turn into them and take them first.",
+   "speaker": "crest",
+   "seconds": 4.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 967148934,
+     "heard": "The hunters chase your bird, don't fly straight, turn into them and take them first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19121,
+     "sha256": "9f4bc4035a18fda5f87a660df3cce38cfd908946bc7cf9f3ae73d8df6bd416ad"
+    },
+    "mp3": {
+     "bytes": 17804,
+     "sha256": "02c2a1dfd49c229d7074d29e90c3d75f68a498d79ffb36fcb823d2785f42ad54"
+    }
+   }
+  },
+  "itaipu-1-g-come-for-you.es": {
+   "text": "Los cazadores persiguen su aparato. No vuelen recto. Giren hacia ellos y derríbenlos primero.",
+   "speaker": "crest",
+   "seconds": 6.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3558739968,
+     "heard": "Los cazadores persiguen su aparato, no vuelen recto, giren hacia ellos y derriben los primero.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1380689600,
+     "heard": "Los cazadores persiguen su aparato. No vuelen recto, giren hacia ellos y derriben los primeros.",
+     "wer": 0.214,
+     "extra": 1,
+     "missing": [
+      "derribenlos",
+      "primero"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2839198836,
+     "heard": "Los cazadores persiguen su aparato, no vuelen recto, giren hacia ellos y derriben los primero.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 1975747644,
+     "heard": "Los cazadores persiguen su aparato, no vuelen recto, giren hacia ellos y derriben los primero.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 1266414169,
+     "heard": "Los cazadores persiguen su aparato, no vuelen recto, giren hacia ellos y derriben los primero.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 3885015187,
+     "heard": "Los cazadores persiguen su aparato. No vuelen recto. Giren hacia ellos y derríbenlos primero.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29982,
+     "sha256": "8715439789c8674dbd86de9024b60438b256c3279018e9802fe726cde6ea5027"
+    },
+    "mp3": {
+     "bytes": 26492,
+     "sha256": "b0ba3d1bac5d47f341bd322d4dbf9aa5e24384e4e5ec2252c1235b48447e6ecb"
+    }
+   }
+  },
+  "itaipu-1-g-face.en": {
+   "text": "Protect the intakes and the gates. Some come high, some come low. Take the one closest to the dam first.",
+   "speaker": "crest",
+   "seconds": 6.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1965696078,
+     "heard": "Protect the intakes in the gates. Some come high, some come low. Take the one closest to the dam first.",
+     "wer": 0.05,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29399,
+     "sha256": "5d2ffeb5f7c623e057b403367914378eeae15ef29068dde2bf9c413839313c7f"
+    },
+    "mp3": {
+     "bytes": 26252,
+     "sha256": "67cf2bf59a9b5f51a0a808e2d43f81f1dbcd4a36f0ba5e3499aadc13dc9c6091"
+    }
+   }
+  },
+  "itaipu-1-g-face.es": {
+   "text": "Protejan las tomas y las compuertas. Unos llegan por arriba, otros por abajo. Primero el más cercano a la represa.",
+   "speaker": "crest",
+   "seconds": 7.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1025707143,
+     "heard": "Protejan las tomas y las compuertas. Unos llegan por arriba, otros por abajo. Primero, el más cercano a la represa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 33341,
+     "sha256": "dc37939183cf1119cabde2437df5f75f14e11cb2c690e38388ddd0bc26b3b5fb"
+    },
+    "mp3": {
+     "bytes": 30860,
+     "sha256": "6e831f6f106e39ac889fe76f4095d5839f706f7bf9c8ce03c9be4b0a78f1fb9c"
+    }
+   }
+  },
+  "itaipu-1-g-first.en": {
+   "text": "Your bird is the weapon. Fly at a marked contact. In range, the warhead goes off by itself.",
+   "speaker": "crest",
+   "seconds": 5.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3491347969,
+     "heard": "Your bird is the weapon, fly at a marked contact, in range the warhead goes off by itself.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26156,
+     "sha256": "1b69bf8f88169782922435083c82c0b8cf26a8d57bdebdec32f32455b73a37af"
+    },
+    "mp3": {
+     "bytes": 23036,
+     "sha256": "30143a6076e20c2919a70ba63c35405f8ac7e6aefe235c2af769f8051370641e"
+    }
+   }
+  },
+  "itaipu-1-g-first.es": {
+   "text": "Su aparato es el arma. Vuelen hacia un contacto marcado. Dentro del alcance, la ojiva estalla sola.",
+   "speaker": "crest",
+   "seconds": 6.525,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2384416503,
+     "heard": "Su aparato es el arma. Vuelen hacia un contacto marcado. Dentro del alcance, la ojiva está ya sola.",
+     "wer": 0.118,
+     "extra": 1,
+     "missing": [
+      "estalla"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2979638810,
+     "heard": "Su aparato es el arma. Vuelen hacia un contacto marcado. Dentro del alcance, la ojiva estalla sola.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29760,
+     "sha256": "c12fcdddd3ca0cfd96f7d406818d5933c6e0377e3fcd6efb269cf1f3a094494d"
+    },
+    "mp3": {
+     "bytes": 27236,
+     "sha256": "17723b7825b50bfc96245e853dd1778d36891a9d55bea5de0373b9177d8f7e20"
+    }
+   }
+  },
+  "itaipu-1-g-intakes.en": {
+   "text": "Protect the intakes on the upstream face. Strikers come in low over the water. Fly north and meet them early.",
+   "speaker": "crest",
+   "seconds": 6.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1565891682,
+     "heard": "Protect the intakes on the upstream face. Strikers come in low over the water, fly north and meet them early.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 31672,
+     "sha256": "28ea82b8d4d1b43a18c052e932dba9d90401fd5baccf5765d0cb9a85fa39cf1f"
+    },
+    "mp3": {
+     "bytes": 28580,
+     "sha256": "fb5c10e89977fe6cf7e450a6121588291039f36a77500f2364dc9787ee20b4db"
+    }
+   }
+  },
+  "itaipu-1-g-intakes.es": {
+   "text": "Protejan las tomas de la cara aguas arriba. Los atacantes vienen bajo, sobre el agua. Vuelen al norte y salgan a su encuentro temprano.",
+   "speaker": "crest",
+   "seconds": 8.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2010701425,
+     "heard": "Protejan las tomas de la cara aguas arriba. Los atacantes vienen bajo, sobre el agua, vuelen al norte y salgan a su encuentro temprano.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 38794,
+     "sha256": "26d18d5654bbb0497bb20f1a264cf22216a91edd3e38da09e86071aedd91bf79"
+    },
+    "mp3": {
+     "bytes": 35684,
+     "sha256": "b5d08bfa4178a9622e58e7a962e43ce9ba9990f30bd390d573800073ccddc3e2"
+    }
+   }
+  },
+  "itaipu-1-g-low-water.en": {
+   "text": "The boats run along the east shore. Fly low over the water and hit them before the face.",
+   "speaker": "crest",
+   "seconds": 5.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 684642689,
+     "heard": "The boats run along the east shore, fly low over the water and hit them before the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26513,
+     "sha256": "6a7b507ff4179fe2ce4cd9c7999225d3de15314678cea332a0a5ec9d203d0653"
+    },
+    "mp3": {
+     "bytes": 23036,
+     "sha256": "0bd60a628a45c6556c475d7cb12e01fa628f28636b8d693c1a5d96be6d83a71d"
+    }
+   }
+  },
+  "itaipu-1-g-low-water.es": {
+   "text": "Las lanchas van por la costa este. Vuelen bajo sobre el agua y péguenles antes de la cara.",
+   "speaker": "crest",
+   "seconds": 5.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4262468562,
+     "heard": "Las lanchas van por la costa este, huelen bajo sobre el agua y péguenles antes de la cara.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "vuelen"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3961788599,
+     "heard": "Las lanchas van por la costa este, huelen bajo sobre el agua y péguenles antes de la cara.",
+     "wer": 0.056,
+     "extra": 0,
+     "missing": [
+      "vuelen"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 777722970,
+     "heard": "Las lanchas van por la costa este, vuelen bajo sobre el agua y péguenles antes de la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26919,
+     "sha256": "323a4c82f16fe52afcef52d8675d151ddbddb9e2d881517b7db4662e90b964fe"
+    },
+    "mp3": {
+     "bytes": 24188,
+     "sha256": "eb8c298f1c6b9e7dd07f221d8dc191e7dc680b1c498fa3a8ad3efceb8f8a8b32"
+    }
+   }
+  },
+  "itaipu-1-g-scout.en": {
+   "text": "Your job now is the scout. It circles high over the reservoir, north of the dam. Climb and kill it.",
+   "speaker": "crest",
+   "seconds": 6.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 646080688,
+     "heard": "Your job now is the scout. It circles high over the reservoir, north of the dam. Climb and kill it. Climb and kill",
+     "wer": 0.15,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3609787769,
+     "heard": "Your job now is the scout. It circles high over the reservoir north of the dam. Climb and kill it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29220,
+     "sha256": "e7dacebf3e37f8efc1fcad9c2efbb780e16b45b19abb4eafbd78e4ccf74c846d"
+    },
+    "mp3": {
+     "bytes": 26012,
+     "sha256": "a204c114d5b1621441b10830e08615796b477e2010a6bcb5b57d1fc91dba0802"
+    }
+   }
+  },
+  "itaipu-1-g-scout.es": {
+   "text": "Su tarea ahora es el explorador. Da vueltas en altura sobre el embalse, al norte de la represa. Suban y derríbenlo.",
+   "speaker": "crest",
+   "seconds": 7.535,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 871652783,
+     "heard": "Su tarea ahora es el explorador. Da vueltas en altura sobre el embalse, al norte de la represa, suban y derríbenlo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 34294,
+     "sha256": "ce2516b400bd5bedeb3568a752c251422ac0e67cd51f282b0eac99907aa3e6e8"
+    },
+    "mp3": {
+     "bytes": 31436,
+     "sha256": "faffb9b9d78e2ad01fa8b1966aa44ff4901587444c05977b1dcfd342feb2e5db"
+    }
+   }
+  },
   "itaipu-1-s0-brief.en": {
    "text": "Pilots of both banks, this is Crest. Something's been circling since before light.",
    "speaker": "crest",
