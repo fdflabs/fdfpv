@@ -72,9 +72,11 @@ PRESETS[id] = { speed, layers: [[h, mul], ...], gust, front }
   speed   mean wind at h = 0 above the map's base height, m/s
   layers  piecewise linear multiplier of the mean by height above base, m
   gust    gust RMS everywhere, m/s
-  front   null, or { every, width, speed, boost, gust }: bands `every` m
-          apart, `width` m wide, moving downwind at `speed` m/s; inside one
-          the mean is multiplied by up to `boost` and `gust` m/s is added.
+  front   null, or { every, width, speed, boost, gust, rain }: bands
+          `every` m apart, `width` m wide, moving downwind at `speed` m/s;
+          inside one the mean is multiplied by up to `boost`, `gust` m/s is
+          added, and it rains up to `rain` (0 to 1, `out.wet`, the picture
+          only: src/render/rain.js).
 MAPS[mapId] = { base, zones: [{ a: [x, z], b: [x, z], r, shelter, gust }] }
   a zone is a capsule (segment a b, radius r, map frame); at its axis the
   mean is multiplied by `shelter` and `gust` m/s is added, fading to nothing
@@ -122,8 +124,12 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
    is the run's air with one fixed seed; a room host's setting is sent to
    the room. Weather is free flight only: a race map (records), a war and an
    operations mission fly still air whatever is picked (lead decision).
-4. Visuals: rain and haze from the preset, coordinated with the clouds lane
-   through the plan file (sky.js is theirs).
+4. Visuals: rain streaks round the camera while a front passes
+   (src/render/rain.js: one draw call, moved in the vertex shader, hidden and
+   free while dry, so calm costs nothing). Haze and reduced visibility are
+   NOT built: every map's fog and aerial perspective live in its look
+   modules (itaipu/look, the clouds and photoreal lanes' lines); asked of
+   those lanes in the plan file.
 
 ## The checks
 

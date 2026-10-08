@@ -404,6 +404,7 @@
     "check:weather": "node scripts/weather-check.js",
     "check:weather-room": "node scripts/weather-room-check.js",
     "check:weather-ui": "node scripts/weather-ui-check.js",
+    "check:weather-rain": "node scripts/weather-rain-check.js",
     "lint:bf": "node scripts/brand-lint.js",
     "lint:devices": "node scripts/device-check.js",
     "lint:responsive": "node scripts/responsive-check.js",

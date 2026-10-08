@@ -47,7 +47,7 @@ export const PRESETS = {
   gusty: { speed: 6, layers: LAYERS, gust: 2, front: null },
   front: {
     speed: 5, layers: LAYERS, gust: 1.2,
-    front: { every: 2400, width: 300, speed: 8, boost: 2.2, gust: 3 },
+    front: { every: 2400, width: 300, speed: 8, boost: 2.2, gust: 3, rain: 1 },
   },
 };
 export const PRESET_IDS = Object.keys(PRESETS);
@@ -119,8 +119,9 @@ function segDist2(a, b, x, z) {
 /*
  * The air for one room: null for calm (the shell then sets still air once,
  * and the plant is exactly what it was before weather existed), else
- * { at(x, y, z, t, out) } writing out.x, out.z (the mean, m/s, toward) and
- * out.gust (RMS, m/s), within the ABI's limits. Throws on an unknown map or
+ * { at(x, y, z, t, out) } writing out.x, out.z (the mean, m/s, toward),
+ * out.gust (RMS, m/s), within the ABI's limits, and out.wet, how hard it
+ * rains, 0 to 1, which only the picture reads. Throws on an unknown map or
  * preset: a room naming one is a bug to see, not still air to fly in.
  */
 export function makeWeather(mapId, presetId, seed) {
@@ -148,6 +149,7 @@ export function makeWeather(mapId, presetId, seed) {
     at(x, y, z, t, out) {
       let mean = p.speed * layerMul(p.layers, y - map.base);
       let gust = p.gust;
+      let wet = 0;
       for (const zone of map.zones) {
         const k = 1 - smooth(0, zone.r * zone.r, segDist2(zone.a, zone.b, x, z));
         mean *= 1 + (zone.shelter - 1) * k;
@@ -159,11 +161,13 @@ export function makeWeather(mapId, presetId, seed) {
         const k = 1 - smooth(0, 0.5 * f.width, u < 0 ? -u : u);
         mean *= 1 + (f.boost - 1) * k;
         gust += f.gust * k;
+        wet = f.rain * k;
       }
       mean = mean < WIND_MAX ? mean : WIND_MAX;
       out.x = dx * mean;
       out.z = dz * mean;
       out.gust = gust < GUST_FLOOR ? GUST_FLOOR : (gust > GUST_MAX ? GUST_MAX : gust);
+      out.wet = wet;
       return out;
     },
   };
