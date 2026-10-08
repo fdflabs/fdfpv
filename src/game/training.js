@@ -38,21 +38,105 @@ const TURN_RAD = 2 * Math.PI;
  * { turn: 'left' | 'right' } a full circle that way; { land: true } down
  * and whole after a real flight; { laps: n, clean } n laps on the course,
  * clean meaning no rim touched; { ghost: true } a lap faster than the ghost.
- * A crash starts the lesson's steps again. The words are
+ * A crash starts the lesson's steps again. `aid` is the visual aid the
+ * lesson draws: 'glide', the glide path to its place's strip, or 'gate',
+ * the next gate's direction on the HUD. `covers` lists the lessons a pass
+ * of this one passes too, because it asks all they ask. The words are
  * training.lesson.<id> and training.lesson.<id>_note.
  */
 export const LESSONS = [
   { id: 'first_takeoff', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ airborne: TAKEOFF_HOLD_MS }] },
   { id: 'first_turns', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ turn: 'left' }, { turn: 'right' }] },
-  { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ land: true }] },
+  { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true }] },
   {
-    id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-acro', place: 'swiss2',
+    id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-acro', place: 'swiss2', aid: 'glide',
+    covers: ['first_takeoff', 'first_turns', 'first_land'],
     steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },
-  { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, steps: [{ laps: 1, clean: false }] },
-  { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, steps: [{ laps: 1, clean: true }] },
-  { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, steps: [{ ghost: true }] },
+  { id: 'race_lap', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ laps: 1, clean: false }] },
+  { id: 'race_clean', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', covers: ['race_lap'], steps: [{ laps: 1, clean: true }] },
+  { id: 'race_ghost', track: 'racing', airframe: null, tune: null, place: null, aid: 'gate', steps: [{ ghost: true }] },
 ];
+
+/*
+ * THE STRIPS a glide path is drawn to, in the world's frame (Three.js, y
+ * up, metres): the threshold's x and z, and the way a landing rolls along
+ * the ground. The Swiss valley's strip is the Alps' (src/maps/alps/terrain.js
+ * STRIP_L, along z at the origin; training:selftest reads it from there),
+ * landed from its +z end towards -z.
+ */
+export const STRIPS = {
+  swiss2: { x: 0, z: 160 / 2, dirX: 0, dirZ: -1 },
+};
+
+/* The glide path: a gate every SPACING metres back up the approach at
+ * SLOPE (radians, a model's steeper approach than a full size 3 degrees),
+ * the nearest NEAR metres short of the threshold. */
+export const GLIDE = { slope: (6 * Math.PI) / 180, spacing: 18, count: 10, near: 12 };
+
+/* The glide path's gates, nearest first: { x, y, z } with y above the
+ * ground at the threshold, `groundY`. */
+export function glidePoints(strip, groundY) {
+  const out = [];
+  for (let i = 0; i < GLIDE.count; i += 1) {
+    const back = GLIDE.near + i * GLIDE.spacing;
+    out.push({
+      x: strip.x - strip.dirX * back,
+      y: groundY + back * Math.tan(GLIDE.slope),
+      z: strip.z - strip.dirZ * back,
+    });
+  }
+  return out;
+}
+
+/*
+ * The next gate's direction for the HUD: `cam` the camera's position and
+ * its forward and up unit vectors, `to` the gate's centre, all in one frame.
+ * Returns the angle round the crosshair (radians, 0 up the screen, positive
+ * clockwise) and whether the gate is ahead within `cone` (radians), where
+ * the gate itself is the cue and no arrow is drawn.
+ */
+export function gateCue(cam, to, cone = 0.35) {
+  const dx = to.x - cam.x;
+  const dy = to.y - cam.y;
+  const dz = to.z - cam.z;
+  const len = Math.hypot(dx, dy, dz) || 1;
+  const f = cam.forward;
+  const u = cam.up;
+  const r = { x: f.y * u.z - f.z * u.y, y: f.z * u.x - f.x * u.z, z: f.x * u.y - f.y * u.x };
+  const ahead = (dx * f.x + dy * f.y + dz * f.z) / len;
+  const right = (dx * r.x + dy * r.y + dz * r.z) / len;
+  const upward = (dx * u.x + dy * u.y + dz * u.z) / len;
+  return { angle: Math.atan2(right, upward), ahead: ahead > Math.cos(cone) };
+}
+
+/* The tracks in the order the page lists them. */
+export const TRACKS = ['first', 'racing'];
+
+/* "I fly already": per track, the one lesson an experienced pilot flies
+ * to pass the track's basics at once (TRAINING.md 4), the lesson that
+ * covers the rest. */
+export const SKIPS = { first: 'first_unaided', racing: 'race_clean' };
+
+/* What a pass of lesson `id` passes: itself and what it covers. */
+export function passesOf(id) {
+  const l = lessonById(id);
+  return l ? [l.id, ...(l.covers || [])] : [];
+}
+
+/*
+ * The craft's heading from a plant state (src/sim, CLAUDE.md): the body to
+ * world quaternion is st[7..10] as w, x, y, z, in the plant's frame, z up,
+ * x forward, y left (src/render/frame.js). The yaw about +z, so a turn to
+ * the left raises it: what LessonWatch's turn steps count as left.
+ */
+export function headingOf(st) {
+  const w = st[7];
+  const x = st[8];
+  const y = st[9];
+  const z = st[10];
+  return Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+}
 
 export function lessonById(id) {
   return LESSONS.find((l) => l.id === id) ?? null;

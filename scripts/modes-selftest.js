@@ -115,7 +115,11 @@ const cards = WAYS.filter((w) => w.gate !== false);
  * the campaigns src/game/campaign.js lists, in Operations, and nothing
  * else may skip the registry. */
 const opsCards = cards.filter((w) => w.opsCampaign);
-check('every card on the title is an activity of the registry, or a campaign of ops missions', cards.filter((w) => !w.opsCampaign).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+/* Learn to fly is solo lessons, never a room, so it has no mode either
+ * (docs/TRAINING-DAMAGE-CONTRACT.md): one card, in Flight Club. */
+const trainingCards = cards.filter((w) => w.training);
+check('every card on the title is an activity of the registry, a campaign of ops missions, or Learn to fly', cards.filter((w) => !w.opsCampaign && !w.training).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+check('Learn to fly is one card, in Flight Club, with no lobby', trainingCards.length === 1 && trainingCards[0].category === 'flightclub' && !Object.hasOwn(trainingCards[0], 'lobby'));
 check('a campaign card is a campaign of src/game/campaign.js, in Operations, with no lobby', opsCards.length > 0 && opsCards.every((w) => w.opsCampaign === INTERIOR_CAMPAIGN.id && w.category === 'operations' && !Object.hasOwn(w, 'lobby')),
   opsCards.map((w) => `${w.id}:${w.opsCampaign}:${w.category}`).join());
 

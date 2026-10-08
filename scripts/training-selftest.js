@@ -21,7 +21,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LESSONS, LessonWatch, lessonById } from '../src/game/training.js';
+import { readFileSync } from 'node:fs';
+import { GLIDE, LESSONS, LessonWatch, SKIPS, STRIPS, TRACKS, gateCue, glidePoints, headingOf, lessonById, passesOf } from '../src/game/training.js';
 import { TUNES } from '../configs/registry.js';
 import { airframeById } from '../configs/airframes.js';
 import { MAPS } from '../src/maps/registry.js';
@@ -99,6 +100,74 @@ expect('race clean: rim only', fly('race_clean', [], { laps: [{ rim: true }] }),
 expect('ghost: faster', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: 30000 }] }), true);
 expect('ghost: slower', fly('race_ghost', [], { laps: [{ ms: 31000, ghostMs: 30000 }] }), false);
 expect('ghost: no ghost', fly('race_ghost', [], { laps: [{ ms: 29000, ghostMs: null }] }), false);
+
+/* The turn sign against the plant's frame (src/render/frame.js: z up, x
+ * forward, y left): rotate the nose by the state's quaternion and see
+ * which side it points to. A heading that rises must be a nose that went
+ * to +y, the left. */
+function stateYawPitch(yaw, pitch) {
+  /* q = yaw about z, then pitch about the body's y. */
+  const cy = Math.cos(yaw / 2);
+  const sy = Math.sin(yaw / 2);
+  const cp = Math.cos(pitch / 2);
+  const sp = Math.sin(pitch / 2);
+  const st = new Float64Array(16);
+  st[7] = cy * cp;
+  st[8] = -sy * sp;
+  st[9] = cy * sp;
+  st[10] = sy * cp;
+  return st;
+}
+function noseOf(st) {
+  const [w, x, y, z] = [st[7], st[8], st[9], st[10]];
+  return [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+}
+for (const yaw of [0.4, 1.5, -0.7, 2.9]) {
+  const st = stateYawPitch(yaw, 0.3);
+  const nose = noseOf(st);
+  expect(`heading ${yaw} read back`, Math.abs(headingOf(st) - yaw) < 1e-9, true);
+  expect(`heading ${yaw} > 0 is a nose to the left (+y)`, Math.sign(nose[1]) === Math.sign(Math.sin(yaw)), true);
+}
+expect('every lesson is on a listed track', LESSONS.every((l) => TRACKS.includes(l.track)), true);
+for (const t of TRACKS) {
+  expect(`training.track.${t} en and es`, typeof en[`training.track.${t}`] === 'string' && typeof es[`training.track.${t}`] === 'string', true);
+}
+
+/* The aids. The Swiss valley's strip is the Alps' terrain's, which Node
+ * cannot import (it needs Three.js), so its length is read from the source. */
+const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8'))[1]);
+expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
+expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);
+expect('a glide lesson flies where there is a strip', LESSONS.filter((l) => l.aid === 'glide').every((l) => Boolean(STRIPS[l.place])), true);
+const pts = glidePoints(STRIPS.swiss2, 3);
+expect('the glide path has its gates', pts.length, GLIDE.count);
+expect('all short of the threshold, on the approach side', pts.every((p) => p.z > STRIPS.swiss2.z && p.x === STRIPS.swiss2.x), true);
+expect('each higher than the one nearer the strip, at the slope', pts.every((p, i) => i === 0 || Math.abs((p.y - pts[i - 1].y) / (p.z - pts[i - 1].z) - Math.tan(GLIDE.slope)) < 1e-12), true);
+expect('the nearest one a metre or so over the ground', pts[0].y - 3 > 0.5 && pts[0].y - 3 < 3, true);
+const eye = { x: 0, y: 0, z: 0, forward: { x: 0, y: 0, z: -1 }, up: { x: 0, y: 1, z: 0 } };
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+expect('a gate dead ahead needs no arrow', gateCue(eye, { x: 0, y: 1, z: -40 }).ahead, true);
+expect('a gate to the right: the arrow points right', near(gateCue(eye, { x: 10, y: 0, z: 0 }).angle, Math.PI / 2), true);
+expect('to the left: left', near(gateCue(eye, { x: -10, y: 0, z: 0 }).angle, -Math.PI / 2), true);
+expect('above: up', near(gateCue(eye, { x: 0, y: 10, z: 0 }).angle, 0), true);
+expect('behind and a little right: right, not ahead', gateCue(eye, { x: 1, y: 0, z: 20 }).angle > 0 && !gateCue(eye, { x: 1, y: 0, z: 20 }).ahead, true);
+
+/* I fly already: each track's skip is its own lesson, and what a lesson
+ * covers is earlier lessons of its own track. */
+for (const t of TRACKS) {
+  const l = lessonById(SKIPS[t]);
+  expect(`${t}: its skip is one of its lessons`, Boolean(l) && l.track === t, true);
+}
+for (const l of LESSONS.filter((x) => x.covers)) {
+  const at = LESSONS.indexOf(l);
+  expect(`${l.id} covers earlier lessons of its track`, l.covers.every((id) => {
+    const c = lessonById(id);
+    return c && c.track === l.track && LESSONS.indexOf(c) < at;
+  }), true);
+}
+expect('a pass of the unaided round passes the first flight track', passesOf('first_unaided').join(), 'first_unaided,first_takeoff,first_turns,first_land');
+expect('a pass of a lesson that covers nothing passes itself', passesOf('first_land').join(), 'first_land');
+expect('training.skip en and es', ['training.skip', 'training.skip_note'].every((k) => typeof en[k] === 'string' && typeof es[k] === 'string'), true);
 
 console.log(failed ? `FAIL, ${failed} case(s)` : `PASS, ${LESSONS.length} lessons judged`);
 process.exit(failed ? 1 : 0);

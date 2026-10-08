@@ -501,6 +501,25 @@
      "mode": "freestyle",
      "opsCampaign": "interior",
      "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><circle cx=\"150\" cy=\"150\" r=\"118\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\"/><path d=\"M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290\" stroke=\"currentColor\" stroke-width=\"10\" stroke-opacity=\"0.9\" stroke-linecap=\"round\"/><circle cx=\"150\" cy=\"150\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.7\"/><circle cx=\"150\" cy=\"150\" r=\"14\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
+    },
+    {
+     "action": "way-training",
+     "airframes": [
+      "timber1500"
+     ],
+     "art": "assets/posters/swiss2.jpg",
+     "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
+     "category": "flightclub",
+     "facts": [
+      "Short lessons, in order",
+      "Stabilised first, then Acro",
+      "Nothing waits on them"
+     ],
+     "id": "training",
+     "label": "Learn to fly",
+     "mode": "freestyle",
+     "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><rect x=\"138\" y=\"38\" width=\"24\" height=\"222\" rx=\"12\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\"/><path d=\"M 22 128 L 278 128 L 270 166 L 30 166 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><path d=\"M 96 226 L 204 226 L 198 250 L 102 250 Z\" fill=\"currentColor\" fill-opacity=\"0.38\" stroke=\"currentColor\" stroke-width=\"4\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/></svg>",
+     "training": true
     }
    ],
    "WEIGHT_MAX": 140,

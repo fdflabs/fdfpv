@@ -61,6 +61,9 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { createGlidePath } from './render/glidepath.js';
+import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
@@ -148,6 +151,7 @@ import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilm
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { createTrainingScreen } from './ui/training.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
@@ -7029,6 +7033,30 @@ export async function boot({
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
   /*
+   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
+   * Stabilised or Acro) and goes in by the card it is flown from, Free
+   * Flight on its world or Track mode's tracks; its judge rides on the
+   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   */
+  const trainingScreen = createTrainingScreen({
+    ui,
+    passed: (id) => Boolean(ui.settings.progress.lessons[id]),
+    fly: (lesson) => {
+      const s = ui.settings;
+      const craft = lesson.airframe || s.airframe;
+      if (craft !== s.airframe) {
+        seatAirframe(s, craft);
+      }
+      if (lesson.tune) {
+        s.tune = lesson.tune;
+      }
+      ui.progress.startLesson(lesson);
+      ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
+    },
+  });
+  ui.onTrainingCard = () => trainingScreen.open();
+  window.__training = trainingScreen;
+  /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
    * first core role's aircraft, seated before the room is joined so every
@@ -10180,6 +10208,47 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /*
+   * A LESSON'S AIDS (src/game/training.js): the glide path to the strip
+   * and the next gate's chevron, drawn only while a lesson that names one
+   * is in flight. Nothing here reaches the plant.
+   */
+  const glidePath = createGlidePath();
+  shell.keepAcrossMaps(glidePath.group);
+  const gateCueHud = createGateCue();
+  let glideKey = null;
+  let glideAt = null;
+  const cueCam = { x: 0, y: 0, z: 0, forward: new THREE.Vector3(), up: new THREE.Vector3() };
+  const cueTo = { x: 0, y: 0, z: 0 };
+  function aidsFrame() {
+    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
+    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
+    const scene = shell.quad.parent;
+    if (scene && glidePath.group.parent !== scene) {
+      scene.add(glidePath.group);
+    }
+    if (strip && glideKey !== ui.settings.map) {
+      glideKey = ui.settings.map;
+      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
+    }
+    glidePath.show(strip ? glideAt : null, strip);
+    const gate = aid === 'gate' && !race.freestyle ? race.gates[race.next] : null;
+    if (!gate) {
+      gateCueHud.show(null);
+      return;
+    }
+    const c = shell.camera;
+    cueCam.x = c.position.x;
+    cueCam.y = c.position.y;
+    cueCam.z = c.position.z;
+    c.getWorldDirection(cueCam.forward);
+    cueCam.up.set(0, 1, 0).applyQuaternion(c.quaternion);
+    cueTo.x = gate.x;
+    cueTo.y = gate.y + (gate.apertures[0] ? gate.apertures[0].centreY : 0);
+    cueTo.z = gate.z;
+    gateCueHud.show(gateCue(cueCam, cueTo));
+  }
+  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null, gateCue: gateCueHud.shown() });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -11866,7 +11935,7 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun(ctx);
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr) });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
@@ -16530,7 +16599,11 @@ export async function boot({
       if (race.laps.length > lapsBefore) {
         const seated = seatedMapTrack();
         const medals = seated && seated.document && seated.document.medals;
-        ui.progress.lap(progressCourse(), medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing));
+        ui.progress.lap(progressCourse(), {
+          ms: race.laps[race.laps.length - 1],
+          ghostMs: ghostChased ? ghostChased.durationMs : null,
+          medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
+        });
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
@@ -16788,6 +16861,7 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
+    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the
