@@ -418,6 +418,36 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -1524,6 +1554,58 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -2085,6 +2167,36 @@
      "mode": "freestyle",
      "craftGate": false,
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -3211,6 +3323,58 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -3772,6 +3936,36 @@
      "mode": "freestyle",
      "craftGate": false,
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -4900,6 +5094,58 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -5590,6 +5836,41 @@
       "mode": "freestyle",
       "craftGate": false,
       "roomGame": "tag",
+      "settings.airframeAsked": true,
+      "settings.map": "swiss2",
+      "settings.freestyleMap": "swiss2",
+      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+     }
+    }
+   },
+   "way-jam": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "setCursor",
+       0
+      ],
+      [
+       "show",
+       "friends"
+      ],
+      [
+       "onSettings",
+       "object"
+      ]
+     ],
+     "changed": {
+      "screen": "friends",
+      "mode": "freestyle",
+      "craftGate": false,
+      "roomGame": "jam",
       "settings.airframeAsked": true,
       "settings.map": "swiss2",
       "settings.freestyleMap": "swiss2",
@@ -7028,6 +7309,68 @@
      }
     }
    },
+   "way-jam picked:cub": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "setCursor",
+       0
+      ],
+      [
+       "show",
+       "friends"
+      ],
+      [
+       "onSettings",
+       "object"
+      ]
+     ],
+     "changed": {
+      "screen": "friends",
+      "mode": "freestyle",
+      "craftGate": false,
+      "roomGame": "jam",
+      "settings.airframeAsked": true,
+      "settings.map": "swiss2",
+      "settings.freestyleMap": "swiss2",
+      "settings.cameraFov": 95,
+      "settings.cameraAngle": 45,
+      "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+     }
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "onSettings",
+       "object"
+      ],
+      [
+       "show",
+       "freestyle"
+      ]
+     ],
+     "changed": {
+      "screen": "freestyle",
+      "mode": "freestyle",
+      "craftGate": false,
+      "roomGame": "jam",
+      "settings.airframeAsked": true,
+      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+     }
+    }
+   },
    "way-war picked:cub": {
     "calls": [],
     "changed": {},
@@ -7609,6 +7952,34 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
@@ -8711,6 +9082,54 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -9250,6 +9669,34 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
@@ -10352,6 +10799,54 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -10874,6 +11369,31 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
     }
@@ -11994,6 +12514,58 @@
      "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframe": "interceptor",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "store.webfpv.settings.v3": "1524 chars, hash dbfb9162"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1486 chars, hash 470d04be"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -12548,6 +13120,34 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -13688,6 +14288,61 @@
      "store.webfpv.settings.v3": "1487 chars, hash fc8ffa07"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1487 chars, hash fc8ffa07"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -14240,6 +14895,34 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -15407,6 +16090,63 @@
      "store.webfpv.settings.v3": "1483 chars, hash 738426c7"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "alps",
+     "store.webfpv.settings.v3": "1483 chars, hash 738426c7"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -15988,6 +16728,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -17107,6 +17876,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -17662,6 +18481,36 @@
      "mode": "freestyle",
      "returnTo": "title",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -18789,6 +19638,58 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -19332,6 +20233,32 @@
      "screen": "friends",
      "returnTo": "title",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "title",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
@@ -20472,6 +21399,60 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -21039,6 +22020,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -22155,6 +23165,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -22792,6 +23852,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -23907,6 +24996,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -24541,6 +25680,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -25660,6 +26828,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -26245,6 +27463,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -27361,6 +28608,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -27998,6 +29295,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -29113,6 +30439,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -29738,6 +31114,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -30853,6 +32258,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -31453,6 +32908,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -32568,6 +34052,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -33188,6 +34722,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -34303,6 +35866,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -34919,6 +36532,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -36034,6 +37676,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -36587,6 +38279,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -37702,6 +39423,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -38381,6 +40152,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -39496,6 +41296,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -40098,6 +41948,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -41217,6 +43096,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -41749,6 +43678,31 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1481 chars, hash 6bd9a0d8"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1481 chars, hash 6bd9a0d8"
     }
@@ -42886,6 +44840,58 @@
      "store.webfpv.settings.v3": "1481 chars, hash 6bd9a0d8"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1519 chars, hash 6239c566"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ],
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1481 chars, hash 6bd9a0d8"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -43442,6 +45448,33 @@
     ],
     "changed": {
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -44549,6 +46582,53 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -45085,6 +47165,33 @@
     ],
     "changed": {
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -46180,6 +48287,53 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -46716,6 +48870,33 @@
     ],
     "changed": {
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -47814,6 +49995,53 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -48355,6 +50583,34 @@
     "changed": {
      "returnTo": "title",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -49486,6 +51742,55 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -50036,6 +52341,35 @@
      "mode": "freestyle",
      "roomFrom": null,
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "mode": "freestyle",
+     "roomFrom": null,
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -51173,6 +53507,57 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "mode": "freestyle",
+     "roomFrom": null,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomFrom": null,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -51730,6 +54115,34 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -52827,6 +55240,54 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -53368,6 +55829,34 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -54467,6 +56956,54 @@
     "changed": {
      "screen": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -55021,6 +57558,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -56134,6 +58700,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -56684,6 +59300,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -57815,6 +60460,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -58365,6 +61060,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -59491,6 +62215,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -60041,6 +62815,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -61173,6 +63976,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -61723,6 +64576,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -62859,6 +65741,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -63409,6 +66341,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -64537,6 +67498,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -65087,6 +68098,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1471 chars, hash e595d653"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -66222,6 +69262,57 @@
      "store.webfpv.settings.v3": "1464 chars, hash cf142b7c"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "settings.tune": "betaflight-interceptor",
+     "store.webfpv.settings.v3": "1509 chars, hash 9ebe1b2d"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1464 chars, hash cf142b7c"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -66775,6 +69866,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -67893,6 +71013,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -68443,6 +71613,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -69558,6 +72757,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -70108,6 +73357,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -71236,6 +74514,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -71786,6 +75114,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -72906,6 +76263,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -73456,6 +76863,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -74574,6 +78010,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -75124,6 +78610,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -76244,6 +79759,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -76824,6 +80389,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -77936,6 +81530,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -78507,6 +82151,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -79619,6 +83292,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -80172,6 +83895,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -81284,6 +85036,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -81850,6 +85652,36 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -82970,6 +86802,58 @@
      "mode": "freestyle",
      "craftGate": false,
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -83542,6 +87426,36 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -84662,6 +88576,58 @@
      "mode": "freestyle",
      "craftGate": false,
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -85234,6 +89200,36 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -86358,6 +90354,58 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "craftGate": false,
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -86914,6 +90962,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -88040,6 +92117,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -88590,6 +92717,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -89712,6 +93868,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -90262,6 +94468,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -91364,6 +95599,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -91924,6 +96209,35 @@
      "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
     }
    },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
    "way-war": {
     "calls": [
      [
@@ -93034,6 +97348,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -93584,6 +97948,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -94704,6 +99097,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -95254,6 +99697,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -96381,6 +100853,56 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -96928,6 +101450,34 @@
     "changed": {
      "screen": "friends",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -98039,6 +102589,54 @@
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
    },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
    "way-war picked:cub": {
     "calls": [
      [
@@ -98583,6 +103181,35 @@
      "screen": "friends",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1487 chars, hash 14a9c747"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
@@ -99698,6 +104325,56 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1525 chars, hash ac5768b9"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
      "settings.airframeAsked": true,
      "store.webfpv.settings.v3": "1480 chars, hash e67a7d68"
     }
@@ -102107,6 +106784,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Trick Battle",
+       "action": "way-jam",
+       "key": "jam"
       }
      ],
      "action": "hub-club"
@@ -102352,6 +107034,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Trick Battle",
+       "action": "way-jam",
+       "key": "jam"
       }
      ],
      "action": "hub-club"

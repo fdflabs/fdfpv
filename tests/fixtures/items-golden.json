@@ -125,6 +125,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Trick Battle",
+       "action": "way-jam",
+       "key": "jam"
       }
      ],
      "drives": {}
@@ -266,6 +271,21 @@
       "Invite code"
      ],
      "svg": "<svg 412 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-jam",
+     "label": "Trick Battle",
+     "action": "way-jam",
+     "card": "jam",
+     "art": "assets/gate/flight.jpg",
+     "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
+     "facts": [
+      "45 to 90 second runs",
+      "Best of three rounds",
+      "Invite code"
+     ],
+     "svg": "<svg 339 chars>",
      "drives": {}
     },
     {
@@ -23576,6 +23596,11 @@
        "label": "Catch the Ace!",
        "action": "way-ace",
        "key": "ace"
+      },
+      {
+       "label": "Trick Battle",
+       "action": "way-jam",
+       "key": "jam"
       }
      ],
      "drives": {}
@@ -23717,6 +23742,21 @@
       "Invite code"
      ],
      "svg": "<svg 412 chars>",
+     "drives": {}
+    },
+    {
+     "id": "title:a-way-jam",
+     "label": "Trick Battle",
+     "action": "way-jam",
+     "card": "jam",
+     "art": "assets/gate/flight.jpg",
+     "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
+     "facts": [
+      "45 to 90 second runs",
+      "Best of three rounds",
+      "Invite code"
+     ],
+     "svg": "<svg 339 chars>",
      "drives": {}
     },
     {
