@@ -83,9 +83,14 @@ seed: unsigned 32 bit. It turns the wind's direction (within about 25
 degrees of the map's prevailing direction) and shifts the fronts' phase.
 ```
 
-Room state (PR 2): `{ weather: { preset, seed } }` in the room's settings,
-set by the host, sent in the welcome; room time for `t` so a front is where it
-is for everyone. Needs a VM deploy (edge/rooms).
+Room state (PR 2): the host sends `{ type: 'weather', preset }`; the room
+draws the seed (crypto, 0 for calm), keeps `meta.weather = { preset, seed }`,
+puts `weather` in every welcome (calm for a room from before it) and tells
+everybody `{ type: 'weather', preset, seed }`. A non host is refused
+(`why: 'host'`), an unknown preset is ignored. Each pilot's next run flies
+it, with `t` = the room's clock at the run's start plus the plant's clock, so
+a front is where it is for everyone. A war flies calm. Needs a VM deploy
+(edge/rooms).
 
 ## What it does NOT do
 
@@ -131,3 +136,8 @@ is for everyone. Needs a VM deploy (edge/rooms).
 the slot script): a calm run makes no `sim_set_wind` call; after
 `__weather('gusty', 42)` a fresh run sets the wind every step and `sim_wind`
 reads it; calm again makes exactly one still call and reads still air.
+
+`npm run check:weather-room`: two pages in one room on a rooms server the
+check starts; the host's gusty reaches both with the same seed, a non host
+is refused, calm again is calm on both. The room's messages are also in
+`npm run rooms:selftest` (scripts/rooms-selftest-weather.js, CI).

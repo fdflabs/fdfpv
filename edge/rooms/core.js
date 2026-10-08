@@ -47,6 +47,7 @@ import {
   CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
 } from '../../src/share/roomwire.js';
 import { retiredMap } from '../../src/maps/retired.js';
+import { PRESET_IDS } from '../../src/game/weather.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
@@ -106,6 +107,9 @@ export const TEXT_CLOSE_PER_S = 20;
  * A seat taken back after a drop is not a new join. */
 export const JOINS_PER_MIN = 2 * PUBLIC_CAP;
 export const KICK_MS = 30 * 60 * 1000;
+/* A room no host has set the air of, and one from before weather. */
+const CALM = { preset: 'calm', seed: 0 };
+
 /*
  * A kick or a removal keeps out that PLAYER, their seat token, for its
  * time, never their address: the owner's decision (2026-09-28), because
@@ -911,6 +915,7 @@ export class RoomCore {
         mode: this.meta.mode ?? null,
         mission: this.meta.mission ?? null,
         map: this.meta.map,
+        weather: this.meta.weather ?? CALM,
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
@@ -1007,6 +1012,9 @@ export class RoomCore {
     }
     if (msg.type === 'world') {
       return this.world(conn, s, msg, now);
+    }
+    if (msg.type === 'weather') {
+      return this.weather(conn, s, msg);
     }
     /* A game room's lobby: ready from anybody, the round's setting from
      * the host (edge/rooms/gamelobby.js), with the clock its times need. */
@@ -1108,6 +1116,29 @@ export class RoomCore {
     }
     this.meta.map = msg.map;
     return [...out, { store: 'meta', value: this.meta }, ...this.roster(null, JSON.stringify({ type: 'world', map: msg.map }))];
+  }
+
+  /*
+   * The host sets the room's air: { type: 'weather', preset }
+   * (docs/WEATHER-CONTRACT.md). The room draws the seed, so every pilot
+   * flies the same air and no client picks it; kept with the meta, handed
+   * to joiners in the welcome, and told to everybody, the host too, as
+   * { type: 'weather', preset, seed }, which a build from before it passes
+   * over. Each pilot's next run flies it.
+   */
+  weather(conn, s, msg) {
+    if (!PRESET_IDS.includes(msg.preset)) {
+      return [];
+    }
+    if (s.seat !== this.host()) {
+      return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'host' }) }];
+    }
+    const seed = msg.preset === 'calm' ? 0 : crypto.getRandomValues(new Uint32Array(1))[0];
+    this.meta.weather = { preset: msg.preset, seed };
+    return [
+      { store: 'meta', value: this.meta },
+      ...this.roster(null, JSON.stringify({ type: 'weather', ...this.meta.weather })),
+    ];
   }
 
   /* A host's kick: gone for the room's life, which is what the token and
