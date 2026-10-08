@@ -341,6 +341,41 @@ async function gizmo(page) {
   await closeHangar(page, false);
 }
 
+/* A standard pad, its buttons held while window.__padHeld names them. */
+async function padPress(page, index) {
+  await page.evaluate(`(() => { window.__padHeld = [${index}]; return true; })()`);
+  await page.sleep(350);
+  await page.evaluate('(() => { window.__padHeld = []; return true; })()');
+  await page.sleep(450);
+}
+
+async function pad(page) {
+  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place');
+  await openHangar(page, 'timber1500');
+  await page.evaluate(`(() => {
+    window.__padHeld = [];
+    const pad = () => ({ id: 'check pad', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
+    navigator.getGamepads = () => [pad()];
+    return true;
+  })()`);
+  await page.sleep(500);
+  await page.evaluate("window.__ui.hangar.focusKey('decal-0'); true");
+  await padPress(page, 0);
+  const sel = await page.evaluate('window.__ui.hangar.shop.sel');
+  say(sel === 0, `A on the first layer chooses it (sel ${sel})`);
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-matte'); true");
+  await padPress(page, 0);
+  const d = (await entry(page)).decals[0];
+  say(d.fi === 'matte', `A on Matte gives it a matte finish (${d.fi})`);
+  await page.evaluate("window.__ui.hangar.focusKey('layer-up'); true");
+  await padPress(page, 0);
+  const e = await entry(page);
+  say(e.decals[1].fi === 'matte' && e.decals[1].k === 'stripe', `A on Up moves the layer up the stack: ${e.decals.map((o) => o.k)}`);
+  await page.evaluate('navigator.getGamepads = () => []; true');
+  await closeHangar(page, false);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -353,6 +388,7 @@ async function main() {
     await callsign(page);
     await keys(page);
     await gizmo(page);
+    await pad(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
