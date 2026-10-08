@@ -41,13 +41,16 @@ import {
 } from '../src/share/progressmerge.js';
 import { BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS } from './limits.js';
 import { buildsBlob, buildsFromBlob, normaliseFit } from '../src/ui/builds.js';
-import { newDecal, MAX_DECALS } from '../configs/paint.js';
+import { encodeLivery, newDecal, MAX_DECALS } from '../configs/paint.js';
 import {
   FLIGHT_DEVICES_MAX, addFlight, flightTotals, mergeFlightTime,
 } from '../src/share/flighttime.js';
 import { ITEMS, grantsFrom, itemById } from '../src/game/economy.js';
 import { CHALLENGES } from '../src/game/progress.js';
 import { grantEvent } from './wallet.js';
+import {
+  GALLERY_PAGE, GALLERY_PER_ACCOUNT, GALLERY_REPORT_HIDE, GALLERY_WRITE_LIMIT,
+} from './limits.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
 const OLD_CLIENT_ID = 'selftest-client-old.apps.googleusercontent.com';
@@ -630,6 +633,27 @@ console.log('the wallet (wallet.js, docs/ECONOMY.md)');
   r = await call('GET', '/api/account/wallet', undefined, bob);
   check('and the gold after the silver adds nothing more', r.body.wallet.balance === left + 20 + 40 + 60 + 100, JSON.stringify(r.body.wallet));
   check('a bad event id or tier pays nothing', !(await grantEvent(env, bobRow.id, 'Bad Id!', 'gold')) && !(await grantEvent(env, bobRow.id, '2026-w41-x', 'platinum')));
+  /* Flight Club's weekly events (eventpay.js): a stand in for the board's
+   * tiers route, then a dead board. */
+  const BOB_KEY = 'Q'.repeat(87) + '=';
+  await env.DB.prepare('UPDATE accounts SET public_key = ? WHERE id = ?').bind(BOB_KEY, bobRow.id).run();
+  const asked = [];
+  const tierBoard = http.createServer((req, res) => {
+    asked.push(new URL(req.url, 'http://x').searchParams.get('key'));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ tiers: [{ id: '2026-w42-trk-1a2b3c4d', tier: 'silver' }, { id: 'Not An Id', tier: 'gold' }] }));
+  });
+  await new Promise((resolve) => tierBoard.listen(0, '127.0.0.1', resolve));
+  env.BOARD_ORIGIN = `http://127.0.0.1:${tierBoard.address().port}/`;
+  const beforeEvents = (await call('GET', '/api/account/wallet', undefined, bob)).body.wallet.balance;
+  check('the board is asked with the account\'s pilot key', asked.length === 1 && asked[0] === BOB_KEY, JSON.stringify(asked));
+  check('reading the wallet paid the silver it reached (finish, bronze, silver), and not the bad id', beforeEvents === left + 220 + 20 + 40 + 60, String(beforeEvents));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('reading again pays it no second time', r.body.wallet.balance === beforeEvents);
+  await new Promise((resolve) => tierBoard.close(resolve));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('a board that does not answer pays nothing and the wallet still answers', r.status === 200 && r.body.wallet.balance === beforeEvents);
+  delete env.BOARD_ORIGIN;
   r = await call('GET', '/api/account/wallet');
   check('the wallet needs a session', r.status === 401);
   /* Alice synced flight time above: her wallet holds a grant, for the delete below. */
@@ -658,6 +682,129 @@ r = await call('PUT', '/api/account/callsign', { callsign: 'Maverick' }, bob);
 check('and its callsign is free', r.status === 200);
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice' }) });
 check('signing in again starts a new account from nothing', r.status === 200 && r.body.callsign === null && r.body.identity === null);
+
+console.log('the livery gallery (gallery.js, docs/LIVERY-GALLERY.md)');
+{
+  env = freshEnv();
+  let n = 0;
+  const pilot = async (callsign) => {
+    ip = `192.0.2.${(n += 1)}`;
+    const got = await call('POST', '/api/account/google', { credential: await idToken({ sub: `gallery-${callsign || n}` }) });
+    if (callsign) {
+      await call('PUT', '/api/account/callsign', { callsign }, got.body.session);
+    }
+    return got.body.session;
+  };
+  const owner = await pilot('Painter');
+  const fan = await pilot('Fan');
+  const shy = await pilot('');
+  const text = (t) => ({ ...newDecal('text', [0, 0.1, 0], [0, 1, 0]), t });
+  const red = encodeLivery('timber1500', 'Red Baron', { scheme: 'timber_x' });
+  let g = await call('POST', '/api/account/gallery', { code: red });
+  check('publishing needs a session', g.status === 401);
+  g = await call('POST', '/api/account/gallery', { code: red }, shy);
+  check('and a callsign, which the list shows', g.status === 409 && g.body.why === 'callsign', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: red }, owner);
+  check('a paint shop code publishes, named from the code', g.status === 200 && g.body.entry.name === 'Red Baron' && g.body.entry.family === 'timber1500' && g.body.entry.callsign === 'Painter', JSON.stringify(g.body));
+  const redId = g.body.entry.id;
+  g = await call('POST', '/api/account/gallery', { code: red }, owner);
+  check('publishing the same code again is the same entry', g.status === 200 && g.body.entry.id === redId);
+  g = await call('POST', '/api/account/gallery', { code: 'FPV1-garbage' }, owner);
+  check('a code the paint shop cannot read is refused with its reason', g.status === 422 && g.body.why === 'code' && g.body.code === 'not_code', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Nazi plane', {}) }, owner);
+  check('a dirty name is refused', g.status === 422 && g.body.why === 'words', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('SHIT')] }) }, owner);
+  check('and so is dirty lettering on a text decal, by the paint shop\'s own check', g.status === 422 && g.body.code === 'rude', JSON.stringify(g.body));
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('timber1500', 'Clean', { decals: [text('ACE')] }) }, owner);
+  check('clean lettering publishes', g.status === 200, JSON.stringify(g.body));
+  const aceId = g.body.entry.id;
+  await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'Fan one', {}) }, fan);
+
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check('the list is public and per aircraft, newest first', g.status === 200 && g.body.items.map((x) => x.id).join() === [aceId, redId].join() && g.body.next === null, JSON.stringify(g.body));
+  check('an entry carries its code to wear', g.body.items[1].code === red);
+  g = await call('GET', '/api/gallery');
+  check('a list with no aircraft is refused', g.status === 400);
+
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('a like counts', g.status === 200 && g.body.likes === 1 && g.body.liked === true, JSON.stringify(g.body));
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('and a second like from the same account does not', g.body.likes === 1);
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, owner);
+  check('nobody likes their own', g.status === 409 && g.body.why === 'own');
+  g = await call('GET', '/api/gallery?family=timber1500&sort=liked');
+  check('most liked first', g.body.items[0].id === redId && g.body.items[0].likes === 1, JSON.stringify(g.body.items));
+  g = await call('GET', '/api/account/gallery/liked', undefined, fan);
+  check('an account reads what it liked', g.status === 200 && g.body.ids.join() === redId);
+  g = await call('DELETE', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('an unlike takes it back', g.status === 200 && g.body.likes === 0);
+  g = await call('PUT', '/api/account/gallery/nope/like', undefined, fan);
+  check('a malformed id is refused', g.status === 400);
+  g = await call('PUT', '/api/account/gallery/AAAAAAAAAAAA/like', undefined, fan);
+  check('an unknown one is not found', g.status === 404);
+
+  g = await call('DELETE', `/api/account/gallery/${aceId}`, undefined, fan);
+  check('only the publisher removes an entry', g.status === 404);
+  const reporters = [fan, await pilot('R2'), await pilot('R3')];
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, fan);
+  g = await call('POST', `/api/account/gallery/${aceId}/report`, undefined, fan);
+  check('a report counts once per account', g.status === 200 && (await call('GET', '/api/admin/gallery', undefined, 'x')).body.items[0].reports === 1);
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[1]);
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check(`${GALLERY_REPORT_HIDE - 1} reports do not hide it`, g.body.items.some((x) => x.id === aceId));
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, reporters[2]);
+  g = await call('GET', '/api/gallery?family=timber1500');
+  check(`${GALLERY_REPORT_HIDE} from different accounts do`, !g.body.items.some((x) => x.id === aceId));
+  g = await call('GET', '/api/admin/gallery');
+  check('the admin list is the admin\'s', g.status === 401);
+  g = await call('GET', '/api/admin/gallery', undefined, 'x');
+  check('it shows the hidden entry and its reports', g.body.items[0].id === aceId && g.body.items[0].hidden === true && g.body.items[0].reports === 3, JSON.stringify(g.body));
+  g = await call('POST', `/api/admin/gallery/${aceId}`, { hidden: false }, 'x');
+  check('the admin shows it again', g.status === 200 && (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  await call('POST', `/api/account/gallery/${aceId}/report`, undefined, await pilot('R4'));
+  check('with its reports cleared, one more report does not hide it again', (await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  g = await call('POST', `/api/admin/gallery/${redId}`, { hidden: true }, 'x');
+  check('the admin hides an entry by hand', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === redId));
+  g = await call('PUT', `/api/account/gallery/${redId}/like`, undefined, fan);
+  check('a hidden entry cannot be liked', g.status === 404);
+
+  g = await call('DELETE', `/api/account/gallery/${aceId}`, undefined, owner);
+  check('the publisher removes their own', g.status === 200 && !(await call('GET', '/api/gallery?family=timber1500')).body.items.some((x) => x.id === aceId));
+  ip = '192.0.2.150';
+  for (let i = 0; i < GALLERY_PER_ACCOUNT - 1; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Cub ${i}`, {}) }, owner);
+  }
+  g = await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', 'One too many', {}) }, owner);
+  check(`${GALLERY_PER_ACCOUNT} entries an account, then refused`, g.status === 409 && g.body.why === 'full', JSON.stringify(g.body));
+  ip = '192.0.2.151';
+  for (let i = 0; i < GALLERY_PAGE - GALLERY_PER_ACCOUNT + 1; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    await call('POST', '/api/account/gallery', { code: encodeLivery('cub1400', `Fan cub ${i}`, {}) }, fan);
+  }
+  const first = await call('GET', '/api/gallery?family=cub1400');
+  const second = await call('GET', `/api/gallery?family=cub1400&page=${first.body.next}`);
+  const all = [...first.body.items, ...second.body.items].map((x) => x.id);
+  check(`a page is ${GALLERY_PAGE}, the rest on the next, none twice`, first.body.items.length === GALLERY_PAGE && first.body.next === 1 && second.body.items.length === 1 && second.body.next === null && new Set(all).size === all.length, `${first.body.items.length} ${first.body.next} ${second.body.items.length}`);
+
+  await call('PUT', `/api/account/gallery/${(await call('GET', '/api/gallery?family=cub1400')).body.items.find((x) => x.callsign === 'Fan').id}/like`, undefined, owner);
+  g = await call('DELETE', '/api/account', undefined, owner);
+  const rows = await env.DB.prepare(
+    "SELECT (SELECT COUNT(*) FROM gallery WHERE name LIKE 'Cub %' OR name = 'Red Baron') AS mine, (SELECT likes FROM gallery WHERE name = 'Fan one') AS fanLikes, (SELECT COUNT(*) FROM gallery_reports) AS reports",
+  ).first();
+  check('deleting the account deletes its entries and takes back its likes', g.status === 200 && rows.mine === 0 && rows.fanLikes === 0 && rows.reports === 0, JSON.stringify(rows));
+
+  ip = '192.0.2.200';
+  const busy = await pilot('Busy');
+  const statuses = [];
+  for (let i = 0; i <= GALLERY_WRITE_LIMIT; i += 1) {
+    /* eslint-disable-next-line no-await-in-loop */
+    statuses.push((await call('PUT', '/api/account/gallery/AAAAAAAAAAAA/like', undefined, busy)).status);
+  }
+  check(`${GALLERY_WRITE_LIMIT} gallery writes from one address, then 429`, statuses.slice(0, GALLERY_WRITE_LIMIT).every((c) => c === 404) && statuses[GALLERY_WRITE_LIMIT] === 429, statuses.slice(-3).join());
+  g = await call('GET', '/api/gallery?family=cub1400');
+  check('reading is not counted', g.status === 200);
+}
 
 console.log('rate limits');
 env = freshEnv();
