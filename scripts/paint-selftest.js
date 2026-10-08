@@ -224,5 +224,25 @@ console.log('8. snapping');
   check('no hit stays no hit', snapHit(null, []) === null);
 }
 
+console.log('9. a code carries every field of a livery');
+{
+  /* A livery with an underside colour and wear made a code its own paste
+   * refused (unknown_field): the reader knew fewer fields than the entry. */
+  const e = normaliseEntry('timber1500', { regions: { wing: '#112233' }, under: { wing: '#aabbcc' }, wear: 20 });
+  const back = readCode(encodeLivery('timber1500', 'Belly', e));
+  check(`an underside colour and wear survive a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
+}
+
+console.log('8. patterns');
+{
+  const e = normaliseEntry('timber1500', { patterns: { wing: { p: 'camo', c: '#AA0000' }, tail: { p: 'plaid', c: '#000000' }, nope: { p: 'checks', c: '#000000' } } });
+  check('a pattern is kept with its colour lower case; an unknown pattern or region is dropped', same(e, { patterns: { wing: { p: 'camo', c: '#aa0000' } } }));
+  check('the dropped ones are counted, so a code carrying them is refused', entryDrops('timber1500', { patterns: { tail: { p: 'plaid', c: '#000000' } } }) === 1);
+  check('a film region takes no pattern', normaliseEntry('kadet1981', { patterns: { wing: { p: 'checks', c: '#000000' } } }) === null);
+  check('the look carries a pattern as its number and colour', same(lookFor('timber1500', e).patterns, { wing: { p: 3, c: 0xaa0000 } }));
+  const back = readCode(encodeLivery('timber1500', 'Camo', e));
+  check(`a pattern survives a code: ${JSON.stringify(back)}`, !back.error && same(back.entry, e));
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exitCode = failed ? 1 : 0;

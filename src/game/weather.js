@@ -52,21 +52,49 @@ export const PRESETS = {
 };
 export const PRESET_IDS = Object.keys(PRESETS);
 
-/* Per map: the height the layers count from, the prevailing direction the
- * wind blows toward (unit, map frame), and zones, capsules from a to b
- * ([x, z]) of radius r where the mean is multiplied by shelter and gust m/s
- * added at the axis, both fading to nothing at r. Itaipu's dam crest, from
- * dam/index.js's main dam frame, at the crest road's 225 m: the air spilling
- * over 196 m of concrete is rough. The other maps' zones and bases are not
- * authored yet. */
+/* Per map: the height the layers count from (m, map y), the prevailing
+ * direction the wind blows toward (unit, map frame), and zones: a line
+ * ([[x, z], ...], one segment or more) and the band of radius r round it
+ * where the mean is multiplied by shelter
+ * and gust m/s added at the axis, both fading to nothing at r, and with
+ * height from `top` metres above the base to twice that, so the air well
+ * above a ridge or a dam is the open air's.
+ *
+ * Itaipu: the dam crest, from dam/index.js's main dam frame, at the crest
+ * road's 225 m; the air spilling over 196 m of concrete is rough.
+ * Swiss2 and the Alps (one valley, src/maps/alps/terrain.js and swiss2's
+ * ground, measured with window.__heightAt on a 100 m grid, 2026-10-08): a
+ * floor about 600 m wide at x 0 running north and south, walls to 1200 to
+ * 1500 m from x -1500 and x 1500. Wind in a deep valley is channelled
+ * along its axis, the floor is sheltered from the wind aloft, and the rims
+ * are where it breaks into rotor and turbulence.
+ * The Interior: rolling ground 230 to 360 m. Paraguay's prevailing wind
+ * is from the north east; the only shelter worth a zone is Rio Sereno's
+ * lowland (src/share/interior/hydro.js RIVER, inside the played square,
+ * simplified to 250 m), a little calmer and a little rougher at the banks'
+ * tree lines. */
+const VALLEY = [
+  { line: [[0, -4500], [0, 4500]], r: 700, shelter: 0.65, gust: 0.3, top: 300 },
+  { line: [[-1700, -4500], [-1700, 4500]], r: 600, shelter: 1, gust: 2, top: 1500 },
+  { line: [[1700, -4500], [1700, 4500]], r: 600, shelter: 1, gust: 2, top: 1500 },
+];
+const RIO_SERENO = [
+  [-8586, -4388], [-8008, -4555], [-7573, -3750], [-6869, -4377], [-5872, -4371], [-4628, -2829],
+  [-3490, -2170], [-3569, -1088], [-2911, 236], [-455, -90], [437, 480], [1098, 210], [1220, 770],
+  [1887, 811], [1967, 1487], [3570, 2456], [4539, 2789], [5108, 2349], [6144, 3894], [6597, 3871],
+  [6468, 4368], [7252, 4463], [7478, 5527], [8186, 5639], [8101, 6324], [8586, 7170],
+];
 export const MAPS = {
   itaipu: {
     base: 220, toX: 0.6, toZ: 0.8,
-    zones: [{ a: [-352.9, -1826.5], b: [636.7, -1610.5], r: 260, shelter: 0.8, gust: 2.5 }],
+    zones: [{ line: [[-352.9, -1826.5], [636.7, -1610.5]], r: 260, shelter: 0.8, gust: 2.5, top: 60 }],
   },
-  swiss2: { base: 0, toX: 1, toZ: 0, zones: [] },
-  alps: { base: 0, toX: 1, toZ: 0, zones: [] },
-  interior: { base: 0, toX: 0, toZ: 1, zones: [] },
+  swiss2: { base: 0, toX: 0, toZ: -1, zones: VALLEY },
+  alps: { base: 0, toX: 0, toZ: -1, zones: VALLEY },
+  interior: {
+    base: 240, toX: -0.6, toZ: 0.8,
+    zones: [{ line: RIO_SERENO, r: 400, shelter: 0.85, gust: 0.4, top: 80 }],
+  },
 };
 
 /* 0 to 1, a cubic: smoothstep without pow. */
@@ -102,6 +130,16 @@ function layerMul(layers, h) {
     }
   }
   return layers[layers.length - 1][1];
+}
+
+/* The squared distance from (x, z) to the nearest point of a polyline. */
+function lineDist2(line, x, z) {
+  let best = Infinity;
+  for (let i = 1; i < line.length; i += 1) {
+    const d = segDist2(line[i - 1], line[i], x, z);
+    best = d < best ? d : best;
+  }
+  return best;
 }
 
 /* The squared distance from (x, z) to the segment a b. */
@@ -147,11 +185,13 @@ export function makeWeather(mapId, presetId, seed) {
   const phase = f ? f.every * 0.5 * (hashUnit(s, 2) + 1) : 0;
   return {
     at(x, y, z, t, out) {
-      let mean = p.speed * layerMul(p.layers, y - map.base);
+      const above = y - map.base;
+      let mean = p.speed * layerMul(p.layers, above);
       let gust = p.gust;
       let wet = 0;
       for (const zone of map.zones) {
-        const k = 1 - smooth(0, zone.r * zone.r, segDist2(zone.a, zone.b, x, z));
+        const k = (1 - smooth(0, zone.r * zone.r, lineDist2(zone.line, x, z)))
+          * (1 - smooth(zone.top, 2 * zone.top, above));
         mean *= 1 + (zone.shelter - 1) * k;
         gust += zone.gust * k;
       }
