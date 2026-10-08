@@ -338,6 +338,15 @@ No band was widened. Each change is one of three kinds.
   idle that still holds (under 10 deg in 4 s); at half throttle the wash
   over the rudder steers it right, over 45 deg in 4 s.
 
+### An acro tune
+
+- The P-51's Acro roll damping, \`acro_roll_kd\`, 0.70 to 0.80: with the fin
+  in the wash the roll a partial roll stops from carried 10.4 deg/s a
+  quarter second after centring, against p51:stab's 10, and 9.9 on
+  origin/main. 0.80 leaves 9.7. A flight controller's gain, retuned for a
+  plant that changed, as a pilot retunes; Manual is untouched, and every
+  recorded P-51 flight replays to the same hash as before the retune.
+
 ### Still failing, left loud
 
 - `bombshell:stab` "full right yaw stick ... wins over the level hold:
@@ -346,9 +355,6 @@ No band was widened. Each change is one of three kinds.
   roll damping takes back more of the stick's rudder; the nose yaws right
   faster than before (36.2 deg/s against 31.1). Not a band to move: the
   lead decides whether the hold's gains or the check's form change.
-- `p51:stab` "a partial roll stops sharply: under 10 deg/s 0.25 s after
-  centring": 10.4, against 9.9 on origin/main. The wash alone moves it
-  (the fin's terms in the wash), not the swirl.
 - `crash:core`'s "a five inch ... slides at the sled's grip" fails on
   origin/main as well (0.524), with the module byte identical: not this
   change's.
