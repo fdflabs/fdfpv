@@ -823,6 +823,8 @@ export async function boot({
    * last told. */
   let opsDrawn = false;
   let opsCampMark = null;
+  /* Which mission's camps the map shows (mission.camp.world), told once. */
+  let opsCampWorld = null;
   /* What the map was last told, for the checks: the hour, the looks. */
   let opsHourTold = null;
   let opsLooksTold = [];
@@ -1269,6 +1271,14 @@ export async function boot({
         opsCampMark = null;
       }
       return;
+    }
+    if (opsCampWorld !== mission.id && typeof view.setCamp === 'function') {
+      /* A mission's camps as its story has them (Mission 2: Claro Viejo
+       * stripped, Claro Nuevo standing); Mission 1's are the default. */
+      opsCampWorld = mission.id;
+      view.setCamp({
+        nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
+      });
     }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];

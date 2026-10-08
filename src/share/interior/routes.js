@@ -46,7 +46,11 @@
  */
 
 import { gridToWorld } from './frame.js';
-import { CAMP_PROPS, PLACES } from './places.js';
+import {
+  CAMP_PROPS, M2_AT, NUEVO_PROPS, PLACES,
+} from './places.js';
+
+export { M2_AT };
 
 export const ACTIONS = [
   'walk', 'stand', 'lookUp', 'carryLong', 'sit', 'crouchTarp', 'takeDownAntenna', 'pushMotorcycle', 'drive', 'park',
@@ -207,28 +211,8 @@ ROUTES['colonia-civ-4'] = { pts: col([[150, -48], [160, -46], [150, -48]]), spee
 
 /*
  * MISSION 2's ROUTES (MISSIONS.md M2, routes and spawn sets), `m2-`
- * prefixed. M2_AT is where its places stand on the design grid (km):
- * MISSIONS 1.9's first layout, each moved to the nearest ground the
- * canopy leaves open from seven of eight sides at 250 m (a watcher hid
- * under a crown is never found). The three watcher zones, Claro Nuevo
- * and the handoffs sit within 2 km of Estancia La Ceniza so a run fits
- * the mission's 25 to 35 minutes (lead decision 2026-10-08: 1.9's zones
- * made it 39 to 43). The props and buildings there are WORLD's to add
- * (TECH-NEEDS N1); the mission data reads the places from here.
+ * prefixed, over places.js M2_AT.
  */
-export const M2_AT = {
-  cruce: [11.575, 11.4],
-  loma: [12.4, 13.2],
-  corral: [13.7, 11.05],
-  handoffN: [13.675, 12.625],
-  handoffS: [13.625, 12.225],
-  postA: [13.35, 12.725],
-  estancia: [13.95, 12.475],
-  yard: [13.93, 12.455],
-  gate: [14.07, 12.6],
-  claroNuevo: [14.7, 13.225],
-  nuevoEdge: [14.62, 13.15],
-};
 /* Each watcher's spot: off the road, looking at it, beside his machine. */
 const M2_WATCH = {
   cruce: [[11.575, 11.4], [11.578, 11.402]],
@@ -300,7 +284,7 @@ for (const [how, speed, vehicle] of [['foot', WALK, null], ['moto', MOTO, 'motor
 }
 /* Claro Nuevo's six (younger), two layouts, each a loop about its middle
  * (metres east, metres south), more spaced than Claro Viejo's. */
-const [NX, NZ] = gridToWorld(...M2_AT.claroNuevo);
+const [NX, NZ] = NUEVO_PROPS.middle;
 const nuevo = (pts) => pts.map(([ox, oz]) => [NX + ox, NZ + oz]);
 const NUEVO = {
   a: [[[-12, -6], [-4, -10]], [[8, -8], [14, 0]], [[0, 10], [6, 14]], [[-14, 8], [-8, 12]], [[18, 10], [12, 16]], [[-2, -18], [4, -14]]],
