@@ -163,9 +163,13 @@ async function flipAndViews(page) {
     navigator.getGamepads = () => [pad()];
     return true;
   })()`);
-  await page.sleep(400);
+  /* Each step waits on the hangar's own state, not a clock: a slow
+   * software renderer polls the pad once a frame, a few times a second.
+   * The pad is first seen released (the first poll only learns what is
+   * held), then held in until the hangar has flipped, then let go. */
+  await page.until('Boolean(window.__ui.hangar.padPrev)', 60000);
   await page.evaluate('window.__r3 = true');
-  await page.sleep(400);
+  await page.until('window.__ui.hangar.flip === true', 60000).catch(() => {});
   await page.evaluate('window.__r3 = false');
   await page.until(ROLLED(Math.PI), 60000).catch(() => {});
   say(Math.abs((await cam(page)).roll - Math.PI) < 0.01, `R3 on a pad flips it: roll ${(await cam(page)).roll.toFixed(3)}`);
