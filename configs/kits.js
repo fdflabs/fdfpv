@@ -62,7 +62,7 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
  * its plane's kit. */
 export const KITS = {
   sky1800: TRAINER, cub1400: TRAINER, kadet1981: TRAINER, slowstick1180: TRAINER,
-  uglystik1567: TRAINER, timber1500: TRAINER,
+  uglystik1567: TRAINER, timber1500: TRAINER, extra3d1308: TRAINER,
   p51d1450: WARBIRD, tigermoth1803: WARBIRD, bombshell1118: WARBIRD,
   f16878: JET,
   radian2000: GLIDER, nrj1490: GLIDER,
@@ -70,6 +70,10 @@ export const KITS = {
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,
 };
+
+/* The families whose builders draw their kit so far (docs/KITS.md section
+ * 8); the hangar offers the Kit tab on these only. */
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];

@@ -43,6 +43,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
 import { dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
@@ -143,12 +144,16 @@ export function buildPeerCraft(profile, look = null) {
   /* A peer on an old tab can still fly an aircraft this build no longer
    * has: it is drawn as that aircraft's successor, a plane for a plane. */
   const id = airframeById(currentAirframeId(profile.airframe)).id;
-  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true });
-  if (paintable(id)) {
+  /* The peer's visual kit (configs/kits.js) is built into the drawing,
+   * so it is read before the build; profileKey already rebuilds on a new
+   * livery, which carries it. */
+  const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
+  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined });
+  if (paint) {
     /* The colours at once, the layers over the next frames
      * (dressDecalsLater), so a full livery joining is no long frame. */
-    const paint = lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry));
     dressLivery(craft, id, { ...paint, decals: [] });
+    addNavLights(craft, paint.lights);
     if (paint.decals.length) {
       dressDecalsLater(craft, paint.decals);
     }
