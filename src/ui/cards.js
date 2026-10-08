@@ -403,7 +403,7 @@ export const cardMethods = {
           node.append(seats);
         }
         pointAt(this, node, i);
-        (it.lobby === 'room' ? rooms : actions).append(node);
+        (it.lobby === 'room' || it.lobby === 'watch' ? rooms : actions).append(node);
         this.titleRoomEls.push({ node, i });
       }
       if (rooms.firstChild) {
