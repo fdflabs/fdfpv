@@ -412,8 +412,13 @@ int sim_set_flight_style(int arcade);
  * fins, rail launched and landed on its belly skid, 27 on a 110 cc boxer
  * twin and a 30 in wooden prop, 28 on a 140 N class turbojet whose thrust
  * lags the stick, both carrying a warhead in the nose through
- * sim_set_addons. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 23, 27 and 28 are fixed wings: no Betaflight, the sticks go to the
+ * sim_set_addons, and 29 E-flite's Extra 300 3D 1.3m
+ * (docs/EXTRA-STAGE1.md, docs/FLIGHTMODEL.md), a foam aerobatic taildragger
+ * whose thrust is about two and a half times its weight, which hangs on its
+ * prop with its surfaces in the slipstream: the aircraft removed as 14 on
+ * 2026-09-29, back under a new id on 2026-10-08 so nothing recorded on 14
+ * replays as it. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 23 and 27 to 29 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -461,6 +466,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_INTERCEPTOR_ID 26
 #define SIM_AIRFRAME_STRIKER_PROP_ID 27
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
+#define SIM_AIRFRAME_EXTRA3D1308_ID 29
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
