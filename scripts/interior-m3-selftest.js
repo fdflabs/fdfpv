@@ -274,7 +274,7 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => contact(e, 'north'), 120000, 'the northern vehicle');
     watch(e, c, 'north', () => ended(e), 600000, 'over the northern exit');
     const v = view(e);
-    check('won at the northern exit', v.state === 'won', `${v.state} ${v.why ?? ''}`);
+    check(`won at the northern exit, ${Math.round((e.clock - v.goAt) / 60000)} min after the go (MISSIONS.md: 30 to 40)`, v.state === 'won', `${v.state} ${v.why ?? ''}`);
     check('POSITIVE ID and the command site\'s star; NOT ALONE not (no drone yet)', v.result?.starIds.join() === 'positive,command',
       JSON.stringify(v.result));
     check('the flags: M3_ZERO_CIVILIAN_ERRORS', v.flags?.M3_ZERO_CIVILIAN_ERRORS === true, JSON.stringify(v.flags));
