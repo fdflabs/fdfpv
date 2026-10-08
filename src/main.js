@@ -11751,12 +11751,16 @@ export async function boot({
   let weather = null;
   let windSet = false;
   const airPos = new THREE.Vector3();
-  const airOut = { x: 0, z: 0, gust: 0 };
+  const airOut = { x: 0, z: 0, gust: 0, up: 0 };
   const airSim = { x: 0, y: 0, z: 0 };
-  function setWind(vx, vy, gust) {
+  function setWind(vx, vy, gust, up) {
     const code = sim.e.sim_set_wind(vx, vy, gust);
     if (code !== SIM_OK) {
       throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+    const codeUp = sim.e.sim_set_air_vertical(up);
+    if (codeUp !== SIM_OK) {
+      throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
   let weatherT0 = 0;
@@ -11773,7 +11777,7 @@ export async function boot({
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
-      setWind(0, 0, 0);
+      setWind(0, 0, 0, 0);
       windSet = false;
     }
   }
@@ -11782,7 +11786,7 @@ export async function boot({
     poseFromState(st, airPos);
     weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
-    setWind(airSim.x, airSim.y, airOut.gust);
+    setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
   }
   /* The air this run flies, { map, preset, seed }, or null for calm. */
