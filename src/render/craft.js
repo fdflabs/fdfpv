@@ -169,6 +169,7 @@ export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
   const look = liveryFor(lastBuiltId);
   const built = craftBuilderFor(lastBuiltId)({
     kit: (look && look.kit) ?? undefined,
+    lights: (look && look.lights) ?? undefined,
     name: 'craft',
     fog: true,
     worldScale: true,
