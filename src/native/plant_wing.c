@@ -1716,7 +1716,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double fh = rw < fw->slip_yh ? rw / fw->slip_yh : 1.0;
     const double up = rw < fw->slip_hv[0] ? rw : fw->slip_hv[0];
     const double dn = rw < fw->slip_hv[1] ? rw : fw->slip_hv[1];
-    const double fv = (up + dn) / (fw->slip_hv[0] + fw->slip_hv[1]);
+    const double fv = fw->slip_hv[0] + fw->slip_hv[1] > 0.0 ? (up + dn) / (fw->slip_hv[0] + fw->slip_hv[1]) : 0.0;
     double fa = 0.0;
     if (rw > fw->slip_ya[0]) {
       const double ye = rw < fw->slip_ya[1] ? rw : fw->slip_ya[1];
@@ -1745,7 +1745,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
      * root's. */
     const double q_prop = fw->torque_arm * thrust;
     const double mdot = PLANT.rho * WING_PI * fw->slip_r * fw->slip_r * (u_pos + vi);
-    const double xs = SWIRL_KEEP * q_prop * (up - dn) / (mdot * rw * rw);
+    const double keep = fw->slip_pusher ? 1.0 : SWIRL_KEEP;
+    const double xs = keep * q_prop * (up - dn) / (mdot * rw * rw);
     const double xb = add_term(-v, -xs);
     /* With hi_alpha each surface's share in the wash saturates as its
      * free stream share does, at its angle in the wash's own stream, the
@@ -1769,7 +1770,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
              (kv * (fw->slip_cn_b * xb + fw->slip_cn_r * r_a * 0.5 * fw->span) + pv * fw->cn_dr * delta_r);
     l_slip = fw->area * fw->span *
              (kv * fw->slip_cl_b * xb + pv * fw->cl_dr * delta_r + dp * fa * fw->cl_da * delta_a);
-    l_slip += (1.0 - SWIRL_KEEP) * q_prop;
+    l_slip = add_term(l_slip, (1.0 - keep) * q_prop);
     g_slip[0] = l_slip;
     g_slip[1] = -m_slip;
     g_slip[2] = -n_slip;
@@ -2292,6 +2293,10 @@ const FixedWingParams FW_SKY1800 = {
   .strip_c = { 1.132, 1.044, 0.956, 0.868 },
   .washout = 5.0 * WING_PI / 180.0, /* FITTED to review behaviour, docs/STALL-STAGE1.md */
   .side_cda = 0.0722, /* 0.84 of 0.086 m^2, the pod in side view, the render model's, ESTIMATED */
+  /* The slipstream, scripts/wash-derive.js. */
+  .slip_r = 0.1397, .slip_yh = 0.228, .slip_hv = { 0, 0 }, .slip_ya = { 0.45, 0.85 },
+  .slip_a0 = 0.005368, .slip_cl_a = 0.3771, .slip_cm_a = -1.305, .slip_cn_b = 0.1552,
+  .slip_cn_r = -0.119, .slip_cy_b = -0.4011, .slip_cl_b = -0.02228, .slip_pusher = 1,
 };
 
 /* The FMS Piper J-3 Cub 1400 mm, docs/CUB-STAGE1.md, where each number has

@@ -51,17 +51,17 @@ export const ESTIMATES = {
         minutes: 46
       },
       '4s6000': {
-        topSpeed: 23.22,
+        topSpeed: 23.23,
         minutes: 52.1
       },
       '4s16000': {
-        topSpeed: 23.2,
+        topSpeed: 23.21,
         minutes: 94.2
       }
     },
     '920-11x7': {
       '4s4000': {
-        topSpeed: 26.45,
+        topSpeed: 26.46,
         minutes: 45.5
       },
       '4s5000': {
@@ -79,11 +79,11 @@ export const ESTIMATES = {
     },
     '920-12x6': {
       '4s4000': {
-        topSpeed: 24.25,
+        topSpeed: 24.26,
         minutes: 39.2
       },
       '4s5000': {
-        topSpeed: 24.29,
+        topSpeed: 24.3,
         minutes: 45.4
       },
       '4s6000': {
@@ -91,7 +91,7 @@ export const ESTIMATES = {
         minutes: 51.4
       },
       '4s16000': {
-        topSpeed: 24.32,
+        topSpeed: 24.33,
         minutes: 92.8
       }
     },
@@ -103,19 +103,19 @@ export const ESTIMATES = {
     },
     '800-13x8': {
       '4s4000': {
-        topSpeed: 26.8,
+        topSpeed: 26.81,
         minutes: 49.2
       },
       '4s5000': {
-        topSpeed: 26.85,
+        topSpeed: 26.86,
         minutes: 56.8
       },
       '4s6000': {
-        topSpeed: 26.88,
-        minutes: 64.3
+        topSpeed: 26.89,
+        minutes: 64.4
       },
       '4s16000': {
-        topSpeed: 26.9,
+        topSpeed: 26.91,
         minutes: 116.3
       }
     }

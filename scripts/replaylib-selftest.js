@@ -70,7 +70,8 @@ const PINNED = {
   'trace.wing.50.10.v3.9': 'f9167edf03b4a8e0d4479bee71c253b494b40ecf52ef84fcbe44a8230cc3f067',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': '5800408161c4d08ea420f4babeeceaf2fe9e9e26f27e7022f65681da3a298d47',
+  /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': '39baf1fb639f06ae323895d5f5637006ae9b4983e805adc7aa684efadfc03a89',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
