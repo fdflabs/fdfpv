@@ -34,6 +34,8 @@ import {
   CHALLENGES, RunWatch, awardChallenge, awardFirsts, awardLap, findItem, fits, itemKey, levelInfo, levelStart, lockOf, unlockables,
 } from '../game/progress.js';
 import { ACT1, INTERIOR } from '../game/campaign.js';
+import { itemById } from '../game/economy.js';
+import { readWallet } from '../share/account.js';
 import { flightTotals } from '../share/flighttime.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -218,8 +220,15 @@ export class Progress {
     this.ui.persistSettings();
   }
 
-  /* Whether an item is locked for this pilot now: { level } or null. */
+  /* Whether an item is locked for this pilot now: { level }, { shop }
+   * for a shop item the account does not own (src/game/economy.js; Unlock
+   * all does not open those, docs/ECONOMY.md rule 5), or null. */
   lock(kind, id, airframe = null) {
+    const item = itemById(`${kind}:${id}`);
+    if (item) {
+      const w = readWallet();
+      return w && w.owned[item.id] ? null : { shop: item.earn ? 'earn' : 'buy' };
+    }
     return lockOf(this.state, kind, id, airframe);
   }
 
@@ -489,7 +498,7 @@ export class Progress {
       b.disabled = true;
       b.classList.add('pg-locked');
       b.setAttribute('aria-disabled', 'true');
-      b.append(el('span', 'pg-lock', str('progress.locked_level', { n: lock.level })));
+      b.append(el('span', 'pg-lock', lock.shop ? str(`progress.locked_${lock.shop}`) : str('progress.locked_level', { n: lock.level })));
       return;
     }
     const it = findItem(kind, id, airframe);

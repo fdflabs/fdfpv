@@ -3839,11 +3839,19 @@ export async function boot({
       && spentOf(r, seat) >= allowanceOf(r, seat) && (mode === 'flight' || mode === 'paused');
   }
 
+  /* In a room on its watch seat (edge/rooms/core.js watch,
+   * docs/FLIGHTCLUB-PROGRESSION.md section 3): the war spectator's camera
+   * on whoever flies, its own aircraft never shown or sent. */
+  function roomWatching() {
+    const st = roomLinkState.state();
+    return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
+  }
+
   /* The teammate to watch this frame, stepped by `step` through the ones
    * drawn in the air here in seat order, or kept while it still flies;
    * null when spectating none. */
   function warWatch(step = 0) {
-    if (!warSpectating()) {
+    if (!warSpectating() && !roomWatching()) {
       warWatchSeat = -1;
       return null;
     }
@@ -3896,6 +3904,9 @@ export async function boot({
 
   function warWatchBanner() {
     const peer = warWatch();
+    if (roomWatching()) {
+      return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
+    }
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
   }
 
@@ -4126,6 +4137,7 @@ export async function boot({
         });
       }
     }
+    rows.push({ label: str('lobby.watch'), note: str('lobby.watch_note'), action: 'friends-watch' });
     rows.push({ label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
     return rows;
   }
@@ -5683,7 +5695,9 @@ export async function boot({
     if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
       roomNote = str('friends.other_world', { world: mapById(target.world).name });
     }
-    roomCall('join');
+    /* A watcher has no lobby and no Fly of its own: it is put in the
+     * air at once, where the watch camera takes it (roomWatching). */
+    roomCall(w.watch ? 'watch' : 'join');
   }
 
   /*
@@ -6340,6 +6354,11 @@ export async function boot({
       mode: st.welcome ? st.welcome.mode ?? null : null,
       lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
+      /* The watch seat: the pilot the camera follows, and how far the
+       * camera is from where that pilot is drawn, metres. */
+      watch: Boolean(st.welcome && st.welcome.watch),
+      watching: fr.watching ? fr.watching.seat : null,
+      watchGap: fr.watching ? shell.camera.position.distanceTo(new THREE.Vector3(fr.watching.drawnPose.px, fr.watching.drawnPose.py, fr.watching.drawnPose.pz)) : null,
       heard: roomSafety.heard(),
       note: roomSafety.note(),
       peers: [...roomPeers.values()].map((p) => ({
@@ -7086,6 +7105,15 @@ export async function boot({
         roomLinkState.join(got.code);
       }
       ui.refreshFriends();
+      return;
+    }
+    /* Give up the seat for the watch seat: the same room, joined again. */
+    if (action === 'friends-watch') {
+      const { code } = roomLinkState.state();
+      if (code) {
+        roomLinkState.leave();
+        roomLinkState.join(code, { watch: true });
+      }
       return;
     }
     if (action === 'friends-leave') {
@@ -13158,6 +13186,7 @@ export async function boot({
           thrustToWeight: st.tw,
           hoverMinutes: st.hoverMin,
           fullMinutes: st.fullMin,
+          responseMs: st.tau * 1000,
         };
       },
     };
@@ -13195,6 +13224,9 @@ export async function boot({
           topSpeed: e.topSpeed ?? null,
           minutes: e.minutes ?? null,
           thrustToWeight: o.thrustN / (mass * 9.80665),
+          /* Handling, as one number the plant flies: grams on each dm^2
+           * of the plant's wing. */
+          wingLoading: (mass * 1000) / (tuningFor(id).area * 100),
         };
       },
     };
@@ -14001,6 +14033,19 @@ export async function boot({
       return;
     }
     if (crashCam && crashCam.onKey(code, repeat)) {
+      return;
+    }
+    /* A watcher: J (a replay's key) and the brackets step through the
+     * pilots, Escape leaves the room, and nothing else flies. */
+    if (ui.screen === 'flight' && roomWatching() && (code === 'Escape' || code === 'KeyJ' || WAR_WATCH_KEYS.has(code))) {
+      if (repeat) {
+        return;
+      }
+      if (code === 'Escape') {
+        ui.onFriends('friends-leave');
+      } else if (code !== 'KeyR' && code !== 'KeyX' && code !== 'Tab') {
+        warWatch(code === 'BracketLeft' ? -1 : 1);
+      }
       return;
     }
     if (ui.screen === 'flight' && WAR_WATCH_KEYS.has(code) && warSpectating()) {
@@ -16281,10 +16326,10 @@ export async function boot({
       }
     } else if (mode === 'results' && !camOverride) {
       finishCamera(dt);
-    } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
-      padShot(dt);
     } else if (watching) {
       watchCamera(watching, dt);
+    } else if (introMs >= 0 && (mode === 'flight' || mode === 'paused') && !camOverride) {
+      padShot(dt);
     } else if (ballView() && !wreckWantsChase(nowWall)) {
       ballFrame(dt / 1000, mode === 'paused' || ui.screen === 'paused');
     } else if (wingOut || wreckWantsChase(nowWall)) {
@@ -16470,7 +16515,7 @@ export async function boot({
       chasePos.copy(chaseAim);
       chaseValid = true;
     }
-    shell.quad.visible = true;
+    shell.quad.visible = !roomWatching();
     shell.camera.up.set(0, 1, 0);
     shell.camera.position.copy(chasePos);
     shell.camera.lookAt(chaseAnchor);
@@ -17128,7 +17173,7 @@ export async function boot({
     if (crashed && inFlight) {
       return ['Crashed', true];
     }
-    if (inFlight && warSpectating()) {
+    if (inFlight && (warSpectating() || roomWatching())) {
       return [warWatchBanner(), true];
     }
     if (inFlight && roomWar.live() && roundOf(roomWar.view())?.state === 'result') {
