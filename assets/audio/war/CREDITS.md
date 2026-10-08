@@ -188,6 +188,11 @@ the text they are spoken from.
 | int-boundary-final | `voice/en/int-boundary-final.webm`, `voice/en/int-boundary-final.mp3`, `voice/es/int-boundary-final.webm`, `voice/es/int-boundary-final.mp3` |
 | int-lost-aircraft | `voice/en/int-lost-aircraft.webm`, `voice/en/int-lost-aircraft.mp3`, `voice/es/int-lost-aircraft.webm`, `voice/es/int-lost-aircraft.mp3` |
 | int-fail-function | `voice/en/int-fail-function.webm`, `voice/en/int-fail-function.mp3`, `voice/es/int-fail-function.webm`, `voice/es/int-fail-function.mp3` |
+| int-spot-warn | `voice/en/int-spot-warn.webm`, `voice/en/int-spot-warn.mp3`, `voice/es/int-spot-warn.webm`, `voice/es/int-spot-warn.mp3` |
+| int-spot-seen | `voice/en/int-spot-seen.webm`, `voice/en/int-spot-seen.mp3`, `voice/es/int-spot-seen.webm`, `voice/es/int-spot-seen.mp3` |
+| int-spot-low | `voice/en/int-spot-low.webm`, `voice/en/int-spot-low.mp3`, `voice/es/int-spot-low.webm`, `voice/es/int-spot-low.mp3` |
+| int-spot-over | `voice/en/int-spot-over.webm`, `voice/en/int-spot-over.mp3`, `voice/es/int-spot-over.webm`, `voice/es/int-spot-over.mp3` |
+| int-spot-loud | `voice/en/int-spot-loud.webm`, `voice/en/int-spot-loud.mp3`, `voice/es/int-spot-loud.webm`, `voice/es/int-spot-loud.mp3` |
 | int-take-role | `voice/en/int-take-role.webm`, `voice/en/int-take-role.mp3`, `voice/es/int-take-role.webm`, `voice/es/int-take-role.mp3` |
 | int1-s1-clean | `voice/en/int1-s1-clean.webm`, `voice/en/int1-s1-clean.mp3`, `voice/es/int1-s1-clean.webm`, `voice/es/int1-s1-clean.mp3` |
 | int1-s1-proceed | `voice/en/int1-s1-proceed.webm`, `voice/en/int1-s1-proceed.mp3`, `voice/es/int1-s1-proceed.webm`, `voice/es/int1-s1-proceed.mp3` |
