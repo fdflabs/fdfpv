@@ -57,7 +57,11 @@ this lane ships one section of it and the check named there.
     lessons: { [lessonId]: passedAtMs }   // training passes (training lane
                               // writes; lead decision 2026-10-07); merge:
                               // union, earliest pass wins; a known lesson
-                              // passed is a first ('lesson:<id>', XP once)
+                              // passed AND flown is a first ('lesson:<id>')
+    lessonsFlown: { [lessonId]: true }   // the lesson actually flown (training
+                              // lane writes it on a pass); lessons covered by
+                              // "I fly already" are passed but not flown and
+                              // pay nothing (lead decision 2026-10-07); union
 
 Migration v1 to v2 (src/game/progress.js `PROGRESS_MIGRATIONS`, an ordered
 list of pure steps, each `n` to `n + 1`): adds `firsts: {}`. A v1 pilot's

@@ -105735,7 +105735,13 @@
     "changed": {
      "hub": "club",
      "cursor": 1
-    }
+    },
+    "page": [
+     [
+      "fetch",
+      "/api/events/current"
+     ]
+    ]
    },
    "Way card": {
     "calls": [
@@ -105917,7 +105923,13 @@
     ],
     "changed": {
      "cursor": 1
-    }
+    },
+    "page": [
+     [
+      "fetch",
+      "/api/events/current"
+     ]
+    ]
    },
    "Way card": {
     "calls": [
@@ -107338,7 +107350,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "title-race openBuilder nohook": {
    "calls": [],
@@ -107425,7 +107443,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "title-race-noseat openBuilder nohook": {
    "calls": [],
@@ -107513,7 +107537,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "title-freestyle openBuilder nohook": {
    "calls": [],
@@ -107599,7 +107629,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "title-freestyle-noseat openBuilder nohook": {
    "calls": [],
@@ -107684,7 +107720,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "gate-home openBuilder nohook": {
    "calls": [],
@@ -107775,7 +107817,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "title-firstrun openBuilder nohook": {
    "calls": [],
@@ -107860,7 +107908,13 @@
    ],
    "changed": {
     "hub": "club"
-   }
+   },
+   "page": [
+    [
+     "fetch",
+     "/api/events/current"
+    ]
+   ]
   },
   "paused openBuilder nohook": {
    "calls": [],
