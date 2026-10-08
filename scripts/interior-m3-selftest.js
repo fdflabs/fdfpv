@@ -35,6 +35,7 @@ import EN from '../src/strings/en.js';
 import ES from '../src/strings/es.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { check, finish, opsRoom } from './lib/opsroom.js';
+import { feedSnow } from '../src/share/ops/feed.js';
 
 const W = worldFor('interior');
 const RAW = MISSIONS['interior-3'];
@@ -114,6 +115,20 @@ console.log('data');
   check('every point is inside the boundary\'s warning line', !inside.length, inside.map(([k]) => k).join());
   check('held development: a dev build lists it, a live one does not', INTERIOR.find((x) => x.id === 'interior-3').release === 'development'
     && released('interior-3', true) && !released('interior-3', false));
+}
+
+console.log('the forward feed (src/share/ops/feed.js)');
+{
+  const cmd = M.points.command.at;
+  const v = (over = {}) => ({
+    state: 'live', stage: { id: 'M3_CP_RELAY' }, choices: {}, roles: { active: { 0: 'recon', 1: 'isr' } }, ...over,
+  });
+  check('the recon past the ridge before the relay holds: snow', feedSnow(M, v(), 0, cmd) === M.feed.snow && M.feed.snow > 0);
+  check('outside the ring: a clean picture', feedSnow(M, v(), 0, [cmd[0] + M.points.command.r + 50, cmd[1]]) === 0);
+  check('another role in the ring: a clean picture', feedSnow(M, v(), 1, cmd) === 0);
+  check('the relay held: clean', feedSnow(M, v({ choices: { relay: 'held' } }), 0, cmd) === 0);
+  check('another stage: clean', feedSnow(M, v({ stage: { id: 'M3_CP_AIR_CONTACT' } }), 0, cmd) === 0);
+  check('a mission without a feed: clean', feedSnow(MISSIONS['interior-1'], v(), 0, cmd) === 0);
 }
 
 console.log('the gate');
