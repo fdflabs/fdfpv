@@ -251,6 +251,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -365,6 +369,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -428,6 +436,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -457,6 +466,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -488,6 +498,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -519,6 +530,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -553,6 +565,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -582,6 +595,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -613,6 +627,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -644,6 +659,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -676,6 +692,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -702,6 +719,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -730,6 +748,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -758,6 +777,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -785,6 +805,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -817,6 +838,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -851,6 +873,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -887,6 +910,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -927,6 +951,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -960,6 +985,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -995,6 +1021,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1032,6 +1059,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1073,6 +1101,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1105,6 +1134,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1139,6 +1169,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1175,6 +1206,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1210,6 +1242,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1237,6 +1270,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1266,6 +1300,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1297,6 +1332,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1333,6 +1369,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1365,6 +1402,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1399,6 +1437,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1435,6 +1474,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1476,6 +1516,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1510,6 +1551,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1546,6 +1588,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1584,6 +1627,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1626,6 +1670,7 @@
        "floats": 15855850
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1664,6 +1709,7 @@
        "floats": 15855850
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1706,6 +1752,7 @@
        "floats": 15921644
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1743,6 +1790,7 @@
        "floats": 15921644
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1784,6 +1832,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1816,6 +1865,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1850,6 +1900,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1886,6 +1937,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1925,6 +1977,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1958,6 +2011,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -1993,6 +2047,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2030,6 +2085,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2071,6 +2127,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2105,6 +2162,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2141,6 +2199,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2179,6 +2238,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2221,6 +2281,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2255,6 +2316,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2291,6 +2353,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2329,6 +2392,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2357,6 +2421,159 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -2369,6 +2586,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2402,6 +2620,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2437,6 +2656,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2474,6 +2694,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2513,6 +2734,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2545,6 +2767,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2579,6 +2802,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2615,6 +2839,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2654,6 +2879,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2684,6 +2910,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2716,6 +2943,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2750,6 +2978,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2788,6 +3017,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2812,6 +3042,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2838,6 +3069,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2864,6 +3096,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2894,6 +3127,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2918,6 +3152,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2944,6 +3179,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -2970,6 +3206,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -3829,6 +4066,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -3943,6 +4184,10 @@
        "label": "Tiger Moth"
       },
       {
+       "value": "extra3d1308",
+       "label": "Extra 300 3D"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4006,6 +4251,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4035,6 +4281,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4066,6 +4313,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4097,6 +4345,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4131,6 +4380,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4160,6 +4410,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4191,6 +4442,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4222,6 +4474,7 @@
        "props": 2303271
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4254,6 +4507,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4280,6 +4534,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4308,6 +4563,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4336,6 +4592,7 @@
        "legs": 1579291
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4363,6 +4620,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4395,6 +4653,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4429,6 +4688,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4465,6 +4725,7 @@
        "pod": 13951726
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4505,6 +4766,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4538,6 +4800,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4573,6 +4836,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4610,6 +4874,7 @@
        "trim": 1447962
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4651,6 +4916,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4683,6 +4949,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4717,6 +4984,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4753,6 +5021,7 @@
        "canopy": 1777959
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4788,6 +5057,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4815,6 +5085,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4844,6 +5115,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4875,6 +5147,7 @@
        "airframe": 11122113
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4911,6 +5184,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4943,6 +5217,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -4977,6 +5252,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5013,6 +5289,7 @@
        "tape": 16052714
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5054,6 +5331,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5088,6 +5366,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5124,6 +5403,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5162,6 +5442,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5204,6 +5485,7 @@
        "floats": 15855850
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5242,6 +5524,7 @@
        "floats": 15855850
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5284,6 +5567,7 @@
        "floats": 15921644
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5321,6 +5605,7 @@
        "floats": 15921644
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5362,6 +5647,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5394,6 +5680,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5428,6 +5715,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5464,6 +5752,7 @@
        "swoop": 13112858
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5503,6 +5792,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5536,6 +5826,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5571,6 +5862,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5608,6 +5900,7 @@
        "fuse_trim": 16767770
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5649,6 +5942,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5683,6 +5977,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5719,6 +6014,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5757,6 +6053,7 @@
        "crosses": 1315862
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5799,6 +6096,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5833,6 +6131,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5869,6 +6168,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5907,6 +6207,7 @@
        "trim": 1513498
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5935,6 +6236,159 @@
     }
    },
    "tigermoth1803:unfitted": null,
+   "extra3d1308:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "extra3d1308:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "extra3d1308",
+     "look": {
+      "colours": {
+       "wing": 15527664,
+       "fuselage": 15527664,
+       "nose": 15902749,
+       "tail": 9080982,
+       "trim": 1447962,
+       "checks": 15905309
+      },
+      "under": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {
+       "spinner": "stock",
+       "wingtips": "stock",
+       "wheels": "stock",
+       "fin": "stock",
+       "canopy": "stock"
+      },
+      "lights": null
+     },
+     "fit": {
+      "id": "extra3d1308",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "extra3d1308:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -5947,6 +6401,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -5980,6 +6435,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6015,6 +6471,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6052,6 +6509,7 @@
        "stripe": 1513755
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6091,6 +6549,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6123,6 +6582,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6157,6 +6617,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6193,6 +6654,7 @@
        "canopy": 9073728
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6232,6 +6694,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6262,6 +6725,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6294,6 +6758,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6328,6 +6793,7 @@
        "canopy": 3422268
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6366,6 +6832,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6390,6 +6857,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6416,6 +6884,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6442,6 +6911,7 @@
        "tail": 1710877
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6472,6 +6942,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6496,6 +6967,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6522,6 +6994,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,
@@ -6548,6 +7021,7 @@
        "engine": 10133670
       },
       "under": {},
+      "patterns": {},
       "finishes": {},
       "decals": [],
       "wear": 0,

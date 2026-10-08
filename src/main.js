@@ -148,6 +148,7 @@ import {
 } from './share/ops/guide.js';
 import { RolesBoard } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
+import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
@@ -241,6 +242,7 @@ import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
+import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -260,6 +262,7 @@ const WING_MOUNTS = {
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
+  extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -1320,6 +1323,8 @@ export async function boot({
   /* The match whose mission palette the thermal core has been set to. */
   let opsPaletteFor = null;
   let opsOutroShown = null;
+  /* The spotted end scene last played: match, spotter and moment. */
+  let opsSpotShown = null;
   /* The prologue owed before the campaign's page: its film id, or null. */
   let opsPrologueDue = null;
   /* Own stills as pictures the film can draw, by item. */
@@ -1333,7 +1338,7 @@ export async function boot({
     warIntroStop();
     warIntroFor = `ops:${id}`;
     warIntroFov = shell.camera.fov;
-    const film = OPS_FILMS[id];
+    const film = opts.film ?? OPS_FILMS[id];
     const h = playInteriorFilm(shell.quad.parent || view.scene, shell.camera, id, {
       map: view.id,
       canvas: shell.canvas,
@@ -1448,6 +1453,30 @@ export async function boot({
       });
     } else if (intro && opsFilmOn(intro) && !briefing) {
       warIntroStop();
+    }
+    /* Spotted (CONTRACT-SPOTTED.md): the cut to the people scattering,
+     * on the room's clock from the moment they saw you, then the fail. */
+    const spot = v.state === 'live' && mission && mode !== 'replay' && map && opsWorldUp(map)
+      ? (mission.spotters ?? []).find((sp) => v.spot?.[sp.id]?.at.spotted != null) : null;
+    const spotKey = spot ? `${match}:${spot.id}:${v.spot[spot.id].at.spotted}` : null;
+    if (spot && opsSpotShown !== spotKey) {
+      opsSpotShown = spotKey;
+      const t0 = v.spot[spot.id].at.spotted;
+      const world = opsWorld(mission);
+      const ps = (v.contacts || []).filter((c) => (c.id === spot.group || c.group === spot.group) && c.route)
+        .map((c) => world.poseOnRoute(c.route, t0 - c.t0)).filter((p) => p && p.action !== 'gone');
+      if (ps.length) {
+        /* Ops frame (x east, y north) to the world's (x, -z). */
+        const at = [ps.reduce((a, p) => a + p.x, 0) / ps.length, -ps.reduce((a, p) => a + p.y, 0) / ps.length];
+        const cam = shell.camera.position;
+        const from = Math.atan2(cam.x - at[0], cam.z - at[1]);
+        opsFilmPlay('spotted', {
+          film: spotFilm(map, at, spot.scene, from),
+          clock: () => roomLinkState.roomNow() - t0,
+          seen: true,
+          onSeen: () => {},
+        });
+      }
     }
     /* The outro on a win, then the debrief. */
     const outro = opsFilmOf(v.mission, 'outro');
@@ -6559,6 +6588,7 @@ export async function boot({
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
+        decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
@@ -17262,6 +17292,9 @@ export async function boot({
     if (pick && pick.hangar && pick.hangar.aim) {
       ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
     }
+    if (pick && pick.hangar) {
+      ui.hangar.pointed(pick.hangar.point ? pickStage.pickPart(pick.items[0].id, pick.hangar.point.x, pick.hangar.point.y) : null);
+    }
     studioFrame(dt, nowWall);
   }
 
@@ -17966,6 +17999,8 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  /* The exploded part at client pixels on the hangar's model, for a check. */
+  window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
     pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);

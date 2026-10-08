@@ -435,6 +435,36 @@ export async function buyItem(item) {
 }
 
 /*
+ * THE LIVERY GALLERY (docs/LIVERY-GALLERY.md, tracks-api/gallery.js). The
+ * list is public and asked with the session when there is one, which the
+ * server ignores; the rest throw the server's refusal with its `why` on
+ * err.body, as buyItem does.
+ */
+export async function galleryList(family, sort, page = 0) {
+  return api('GET', `/api/gallery?family=${encodeURIComponent(family)}&sort=${sort}&page=${page}`);
+}
+
+export async function galleryLiked() {
+  return (await api('GET', '/api/account/gallery/liked')).ids;
+}
+
+export async function galleryPublish(code) {
+  return (await api('POST', '/api/account/gallery', { code })).entry;
+}
+
+export async function galleryLike(id, on) {
+  return api(on ? 'PUT' : 'DELETE', `/api/account/gallery/${id}/like`);
+}
+
+export async function galleryReport(id) {
+  return api('POST', `/api/account/gallery/${id}/report`);
+}
+
+export async function galleryRemove(id) {
+  return api('DELETE', `/api/account/gallery/${id}`);
+}
+
+/*
  * The merge a sync would answer, with nothing sent: for a computer with
  * no change of its own since its last sync, which would otherwise not
  * hear of another computer's until it changed something or the page was

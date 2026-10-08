@@ -225,6 +225,45 @@ async function groups(page) {
   await closeHangar(page, false);
 }
 
+async function callsign(page) {
+  console.log('5. a words layer starts as the pilot\'s callsign');
+  await page.evaluate("localStorage.setItem('webfpv.pilot.name', 'Tero_77'); true");
+  await openHangar(page, 'timber1500');
+  await press(page, 'decal-add');
+  await press(page, 'kind-text');
+  await page.until('(() => { const p = window.__ui.hangar.shop.placing; return Boolean(p && p.hit && p.hit.n); })()', 60000).catch(() => {});
+  await page.tap('Enter');
+  await page.until('(window.__ui.hangar.entry.decals || []).length === 4', 20000).catch(() => {});
+  const e = await entry(page);
+  const d = e.decals[3];
+  say(Boolean(d) && d.k === 'text' && d.t === 'TERO 77', `the handle Tero_77 lettered: ${d ? d.t : 'none'}`);
+  await shot(page, 'timber-callsign');
+  await closeHangar(page, false);
+}
+
+async function keys(page) {
+  console.log('6. the chosen layer from the keyboard');
+  await openHangar(page, 'timber1500');
+  await press(page, 'decal-0');
+  const was = (await entry(page)).decals[0];
+  for (const code of ['BracketRight', 'BracketRight', 'Equal', 'Period']) {
+    await page.tap(code);
+    await page.sleep(200);
+  }
+  let d = (await entry(page)).decals[0];
+  say(d.r === was.r + 30 && d.s > was.s && d.x === (was.x ?? 0) + 5, `] ] = . turn 30, grow and lean the stripe: r ${was.r} to ${d.r}, s ${was.s} to ${d.s}, x ${d.x}`);
+  await page.tap('PageUp');
+  await page.sleep(300);
+  const e = await entry(page);
+  say(e.decals[1].k === 'stripe' && e.decals[0].k === 'star', `Page Up moves it up the stack: ${e.decals.map((o) => o.k)}`);
+  await press(page, 'decal-0');
+  await page.tap('Equal');
+  await page.sleep(300);
+  d = (await entry(page)).decals[0];
+  say(d.l === true && d.s === 0.2, `the locked star keeps its size under = (${d.s})`);
+  await closeHangar(page, false);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -234,6 +273,8 @@ async function main() {
     await everyFamily(page);
     await shapes(page);
     await groups(page);
+    await callsign(page);
+    await keys(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
