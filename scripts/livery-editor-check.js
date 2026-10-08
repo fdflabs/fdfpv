@@ -350,12 +350,12 @@ async function padPress(page, index) {
 }
 
 async function pad(page) {
-  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place');
+  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place; the d-pad and stick move right');
   await openHangar(page, 'timber1500');
   await page.evaluate(`(() => {
     window.__padHeld = [];
     const pad = () => ({ id: 'check pad', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
-      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
+      axes: [window.__padX || 0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
     navigator.getGamepads = () => [pad()];
     return true;
   })()`);
@@ -368,6 +368,19 @@ async function pad(page) {
   await padPress(page, 0);
   const d = (await entry(page)).decals[0];
   say(d.fi === 'matte', `A on Matte gives it a matte finish (${d.fi})`);
+  const focus = () => page.evaluate('document.activeElement && document.activeElement.dataset.key');
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-matte'); true");
+  await padPress(page, 15);
+  const byDpad = await focus();
+  /* Chrome wraps onto the next line, so the stick starts from Gloss. */
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-gloss'); true");
+  await page.sleep(300);
+  await page.evaluate('(() => { window.__padX = 1; return true; })()');
+  await page.sleep(350);
+  await page.evaluate('(() => { window.__padX = 0; return true; })()');
+  await page.sleep(450);
+  const byStick = await focus();
+  say(byDpad === 'lfinish-metallic' && byStick === 'lfinish-matte', `the d-pad's right (Matte to Metallic) and the left stick's (Gloss to Matte) move right: ${byDpad}, ${byStick}`);
   await page.evaluate("window.__ui.hangar.focusKey('layer-up'); true");
   await padPress(page, 0);
   const e = await entry(page);
