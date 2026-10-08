@@ -248,6 +248,11 @@ function fitted(estimate, extraG, thrustK) {
   return est;
 }
 
+/* The tabs whose set comes apart, exploded (src/render/hangar-exploded.js). */
+const EXPLODED_TABS = new Set(['power', 'parts']);
+/* Pixels a press may move and still be a click on the model. */
+const CLICK_SLOP = 6;
+
 export class Hangar {
   constructor(host) {
     this.host = host;
@@ -262,6 +267,8 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
     this.hover = null;
+    this.pointer = null;
+    this.partUnder = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
     this.lastHoverSound = 0;
@@ -407,7 +414,9 @@ export class Hangar {
       if (e.pointerType === 'touch') {
         this.setHint('touch');
       }
-      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
+      /* The part under the pointer as it went down: the press takes the
+       * pointer off the renderer's picking until it lifts. */
+      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, part: this.partUnder };
       s.setPointerCapture(e.pointerId);
     });
     s.addEventListener('wheel', (e) => {
@@ -416,6 +425,7 @@ export class Hangar {
     }, { passive: false });
     s.addEventListener('pointermove', (e) => {
       if (!this.drag || e.pointerId !== this.drag.id) {
+        this.pointer = { x: e.clientX, y: e.clientY };
         this.shop.pointerMove(e);
         return;
       }
@@ -428,12 +438,20 @@ export class Hangar {
       this.drag.x = e.clientX;
       this.drag.y = e.clientY;
     });
+    s.addEventListener('pointerleave', () => {
+      this.pointer = null;
+      this.pointed(null);
+    });
     const end = (e) => {
       if (this.drag && e.pointerId === this.drag.id) {
         /* A press that did not turn the plane is a click on it, which
-         * places a decal while one is being placed. */
+         * places a decal while one is being placed, or goes to the card
+         * of the exploded part it is on. */
         if (e.type === 'pointerup') {
           this.shop.pointerClick(e, this.drag.moved);
+          if (this.drag.moved < CLICK_SLOP && this.drag.part) {
+            this.goToPart(this.drag.part);
+          }
         }
         this.drag = null;
       }
@@ -1563,13 +1581,66 @@ export class Hangar {
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
-        /* The Power tab's choice, which the set pulls apart to show. */
-        power: this.tab === 'power' ? { airframe: this.id, ...this.choice } : null,
-        stay: this.tab === 'colours' && this.shop.stay(),
+        /* The Power tab's choice, which the set pulls apart to show, on
+         * the Parts tab too. */
+        power: EXPLODED_TABS.has(this.tab) ? { airframe: this.id, ...this.choice } : null,
+        /* Where the pointer is over the stage, for the renderer to find
+         * the exploded part under it (pointed()). */
+        point: EXPLODED_TABS.has(this.tab) && this.pointer && !this.drag ? { ...this.pointer } : null,
+        /* The idle turn waits while the pointer is on an exploded part, so
+         * the part stays under it to be clicked. */
+        stay: (this.tab === 'colours' && this.shop.stay()) || Boolean(this.partUnder),
         aim: this.shop.aim(),
         tabs,
       },
     };
+  }
+
+  /*
+   * THE CLICKABLE EXPLODED VIEW: the renderer's answer for the pointer,
+   * the part out of the model under it ('prop', 'motor', 'engine', 'pack',
+   * 'tank') or null. Its card lights; a click goes to it (goToPart).
+   */
+  pointed(kind) {
+    this.partUnder = kind;
+    this.stage.classList.toggle('on-part', Boolean(kind));
+    /* Every frame, since a repaint makes new cards. */
+    const want = kind ? this.partCard(kind) : null;
+    for (const b of this.side.querySelectorAll('.hangar-card.picked')) {
+      if (b !== want) {
+        b.classList.remove('picked');
+      }
+    }
+    if (want && !want.classList.contains('picked')) {
+      want.classList.add('picked');
+    }
+  }
+
+  /* The card a part is chosen on, on the tab that is open: the chosen
+   * prop's on the Parts tab, else the Power tab's option, prop or pack. */
+  partCard(kind) {
+    const on = (prefix) => this.side.querySelector(`.hangar-card.on[data-key^="${prefix}"]`);
+    if (kind === 'prop') {
+      return on('prop-') ?? on('option-');
+    }
+    if (kind === 'pack' || kind === 'tank') {
+      return on('pack-');
+    }
+    return on('option-');
+  }
+
+  /* A click on a part: to its card, on the Power tab when the Parts tab
+   * has none for it, scrolled into view and focused. */
+  goToPart(kind) {
+    if (!this.partCard(kind)) {
+      this.setTab('power');
+    }
+    const b = this.partCard(kind);
+    if (b) {
+      b.scrollIntoView({ block: 'nearest' });
+      /* After the press is done with, which would take the focus back. */
+      requestAnimationFrame(() => b.focus());
+    }
   }
 
   /* Where the aim (frame().hangar.aim) landed on the model, from the

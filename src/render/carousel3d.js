@@ -703,6 +703,19 @@ export function createCarouselStage(renderer) {
     return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z] };
   }
 
+  /* The exploded part under client pixels on the hangar's model, or
+   * null (src/render/hangar-exploded.js partAt). */
+  function pickPart(id, clientX, clientY) {
+    const m = lastByKey.get(id);
+    if (!m || !m.holder.visible) {
+      return null;
+    }
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, 1 - ((clientY - rect.top) / rect.height) * 2);
+    ray.setFromCamera(ndc, camera);
+    return exploder.partAt(m, ray);
+  }
+
   /* A model's region colours as #rrggbb, for a check; null if not built.
    * `id` is its key: an airframe id, or a build's card key. */
   function paint(id) {
@@ -733,5 +746,5 @@ export function createCarouselStage(renderer) {
     return c ? { propulsion: c.propulsion ?? null, antenna: c.antenna ?? null } : null;
   }
 
-  return { draw, repaint, paint, pick, look, fitted, combat, stats: () => ({ ...stats }) };
+  return { draw, repaint, paint, pick, pickPart, look, fitted, combat, stats: () => ({ ...stats }) };
 }
