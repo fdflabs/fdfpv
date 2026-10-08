@@ -43,7 +43,7 @@ import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
   CUB_AIRFRAME, levelSpeed, glide, rollRate, turn, bestClimb, stallSpeed, throwTest, chop, phugoid, rudderStep,
   propTorque, fly, wingDebug, wheelLoads, attitude, must, takeoffSticks, cubGroundPrelude, skyPrelude, wingPrelude,
-  RC_STEP_MS,
+  RC_STEP_MS, wingSlip
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -183,7 +183,8 @@ check: {
   must(sim.input(0, 0, 0, 0, 1), 'sim_input');
   must(sim.step(1), 'sim_step');
   const d15 = wingDebug(sim);
-  const pf = d15[14] + d15[7];
+  /* Less the slipstream's yaw (sim_wing_slip): the P factor alone. */
+  const pf = d15[14] + d15[7] - wingSlip(sim)[2];
   gate('C15', 'P factor, full throttle at 1.1 V_s', pf > 0 && within(pf, pf15), `${pf.toFixed(4)} N m ${pf > 0 ? 'nose left' : 'WRONG WAY'} at ${pf15.speed} m/s and ${pf15.alphaDeg} deg, thrust ${d15[8].toFixed(2)} N`, `${band(pf15)} N m, nose left`);
 
   /* The gear. */

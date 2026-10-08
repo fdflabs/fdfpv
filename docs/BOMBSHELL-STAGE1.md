@@ -299,7 +299,10 @@ drawn model's (`BOMBSHELL_DIMS`, craft frame to body frame):
 Nothing steers it on the ground. With the rudder in its only air, the
 slipstream the plant does not model, a taxiing Bombshell goes where it is
 pointed; the prop's torque turns it about 5 deg left in the take off roll,
-the way a glow taildragger swings, and it is off before that matters.
+the way a glow taildragger swings, and it is off before that matters. The slipstream is modelled now (docs/FLIGHTMODEL.md): at idle the
+rudder still has no air at a walk; at half throttle its wash steers it,
+and the swirl swings it about 13 deg left by liftoff with the rudder
+left alone.
 
 ## The crash parts
 
