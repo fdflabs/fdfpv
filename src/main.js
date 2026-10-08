@@ -15174,6 +15174,7 @@ export async function boot({
     const chaseLast = new THREE.Vector3();
     const chaseAim = new THREE.Vector3();
     const chaseStep = new THREE.Vector3();
+    const chaseHead = new THREE.Vector3();
     /* The point the chase camera follows and looks at: the plane itself,
      * except that on water its height is slowed to the swell's mean. A
      * floatplane rides every wave up and down, and a camera tied to it
@@ -17476,6 +17477,42 @@ export async function boot({
     chaseValid = false;
   }
 
+  /*
+   * How far the chase camera turns toward the craft's travel this frame,
+   * and toward what. The pull is weighted by the speed: a hovering 3D
+   * plane travels nowhere, and the few millimetres it drifts a frame,
+   * taken as a direction, swung a travel led camera round it at random;
+   * slow, the camera stays where it was, a pilot standing still. And the
+   * travel's climb is held under CHASE_STEEP of the direction, its own
+   * bearing kept (or the camera's, straight up or down), or a vertical
+   * line would put the camera under the plane looking up along world up,
+   * where its yaw is undefined. Reads chaseStep, this frame's travel, and
+   * chaseDir; returns the lerp's share, the target in chaseHead.
+   */
+  const CHASE_SLOW = 4; /* m/s: at this speed the pull is half its full */
+  const CHASE_STEEP = 0.8;
+  function chaseTurn(dt, k) {
+    const travel = chaseStep.length();
+    if (!(travel > 0) || !(dt > 0)) {
+      return 0;
+    }
+    const speed = travel / simLenToWorld(1) / (dt / 1000);
+    chaseHead.copy(chaseStep).multiplyScalar(1 / travel);
+    if (Math.abs(chaseHead.y) > CHASE_STEEP) {
+      const up = Math.sign(chaseHead.y);
+      chaseHead.y = 0;
+      if (chaseHead.lengthSq() < 1e-4) {
+        chaseHead.set(chaseDir.x, 0, chaseDir.z);
+      }
+      if (chaseHead.lengthSq() < 1e-9) {
+        chaseHead.set(0, 0, -1);
+      }
+      chaseHead.normalize().multiplyScalar(Math.sqrt(1 - CHASE_STEEP * CHASE_STEEP));
+      chaseHead.y = up * CHASE_STEEP;
+    }
+    return Math.min(1, k) * speed * speed / (speed * speed + CHASE_SLOW * CHASE_SLOW);
+  }
+
   function chaseCamera(dt, nowWall, span) {
     const k = 1 - Math.exp(-dt / 120);
     const water = craftOnWater();
@@ -17498,8 +17535,11 @@ export async function boot({
       if (introLook.lengthSq() > 1e-6) {
         chaseDir.lerp(introLook.normalize(), 1 - Math.exp(-dt / 600)).normalize();
       }
-    } else if (chaseStep.lengthSq() > 1e-6) {
-      chaseDir.lerp(chaseStep.normalize(), Math.min(1, k)).normalize();
+    } else {
+      const share = chaseTurn(dt, k);
+      if (share > 0) {
+        chaseDir.lerp(chaseHead, share).normalize();
+      }
     }
     chaseLast.copy(chaseAnchor);
     if (wreckWantsChase(nowWall)) {
@@ -17914,7 +17954,7 @@ export async function boot({
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     let flightMode;
     if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0];
+      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
     } else if (turtleWait || turtleFlip.active) {
       flightMode = 'turtle';
     } else {
@@ -18765,6 +18805,9 @@ export async function boot({
       worldX: at.x,
       worldY: at.y,
       worldZ: at.z,
+      /* Where the shell's camera stands, world space, for a check on how a
+       * view frames the craft (extra-owner.js's hover). */
+      camera: { x: shell.camera.position.x, y: shell.camera.position.y, z: shell.camera.position.z },
       /* Null mid world swap, when `view` is the world being disposed. */
       groundClearance: mapReady ? at.y - view.height(at.x, at.z, at.y - SURFACE_BIAS) : null,
       pitchDeg: st ? pitchNoseDownDeg(st) : 0,
