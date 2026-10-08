@@ -713,6 +713,7 @@ export class PaintShop {
     del.addEventListener('click', () => this.removeDecal(i));
     acts.append(mirror, move, del);
     box.append(acts);
+    box.append(el('p', 'hangar-source', str('hangar.decal_keys')));
     return box;
   }
 
@@ -1240,12 +1241,48 @@ export class PaintShop {
       }
       return true;
     }
+    const shaped = this.page === 'decals' && !typing && !this.form && !this.adding && this.shapeKey(code);
+    if (shaped) {
+      return true;
+    }
     if (code === 'Escape' && this.adding) {
       this.adding = false;
       this.h.changed('decal-add', 'back');
       return true;
     }
     return false;
+  }
+
+  /*
+   * The chosen layer's shape from the keyboard, the mouse hand staying on
+   * the model: [ and ] turn it, - and = size it, comma and full stop lean
+   * it, Page Up and Page Down move it up and down the stack. A locked
+   * layer keeps its shape. Returns whether the key was one of these.
+   */
+  shapeKey(code) {
+    const d = this.decals[this.sel];
+    if (!d) {
+      return false;
+    }
+    if (code === 'PageUp' || code === 'PageDown') {
+      this.moveLayer(this.sel, code === 'PageUp' ? 1 : -1);
+      return true;
+    }
+    const patch = {
+      BracketLeft: { r: this.turned(d.r, -TURN_STEP) },
+      BracketRight: { r: this.turned(d.r, TURN_STEP) },
+      Minus: { s: clamp(d.s / SIZE_STEP, DECAL_LIMITS.size) },
+      Equal: { s: clamp(d.s * SIZE_STEP, DECAL_LIMITS.size) },
+      Comma: { x: clamp((d.x ?? 0) - SKEW_STEP, DECAL_LIMITS.skew) },
+      Period: { x: clamp((d.x ?? 0) + SKEW_STEP, DECAL_LIMITS.skew) },
+    }[code];
+    if (!patch) {
+      return false;
+    }
+    if (!d.l) {
+      this.patch(patch, `decal-${this.sel}`, 'adjust');
+    }
+    return true;
   }
 
   /* The stick while placing: held directions move the aim every poll, A

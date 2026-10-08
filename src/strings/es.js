@@ -2282,6 +2282,7 @@ export default {
   "hangar.decal_mirror": "Ambos lados",
   "hangar.decal_move": "Mover",
   "hangar.decal_delete": "Quitar",
+  "hangar.decal_keys": "Teclas: [ y ] giran, - y = cambian el tamaño, coma y punto inclinan, Re Pág y Av Pág la mueven en la pila.",
   "hangar.decal_group": "Agrupar con la de abajo",
   "hangar.decal_ungroup": "Desagrupar",
   "hangar.decal_in_group": "grupo {g}",
