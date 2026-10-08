@@ -175,7 +175,7 @@ import {
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
-import { filmFor } from './share/war/films/index.js';
+import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
@@ -4920,6 +4920,8 @@ export async function boot({
   /* The war whose briefing this shell has shown (roomWar.match()): once,
    * however long the room stays in it after a skip. */
   let warIntroShown = null;
+  /* The match whose outro has started (warOutroFrame). */
+  let warOutroShown = null;
   let warIntroFov = 0;
   /* The host's Watch intro, pressed while the room's world was still
    * being built: played once it stands (warIntroFrame). */
@@ -5044,9 +5046,29 @@ export async function boot({
           }
         },
       });
-    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !briefing) {
+    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !warOutroOn(v) && !briefing) {
       warIntroStop();
     }
+    warOutroFrame(v);
+  }
+
+  /* A mission's outro (its `outro`, First Light's) on a win, once per
+   * match, on the room's clock from the end, so every pilot sees the same
+   * frame; in the mission's own world as it stands, its damage and all.
+   * A new match, a restart or the lobby ends it. */
+  const warOutroOn = (v) => warIntro !== null && String(warIntroFor).startsWith('outro:') && v.state === 'won';
+  function warOutroFrame(v) {
+    const outro = WAR_MISSIONS[v.mission]?.outro;
+    if (!outro || v.state !== 'won' || v.endAt == null || warOutroShown === roomWar.match() || mode === 'replay' || !warFilmWorldUp(v.mission)) {
+      return;
+    }
+    warOutroShown = roomWar.match();
+    const endAt = v.endAt;
+    warIntroPlay(`outro:${v.id}`, {
+      mission: v.mission,
+      film: WAR_FILMS[outro],
+      clock: () => roomLinkState.roomNow() - endAt,
+    });
   }
 
   /* A mission's film plays only in the mission's own world, built and
@@ -5471,8 +5493,10 @@ export async function boot({
     }
     warHudAt = wallMs + 250;
     const m = roomWar.mission();
-    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
+    /* Under the outro the film has the screen; the end card comes after. */
+    const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
+    warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
+    warRoundCard.update(hudOn ? v : null, now);
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that

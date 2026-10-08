@@ -758,7 +758,7 @@ export function createWarHud(nameOf, restart = null) {
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
       status: status && status.style.display !== 'none' ? status.textContent : '',
-      objectives: goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
+      objectives: box && box.style.display !== 'none' && goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
