@@ -12251,6 +12251,32 @@
     }
    }
   },
+  "int3-s2-stopped.en": {
+   "text": "Threat's stopped.",
+   "speaker": "rojas",
+   "seconds": 1.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2616653399,
+     "heard": "Threats stopped.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6634,
+     "sha256": "66ddceb47e6b2b298e2b84df9f867149c9be851b118cfbf6d073bcef85fb01fc"
+    },
+    "mp3": {
+     "bytes": 7316,
+     "sha256": "be547606065f9b4ed31567f767066fb9b62173223b81bc4ebdeaa70a0098a784"
+    }
+   }
+  },
   "int3-s2-stopped.es": {
    "text": "Amenaza neutralizada.",
    "speaker": "rojas",
