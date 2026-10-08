@@ -127,6 +127,18 @@ async function quad(page, id) {
   say(tried === JSON.stringify({ v: 1, parts: { [hs]: ho } }) && entry === 'null', `${id}: pointing at ${hs} ${ho} tries it on (${tried}), nothing fitted (${entry})`);
   await shot(page, `${id}-2-tried-${hs}-${ho}`);
 
+  /* Every option of every slot pointed at in turn: the cache keeps one
+   * kitted model per aircraft, so the count stays put. */
+  const before = await page.evaluate('window.__carouselStats().models');
+  const all = await page.evaluate("[...document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]')].map((b) => b.dataset.key)");
+  for (const k of all) {
+    await pointAt(page, `.hangar [data-key="${k}"]`);
+    await page.sleep(250);
+  }
+  await page.sleep(500);
+  const after = await page.evaluate('window.__carouselStats().models');
+  say(after <= before + 1, `${id}: ${all.length} options pointed at, models cached ${before} -> ${after}`);
+
   for (const [s, o] of plan.press) {
     await page.click(`.hangar [data-key="kit-${s}-${o}"]`);
     await page.sleep(300);
@@ -197,14 +209,14 @@ async function leds(page) {
   say(run.meshes === 4 && run.usPerFrame < 50, `${id}: LED cost: ${run.meshes} extra draws, setLights ${run.usPerFrame.toFixed(2)} us a frame`);
 }
 
-/* A plane's Kit tab: no slot options yet, Nav lights and Strobes pressed,
+/* A plane's Kit tab: its slot options, Nav lights and Strobes pressed,
  * saved, and pictured from the front left. */
 async function navLights(page, id) {
   await openHangar(page, id);
   await press(page, '.hangar [data-key="tab-kit"]');
   await page.until("window.__ui.hangar.tab === 'kit'", 5000);
   const slots = await page.evaluate("document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]').length");
-  say(slots === 0, `${id}: no kit slot options until its models land (${slots})`);
+  say(slots > 0, `${id}: its kit slot options are offered (${slots})`);
   await press(page, '.hangar [data-key="light-nav"]');
   await page.sleep(300);
   await press(page, '.hangar [data-key="light-strobe"]');
