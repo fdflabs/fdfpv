@@ -71,6 +71,10 @@ export const KITS = {
   striker2500: STRIKER,
 };
 
+/* The families whose builders draw their kit so far (docs/KITS.md section
+ * 8); the hangar offers the Kit tab on these only. */
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor']);
+
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
 export const GLOW_PATTERNS = ['solid', 'breathe'];

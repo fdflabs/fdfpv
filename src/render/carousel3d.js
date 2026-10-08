@@ -232,14 +232,17 @@ export function createCarouselStage(renderer) {
    * drawing, the Striker's engine above all, so each loadout handed is a
    * model of its own too, kept like the rest. */
   function modelFor(id, key = id, combat = null) {
-    const at = combat ? `${key}#${JSON.stringify(combat)}` : key;
+    /* In the hangar's preview, or the saved paint. A visual kit
+     * (configs/kits.js) is built into the drawing, so each kit is a model
+     * of its own too. */
+    const preview = key === id ? previews.get(id) : undefined;
+    const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
+    const fitted = kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '';
+    const at = (combat ? `${key}#${JSON.stringify(combat)}` : key) + fitted;
     let m = models.get(at);
     if (m) {
       return m;
     }
-    /* In the hangar's preview, or the saved paint. */
-    const preview = key === id ? previews.get(id) : undefined;
-    const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
     const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit }), id, preview ?? undefined), id);
     if (craft.launcher) {
       craft.launcher.visible = false;
