@@ -6615,6 +6615,369 @@
     }
    }
   },
+  "int-spot-loud.en": {
+   "text": "Full power that close, they heard you. Throttle back on the approach.",
+   "speaker": "vega",
+   "seconds": 3.925,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 643332443,
+     "heard": "Full power that closed, they heard you. Throttle back on the approach.",
+     "wer": 0.083,
+     "extra": 0,
+     "missing": [
+      "close"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4020025079,
+     "heard": "Full power that closed, they heard you. Throttle back on the approach.",
+     "wer": 0.083,
+     "extra": 0,
+     "missing": [
+      "close"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3293387264,
+     "heard": "Full power that close they heard you. Throttle back on the approach.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17832,
+     "sha256": "90ec12d9fd5bfb3ad701e398c920dfe8a854753390c8b2b53401189c0252851a"
+    },
+    "mp3": {
+     "bytes": 18932,
+     "sha256": "a7325cc6b2efbd8df42fb37a36348b1e2599da46cfc667b89b9b5577c49eef63"
+    }
+   }
+  },
+  "int-spot-loud.es": {
+   "text": "A toda potencia tan cerca, los escucharon. Bajen el acelerador al acercarse.",
+   "speaker": "vega",
+   "seconds": 5.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1839756625,
+     "heard": "A toda potencia tan cerca, los escucharon, bajen el acelerador al acercarse.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23094,
+     "sha256": "6327498857f7883b5f7e6dd96302ee19b92e25b1e74fe09ddfeb31eebda9912d"
+    },
+    "mp3": {
+     "bytes": 24956,
+     "sha256": "68438d96af9c6b75961022e0451ff8252f77c0ab33e3393b9f317b1718cc8813"
+    }
+   }
+  },
+  "int-spot-low.en": {
+   "text": "You came in too low. Stay high and use the zoom.",
+   "speaker": "vega",
+   "seconds": 3.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 413326907,
+     "heard": "You came in too low, stay high, and use the Zoom.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15263,
+     "sha256": "371a47211e47bcc29441abc5ca004eacf157e15d68eeffd14288184d06bcd4a5"
+    },
+    "mp3": {
+     "bytes": 16796,
+     "sha256": "f61496c6358c46336f292811eb415e2242f0f8e0220c6824a129f7d2d058a7e4"
+    }
+   }
+  },
+  "int-spot-low.es": {
+   "text": "Entraron muy bajo. Manténganse alto y usen el zoom.",
+   "speaker": "vega",
+   "seconds": 3.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3368090988,
+     "heard": "Entrar muy bajo. Manténganse alto y usen el Zoom.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "entraron"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 663257925,
+     "heard": "Entrarlo muy bajo. Manténganse alto y usen el Zoom.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "entraron"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1722381613,
+     "heard": "Entraron muy bajo. Manténganse alto y usen el zoom.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17467,
+     "sha256": "74eedc87082461d53a1bb0bb41a88a7896cce0d5855aab25fe2bcfc326f5d39b"
+    },
+    "mp3": {
+     "bytes": 18404,
+     "sha256": "b9f015b1d2d19a936868eaeae5e2cac7a02d6793127901edf28851bff77e6f04"
+    }
+   }
+  },
+  "int-spot-over.en": {
+   "text": "You flew straight over them. Offset and orbit wide.",
+   "speaker": "vega",
+   "seconds": 3.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4025662311,
+     "heard": "You flew straight over them, offset and orbit wide.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14783,
+     "sha256": "fcced48cf8be04157d36fa6caa07fcbf6bdd977d20f018b4c089cb8664479767"
+    },
+    "mp3": {
+     "bytes": 15380,
+     "sha256": "0c8908b4be68b0f53b767c2bdc7806189a30789aef9991484a506154e4862615"
+    }
+   }
+  },
+  "int-spot-over.es": {
+   "text": "Pasaron justo encima de ellos. Desvíense y orbiten amplio.",
+   "speaker": "vega",
+   "seconds": 3.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 859310047,
+     "heard": "Pasaron justo encima de ellos, desvíense y orbiten amplio.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18074,
+     "sha256": "c76ebaf764c4788bee38746fc276d55de38206651d22f74b39365b6261ce292b"
+    },
+    "mp3": {
+     "bytes": 19100,
+     "sha256": "62ae9d08252f3175c006aa3ad23f27e6cbf62bf2ada02e5d3200d9f96cf095b5"
+    }
+   }
+  },
+  "int-spot-seen.en": {
+   "text": "They've seen you.",
+   "speaker": "ibarra",
+   "seconds": 1.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3440635680,
+     "heard": "They've seen you. I die a fast.",
+     "wer": 1.333,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 86783263,
+     "heard": "They've seen you. I was a gnome and the Aparton, and Shat, with",
+     "wer": 3.333,
+     "extra": 10,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1436552185,
+     "heard": "They've seen you.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 160
+    },
+    {
+     "attempt": 3,
+     "seed": 3801692486,
+     "heard": "They've seen you.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6196,
+     "sha256": "d8dcbd67905395b750072d3d06f49910b42ed1817df24bdf17304b0aadc6f20f"
+    },
+    "mp3": {
+     "bytes": 6572,
+     "sha256": "5a472a68e4c5956657ce87fae93fa68d2fa4e5bbbf421117ab57c7a9ee4a189d"
+    }
+   }
+  },
+  "int-spot-seen.es": {
+   "text": "Los vieron.",
+   "speaker": "ibarra",
+   "seconds": 1.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2024758053,
+     "heard": "¿Los vieron?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5496,
+     "sha256": "90a6a8105191c3a9c154781e3f52cc7ce6f349d3973b9bd136147ac3f2279bb2"
+    },
+    "mp3": {
+     "bytes": 5804,
+     "sha256": "c6b77c6d7291aaa28f34dc1b6b662d4eb5dbf28c86856b368a4ab2ebb39a5a79"
+    }
+   }
+  },
+  "int-spot-warn.en": {
+   "text": "You're too low. Climb.",
+   "speaker": "ibarra",
+   "seconds": 2.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2919714568,
+     "heard": "You're too low. Climb. I don't know way to cannibal.",
+     "wer": 1.5,
+     "extra": 6,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2352455339,
+     "heard": "You're too low.",
+     "wer": 0.25,
+     "extra": 0,
+     "missing": [
+      "climb"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1615939192,
+     "heard": "You're too low. Climb.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13470,
+     "sha256": "29280ff72ec5a82a3f1f4305e47d574d2896bd4397a9b91c76ece77fbe55507f"
+    },
+    "mp3": {
+     "bytes": 12884,
+     "sha256": "d3ff426e4a43864dcb70b3dfac41bfdfcc5754dc44b574f85b2896bd9416cb6e"
+    }
+   }
+  },
+  "int-spot-warn.es": {
+   "text": "Están muy bajos. Suban.",
+   "speaker": "ibarra",
+   "seconds": 1.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1299478646,
+     "heard": "¡Está muy bajo! ¡Suban!",
+     "wer": 0.5,
+     "extra": 0,
+     "missing": [
+      "estan",
+      "bajos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 110041836,
+     "heard": "Están muy bajos, suban.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8085,
+     "sha256": "12b45a058bab3cc5e6d514635d0d811dab1d034e5718bce43e200ab245855012"
+    },
+    "mp3": {
+     "bytes": 8180,
+     "sha256": "08ee0a713e6d3217144aafd8cfef8d309a4569b37830828daf98fdddba33345c"
+    }
+   }
+  },
   "int-take-role.en": {
    "text": "Feed's yours.",
    "speaker": "ferrer",

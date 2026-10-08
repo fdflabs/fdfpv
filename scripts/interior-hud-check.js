@@ -352,6 +352,12 @@ try {
   await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(baseView({ boundary: { 1: 'warning' } }))} }), true)`);
   await page.sleep(400);
   check('the boundary warning to the pilot crossing it', /BOUNDARY/.test((await page.evaluate('window.__opsHud()')).boundary || ''));
+  /* The people below looking up (CONTRACT-SPOTTED.md): in the same place. */
+  const looking = { value: 0.3, level: 'looking', at: { looking: 9000 }, worst: null, advice: null };
+  await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(baseView({ spot: { pair: looking } }))} }), true)`);
+  await page.sleep(400);
+  check('the people below looking up: "climb" where the boundary warns', /LOOKING UP: CLIMB/.test((await page.evaluate('window.__opsHud()')).boundary || ''));
+  await shot('hud-spot-looking.png');
   const start = baseView({
     stage: {
       id: 'M1_CP_START', n: 1, at: 5000, title: 'ops.interior.m1.s1', text: null, music: null, lockRoles: false,
