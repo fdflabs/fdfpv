@@ -627,6 +627,8 @@ export class Ui {
     this.craftGate = !seatedByLink;
     /* The hub on the gate, null for home and its three hub cards. */
     this.hub = null;
+    /* The walkable hangar, while it is open (src/ui/hangarwalk.js). */
+    this.walk = null;
     /* A guided first flight is in the air; main.js reads it. */
     this.guided = false;
     /* The room game a title card preselected; see act()'s ways. */
@@ -1536,6 +1538,9 @@ Object.assign(Ui.prototype, navMethods);
 
 import { actionMethods } from './actions.js';
 Object.assign(Ui.prototype, actionMethods);
+
+import { walkMethods } from './hangarwalk.js';
+Object.assign(Ui.prototype, walkMethods);
 
 import { sessionMethods, watchSessionEvents, wireFcSession } from './session.js';
 Object.assign(Ui.prototype, sessionMethods);
