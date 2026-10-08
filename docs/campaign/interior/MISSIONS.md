@@ -209,6 +209,11 @@ Shared lines, every mission:
 | int-lost-aircraft | a platform destroyed while others remain | FERRER | all | (new) We lost that aircraft. Bring up another. |
 | int-fail-function | a mission fail for lost capability | VEGA | all | (new) We've lost the picture. We go again. |
 | int-take-role | a pilot took a free role | FERRER | that pilot | (new) Feed's yours. |
+| int-spot-warn | `looking` (people under the aircraft look up, CONTRACT-SPOTTED.md) | IBARRA | all | (new) You're too low. Climb. |
+| int-spot-seen | `spotted`, before its advice | IBARRA | all | (new) They've seen you. |
+| int-spot-low | spotted, advice: too low | VEGA | all | (new) You came in too low. Stay high and use the zoom. |
+| int-spot-over | spotted, advice: straight over them | VEGA | all | (new) You flew straight over them. Offset and orbit wide. |
+| int-spot-loud | spotted, advice: full power close by | VEGA | all | (new) Full power that close, they heard you. Throttle back on the approach. |
 
 The guide's lines, every mission (src/share/ops/guide.js; the owner,
 2026-10-06: "no voice telling me what to do, no arrows pointing"). They
