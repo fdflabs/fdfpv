@@ -42,6 +42,7 @@ import {
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
+import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { STICK_MODES, normaliseStickMode } from '../input/stickmode.js';
@@ -155,6 +156,17 @@ function flightStyleRow(label, arcadeNote, expertNote, s) {
 const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damage_note'), s.crashDamage !== false, (v) => {
   s.crashDamage = Boolean(v);
 });
+
+/* The air: the preset's own note, and in a room the host's choice is the
+ * room's (docs/WEATHER-CONTRACT.md). */
+const weatherRow = (s) => choice(
+  str('ui.weather'),
+  str(`weather.${s.weather}_note`),
+  WEATHER_PRESETS,
+  s.weather,
+  (id) => str(`weather.${id}`),
+  (id) => { s.weather = id; },
+);
 
 /* The radio link preset, with the figures of the chosen one in the note. */
 function linkRow(s, perfectNote, figuresKey) {
@@ -437,6 +449,7 @@ function freestyleRows(ui, s) {
     machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
     flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
     crashDamageRow(s),
+    weatherRow(s),
     backRow(),
   ];
 }

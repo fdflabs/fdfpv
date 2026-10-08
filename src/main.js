@@ -11176,10 +11176,11 @@ export async function boot({
    * In a room the room's air (its welcome, set by the host) on the room's
    * clock, so every pilot meets a front where the others do; the clock is
    * read once per run, which keeps the run's own steps a function of its
-   * own clock. A war is calm (docs/WEATHER-CONTRACT.md). Solo, the pick
-   * window.__weather made, until the settings pick it.
+   * own clock (docs/WEATHER-CONTRACT.md). Solo, the
+   * pilot's setting with one fixed seed, so a solo flight meets the same
+   * air every time (window.__weather can name another seed).
    */
-  let weatherPick = { preset: 'calm', seed: 0 };
+  let soloSeed = 1;
   let weather = null;
   let windSet = false;
   const airPos = new THREE.Vector3();
@@ -11195,7 +11196,11 @@ export async function boot({
   let weatherFlown = null;
   function seatWeather() {
     const welcome = roomLinkState.state().welcome;
-    const pick = welcome ? (roomWar.on() ? null : welcome.weather) : weatherPick;
+    offerRoomWeather(ui.settings);
+    /* Free flight only: a race map's records, a war and a mission are
+     * flown in still air, the same for everyone who ever flew them. */
+    const free = view.mode === 'freestyle' && !roomWar.on() && !roomOps.on();
+    const pick = !free ? null : (welcome ? welcome.weather : { preset: ui.settings.weather, seed: soloSeed });
     /* A room's air is from the network, and may name what this build does
      * not know (a newer server) or a world without weather: still air. */
     const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
@@ -11217,15 +11222,20 @@ export async function boot({
   }
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
-  window.__roomWeather = (preset) => {
-    roomLinkState.sendWeather(preset);
-    return true;
-  };
   window.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
-    weatherPick = { preset, seed: seed >>> 0 };
+    ui.settings.weather = preset;
+    soloSeed = seed >>> 0;
     return true;
   };
+  /* A host's setting is the room's air: told to the room when they differ,
+   * which every pilot's next run then flies. */
+  function offerRoomWeather(s) {
+    const w = roomLinkState.state().welcome;
+    if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
+      roomLinkState.sendWeather(s.weather);
+    }
+  }
 
   /* The plant's calls here are in the order recorded flights and
    * contact:golden start from, so they stay in it. */
@@ -12550,6 +12560,7 @@ export async function boot({
       applyRunSettings(s);
     }
     applyAirSettings(s);
+    offerRoomWeather(s);
     race.setRecordKey(recordKey());
     paintBest();
     if (!worldMatchesSettings()) {

@@ -21,9 +21,9 @@ in which PR, what it does NOT do, and the checks that prove it.
 
 ## What the player sees
 
-- A room's host picks a weather preset in the room's settings: Calm (the
-  default, exactly today's flight), Breeze, Gusty, Front. Solo flying uses
-  the same picker in the flight settings.
+- A Weather row on the Freestyle screen: Calm (the default, exactly
+  today's flight), Breeze, Gusty, Fronts. Solo it is the pilot's air; in a
+  room the host's setting is the room's.
 - Every pilot in the room flies the same air: the room hands out one preset
   and one seed, and the air is a pure function of (map, preset, seed,
   position, room time).
@@ -103,7 +103,8 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
   main dam; Swiss2, Alps and the Interior have none yet (their base heights
   are 0, a placeholder until authored).
 - No random numbers at run time, no wall clock.
-- No weather in the war mode or campaign until their owners ask.
+- No weather on race maps (records stay comparable), in the war or in
+  operations missions until their owners ask.
 - Known edge: the map to plant rotation (`qSpawn`) is built with JS trig once
   per spawn, as the water's frame already is. Same seed, same machine, same
   air to the bit; across engines the direction may differ in the last bit.
@@ -115,7 +116,12 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
    reachable only through `window.__weather(preset, seed)` (the next run
    flies it): nothing changes for any player.
 2. Room protocol: preset + seed in room settings, room time. VM deploy.
-3. Presets UI: host picker (room settings) and solo picker, strings en + es.
+3. Presets UI: a Weather row on the Freestyle screen (Calm, Breeze, Gusty,
+   Fronts; strings en + es), saved as `settings.weather` (default calm, so
+   old profiles read calm; the settings goldens carry the new key). Solo it
+   is the run's air with one fixed seed; a room host's setting is sent to
+   the room. Weather is free flight only: a race map (records), a war and an
+   operations mission fly still air whatever is picked (lead decision).
 4. Visuals: rain and haze from the preset, coordinated with the clouds lane
    through the plan file (sky.js is theirs).
 
@@ -136,6 +142,9 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
 the slot script): a calm run makes no `sim_set_wind` call; after
 `__weather('gusty', 42)` a fresh run sets the wind every step and `sim_wind`
 reads it; calm again makes exactly one still call and reads still air.
+
+`npm run check:weather-ui`: the Weather row reached with a real pointer
+sets Gusty, saved; the next run flies it; Calm again flies still air.
 
 `npm run check:weather-room`: two pages in one room on a rooms server the
 check starts; the host's gusty reaches both with the same seed, a non host
