@@ -21,7 +21,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DRAWN, KIT_VERSION, kitParts, slotsFor } from '../../configs/kits.js';
+import { DRAWN, KIT_VERSION, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor } from '../../configs/kits.js';
 import { liveryKey } from '../../configs/liveries.js';
 import { str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
@@ -45,6 +45,88 @@ function withSlot(entry, family, slot, option) {
   return out;
 }
 
+/* The LED colours offered: the common LED strip colours, not the paint
+ * palette, since a light is a colour of light. */
+const LED_COLOURS = ['#ff2a1a', '#ff8a00', '#ffe600', '#22ff44', '#00b7ff', '#7a3cff', '#ff2bd6', '#ffffff'];
+
+/* The entry with its lights changed; nothing on means no lights. */
+function withLights(entry, change) {
+  const lights = { v: LIGHTS_VERSION, ...(entry.lights ?? {}), ...change };
+  const out = { ...entry };
+  delete out.lights;
+  if (lights.led || lights.nav || lights.strobe) {
+    out.lights = lights;
+  }
+  return out;
+}
+
+function ledRows(hangar, box) {
+  const lights = hangar.entry.lights ?? {};
+  box.append(el('h3', 'hangar-h', str('kit.leds')));
+  const colours = el('div', 'hangar-cards hangar-cards-small');
+  [null, ...LED_COLOURS].forEach((hex, i) => {
+    const on = (lights.led ?? null) === hex;
+    const b = button(`hangar-card${on ? ' on' : ''}`);
+    b.dataset.key = `led-${hex ? hex.slice(1) : 'off'}`;
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    const name = el('span', 'hangar-card-name', hex ? '\u25cf' : str('kit.led_off'));
+    if (hex) {
+      name.style.color = hex;
+      b.setAttribute('aria-label', hex);
+    }
+    b.append(name);
+    hangar.trial(b, { entry: withLights(hangar.entry, { led: hex }) }, 'overview');
+    b.addEventListener('click', () => {
+      hangar.entry = withLights(hangar.entry, { led: hex });
+      hangar.changed(b.dataset.key);
+    });
+    colours.append(b);
+  });
+  box.append(colours);
+  if (!lights.led) {
+    return;
+  }
+  box.append(el('h3', 'hangar-h', str('kit.pattern')));
+  const patterns = el('div', 'hangar-cards hangar-cards-small');
+  LED_PATTERNS.forEach((p, i) => {
+    const on = (lights.pattern ?? 'solid') === p;
+    const b = button(`hangar-card${on ? ' on' : ''}`);
+    b.dataset.key = `pattern-${p}`;
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    b.append(el('span', 'hangar-card-name', str(`kit.pattern.${p}`)));
+    b.addEventListener('click', () => {
+      hangar.entry = withLights(hangar.entry, { pattern: p });
+      hangar.changed(b.dataset.key);
+    });
+    patterns.append(b);
+  });
+  box.append(patterns);
+  box.append(el('p', 'hangar-source', str('kit.pattern_note')));
+}
+
+/* A plane's nav lights and wingtip strobes, each on or off. */
+function navRows(hangar, box) {
+  const lights = hangar.entry.lights ?? {};
+  box.append(el('h3', 'hangar-h', str('kit.lights')));
+  const grid = el('div', 'hangar-cards hangar-cards-small');
+  ['nav', 'strobe'].forEach((k, i) => {
+    const on = lights[k] === true;
+    const b = button(`hangar-card parts-toggle${on ? ' on' : ''}`);
+    b.dataset.key = `light-${k}`;
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    b.append(el('span', 'hangar-card-name', str(`kit.light.${k}`)));
+    b.addEventListener('click', () => {
+      hangar.entry = withLights(hangar.entry, { [k]: !on });
+      hangar.changed(b.dataset.key);
+    });
+    grid.append(b);
+  });
+  box.append(grid);
+}
+
 registerHangarTab({
   id: 'kit',
   focus: 'overview',
@@ -52,7 +134,8 @@ registerHangarTab({
     const box = el('div', 'hangar-tab kit-tab');
     const family = liveryKey(hangar.id);
     const slots = DRAWN.has(family) ? slotsFor(family) : [];
-    if (!slots.length) {
+    const has = lightsFor(family);
+    if (!slots.length && !has.led && !has.nav) {
       box.append(el('p', 'hangar-note', str('kit.none_here')));
       return box;
     }
@@ -75,6 +158,12 @@ registerHangarTab({
         grid.append(b);
       });
       box.append(grid);
+    }
+    if (has.led) {
+      ledRows(hangar, box);
+    }
+    if (has.nav) {
+      navRows(hangar, box);
     }
     box.append(el('p', 'hangar-source', str('kit.note')));
     return box;

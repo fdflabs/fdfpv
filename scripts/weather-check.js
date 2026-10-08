@@ -57,6 +57,12 @@ const seed = [`try {
     T.wrapped = true;
     const out = {};
     for (const key of Object.keys(ex)) out[key] = ex[key];
+    /* A reset starts a run: the calls are read per run, because the last
+     * run goes on stepping between this check's evaluates. */
+    out.sim_reset = (...a) => {
+      T.calls.push('reset');
+      return ex.sim_reset(...a);
+    };
     out.sim_set_wind = (...a) => {
       T.calls.push(a);
       return ex.sim_set_wind(...a);
@@ -83,7 +89,8 @@ const fly = `(async () => {
   window.__crashThrow({ fresh: true, x: 0, y: 300, z: 0, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: 0 });
   for (let i = 0; i < 40; i += 1) await new Promise((r) => requestAnimationFrame(r));
 })()`;
-const calls = () => page.evaluate('window.__windTest.calls.length');
+/* The sim_set_wind calls of the run now flying, the ones after the last reset. */
+const run = async () => JSON.parse(await page.evaluate(`JSON.stringify(window.__windTest.calls.slice(window.__windTest.calls.lastIndexOf('reset') + 1))`));
 
 const page = await openPage({ root, width: 960, height: 540, url: '/index.html', seed });
 try {
@@ -92,28 +99,26 @@ try {
   const map = await page.evaluate('window.__map().id');
   const errors0 = page.errors.length;
   await page.evaluate(fly);
-  const calm = await calls();
+  const calm = await page.evaluate("window.__windTest.calls.filter((c) => c !== 'reset').length");
   check('a calm run makes no sim_set_wind call', calm === 0, `${calm} calls on ${map}`);
 
   await page.evaluate("window.__weather('gusty', 42)");
   await page.evaluate(fly);
-  const windy = await calls();
+  const windy = (await run()).length;
   const w = JSON.parse(await page.evaluate('JSON.stringify(window.__windTest.wind())'));
   const speed = Math.hypot(w[0], w[1]);
   check('gusty: the wind is set before the steps', windy > 100, `${windy} calls`);
   check('and the plant flies in it', speed > 1, `sim_wind ${speed.toFixed(2)} m/s`);
 
   await page.evaluate(fly);
-  const first = JSON.parse(await page.evaluate(`JSON.stringify(window.__windTest.calls[${windy}])`));
-  check('a windy run after a windy one starts in still air, for the stand', first.every((v) => v === 0), `${first}`);
-  const windy2 = await calls();
+  const first = (await run())[0];
+  check('a windy run after a windy one starts in still air, for the stand', Boolean(first) && first.every((v) => v === 0), `${first}`);
 
   await page.evaluate("window.__weather('calm', 0)");
   await page.evaluate(fly);
-  const after = await calls();
-  const last = JSON.parse(await page.evaluate('JSON.stringify(window.__windTest.calls.at(-1))'));
+  const calmRun = await run();
   const w2 = JSON.parse(await page.evaluate('JSON.stringify(window.__windTest.wind())'));
-  check('calm after wind: one still call, then none', after === windy2 + 1 && last.every((v) => v === 0), `${after - windy2} calls, last ${last}`);
+  check('calm after wind: one still call, then none', calmRun.length === 1 && calmRun[0].every((v) => v === 0), JSON.stringify(calmRun.slice(0, 3)));
   check('and still air', w2[0] === 0 && w2[1] === 0, `${w2}`);
   /* The local server has no rooms or accounts behind it: their refused
    * connections are the harness's, not the weather's. */

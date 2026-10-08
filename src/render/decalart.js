@@ -469,6 +469,84 @@ Object.assign(DRAW, {
       g.closePath();
     });
   },
+  crosshair(g, d, w) {
+    const cx = w / 2;
+    const r = Math.min(w, 1) * 0.36;
+    for (const [col, lw] of [[d.c2, 0.14], [d.c, 0.07]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      ellipse(g, cx, 0.5, r, r);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx - r * 1.3, 0.5);
+      g.lineTo(cx + r * 1.3, 0.5);
+      g.moveTo(cx, 0.5 - r * 1.3);
+      g.lineTo(cx, 0.5 + r * 1.3);
+      g.stroke();
+    }
+  },
+  propeller(g, d, w) {
+    const cx = w / 2;
+    for (let i = 0; i < 3; i += 1) {
+      const a = (i * 2 * Math.PI) / 3 - Math.PI / 2;
+      const c = Math.cos(a);
+      const s2 = Math.sin(a);
+      edged(g, d, () => {
+        g.beginPath();
+        g.ellipse(cx + c * 0.24, 0.5 + s2 * 0.24, 0.24, 0.08, a, 0, Math.PI * 2);
+      });
+    }
+    edged(g, { ...d, c: d.c2, c2: d.c }, () => ellipse(g, cx, 0.5, 0.08, 0.08));
+  },
+  drone(g, d, w) {
+    const cx = w / 2;
+    g.lineCap = 'round';
+    for (const [col, lw] of [[d.c2, 0.16], [d.c, 0.09]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      g.beginPath();
+      g.moveTo(cx - 0.3, 0.2);
+      g.lineTo(cx + 0.3, 0.8);
+      g.moveTo(cx + 0.3, 0.2);
+      g.lineTo(cx - 0.3, 0.8);
+      g.stroke();
+    }
+    for (const [x, y] of [[-0.3, 0.2], [0.3, 0.2], [-0.3, 0.8], [0.3, 0.8]]) {
+      ellipse(g, cx + x, y, 0.15, 0.15);
+      g.lineWidth = 0.05;
+      g.strokeStyle = d.c;
+      g.stroke();
+    }
+    edged(g, d, () => fillPath(g, [[cx - 0.1, 0.36], [cx + 0.1, 0.36], [cx + 0.1, 0.64], [cx - 0.1, 0.64]]));
+  },
+  tally(g, d, w) {
+    const n = 5;
+    const step = w / (n + 1);
+    g.lineCap = 'round';
+    for (const [col, lw] of [[d.c2, 0.16], [d.c, 0.09]]) {
+      g.strokeStyle = col;
+      g.lineWidth = lw;
+      g.beginPath();
+      for (let i = 1; i < n; i += 1) {
+        g.moveTo(i * step, 0.15);
+        g.lineTo(i * step, 0.85);
+      }
+      g.moveTo(step * 0.4, 0.75);
+      g.lineTo(step * (n - 0.4), 0.25);
+      g.stroke();
+    }
+  },
+  sun(g, d, w) {
+    const cx = w / 2;
+    const pts = [];
+    for (let i = 0; i < 32; i += 1) {
+      const a = (i * Math.PI) / 16;
+      const r = i % 2 ? 0.3 : 0.46;
+      pts.push([cx + r * Math.cos(a), 0.5 + r * Math.sin(a)]);
+    }
+    edged(g, d, () => fillPath(g, pts));
+    edged(g, { ...d, c: d.c2, c2: d.c }, () => ellipse(g, cx, 0.5, 0.18, 0.18));
+  },
 });
 
 /*
