@@ -284,6 +284,9 @@ jobs:
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # The livery gallery against a local tracks server: list, like, sort,
+      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
+      - run: npm run gallery:check
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check

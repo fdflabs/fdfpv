@@ -4,7 +4,7 @@
  *
  * The Colours tab (src/ui/hangar.js) opens on PAINT, the schemes and each
  * region's colour, and this adds the region's FINISH under its colours and
- * two more pages beside it, on a switch at the top of the tab:
+ * three more pages beside it, on a switch at the top of the tab:
  *
  *   DECALS    race numbers, stripes, checks, chevrons, stars, roundels and
  *             generic sponsor style marks (configs/paint.js), each put on
@@ -17,6 +17,8 @@
  *             the cursor starts on is Keep); and the livery on the plane
  *             as a code to copy, or a code pasted in and checked field by
  *             field before anything of it is used.
+ *   GALLERY   the liveries other pilots published for this plane
+ *             (src/ui/hangar-gallery.js, docs/LIVERY-GALLERY.md).
  *
  * The racing games' livery editors are the model: the camera turns to the
  * side being worked on, the plane holds still under the aim, the decal
@@ -55,8 +57,9 @@ import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
 import { str } from '../strings/index.js';
 import { el } from './dom.js';
+import { Gallery } from './hangar-gallery.js';
 
-export const PAINT_PAGES = ['paint', 'decals', 'saved'];
+export const PAINT_PAGES = ['paint', 'decals', 'saved', 'gallery'];
 
 /* The camera's views for decal work (src/render/hangarstage.js). */
 const DECAL_VIEWS = ['top', 'side_left', 'side_right', 'nose', 'tail'];
@@ -118,6 +121,7 @@ export class PaintShop {
     this.reticle = el('div', 'paint-reticle');
     this.reticle.hidden = true;
     hangar.stage.append(this.reticle);
+    this.gallery = new Gallery(this);
     this.reset();
   }
 
@@ -193,6 +197,9 @@ export class PaintShop {
     this.page = p;
     this.form = null;
     this.adding = false;
+    if (p === 'gallery') {
+      this.gallery.open();
+    }
     this.h.changed(`page-${p}`, 'adjust');
   }
 
@@ -213,7 +220,16 @@ export class PaintShop {
 
   /* The page's body when it is not Paint, which hangar.js draws itself. */
   body() {
+    if (this.page === 'gallery') {
+      return this.gallery.page();
+    }
     return this.page === 'decals' ? this.decalsPage() : this.savedPage();
+  }
+
+  /* A shared code's entry when it is for this plane, to try on. */
+  tryEntry(code) {
+    const got = readCode(code);
+    return !got.error && got.family === this.h.family ? got.entry : null;
   }
 
   /* THE FINISH, under the region's colours on the Paint page. */

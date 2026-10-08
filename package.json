@@ -446,6 +446,7 @@
     "hangar:garage": "node scripts/garage-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "paint:workshop": "node scripts/paint-workshop-check.js",
+    "gallery:check": "node scripts/gallery-check.js",
     "sticker:check": "node scripts/sticker-check.js",
     "parts:check": "node scripts/parts-check.js",
     "parts:derive": "node scripts/parts-derive.js",
