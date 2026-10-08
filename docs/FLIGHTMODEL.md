@@ -606,3 +606,30 @@ down. G: the Stik reaches 2.6 deg past its stall at 65 deg/s of pitch and
 rolls at 73 deg/s, the P-51 (not in this probe; flightmodel-probe's SNAP)
 snaps. None of them is near Stough's envelope: the plant's spins are
 shallow, the next step's subject.
+
+### Deep spins and the Stik's snap: not built, and why
+
+- **What holds the plant's spins shallow is the stall's pitch break, at
+  the sections' own data.** On the Cub's B flight the full up elevator's
+  linear moment at 14.6 deg is +0.10 of qSc and the stall's moment -0.10:
+  the angle of attack stops 2 deg past the stall. The strips past it hold
+  their lift flat for stall_top (the UIUC curves each table cites: 4.6 deg
+  on the Cub's Clark Y class, 6.2 on the Tiger Moth's), so a roll rate that
+  pushes a wing deeper loses it no lift: no autorotation to speak of until
+  the wing is deeper than the elevator takes it, and no rotation fast
+  enough for the inertial pitch to take it there. A developed spin at
+  Stough's 32 to 79 deg needs the tail's and the stalled wing's pitching
+  moments at those angles, which no source here gives for these aircraft.
+- **Tried:** the Tiger Moth, the one aircraft a source says spins, with
+  hi_alpha's saturating tail (the removed Extra's, its own tail slopes):
+  B unchanged, 60 deg/s at 14.4 deg. The cap is the wing's break, not the
+  tail. Not kept.
+- **The Ugly Stik's snap:** G reaches 2.6 deg past its stall at 65 deg/s
+  of pitch on the plan's 3/8 in of elevator; the P-51 snaps on its own
+  throws. RCM's "four point and snap rolls" gives no throws or speeds for
+  them, and nothing found times a Stik snap: building one would be fitting
+  the elevator or the break to an adjective.
+- **A spin recovery that takes turns:** every spin here stops in under a
+  fifth of a turn, inside 14 CFR 23.221's one turn. A delay (the rudder
+  blanketed by the stalled tail, Bowman p. 16) is measurable only on a
+  developed spin, which the plant does not reach, so it is not built.
