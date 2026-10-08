@@ -231,6 +231,55 @@ function targetsOf(craft) {
   return out;
 }
 
+/* A target's triangles in the group frame, nine numbers each, and their
+ * bounds as the 8 corners of a box: worked out once per model, since every
+ * layer and every mirror copy reads them (a livery of 32 mirrored layers
+ * used to transform each vertex 128 times). */
+function trianglesOf(target) {
+  if (target.tri) {
+    return target.tri;
+  }
+  const geo = target.mesh.geometry;
+  const pos = geo.attributes.position;
+  const index = geo.index;
+  const count = index ? index.count : pos.count;
+  const tri = new Float64Array(Math.floor(count / 3) * 9);
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < tri.length / 3; i += 1) {
+    vt.fromBufferAttribute(pos, index ? index.getX(i) : i).applyMatrix4(target.matrix);
+    tri[3 * i] = vt.x;
+    tri[3 * i + 1] = vt.y;
+    tri[3 * i + 2] = vt.z;
+    for (const [k, v] of [[0, vt.x], [1, vt.y], [2, vt.z]]) {
+      lo[k] = Math.min(lo[k], v);
+      hi[k] = Math.max(hi[k], v);
+    }
+  }
+  target.tri = tri;
+  target.corners = [0, 1, 2, 3, 4, 5, 6, 7].map((c) => new THREE.Vector3(c & 1 ? hi[0] : lo[0], c & 2 ? hi[1] : lo[1], c & 4 ? hi[2] : lo[2]));
+  return tri;
+}
+
+/* Whether a target's bounds miss the box across its face (right and up),
+ * and, with `depth`, along its normal too. */
+function misses(target, box, depth) {
+  trianglesOf(target);
+  for (const [axis, half] of depth ? [[box.right, box.hw], [box.up, box.hh], [box.n, box.hd]] : [[box.right, box.hw], [box.up, box.hh]]) {
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const c of target.corners) {
+      const d = e1.subVectors(c, box.p).dot(axis);
+      lo = Math.min(lo, d);
+      hi = Math.max(hi, d);
+    }
+    if (lo > half || hi < -half) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
  * The box of one decal: its origin, its axes (image right, image up, into
  * the skin's normal) and its half sizes, in the group frame. The image's
@@ -320,13 +369,13 @@ function coverOf(box, targets) {
   const cellOf = (v, half) => Math.min(COVER_GRID - 1, Math.max(0, Math.floor(((v + half) / (2 * half)) * COVER_GRID)));
   const q = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   for (const target of targets) {
-    const geo = target.mesh.geometry;
-    const pos = geo.attributes.position;
-    const index = geo.index;
-    const count = index ? index.count : pos.count;
-    for (let t = 0; t + 2 < count; t += 3) {
+    if (misses(target, box, false)) {
+      continue;
+    }
+    const all = trianglesOf(target);
+    for (let t = 0; t < all.length / 3; t += 3) {
       for (let k = 0; k < 3; k += 1) {
-        vt.fromBufferAttribute(pos, index ? index.getX(t + k) : t + k).applyMatrix4(target.matrix).sub(box.p);
+        vt.set(all[3 * (t + k)], all[3 * (t + k) + 1], all[3 * (t + k) + 2]).sub(box.p);
         q[3 * k] = vt.dot(box.right);
         q[3 * k + 1] = vt.dot(box.up);
         q[3 * k + 2] = vt.dot(box.n);
@@ -404,10 +453,13 @@ function project(box, target, uv, flip, cover) {
   const lift = box.n.clone().multiplyScalar(DECAL_LIFT);
   const out = new THREE.Vector3();
   const outN = new THREE.Vector3();
+  if (misses(target, box, true)) {
+    return null;
+  }
+  const all = trianglesOf(target);
   for (let t = 0; t + 2 < count; t += 3) {
     for (let k = 0; k < 3; k += 1) {
-      const vi = at(t + k);
-      ps[k].fromBufferAttribute(pos, vi).applyMatrix4(target.matrix);
+      ps[k].set(all[3 * (t + k)], all[3 * (t + k) + 1], all[3 * (t + k) + 2]);
     }
     /* Quick reject: all three past the same face of the box. */
     let reject = false;
