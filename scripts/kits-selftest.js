@@ -83,6 +83,8 @@ const code = encodeLivery('7inch', 'night', q);
 const back = readCode(code);
 check('a v1 code carries kit and lights', !back.error && same(back.entry.kit, q.kit) && same(back.entry.lights, q.lights), back.error ?? '');
 check('a code with a bad kit is refused', readCode(encodeLivery('7inch', 'x', { kit: { v: 1, parts: { spinner: 'bullet' } } })).error === 'bad_value');
+check('a code with a newer kit version is refused with the version sentence', readCode(encodeLivery('7inch', 'x', { kit: { v: 2, parts: { arms: 'x' } } })).error === 'version');
+check('a code with newer lights is refused too', readCode(encodeLivery('7inch', 'x', { lights: { v: 9, led: '#ffffff' } })).error === 'version');
 const plain = readCode(encodeLivery('sky1800', 'old', { regions: { wing: '#ff0000' } }));
 check('an old code reads the same', !plain.error && same(plain.entry, { regions: { wing: '#ff0000' } }));
 
@@ -106,7 +108,7 @@ check('a pattern is the same at the same flight time', same(lv('chase', 1, 98765
  * peers' livery: they draw, they do not fly.
  */
 console.log('physics zero');
-const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js')]);
+const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js'), join(ROOT, 'src/render/kitshapes.js')]);
 const seen = new Map();
 function reaches(file) {
   if (seen.has(file)) {

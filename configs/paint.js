@@ -410,7 +410,7 @@ function toBase64Url(text) {
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(s) {
+export function fromBase64Url(s) {
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
   const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));

@@ -55,7 +55,7 @@ import { PadRoster, connectedPads, shortPadName } from './padpick.js';
 import { CalibrationWizard } from './calibrate.js';
 import { GuessEvidence } from './guess.js';
 import {
-  PadMenus, swapButtons, altButton, floatsButton, lookClick, lookStick,
+  PadMenus, swapButtons, altButton, floatsButton, lookClick, lookStick, padDirections,
 } from './menus.js';
 
 export { standardPadMap } from './padmap.js';
@@ -405,6 +405,10 @@ export class InputManager {
 
   padLookClick() {
     return lookClick(this.firstGamepad());
+  }
+
+  padDirections() {
+    return padDirections(this.firstGamepad());
   }
 
   /* ------------------------------------------------ the calibration */

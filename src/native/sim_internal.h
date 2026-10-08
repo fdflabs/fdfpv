@@ -601,6 +601,13 @@ typedef struct FixedWingParams {
   double acro_roll_ki;
   double acro_pitch_ki;
   double acro_i_max;
+  /* The rate damper of mode 3 (E-flite's AS3X with SAFE Select off): each
+   * surface is the stick's, at the full throw and expo, less this many
+   * radians of surface per rad/s of the body's roll, pitch and yaw rate,
+   * clipped at the throw. No attitude, no rate cap, no hold. Zero where
+   * the aircraft has no such receiver, and mode 3 there is Manual.
+   * scripts/as3x-derive.js. */
+  double as3x_k[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
@@ -1069,10 +1076,12 @@ double plant_air_lift(const double pos[3]);
  * RMS per axis. SIM_WIND_ON is 0 while all three are zero, and then no
  * step reads any of it, which is what keeps every trace without wind bit
  * identical. plant_wind is the air's velocity at step `step`, world x y
- * (z is always 0), the same everywhere. */
+ * (z is the host's vertical air, SIM_AIR_W, sim_set_air_vertical), the
+ * same everywhere. SIM_WIND_ON is 1 while any of the four is not zero. */
 extern int SIM_WIND_ON;
 extern double SIM_WIND[2];
 extern double SIM_GUST;
+extern double SIM_AIR_W;
 void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.
