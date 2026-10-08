@@ -503,6 +503,7 @@
     "kits:quads": "node scripts/kits-quads-check.js",
     "kits:hangar": "node scripts/kits-hangar-check.js",
     "kits:replay": "node scripts/kits-replay.js",
+    "kits:perf": "node scripts/kits-perf.js",
     "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
