@@ -103,6 +103,7 @@ console.log('data');
   const debriefKeys = [...M.stars.filter((x) => !x.card).map((x) => `ops.interior.star.${skey(x.id)}`), ...ends.map((w) => `ops.why.${skey(w)}`)];
   const noDebrief = debriefKeys.filter((k) => !EN[k] || !ES[k]);
   check('every star and every ending has its debrief words in both tables', !noDebrief.length, noDebrief.join());
+  check('every item id can be a string key ([a-z0-9_], strings:selftest)', M.items.every((x) => /^[a-z0-9_]+$/.test(x.id)), M.items.map((x) => x.id).join());
   check('MISSION RULE in every stage', stagesOf(M).every((st) => (st.objectives ?? []).some((o) => o.tier === 'rule')));
   check('three stars', M.stars.length === 3);
   check('every primary objective has a guide line for each role', stagesOf(M).every((st) => (st.objectives ?? []).filter((o) => o.tier === 'primary')
@@ -245,7 +246,7 @@ console.log('a clean run: every classification earned, one strike, the relay, no
   if (toTheGate(e, c)) {
     check('A, the family\'s pickup, is CIVILIAN; B is FRIENDLY; D is HOSTILE CONFIRMED by correlation',
       clsOf(e, 'civ-pickup') === 'civilian' && clsOf(e, 'police') === 'friendly' && clsOf(e, 'parked') === 'hostile');
-    snap(e, c, 'confirm-pair', 'pair-a');
+    snap(e, c, 'confirm_pair', 'pair-a');
     until(e, () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 10000, 'cleared');
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
@@ -265,10 +266,10 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     e.fly(e.clock + 11000);
     check('the relay held 10 s in its volume: forward feed stable', e.cues(0).some((q) => [q.radio].flat().includes('int3-s4-stable')));
     flyTo(e, c, over([...M.points.command.at, M.z0], 300, 200), 'back over the command site');
-    for (const id of ['temp-shelter', 'command-motos', 'route-markers']) {
+    for (const id of ['temp_shelter', 'command_motos', 'route_markers']) {
       snap(e, c, id);
     }
-    snap(e, c, 'radio-op', 'radio-man');
+    snap(e, c, 'radio_op', 'radio-man');
     until(e, stageIs(e, 'M3_CP_AIR_CONTACT'), 30000, 'stage 5');
     until(e, () => contact(e, 'north'), 120000, 'the northern vehicle');
     watch(e, c, 'north', () => ended(e), 600000, 'over the northern exit');
@@ -302,7 +303,7 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   watch(e, c, 'courier', () => clsOf(e, 'parked') === 'hostile', 400000, 'D meets the courier');
   until(e, () => contact(e, 'pair-a'), 120000, 'the pair appears');
   watch(e, c, 'pair-a', () => contact(e, 'pair-a') && clsOf(e, 'pair-a') === 'poi', 120000, 'the pair seen');
-  snap(e, c, 'confirm-pair', 'pair-a');
+  snap(e, c, 'confirm_pair', 'pair-a');
   e.fly(e.clock + 4000);
   check('"We don\'t have that yet."; the pair not cleared', e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-notyet')) && clsOf(e, 'pair-a') === 'poi');
 }
@@ -312,13 +313,13 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
   const e = opsRoom(M, ROOM);
   const c = pilot(e, 0, BASE);
   if (toTheGate(e, c)) {
-    snap(e, c, 'confirm-pair', 'pair-a');
+    snap(e, c, 'confirm_pair', 'pair-a');
     flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 120], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     const said = (id) => e.r.ops.log.some((x) => x.what === 'cue' && [x.radio].flat().includes(id));
     for (const v of ['v1', 'v2']) {
       watch(e, c, v, () => e.r.ops.match.contacts.find((k) => k.id === v)?.reached[`${v}-stopped`] != null, 300000, `${v} stopped`);
-      snap(e, c, `confirm-${v}`, v);
+      snap(e, c, `confirm_${v}`, v);
       flyTo(e, c, [...M.points[`${v}-stop`].at, M.z0 + 120], `the run over ${v}`);
       e.fly(e.clock + 4000);
       if (v === 'v1') {
