@@ -261,7 +261,7 @@ const CLOUD_EDGE = 0.58;
 const CLOUD_TAPER = 0.16;
 const CLOUD_SOFT = 0.07;
 const CLOUD_BILLOW = 220;
-const CLOUD_ERODE = 0.14;
+const CLOUD_ERODE = 0.2;
 const CLOUD_DEPTH = 800;
 /* How much higher a cell's base may stand than CLOUD_BASE, over a noise
  * CLOUD_LIFT_SIZE across, and how ragged a base is, metres. One height
@@ -437,8 +437,18 @@ const SKY_GLSL = /* glsl */ `
      * billows, more at the cell's rim and top than in its body. */
     vec2 at = q.xz + vec2(0.35, 0.2) * (h * ${CLOUD_DEPTH.toFixed(1)});
     float n = cloudField(at, octaves);
-    float billow = 0.6 * skyNoise3(q / ${CLOUD_BILLOW.toFixed(1)}) + 0.4 * skyNoise3(q / ${(CLOUD_BILLOW * 0.43).toFixed(1)} + 5.3);
-    n -= ${CLOUD_ERODE.toFixed(3)} * (1.0 - billow) * (0.6 + 0.8 * h);
+    /* Billows: each octave folded (1 - |2n - 1|), which rounds a smooth
+     * noise into heaped lobes with creases between, the cauliflower of a
+     * growing cumulus; the smooth sum drew soft blobs. The finest octave
+     * counts only toward the top, where a cell is still growing, and the
+     * base is left smooth, as a real one is. */
+    vec3 bq = q / ${CLOUD_BILLOW.toFixed(1)};
+    float b1 = 1.0 - abs(2.0 * skyNoise3(bq) - 1.0);
+    float b2 = 1.0 - abs(2.0 * skyNoise3(bq * 2.31 + 5.3) - 1.0);
+    float b3 = 1.0 - abs(2.0 * skyNoise3(bq * 5.17 + 1.7) - 1.0);
+    float top = smoothstep(0.15, 0.8, h);
+    float billow = (0.55 * b1 + 0.3 * b2 + 0.15 * b3 * top) / (0.85 + 0.15 * top);
+    n -= ${CLOUD_ERODE.toFixed(3)} * (1.0 - billow) * (0.3 + 1.3 * h);
     return smoothstep(edge, edge + ${CLOUD_SOFT.toFixed(3)}, n) * smoothstep(0.0, 0.06, h);
   }
 
