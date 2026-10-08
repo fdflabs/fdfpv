@@ -352,3 +352,81 @@ No band was widened. Each change is one of three kinds.
 - `crash:core`'s "a five inch ... slides at the sled's grip" fails on
   origin/main as well (0.524), with the module byte identical: not this
   change's.
+
+## PR 3, built: the prop's gyroscope on every prop
+
+Gyroscopic precession was set on four tables only (the P-51, the Zagi,
+the Ugly Stik and the Tiger Moth, and the Strikers). Every other powered
+table now carries its prop's and rotor's polar inertia, \`j_prop\`, so a
+pitch rate yaws it and a yaw rate pitches it at J Omega times the rate:
+the 1000 mm wing, Skyhunter, Cub and Cub floats, Radian, Bramor, Slow
+Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
+
+- The convention is the Ugly Stik's (docs/UGLYSTIK-STAGE1.md): 0.7 of the
+  blades' rod inertia, 0.7 m R^2 / 3, plus the rotor, an outrunner's bell
+  as a shell (m r^2, the bell 40 percent of the motor), an inrunner's as
+  a solid cylinder, a glow engine's crank front. Only APC's 11 x 5.5E
+  (24.9 g, the Skyhunter's) and 12 x 6 (46 g) masses are published; the
+  rest are ESTIMATED from their class, about 30 percent either way, and
+  each table's line says which.
+- The Slow Stick's EPS-300C turns its rotor the other way through a 6.6:1
+  gearbox, which takes a little off the prop's.
+- Torque reaction and P factor were already on every prop table and are
+  unchanged (\`torque_arm\`, \`pfactor\`); the slipstream's swirl is PR 2's.
+
+### The probe, PR 2 to PR 3
+
+| Aircraft | AUTH roll, pitch, yaw rad/s² | HOVER held of 8 s | HANG roll rate deg/s | HARR pitch deg | KNIFE bank deg, sink m/s | SNAP deg (aileron alone) | STALL m/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 0.0, 0.0, 0.0 | 0.70 → 0.71 | -6.7 → -6.1 | 22.6 | n/a | n/a (114) → n/a (115) | 8.03 |
+| Skyhunter | 0.0, 0.0, 0.0 | 0.82 | -0.3 → 0.2 | 11.3 → 11.4 | 71.9, 12.2 → 71.9, 12.6 | 116 (73) → 115 (73) | 10.31 |
+| Cub | 0.0, 26.9, 6.3 | 1.14 → 1.12 | 0.2 → 2.0 | 15.6 → 15.7 | 75.0, 9.2 → 75.1, 9.9 | 125 (103) → 126 (101) | 8.94 |
+| Slow Stick | -3.7, 15.5, 9.3 | 0.41 | -0.1 → -0.5 | 6.1 | n/a | n/a (n/a) | 4.82 |
+| Radian | 0.0, 27.6, 10.0 | 1.26 → 1.27 | 1.4 → 2.6 | 20.4 → 20.6 | n/a | n/a (n/a) | 7.11 |
+| Turbo Timber | 0.0, 51.6, 23.0 | 5.46 → 5.68 | -0.6 → 0.4 | 19.5 → 19.6 | 84.4, 12.0 → 84.3, 12.4 | 285 (183) → 296 (185) | 7.98 |
+| Bramor | 0.0, 0.0, 0.0 | 0.32 | -154.0 → 7.4 | 15.2 | n/a | n/a (60) → n/a (61) | 14.06 |
+| Bombshell | -2.2, 24.5, 10.1 | 0.46 | -0.7 → -3.2 | 5.0 | n/a | n/a (n/a) | 6.94 |
+| Kadet Senior | -2.4, 28.2, 14.1 | 1.01 | 0.4 → 0.8 | 11.6 | n/a | n/a (n/a) | 8.28 |
+| P-51D | 0.0, 41.9, 8.2 | 1.69 | 4.0 | 29.0 | 72.5, 22.4 | 281 (104) | 11.06 |
+| F-16 | 0.0, 0.0, 0.0 | 0.57 | 0.0 → 1.3 | 28.6 | 65.0, 2.4 → 55.3, 3.3 | 275 (200) → 281 (202) | 12.82 |
+| Zagi HP | 0.0, 0.0, 0.0 | 0.17 | 3.3 | 14.8 | n/a | n/a (166) | 7.90 |
+| Ugly Stik | 0.0, 16.9, 12.4 | 3.08 | 1.2 | 13.5 | 68.4, 20.7 | 64 (60) | 10.60 |
+| Tiger Moth | 0.0, 15.8, 13.5 | 1.20 | 0.1 | 6.6 | 73.8, 17.6 | 139 (66) | 9.89 |
+| Striker | 0.0, 0.0, 0.0 | 2.27 | 17.0 | 19.3 | 82.8, 1.3 | 80 (89) | 7.87 |
+
+The torque roll hanging with the sticks centred changes by a few degrees
+a second where the prop is heavy. The Bramor's runaway pusher roll in
+HANG (154 deg/s) is 7 deg/s with its prop's precession, and the F-16's
+knife edge holds 55 deg of bank where it held 65: both are coupled
+motions the probe measures but does not take apart, and neither is a
+gate.
+
+### Re-recorded, re-pinned, and what did not move
+
+Re-recorded (\`node scripts/wing-record.js\`), every take off flown on a
+prop with a new gyroscope: \`cub-baseline.rec\`, \`glider-baseline.rec\`,
+\`slowstick-baseline.rec\`, \`timber-baseline.rec\`,
+\`timberf-baseline.rec\`, \`bombshell-baseline.rec\`,
+\`kadet-baseline.rec\`, \`f16-baseline.rec\`. The 1000 mm wing's, the
+Skyhunter's and the Bramor's committed streams are kept (their recorders
+no longer write the committed bytes even on origin/main) and only their
+hashes are re-pinned. Unmoved, to the bit: the five inch
+(9fdc42323baad668), the Bramor's chute flight (motor cut), the P-51 and
+its air flight, the Ugly Stik, the Tiger Moth, the Zagi and the NRJ,
+whose props already had their inertia; \`war:legacy\` and \`crash:core\`'s
+digests. Regenerated: \`configs/power-estimates.js\`,
+\`tools/audio/flights.json\`.
+
+### Checks
+
+- \`timber:gates\` T13 measured the taxi turn's heading change as the
+  difference of its two end headings, which wraps past half a circle: at
+  1.57 rad/s for 2 s the turn reached 179.6 deg and read as a left turn.
+  It now sums the change step by step; on origin/main it reads the same.
+- \`rudderHold\`, the take off pilot's feet, aims the nose back at the
+  centreline, 0.3 rad per metre off it: the gyroscope's kick as the tail
+  comes up put the Cub 0.55 m off the line with the heading held.
+- Left loud, as in PR 2: \`slowstick:stab\` "yaw stick wins over the
+  level hold, right of a quarter of its throw", -7.5 against a -7.5
+  limit (passing on origin/main by hundredths): the same rudder only
+  aircraft check as the Bombshell's in PR 2.
