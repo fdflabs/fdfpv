@@ -353,4 +353,28 @@ console.log('seen: a quad over the gate as the returner comes in');
   check('no fail: won, UNSEEN lost, its flag not set', r.v.state === 'won' && !r.v.result.starIds.includes('unseen') && !r.v.result.flags.M2_SECOND_CAMP_UNDETECTED, JSON.stringify(r.v.result));
 }
 
+console.log('spotted: low over the watcher (CONTRACT-SPOTTED.md)');
+{
+  const e = opsRoom(RAW, { ...ROOM, n: 1, seed: 0.6 });
+  const c = pilot(e, 0);
+  e.fly(e.clock + 7000);
+  c.air = true;
+  const zone = view(e).dials.watch.split('-')[0];
+  const at = M.points[`zone-${zone}`].at;
+  goto(e, c, [at[0], at[1] - 350], 250, 'isr');
+  check('the watchers have a spotter, quiet at standoff', view(e).spot?.watchers?.value === 0, JSON.stringify(view(e).spot));
+  /* Down to 40 m over him at full speed. */
+  c.target = () => {
+    const p = posOf(e, 'watcher');
+    return [p[0], p[1], ground(p[0], p[1]) + 40];
+  };
+  until(e, () => view(e).spot?.watchers?.at?.spotted != null, 300000, 'spotted');
+  const t = view(e).spot.watchers.at.spotted;
+  check('spotted: he rides off, the match still live for its end scene', view(e).state === 'live' && /^m2-ride-/.test(contact(e, 'watcher').route), contact(e, 'watcher').route);
+  check('warned first: "too low"', e.cues(0).some((x) => [x.radio].flat().includes('int-spot-warn')));
+  until(e, () => view(e).state === 'lost', 20000, 'lost');
+  const v = view(e);
+  check('lost as spotted after its scene, with advice', v.why === 'spotted' && v.endAt === t + 6000 && v.spotAdvice?.id === 'watchers', JSON.stringify({ why: v.why, advice: v.spotAdvice }));
+}
+
 finish();

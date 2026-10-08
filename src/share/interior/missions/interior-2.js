@@ -80,6 +80,14 @@ const NUEVO = [1, 2, 3, 4, 5, 6].map((k) => `nuevo-${k}`);
 const DETECTED = { chosen: 'detected', is: 'yes' };
 const RECON = { role: ['recon'] };
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
+/* Being seen by the people photographed (docs/campaign/interior/
+ * CONTRACT-SPOTTED.md): Mission 1's thresholds. Not the returner at the
+ * property: MISSIONS.md M2 makes his seeing the quad a soft fail (the
+ * property's site), never a mission fail. */
+const SPOT = {
+  height: 200, range: 450, overR: 60, loud: 24, rise: 0.05, fall: 0.05, levels: { looking: 0.25, spotted: 1 }, scene: 6,
+  warn: 'int-spot-warn', lines: { spotted: 'int-spot-seen', low: 'int-spot-low', over: 'int-spot-over', loud: 'int-spot-loud' },
+};
 
 export default {
   id: 'interior-2',
@@ -229,8 +237,20 @@ export default {
     take: 'int-take-role',
     downed: 'int-lost-aircraft',
   },
-  /* Every required platform lost (MISSIONS.md M2 fails). */
+  spotters: [
+    /* The required watcher rides off toward his handoff when spotted. */
+    {
+      ...SPOT, id: 'watchers', group: 'watchers', stage: 'M2_CP_START', scatter: [{ contacts: 'watcher', route: byWatch((z, h) => `m2-ride-${z}-${h}`) }],
+    },
+    { ...SPOT, id: 'handoff', group: 'handoff', stage: 'M2_CP_WATCHER' },
+    { ...SPOT, id: 'nuevo', group: 'nuevo', stage: 'M2_CP_SECOND_CAMP' },
+  ],
+  /* Seen by the people photographed, and every required platform lost
+   * (MISSIONS.md M2 fails). */
   lost: [
+    { when: { spotted: 'watchers' }, why: 'spotted', spot: 'watchers' },
+    { when: { spotted: 'handoff' }, why: 'spotted', spot: 'handoff' },
+    { when: { spotted: 'nuevo' }, why: 'spotted', spot: 'nuevo' },
     { when: { downed: ['isr', 'recon'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
   ],
   stars: [
