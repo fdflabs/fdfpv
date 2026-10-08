@@ -14,6 +14,8 @@
  *     mission's, else its reconstruction): one frame a camp, no portraits
  *   - shot 5, the BOARD from the player's station, is the BOARD alone (no
  *     room set in this film, as Mission 3's): the line carries it
+ *   - the alert's card reads COMMUNICATION LOST alone: the card's letter
+ *     spacing runs a longer one off a 16:9 screen
  *   - Puesto Arenal stands at MISSIONS.md 1.9's first layout on the BOARD
  *     until Mission 3 lays it on the land
  *

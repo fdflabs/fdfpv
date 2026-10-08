@@ -1777,7 +1777,7 @@ export default {
   "interior.place.puesto_arenal": "Puesto Arenal",
   "interior.film.title": "The Interior",
   "interior.film.complete": "Mission complete",
-  "interior.film.m2_alert": "REMOTE SECURITY POST · COMMUNICATION LOST",
+  "interior.film.m2_alert": "COMMUNICATION LOST",
   "interior.film.ball_eo": "EO  WIDE",
   "interior.film.ball_rec": "REC",
   "interior.film.ball_gimbal": "AZ {az}  EL {el}",

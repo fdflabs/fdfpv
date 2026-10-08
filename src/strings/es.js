@@ -1782,7 +1782,7 @@ export default {
   "interior.place.puesto_arenal": "Puesto Arenal",
   "interior.film.title": "El Interior",
   "interior.film.complete": "Misión cumplida",
-  "interior.film.m2_alert": "PUESTO DE SEGURIDAD REMOTO · COMUNICACIÓN PERDIDA",
+  "interior.film.m2_alert": "COMUNICACIÓN PERDIDA",
   "interior.film.ball_eo": "EO  AMPLIO",
   "interior.film.ball_rec": "REC",
   "interior.film.ball_gimbal": "AZ {az}  EL {el}",
