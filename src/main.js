@@ -61,6 +61,9 @@ import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
+import { STRIPS, gateCue, glidePoints, headingOf } from './game/training.js';
+import { createGlidePath } from './render/glidepath.js';
+import { createGateCue } from './ui/gatecue.js';
 import { medalFor, publishMedals } from './game/medals.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
@@ -148,6 +151,7 @@ import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilm
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { createTrainingScreen } from './ui/training.js';
 import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
@@ -277,6 +281,7 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
+import { makeWeather } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
@@ -7028,6 +7033,33 @@ export async function boot({
   });
   ui.onOpsCampaignCard = () => opsCampaignOpen();
   /*
+   * LEARN TO FLY: a lesson seats its aircraft and its assist (the tune,
+   * Stabilised or Acro) and goes in by the card it is flown from, Free
+   * Flight on its world or Track mode's tracks; its judge rides on the
+   * progress calls (src/ui/progress-ui.js) until another card is pressed.
+   */
+  const trainingScreen = createTrainingScreen({
+    ui,
+    passed: (id) => Boolean(ui.settings.progress.lessons[id]),
+    fly: (lesson) => {
+      const s = ui.settings;
+      const craft = lesson.airframe || s.airframe;
+      if (craft !== s.airframe) {
+        seatAirframe(s, craft);
+      }
+      if (lesson.tune) {
+        s.tune = lesson.tune;
+      }
+      if (lesson.mode) {
+        s.flightMode = lesson.mode;
+      }
+      ui.progress.startLesson(lesson);
+      ui.act(lesson.place ? 'way-freestyle-wing1000' : 'way-race-5inch', craft);
+    },
+  });
+  ui.onTrainingCard = () => trainingScreen.open();
+  window.__training = trainingScreen;
+  /*
    * A MISSION'S ROOM: private (ops missions run in private rooms only in
    * Phase 0, the lead's call), on the mission's map, the pilot in the
    * first core role's aircraft, seated before the room is joined so every
@@ -10179,6 +10211,47 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /*
+   * A LESSON'S AIDS (src/game/training.js): the glide path to the strip
+   * and the next gate's chevron, drawn only while a lesson that names one
+   * is in flight. Nothing here reaches the plant.
+   */
+  const glidePath = createGlidePath();
+  shell.keepAcrossMaps(glidePath.group);
+  const gateCueHud = createGateCue();
+  let glideKey = null;
+  let glideAt = null;
+  const cueCam = { x: 0, y: 0, z: 0, forward: new THREE.Vector3(), up: new THREE.Vector3() };
+  const cueTo = { x: 0, y: 0, z: 0 };
+  function aidsFrame() {
+    const aid = mode === 'flight' && ui.screen === 'flight' ? ui.progress.lessonAid() : null;
+    const strip = aid === 'glide' && view ? STRIPS[ui.settings.map] ?? null : null;
+    const scene = shell.quad.parent;
+    if (scene && glidePath.group.parent !== scene) {
+      scene.add(glidePath.group);
+    }
+    if (strip && glideKey !== ui.settings.map) {
+      glideKey = ui.settings.map;
+      glideAt = glidePoints(strip, view.height(strip.x, strip.z, Infinity));
+    }
+    glidePath.show(strip ? glideAt : null, strip);
+    const gate = aid === 'gate' && !race.freestyle ? race.gates[race.next] : null;
+    if (!gate) {
+      gateCueHud.show(null);
+      return;
+    }
+    const c = shell.camera;
+    cueCam.x = c.position.x;
+    cueCam.y = c.position.y;
+    cueCam.z = c.position.z;
+    c.getWorldDirection(cueCam.forward);
+    cueCam.up.set(0, 1, 0).applyQuaternion(c.quaternion);
+    cueTo.x = gate.x;
+    cueTo.y = gate.y + (gate.apertures[0] ? gate.apertures[0].centreY : 0);
+    cueTo.z = gate.z;
+    gateCueHud.show(gateCue(cueCam, cueTo));
+  }
+  window.__aids = () => ({ glide: glidePath.group.visible ? glidePath.group.children.map((r) => [r.position.x, r.position.y, r.position.z]) : null, gateCue: gateCueHud.shown() });
   /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
@@ -11446,6 +11519,47 @@ export async function boot({
     qSpawnInv.copy(qSpawn).invert();
   }
 
+  /*
+   * THE AIR, docs/WEATHER-CONTRACT.md: null is calm. The plant's wind
+   * outlives sim_reset, so a run after a windy one sets still air once (the
+   * launch stand steps in it; the first flight step sets the new air); a
+   * run after a calm one makes no call at all, which keeps every calm
+   * flight's call stream (recorded flights, contact:golden) as it was.
+   * Picked by window.__weather until the room and the settings pick it.
+   */
+  let weatherPick = { preset: 'calm', seed: 0 };
+  let weather = null;
+  let windSet = false;
+  const airPos = new THREE.Vector3();
+  const airOut = { x: 0, z: 0, gust: 0 };
+  const airSim = { x: 0, y: 0, z: 0 };
+  function setWind(vx, vy, gust) {
+    const code = sim.e.sim_set_wind(vx, vy, gust);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+  }
+  function seatWeather() {
+    weather = makeWeather(view.id, weatherPick.preset, weatherPick.seed);
+    if (windSet) {
+      setWind(0, 0, 0);
+      windSet = false;
+    }
+  }
+  /* Before a step: the air at the craft, on the plant's own clock. */
+  function pushWeather(st) {
+    poseFromState(st, airPos);
+    weather.at(airPos.x, airPos.y, airPos.z, st[0], airOut);
+    worldDirToSim(airOut.x, 0, airOut.z, airSim);
+    setWind(airSim.x, airSim.y, airOut.gust);
+    windSet = true;
+  }
+  window.__weather = (preset, seed) => {
+    makeWeather(view.id, preset, seed);
+    weatherPick = { preset, seed: seed >>> 0 };
+    return true;
+  };
+
   /* The plant's calls here are in the order recorded flights and
    * contact:golden start from, so they stay in it. */
   function restartPlant() {
@@ -11476,6 +11590,7 @@ export async function boot({
     }
     sim.setCellVoltage(runVoltage);
     declareWater();
+    seatWeather();
     crashReset();
     /* sim_reset put the module's step counter back to zero; queued stick
      * samples and the leftover step time belong to the old count, and the
@@ -11823,7 +11938,9 @@ export async function boot({
       progressKey = ctx.key;
       ui.progress.startRun(ctx);
     }
-    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt });
+    ui.progress.tick({ simMs: simTimeMs, crashed, grounded: onSurface(), power, battery: fpvOsd.batt, heading: headingOf(stateCurr),
+      agl: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, Infinity), pos: shell.quad.position,
+    });
   }
   /* The track a lap closed on: a built track (seated, or the casual sky
    * track's test flight), or the world's own. A built track is keyed by
@@ -16077,6 +16194,9 @@ export async function boot({
         crashBeforeStep(st);
       }
       tracePre(st);
+      if (weather) {
+        pushWeather(st);
+      }
       const sound = st;
       sim.step(1);
       st = readState();
@@ -16484,7 +16604,11 @@ export async function boot({
       if (race.laps.length > lapsBefore) {
         const seated = seatedMapTrack();
         const medals = seated && seated.document && seated.document.medals;
-        ui.progress.lap(progressCourse(), medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing));
+        ui.progress.lap(progressCourse(), {
+          ms: race.laps[race.laps.length - 1],
+          ghostMs: ghostChased ? ghostChased.durationMs : null,
+          medal: medalFor(medals, race.lastLapMs, airframeById(runAirframe).fixedWing),
+        });
       }
     }
     const roomOver = roomRun() && (roomRace.done() || roomRace.race().state === 'results');
@@ -16742,6 +16866,7 @@ export async function boot({
       }
     }
     crashFrameLate(nowWall);
+    aidsFrame();
   }
 
   /* The projection is rebuilt only when the fov moves: exactly, when the
@@ -19128,6 +19253,9 @@ export async function boot({
     if (!journal.restore(mark, simT)) {
       return { ok: false, match: false };
     }
+    /* The restored region holds the recorded frame's wind, so the next run
+     * must clear it whatever this run's air was. */
+    windSet = true;
     const back = readState();
     const match = stateHash(back) === hash;
     const nowWall = performance.now();

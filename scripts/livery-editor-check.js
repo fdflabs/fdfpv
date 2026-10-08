@@ -7,7 +7,9 @@
  * duplicated, the copy hidden and the star locked (Move and Remove then
  * refuse); the hangar's entry and the model read back after each, and a
  * picture kept. Saved, the layers survive a reload. Then on one aircraft of
- * every paint family a layer leaned, faded and chromed, pictured.
+ * every paint family a layer leaned, faded and chromed, pictured. Then the
+ * shape library: each new shape added from the Add list with the pointer
+ * and placed on the Timber's wing from the Top view.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -32,7 +34,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
 import { liveryKey, paintable } from '../configs/liveries.js';
-import { newDecal } from '../configs/paint.js';
+import { DECAL_KINDS, DECAL_KIND_IDS, newDecal } from '../configs/paint.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = resolve(process.argv[2] || join(root, 'tmp', 'livery-editor-check'));
@@ -172,6 +174,57 @@ async function everyFamily(page) {
   }
 }
 
+async function shapes(page) {
+  const free = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].free);
+  console.log(`3. the shape library on the Timber (${free.join(', ')})`);
+  await openHangar(page, 'timber1500');
+  await press(page, 'view-top');
+  await page.sleep(1500);
+  for (const k of free) {
+    const before = await page.evaluate('(window.__ui.hangar.entry.decals || []).length');
+    await press(page, 'decal-add');
+    await press(page, `kind-${k}`);
+    await page.until('Boolean(window.__ui.hangar.shop.placing)', 5000);
+    await page.until('(() => { const p = window.__ui.hangar.shop.placing; return Boolean(p && p.hit && p.hit.n); })()', 60000).catch(() => {});
+    await page.tap('Enter');
+    await page.until(`(window.__ui.hangar.entry.decals || []).length === ${before + 1}`, 20000).catch(() => {});
+    const e = await entry(page);
+    const got = e.decals[before];
+    say(Boolean(got) && got.k === k, `${k} added and placed: ${got ? JSON.stringify(got.p) : 'nothing'}`);
+    if (await page.evaluate('window.__ui.hangar.shop.sel') >= 0) {
+      await press(page, `decal-${before}`);
+    }
+  }
+  const look = await page.evaluate("window.__pickLook('timber1500').decals");
+  await shot(page, 'timber-shapes');
+  say(look.decals >= free.length, `the model draws them: ${JSON.stringify(look)}`);
+  await closeHangar(page, false);
+}
+
+async function groups(page) {
+  console.log('4. a group: a circle grouped with the copy under it grows with it');
+  await openHangar(page, 'timber1500');
+  await press(page, 'view-top');
+  await page.sleep(1200);
+  await press(page, 'decal-add');
+  await press(page, 'kind-circle');
+  await page.until('(() => { const p = window.__ui.hangar.shop.placing; return Boolean(p && p.hit && p.hit.n); })()', 60000).catch(() => {});
+  await page.tap('Enter');
+  await page.until('(window.__ui.hangar.entry.decals || []).length === 4', 20000).catch(() => {});
+  await press(page, 'layer-group');
+  let e = await entry(page);
+  say(e.decals[3].g && e.decals[3].g === e.decals[2].g, `Group joins the circle to the layer under it: ${e.decals.map((d) => d.g ?? '-')}`);
+  const before = e.decals[2].s;
+  await press(page, 'size-up');
+  e = await entry(page);
+  say(Math.abs(e.decals[2].s - before * 1.12) < 0.002 && e.decals[1].s === 0.2, `Size on the circle scales its group (${before} to ${e.decals[2].s}) and not the locked star outside it (${e.decals[1].s})`);
+  await press(page, 'layer-group');
+  e = await entry(page);
+  say(!e.decals[3].g && !e.decals[2].g, 'Ungroup ends a group of two');
+  await shot(page, 'timber-group');
+  await closeHangar(page, false);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -179,6 +232,8 @@ async function main() {
     await page.until('window.__map && window.__map().ready', 400000);
     await timber(page);
     await everyFamily(page);
+    await shapes(page);
+    await groups(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

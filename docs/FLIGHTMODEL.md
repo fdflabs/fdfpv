@@ -199,3 +199,294 @@ cite their makers and reviews, and the published references named.
   `crash:core` and `war:legacy`, with each re-recorded trace listed.
 - A rebuild of `dist/sim.wasm` committed with the plant change, since the
   repository tracks it.
+
+## PR 2, built: the slipstream, wash and swirl
+
+### What the plant does now
+
+`plant_wing_step` puts each tractor's prop wash over its tail and its
+ailerons by momentum theory, revived from the removed Extra 300's block
+(git 1c0872b3^) and given to every aircraft whose prop blows over its
+tail: the Cub and the Cub on floats, the Radian, the Slow Stick, the
+Timber and the Timber on floats, the Bombshell, the Kadet, the P-51, the
+Ugly Stik and the Tiger Moth. The disc's pressure jump T / A, the induced
+speed v_i, the far wake contracted to R sqrt((V + v_i) / (V + 2 v_i));
+the stabiliser's, fin's and ailerons' shares of it; the controls meet the
+pressure jump on their share, the angle and rate terms meet rho v_i times
+the crossflow, so a still aircraft's tail has authority and damping.
+
+The swirl: the prop's torque is the wash's angular momentum flux, a solid
+body rotation at Omega with Q = mdot Omega rw^2 / 2, blowing over the fin
+from the left above the thrust line and from the right below it. Its net
+sideways speed over the fin's span in the wash, Omega (up - dn) / 2, is a
+sideslip for the fin's terms: the nose yaws left under power and right
+rudder holds it. The wing's root, in the wash ahead of the fin, is a
+stator (Veldhuis, Propeller Wing Aerodynamic Interference, TU Delft 2005:
+the wing recovers a significant part of the swirl): SWIRL_KEEP of the
+swirl reaches the fin, and the root takes the rest's angular momentum as a
+roll moment the prop's way, against the torque reaction, which conserves
+the prop's torque between the two.
+
+- **SWIRL_KEEP = 0.5 is FITTED.** No published figure gives the share for
+  a model, and the literature says only that the recovery is significant.
+  Half is the middle of what is unknown. Its effect on the take off roll
+  with the rudder left alone, heading at liftoff: a quarter of it, Cub
+  12.4 deg, Timber 7.4, Bombshell 6.3, P-51 26.9; a half (built), Cub 20.7,
+  Timber 14.4, Bombshell 12.8, P-51 37.5; all of it, Cub 31.6, Timber 28.0,
+  Bombshell 27.4. The P-51's P14 needs right rudder at any share over a
+  quarter, and with none (the wash alone) its mean rudder fell to zero,
+  which is why the swirl ships with the wash and not after it.
+- The geometry of every table, with each number's source, is
+  `scripts/wash-derive.js` (`npm run wash:derive -- --check`, in CI);
+  `scripts/lib/wash.js` is the plant's arithmetic for the derivations.
+- Left out on purpose: the 1000 mm wing, the Bramor, the Zagi and both
+  Strikers (pushers behind everything, a jet), the F-16 (its fan exhausts
+  past the tail), the NRJ (no motor), and the Skyhunter, whose pusher
+  blows over the middle of its stabiliser and past both boom fins, which
+  this form cannot split; it is a follow up.
+- `sim_wing_slip(out[6])` (sim_abi.h, additive): the wash's moments, the
+  pressure jump, the induced speed and the swirl, so a gate that tests one
+  term of the moment (the torque, the P factor, the gyroscope) takes the
+  wash out, as it takes the aero out.
+
+### The probe, before (origin/main) and after
+
+| Aircraft | AUTH roll, pitch, yaw rad/s² | HOVER held of 8 s | HANG roll rate deg/s | HARR pitch deg | KNIFE bank deg, sink m/s | SNAP deg (aileron alone) | STALL m/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 0.0, 0.0, 0.0 | 0.70 | -6.7 | 22.6 | n/a | n/a (114) | 8.03 |
+| Skyhunter | 0.0, 0.0, 0.0 | 0.82 | -0.3 | 11.3 | 71.9, 12.2 | 116 (73) | 10.31 |
+| Cub | 0.0, 0.0, 0.0 → 0.0, 26.9, 6.3 | 0.62 → 1.14 | -0.9 → 0.2 | 11.4 → 15.6 | 75.0, 9.2 | 125 (102) → 125 (103) | 8.94 |
+| Slow Stick | -0.0, 0.0, 0.0 → -3.7, 15.5, 9.3 | 0.37 → 0.41 | -2.2 → -0.1 | 12.1 → 6.1 | n/a | n/a (n/a) | 4.82 |
+| Radian | 0.0, 0.0, 0.0 → 0.0, 27.6, 10.0 | 0.48 → 1.26 | -1.2 → 1.4 | 11.3 → 20.4 | n/a | n/a (n/a) | 7.11 |
+| Turbo Timber | 0.0, 0.0, 0.0 → 0.0, 51.6, 23.0 | 0.74 → 5.46 | -0.3 → -0.6 | 15.5 → 19.5 | 84.5, 11.9 → 84.4, 12.0 | 215 (182) → 285 (183) | 7.98 |
+| Bramor | 0.0, 0.0, 0.0 | 0.32 | -154.0 | 15.2 | n/a | n/a (60) | 14.06 |
+| Bombshell | -0.0, 0.0, 0.0 → -2.2, 24.5, 10.1 | 0.35 → 0.46 | -2.6 → -0.7 | 8.9 → 5.0 | n/a | n/a (n/a) | 6.94 |
+| Kadet Senior | -0.0, 0.0, 0.0 → -2.4, 28.2, 14.1 | 0.47 → 1.01 | 0.1 → 0.4 | 9.4 → 11.6 | n/a | n/a (n/a) | 8.28 |
+| P-51D | 0.0, 0.0, 0.0 → 0.0, 41.9, 8.2 | 0.85 → 1.69 | 4.4 → 4.0 | 23.2 → 29.0 | 72.4, 22.5 → 72.5, 22.4 | 274 (104) → 281 (104) | 11.06 |
+| F-16 | 0.0, 0.0, 0.0 | 0.57 | 0.0 | 28.6 | 65.0, 2.4 | 275 (200) | 12.82 |
+| Zagi HP | 0.0, 0.0, 0.0 | 0.17 | 3.3 | 14.8 | n/a | n/a (166) | 7.90 |
+| Ugly Stik | 0.0, 0.0, 0.0 → 0.0, 16.9, 12.4 | 1.02 → 3.08 | -0.7 → 1.2 | 12.9 → 13.5 | 68.3, 21.0 → 68.4, 20.7 | 60 (59) → 64 (60) | 10.60 |
+| Tiger Moth | 0.0, 0.0, 0.0 → 0.0, 15.8, 13.5 | 0.70 → 1.20 | 0.1 | 12.6 → 6.6 | 73.9, 18.3 → 73.8, 17.6 | 121 (66) → 139 (66) | 9.89 |
+| Striker | 0.0, 0.0, 0.0 | 2.27 | 17.0 | 19.3 | 82.8, 1.3 | 80 (89) | 7.87 |
+
+AUTH is no longer zero on any tractor: full elevator at zero airspeed is
+15 to 52 rad/s², the rudder 6 to 23 (the removed Extra's derivation put a
+3D aircraft's at 38.9 and 32.5). The ailerons stay outside every wash, so
+roll authority at zero airspeed is still zero except on the three channel
+aircraft, which roll on the rudder. HANG's torque roll is near zero now on
+every tractor: the root takes half the swirl's angular momentum against
+the torque, and the fin the rest. The Timber, whose tail sits deep in a
+big prop's wash, now hangs nose up for 5.5 s of the 8. Nothing else
+moved: the stall speeds, and every aircraft without a wash, are
+unchanged.
+
+### What was re-recorded, and the proof that nothing else moved
+
+Re-recorded with `node scripts/wing-record.js <plane>`, each because its
+flight is flown with the motor running and the wash changes it:
+`tests/inputs/cub-baseline.rec`, `glider-baseline.rec` (the Radian),
+`slowstick-baseline.rec`, `timber-baseline.rec`, `timberf-baseline.rec`,
+`bombshell-baseline.rec`, `kadet-baseline.rec`, `uglystik-baseline.rec`,
+`tigermoth-baseline.rec`, `p51-baseline.rec` and `p51-air.rec`. Their
+pinned hashes moved in every *-thresholds.json that holds them, and only
+those. The five inch, the 1000 mm wing, the Skyhunter, the Bramor and its
+chute, the F-16, the Zagi and the NRJ replay to the same hashes as on
+origin/main (9fdc42323baad668, d7b7743dfde9a0cc, 02b8a7aa3d79c02c,
+f58582158e8f18a6, 6c35bf1d12a3268b, 235ff3cff66e8e83, de34219b99cb9023,
+340fb01bfb996193), and war:legacy's 40 games and crash:core's digests are
+unchanged. The quads read no fixed wing table.
+
+Regenerated: `configs/power-estimates.js` (`node scripts/power-check.js
+--estimates`: the tractors' cruise moved by up to 0.05 m/s) and
+`tools/audio/flights.json` (`node tools/audio/flights.js`).
+
+### The checks whose premise the wash changed
+
+No band was widened. Each change is one of three kinds.
+
+- **A gate that tests one term takes the wash out** (sim_wing_slip): the
+  torque at standstill (C14, S11 on the Slow Stick, Bombshell and Kadet,
+  P10, T10, U12, G13), the P factor (C15, P11), the gyroscope (P12).
+- **A pilot flies the rudder, as a pilot does.** The take off pilots hold
+  the runway's heading, full rudder by 10 deg off it (`rudderHold`,
+  `takeoffSticks`, the Tiger Moth's and the P-51's take off sticks, which
+  had a third of that gain). The P-51's landing (P18) holds the heading and
+  brings the stick back over 1.5 s instead of snatching it: the elevator
+  loses the wash as the throttle closes for the flare, the touch is
+  faster, and a snatched full up put the tail in the grass. The floats
+  hold the bow to the swell (F2, F3: the torque and the swirl turn an
+  idling floatplane off it, 14.6 deg in 40 s before, 22 after), and rotate
+  to the derived liftoff attitude rather than full up (F4: full up in the
+  wash pitches the floats onto their heels, which holds them in the
+  water; the derivation said in so many words that it took no wash).
+- **Re-derived with the wash in the derivation, the same tolerance about
+  the new figure.** Kadet S13, the hand throw: the throw's elevator is the
+  one that holds level flight's angle of attack at 9 m/s at the throw's
+  full throttle, wash included, 4.51 deg (stick 0.415), where it was 6.90
+  (0.592) without. Ugly Stik U9, the loop: `loopWhole` with the wash
+  gives 35.49 m up, 28.14 along, 13.34 m/s over the top, out 8.59 m under;
+  the plant flies 35.5, 28.2, 13.3 and 8.6.
+- **A premise that was the missing wash, now stated the other way.** The
+  Cub's, Timber's and Bombshell's stab self tests took off "tracking
+  straight with the sticks centred". With the swirl a tractor swings left
+  on the roll with the rudder left alone, in every mode, since on its
+  wheels every mode flies as Manual: each now holds that it swings left
+  with the rudder centred and tracks within the same 5 deg and 0.5 m with
+  the pilot's right rudder, the P-51's P14 and P15 pattern. The
+  Bombshell's taxi check said its rudder has no air at a walk
+  (docs/BOMBSHELL-STAGE1.md named the slipstream as what was missing): at
+  idle that still holds (under 10 deg in 4 s); at half throttle the wash
+  over the rudder steers it right, over 45 deg in 4 s.
+
+### An acro tune
+
+- The P-51's Acro roll damping, \`acro_roll_kd\`, 0.70 to 0.80: with the fin
+  in the wash the roll a partial roll stops from carried 10.4 deg/s a
+  quarter second after centring, against p51:stab's 10, and 9.9 on
+  origin/main. 0.80 leaves 9.7. A flight controller's gain, retuned for a
+  plant that changed, as a pilot retunes; Manual is untouched, and every
+  recorded P-51 flight replays to the same hash as before the retune.
+
+### Still failing, left loud
+
+- `bombshell:stab` "full right yaw stick ... wins over the level hold:
+  right of a quarter of its throw": -2.7 deg, against -5.4 on origin/main.
+  The rudder, in the wash, rolls the aircraft harder, so the level hold's
+  roll damping takes back more of the stick's rudder; the nose yaws right
+  faster than before (36.2 deg/s against 31.1). Not a band to move: the
+  lead decides whether the hold's gains or the check's form change.
+- `crash:core`'s "a five inch ... slides at the sled's grip" fails on
+  origin/main as well (0.524), with the module byte identical: not this
+  change's.
+
+## PR 3, built: the prop's gyroscope on every prop
+
+Gyroscopic precession was set on four tables only (the P-51, the Zagi,
+the Ugly Stik and the Tiger Moth, and the Strikers). Every other powered
+table now carries its prop's and rotor's polar inertia, \`j_prop\`, so a
+pitch rate yaws it and a yaw rate pitches it at J Omega times the rate:
+the 1000 mm wing, Skyhunter, Cub and Cub floats, Radian, Bramor, Slow
+Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
+
+- The convention is the Ugly Stik's (docs/UGLYSTIK-STAGE1.md): 0.7 of the
+  blades' rod inertia, 0.7 m R^2 / 3, plus the rotor, an outrunner's bell
+  as a shell (m r^2, the bell 40 percent of the motor), an inrunner's as
+  a solid cylinder, a glow engine's crank front. Only APC's 11 x 5.5E
+  (24.9 g, the Skyhunter's) and 12 x 6 (46 g) masses are published; the
+  rest are ESTIMATED from their class, about 30 percent either way, and
+  each table's line says which.
+- The Slow Stick's EPS-300C turns its rotor the other way through a 6.6:1
+  gearbox, which takes a little off the prop's.
+- Torque reaction and P factor were already on every prop table and are
+  unchanged (\`torque_arm\`, \`pfactor\`); the slipstream's swirl is PR 2's.
+
+### The probe, PR 2 to PR 3
+
+| Aircraft | AUTH roll, pitch, yaw rad/s² | HOVER held of 8 s | HANG roll rate deg/s | HARR pitch deg | KNIFE bank deg, sink m/s | SNAP deg (aileron alone) | STALL m/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 0.0, 0.0, 0.0 | 0.70 → 0.71 | -6.7 → -6.1 | 22.6 | n/a | n/a (114) → n/a (115) | 8.03 |
+| Skyhunter | 0.0, 0.0, 0.0 | 0.82 | -0.3 → 0.2 | 11.3 → 11.4 | 71.9, 12.2 → 71.9, 12.6 | 116 (73) → 115 (73) | 10.31 |
+| Cub | 0.0, 26.9, 6.3 | 1.14 → 1.12 | 0.2 → 2.0 | 15.6 → 15.7 | 75.0, 9.2 → 75.1, 9.9 | 125 (103) → 126 (101) | 8.94 |
+| Slow Stick | -3.7, 15.5, 9.3 | 0.41 | -0.1 → -0.5 | 6.1 | n/a | n/a (n/a) | 4.82 |
+| Radian | 0.0, 27.6, 10.0 | 1.26 → 1.27 | 1.4 → 2.6 | 20.4 → 20.6 | n/a | n/a (n/a) | 7.11 |
+| Turbo Timber | 0.0, 51.6, 23.0 | 5.46 → 5.68 | -0.6 → 0.4 | 19.5 → 19.6 | 84.4, 12.0 → 84.3, 12.4 | 285 (183) → 296 (185) | 7.98 |
+| Bramor | 0.0, 0.0, 0.0 | 0.32 | -154.0 → 7.4 | 15.2 | n/a | n/a (60) → n/a (61) | 14.06 |
+| Bombshell | -2.2, 24.5, 10.1 | 0.46 | -0.7 → -3.2 | 5.0 | n/a | n/a (n/a) | 6.94 |
+| Kadet Senior | -2.4, 28.2, 14.1 | 1.01 | 0.4 → 0.8 | 11.6 | n/a | n/a (n/a) | 8.28 |
+| P-51D | 0.0, 41.9, 8.2 | 1.69 | 4.0 | 29.0 | 72.5, 22.4 | 281 (104) | 11.06 |
+| F-16 | 0.0, 0.0, 0.0 | 0.57 | 0.0 → 1.3 | 28.6 | 65.0, 2.4 → 55.3, 3.3 | 275 (200) → 281 (202) | 12.82 |
+| Zagi HP | 0.0, 0.0, 0.0 | 0.17 | 3.3 | 14.8 | n/a | n/a (166) | 7.90 |
+| Ugly Stik | 0.0, 16.9, 12.4 | 3.08 | 1.2 | 13.5 | 68.4, 20.7 | 64 (60) | 10.60 |
+| Tiger Moth | 0.0, 15.8, 13.5 | 1.20 | 0.1 | 6.6 | 73.8, 17.6 | 139 (66) | 9.89 |
+| Striker | 0.0, 0.0, 0.0 | 2.27 | 17.0 | 19.3 | 82.8, 1.3 | 80 (89) | 7.87 |
+
+The torque roll hanging with the sticks centred changes by a few degrees
+a second where the prop is heavy. The Bramor's runaway pusher roll in
+HANG (154 deg/s) is 7 deg/s with its prop's precession, and the F-16's
+knife edge holds 55 deg of bank where it held 65: both are coupled
+motions the probe measures but does not take apart, and neither is a
+gate.
+
+### Re-recorded, re-pinned, and what did not move
+
+Re-recorded (\`node scripts/wing-record.js\`), every take off flown on a
+prop with a new gyroscope: \`cub-baseline.rec\`, \`glider-baseline.rec\`,
+\`slowstick-baseline.rec\`, \`timber-baseline.rec\`,
+\`timberf-baseline.rec\`, \`bombshell-baseline.rec\`,
+\`kadet-baseline.rec\`, \`f16-baseline.rec\`. The 1000 mm wing's, the
+Skyhunter's and the Bramor's committed streams are kept (their recorders
+no longer write the committed bytes even on origin/main) and only their
+hashes are re-pinned. Unmoved, to the bit: the five inch
+(9fdc42323baad668), the Bramor's chute flight (motor cut), the P-51 and
+its air flight, the Ugly Stik, the Tiger Moth, the Zagi and the NRJ,
+whose props already had their inertia; \`war:legacy\` and \`crash:core\`'s
+digests. Regenerated: \`configs/power-estimates.js\`,
+\`tools/audio/flights.json\`.
+
+### Checks
+
+- \`timber:gates\` T13 measured the taxi turn's heading change as the
+  difference of its two end headings, which wraps past half a circle: at
+  1.57 rad/s for 2 s the turn reached 179.6 deg and read as a left turn.
+  It now sums the change step by step; on origin/main it reads the same.
+- \`rudderHold\`, the take off pilot's feet, aims the nose back at the
+  centreline, 0.3 rad per metre off it: the gyroscope's kick as the tail
+  comes up put the Cub 0.55 m off the line with the heading held.
+- Left loud, as in PR 2: \`slowstick:stab\` "yaw stick wins over the
+  level hold, right of a quarter of its throw", -7.5 against a -7.5
+  limit (passing on origin/main by hundredths): the same rudder only
+  aircraft check as the Bombshell's in PR 2.
+
+## PR 4, built: the fuselage in a crossflow
+
+A knife edge is held by the fuselage's side force and the thrust's share
+at a sideslip. The table's side force is CY beta, linear and the fin's;
+the body's own crossflow, which grows with the sideways speed squared,
+was missing (the removed Extra had it as \`side_cda\`). Now every aircraft
+with a fuselage carries it: \`side_cda\`, eta Cdc S_side, a force against
+v |v| at the CG. Allen and Perkins' viscous crossflow (NACA TR 1048), with
+the removed Extra's eta Cdc of 0.84 (Cdc 1.2, eta 0.7, Jorgensen, NASA TR
+R-474) on each fuselage's side area from its derivation or render model.
+
+- On: the Skyhunter, Cub and Cub floats, Radian, Bramor, Timber and Timber
+  floats, Bombshell, Kadet, P-51, F-16, Ugly Stik and Tiger Moth. Off: the
+  1000 mm wing and the Zagi (their winglets are their fins, in CY beta
+  already), the Slow Stick (a stick), the NRJ, and both Strikers, whose
+  side force is war:legacy's and is not this lane's to move.
+- The floats' own side area is not in the float versions' figure: the
+  land fuselage's is, ESTIMATED.
+
+### The probe, PR 3 to PR 4
+
+| Aircraft | AUTH roll, pitch, yaw rad/s² | HOVER held of 8 s | HANG roll rate deg/s | HARR pitch deg | KNIFE bank deg, sink m/s | SNAP deg (aileron alone) | STALL m/s |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1000 mm wing | 0.0, 0.0, 0.0 | 0.71 | -6.1 | 22.6 | n/a | n/a (115) | 8.03 |
+| Skyhunter | 0.0, 0.0, 0.0 | 0.82 | 0.2 → 0.1 | 11.4 | 71.9, 12.6 → 72.6, 11.2 | 115 (73) | 10.31 |
+| Cub | 0.0, 26.9, 6.3 | 1.12 | 2.0 | 15.7 | 75.1, 9.9 → 76.2, 8.2 | 126 (101) → 126 (100) | 8.94 |
+| Slow Stick | -3.7, 15.5, 9.3 | 0.41 | -0.5 | 6.1 | n/a | n/a (n/a) | 4.82 |
+| Radian | 0.0, 27.6, 10.0 | 1.27 | 2.6 | 20.6 | n/a | n/a (n/a) | 7.11 |
+| Turbo Timber | 0.0, 51.6, 23.0 | 5.68 → 7.05 | 0.4 | 19.6 | 84.3, 12.4 → 86.1, 8.0 | 296 (185) → 292 (184) | 7.98 |
+| Bramor | 0.0, 0.0, 0.0 | 0.32 | 7.4 → 3.7 | 15.2 | n/a | n/a (61) | 14.06 |
+| Bombshell | -2.2, 24.5, 10.1 | 0.46 | -3.2 | 5.0 | n/a | n/a (n/a) | 6.94 |
+| Kadet Senior | -2.4, 28.2, 14.1 | 1.01 | 0.8 | 11.6 | n/a | n/a (n/a) | 8.28 |
+| P-51D | 0.0, 41.9, 8.2 | 1.69 → 1.70 | 4.0 | 29.0 | 72.5, 22.4 → 73.0, 20.6 | 281 (104) → 278 (104) | 11.06 |
+| F-16 | 0.0, 0.0, 0.0 | 0.57 | 1.3 | 28.6 | 55.3, 3.3 → 60.4, 2.6 | 281 (202) | 12.82 |
+| Zagi HP | 0.0, 0.0, 0.0 | 0.17 | 3.3 | 14.8 | n/a | n/a (166) | 7.90 |
+| Ugly Stik | 0.0, 16.9, 12.4 | 3.08 → 3.10 | 1.2 | 13.5 | 68.4, 20.7 → 68.8, 19.9 | 64 (60) | 10.60 |
+| Tiger Moth | 0.0, 15.8, 13.5 | 1.20 | 0.1 | 6.6 | 73.8, 17.6 → 74.5, 15.7 | 139 (66) | 9.89 |
+| Striker | 0.0, 0.0, 0.0 | 2.27 | 17.0 | 19.3 | 82.8, 1.3 | 80 (89) | 7.87 |
+
+The knife edge's sink falls on every aircraft that tries one (the Timber
+12.4 to 8.0 m/s, the Cub 9.9 to 8.2); none of these sport and scale
+aircraft holds one level, which is what their reviews say of them. The
+3D aircraft is PR 5's.
+
+### Re-recorded and unmoved
+
+Re-recorded: \`cub\`, \`glider\`, \`timber\`, \`timberf\`, \`bombshell\`,
+\`kadet\`, \`f16\`, \`uglystik\`, \`tigermoth\`, \`p51\` and \`p51-air\`; the
+Skyhunter's, the Bramor's and its chute's hashes re-pinned on their
+committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
+Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
+Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
+No gate changed.
