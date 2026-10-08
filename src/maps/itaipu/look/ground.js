@@ -514,6 +514,24 @@ export async function loadSite(base, ringHalf) {
 /* The hashes and noises the ground and the turf (makeTurf) share: the
  * turf reads the ground's patches, so its blades stand where the ground
  * under them is grass. Needs uNoise. */
+/*
+ * The slow patchiness, lush to dry, in the ground and the turf alike: the
+ * noise is white per texel, so its scale is a texel, NOISE_PX to a tile.
+ * At w / 870 a texel was 3.4 m, which a pixel from 100 m up already
+ * averages to grey, and the grass from the air was one even green smear;
+ * these texels are 215, 70 and 23 m, a paddock's and a stand's size.
+ * .r is the lightness, .g where it is dry. Three bilinear octaves spread
+ * only about 0.12 round 0.5, so the spread is stretched.
+ */
+const PATCHES_GLSL = /* glsl */ `
+  vec4 itSlowPatches(vec2 w) {
+    vec4 n = textureLod(uNoise, w / 55000.0 + 0.29, 0.0) * 0.45
+      + textureLod(uNoise, w / 18000.0 + 0.13, 0.0) * 0.35
+      + textureLod(uNoise, w / 6000.0 + 0.57, 0.0) * 0.2;
+    return clamp((n - 0.5) * 2.5 + 0.5, 0.0, 1.0);
+  }
+`;
+
 const NOISE_GLSL = /* glsl */ `
   float itHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -594,6 +612,7 @@ const parsFor = (axisN) => /* glsl */ `
   uniform sampler2D uReservoir;
   uniform sampler2D uNoise;
   uniform sampler2D uCrops;
+${PATCHES_GLSL}
   uniform highp sampler2DArray uLayerCol;
   uniform highp sampler2DArray uLayerNrh;
   uniform vec2 uHalf;
@@ -905,18 +924,6 @@ const CROPS = /* glsl */ `
       }
 `;
 
-/*
- * The slow patchiness, lush to dry, in the ground and the turf alike: the
- * noise is white per texel, so its scale is a texel, NOISE_PX to a tile.
- * At w / 870 a texel was 3.4 m, which a pixel from 100 m up already
- * averages to grey, and the grass from the air was one even green smear;
- * these texels are 215, 70 and 23 m, a paddock's and a stand's size.
- * .r is the lightness, .g where it is dry. Three bilinear octaves spread
- * only about 0.12 round 0.5, so the spread is stretched.
- */
-const PATCHES = (w) => `clamp((textureLod(uNoise, ${w} / 55000.0 + 0.29, 0.0) * 0.45
-  + textureLod(uNoise, ${w} / 18000.0 + 0.13, 0.0) * 0.35
-  + textureLod(uNoise, ${w} / 6000.0 + 0.57, 0.0) * 0.2 - 0.5) * 2.5 + 0.5, 0.0, 1.0)`;
 
 /*
  * The ground's colour. The noise is one texture of four independent
@@ -1004,7 +1011,7 @@ const ALBEDO = /* glsl */ `
       col = mix(col, macro, watery);
 
       /* The slow patchiness, lush to dry, hundreds of metres across. */
-      vec4 patches = ${PATCHES('w')};
+      vec4 patches = itSlowPatches(w);
       col *= 0.65 + 0.7 * patches.r;
       float dry = smoothstep(0.4, 0.7, patches.g);
       col = mix(col, col * vec3(1.35, 1.1, 0.6), dry * (sw.g + 0.5 * sw.b) * 0.9);
@@ -1415,7 +1422,7 @@ const TURF_VERTEX = /* glsl */ `
     vec3 field = macro * ${v3(GRADE[1])};
     vec3 other = ${v3(FIELD_COL)} * clamp(lumM / ${lum(CLASS_MEAN[1]).toFixed(4)}, 0.7, 1.3);
     vec3 c = mix(other, field, clamp(mask.g * 1.6, 0.0, 1.0));
-    c *= 0.65 + 0.7 * ${PATCHES('base')}.r;
+    c *= 0.65 + 0.7 * itSlowPatches(base).r;
     c *= mix(${v3(LUSH)}, ${v3(STRAW)}, dry) / ${v3(GRASS_MEAN)} * (0.85 + 0.3 * hb1);
     float lumT = dot(c, vec3(0.3, 0.59, 0.11));
     c = max(vec3(lumT) + (c - lumT) * ${PASTURE_SAT.toFixed(2)}, vec3(0.0));
@@ -1535,6 +1542,7 @@ export function makeTurf({
         uniform sampler2D uHeroMask;
         uniform sampler2D uReservoir;
         uniform sampler2D uNoise;
+        ${PATCHES_GLSL}
         uniform highp sampler2D uTurfHeights;
         uniform vec3 uTurfGrid;
         uniform vec2 uHalf;
