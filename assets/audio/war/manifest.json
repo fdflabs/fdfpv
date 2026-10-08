@@ -2172,6 +2172,1050 @@
     }
    }
   },
+  "film-int3-1.en": {
+   "text": "Post has intermittent communications.",
+   "speaker": "rojas",
+   "seconds": 2.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1147913860,
+     "heard": "Post has intermittent communications.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11799,
+     "sha256": "78c9a95e50147b47bd6b8426de697e70b9cbfadb73be24447c9072f47c081804"
+    },
+    "mp3": {
+     "bytes": 13244,
+     "sha256": "8a680fb685739ba29d82fde253eb84c86b8d7be087a5624457ef413d4bff6716"
+    }
+   }
+  },
+  "film-int3-1.es": {
+   "text": "El puesto tiene comunicaciones intermitentes.",
+   "speaker": "rojas",
+   "seconds": 2.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2280522910,
+     "heard": "El puesto tiene comunicaciones intermitentes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12995,
+     "sha256": "0cf7fa51a92dfba35b3ea256454925d67895964af3df72125542f8f78625e5fa"
+    },
+    "mp3": {
+     "bytes": 13724,
+     "sha256": "6d7bec8949bc40eb17e319b086bb32f7efa84fa4909e548f5b4f57a39319cbdd"
+    }
+   }
+  },
+  "film-int3-10.en": {
+   "text": "Identify.",
+   "speaker": "vega",
+   "seconds": 2.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4003225001,
+     "heard": "Identify.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 510
+    },
+    {
+     "attempt": 1,
+     "seed": 4266831586,
+     "heard": "Identify.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10158,
+     "sha256": "c230f979e3ac7a1227c3efdc42d1903324b3287e7654ff30d028cd6167ac3731"
+    },
+    "mp3": {
+     "bytes": 11708,
+     "sha256": "ae6d0197b55d23ea125d8950b69f1ede244274c7b297e3bb5470802d7ea4e72f"
+    }
+   }
+  },
+  "film-int3-10.es": {
+   "text": "Identifiquen.",
+   "speaker": "vega",
+   "seconds": 1.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4242485061,
+     "heard": "Identifiquen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5994,
+     "sha256": "cd1bf0f9aca2468638d8f4341586c8a696dafa1ed1da39d5e07953d2f59854c5"
+    },
+    "mp3": {
+     "bytes": 6668,
+     "sha256": "abf116c4048299004f8a3df696147a883e1a37aec2868f7abc9a736fb9c59c1b"
+    }
+   }
+  },
+  "film-int3-11.en": {
+   "text": "Then we decide what happens.",
+   "speaker": "vega",
+   "seconds": 1.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3454598263,
+     "heard": "Then we decide what happens.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8141,
+     "sha256": "a232648a81e4e6ece1434cb88c138374058c7c39e635a3e61bc741cfdff17da5"
+    },
+    "mp3": {
+     "bytes": 8948,
+     "sha256": "cc0373859c9617f56666e40d3f9fc48f7ed60a9418a34ce8fa203a61841df860"
+    }
+   }
+  },
+  "film-int3-11.es": {
+   "text": "Después decidimos qué pasa.",
+   "speaker": "vega",
+   "seconds": 2.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1500699033,
+     "heard": "Después decidimos qué pasa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9394,
+     "sha256": "573b2dcfbda4246bf1fe34e8bd1d422c7162ceb1a283a58f23201ded3c094450"
+    },
+    "mp3": {
+     "bytes": 10532,
+     "sha256": "4038b61fedd5303d1a231d8ceb0755d4877b92eb8cf49815854b4bb8fdfd82e0"
+    }
+   }
+  },
+  "film-int3-12.en": {
+   "text": "Column supply vehicle.",
+   "speaker": "rojas",
+   "seconds": 1.665,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 476488324,
+     "heard": "column supply vehicle.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7805,
+     "sha256": "b59bd218501023f8f804f8d6fadf2592de318371b06a0c0277182817fb7a1cac"
+    },
+    "mp3": {
+     "bytes": 8420,
+     "sha256": "cf56c46c2df495cf155dab60feed9e403dda273edd74ec0761a863086bdba22d"
+    }
+   }
+  },
+  "film-int3-12.es": {
+   "text": "Vehículo de abastecimiento de la Columna.",
+   "speaker": "rojas",
+   "seconds": 2.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4016314477,
+     "heard": "Vehículo de abastecimiento de la columna.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10852,
+     "sha256": "0d22467d6dc28c95a649b3ea4d356255fe6067e90035153e9fa6455841dcd6b6"
+    },
+    "mp3": {
+     "bytes": 11396,
+     "sha256": "f045b3bf8b1d1adf29dea9cbd0faae4fedf871a243f25a342d43f84cabbf6bf7"
+    }
+   }
+  },
+  "film-int3-13.en": {
+   "text": "I don't think so.",
+   "speaker": "ibarra",
+   "seconds": 1.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2546113800,
+     "heard": "I don't think so. I don't think",
+     "wer": 0.75,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4161405164,
+     "heard": "I don't think so. Notch. I don't think so.",
+     "wer": 1.25,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2444868988,
+     "heard": "I don't think so. I don't think so.",
+     "wer": 1.0,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 158114677,
+     "heard": "I don't think so.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 130
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6626,
+     "sha256": "c11a6c569c9cbbbad29eba5a81fa39f355c3e8cbf1afd8ffe4a60a0aa9accbb6"
+    },
+    "mp3": {
+     "bytes": 7628,
+     "sha256": "015b50db894807d33d19b3bddf79414fd49ddd8232507da27f9a23a2d69acb61"
+    }
+   }
+  },
+  "film-int3-13.es": {
+   "text": "No creo.",
+   "speaker": "ibarra",
+   "seconds": 1.075,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 265129686,
+     "heard": "No creo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5218,
+     "sha256": "a760468c63411038c525a381815d62b208fac9e928752507fed80ac11426216f"
+    },
+    "mp3": {
+     "bytes": 5684,
+     "sha256": "65d75eb796d838f084178a3a6a7adbd364737809d8590a531e6f7936bd829292"
+    }
+   }
+  },
+  "film-int3-14.en": {
+   "text": "Why?",
+   "speaker": "rojas",
+   "seconds": 1.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3491636920,
+     "heard": "Why?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5170,
+     "sha256": "2e1bcdb0905b1fa547fa457c76fcc57b9dd532626efe098f107944c6dabd6824"
+    },
+    "mp3": {
+     "bytes": 5684,
+     "sha256": "2eb72b9f1dc7f84a5a0a2e3d47989c9725f2dfaa3bcebc1ffce8926c057cc7d7"
+    }
+   }
+  },
+  "film-int3-14.es": {
+   "text": "¿Por qué?",
+   "speaker": "rojas",
+   "seconds": 1.075,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 259000929,
+     "heard": "¿Por qué?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 3270
+    },
+    {
+     "attempt": 1,
+     "seed": 866725134,
+     "heard": "¿Por qué?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5212,
+     "sha256": "1df59da83497a4c3133d361c3bd612a32e1fd2132d23762d60d114a63f10221e"
+    },
+    "mp3": {
+     "bytes": 6092,
+     "sha256": "b72f0cbb18fd9fcb91a1fec9f30ee00f10f2a685156b94cd15ece9cf1033869b"
+    }
+   }
+  },
+  "film-int3-15.en": {
+   "text": "Because these people have spent years surviving with almost nothing.",
+   "speaker": "ibarra",
+   "seconds": 4.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2072865848,
+     "heard": "because these people have spent years surviving with almost nothing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19615,
+     "sha256": "55f2b4a255c000324c7b8cc1865a8439d559552cd11dbb41f403970baabc5d97"
+    },
+    "mp3": {
+     "bytes": 20396,
+     "sha256": "3c65ed7b2dc42ee718a13c33278e9fd3786f77d0da0de13e82f650bd24f6fe4c"
+    }
+   }
+  },
+  "film-int3-15.es": {
+   "text": "Porque esta gente pasó años sobreviviendo casi sin nada.",
+   "speaker": "ibarra",
+   "seconds": 3.655,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2206735238,
+     "heard": "Porque esta gente pasó años sobreviviendo casi sin nada.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16712,
+     "sha256": "8b7c35f290ad79d519c65b80fde381eac4baebee6e09b1a5057ecb72136ab2c5"
+    },
+    "mp3": {
+     "bytes": 16220,
+     "sha256": "ce6d924a206707537e0b28c3373ff27fbc5747e0db2cd05e530307fd8d4d8485"
+    }
+   }
+  },
+  "film-int3-16.en": {
+   "text": "Whoever supplied that...",
+   "speaker": "ibarra",
+   "seconds": 1.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4266811776,
+     "heard": "Whoever supplied that, it's most abilities of the company in Termstep, a live tame aster of the roles of the stretch.",
+     "wer": 6.0,
+     "extra": 18,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 582610830,
+     "heard": "Whoever supplied that, what if sixteen to send?",
+     "wer": 1.667,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 187925888,
+     "heard": "whoever supplied that.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8176,
+     "sha256": "bdbeb4d5580ee720830de272e783715f4b05415a29063125ce4df6d5c634cdf6"
+    },
+    "mp3": {
+     "bytes": 8900,
+     "sha256": "23791ffb99f09bdf70a994f86ab4d53ac2854607f1f50d6945ab83845d582104"
+    }
+   }
+  },
+  "film-int3-16.es": {
+   "text": "Quien sea que les dio eso...",
+   "speaker": "ibarra",
+   "seconds": 1.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2264793868,
+     "heard": "Quien sea que les dio eso,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8609,
+     "sha256": "298209d22c30612e5ef966ac52be1d58f43740611d876ba48b029ad09c2c44f4"
+    },
+    "mp3": {
+     "bytes": 9260,
+     "sha256": "ff05a01b66460d456465209ee339664ea91c532cfe86136d05ac27acf3ffed5f"
+    }
+   }
+  },
+  "film-int3-17.en": {
+   "text": "...has money.",
+   "speaker": "ibarra",
+   "seconds": 2.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2629029441,
+     "heard": "Has money. Has money.",
+     "wer": 1.0,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3467328474,
+     "heard": "Has money.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10713,
+     "sha256": "def2fdf1846b1bb2a5c9b4b29125f60a4c62fad2147a4bb6b157540263cb74f3"
+    },
+    "mp3": {
+     "bytes": 10604,
+     "sha256": "bd8fd2995c42e848166e6855bbf1efab1eb7902c82635557440fb50ef2d7497f"
+    }
+   }
+  },
+  "film-int3-17.es": {
+   "text": "...tiene plata.",
+   "speaker": "ibarra",
+   "seconds": 1.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1434873068,
+     "heard": "tiene plata.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6411,
+     "sha256": "55f70fd538c3620b5d8599608f8e434fe4f3488c109fdf6039bf5a67d704d597"
+    },
+    "mp3": {
+     "bytes": 7076,
+     "sha256": "153500b06b97a172033721538a3ce1903624f064f81a70382c9fd6b20b0f3874"
+    }
+   }
+  },
+  "film-int3-18.en": {
+   "text": "And the drone that watched the post got everything it came for.",
+   "speaker": "ferrer",
+   "seconds": 3.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1336096743,
+     "heard": "And the drone that watched the post got everything it came for.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15896,
+     "sha256": "f510e3e6dab78768ab5a4d6329e4b17b624834ac0ee1d569638fd851d45703ca"
+    },
+    "mp3": {
+     "bytes": 16436,
+     "sha256": "14a927026b3012d6fed43fc58cf1f953bda81705d1e262253caa622207dd1a15"
+    }
+   }
+  },
+  "film-int3-18.es": {
+   "text": "Y el dron que vigiló el puesto se llevó todo lo que vino a buscar.",
+   "speaker": "ferrer",
+   "seconds": 3.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2129122825,
+     "heard": "Y el dron que vigiló el puesto se llevó todo lo que vino a buscar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15863,
+     "sha256": "8574f2b541b080c53cd742f08b68cd8b94b90757bd36cdec9624fc8dca507204"
+    },
+    "mp3": {
+     "bytes": 15932,
+     "sha256": "4ab826416dba7e0f3ec22fcfe97f0d52a612141ce04f9f65b8758d5f1b6eb5ba"
+    }
+   }
+  },
+  "film-int3-2.en": {
+   "text": "Hostiles confirmed?",
+   "speaker": "vega",
+   "seconds": 1.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2012692699,
+     "heard": "hostiles confirmed, or",
+     "wer": 0.5,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2353648996,
+     "heard": "Hostiles confirmed.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6597,
+     "sha256": "83e5cba6e1b51563fceeba937e36c0a6ca95887af432d9be8aed79efdffb2cfc"
+    },
+    "mp3": {
+     "bytes": 8036,
+     "sha256": "576ecfe63af61b6e9a204d66e685e908594c52ccac26c1ff9238c82067dc7f0e"
+    }
+   }
+  },
+  "film-int3-2.es": {
+   "text": "¿Hostiles confirmados?",
+   "speaker": "vega",
+   "seconds": 1.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1600664641,
+     "heard": "¿Hostiles confirmados?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8498,
+     "sha256": "eaa6d53346c2cdb9b3d9681b0880dc1bf7aced5de1eaffd7f5b2f7c8788831ba"
+    },
+    "mp3": {
+     "bytes": 9476,
+     "sha256": "54c0493dee7c4800b9fd204acdd61b1939c24ca87993d2a5eeeb3decaff5e764"
+    }
+   }
+  },
+  "film-int3-3.en": {
+   "text": "No.",
+   "speaker": "rojas",
+   "seconds": 0.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 326476767,
+     "heard": "No.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4810,
+     "sha256": "4edb9409fdbc9deb4feed2cae3f21ec8f6dff393105211733ad6891e02c358dd"
+    },
+    "mp3": {
+     "bytes": 5372,
+     "sha256": "986ed8f0efbb6a9352f19f0b31d6dfc5d4268359f9d25e37d9f6844c2ee477b8"
+    }
+   }
+  },
+  "film-int3-3.es": {
+   "text": "No.",
+   "speaker": "rojas",
+   "seconds": 0.775,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2505516823,
+     "heard": "No.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 3885,
+     "sha256": "00cb3445a33a7eaf8d51de9c48e22b21dd0f2cde9f2941758b6aea3ec41d2ebb"
+    },
+    "mp3": {
+     "bytes": 4340,
+     "sha256": "0661b42927e35578155bd646380990e6b510c57fdcd8ed32f62f3781673350aa"
+    }
+   }
+  },
+  "film-int3-4.en": {
+   "text": "Then don't call them hostiles.",
+   "speaker": "ibarra",
+   "seconds": 2.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1080071318,
+     "heard": "then don't call them hostiles.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9824,
+     "sha256": "af95c656182196545ba8441fd41ce67251ad0702f7a745595480d89a833187d7"
+    },
+    "mp3": {
+     "bytes": 10436,
+     "sha256": "70ab7803afca1382489cbe3443f6dc24cbebe3a97928473bedd3c252131ad784"
+    }
+   }
+  },
+  "film-int3-4.es": {
+   "text": "Entonces no los llame hostiles.",
+   "speaker": "ibarra",
+   "seconds": 2.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 464551352,
+     "heard": "Entonces no los llame hostiles.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9416,
+     "sha256": "0bd04e4b35408f9448e45e205d17746aa6b957fda5af45d106047d5461c6864d"
+    },
+    "mp3": {
+     "bytes": 9692,
+     "sha256": "651c3bfaba662e7c8abde4b3f915c197c8b4abd34e99520b6c7efc7979e56a3d"
+    }
+   }
+  },
+  "film-int3-5.en": {
+   "text": "Fine. Armed individuals reported near the perimeter.",
+   "speaker": "rojas",
+   "seconds": 3.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4046832642,
+     "heard": "Fine, armed individuals reported near the perimeter.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16297,
+     "sha256": "64aa9a9ef0a74e6e1b202ecaad79cdda8c7ecff728d6aa1661b1fece9bd979d1"
+    },
+    "mp3": {
+     "bytes": 16868,
+     "sha256": "1a65cea9bc75c664b72f195c35e9d150a147e44c12d8741d99cd4d49287ef9ca"
+    }
+   }
+  },
+  "film-int3-5.es": {
+   "text": "Bueno. Se reportan individuos armados cerca del perímetro.",
+   "speaker": "rojas",
+   "seconds": 3.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2133284951,
+     "heard": "Bueno, se reportan individuos armados cerca del perímetro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15384,
+     "sha256": "bb841bb2f0df2a3e5d60e9fa4537350f40335cc86a746d3f530fff4b5f284bf6"
+    },
+    "mp3": {
+     "bytes": 16004,
+     "sha256": "d6d519f5f2e1b136837a3103fe8d7d084cb481e8dc45a7add9a0ebf110244934"
+    }
+   }
+  },
+  "film-int3-6.en": {
+   "text": "That description applies to half the region.",
+   "speaker": "ibarra",
+   "seconds": 2.775,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2195978736,
+     "heard": "that description applies to half the region i rescind chossability problem",
+     "wer": 0.571,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1297954252,
+     "heard": "That description applies to half the region and that sign to takening.",
+     "wer": 0.714,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1085624344,
+     "heard": "That description applies to half the region.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12747,
+     "sha256": "8c4e7a66ed8f615b8d0ee44f21db93fe9ddb287d021c0234ab405d6d53bc9c78"
+    },
+    "mp3": {
+     "bytes": 13244,
+     "sha256": "7224cee9fe7bca1c0ef2b54e62fb92062aa27ffed3aff28c08c876411e74c601"
+    }
+   }
+  },
+  "film-int3-6.es": {
+   "text": "Esa descripción vale para media región.",
+   "speaker": "ibarra",
+   "seconds": 2.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1459696432,
+     "heard": "Esa descripción vale para media región.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12489,
+     "sha256": "6934369030b9a7e7f5ecdbd0540de07897e707e1311b3489de5c8bf55a3599ed"
+    },
+    "mp3": {
+     "bytes": 12212,
+     "sha256": "7a00ed003c7f0b63bfd48fa806135595bb9344fbd9103d5eef1e51e3b92dd4da"
+    }
+   }
+  },
+  "film-int3-7.en": {
+   "text": "Pilot builds the picture.",
+   "speaker": "vega",
+   "seconds": 1.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4194474391,
+     "heard": "Pilot builds the picture.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8253,
+     "sha256": "4f475d4782e40580720704dcd6c54cfda0afe47215cac7a65a0449bf91caad4e"
+    },
+    "mp3": {
+     "bytes": 9140,
+     "sha256": "788e7361733b1c56908e2cdcdf704d16a5301afb957749632422b3708b46fdd1"
+    }
+   }
+  },
+  "film-int3-7.es": {
+   "text": "El piloto arma el cuadro.",
+   "speaker": "vega",
+   "seconds": 2.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2817950334,
+     "heard": "El piloto arma el cuadro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 110
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11123,
+     "sha256": "dc6675e5c25d2f7dfac5ac0b2a237e037882904f7a8365689f5f648e6af31b93"
+    },
+    "mp3": {
+     "bytes": 11564,
+     "sha256": "6c1750259a97149cd3601f6ca1cb7be06e54963032b8e3825e5993e069f5ea0b"
+    }
+   }
+  },
+  "film-int3-8.en": {
+   "text": "Find.",
+   "speaker": "vega",
+   "seconds": 0.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3562402363,
+     "heard": "Find.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4761,
+     "sha256": "31afc28311280111e618b76e1215985eecf7d5f7871f58f508664cbba88f16c0"
+    },
+    "mp3": {
+     "bytes": 5612,
+     "sha256": "22ec53a503d71b7b57163af9052eab03cea6333d245a7cd4cb1a1111f5cd799f"
+    }
+   }
+  },
+  "film-int3-8.es": {
+   "text": "Encuentren.",
+   "speaker": "vega",
+   "seconds": 1.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3385820208,
+     "heard": "Encuentren.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6200,
+     "sha256": "184e55b6712ee5da45b68ff45ba987faaa55ef4deaaef0b261340c5c9a5c7c88"
+    },
+    "mp3": {
+     "bytes": 7244,
+     "sha256": "4fa8a3e3f65b445addee798a49bf21204720ae9262fe0065e2f29422732aa1a2"
+    }
+   }
+  },
+  "film-int3-9.en": {
+   "text": "Follow.",
+   "speaker": "vega",
+   "seconds": 0.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 766509972,
+     "heard": "Follow, I did. Rocker is the similar, and the perist, to leave, or air, were all the cons, and covered day, were ran pressed you pagers of ruin. Who I air, is that steeled, to, eight eight, two thousand, follow.",
+     "wer": 39.0,
+     "extra": 39,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3735513565,
+     "heard": "Follow.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4545,
+     "sha256": "3a723ac4e7dd21f82455cee990a4bee2b0c4db4bf90e6e6c477222d185ec7159"
+    },
+    "mp3": {
+     "bytes": 5060,
+     "sha256": "af42b19bcce9489933f28b470f6d43399312fbe40d10c26db19fe8df706577ff"
+    }
+   }
+  },
+  "film-int3-9.es": {
+   "text": "Sigan.",
+   "speaker": "vega",
+   "seconds": 1.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1152096883,
+     "heard": "Sigan.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 30
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6579,
+     "sha256": "70cc0bde2a51956dfeca2d2e022b4dca5231be1e5f049f81d8c3fab5adb0a6da"
+    },
+    "mp3": {
+     "bytes": 6956,
+     "sha256": "4ae07ca6735138377e8eb98ca493c036c4a84e00962fd379e530c99174cba0e9"
+    }
+   }
+  },
   "film-intp-1.en": {
    "text": "We have movement near the tree line.",
    "speaker": "archive-a",
@@ -10074,6 +11118,3414 @@
     "mp3": {
      "bytes": 11540,
      "sha256": "aa28141176484972a723a1d681b2f83f69f756157badc96dc798fa2634b1f340"
+    }
+   }
+  },
+  "int3-g-classify.en": {
+   "text": "Five contacts around the post. Watch each until it tells you what it is.",
+   "speaker": "ibarra-guide",
+   "seconds": 4.51,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 52694940,
+     "heard": "Five contacts around the post. Watch each until it tells you what it is.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20266,
+     "sha256": "edfb895b3669f3a3f9611bd31f386be266730ea7ad51e72fa890ef10d66a6c50"
+    },
+    "mp3": {
+     "bytes": 20660,
+     "sha256": "906d7d25fb4a5e1d710ff6f2429fa45e780799015aa01d6fd6ee8f33fbd04900"
+    }
+   }
+  },
+  "int3-g-classify.es": {
+   "text": "Cinco contactos alrededor del puesto. Miren cada uno hasta que les diga qué es.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.74,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1980887052,
+     "heard": "Cinco contactos al rodeador del puesto. Miren cada uno hasta que les diga qué es.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "alrededor"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 40993140,
+     "heard": "5 contactos alrededor del puesto. Miren cada uno hasta que les diga qué es.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "cinco"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1165369653,
+     "heard": "5 contactos alrededor del puesto. Miren cada uno hasta que les diga qué es.",
+     "wer": 0.071,
+     "extra": 0,
+     "missing": [
+      "cinco"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 971432917,
+     "heard": "cinco contactos alrededor del puesto. Miren cada uno hasta que les diga qué es.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16880,
+     "sha256": "c401f544689e145dd5bf3336cd996d9c354d5ad4cc45d3ac6d28f7f30967395b"
+    },
+    "mp3": {
+     "bytes": 16652,
+     "sha256": "c4fc92c59f246e44a953ffa29af0265d7861d1aa69cbcf48ff6d0249ce4b33fb"
+    }
+   }
+  },
+  "int3-g-command.en": {
+   "text": "Radio, shelter, motorcycles, the markers on the route.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.78,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3520106861,
+     "heard": "radio, shelter, motorcycles, the markers on the route.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16884,
+     "sha256": "d3ecd7ec23274463fe71a1bc8d624da254135bffd27d9bf3f6d9d1661b3b30fe"
+    },
+    "mp3": {
+     "bytes": 16724,
+     "sha256": "a9f16627c7a4d284fc26f3a65393360050ea8b7ed26caf753688cc67b3881d32"
+    }
+   }
+  },
+  "int3-g-command.es": {
+   "text": "Radio, refugio, motos, las marcas en el camino.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.39,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 431201905,
+     "heard": "Radio, refugio, motos, las marcas en el camino.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15296,
+     "sha256": "ba6dd3cfdcd9013c47dac65ac3050508fa2785d056f63e714f6e69fec24e3293"
+    },
+    "mp3": {
+     "bytes": 14444,
+     "sha256": "c56a30576e5b2df802762454a1733be2e565a3a499c9a31afc6a933f694eeda8"
+    }
+   }
+  },
+  "int3-g-north.en": {
+   "text": "Stay on it. Do not cross the line.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.55,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 308777953,
+     "heard": "Stay on it. Do not cross the line.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15483,
+     "sha256": "8de02065fd27fd37d85836dafe4799dee3f9637cf36c1194c2f8bd6a2d88cfb9"
+    },
+    "mp3": {
+     "bytes": 14780,
+     "sha256": "6301c664571513ac4c1f5e07706e1d934514f9c54cd3b9fdc45a5a49ede1e845"
+    }
+   }
+  },
+  "int3-g-north.es": {
+   "text": "No lo suelten. No crucen la línea.",
+   "speaker": "ibarra-guide",
+   "seconds": 2.32,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2220153763,
+     "heard": "No lo suelten. No crucen la línea.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10516,
+     "sha256": "c75de3cd60a70f156f8b17bb23957f09902f6528e3c66caba4fe948753e14475"
+    },
+    "mp3": {
+     "bytes": 10364,
+     "sha256": "17e5b665aa711bf0ebc95d9d5eeb92888be74cf6b96eb4c8e8e283b02c15fe81"
+    }
+   }
+  },
+  "int3-g-pickups.en": {
+   "text": "Three pickups. Stay on each until it shows you something.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.66,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4243241083,
+     "heard": "Three pickups. Stay on each until it shows you something. Ah.",
+     "wer": 0.1,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3814734608,
+     "heard": "Three pickups. Stay on each until it shows you something.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 240
+    },
+    {
+     "attempt": 2,
+     "seed": 2865493265,
+     "heard": "Three pickups. Stay on each until it shows you something.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16144,
+     "sha256": "3cff15080b36871fe49bbafbd41a414d543b1e818d09f8698752b644fe1cc981"
+    },
+    "mp3": {
+     "bytes": 16052,
+     "sha256": "3af8ade542bcd24e7373c7aa12c747285bc75f9b321560b1cd45bbe90a90fa1c"
+    }
+   }
+  },
+  "int3-g-pickups.es": {
+   "text": "Tres camionetas. Sigan cada una hasta que les muestre algo.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.83,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 153493221,
+     "heard": "Tres camionetas. Sigan cada una hasta que les muestre algo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17295,
+     "sha256": "9ff991f8018c4d7fb002281eb1f660702f53f8063067c6387f8951be190cc608"
+    },
+    "mp3": {
+     "bytes": 16484,
+     "sha256": "3d655b2ca226b048910577508014331c837b88deac572c48d78bedf40bd02e9e"
+    }
+   }
+  },
+  "int3-g-relay-hold.en": {
+   "text": "Into the box and stay there.",
+   "speaker": "ibarra-guide",
+   "seconds": 1.82,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2029153993,
+     "heard": "Into the box. And stay there. I up-dock it.",
+     "wer": 0.667,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4020409551,
+     "heard": "into the box and stay there.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8180,
+     "sha256": "b3ed7aa731618c044bb246f803b9b6e623e93ac9aa40fabea44237a7d0e27133"
+    },
+    "mp3": {
+     "bytes": 8444,
+     "sha256": "70f8fe96c7f47f526ba688671d0909f92fe9c25f68619a573892c190e22623f1"
+    }
+   }
+  },
+  "int3-g-relay-hold.es": {
+   "text": "Al recuadro, y quédense ahí.",
+   "speaker": "ibarra-guide",
+   "seconds": 2.31,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3919625157,
+     "heard": "al recuadro y quédense ahí.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10215,
+     "sha256": "d8cb73d38e897e0bf566cec24fabdbdbca965004678e370ee31735cd2fd0fa47"
+    },
+    "mp3": {
+     "bytes": 9188,
+     "sha256": "a770457fb7a9e19e2ee36268275f69ad408289e44faa612173f51120e1fa6801"
+    }
+   }
+  },
+  "int3-g-relay.en": {
+   "text": "The relay goes in the box first. Then the command site.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.41,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1743642681,
+     "heard": "The relay goes in the box first, then the command site.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15180,
+     "sha256": "0884b153eeee8ed0d7e44fd4573ac054691476032fbd5fe777acbbbb3fb28b2c"
+    },
+    "mp3": {
+     "bytes": 15164,
+     "sha256": "84c17b0f1ad49360d64a3757c6cc01c87e062dabf646bcbc09d4b01f13bc0e44"
+    }
+   }
+  },
+  "int3-g-relay.es": {
+   "text": "Primero el relé en el recuadro. Después el puesto de mando.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.32,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3525796128,
+     "heard": "Primero el relé en el recuadro, después el puesto de mando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15105,
+     "sha256": "0dd0e422d33a34814b2a6f99b12904737a5695a997c635261fdf390b4f0e6b91"
+    },
+    "mp3": {
+     "bytes": 14924,
+     "sha256": "8db13c990cf614b4c3b67af8ac9ac67f51c534b5533e019ee4fdcb523dc2355b"
+    }
+   }
+  },
+  "int3-g-strike-wait.en": {
+   "text": "Nothing for you yet. Help them watch.",
+   "speaker": "ibarra-guide",
+   "seconds": 2.78,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3259164529,
+     "heard": "Nothing for you yet, help them watch.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 450
+    },
+    {
+     "attempt": 1,
+     "seed": 2119266603,
+     "heard": "Nothing for you yet. Help them watch.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12347,
+     "sha256": "8b27d35f8c6978f55fbd19276a45dfb6c44da6fad24769683f9a9cf57c7ed7f4"
+    },
+    "mp3": {
+     "bytes": 11300,
+     "sha256": "bcb0f59c6a98f8a6bca34d1c39ef620dc8ec91a6caf50f48e68c498bb0175908"
+    }
+   }
+  },
+  "int3-g-strike-wait.es": {
+   "text": "Todavía nada para ustedes. Ayuden a mirar.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.45,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 723183711,
+     "heard": "Todavía nada para ustedes. Ayuden a mirar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15499,
+     "sha256": "294f913ffd59992013843f6af4c938d72d7a13da245a165de695f32842672688"
+    },
+    "mp3": {
+     "bytes": 14564,
+     "sha256": "ad8618ac0d78cb269f4abd8f390e3fb28c63cc6bdb203ad35f0e5ea4dbd65181"
+    }
+   }
+  },
+  "int3-g-strike.en": {
+   "text": "Hold near the gate. You go when Vega clears it.",
+   "speaker": "ibarra-guide",
+   "seconds": 2.77,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4178410786,
+     "heard": "Hold near the gate. You go when Viga clears it.",
+     "wer": 0.1,
+     "extra": 0,
+     "missing": [
+      "vega"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2259335540,
+     "heard": "Hold near the gate, you go when Viga clears it.",
+     "wer": 0.1,
+     "extra": 0,
+     "missing": [
+      "vega"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2071715282,
+     "heard": "Hold near the gate. You go when Vega clears it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12270,
+     "sha256": "fdac553f59ddfc6170cf1b973a85377ad7c1756398c41facce77ecce3ff78f9c"
+    },
+    "mp3": {
+     "bytes": 12140,
+     "sha256": "d5d7f2a116c14957f7119e2af3dc836cedb72083d5fbbda3c5d723c3da8b89c5"
+    }
+   }
+  },
+  "int3-g-strike.es": {
+   "text": "Esperen cerca del portón. Van cuando Vega autorice.",
+   "speaker": "ibarra-guide",
+   "seconds": 2.85,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3810528460,
+     "heard": "Esperen cerca del portón. Van cuando Vega autorice.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12782,
+     "sha256": "8aa4e941a753cd09647a0d6a7f79f88c4409c47bae6a759e1574ce4153cb3e5c"
+    },
+    "mp3": {
+     "bytes": 12212,
+     "sha256": "e6b06edd6efb626ebea0c7f61a1984767b0f4ac5565dcc0f2c0601190c5543f7"
+    }
+   }
+  },
+  "int3-g-threats.en": {
+   "text": "The tree line round the post. Find who is still there.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.23,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2764564270,
+     "heard": "The tree line round the post. Find who is still there.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14169,
+     "sha256": "4ea9a9eed15ede4d5235cfc54f43a77be65d6ec6c184d3599db187b2d6ff5d49"
+    },
+    "mp3": {
+     "bytes": 13460,
+     "sha256": "bfb5477888f26ff98e02b6fd7c28bde2f9c9930150975f3da1075cbcc3b1725b"
+    }
+   }
+  },
+  "int3-g-threats.es": {
+   "text": "La línea de árboles alrededor del puesto. Encuentren quién sigue ahí.",
+   "speaker": "ibarra-guide",
+   "seconds": 3.85,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 599623772,
+     "heard": "La línea de árboles alrededor del puesto. Encuentren quién sigue ahí.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 170
+    },
+    {
+     "attempt": 1,
+     "seed": 1138222172,
+     "heard": "La línea de árboles alrededor del puesto, encuentren quién sigue ahí.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17414,
+     "sha256": "33eb0045e2d313bfa7001765cb157849744f3317fb446df052fbb49dbf0cdb60"
+    },
+    "mp3": {
+     "bytes": 17276,
+     "sha256": "7de32f8dc43afba36a3c1db4a3b31ea055acf4bf3eba5c55717d87311438ee5d"
+    }
+   }
+  },
+  "int3-in-launch.en": {
+   "text": "Small, slow, curious. Stay on it.",
+   "speaker": "ferrer",
+   "seconds": 3.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 439809976,
+     "heard": "Small, slow, curious. Stay on it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14718,
+     "sha256": "49c8ace86649f9048d40c18d6b45cbaff19132a06646935ce6ce63c1e66eb9dd"
+    },
+    "mp3": {
+     "bytes": 15548,
+     "sha256": "5d76dfe64fc59ef2429d19e2f9f0edb6d425a800f881c8f089c37a6b83e28e23"
+    }
+   }
+  },
+  "int3-in-launch.es": {
+   "text": "Chico, lento, curioso. No lo suelten.",
+   "speaker": "ferrer",
+   "seconds": 2.835,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3905402289,
+     "heard": "Chico, lento, curioso, no lo suelten.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 90
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13072,
+     "sha256": "f965293ab7bcc1b8ba70b7d43dd93c9f903dfdc4c478221b2b9f1d870d7f81e3"
+    },
+    "mp3": {
+     "bytes": 13052,
+     "sha256": "0a88d039691c4a69fc4f2a44611b530a8d57920ec387163442e79a435c356db5"
+    }
+   }
+  },
+  "int3-re-volume.en": {
+   "text": "That box is where you live now. Don't leave it.",
+   "speaker": "ferrer",
+   "seconds": 3.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1516305980,
+     "heard": "That box is where you live now. Don't leave it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 140
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15223,
+     "sha256": "f0e86a80648676a1f52695a88c98c18c58c54d3125bba9c28a60c68fedd49a4e"
+    },
+    "mp3": {
+     "bytes": 15932,
+     "sha256": "37ae35baf30924819a8d3d40dcf3f7dae807f8da970349c5fdec77f7f4880956"
+    }
+   }
+  },
+  "int3-re-volume.es": {
+   "text": "Ese recuadro es su casa ahora. No lo dejen.",
+   "speaker": "ferrer",
+   "seconds": 3.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 267882997,
+     "heard": "Ese recuadro es su casa ahora. No lo dejen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14617,
+     "sha256": "bd91fa641aeea8e1c0099b8d566b2a332ed831cfc0e2f1248d49a4713f83c0db"
+    },
+    "mp3": {
+     "bytes": 14468,
+     "sha256": "7b293c8f636f8eb8c9499db446d4a83111419f935c2bcf94e6431eb45eaedcfe"
+    }
+   }
+  },
+  "int3-s1-confirmed.en": {
+   "text": "Confirmed Column contact.",
+   "speaker": "ibarra",
+   "seconds": 2.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3672311259,
+     "heard": "Confirmed column contact. Using is is show kind of four. It's their absolutely buddy and national part of their. Which ways to tell, which which how",
+     "wer": 7.667,
+     "extra": 23,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3995190574,
+     "heard": "Confirmed column contact.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9759,
+     "sha256": "fd7329e69861a3012aa9459cf71c4394735845796e991771f6ec1440aa51640e"
+    },
+    "mp3": {
+     "bytes": 10724,
+     "sha256": "bd96bbbfd66465881fa3cfdc85cf78356feeafd5f2bb7269e90422b5fb2edd07"
+    }
+   }
+  },
+  "int3-s1-confirmed.es": {
+   "text": "Contacto de la Columna confirmado.",
+   "speaker": "ibarra",
+   "seconds": 2.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3078471509,
+     "heard": "Contacto de la columna confirmado.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 190
+    },
+    {
+     "attempt": 1,
+     "seed": 33342666,
+     "heard": "Contacto de la columna confirmado.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10833,
+     "sha256": "078117e9279e15a0224c5de9e45d1a91158fbc9d06b02ab59b7ff25d59d4327f"
+    },
+    "mp3": {
+     "bytes": 10436,
+     "sha256": "e8fea9b646ffd6d52d413587ec49ee7709ab11d84f173afd4b5f3c10bf69c390"
+    }
+   }
+  },
+  "int3-s1-corr.en": {
+   "text": "We have historical correlation.",
+   "speaker": "ibarra",
+   "seconds": 2.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3047151683,
+     "heard": "we have historical correlation,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9910,
+     "sha256": "017ce98e2a5bb98a56d5ac8fe2dba9505ad38974f2716d46c19d032e2c21b9f7"
+    },
+    "mp3": {
+     "bytes": 10844,
+     "sha256": "3921a2df87a801008f24a0ab86f4130d1805570ba828c968743cc04ecf1d1872"
+    }
+   }
+  },
+  "int3-s1-corr.es": {
+   "text": "Tenemos correlación histórica.",
+   "speaker": "ibarra",
+   "seconds": 1.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2954434603,
+     "heard": "Tenemos correlación histórica.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8462,
+     "sha256": "42ca9d3363e21e6736da9e5215634b205315f1513fddcd5e2b054ed161a10b48"
+    },
+    "mp3": {
+     "bytes": 9308,
+     "sha256": "2d8b6336822f43874109c9055d53f3da80f8384566130f23d3ce14e67dab0078"
+    }
+   }
+  },
+  "int3-s1-enough.en": {
+   "text": "Enough?",
+   "speaker": "rojas",
+   "seconds": 0.935,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2460660701,
+     "heard": "Enough?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 240
+    },
+    {
+     "attempt": 1,
+     "seed": 2432123766,
+     "heard": "Enough?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4622,
+     "sha256": "98e8db3e570a3494ac3be3728f3973a51733409d152b6776c471b71a7592ccdb"
+    },
+    "mp3": {
+     "bytes": 5204,
+     "sha256": "c09dfffc3c3eaa94cac7767020fe83d43dff88b2d118e5cc24818cc31444436f"
+    }
+   }
+  },
+  "int3-s1-enough.es": {
+   "text": "¿Alcanza?",
+   "speaker": "rojas",
+   "seconds": 1.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1625972846,
+     "heard": "Alcanza...",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5800,
+     "sha256": "a12f0fc431ca95b395afb23554030b66976ed333f8805afa1af76baa36b00211"
+    },
+    "mp3": {
+     "bytes": 6332,
+     "sha256": "89ea23ab1a72220b1a8933a800ed5f6d895a4b4cca1c96933d5964e260660fe0"
+    }
+   }
+  },
+  "int3-s1-no.en": {
+   "text": "No.",
+   "speaker": "ibarra",
+   "seconds": 1.185,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1187757034,
+     "heard": "No.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5706,
+     "sha256": "752f994d841a407551528e0db12992067b455dd722fe9716adb0b9816ef478bc"
+    },
+    "mp3": {
+     "bytes": 6116,
+     "sha256": "d3405a665e5bc9d8e91daf1253d47ef24db1388b8cc85a5dc08efb13ae8710f4"
+    }
+   }
+  },
+  "int3-s1-no.es": {
+   "text": "No.",
+   "speaker": "ibarra",
+   "seconds": 0.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3739919278,
+     "heard": "No.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 70
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4809,
+     "sha256": "c3f97845e2ab49d58a2950af4dc701cad65d9fb607a1c8b1994a049ff80a8e46"
+    },
+    "mp3": {
+     "bytes": 5156,
+     "sha256": "d6ae2448a61df4dd4109c9ac565e8200c16f5c0a23ebb8fab96dff866e148759"
+    }
+   }
+  },
+  "int3-s1-ours.en": {
+   "text": "That's one of ours.",
+   "speaker": "rojas",
+   "seconds": 1.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 710564664,
+     "heard": "That's one of ours.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7372,
+     "sha256": "6e15beadee0c6048f20abc6ee9512aa13b39288cf4461ec2e2fa116a599cd293"
+    },
+    "mp3": {
+     "bytes": 7868,
+     "sha256": "adfebb2d748dc1f9654098cd17be8ec96a1f8e22a19d4040e446e68874ff1f7c"
+    }
+   }
+  },
+  "int3-s1-ours.es": {
+   "text": "Ese es de los nuestros.",
+   "speaker": "rojas",
+   "seconds": 1.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3364654622,
+     "heard": "Ese es de los nuestros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9269,
+     "sha256": "78e7506f991a3e97a7cb8d84b70cbb2528e5cac6cdef2bda12ce1be8fa486dd1"
+    },
+    "mp3": {
+     "bytes": 9836,
+     "sha256": "8b5ea7025bce89022d1df9cd136043747a2656fc1387b93eb3d6d45f2642d8b4"
+    }
+   }
+  },
+  "int3-s1-pattern.en": {
+   "text": "Behavior matches the warning network.",
+   "speaker": "ibarra",
+   "seconds": 2.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3244443703,
+     "heard": "behavior matches the warning network, makes the partish and myotines, a long-time kamamister entire self, with aventidi of sane and rate and the ends.",
+     "wer": 4.0,
+     "extra": 20,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2724289811,
+     "heard": "Behavior matches the warning network.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11511,
+     "sha256": "abaf6ab455bc6c95de557d6a55be0ae84c90f54189f8794cbc66cddfadd3d109"
+    },
+    "mp3": {
+     "bytes": 12740,
+     "sha256": "2ac1309b70ac742fda89dc80eccce65d71bc67a26f2011bcd415a5528e37ecf5"
+    }
+   }
+  },
+  "int3-s1-pattern.es": {
+   "text": "El comportamiento coincide con la red de alerta.",
+   "speaker": "ibarra",
+   "seconds": 2.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3468704150,
+     "heard": "El comportamiento coincide con la red de alerta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12967,
+     "sha256": "14f185b4ddab4001ee01632d2213ff377bfed2eb86214a66f086f253263be927"
+    },
+    "mp3": {
+     "bytes": 14204,
+     "sha256": "c7a6c3338736306aebbc0154b05a8cd1faa8e9b14bbbeb82d41dec354fef9034"
+    }
+   }
+  },
+  "int3-s1-sayit.en": {
+   "text": "Say it.",
+   "speaker": "rojas",
+   "seconds": 1.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3252197456,
+     "heard": "Say it, say it.",
+     "wer": 1.0,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 4182988452,
+     "heard": "Say it. It...",
+     "wer": 0.5,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 74925576,
+     "heard": "Say it, it quesn't.",
+     "wer": 1.0,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 962236900,
+     "heard": "Say it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6206,
+     "sha256": "d0947958c51224539d6247dfbcc92f04a92c78f83e914931d51172f89b771a56"
+    },
+    "mp3": {
+     "bytes": 6572,
+     "sha256": "ddba655a226f10b10ea524c212909adcf96af3a3a2dd3794f8c46659bc6c011e"
+    }
+   }
+  },
+  "int3-s1-sayit.es": {
+   "text": "Dígalo.",
+   "speaker": "rojas",
+   "seconds": 0.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 814647580,
+     "heard": "Dígalo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 30
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4506,
+     "sha256": "97885ecb6298ac670ee939c185ad3d5fbae2b2f3282e18d979abb618d16c91db"
+    },
+    "mp3": {
+     "bytes": 5132,
+     "sha256": "e3abf922edd01bca7dcfc5c9d73b2b1ec9c932b8603e066d289e697fccb193a3"
+    }
+   }
+  },
+  "int3-s1-watch.en": {
+   "text": "This is why we watch.",
+   "speaker": "ibarra",
+   "seconds": 1.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2929723442,
+     "heard": "This is why we watch.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8857,
+     "sha256": "3eddd17a4c8cee64ab52b58c49ab6a958041198270fd44464954403512bbec4e"
+    },
+    "mp3": {
+     "bytes": 9620,
+     "sha256": "9bfe11ee3fe0e8b01c204ee53b3967274ea93a3fa266038e3304e16d4c541202"
+    }
+   }
+  },
+  "int3-s1-watch.es": {
+   "text": "Por esto miramos.",
+   "speaker": "ibarra",
+   "seconds": 1.625,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4158182856,
+     "heard": "Por esto, miramos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7665,
+     "sha256": "ca4153a254eff3ae990f2968af1772d1bfe4b0d220ea2c4c95ca64898395583f"
+    },
+    "mp3": {
+     "bytes": 7844,
+     "sha256": "264272d4beacb0d40052879d413f7c582654daeb5391daeec55d3e17b3444c17"
+    }
+   }
+  },
+  "int3-s2-cleared.en": {
+   "text": "Cleared.",
+   "speaker": "vega",
+   "seconds": 1.515,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 989569974,
+     "heard": "cleared, IDS dead, to go port",
+     "wer": 5.0,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1304304115,
+     "heard": "Cleared.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 60
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6945,
+     "sha256": "b189fec02b2d330951f7002b3f07f08b94b33599d254d982536c07b97927cec1"
+    },
+    "mp3": {
+     "bytes": 7436,
+     "sha256": "8e940ff3a7f860b6e834a1c2f3bd7e6be18df1f804d31ab984be6ffc6f4845cb"
+    }
+   }
+  },
+  "int3-s2-cleared.es": {
+   "text": "Autorizado.",
+   "speaker": "vega",
+   "seconds": 1.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 21324519,
+     "heard": "Autorizado.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6418,
+     "sha256": "052444155ecdad7f71e874b633cb7af878d1f43780f7db18548c9c7c1af61a02"
+    },
+    "mp3": {
+     "bytes": 7028,
+     "sha256": "6d2e14f8ace680b72bec10f4d955438aaa905e5d7cee33914c75cf6813f110ce"
+    }
+   }
+  },
+  "int3-s2-contact.en": {
+   "text": "We have contact.",
+   "speaker": "rojas",
+   "seconds": 1.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3200354695,
+     "heard": "We have contact.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7005,
+     "sha256": "126d1820ecba90c7100669f934cd655cd06f1b54c2ff5a73663b23224c57cc34"
+    },
+    "mp3": {
+     "bytes": 8084,
+     "sha256": "cd8ab90b1a805c7ff8748048d94fcd358984c979f3146d37b0d4e1f780784f56"
+    }
+   }
+  },
+  "int3-s2-contact.es": {
+   "text": "Tenemos contacto.",
+   "speaker": "rojas",
+   "seconds": 1.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3798997267,
+     "heard": "Tenemos contacto.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6647,
+     "sha256": "e90fc7b9a36630484ad9421a67c39e434f0c9e2cb4a32455c8f197023f80422d"
+    },
+    "mp3": {
+     "bytes": 7004,
+     "sha256": "eda22c3dbe6631971fccac3634e320ba16a3adc595f7534fa998f459fbef0b5b"
+    }
+   }
+  },
+  "int3-s2-continue.en": {
+   "text": "Continue observing.",
+   "speaker": "vega",
+   "seconds": 1.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4189157052,
+     "heard": "Continue observing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6839,
+     "sha256": "e504adf0fcf0729895e98b478184e64c3cb1d534cbfbf071c49f3c632b4fc636"
+    },
+    "mp3": {
+     "bytes": 7556,
+     "sha256": "e95b54a385f7021207e1997e560b4a31a00e94fcd6034e039345a935ec94a2db"
+    }
+   }
+  },
+  "int3-s2-continue.es": {
+   "text": "Sigan observando.",
+   "speaker": "vega",
+   "seconds": 2.215,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4017471456,
+     "heard": "Sigan observando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10069,
+     "sha256": "b9b9b3fbf00338c97862867fc865868e9dee4d009aa98d6ee1646086258f4c0c"
+    },
+    "mp3": {
+     "bytes": 10676,
+     "sha256": "14a8e971c0288e64f901e8a04f99f866baa04c998ae60c2c2ba239af437dacab"
+    }
+   }
+  },
+  "int3-s2-notyet.en": {
+   "text": "We don't have that yet.",
+   "speaker": "ibarra",
+   "seconds": 1.515,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4235719338,
+     "heard": "We don't have that yet.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 1140
+    },
+    {
+     "attempt": 1,
+     "seed": 798690586,
+     "heard": "We don't have that yet.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7175,
+     "sha256": "fa1cf71bfd0692e98624131163e8cad56dd960e17e0441846dfbb950813d326c"
+    },
+    "mp3": {
+     "bytes": 8252,
+     "sha256": "122244fc2b0601f0e32cf7d3ebc693a1431e188dc2a431c2b0fbb8472b5ede58"
+    }
+   }
+  },
+  "int3-s2-notyet.es": {
+   "text": "Todavía no tenemos eso.",
+   "speaker": "ibarra",
+   "seconds": 1.575,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1741744442,
+     "heard": "Todavía no tenemos eso.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7488,
+     "sha256": "164a27eef5026e0f47db0b0e98f5713f263cb0238efedbdcba58e9ef3bf7d14d"
+    },
+    "mp3": {
+     "bytes": 8108,
+     "sha256": "d2ce4cd0e1aaedb646d0bd78c428dd8bb7055978cd967809e5d750227e31971f"
+    }
+   }
+  },
+  "int3-s2-pilot.en": {
+   "text": "Pilot?",
+   "speaker": "vega",
+   "seconds": 0.955,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1911619071,
+     "heard": "Pilot,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4663,
+     "sha256": "0231c19fb576309c105e18a94839f89787199a8a07737f14c4a4f2378edaffd6"
+    },
+    "mp3": {
+     "bytes": 5636,
+     "sha256": "af4903473cb2d1c364a15e970b4b45ca64f092e23b46a6ef02774b837311a788"
+    }
+   }
+  },
+  "int3-s2-pilot.es": {
+   "text": "¿Piloto?",
+   "speaker": "vega",
+   "seconds": 1.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1835893244,
+     "heard": "Piloto.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5273,
+     "sha256": "8a42c0baa33204c829c60fc68dad218a4ef8a09482a3cab2899cf850cf15f941"
+    },
+    "mp3": {
+     "bytes": 5972,
+     "sha256": "294f32f6f8e9c3fdd6c9968be626b5660d7a88688637f7ebfe69520ad5d332e7"
+    }
+   }
+  },
+  "int3-s2-pressed.en": {
+   "text": "They're closing on the post. I need eyes on the tree line.",
+   "speaker": "rojas",
+   "seconds": 3.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2482848163,
+     "heard": "They're closing on the post. I need eyes on the treeline.",
+     "wer": 0.167,
+     "extra": 0,
+     "missing": [
+      "tree",
+      "line"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3369957856,
+     "heard": "They're closing on the post. I need eyes on the tree line.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16762,
+     "sha256": "27acde1f775a3ffcdc6f2ab6ae4c660c7f6011131ae87823dba2f75f5a26d0bc"
+    },
+    "mp3": {
+     "bytes": 17972,
+     "sha256": "fdd3686a023e55f086aebaeac8a083e39fda344eac039d3b45c03f33820d114a"
+    }
+   }
+  },
+  "int3-s2-pressed.es": {
+   "text": "Se acercan al puesto. Necesito ojos en la línea de árboles.",
+   "speaker": "rojas",
+   "seconds": 3.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3998923643,
+     "heard": "Se acercan al puesto. Necesito ojos en la línea de árboles.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15352,
+     "sha256": "8ed4dba444fb0c27dfdb87650e537597c9a84d62e85a0dc4d4f8e1879b3e41e5"
+    },
+    "mp3": {
+     "bytes": 16292,
+     "sha256": "14f0930bc425b911d012dd1584d4a0578104e0770d2c257602c36576cd1dc69e"
+    }
+   }
+  },
+  "int3-s2-stopped.en": {
+   "text": "Threat's stopped.",
+   "speaker": "rojas",
+   "seconds": 1.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2616653399,
+     "heard": "Threats stopped.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6634,
+     "sha256": "66ddceb47e6b2b298e2b84df9f867149c9be851b118cfbf6d073bcef85fb01fc"
+    },
+    "mp3": {
+     "bytes": 7316,
+     "sha256": "be547606065f9b4ed31567f767066fb9b62173223b81bc4ebdeaa70a0098a784"
+    }
+   }
+  },
+  "int3-s2-stopped.es": {
+   "text": "Amenaza neutralizada.",
+   "speaker": "rojas",
+   "seconds": 1.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1380897714,
+     "heard": "Amenaza neutralizada.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 80
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8572,
+     "sha256": "cfbf56bea58cc7a79620066d9ef9d5f0c32193d55a49e25ccbe183ffefea3e06"
+    },
+    "mp3": {
+     "bytes": 9500,
+     "sha256": "3d42ccf78a5f71e831e5020dd9a91165dd5277c4402cb2589ea44c191c07c9c5"
+    }
+   }
+  },
+  "int3-s3-answers.en": {
+   "text": "Different answers.",
+   "speaker": "ibarra",
+   "seconds": 1.405,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2970922586,
+     "heard": "different answers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6658,
+     "sha256": "1ec84a78cdf612c160381bbf20429e188013858e1e1ccd58c187652228d3d4de"
+    },
+    "mp3": {
+     "bytes": 7724,
+     "sha256": "7a9ea86c5b54e699d3770e3e94e634f3f76af3e7e183528e87aeac5b192c4296"
+    }
+   }
+  },
+  "int3-s3-answers.es": {
+   "text": "Respuestas distintas.",
+   "speaker": "ibarra",
+   "seconds": 1.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1773368350,
+     "heard": "Respuestas distintas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7855,
+     "sha256": "55801bd3da99ac260f2ab9c7412cd758792db33d759bbc42b314b41272ea8c9b"
+    },
+    "mp3": {
+     "bytes": 8036,
+     "sha256": "bb449dc89397a78de38701f740ecc1944f22de52a84ba33d174a58cc78ef97d9"
+    }
+   }
+  },
+  "int3-s3-chassis.en": {
+   "text": "Same chassis. Same heat. Same road.",
+   "speaker": "ferrer",
+   "seconds": 3.775,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4281063178,
+     "heard": "Same chassis. Same heat. Same road.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16953,
+     "sha256": "c19ca2b4d8f7a04f7bba8c9d3700a3e48367bb18bfd69945ecbbd0a9f1fd6765"
+    },
+    "mp3": {
+     "bytes": 17924,
+     "sha256": "6e8779b464a5f73de406c99684e27f88df950c3fe2a2f2f0a9cf4736de51ea05"
+    }
+   }
+  },
+  "int3-s3-chassis.es": {
+   "text": "Mismo chasis. Mismo calor. Mismo camino.",
+   "speaker": "ferrer",
+   "seconds": 2.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3460444998,
+     "heard": "Mismo chasis, mismo calor, mismo camino.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 1050
+    },
+    {
+     "attempt": 1,
+     "seed": 2244553882,
+     "heard": "Mismo chasis, mismo calor, mismo camino.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13711,
+     "sha256": "797833fb02a524359173851ba6f7c97389b020b1e53e6fb3c4fa1ebccc26dc59"
+    },
+    "mp3": {
+     "bytes": 13676,
+     "sha256": "6c5eab146c39a82d87090abe9b6121bf58a04107e82088ac10a360ffaba99fa0"
+    }
+   }
+  },
+  "int3-s3-error-2.en": {
+   "text": "Nobody engages anything else without my word.",
+   "speaker": "vega",
+   "seconds": 2.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2307024441,
+     "heard": "Nobody engages anything else without my word. When not my",
+     "wer": 0.429,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1585683035,
+     "heard": "Nobody engages anything else without my word.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12836,
+     "sha256": "8243c263f3803db0af5aa879118734696c26a323c17e353f7bebb091133a6b8d"
+    },
+    "mp3": {
+     "bytes": 14516,
+     "sha256": "209e41b80842172e2d1e2d789bf9a1d79e797f49235d20196a03f13234af3191"
+    }
+   }
+  },
+  "int3-s3-error-2.es": {
+   "text": "Nadie ataca nada más sin mi palabra.",
+   "speaker": "vega",
+   "seconds": 2.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2911387760,
+     "heard": "Nadie taca nada más sin mi palabra.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "ataca"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 546985705,
+     "heard": "Nadie ataca nada más si mi palabra.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "sin"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3228178180,
+     "heard": "Nadie atacará más sin mi palabra.",
+     "wer": 0.286,
+     "extra": 0,
+     "missing": [
+      "ataca",
+      "nada"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2182400557,
+     "heard": "Nadie ataca nada más sin mi palabra.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10760,
+     "sha256": "4954950979187f9b66913843cf1261516f8087ac7b4992a150a174e4911e2a6f"
+    },
+    "mp3": {
+     "bytes": 11996,
+     "sha256": "f7117a2ea71edb0b517f86d1b9d370604db1436494d67a9a3192b79eb0c20672"
+    }
+   }
+  },
+  "int3-s3-error.en": {
+   "text": "There were people in that one. Stop.",
+   "speaker": "rojas",
+   "seconds": 2.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1391210022,
+     "heard": "There were people in that one. Stop.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11066,
+     "sha256": "8a4453482dfd9a3c303775b2792fa6431a5556ef8b8219cb2659ecae784269be"
+    },
+    "mp3": {
+     "bytes": 11492,
+     "sha256": "c68cfba59fd80438bec8d8b78f2fd5523f804a92e4ba4228c1e18ff0b56eb93e"
+    }
+   }
+  },
+  "int3-s3-error.es": {
+   "text": "Había gente en esa. Paren.",
+   "speaker": "rojas",
+   "seconds": 3.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4267319860,
+     "heard": "Había gente en esa. Paren...",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14188,
+     "sha256": "57b6449a9148357e6383dee057219ac6bc45ab030a67dbd2e634a468de67f446"
+    },
+    "mp3": {
+     "bytes": 14132,
+     "sha256": "2782926e0c414df4f87a63b098324ca538c0aec4e302cc009e492bc7d84ae53b"
+    }
+   }
+  },
+  "int3-s4-both.en": {
+   "text": "Keep another aircraft where the network can still see both sides.",
+   "speaker": "ferrer",
+   "seconds": 3.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1230706111,
+     "heard": "Heap another aircraft where the network can still see both sides.",
+     "wer": 0.091,
+     "extra": 0,
+     "missing": [
+      "keep"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2982694481,
+     "heard": "Keep another aircraft where the network can still see both sides.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16755,
+     "sha256": "b503191922dccb15a40069df5dc7102fce7ec5c69107c75ed1da99f9d9f2f0a5"
+    },
+    "mp3": {
+     "bytes": 17900,
+     "sha256": "30a9f0b3358a55aa89b78c8eeb5273fe9fce60193a8a642837710cbaa50e0b18"
+    }
+   }
+  },
+  "int3-s4-both.es": {
+   "text": "Mantengan otra aeronave donde la red todavía vea los dos lados.",
+   "speaker": "ferrer",
+   "seconds": 4.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4036370226,
+     "heard": "Mantengan otra aeronave donde la red todavía ve a los dos lados.",
+     "wer": 0.182,
+     "extra": 1,
+     "missing": [
+      "vea"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 919302521,
+     "heard": "Mantengan otra aeronave donde la red todavía ve a los dos lados.",
+     "wer": 0.182,
+     "extra": 1,
+     "missing": [
+      "vea"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1911881943,
+     "heard": "Mantengan otra aeronave donde la red todavía ve a los dos lados.",
+     "wer": 0.182,
+     "extra": 1,
+     "missing": [
+      "vea"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3673234392,
+     "heard": "Mantengan otra aeronave donde la red todavía ve a los dos lados.",
+     "wer": 0.182,
+     "extra": 1,
+     "missing": [
+      "vea"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 2008354808,
+     "heard": "Mantengan otra aeronave, donde la red todavía vea los dos lados.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18376,
+     "sha256": "169473caac8977c436cb0bd11f59bab97287dd7aa26d60ab775abfc265fd3086"
+    },
+    "mp3": {
+     "bytes": 18644,
+     "sha256": "98c2fb28436181b50a0f33915e60e3efa3fefbe21b14411597d4047157db6ccb"
+    }
+   }
+  },
+  "int3-s4-cando.en": {
+   "text": "See? You can do it.",
+   "speaker": "rojas",
+   "seconds": 2.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 946054857,
+     "heard": "See? You can do it. You can do it.",
+     "wer": 0.8,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 131441664,
+     "heard": "See? You can do it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9351,
+     "sha256": "412196b3029b53558294441aec40f8736db40c7da0950eb2299465788bc979b7"
+    },
+    "mp3": {
+     "bytes": 9836,
+     "sha256": "2c0ffbe16c7d1c01f1ceb4b782c42f74ec89096b6107b1e9f665ddf9f13143b0"
+    }
+   }
+  },
+  "int3-s4-cando.es": {
+   "text": "¿Ve? Usted puede.",
+   "speaker": "rojas",
+   "seconds": 1.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1175574537,
+     "heard": "¿Ve? ¿Usted puede? ¿Puede? ¿Puede?",
+     "wer": 0.667,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3006887111,
+     "heard": "¿Ve? ¿Usted puede?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 270
+    },
+    {
+     "attempt": 2,
+     "seed": 2717105023,
+     "heard": "B. Usted puede.",
+     "wer": 0.333,
+     "extra": 0,
+     "missing": [
+      "ve"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2364819882,
+     "heard": "Ve, usted puede.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6816,
+     "sha256": "10cf2f8175c1e3795da984847f5683eb652529838abc5c79b41cb3b054a22639"
+    },
+    "mp3": {
+     "bytes": 7316,
+     "sha256": "526021d5149915fae89f3142a99cd3e9094ce7120705bf75287e6a343ff0e012"
+    }
+   }
+  },
+  "int3-s4-command.en": {
+   "text": "Command position?",
+   "speaker": "vega",
+   "seconds": 1.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2042238575,
+     "heard": "Command position.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 220
+    },
+    {
+     "attempt": 1,
+     "seed": 2019631687,
+     "heard": "Command Position",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6374,
+     "sha256": "b319a445b6b3f4f103dae6d5de94fcbf3e9db9a5a45e558c5c3670fd620a8f66"
+    },
+    "mp3": {
+     "bytes": 7268,
+     "sha256": "8d23758e8917cab0a1f2d3a858d44293d24e9304db124c583ffd6cb31dd19daa"
+    }
+   }
+  },
+  "int3-s4-command.es": {
+   "text": "¿Puesto de mando?",
+   "speaker": "vega",
+   "seconds": 1.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3012315840,
+     "heard": "Puesto de mando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 910
+    },
+    {
+     "attempt": 1,
+     "seed": 4211564744,
+     "heard": "Puesto de mando.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6698,
+     "sha256": "3636230d2d6c6b06bdf309609c5c2e256ab179dc34f93a5d69b08aaabf0c8544"
+    },
+    "mp3": {
+     "bytes": 7388,
+     "sha256": "e23f3e4addae916b5a2af1c4eb1a78d510c3c337fce8185e4a1d15bdae52aac7"
+    }
+   }
+  },
+  "int3-s4-losing.en": {
+   "text": "You're losing the forward feed.",
+   "speaker": "ferrer",
+   "seconds": 1.855,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2048670962,
+     "heard": "You're losing the forward feed. Awind a little, eat D.",
+     "wer": 1.0,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2125268896,
+     "heard": "you're losing the forward feed. And so, call besake is,",
+     "wer": 1.0,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 568042122,
+     "heard": "you're losing the forward feed.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8673,
+     "sha256": "e7dd75b08e237253c749819dad2b2de811a9e5fd7c6f0dd2fa93a4f0218d4533"
+    },
+    "mp3": {
+     "bytes": 9332,
+     "sha256": "2c450881e7a4fecfec6bd9000e24f3975d9a1bd75b913d437debc21d34c71629"
+    }
+   }
+  },
+  "int3-s4-losing.es": {
+   "text": "Están perdiendo la señal de adelante.",
+   "speaker": "ferrer",
+   "seconds": 2.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3711593303,
+     "heard": "Están perdiendo la señal de adelante.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10507,
+     "sha256": "004ba4822f26a623063da61442ee1efd4daa91274be15700a96ee9a9e7243584"
+    },
+    "mp3": {
+     "bytes": 10748,
+     "sha256": "cba710c117fbe1006d0d09a8ce85b28772f85019fcf5f950133eb6050c4d94bb"
+    }
+   }
+  },
+  "int3-s4-normal.en": {
+   "text": "In normal language?",
+   "speaker": "rojas",
+   "seconds": 1.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1755089389,
+     "heard": "In normal language.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7389,
+     "sha256": "39a5385f3615aee17bd4bce91f5da91e489b7a0e332aa519b4ea1cf5e634565f"
+    },
+    "mp3": {
+     "bytes": 8132,
+     "sha256": "2b30818f526df01ace34b4dd53f0bd80adf9ef136bfe5875f97dc4148cafaa60"
+    }
+   }
+  },
+  "int3-s4-normal.es": {
+   "text": "¿En idioma normal?",
+   "speaker": "rojas",
+   "seconds": 1.385,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3424216506,
+     "heard": "¿En idioma normal?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 120
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6595,
+     "sha256": "e0d4708c62d84216ad313799a8b4633bc0a9f242eaf2320abad816915e5746e8"
+    },
+    "mp3": {
+     "bytes": 7316,
+     "sha256": "f4d1e3a4db89869d73c7c51987aeb7c4722a0e3f310f92f6f906a55034bea2d1"
+    }
+   }
+  },
+  "int3-s4-random.en": {
+   "text": "This isn't random movement.",
+   "speaker": "ibarra",
+   "seconds": 2.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2661342507,
+     "heard": "This isn't random movement, and there is a problem in so for b, their respot to rexianja's iconupt ki.",
+     "wer": 3.75,
+     "extra": 15,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2916045838,
+     "heard": "This isn't random movement.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 390
+    },
+    {
+     "attempt": 2,
+     "seed": 3370841123,
+     "heard": "This isn't random movement.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9884,
+     "sha256": "bf1d6310de8dc0ebdc759a744452127eded82ad68dc3c1c56f4e3919080d6c40"
+    },
+    "mp3": {
+     "bytes": 10916,
+     "sha256": "5be5cad9df5ed5aaea230fc73a8f54e5d5fd4df00ee35c34d443b83557381e45"
+    }
+   }
+  },
+  "int3-s4-random.es": {
+   "text": "Esto no es movimiento al azar.",
+   "speaker": "ibarra",
+   "seconds": 1.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3252227546,
+     "heard": "Esto no es movimiento al azar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8202,
+     "sha256": "8e96d5fab59f9cb05a531445972051f5cf43933bdfeec3af4cdca217d93d9cab"
+    },
+    "mp3": {
+     "bytes": 8708,
+     "sha256": "274abbf9798ff6c3cb04bbfae1a846f66830d15a22bb662908793be435b22a41"
+    }
+   }
+  },
+  "int3-s4-stable.en": {
+   "text": "Forward feed stable.",
+   "speaker": "ferrer",
+   "seconds": 1.705,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3336015083,
+     "heard": "Forward feed stable.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7893,
+     "sha256": "5ba274035eaad29444f057372da12622f3c5e783f401090545f9a6fe454066ee"
+    },
+    "mp3": {
+     "bytes": 8540,
+     "sha256": "45b516d5bbd33e5f68aa2d681af0f19cba00ecad516d12b56344b03546d6e8a8"
+    }
+   }
+  },
+  "int3-s4-stable.es": {
+   "text": "Señal de adelante estable.",
+   "speaker": "ferrer",
+   "seconds": 1.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3704675342,
+     "heard": "Señal de adelante estable.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9250,
+     "sha256": "8cd24ab0dbf05d4ecff40f93e22965182a47652d27f7124c7af21b64bcbab759"
+    },
+    "mp3": {
+     "bytes": 9428,
+     "sha256": "5d7d0c248ee84140ec510f2185e2d97be4a070382d5f00ae4c89d8248d1e8e6d"
+    }
+   }
+  },
+  "int3-s4-talk.en": {
+   "text": "Put one drone where it can talk to the other drone.",
+   "speaker": "ferrer",
+   "seconds": 2.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 300832982,
+     "heard": "Put one drone where it can talk to the other drone.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13689,
+     "sha256": "9af83b62ef83163cc2ec05f790fbba5cf32c3dae4305e0fff9bf56a7dc666a46"
+    },
+    "mp3": {
+     "bytes": 13868,
+     "sha256": "b6fec2f7ae6c8e3391b5fa3eaa4986b3876b1e166834fea5ba1804a1f80a4bb9"
+    }
+   }
+  },
+  "int3-s4-talk.es": {
+   "text": "Pongan un dron donde pueda hablar con el otro dron.",
+   "speaker": "ferrer",
+   "seconds": 2.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4165565362,
+     "heard": "Pongan un dron donde pueda hablar con el otro dron.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13704,
+     "sha256": "8be9877386b14f8108ebe4454dc347fff8f514f1c3860531a1805c358c4e6ae8"
+    },
+    "mp3": {
+     "bytes": 14060,
+     "sha256": "e6aa226b9f0397899629d86bed650a52dbb596090bd929d843a2d0a54daa7686"
+    }
+   }
+  },
+  "int3-s4-temp.en": {
+   "text": "Temporary, maybe.",
+   "speaker": "ibarra",
+   "seconds": 1.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1454436966,
+     "heard": "Temporary maybe?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7030,
+     "sha256": "8f06d2af615fc33d0ab52ab26ba0577af61a990290b9d3b812a91f91740343d9"
+    },
+    "mp3": {
+     "bytes": 8180,
+     "sha256": "204e1fec86f6a6b3f31d6cf55d53cf554778da60f27ef9f649e5443c711d9e71"
+    }
+   }
+  },
+  "int3-s4-temp.es": {
+   "text": "Temporal, quizás.",
+   "speaker": "ibarra",
+   "seconds": 1.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1125867068,
+     "heard": "Temporal, quizás.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8505,
+     "sha256": "7fc1b04b045e26ab44d1a7c31fcfed92f810c82c8a1000221c82c73f03c5d62b"
+    },
+    "mp3": {
+     "bytes": 8852,
+     "sha256": "0bf80af73434dbea5d346311209eb50166abea569f322741b4088e4bbe939a20"
+    }
+   }
+  },
+  "int3-s5-boundary.en": {
+   "text": "Do not follow beyond boundary.",
+   "speaker": "vega",
+   "seconds": 1.875,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3168526656,
+     "heard": "Do not follow beyond boundary.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8823,
+     "sha256": "30f87eed678631f24740d528c255821a176ab08226b65270f6449f52155f75a1"
+    },
+    "mp3": {
+     "bytes": 9668,
+     "sha256": "44c0f6495c460a43cc8dd293b4be455154c608dc0cbe9f88e7c55d11e0ba347a"
+    }
+   }
+  },
+  "int3-s5-boundary.es": {
+   "text": "No lo sigan más allá del límite.",
+   "speaker": "vega",
+   "seconds": 2.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1389393918,
+     "heard": "No lo sigan más allá del límite.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10571,
+     "sha256": "e5d6233d102ee7aad9c0ed8d957c94df3a399582e8d5be03970f62f7940cf6e6"
+    },
+    "mp3": {
+     "bytes": 11180,
+     "sha256": "248c701742368c93e6f276df8a2ee944bdba0380eccf48399e921c327c063ccd"
+    }
+   }
+  },
+  "int3-s5-broadcast.en": {
+   "text": "Not broadcasting anything I recognize.",
+   "speaker": "ferrer",
+   "seconds": 2.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3689044610,
+     "heard": "Not broadcasting anything I recognize.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12535,
+     "sha256": "91b72a09eb5e19129fa82d5c5a3e84379d006db09ec3cb62c6d292afeb6c8806"
+    },
+    "mp3": {
+     "bytes": 13940,
+     "sha256": "9953386906541a2cc69e18a25b77bd77cb69aa8c7e5f46f25671299b0abddc17"
+    }
+   }
+  },
+  "int3-s5-broadcast.es": {
+   "text": "No transmite nada que yo reconozca.",
+   "speaker": "ferrer",
+   "seconds": 2.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 559013185,
+     "heard": "No transmite nada que yo reconozca.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11173,
+     "sha256": "ef3297f3dab32f8df4d398c73b2e5cf568a187ec19c16ca9560417d8a43a080a"
+    },
+    "mp3": {
+     "bytes": 11996,
+     "sha256": "779cfb9c39a3d4985da7791578cf2e12fb940f368a80e1589c1c9e48f5919712"
+    }
+   }
+  },
+  "int3-s5-civ.en": {
+   "text": "Civilian?",
+   "speaker": "vega",
+   "seconds": 1.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 81291838,
+     "heard": "Civilian?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 910
+    },
+    {
+     "attempt": 1,
+     "seed": 3895605144,
+     "heard": "Civilian? Eight's fur, time seven, and I can paint,",
+     "wer": 8.0,
+     "extra": 8,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3205422260,
+     "heard": "Civilian?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5467,
+     "sha256": "84133bd71134621fa4c5d45e3b4183d55b1a416050d1875637d77b13fc44d15b"
+    },
+    "mp3": {
+     "bytes": 6404,
+     "sha256": "f6887ee25d5fc52ab225086a284b1e4e7e26b1da4efd673831c4da6e74b47ff2"
+    }
+   }
+  },
+  "int3-s5-civ.es": {
+   "text": "¿Civil?",
+   "speaker": "vega",
+   "seconds": 1.005,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1814796560,
+     "heard": "¿Civil?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4894,
+     "sha256": "604e17ea2ad4f4026695b212cf2432e60a076d11d2bb863d27a92bd97b6bafe8"
+    },
+    "mp3": {
+     "bytes": 5444,
+     "sha256": "3977c90d6347a7b785311f22ff6747ad7852a9a94e1da6a243fb88a51af45066"
+    }
+   }
+  },
+  "int3-s5-direction.en": {
+   "text": "Direction.",
+   "speaker": "ibarra",
+   "seconds": 1.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 696730660,
+     "heard": "direction and the shifted to one and key in the power",
+     "wer": 10.0,
+     "extra": 10,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 648272628,
+     "heard": "Direction",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5407,
+     "sha256": "d136a76d6f08c7cfe21d121080da352f0d2e33e4e9e37b12cdb04a5f098faff4"
+    },
+    "mp3": {
+     "bytes": 6188,
+     "sha256": "d9d89b94fff4027cd352533b6fcb27e51fbad5dba05840fe7328af57b1fe8db8"
+    }
+   }
+  },
+  "int3-s5-direction.es": {
+   "text": "La dirección.",
+   "speaker": "ibarra",
+   "seconds": 1.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2313585118,
+     "heard": "LA LIDECCIÓN",
+     "wer": 0.5,
+     "extra": 0,
+     "missing": [
+      "direccion"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3863701459,
+     "heard": "la dirección,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6432,
+     "sha256": "8519ab9bb1f7aa0201c2df7d41af19ed848858bd6f7058d20b8323d9b6f7d6e9"
+    },
+    "mp3": {
+     "bytes": 7052,
+     "sha256": "597392faa41f61d7f1843000a39b0bb49b3aa916bf2016caa3d40fbe6d95b1f9"
+    }
+   }
+  },
+  "int3-s5-dontknow.en": {
+   "text": "We don't know that.",
+   "speaker": "ibarra",
+   "seconds": 1.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1130128669,
+     "heard": "We don't know that.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6075,
+     "sha256": "00680bb8b6056189d1f6bee8629f909034b18375b2328597d71a58e77a59f7e8"
+    },
+    "mp3": {
+     "bytes": 6668,
+     "sha256": "5790574afc7bebb2783363749d34cc28f334fcba678c3dff91b2a82261802456"
+    }
+   }
+  },
+  "int3-s5-dontknow.es": {
+   "text": "Eso no lo sabemos.",
+   "speaker": "ibarra",
+   "seconds": 1.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1442201170,
+     "heard": "Eso no lo sabemos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6303,
+     "sha256": "2652cbd62c9245b4ab03f93c23ef7fdfcd51d1cd6da656e647893e7d27f73de5"
+    },
+    "mp3": {
+     "bytes": 7028,
+     "sha256": "38737871304b1a0b76496f18a77930fa1968e23991e2d4c64cdfd6cf545b9c60"
+    }
+   }
+  },
+  "int3-s5-edge.en": {
+   "text": "You're at the edge of coverage.",
+   "speaker": "ferrer",
+   "seconds": 1.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1896923929,
+     "heard": "You're at the edge of coverage.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8682,
+     "sha256": "759dfe1f493d2ee5c195f3a6710efcba42c9b11e33c39020c0263f5a6267624e"
+    },
+    "mp3": {
+     "bytes": 9812,
+     "sha256": "7ff67f5be9512650591b3fcdb447663fd9234084ce42c5393a4b33132b97a833"
+    }
+   }
+  },
+  "int3-s5-edge.es": {
+   "text": "Están en el borde de la cobertura.",
+   "speaker": "ferrer",
+   "seconds": 2.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2748108294,
+     "heard": "Están en el borde de la cobertura. Ah, sex.",
+     "wer": 0.286,
+     "extra": 2,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1016092924,
+     "heard": "están en el borde de la cobertura.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10493,
+     "sha256": "4f3be2884bdcfb0a080e2d8c4b8db54e916750d53f79a167f565f19dfe88cfcd"
+    },
+    "mp3": {
+     "bytes": 10988,
+     "sha256": "2053c70215ed951e56c1873725814e926375af104e27a1cdf6056bfcda8230cd"
+    }
+   }
+  },
+  "int3-s5-guess.en": {
+   "text": "Now I'm comfortable guessing.",
+   "speaker": "ferrer",
+   "seconds": 1.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 839005363,
+     "heard": "Now I'm comfortable guessing. Chased H1. But wasn't after it. Said E2I. 32.",
+     "wer": 2.25,
+     "extra": 9,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3558688938,
+     "heard": "Now I'm comfortable guessing.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8319,
+     "sha256": "872a3eab737736f3af1d3162f5eb13115c2245265ffb7002410c9312fb7e0224"
+    },
+    "mp3": {
+     "bytes": 9668,
+     "sha256": "bed0e0c2679e0d7f5e226c14afade780c10a5d5e3694c9db133c91655b485688"
+    }
+   }
+  },
+  "int3-s5-guess.es": {
+   "text": "Ahora sí me animo a adivinar.",
+   "speaker": "ferrer",
+   "seconds": 2.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 672995122,
+     "heard": "Ahora sí, me animo a adivinar. Adivinaron.",
+     "wer": 0.167,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 969432820,
+     "heard": "Ahora sí, me animo a adivinar.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10034,
+     "sha256": "ea5bd0070b73d0d0bd84681fc5cc2b2a2d30c66be018e61deadaa25225b224c0"
+    },
+    "mp3": {
+     "bytes": 10004,
+     "sha256": "9057b24756359df6ce079e9179859692c07d9f299f35f677ace82368da1fd782"
+    }
+   }
+  },
+  "int3-s5-hold.en": {
+   "text": "Hold.",
+   "speaker": "ferrer",
+   "seconds": 1.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2372173660,
+     "heard": "Hold.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5803,
+     "sha256": "88d461e9e4b1acf9f304b0a46b5b8d47d2d3c971c6f536f9a7b8b04da350c0fa"
+    },
+    "mp3": {
+     "bytes": 6092,
+     "sha256": "7381059c5e975f67ad405087bee4230d3e303acb93bceb6ba3fed7f9dc4d0a08"
+    }
+   }
+  },
+  "int3-s5-hold.es": {
+   "text": "Esperen.",
+   "speaker": "ferrer",
+   "seconds": 1.525,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1626056110,
+     "heard": "Esperen.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6966,
+     "sha256": "9bb65957c2b9161d68e478b9cf2b75c279be2958f7fd985997b5dd8b5d1e71f4"
+    },
+    "mp3": {
+     "bytes": 7244,
+     "sha256": "35e1e5d18d008a4656381af06a74d10625de8b8b43d8c48d7ba062bf18314f95"
+    }
+   }
+  },
+  "int3-s5-intercepted.en": {
+   "text": "It's down. It saw enough to come back.",
+   "speaker": "ferrer",
+   "seconds": 2.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1787099641,
+     "heard": "It's down. It saw enough to come back.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12788,
+     "sha256": "1c18c0ef3544bed998710cb842ce38af00fa8e1f80e8796ebdf20f86fc6c7759"
+    },
+    "mp3": {
+     "bytes": 13916,
+     "sha256": "bee64ee735616a68689347387308f220adc01d44babc135661eaba5f8e11bc20"
+    }
+   }
+  },
+  "int3-s5-intercepted.es": {
+   "text": "Cayó. Vio lo suficiente para volver.",
+   "speaker": "ferrer",
+   "seconds": 2.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 64832904,
+     "heard": "Calló. Vio lo suficiente para volver.",
+     "wer": 0.167,
+     "extra": 0,
+     "missing": [
+      "cayo"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3904075602,
+     "heard": "Cayó, vio lo suficiente para volver.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11426,
+     "sha256": "6506ccf9bfad0cd46a09f21429bfe4dba4859cc82bcd2a104b779874e6911257"
+    },
+    "mp3": {
+     "bytes": 12020,
+     "sha256": "d42c0ed9ff20a7354bb94175be9546c6984c736f51eb83cbfac036534c7807e9"
+    }
+   }
+  },
+  "int3-s5-left.en": {
+   "text": "It's gone. It saw everything it wanted.",
+   "speaker": "ferrer",
+   "seconds": 3.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1791519542,
+     "heard": "It's gone. It sought everything it wanted.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "saw"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1563469700,
+     "heard": "It's gone. It sought everything it wanted.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "saw"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2305781752,
+     "heard": "It's gone. It sought everything it wanted.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "saw"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 15811862,
+     "heard": "It's gone. It saw everything it wanted.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13785,
+     "sha256": "9cc069aa979c32b1ce8759e36a07c305ee8e4f925be63832b4726cdfcbdf880c"
+    },
+    "mp3": {
+     "bytes": 14828,
+     "sha256": "628260186138fbba56c52fb0af1aa16c8acda33b26edd2cea0c518e41702c21d"
+    }
+   }
+  },
+  "int3-s5-left.es": {
+   "text": "Se fue. Vio todo lo que quería.",
+   "speaker": "ferrer",
+   "seconds": 2.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1029193019,
+     "heard": "Se fue. Vio todo lo que quería.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10866,
+     "sha256": "9ae43cb2e254c5311e583848d136527a2c50182143f0a50b88488f65c7eaada1"
+    },
+    "mp3": {
+     "bytes": 10868,
+     "sha256": "df6a4eec5cbd9dca703eca03de0b041d13b198f51a2a7300847460b671b6a5b2"
+    }
+   }
+  },
+  "int3-s5-theirs.en": {
+   "text": "That's theirs.",
+   "speaker": "rojas",
+   "seconds": 1.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 523107713,
+     "heard": "That's theirs.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6448,
+     "sha256": "f4016114c691ed661de54cbf5ea997965f2666fbb0da6ea79c77920db5e0cc3a"
+    },
+    "mp3": {
+     "bytes": 6884,
+     "sha256": "eb432d87c184c27b439d2d4f503c93e3e3d928fdd6cab84c36a5b53bd39d2c5a"
+    }
+   }
+  },
+  "int3-s5-theirs.es": {
+   "text": "Ese es de ellos.",
+   "speaker": "rojas",
+   "seconds": 2.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3919901149,
+     "heard": "Ese es de ellos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10290,
+     "sha256": "7fcf7d7c5b96dca6c21b5542f7fb094fe32d85612cc0d9edab2d9ab2332d1f75"
+    },
+    "mp3": {
+     "bytes": 10940,
+     "sha256": "42ec91393f21df26db6c06a8af8b5b8a0b86058a1279c0ee719e072b476488d5"
+    }
+   }
+  },
+  "int3-s5-unid.en": {
+   "text": "Unidentified aircraft.",
+   "speaker": "ferrer",
+   "seconds": 1.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3763386852,
+     "heard": "Unidentified aircraft.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9308,
+     "sha256": "1e47acdc5eba3f226f9d8bc5d6112b2ee68aeec1137ee86a163a873c78d1eb9c"
+    },
+    "mp3": {
+     "bytes": 10508,
+     "sha256": "52e260d6f82f86fb159b205463909858ac36a319bea9d876dd08d9cd06651c21"
+    }
+   }
+  },
+  "int3-s5-unid.es": {
+   "text": "Aeronave no identificada.",
+   "speaker": "ferrer",
+   "seconds": 1.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 759001126,
+     "heard": "aeronave no identificada",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 440
+    },
+    {
+     "attempt": 1,
+     "seed": 1546239959,
+     "heard": "aeronave no identificada.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 100
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8410,
+     "sha256": "04be54aa02d196585a40c1c1c41e8cf46e70e3043b2cb3c64316c5af9731a85e"
+    },
+    "mp3": {
+     "bytes": 9044,
+     "sha256": "3dc19091388c5b9b04445ced5942e29026904901c857485f71378110afe586fb"
+    }
+   }
+  },
+  "int3-s5-what.en": {
+   "text": "What?",
+   "speaker": "vega",
+   "seconds": 0.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 216271556,
+     "heard": "What?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 4372,
+     "sha256": "99969b253cc764b5cf6e75e3f07253378bfc7b01fdd3ad94d4ee17a8f41da955"
+    },
+    "mp3": {
+     "bytes": 5036,
+     "sha256": "402b3ec4e6f1a3880e6046381b124ca2d36f0b1f43efd0df2c70c3412c149d86"
+    }
+   }
+  },
+  "int3-s5-what.es": {
+   "text": "¿Qué?",
+   "speaker": "vega",
+   "seconds": 0.755,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 52063181,
+     "heard": "¿Qué?",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 90
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 3760,
+     "sha256": "58e1bcf9421392f1c11cd5419f77202034e1c99dc029f3761b2b8445fb3b3594"
+    },
+    "mp3": {
+     "bytes": 4484,
+     "sha256": "c09eba3548c33cb81ddca0c764c81896395f3a775d0e81a266828174db34dd6b"
+    }
+   }
+  },
+  "int3-s5-wrong.en": {
+   "text": "That's wrong.",
+   "speaker": "ibarra",
+   "seconds": 1.985,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2271398308,
+     "heard": "That's wrong.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9077,
+     "sha256": "869760641774b260145b4a16cbf1e3d54f322e87a7a96de719eae8c9bda32fb6"
+    },
+    "mp3": {
+     "bytes": 9500,
+     "sha256": "e6725271627fc3f3fbda3d65a3d2f2420a4492c11d30898062155f5fed43d121"
+    }
+   }
+  },
+  "int3-s5-wrong.es": {
+   "text": "Eso está mal.",
+   "speaker": "ibarra",
+   "seconds": 1.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1054108631,
+     "heard": "Eso está mal. Eso está mal.",
+     "wer": 1.0,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1957094284,
+     "heard": "Eso está mal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 2070
+    },
+    {
+     "attempt": 2,
+     "seed": 3722356531,
+     "heard": "Eso está mal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 670
+    },
+    {
+     "attempt": 3,
+     "seed": 3968150177,
+     "heard": "Se está mal.",
+     "wer": 0.333,
+     "extra": 0,
+     "missing": [
+      "eso"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 3643148764,
+     "heard": "Eso está mal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5697,
+     "sha256": "a6cff038b44bc5c55d47d76a3f84a31b86aec77ff900bb586549faa5d2f9b010"
+    },
+    "mp3": {
+     "bytes": 6188,
+     "sha256": "9722270a9f10125bd5aeb23d50b3c1bfa836ec57d273dc9d1b9fb0a5d1149ed5"
+    }
+   }
+  },
+  "int3-st-ready.en": {
+   "text": "You're the one they'll call. Not before.",
+   "speaker": "rojas",
+   "seconds": 2.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 88717131,
+     "heard": "You're the one they'll call, not before.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12575,
+     "sha256": "2b610512cb44c811a5c2bbf47eb37042bbf68b19d8bc3d85acaee3eac2e67240"
+    },
+    "mp3": {
+     "bytes": 12860,
+     "sha256": "875c1b0c39723bf91bf21c38606ef452546f2a9bdfaf14e2142e575ea7811b76"
+    }
+   }
+  },
+  "int3-st-ready.es": {
+   "text": "A ustedes los van a llamar. No antes.",
+   "speaker": "rojas",
+   "seconds": 2.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1989203926,
+     "heard": "A ustedes lo van a llamar, no antes.",
+     "wer": 0.125,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11182,
+     "sha256": "69c724afb2cfcb10c29b20c1c704f5807c053bc5a23af7040da390b1da54ead6"
+    },
+    "mp3": {
+     "bytes": 11660,
+     "sha256": "1a39333fc0a3823d526d1c90e3b9cd9eeacf8faf9554589f7c8e78fbeca2def2"
+    }
+   }
+  },
+  "int3-tr-contact.en": {
+   "text": "That one's yours. Watch it until it tells you what it is.",
+   "speaker": "ibarra",
+   "seconds": 3.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1624406231,
+     "heard": "That one's yours. Watch it until it tells you what it is.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15796,
+     "sha256": "55d6ccaf36bd4c19c108e12ace22a9172bec63a59a81d1e16f36ffc7bcd506d8"
+    },
+    "mp3": {
+     "bytes": 16460,
+     "sha256": "8d4a1f2daa0fc7821c8da5b3baeda1229f703d0619735295b897392041791a28"
+    }
+   }
+  },
+  "int3-tr-contact.es": {
+   "text": "Ese es suyo. Mírenlo hasta que les diga qué es.",
+   "speaker": "ibarra",
+   "seconds": 2.625,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1856070884,
+     "heard": "Ese es suyo. Mírenlo hasta que les diga qué es.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12060,
+     "sha256": "8ef3c3b533a6855d4306d2a82bdc5465676c08a0ab77609138256ccad09d0b35"
+    },
+    "mp3": {
+     "bytes": 13124,
+     "sha256": "481e794c6504b6e8efa96371a7bade6dc625660fcb4d8e137ba08a873d32424e"
     }
    }
   },

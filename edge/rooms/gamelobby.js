@@ -247,7 +247,8 @@ export class RoomGameLobby {
    * may start or stop the five seconds; a join only keeps them as they
    * are. */
   settle(core, now, arm) {
-    const here = new Set([...core.seats.values()].map((s) => s.seat));
+    /* The people: an AI pilot is never asked to be ready. */
+    const here = new Set(core.people().map((s) => s.seat));
     for (const seat of this.ready) {
       if (!here.has(seat)) {
         this.ready.delete(seat);
@@ -331,7 +332,7 @@ export class RoomGameLobby {
       return [];
     }
     this.ready.delete(seat);
-    if (!core.seats.size) {
+    if (!core.people().length) {
       this.clear();
       this.live = false;
       return [];

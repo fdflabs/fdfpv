@@ -71,6 +71,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { profileBands } from './kitshapes.js';
 
 /*
  * The aircraft, in metres, in the Three.js craft frame: x right, y up, z
@@ -705,6 +706,9 @@ export function buildTigermothCraft(opts = {}) {
   const ring = cel({ color: 0xb8b09e, rim: 0.28, spec: 0.55 });
   const propMat = cel({ color: 0x7a4a24, rim: 0.28, spec: 0.45, specWidth: 0.016 });
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from. */
+  const kit = opts.kit ?? {};
   const ink = 0x0c120e;
 
   /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
@@ -919,6 +923,19 @@ export function buildTigermothCraft(opts = {}) {
     tyres.name = 'tigermoth-tyres';
     tyres.castShadow = shade;
     group.add(tyres);
+    /* A kit's covered wheels: doped fabric discs over the spokes in the
+     * fuselage's colour, inside the tyre's width. */
+    if (kit.wheels === 'covered') {
+      const covers = [-1, 1].map((sign) => {
+        const c = new THREE.CylinderGeometry(MAIN_R - 0.012, MAIN_R - 0.012, MAIN_W * 0.8, lite ? 12 : 20);
+        c.rotateZ(Math.PI / 2);
+        c.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
+        return c;
+      });
+      const coverMesh = new THREE.Mesh(merged(covers), fuseMat);
+      coverMesh.castShadow = shade;
+      group.add(coverMesh);
+    }
   }
 
   /* The metal: the wheels' hubs, the exhaust along the cowl's left side,
@@ -931,9 +948,18 @@ export function buildTigermothCraft(opts = {}) {
       hub.translate(sign * MAIN_X, MAIN_Y, st(MAIN_S));
       parts.push(hub);
     }
-    const ex0 = fusePoint(0.07, -1.75, 0.006);
-    const ex1 = fusePoint(0.40, -1.75, 0.010);
-    parts.push(rod(ex0, ex1, 0.0055, seg));
+    /* A kit's short stacks: four stubs off the cylinders in place of the
+     * long pipe down the cowl, no further out than its aft end. */
+    if (kit.exhausts === 'stacks') {
+      for (let i = 0; i < 4; i += 1) {
+        const p = fusePoint(0.08 + i * 0.030, -1.75, 0.002);
+        parts.push(rod(p, fusePoint(0.088 + i * 0.030, -1.85, 0.010), 0.0045, seg));
+      }
+    } else {
+      const ex0 = fusePoint(0.07, -1.75, 0.006);
+      const ex1 = fusePoint(0.40, -1.75, 0.010);
+      parts.push(rod(ex0, ex1, 0.0055, seg));
+    }
     parts.push(rod(new THREE.Vector3(0, fuseAt(1.24).bottom + 0.004, st(1.24)),
       new THREE.Vector3(0, RUDDER_BOTTOM - 0.004, st(TAIL_PIVOT_S)), 0.0018, lite ? 4 : 6, 0.4));
     const metalMesh = new THREE.Mesh(merged(parts), metal);
@@ -1073,7 +1099,22 @@ export function buildTigermothCraft(opts = {}) {
       const r = Math.max(0.0005, SPINNER_R * Math.sqrt(1 - u * u));
       prof.push(new THREE.Vector2(r, back + 0.004 + (len - back - 0.004) * u));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 14), black);
+    /* A kit's spinner: the stock shape cut into bands, a polished front
+     * for two tone, a yellow ring round the black for striped. */
+    const y = (f) => back + (len - back) * f;
+    const bands = {
+      twotone: [[y(0.50)], [black, metal]],
+      striped: [[y(0.32), y(0.46)], [black, bandMat, black]],
+    }[kit.spinner];
+    const spinner = bands ? new THREE.Group() : new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 10 : 14), black);
+    if (bands) {
+      profileBands(prof, bands[0]).forEach((band, i) => {
+        const piece = new THREE.Mesh(new THREE.LatheGeometry(band, lite ? 10 : 14), bands[1][i]);
+        piece.name = 'spinner';
+        piece.castShadow = shade;
+        spinner.add(piece);
+      });
+    }
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

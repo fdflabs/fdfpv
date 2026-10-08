@@ -1394,6 +1394,10 @@ export class Ui {
         suggest: this.buildName(id),
         full: this.myBuilds.length >= MAX_BUILDS,
       },
+      onSwatches: (lib) => {
+        s.swatches = lib;
+        this.persistSettings();
+      },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
         if (list.length) {

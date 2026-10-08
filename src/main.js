@@ -138,6 +138,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
+import { feedSnow } from './share/ops/feed.js';
 import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
@@ -894,10 +895,44 @@ export async function boot({
     return h.hold.kind === 'orbit' ? Math.atan2(-holdV.x, -holdV.z) : h.yaw;
   }
 
+  /* The other seats' holds, from the room's view: `${seat}:${key}` ->
+   * { airframe, hold, yaw, rig }. */
+  const peerHolds = new Map();
+  function peerHoldsSync(v) {
+    const want = new Map();
+    const mine = String(roomOps.seat());
+    for (const [seat, hs] of Object.entries((roomOps.live() && v && v.holds) || {})) {
+      if (seat === mine) {
+        continue;
+      }
+      for (const [key, h] of Object.entries(hs)) {
+        want.set(`${seat}:${key}`, { ...h, key });
+      }
+    }
+    for (const [id, h] of peerHolds) {
+      const w = want.get(id);
+      if (!w || w.airframe !== h.airframe || w.hold.t0 !== h.hold.t0) {
+        h.rig.group.removeFromParent();
+        h.rig.dispose();
+        peerHolds.delete(id);
+      }
+    }
+    for (const [id, w] of want) {
+      if (!peerHolds.has(id)) {
+        const rig = buildPeerCraft({ airframe: w.airframe, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
+        rig.setLabel(roleName(w.key));
+        peerHolds.set(id, {
+          airframe: w.airframe, hold: w.hold, yaw: 0, rig,
+        });
+      }
+    }
+  }
+
   /* Each held aircraft drawn where its hold has it: level on a hover or
    * parked, banked into the turn on an orbit. */
-  function opsHoldsDraw() {
-    for (const h of opsHolds.values()) {
+  function opsHoldsDraw(v) {
+    peerHoldsSync(v);
+    for (const h of [...opsHolds.values(), ...peerHolds.values()]) {
       const yaw = holdNow(h);
       h.rig.group.position.copy(holdP);
       holdE.set(0, yaw, h.hold.kind === 'orbit' ? HOLD_BANK : 0);
@@ -945,6 +980,10 @@ export async function boot({
         to.rig.dispose();
         opsHolds.delete(toKey);
       }
+      /* The room's copy: it makes the same hold from the same pose. The
+       * camera ball's ground lock stays on the held aircraft's camera. */
+      const lock = ball && ballAirframe === from.id && ball.state.lock ? ball.state.lock.slice() : null;
+      roomOps.hold(fromKey, t, left, lock && opsCam ? { aim: lock, tanHalf: opsCam.tanHalf, aspect: opsCam.aspect } : null);
       leftHold.rig = buildPeerCraft({ airframe: from.id, livery: null, parts: null }, (craft) => shell.lookCraft(craft));
       leftHold.rig.setLabel(roleName(fromKey));
       opsHolds.set(fromKey, leftHold);
@@ -1311,7 +1350,7 @@ export async function boot({
       }
     }
     opsFilmFrame(v, match, consentDue);
-    opsHoldsDraw();
+    opsHoldsDraw(v);
     opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
@@ -1704,6 +1743,33 @@ export async function boot({
     return { x: ((x + 1) / 2) * cw, y: ((1 - y) / 2) * ch };
   }
 
+  /* The HUD's aircraft strip: each role this seat holds, when it holds
+   * more than one in a live match (PLATFORM HOLDS). */
+  function opsFleet(v) {
+    const keys = (v.roles && v.roles.held && v.roles.held[roomOps.seat()]) || [];
+    if (keys.length < 2 || !roomOps.live()) {
+      return null;
+    }
+    return keys.map((key) => {
+      const h = opsHolds.get(key);
+      const id = opsKeyCraft(v, key);
+      let state = 'ready';
+      let agl = null;
+      if (key === opsFlownKey) {
+        state = 'flown';
+        agl = opsAgl();
+      } else if (h) {
+        holdNow(h);
+        state = h.hold.kind;
+        agl = holdP.y - view.height(holdP.x, holdP.z, Infinity);
+      }
+      return {
+        key, role: roleName(key), craft: id ? airframeById(id).name : '', state, agl,
+      };
+    });
+  }
+  opsHud.onFleet = (key) => roomOps.active(key);
+
   /* What the quiet HUD draws this frame. */
   function opsHudSrc() {
     const raw = roomOps.view();
@@ -1735,6 +1801,7 @@ export async function boot({
       touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
+      fleet: v ? opsFleet(v) : null,
       /* The guide's line and marks, under the Mission guidance setting. */
       guide: v && ui.settings.missionGuidance && opsGuide.focus ? opsGuide : null,
       edgeDir: opsEdgeDir,
@@ -1936,6 +2003,8 @@ export async function boot({
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
+    /* The forward feed's snow on this screen now (src/share/ops/feed.js). */
+    feed: () => opsFeedSnow(),
     /* The platform holds: the role flown, and each held aircraft, where
      * its hold has it now and where its model is drawn (scene frame). */
     holds: () => ({
@@ -1944,6 +2013,12 @@ export async function boot({
         holdNow(h);
         return {
           key, airframe: h.airframe, kind: h.hold.kind, r: h.hold.r ?? null, c: h.hold.c ? h.hold.c.slice() : null, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
+        };
+      }),
+      peers: [...peerHolds].map(([id, h]) => {
+        holdNow(h);
+        return {
+          id, airframe: h.airframe, kind: h.hold.kind, p: holdP.toArray(), drawn: h.rig.group.position.toArray(), shown: h.rig.group.parent != null,
         };
       }),
     }),
@@ -3397,6 +3472,9 @@ export async function boot({
   function roomName(pick) {
     if (typeof pick === 'string') {
       return pick;
+    }
+    if (pick && pick.bot) {
+      return str('rooms.bot_name', { name: roomName(pick.bot) });
     }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
@@ -11663,8 +11741,21 @@ export async function boot({
       shell.quad.visible = true;
     }
     wreckRig.setCraftVisible(shell.quad.visible);
-    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride && !warIntro);
+    /* An ops mission's forward feed breaking up (src/share/ops/feed.js):
+     * the snow is on whatever picture the pilot flies by, FPV or ball. */
+    const feed = opsFeedSnow();
+    fpvFail.signal(feed);
+    fpvFail.update(nowWall, ((runDamage && fpvLensLive) || feed > 0) && !camOverride && !warIntro);
   }
+  function opsFeedSnow() {
+    const m = roomOps.room() ? roomOps.mission() : null;
+    if (!m || !m.feed) {
+      return 0;
+    }
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, feedDoc);
+    return feedSnow(m, roomOps.view(), roomOps.seat(), [feedDoc.x, feedDoc.y]);
+  }
+  const feedDoc = { x: 0, y: 0, z: 0 };
 
   function crashSummary() {
     const names = Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0);
@@ -11762,12 +11853,16 @@ export async function boot({
   let weather = null;
   let windSet = false;
   const airPos = new THREE.Vector3();
-  const airOut = { x: 0, z: 0, gust: 0 };
+  const airOut = { x: 0, z: 0, gust: 0, up: 0 };
   const airSim = { x: 0, y: 0, z: 0 };
-  function setWind(vx, vy, gust) {
+  function setWind(vx, vy, gust, up) {
     const code = sim.e.sim_set_wind(vx, vy, gust);
     if (code !== SIM_OK) {
       throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+    const codeUp = sim.e.sim_set_air_vertical(up);
+    if (codeUp !== SIM_OK) {
+      throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
   let weatherT0 = 0;
@@ -11784,7 +11879,7 @@ export async function boot({
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
-      setWind(0, 0, 0);
+      setWind(0, 0, 0, 0);
       windSet = false;
     }
   }
@@ -11793,7 +11888,7 @@ export async function boot({
     poseFromState(st, airPos);
     weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
-    setWind(airSim.x, airSim.y, airOut.gust);
+    setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
   }
   /* The air this run flies, { map, preset, seed }, or null for calm. */
@@ -17504,6 +17599,10 @@ export async function boot({
     }
     if (pick && pick.hangar && pick.hangar.aim) {
       ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+    }
+    if (ui.hangar.isOpen) {
+      const layer = ui.hangar.shop.gizmoLayer();
+      ui.hangar.shop.gizmoAt(layer && pick ? pickStage.outline(pick.items[0].id, layer) : null);
     }
     if (pick && pick.hangar) {
       ui.hangar.pointed(pick.hangar.point ? pickStage.pickPart(pick.items[0].id, pick.hangar.point.x, pick.hangar.point.y) : null);
