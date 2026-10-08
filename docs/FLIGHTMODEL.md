@@ -530,3 +530,23 @@ one with roll authority at zero airspeed: its ailerons start 77 mm out,
 inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
+## The rudder only aircraft's level hold, retuned for the wash
+
+PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
+under power, and Stabilised rolls those two on the rudder. The level
+hold's roll gains were tuned on a rudder in the free stream, so its loop
+gain rose with the wash's ratio and it took back more of the pilot's own
+yaw stick: bombshell:stab's "full right yaw stick ... wins over the level
+hold, right of a quarter of its throw" read -2.7 deg against its -5, and
+slowstick:stab's -7.5 sat on its -7.5 limit. Each gain is now its old
+value over the rudder's authority ratio in the wash at the trim, 1 + dp fv
+/ q (scripts/stab-hold-derive.js, `npm run stab:hold`, in CI): the loop
+as it was tuned, on the aircraft as it now flies. No check changed.
+
+| | trim | rudder gain in the wash | kp | kd | yaw stick's rudder |
+| --- | --- | --- | --- | --- | --- |
+| Bombshell | stick 0.732, 7.93 m/s | 1.446 | 1.6 to 1.11 | 0.6 to 0.42 | -2.7 to -5.4 deg (-5.4 before the wash) |
+| Slow Stick | stick 0.739, 5.44 m/s | 1.309 | 2.0 to 1.53 | 0.8 to 0.61 | -7.5 to -9.6 deg (-7.5 before) |
+
+Stabilised only: Manual and Acro, and every recorded flight, replay to
+the same hashes as on main.

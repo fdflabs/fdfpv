@@ -298,6 +298,7 @@ jobs:
       # Every tractor's slipstream terms against their geometry
       # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
       - run: npm run wash:derive -- --check
+      - run: npm run stab:hold
       - run: npm run stab:glide
       - run: npm run stab:chop
       - run: npm run power:check
