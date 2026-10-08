@@ -52,6 +52,33 @@ const RED = '#ff4a3a';
 const DIM = 'rgba(125, 255, 154, 0.35)';
 const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
+/*
+ * The cards an objective change calls for (The Interior's cards, docs/
+ * campaign/FIRST-LIGHT-AUDIT.md), from what the HUD showed before
+ * (`was`, { entry, states }) and the stage's objectives now: one shown
+ * after its stage opened (a twist's, on its `show`) is
+ * card.primary_updated, one settled is done or failed. A stage's opening
+ * objectives are not carded: its title is. Pure.
+ */
+export function objectiveCards(was, stage, list) {
+  const entry = stage ? `${stage.id}@${stage.at}` : null;
+  const states = new Map(list.map((o) => [o.id, o.state]));
+  const now = { entry, states };
+  if (entry !== was.entry) {
+    return { now, cards: [] };
+  }
+  const cards = [];
+  for (const [id, state] of states) {
+    const before = was.states.get(id);
+    if (before === undefined) {
+      cards.push('card.primary_updated');
+    } else if (before !== state && (state === 'done' || state === 'failed')) {
+      cards.push(state === 'done' ? 'card.objective_done' : 'card.objective_failed');
+    }
+  }
+  return { now, cards };
+}
+
 /* A stage's title stands this long (TECH-NEEDS T4: 3 s). */
 const LOWER_MS = 3000;
 /* A radio subtitle stays this long after its line, and at most this many
@@ -315,6 +342,7 @@ export function createWarHud(nameOf, restart = null) {
    * failed), its words and, for a count, how far it has got. */
   function objectivesShown(stage, roomNow) {
     const list = stage ? stage.objectives ?? [] : [];
+    cardsShown(stage, list);
     goals.replaceChildren();
     goals.style.display = stage && (stage.text || list.length) ? 'flex' : 'none';
     if (stage && stage.text) {
@@ -332,6 +360,16 @@ export function createWarHud(nameOf, restart = null) {
         const bar = el({ height: '3px', marginTop: '2px', background: 'rgba(125, 255, 154, 0.15)' }, d);
         el({ height: '100%', width: `${((100 * heldMs) / o.ms).toFixed(1)}%`, background: AMBER }, bar);
       }
+    }
+  }
+
+  /* The objectives' cards (objectiveCards below) in the lower third. */
+  let goalsWas = { entry: null, states: new Map() };
+  function cardsShown(stage, list) {
+    const { now, cards } = objectiveCards(goalsWas, stage, list);
+    goalsWas = now;
+    for (const key of cards) {
+      lowerThird(str(key));
     }
   }
 

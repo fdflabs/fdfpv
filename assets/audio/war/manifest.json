@@ -14070,6 +14070,1111 @@
     }
    }
   },
+  "war-g-clock-1.en": {
+   "text": "One o'clock.",
+   "speaker": "crest",
+   "seconds": 1.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4027146783,
+     "heard": "One o'clock. They rolled stasted backs to sets and hen do than or as their alls.",
+     "wer": 7.0,
+     "extra": 14,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1836382394,
+     "heard": "One o'clock, and porties about their SDA did this, and the banking common to the lists can hand out over other former. Caps to me, Prosta, awaited the Blaine to round.",
+     "wer": 14.5,
+     "extra": 29,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 134989471,
+     "heard": "One o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7426,
+     "sha256": "adcef8213417a7890bbd022fdac30c558bd2b0203911e8744e3899f54c94d6f3"
+    },
+    "mp3": {
+     "bytes": 7196,
+     "sha256": "320a8fd9967ee135806fa4d9e2c7dffe5add8b9c3aace3255e3818364ef32bec"
+    }
+   }
+  },
+  "war-g-clock-1.es": {
+   "text": "A la una.",
+   "speaker": "crest",
+   "seconds": 1.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 256516221,
+     "heard": "a la una",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5589,
+     "sha256": "97c80f72da15fc1592214a9eb938ea4f597474a0d77f0d9c1d8eaae4a3e29fc9"
+    },
+    "mp3": {
+     "bytes": 5996,
+     "sha256": "5c32d6f3455a964fd70f6bbf154d660d58304dab4d228058db228e68647ca5ac"
+    }
+   }
+  },
+  "war-g-clock-10.en": {
+   "text": "Ten o'clock.",
+   "speaker": "crest",
+   "seconds": 1.225,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2157473823,
+     "heard": "10 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5924,
+     "sha256": "44d78d44ff45ffdd2aa5ec19a19718e0eb90659495d058283de58cb2961d83ff"
+    },
+    "mp3": {
+     "bytes": 6212,
+     "sha256": "af7f5ed6e2de3510ad5c2e187c33009b4f3316dbcd8a5154d882b8b78ec98cba"
+    }
+   }
+  },
+  "war-g-clock-10.es": {
+   "text": "A las diez.",
+   "speaker": "crest",
+   "seconds": 1.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 933276655,
+     "heard": "A las 10.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6529,
+     "sha256": "2aa8bcf32f8fc6e4f635ab4e89e24a824f969a69e70acec076f20d24bad44ea4"
+    },
+    "mp3": {
+     "bytes": 6812,
+     "sha256": "6d3ea38c42ec0b80137fa7594183fe3d2e945bf607a8e92ee86e6129c700eab5"
+    }
+   }
+  },
+  "war-g-clock-11.en": {
+   "text": "Eleven o'clock.",
+   "speaker": "crest",
+   "seconds": 1.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 997555880,
+     "heard": "11 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6138,
+     "sha256": "42134b699985c026258fa86c09fd5a4a29947e4bf70e959f6af89ed7ba9540af"
+    },
+    "mp3": {
+     "bytes": 6692,
+     "sha256": "6ed12e4068995ba15aaf5a491bd92492f590575a2f857c2b1d0622beb47a44d7"
+    }
+   }
+  },
+  "war-g-clock-11.es": {
+   "text": "A las once.",
+   "speaker": "crest",
+   "seconds": 1.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2723042586,
+     "heard": "A las 11.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 1980
+    },
+    {
+     "attempt": 1,
+     "seed": 4125580026,
+     "heard": "A las 11.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5662,
+     "sha256": "0f84de3f4851bffe8dc7c4bd353876c6b2c8ebd11d976fb969303d7ba3f5f250"
+    },
+    "mp3": {
+     "bytes": 5924,
+     "sha256": "d61ea4889e768428cca77f0df934617d0d32ada2af4026d29c066cf2aeb7d41b"
+    }
+   }
+  },
+  "war-g-clock-12.en": {
+   "text": "Twelve o'clock.",
+   "speaker": "crest",
+   "seconds": 1.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3174672474,
+     "heard": "Twelve o'clock. Astade an Astade. Wild Papers of the Shame. Dieven by Ost.",
+     "wer": 5.5,
+     "extra": 11,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2826093898,
+     "heard": "12 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6457,
+     "sha256": "cc12a012ac8181bd28e3c2df1c9a2e9e61106d2a93064953e36c6fff5dcb8629"
+    },
+    "mp3": {
+     "bytes": 6452,
+     "sha256": "9a219e699d277a71870ae919b518d542ea3060ea8756c3f15d98704910ecd739"
+    }
+   }
+  },
+  "war-g-clock-12.es": {
+   "text": "A las doce.",
+   "speaker": "crest",
+   "seconds": 1.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4232428710,
+     "heard": "A las 12.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 290
+    },
+    {
+     "attempt": 1,
+     "seed": 1050807392,
+     "heard": "A las 12.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6270,
+     "sha256": "76f7c18d32eb8d07df1b4870c15bc7bf802d55d7d75617a3b36ca77f602823ad"
+    },
+    "mp3": {
+     "bytes": 6428,
+     "sha256": "20e7a9d82993c66940940c3a1b283cc93f8ca82fb9d7b04e61f4cf84a6ebda14"
+    }
+   }
+  },
+  "war-g-clock-2.en": {
+   "text": "Two o'clock.",
+   "speaker": "crest",
+   "seconds": 1.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2157786907,
+     "heard": "to a clock.",
+     "wer": 1.5,
+     "extra": 1,
+     "missing": [
+      "two",
+      "oclock"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2704614463,
+     "heard": "Two o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5640,
+     "sha256": "763fff7157db9965add7fbcb2e91a85b98dd74bcc4415583f558c646beb81816"
+    },
+    "mp3": {
+     "bytes": 5708,
+     "sha256": "bb214a0cf3165e5a78a6b89624734ab21eb019628009ca827b0fe84e6617f1f9"
+    }
+   }
+  },
+  "war-g-clock-2.es": {
+   "text": "A las dos.",
+   "speaker": "crest",
+   "seconds": 1.235,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 137760729,
+     "heard": "a las 2.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5999,
+     "sha256": "769fdf4a7936deeac6e48254a1a82415d7fccc8d7bc0e94a6ef7485471d4164f"
+    },
+    "mp3": {
+     "bytes": 6140,
+     "sha256": "cb14f11f6d5d6d2c07e94ad3620fd34641dfeaed47604862fde390a976293959"
+    }
+   }
+  },
+  "war-g-clock-3.en": {
+   "text": "Three o'clock.",
+   "speaker": "crest",
+   "seconds": 1.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1049739829,
+     "heard": "Three o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6307,
+     "sha256": "c581469487a6c739ebe9ace7b4510ea75a9f5c0b00a02568751513d68617a790"
+    },
+    "mp3": {
+     "bytes": 6500,
+     "sha256": "035fe3ba9087f78b54d089d64416f65bc2f9f39ecc18c8383671758192f0ccc3"
+    }
+   }
+  },
+  "war-g-clock-3.es": {
+   "text": "A las tres.",
+   "speaker": "crest",
+   "seconds": 1.185,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1147388372,
+     "heard": "A las 3.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5800,
+     "sha256": "e1eced4e003f5603461aeb7371f19b5112790f9e25b16cc00aae3b31a05a944d"
+    },
+    "mp3": {
+     "bytes": 5828,
+     "sha256": "93342c5d0859f75cb51e6af6b915ab7a52962c8369ce426c8e1b17335edef819"
+    }
+   }
+  },
+  "war-g-clock-4.en": {
+   "text": "Four o'clock.",
+   "speaker": "crest",
+   "seconds": 1.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3650244416,
+     "heard": "4 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 50
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6417,
+     "sha256": "086c5662350b41455bf05f9e2b855e48f154da976fd4e62248508c4319fb42e3"
+    },
+    "mp3": {
+     "bytes": 6836,
+     "sha256": "4d88ced7d7c241c4867e4570ea28212575fb2d91f6b90f62185b1e1e954dcc14"
+    }
+   }
+  },
+  "war-g-clock-4.es": {
+   "text": "A las cuatro.",
+   "speaker": "crest",
+   "seconds": 1.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2335150424,
+     "heard": "A las 4.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5864,
+     "sha256": "920434958748c0b7aaa4a73ef513f5f1852d31d5247fe05b7036bd10d16b83f0"
+    },
+    "mp3": {
+     "bytes": 5828,
+     "sha256": "605b776d71b440fa3195b4f0bd55db3581838823b431cc02c2b6f87b0951f021"
+    }
+   }
+  },
+  "war-g-clock-5.en": {
+   "text": "Five o'clock.",
+   "speaker": "crest",
+   "seconds": 1.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2489252029,
+     "heard": "5 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6068,
+     "sha256": "6cde3436d7b16768ba15fb8f644d2bfc197ea225ea860d006028829da7dd3cbf"
+    },
+    "mp3": {
+     "bytes": 5924,
+     "sha256": "169817538766d97ad72c9235ff71601f38d23cb43cd689b166cf24bf79f51feb"
+    }
+   }
+  },
+  "war-g-clock-5.es": {
+   "text": "A las cinco.",
+   "speaker": "crest",
+   "seconds": 1.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 684890897,
+     "heard": "a las 5,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6291,
+     "sha256": "b9788e0261711024fe74e22bf21078f4b75e5d61c4d725f4f73655e8bd473590"
+    },
+    "mp3": {
+     "bytes": 6308,
+     "sha256": "c9b7f2f240cc04e3245d035ba4218f179fc90ac6a7e05bffcf40d4917ae962c3"
+    }
+   }
+  },
+  "war-g-clock-6.en": {
+   "text": "Six o'clock.",
+   "speaker": "crest",
+   "seconds": 1.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1498192901,
+     "heard": "6 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6280,
+     "sha256": "e8a353a3cabf038d76a61506ad2e033ea37a86812b2ca2e84211ffbb1238155e"
+    },
+    "mp3": {
+     "bytes": 6548,
+     "sha256": "0339cbdab0cdaa4d3adaa3dc4b9fc5b16bf03aca05309e7ee03cc0b17b3b8617"
+    }
+   }
+  },
+  "war-g-clock-6.es": {
+   "text": "A las seis.",
+   "speaker": "crest",
+   "seconds": 1.195,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3255688303,
+     "heard": "A las 6.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5855,
+     "sha256": "3402ea8ba018b3b9adf28729047d9fa5244738d5e75044d33d47b81ffecad91f"
+    },
+    "mp3": {
+     "bytes": 5852,
+     "sha256": "a943f746f7dad75db516f28e4460278da7b48a3e0fa5b90753c5149096577049"
+    }
+   }
+  },
+  "war-g-clock-7.en": {
+   "text": "Seven o'clock.",
+   "speaker": "crest",
+   "seconds": 1.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1807232562,
+     "heard": "Seven o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6503,
+     "sha256": "7a40e347186aa3b9bf6c60ac4eba349e6621e11cc1ce8e3a2ae52e7975d2bbc1"
+    },
+    "mp3": {
+     "bytes": 6596,
+     "sha256": "045ecff5bc8cff6bd8d04815b78a5871474a8c973ae3fd9fdcffc5fab5e4213a"
+    }
+   }
+  },
+  "war-g-clock-7.es": {
+   "text": "A las siete.",
+   "speaker": "crest",
+   "seconds": 1.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1644578153,
+     "heard": "A las 7.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6213,
+     "sha256": "6a954a882c4ba7a69176c71c6aa1f5419815aa707b502dd4bcb067488135332b"
+    },
+    "mp3": {
+     "bytes": 6476,
+     "sha256": "13c6b2ccbbaa8bf29563061bdebf1fa115a9b3c3be07f43a02d420ee918f1084"
+    }
+   }
+  },
+  "war-g-clock-8.en": {
+   "text": "Eight o'clock.",
+   "speaker": "crest",
+   "seconds": 1.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 984376459,
+     "heard": "8 o'clock. End game that said that his personal lasted that made some problem.",
+     "wer": 6.0,
+     "extra": 12,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2289252177,
+     "heard": "Eight o'clock, and go on. But does Iltisti end go on, and Maxit, because of war and Maria, Aladi Empire to give some of the Yakit of Weiss.",
+     "wer": 13.0,
+     "extra": 26,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2394191550,
+     "heard": "8 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8867,
+     "sha256": "c159b9aa77ae37736c674718afd87d995bcec268c8419f9dd74ba23caa32d2f5"
+    },
+    "mp3": {
+     "bytes": 8948,
+     "sha256": "c0302c4a38aa90f2f21ab2199701bd19fd255b5f5d58ef68512a30e555486cfb"
+    }
+   }
+  },
+  "war-g-clock-8.es": {
+   "text": "A las ocho.",
+   "speaker": "crest",
+   "seconds": 1.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1175853704,
+     "heard": "A las 8.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6160,
+     "sha256": "654095d679fa1190179cfa0bcdcc9fbd7faedbcbc16bdfccae52923f4bdf66a8"
+    },
+    "mp3": {
+     "bytes": 6284,
+     "sha256": "eae9c6d21aa5afbfab90b141532a3db60084a84f8b25a5680c3e652a2cb9ec61"
+    }
+   }
+  },
+  "war-g-clock-9.en": {
+   "text": "Nine o'clock.",
+   "speaker": "crest",
+   "seconds": 1.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1488671811,
+     "heard": "9 o'clock.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6092,
+     "sha256": "972c6506d31f8d17f423bf1f3426ee87a59c565b75f90824765f8db216b14b32"
+    },
+    "mp3": {
+     "bytes": 6236,
+     "sha256": "a9870a65c59a96011cbe3eff4894b4213df8e025f86985a88740887ca83093e0"
+    }
+   }
+  },
+  "war-g-clock-9.es": {
+   "text": "A las nueve.",
+   "speaker": "crest",
+   "seconds": 1.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2434084267,
+     "heard": "A las 9.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5588,
+     "sha256": "fbbbb1c57f85cce69271cadd2b1213ae3bd83549003f05e33dc60eb6a87c1879"
+    },
+    "mp3": {
+     "bytes": 5732,
+     "sha256": "dda043b769c8528868ea107aee5b44b5ec2a08172943a62272ed4cbf53151f01"
+    }
+   }
+  },
+  "war-g-dist-1k.en": {
+   "text": "About one kilometre away.",
+   "speaker": "crest",
+   "seconds": 2.085,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2386649894,
+     "heard": "about one kilometer away.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9853,
+     "sha256": "b3a8e69b8a5c9a5272d1f578d6152f586b06984e8906360f770ee57bda76a7e4"
+    },
+    "mp3": {
+     "bytes": 9692,
+     "sha256": "cc94b25d2d9f310228de266b695c4a37bf5795a0b65b48c30d273f24c388b3e0"
+    }
+   }
+  },
+  "war-g-dist-1k.es": {
+   "text": "A cerca de un kilómetro.",
+   "speaker": "crest",
+   "seconds": 1.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1607728095,
+     "heard": "Acerca de un kilómetro.",
+     "wer": 0.4,
+     "extra": 0,
+     "missing": [
+      "cerca"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 155329419,
+     "heard": "Acerca de un kilómetro.",
+     "wer": 0.4,
+     "extra": 0,
+     "missing": [
+      "cerca"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3645244793,
+     "heard": "Acerca de un kilómetro.",
+     "wer": 0.4,
+     "extra": 0,
+     "missing": [
+      "cerca"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3775677122,
+     "heard": "a cerca de un kilómetro.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8493,
+     "sha256": "d4543f04d58d3ed6956a85bf3054a27d509629aab86abc38ef1d4af1ccbaf893"
+    },
+    "mp3": {
+     "bytes": 8948,
+     "sha256": "92a0f27d31d8a7b8c3fc146649a826c3869add5b578e69f56800ce30ce6e97c7"
+    }
+   }
+  },
+  "war-g-dist-2k.en": {
+   "text": "About two kilometres.",
+   "speaker": "crest",
+   "seconds": 1.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2395915757,
+     "heard": "about 2 kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8484,
+     "sha256": "9b133fa9281994c4784284cc3dc01200926bd98884af78e4937e232355f223f4"
+    },
+    "mp3": {
+     "bytes": 8348,
+     "sha256": "0d5895f9f0f00f301614ee8aebb50977b02f536e210ccde0d591229aec1b3ca7"
+    }
+   }
+  },
+  "war-g-dist-2k.es": {
+   "text": "A unos dos kilómetros.",
+   "speaker": "crest",
+   "seconds": 1.575,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3792321497,
+     "heard": "¿A 1 o 2 kilómetros?",
+     "wer": 0.5,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1256098859,
+     "heard": "a unos 2 kilómetros,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7562,
+     "sha256": "b014c082eebc83c8b14d4cc37dc7a328e9dc698ad73adafe9d6297dedb0a312b"
+    },
+    "mp3": {
+     "bytes": 8036,
+     "sha256": "6e1085d02f553d075f222c6d74ec1abd63372068a136ed46b95dd3709b9bbed8"
+    }
+   }
+  },
+  "war-g-dist-3k.en": {
+   "text": "About three kilometres.",
+   "speaker": "crest",
+   "seconds": 1.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 580735214,
+     "heard": "about three kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8533,
+     "sha256": "2921ed7e741087b7464cb3779991a328c23df542ec979519c89deabdc1bbe6e1"
+    },
+    "mp3": {
+     "bytes": 8372,
+     "sha256": "bc6e689c1c6b6506533ec5e1b3403fc401bdf54c5c0ad02800cdfe35d466bf48"
+    }
+   }
+  },
+  "war-g-dist-3k.es": {
+   "text": "A unos tres kilómetros.",
+   "speaker": "crest",
+   "seconds": 1.945,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2014082938,
+     "heard": "A unos 3 kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9176,
+     "sha256": "8310966e50bb241733b03a5f9e717f0c2cb25625164837811af16122a6f117a5"
+    },
+    "mp3": {
+     "bytes": 9212,
+     "sha256": "3d0da2953875eeff830280a1a6c84525c861f7c4e09d6f23a72c523d2ef104c7"
+    }
+   }
+  },
+  "war-g-dist-500.en": {
+   "text": "About five hundred metres.",
+   "speaker": "crest",
+   "seconds": 1.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3253424189,
+     "heard": "about 500 meters.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8430,
+     "sha256": "f65124bef528f1c01a3dc7543ba3036dbe12a5148778f7735c382ed6b134cbe9"
+    },
+    "mp3": {
+     "bytes": 8108,
+     "sha256": "65876013c6ed93c4582953f857f4b2481fc4cdb83f7e2a12a74dab719b246ec9"
+    }
+   }
+  },
+  "war-g-dist-500.es": {
+   "text": "A unos quinientos metros.",
+   "speaker": "crest",
+   "seconds": 1.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2158337696,
+     "heard": "a unos 500 metros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8893,
+     "sha256": "88d001a4e40e4059731bc8e82df4996c906b745e0fffb2cd17af510ae9a666b2"
+    },
+    "mp3": {
+     "bytes": 9044,
+     "sha256": "8c7eff367d76df49efdb1bb19544e75bd6dddc72e878aa38169edf2699f60f23"
+    }
+   }
+  },
+  "war-g-dist-5k.en": {
+   "text": "About five kilometres.",
+   "speaker": "crest",
+   "seconds": 1.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1487084903,
+     "heard": "about 5 kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9403,
+     "sha256": "4a2cec3ffd686617007f502e3c1d4a7f604942cce82c432c2903514e29821405"
+    },
+    "mp3": {
+     "bytes": 8924,
+     "sha256": "52a3a0b5eb8e336049e882268afc42f3331d61ca646d9d9d977219d9d4da8e3a"
+    }
+   }
+  },
+  "war-g-dist-5k.es": {
+   "text": "A unos cinco kilómetros.",
+   "speaker": "crest",
+   "seconds": 2.035,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2199734256,
+     "heard": "a unos 5 kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9564,
+     "sha256": "3ea26e73339cd2a3d3ae2c40b1e73b2ed6b7a86047c3cda5a0b8ef60ef5ea877"
+    },
+    "mp3": {
+     "bytes": 8924,
+     "sha256": "fa2bd8ec60238154cd156983ab004185c33b4cd7593993a3b3d5ed41fe824a4c"
+    }
+   }
+  },
+  "war-g-dist-far.en": {
+   "text": "More than six kilometres.",
+   "speaker": "crest",
+   "seconds": 2.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1282901370,
+     "heard": "more than six kilometers.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10242,
+     "sha256": "aca4cad3d8d66e961d8888e3dde952322de193e5123f12986f681b5bfc7039cb"
+    },
+    "mp3": {
+     "bytes": 9740,
+     "sha256": "2ce5296d1348a823c635a17dc5d7e07ca9209f832bdf62d691487f33e21884ab"
+    }
+   }
+  },
+  "war-g-dist-far.es": {
+   "text": "A más de seis kilómetros.",
+   "speaker": "crest",
+   "seconds": 2.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 537963498,
+     "heard": "A más de 6 kilómetros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9500,
+     "sha256": "3196cba0a8d0d26ec6e32a927ebd1bb0fbfaf41514c4f4ed6f5aecec7ce8c415"
+    },
+    "mp3": {
+     "bytes": 9116,
+     "sha256": "1caac14e111f74b3d2f6845e46d506fe0788dee11ef54031c3190d225b44640e"
+    }
+   }
+  },
+  "war-g-next.en": {
+   "text": "Closest to the dam.",
+   "speaker": "crest",
+   "seconds": 2.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4007072090,
+     "heard": "closest to the dam.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9705,
+     "sha256": "55b4b9c42d485fc82c2766ffb173b669be70d0ba3ca5633fa9975e2edfaddbbe"
+    },
+    "mp3": {
+     "bytes": 9140,
+     "sha256": "792c50dd864f747b0b37132df2aae72bbc99c7a8e6107f57b5a415959889accc"
+    }
+   }
+  },
+  "war-g-next.es": {
+   "text": "El más cercano a la represa.",
+   "speaker": "crest",
+   "seconds": 2.175,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1478553586,
+     "heard": "El más cercano a la represa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10229,
+     "sha256": "a9c8795b9953da96a466b8f497ccce5c820a668c255da8d61ffbebe1d32ddc5c"
+    },
+    "mp3": {
+     "bytes": 10196,
+     "sha256": "e83f377ac6968ea33f8e83bbcb18216cf891615016f779f4f1cf1d3e723d4803"
+    }
+   }
+  },
   "wave-boat.en": {
    "text": "Sea drones on the reservoir, heading for the dam. Get down on the water.",
    "seconds": 4.735,

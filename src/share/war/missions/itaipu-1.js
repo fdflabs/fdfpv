@@ -164,6 +164,9 @@ export default withWaves({
   time: 'morning',
   radio: { brief: ['itaipu-1-s0-brief', 'itaipu-1-s0-rules'], win: 'debrief-itaipu-1-win', lose: 'debrief-itaipu-1-lose' },
   film: 'first-light',
+  /* CREST's nudge to the attacker nearest the targets after no progress
+   * (src/share/war/nudge.js, docs/campaign/WAR-NUDGE.md). */
+  nudge: true,
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sectors: {
