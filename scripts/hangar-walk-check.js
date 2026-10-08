@@ -36,6 +36,7 @@ import {
   ROOMS, LAYOUTS, CELL, TIER_LEVELS, tierFor, occupancy, blocked, cellAt, cellCentre,
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
+import { airframeById } from '../configs/airframes.js';
 import { levelOf, LEVEL_XP } from '../src/game/progress.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -305,6 +306,13 @@ try {
   check('door: its prompt says Fly', Boolean(doorPrompt) && doorPrompt.includes(en['walk.door']), JSON.stringify(doorPrompt));
   await shot('05-door-prompt');
   await page.tap('KeyE');
+  /* The lineup before launch: the aircraft's card, a moment, then flight. */
+  await page.sleep(500);
+  const card = await page.evaluate("(() => { const c = document.querySelector('.walk-lineup'); return c && !c.hidden ? c.textContent : null; })()");
+  const craftName = await page.evaluate('window.__ui.settings.airframe');
+  check('door: E shows the lineup card first, naming the aircraft, still in the room',
+    Boolean(card) && card.includes(airframeById(craftName).name) && (await page.evaluate("window.__ui.screen === 'walk'")), JSON.stringify(card));
+  await shot('05b-lineup');
   await page.until("window.__ui.screen !== 'walk'", 15000).then(() => true, () => false);
   const after = await page.evaluate('window.__ui.screen');
   check('door: E flies (the launch card or the flight)', after === 'launch' || after === 'flight', after);

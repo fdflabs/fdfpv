@@ -724,7 +724,10 @@ function walkScreen(shell) {
   const prompt = keep(shell, 'walkPrompt', 'div', 'walk-prompt', '');
   prompt.hidden = true;
   prompt.append(el('kbd', null, 'E'), keep(shell, 'walkPromptLabel', 'span', 'walk-prompt-label', ''));
-  screen.append(prompt);
+  const lineup = keep(shell, 'walkLineup', 'div', 'walk-lineup', '');
+  lineup.hidden = true;
+  lineup.append(keep(shell, 'walkLineupName', 'div', 'walk-lineup-name', ''), keep(shell, 'walkLineupFacts', 'div', 'walk-lineup-facts', ''));
+  screen.append(lineup, prompt);
   let from = null;
   screen.addEventListener('pointerdown', (e) => {
     from = e.clientX;

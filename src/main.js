@@ -196,6 +196,7 @@ import { createCarouselStage } from './render/carousel3d.js';
 import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
 import { listClips, downloadBlob, stampedName } from './replay/store.js';
 import { listPhotos, putPhoto } from './ui/photostore.js';
+import { LINEUP_S } from './ui/hangarwalk.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -2047,7 +2048,11 @@ export async function boot({
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
-    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    /* The lineup sweeps the stand from the door's side, the pilot gone
+     * out to the field ahead of their aircraft. */
+    const lineup = ui.walk.lineup;
+    const shot = photo || (lineup ? { yaw: LINEUP_SWEEP_FROM + (lineup.t / LINEUP_S) * -2 * LINEUP_SWEEP_FROM, zoom: 0.85 } : null);
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, shot);
     if (photo && photo.shoot) {
       photo.shoot = false;
       const view = walkRoom.view;
@@ -2072,6 +2077,9 @@ export async function boot({
    * slower frame rate, never a shorter turn.
    */
   const TURNTABLE_S = 6;
+  /* Where the lineup's sweep starts, radians from the door's side; it
+   * ends as far the other way. */
+  const LINEUP_SWEEP_FROM = 0.55;
   function turntableStep(photo) {
     const tt = photo && photo.turntable;
     if (!tt) {

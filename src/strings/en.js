@@ -3778,4 +3778,5 @@ export default {
   "walk.turntable_on": "Recording the turntable",
   "walk.turntable_saved": "Turntable saved",
   "walk.turntable_failed": "The turntable could not record: {why}",
+  "walk.lineup_flown": "{time} flown on it",
 };

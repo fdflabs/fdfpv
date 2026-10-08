@@ -3783,4 +3783,5 @@ export default {
   "walk.turntable_on": "Grabando el giro",
   "walk.turntable_saved": "Giro guardado",
   "walk.turntable_failed": "No se pudo grabar el giro: {why}",
+  "walk.lineup_flown": "{time} volado en ella",
 };
