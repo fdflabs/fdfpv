@@ -53,8 +53,8 @@ const check = (name, ok, detail) => {
 
 const page = await openPage({ root, width: 960, height: 540, url: '/index.html', seed });
 /* A fresh run thrown level at (x, y, 0), 60 frames on: the rain. */
-const throwAt = async (x, y) => JSON.parse(await page.evaluate(`(async () => {
-  window.__crashThrow({ fresh: true, x: ${x}, y: ${y}, z: 0, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: 0 });
+const throwAt = async ([x, z], y) => JSON.parse(await page.evaluate(`(async () => {
+  window.__crashThrow({ fresh: true, x: ${x}, y: ${y}, z: ${z}, yaw: 0, pitch: 0, vx: 0, vy: 0, vz: 0 });
   for (let i = 0; i < 60; i += 1) await new Promise((r) => requestAnimationFrame(r));
   return JSON.stringify(window.__rain());
 })()`));
@@ -72,14 +72,25 @@ try {
   const y = (await page.evaluate('window.__map().spawn.y')) + 150;
   const w = makeWeather(map, 'front', SEED);
   const o = {};
+  /* Along the wind, the way the fronts move: the wettest point (a band's
+   * middle, which stays wet for the seconds the run takes to start) and
+   * a dry one. */
+  w.at(0, y, 0, 1, o);
+  const n = Math.hypot(o.x, o.z);
+  const ux = o.x / n;
+  const uz = o.z / n;
   let wet = null;
+  let wetMost = 0;
   let dry = null;
-  for (let x = -2000; x <= 2000 && (wet === null || dry === null); x += 10) {
-    w.at(x, y, 0, 1, o);
-    if (wet === null && o.wet > 0.95) wet = x;
-    if (dry === null && o.wet === 0) dry = x;
+  for (let d = -2000; d <= 2000; d += 10) {
+    w.at(d * ux, y, d * uz, 1, o);
+    if (o.wet > wetMost) {
+      wetMost = o.wet;
+      wet = [d * ux, d * uz];
+    }
+    if (dry === null && o.wet === 0) dry = [d * ux, d * uz];
   }
-  check('the field names a wet place and a dry one', wet !== null && dry !== null, `x ${wet} and ${dry} on ${map}`);
+  check('the field names a wet place and a dry one', wetMost > 0.95 && dry !== null, `${JSON.stringify(wet)} and ${JSON.stringify(dry)} on ${map}`);
   const errors0 = page.errors.length;
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
