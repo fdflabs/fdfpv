@@ -232,11 +232,26 @@ const STAR_CHANCE = 0.9935;
  *   which averages the dither away. A whole face a frame at 768 a side
  *   cost 3 to 6 ms of GPU every frame, enough to slow a loaded frame
  *   (check:avionics-layout's scene); a band at 640 is a sixth of that.
- *   The clouds are 1.6 km up and more, so the 24 frames a band may be
- *   behind the camera are under a degree of parallax for a drone and a
- *   few degrees at a jet's speed low down. The disc
- *   is drawn by the backdrop itself, not the cube. The backdrop is drawn
- *   last of the opaque things, only where nothing else is.
+ *   The disc is drawn by the backdrop itself, not the cube. The
+ *   backdrop is drawn last of the opaque things, only where nothing else
+ *   is.
+ *
+ *   THE CUBE IS SEEN FROM WHERE IT WAS DRAWN. Each band was once drawn
+ *   from where the camera stood that frame and read as if seen from
+ *   where it stands now, so in flight every patch of sky held still for
+ *   the 24 frames a refresh takes and then snapped, band by band, a
+ *   cloud torn along the bands' edges (the owner, 7 October: "blocky
+ *   movements"; scripts/sky-smooth-check.js measured the largest change
+ *   between two frames at 13 times the median). Now there are three
+ *   cubes: the one read, drawn whole from one point; the next, drawn a
+ *   band a frame from one point fixed when it was started and swapped
+ *   in when its last band is drawn; and the one it replaced, faded out
+ *   over the next refresh. The backdrop reads a
+ *   direction by where its ray meets the middle of the deck
+ *   (SKY_CUBE_AT) as seen from the point the cube was drawn from, so the
+ *   clouds slide with the camera every frame, and what one flat height
+ *   gets wrong about a 800 m deep deck over the few metres flown is
+ *   faded, not stepped. The third cube costs 20 MB of video memory.
  */
 const CLOUD_BASE = 1600;
 const CLOUD_SIZE = 850;
@@ -276,6 +291,10 @@ const ENV_PX = 256;
 const SKY_CUBE_PX = 640;
 const SKY_CUBE_BANDS = 4;
 const SKY_CUBE_CUT = 40;
+/* The height the backdrop takes a cloud to stand at when it reads the
+ * cube from where the cube was drawn: the deck's lower middle, where most
+ * of a cell's light comes from. */
+const SKY_CUBE_AT = CLOUD_BASE + 0.35 * CLOUD_DEPTH;
 /* The environment's share of the backdrop's radiance (THE LIGHT IS THIS
  * SKY, in the module doc, says why it is not 1). */
 const ENV_GAIN = 0.55;
@@ -295,6 +314,10 @@ const SKY_GLSL = /* glsl */ `
   uniform float uDisc;
   uniform float uDirect;
   uniform samplerCube uCube;
+  uniform vec3 uCubeFrom;
+  uniform samplerCube uCubeOld;
+  uniform vec3 uCubeOldFrom;
+  uniform float uCubeMix;
   uniform float uCubeTexel;
   uniform float uGain;
   uniform float uStars;
@@ -489,6 +512,14 @@ export function skyBackdrop(sunDir, time) {
        * the backdrop, which reads the sky cube. */
       uDirect: { value: 1 },
       uCube: { value: null },
+      /* Where the cube read was drawn from (THE CUBE IS SEEN FROM WHERE
+       * IT WAS DRAWN). */
+      uCubeFrom: { value: new THREE.Vector3() },
+      /* The cube read before it, and how much of the new one to take:
+       * over a refresh the old one is faded out. */
+      uCubeOld: { value: null },
+      uCubeOldFrom: { value: new THREE.Vector3() },
+      uCubeMix: { value: 1 },
       uCubeTexel: { value: 1.5 / SKY_CUBE_PX },
       /* 1 but while the environment is drawn (skyEnvironment). */
       uGain: { value: 1 },
@@ -514,6 +545,18 @@ export function skyBackdrop(sunDir, time) {
     fragmentShader: /* glsl */ `
       #include <common>
       ${SKY_GLSL}
+      vec3 cubeAt(samplerCube cube, vec3 from, vec3 d) {
+        if (d.y > 0.0 && uCam.y < ${SKY_CUBE_AT.toFixed(1)}) {
+          vec3 hit = uCam + d * ((${SKY_CUBE_AT.toFixed(1)} - uCam.y) / d.y);
+          d = normalize(hit - from);
+        }
+        vec3 tu = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+        vec3 tv = cross(d, tu);
+        float k = uCubeTexel;
+        return 0.4 * textureCube(cube, d).rgb
+          + 0.15 * (textureCube(cube, d + (tu + tv) * k).rgb + textureCube(cube, d + (tu - tv) * k).rgb
+            + textureCube(cube, d - (tu + tv) * k).rgb + textureCube(cube, d - (tu - tv) * k).rgb);
+      }
       void main() {
         vec3 d = normalize(vDir);
         vec3 c;
@@ -521,13 +564,15 @@ export function skyBackdrop(sunDir, time) {
           c = skyAt(d);
         } else {
           /* The sky cube (THE SKY IS A CUBE, in the module doc), five taps
-           * a texel apart: the march's per texel dither, averaged away. */
-          vec3 tu = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
-          vec3 tv = cross(d, tu);
-          float k = uCubeTexel;
-          c = 0.4 * textureCube(uCube, d).rgb
-            + 0.15 * (textureCube(uCube, d + (tu + tv) * k).rgb + textureCube(uCube, d + (tu - tv) * k).rgb
-              + textureCube(uCube, d - (tu + tv) * k).rgb + textureCube(uCube, d - (tu - tv) * k).rgb);
+           * a texel apart: the march's per texel dither, averaged away.
+           * Read from where it was drawn: the ray to the deck's middle, as
+           * seen from there. Under the horizon and over the deck there are
+           * no clouds to slide, and toward the horizon the deck is so far
+           * off that both rays agree, so the two ways meet smoothly. */
+          c = cubeAt(uCube, uCubeFrom, d);
+          if (uCubeMix < 1.0) {
+            c = mix(cubeAt(uCubeOld, uCubeOldFrom, d), c, uCubeMix);
+          }
         }
         float disc = smoothstep(0.99998, 0.999992, dot(d, uSun));
         gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, 1.0);
@@ -550,11 +595,19 @@ export function skyBackdrop(sunDir, time) {
     mat.uniforms.uCam.value.copy(sky.position);
   };
 
-  /* THE SKY IS A CUBE: see the module doc. */
-  const cube = new THREE.WebGLCubeRenderTarget(SKY_CUBE_PX, { type: THREE.HalfFloatType });
-  cube.texture.generateMipmaps = false;
-  cube.texture.minFilter = THREE.LinearFilter;
-  const eye = new THREE.CubeCamera(1, 4000, cube);
+  /* THE SKY IS A CUBE and THE CUBE IS SEEN FROM WHERE IT WAS DRAWN: see
+   * the module doc. `front` is read, `back` drawn; each keeps the point
+   * it was drawn from. */
+  const makeCube = () => {
+    const target = new THREE.WebGLCubeRenderTarget(SKY_CUBE_PX, { type: THREE.HalfFloatType });
+    target.texture.generateMipmaps = false;
+    target.texture.minFilter = THREE.LinearFilter;
+    return { target, from: new THREE.Vector3() };
+  };
+  let front = makeCube();
+  let back = makeCube();
+  let old = makeCube();
+  const eye = new THREE.CubeCamera(1, 4000, front.target);
   const cubeScene = new THREE.Scene();
   const local = new THREE.Mesh(sky.geometry, mat);
   local.frustumCulled = false;
@@ -568,8 +621,15 @@ export function skyBackdrop(sunDir, time) {
   const last = new THREE.Vector3();
   let drawn = false;
   let next = 0;
-  /* `faces` whole, or the one band `band` of the one face in it. */
-  function drawFaces(renderer, faces, band = -1) {
+  /* The new front cube's share, faded in over a refresh so a swap is not
+   * a step either. */
+  let fade = 1;
+  /* `faces` of `into` whole, or the one band `band` of the one face in
+   * it, from `into.from`. */
+  function drawFaces(renderer, into, faces, band = -1) {
+    const cube = into.target;
+    eye.position.copy(into.from);
+    eye.updateMatrixWorld();
     const prevTarget = renderer.getRenderTarget();
     const prevFace = renderer.getActiveCubeFace();
     const prevLevel = renderer.getActiveMipmapLevel();
@@ -582,6 +642,7 @@ export function skyBackdrop(sunDir, time) {
      * while it is the target is a feedback loop, and the driver refuses
      * the draw (the faces came out the clear's black). */
     mat.uniforms.uCube.value = null;
+    mat.uniforms.uCubeOld.value = null;
     const disc = mat.uniforms.uDisc.value;
     mat.uniforms.uDisc.value = 0;
     const h = SKY_CUBE_PX / SKY_CUBE_BANDS;
@@ -601,33 +662,53 @@ export function skyBackdrop(sunDir, time) {
     renderer.xr.enabled = prevXr;
     renderer.shadowMap.autoUpdate = prevShadow;
   }
-  /* Once a frame, before the frame is drawn (look/index.js): the band of
-   * the cube drawn longest ago, from where the camera now is; all six
-   * faces when there is no cube yet or the camera has jumped since the
-   * last frame. (Measured against the last frame, not against when each
-   * face was drawn: against the face, a camera moving 40 m in the 24
-   * frames a refresh takes, a plane's cruise, redrew all six faces every
-   * frame, 26 ms of GPU each.) */
+  /* Once a frame, before the frame is drawn (look/index.js): the next
+   * band of the back cube, from the point it was started at, and the
+   * cubes swapped when its last band is in; the whole front cube from
+   * where the camera now is when there is no cube yet or the camera has
+   * jumped since the last frame, and the back one started over. (The
+   * jump is measured against the last frame, not against when a cube was
+   * drawn: against the cube, a camera moving 40 m in the 24 frames a
+   * refresh takes, a plane's cruise, redrew all six faces every frame,
+   * 26 ms of GPU each.) */
   sky.updateCube = (renderer, camera) => {
     if (eye.coordinateSystem !== renderer.coordinateSystem) {
       eye.coordinateSystem = renderer.coordinateSystem;
       eye.updateCoordinateSystem();
     }
     at.setFromMatrixPosition(camera.matrixWorld);
-    eye.position.copy(at);
-    eye.updateMatrixWorld();
     const cut = !drawn || last.distanceTo(at) > SKY_CUBE_CUT;
     last.copy(at);
     drawn = true;
     if (cut) {
-      drawFaces(renderer, [0, 1, 2, 3, 4, 5]);
+      front.from.copy(at);
+      drawFaces(renderer, front, [0, 1, 2, 3, 4, 5]);
+      next = 0;
+      fade = 1;
     } else {
-      drawFaces(renderer, [Math.floor(next / SKY_CUBE_BANDS)], next % SKY_CUBE_BANDS);
+      if (next === 0) {
+        back.from.copy(at);
+      }
+      drawFaces(renderer, back, [Math.floor(next / SKY_CUBE_BANDS)], next % SKY_CUBE_BANDS);
       next = (next + 1) % (6 * SKY_CUBE_BANDS);
+      if (next === 0) {
+        [old, front, back] = [front, back, old];
+        fade = 0;
+      }
+      fade = Math.min(1, fade + 1 / (6 * SKY_CUBE_BANDS));
     }
-    mat.uniforms.uCube.value = cube.texture;
+    const u = mat.uniforms;
+    u.uCube.value = front.target.texture;
+    u.uCubeFrom.value.copy(front.from);
+    u.uCubeOld.value = fade < 1 ? old.target.texture : null;
+    u.uCubeOldFrom.value.copy(old.from);
+    u.uCubeMix.value = fade;
   };
-  sky.disposeCube = () => cube.dispose();
+  sky.disposeCube = () => {
+    front.target.dispose();
+    back.target.dispose();
+    old.target.dispose();
+  };
   return sky;
 }
 

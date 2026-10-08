@@ -466,7 +466,8 @@
     "ui:playground": "node scripts/playground-check.js",
     "modes:selftest": "node scripts/modes-selftest.js",
     "lint:dashes": "node scripts/dash-lint.js",
-    "briefing:selftest": "node scripts/briefing-selftest.js"
+    "briefing:selftest": "node scripts/briefing-selftest.js",
+    "sky:smooth": "node scripts/sky-smooth-check.js"
   },
   "dependencies": {
     "nodemailer": "10.0.14",
