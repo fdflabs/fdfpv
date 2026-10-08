@@ -86,6 +86,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { spinnerProfile } from './kitshapes.js';
 
 /* The plan's inches in metres of the BMJR aircraft: 44 in for 42 in. */
 const P = (inches) => inches * 0.0254 * (44 / 42);
@@ -714,7 +715,13 @@ export function buildBombshellCraft(opts = {}) {
   const metal = cel({ color: 0xc2c6ca, rim: 0.30, spec: 0.75, specWidth: 0.022 });
   const band = cel({ color: 0xfaf8f2, rim: 0.30, spec: 0.20 });
   const hub = cel({ color: 0xd6d4cc, rim: 0.28, spec: 0.35 });
-  const glass = cel({ color: 0x3a5064, rim: 0.40, spec: 0.60, specWidth: 0.020, specColor: 0xf3ead4 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * The glass is not a paint region, so a smoked tint is its own colour. */
+  const kit = opts.kit ?? {};
+  const glass = kit.canopy === 'smoke'
+    ? cel({ color: 0x1e262e, rim: 0.40, spec: 0.75, specWidth: 0.020, specColor: 0xf3ead4 })
+    : cel({ color: 0x3a5064, rim: 0.40, spec: 0.60, specWidth: 0.020, specColor: 0xf3ead4 });
   const stator = cel({ color: 0x1c1c1e, rim: 0.24, spec: 0.30 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
   const lens = cel({
@@ -784,6 +791,19 @@ export function buildBombshellCraft(opts = {}) {
     blackMesh.name = 'bombshell-black';
     blackMesh.castShadow = shade;
     group.add(blackMesh);
+    /* A kit's covered wheels: a disc over each wheel's spokes in the
+     * wing's red, inside the tyre's width. */
+    if (kit.wheels === 'covered') {
+      const covers = [-1, 1].map((sign) => {
+        const c = new THREE.CylinderGeometry(MAIN_R - 0.006, MAIN_R - 0.006, MAIN_W * 0.7, lite ? 12 : 18);
+        c.rotateZ(Math.PI / 2);
+        c.translate(sign * MAIN_AXLE[0], MAIN_AXLE[1], MAIN_AXLE[2]);
+        return c;
+      });
+      const coverMesh = new THREE.Mesh(merged(covers), red);
+      coverMesh.castShadow = shade;
+      group.add(coverMesh);
+    }
   }
 
   /* The wire, one draw: the gear's legs, a V each side from the floor to
@@ -998,7 +1018,10 @@ export function buildBombshellCraft(opts = {}) {
       const u = i / m;
       prof.push(new THREE.Vector2(Math.max(0.0004, nutR * (1 - u * u * 0.9)), back + 0.002 + 0.012 * u));
     }
-    const nut = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 8 : 12), metal);
+    /* A kit's bullet spinner in the fuselage's black in place of the
+     * Cox nut, no further forward than the nut's tip. */
+    const bullet = kit.spinner === 'bullet';
+    const nut = new THREE.Mesh(new THREE.LatheGeometry(bullet ? spinnerProfile('bullet', 0.011, back, back + 0.014, m + 2) : prof, lite ? 8 : 12), bullet ? black : metal);
     nut.name = 'spinner';
     nut.castShadow = shade;
     propMount.add(nut);

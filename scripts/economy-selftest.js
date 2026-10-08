@@ -84,9 +84,9 @@ check('every kit family sells at most two and earns one (lead decision 2026-10-0
   const mine = ITEMS.filter((it) => it.kind === 'kit' && it.family === f);
   return mine.filter((it) => it.price).length <= 2 && mine.filter((it) => it.earn).length === 1 && mine.find((it) => it.earn).earn === `hour:${f}`;
 }));
-check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3600 } } } } } }).join() === 'kit:sky1800:wheels:tundra'
+check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3600 } } } } } }).join() === 'kit:sky1800:wingtips:winglet'
   && earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3599 } } } } } }).length === 0);
-check('kitItem finds a sold option and nothing for a free one', kitItem('sky1800', 'wingtips', 'winglet').price === KIT_PRICE && kitItem('sky1800', 'wingtips', 'raked') === null);
+check('kitItem finds a sold option and nothing for a free one', kitItem('7inch', 'arms', 'tapered').price === KIT_PRICE && kitItem('7inch', 'arms', 'blade') === null);
 
 console.log('the shop');
 check('every item is sold or earned, never both', ITEMS.every((it) => Number.isInteger(it.price) !== Boolean(it.earn)));

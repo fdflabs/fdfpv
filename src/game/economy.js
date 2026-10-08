@@ -80,9 +80,9 @@ export const ITEMS = [
 /*
  * THE KIT ITEMS (docs/KITS.md section 7; lead decision 2026-10-08: two
  * sold per family, one earned, the rest free). Per family, from its
- * catalogue: the last option of the first two slots is sold, and the last
- * option of the third slot (or, with two slots, of the second, which is
- * then not sold) is earned by an hour flown on that aircraft. Read off the
+ * catalogue: the last option of the third slot (with fewer slots, of the
+ * last one) is earned by an hour flown on that aircraft, and the last
+ * option of each of the first two slots not earned is sold. Read off the
  * catalogue so a family's items follow it when its options change.
  * KIT_PRICE (above ITEMS, which needs it first) keeps "flying everything once buys the whole shop" true with
  * every family's two (economy-selftest holds it).
@@ -91,7 +91,9 @@ function kitItems() {
   const out = [];
   for (const [family, slots] of Object.entries(KITS)) {
     const last = (s) => s.options[s.options.length - 1];
-    const earned = slots[2] ?? slots[1];
+    /* A family with fewer than three slots earns before it sells, so
+     * every family has its earned option. */
+    const earned = slots[2] ?? slots[1] ?? slots[0];
     for (const s of slots.slice(0, 2).filter((x) => x !== earned)) {
       out.push({ id: `kit:${family}:${s.id}:${last(s)}`, kind: 'kit', family, slot: s.id, option: last(s), price: KIT_PRICE });
     }

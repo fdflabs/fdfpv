@@ -23,6 +23,7 @@
 
 import { DRAWN, KIT_VERSION, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor } from '../../configs/kits.js';
 import { liveryKey } from '../../configs/liveries.js';
+import { airframeById } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 import { el } from './dom.js';
@@ -135,7 +136,9 @@ registerHangarTab({
   paint(hangar) {
     const box = el('div', 'hangar-tab kit-tab');
     const family = liveryKey(hangar.id);
-    const slots = DRAWN.has(family) ? slotsFor(family) : [];
+    /* On floats a plane has no wheels to dress (the builders draw none). */
+    const floats = Boolean(airframeById(hangar.id).floats);
+    const slots = (DRAWN.has(family) ? slotsFor(family) : []).filter((s) => !(floats && s.id === 'wheels'));
     const has = lightsFor(family);
     if (!slots.length && !has.led && !has.nav) {
       box.append(el('p', 'hangar-note', str('kit.none_here')));

@@ -241,14 +241,14 @@ async function leds(page) {
   say(run.meshes === 4 && run.usPerFrame < 50, `${id}: LED cost: ${run.meshes} extra draws, setLights ${run.usPerFrame.toFixed(2)} us a frame`);
 }
 
-/* A plane's Kit tab: no slot options yet, Nav lights and Strobes pressed,
+/* A plane's Kit tab: its slot options, Nav lights and Strobes pressed,
  * saved, and pictured from the front left. */
 async function navLights(page, id) {
   await openHangar(page, id);
   await press(page, '.hangar [data-key="tab-kit"]');
   await page.until("window.__ui.hangar.tab === 'kit'", 5000);
   const slots = await page.evaluate("document.querySelectorAll('.hangar .kit-tab [data-key^=\"kit-\"]').length");
-  say(slots === 0, `${id}: no kit slot options until its models land (${slots})`);
+  say(slots > 0, `${id}: its kit slot options are offered (${slots})`);
   await press(page, '.hangar [data-key="light-nav"]');
   await page.sleep(300);
   await press(page, '.hangar [data-key="light-strobe"]');

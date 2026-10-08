@@ -42,17 +42,29 @@ see the kit and the lights.
 ## 3. Catalogue per family (first pass; every item cosmetic only)
 
 "Inside" means the drawn part stays inside the stock part's box
-(configs/hulls.js), see section 5.
+(configs/hulls.js), see section 5. `kits:quads` and `kits:planes` hold
+each option to the whole stock model's box plus 1 cm, and to drawing
+differently from stock; each plane has its own slot list, a slot only
+where the airframe has the part.
 
 | Family (airframes) | Slots and options |
 | --- | --- |
-| Trainers and sport (sky1800, cub1400, kadet1981, slowstick1180, uglystik1567, timber1500) | spinner: stock, bullet, flat cap, none (pointed prop nut); wingtips: stock, raked, drooped (Hoerner), winglet; wheels: stock, pants (spats), tundra (big soft tyres, drawn only); fin: stock, swept cap; canopy tint: clear, smoke, gold |
-| Warbirds and classics (p51d1450, tigermoth1803, bombshell1118) | spinner: stock, two tone, striped; exhausts: stock, short stacks, flame dampers; wheels: stock, covered; canopy: stock, bubble tint |
-| Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium; canopy tint: clear, gold |
-| Gliders (radian2000, nrj1490) | nose: stock, long pointed; wingtips: stock, winglet; canopy tint |
-| Flying wings (zagi1219, bramor2300) | winglets: stock, tall, split; nose: stock, camera bubble (drawn only) |
+| Skyhunter (sky1800) | spinner: stock, bullet (on the pusher, pointing aft); wingtips: stock, winglet. A twin boom pusher with no wheels and no cabin glass |
+| Cub (cub1400, and cub1400f on floats) | spinner: stock, bullet, flat cap; wheels: stock, tundra (the same diameter on a fat balloon, so it sits where it did). On floats the wheels slot draws nothing |
+| Kadet (kadet1981) | spinner: stock, bullet, flat cap; wheels: stock, pants (on the mains, the spinner's red); canopy tint: clear, smoke, gold (the windows; glass is not a paint region) |
+| Slow Stick (slowstick1180) | spinner: stock nut, bullet; wheels: stock, tundra |
+| Ugly Stik (uglystik1567) | spinner: stock nut, bullet (the fuselage's red); wheels: stock, pants |
+| Timber (timber1500, and timber1500f on floats) | spinner: stock, bullet, flat cap; canopy tint: clear, smoke, gold. It stands on tundra tyres already, so no wheels slot |
+| P-51D (p51d1450) | spinner: stock, two tone (black front), striped (yellow ring); exhausts: stock, flame dampers (one shroud a side in place of the six stacks); wheels: stock, covered; canopy tint: clear, smoke |
+| Tiger Moth (tigermoth1803) | spinner: stock, two tone (polished front), striped (yellow ring); exhausts: stock long pipe, short stacks; wheels: stock, covered (the fuselage's colour). Open cockpits, so no canopy |
+| Bombshell (bombshell1118) | spinner: stock Cox nut, bullet; wheels: stock, covered (the wing's red); canopy tint: clear, smoke |
+| Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium (straw collar, blued petals). The canopy is a paint region and gold already, so no tint slot |
+| Radian (radian2000) | nose: stock, long pointed spinner (in the stock spinner's length); wingtips: stock, winglet. The canopy is a paint region, so no tint slot |
+| NRJ (nrj1490) | nose: stock, long pointed cone. A throw glider: no canopy, no tips a winglet belongs on |
+| Zagi (zagi1219) | winglets: stock, raked, split (both keep the stock root, height and aftmost corner: a taller one would grow the box); nose: stock, camera bubble |
+| Bramor (bramor2300) | winglets: stock, raked, split. Its nose is the gimbal ball, the box's front, so no bubble |
 | Combat quads (7inch, 10inch, interceptor) | arms: stock, cut out, X blade, tapered; top plate: stock, vented, armoured cap; camera mount: stock, TPU cage, side plates; antenna: stock whip, dual T, pagoda (drawn only). Prop colour is the existing `props` paint region. The interceptor has no mount slot (its camera is in the armoured nose) |
-| Striker (striker2500) | nose: stock, sensor dome; fins: stock, swept |
+| Striker (striker2500) | nose: stock, sensor dome (under the nose cap, above the skid's foot); fins: stock, swept (the stock root and height, the tip pulled back) |
 
 Routed to the parts lane, NOT here: prop blade count and diameter (a
 different prop is thrust and mass; hangar-parts.js `PROPS` already sells
@@ -148,12 +160,13 @@ Lead decision 2026-10-08: per family two options sold, one earned, the
 rest free; lights are free and off by default. `ITEMS`
 (src/game/economy.js) carries `kind: 'kit'` items, ids
 `kit:<family>:<slot>:<option>`, read off the catalogue: the last option
-of the first two slots is sold, the last option of the third slot (the
-second when a family has two) is earned by an hour flown on that
-aircraft (`hour:<airframe>`, from the synced flight time). Price: 70
-tokens each, because ECONOMY.md's rule "flying everything once buys the
-whole shop" must hold: 1,400 (paint) + 33 x 70 = 3,710 against a ceiling
-of 4,050 (economy-selftest holds it). Prices are the owner's to change.
+of the third slot (with fewer slots, of the last one) is earned by an
+hour flown on that aircraft (`hour:<airframe>`, from the synced flight
+time), and the last option of each of the first two slots not earned is
+sold, so a family with one slot (the NRJ, the Bramor) has only its
+earned option. Price: 70 tokens each, because ECONOMY.md's rule "flying
+everything once buys the whole shop" must hold: 1,400 (paint) + 24 x 70
+= 3,080 against a ceiling of 4,050 (economy-selftest holds it). Prices are the owner's to change.
 
 In the Kit tab a sold or earned option not owned shows its price or
 "Earned only", is tried on when pointed at, and when pressed opens in the
