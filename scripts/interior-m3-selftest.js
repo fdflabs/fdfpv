@@ -96,6 +96,13 @@ console.log('data');
     ...M.items.map((x) => `ops.interior.item.${x.id}`), 'ops.label.empty_vehicle'];
   const noText = keys.filter((k) => !EN[k] || !ES[k]);
   check('every title, objective, card, text and item is in the English and Spanish tables', !noText.length, noText.join());
+  /* The debrief's words (src/ui/debrief.js): each star without a card,
+   * and each way the mission ends. */
+  const skey = (id) => String(id).toLowerCase().replace(/[^a-z0-9_.]/g, '_');
+  const ends = [...M.lost.map((l) => l.why), ...stagesOf(M).flatMap((st) => (st.exits ?? []).filter((x) => x.why).map((x) => x.why))];
+  const debriefKeys = [...M.stars.filter((x) => !x.card).map((x) => `ops.interior.star.${skey(x.id)}`), ...ends.map((w) => `ops.why.${skey(w)}`)];
+  const noDebrief = debriefKeys.filter((k) => !EN[k] || !ES[k]);
+  check('every star and every ending has its debrief words in both tables', !noDebrief.length, noDebrief.join());
   check('MISSION RULE in every stage', stagesOf(M).every((st) => (st.objectives ?? []).some((o) => o.tier === 'rule')));
   check('three stars', M.stars.length === 3);
   check('every primary objective has a guide line for each role', stagesOf(M).every((st) => (st.objectives ?? []).filter((o) => o.tier === 'primary')
