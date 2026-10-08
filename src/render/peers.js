@@ -43,6 +43,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
 import { readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
@@ -147,9 +148,10 @@ export function buildPeerCraft(profile, look = null) {
    * so it is read before the build; profileKey already rebuilds on a new
    * livery, which carries it. */
   const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
-  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined });
+  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined });
   if (paint) {
     dressLivery(craft, id, paint);
+    addNavLights(craft, paint.lights);
   }
   let smoke = null;
   if (PROPS[id]) {

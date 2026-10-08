@@ -13,6 +13,7 @@
  *              speed, not slower
  *   hover      a 7 inch left in the air stays within 0.5 m for ten
  *              minutes
+ *   parked     a Bramor left on the ground stays where it stands
  *   repeat     the same hold read twice, and read late, gives the same
  *              numbers bit for bit
  *
@@ -47,7 +48,7 @@ const TEN_MIN = 600000;
 const bramor = airframeById('bramor2300');
 const seven = airframeById('7inch');
 const t0 = 41234;
-const left = { p: [350.5, -1200.25, 120], v: [12, 16, 0.4] };
+const left = { p: [350.5, -1200.25, 120], v: [12, 16, 0.4], airborne: true };
 const h = holdOf(left, bramor, t0);
 
 let worstR = 0;
@@ -80,16 +81,20 @@ const dot = (at.v[0] * 12 + at.v[1] * 16) / (Math.hypot(at.v[0], at.v[1]) * 20);
 check('no jump: the hold begins where the aircraft was, along its track', jump < 1e-9 && dot > 1 - 1e-12,
   `jump ${jump.toExponential(2)} m, track cosine ${dot}`);
 
-const slow = holdOf({ p: [0, 0, 80], v: [5, 0, 0] }, bramor, 0);
+const slow = holdOf({ p: [0, 0, 80], v: [5, 0, 0], airborne: true }, bramor, 0);
 check('slow: held at the air start speed', Math.abs(slow.speed - 1.3 * bramor.stall) < 1e-12, `${slow.speed} m/s`);
 
-const hv = holdOf({ p: [10, 20, 30], v: [3, 1, 0] }, seven, t0);
+const hv = holdOf({ p: [10, 20, 30], v: [3, 1, 0], airborne: true }, seven, t0);
 let worstH = 0;
 for (let t = t0; t <= t0 + TEN_MIN; t += 1000) {
   const q = holdPose(hv, t);
   worstH = Math.max(worstH, Math.hypot(q.p[0] - 10, q.p[1] - 20, q.p[2] - 30));
 }
 check('hover: a 7 inch stays within 0.5 m', worstH <= 0.5, `worst ${worstH} m`);
+
+const pk = holdOf({ p: [5, 6, 2], v: [0, 0, 0], airborne: false }, bramor, t0);
+const pq = holdPose(pk, t0 + TEN_MIN);
+check('parked: a Bramor left on the ground stays where it stands', pk.kind === 'parked' && pq.p.join() === '5,6,2' && pq.v.join() === '0,0,0');
 
 const a = holdPose(h, t0 + 333333);
 const b = holdPose(holdOf(left, bramor, t0), t0 + 333333);
