@@ -314,6 +314,9 @@ function crumbTrail(ui) {
     return [str('ui.product_name'), str(hub.label)];
   }
   /* A walkable hangar is under the hub it was opened from. */
+  if (ui.screen === 'walk' && ui.walk && ui.walk.roomLineup) {
+    return [str('friends.title'), str('walk.lineup_room')];
+  }
   if (ui.screen === 'walk' && ui.walk) {
     return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
   }
@@ -711,6 +714,9 @@ export const navMethods = {
         { keys: ['T'], text: str('walk.turntable'), action: 'walk-turntable' },
         { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
       ];
+    }
+    if (this.screen === 'walk' && this.walk && this.walk.roomLineup) {
+      return [{ keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' }];
     }
     if (this.screen === 'walk' && this.walk && this.walk.visit) {
       return [

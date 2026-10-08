@@ -28,6 +28,7 @@
     "hangar:room": "node scripts/hangar-room-check.js",
     "hangar:walk": "node scripts/hangar-walk-check.js",
     "hangar:visit": "node scripts/hangar-visit-check.js",
+    "hangar:lineup": "node scripts/hangar-lineup-two-page.js",
     "pids:selftest": "node scripts/pids-selftest.js",
     "perf:overlay": "node scripts/perf-overlay-check.js",
     "perf:latency": "node scripts/perf-latency.js",

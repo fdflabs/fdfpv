@@ -2039,7 +2039,15 @@ export async function boot({
       walkRoom.graphics = graphics;
       walkRoom.walk = ui.walk;
       walkRoom.craftKey = null;
-      if (visit) {
+      if (ui.walk.roomLineup) {
+        /* This pilot's own aircraft as the shell dresses it, the others'
+         * from their room profiles as a visit's are. */
+        walkRoom.view.setLineup(ui.walk.roomLineup.map((e) => (e.own
+          ? dressParts(dressLivery(craftBuilderFor(e.airframe)({ name: 'lineup-craft', fog: false }), e.airframe), e.airframe)
+          : visitCraft(e))));
+        walkRoom.view.setCraft(null);
+        walkRoom.craftKey = 'lineup';
+      } else if (visit) {
         walkRoom.view.setCraft(visitCraft(visit));
         walkRoom.craftKey = `visit:${visit.callsign}`;
       } else {
@@ -2049,7 +2057,7 @@ export async function boot({
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
     walkRoom.hangarWasOpen = ui.hangar.isOpen;
-    if (!visit && (walkRoom.craftKey !== id || shut)) {
+    if (!visit && !ui.walk.roomLineup && (walkRoom.craftKey !== id || shut)) {
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
@@ -6786,6 +6794,17 @@ export async function boot({
     return { value: '', note: str('friends.row_off') };
   };
 
+  /* Who stands in the room's lineup (src/ui/hangarwalk.js): this pilot
+   * first, then every other seat in the room, from their profiles. */
+  ui.roomLineupList = () => {
+    if (roomLinkState.state().phase !== 'open') {
+      return [];
+    }
+    const own = { name: str('walk.lineup_you'), airframe: runAirframe, own: true };
+    const others = [...roomPeers.values()].filter((p) => p.profile && p.profile.airframe)
+      .map((p) => ({ name: roomName(p.name), airframe: p.profile.airframe, look: p.profile.livery, parts: p.profile.parts }));
+    return [own, ...others];
+  };
   ui.friendsRows = () => {
     const st = roomLinkState.state();
     const pick = namePick();
@@ -17613,7 +17632,7 @@ export async function boot({
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, lineup: ui.walk.roomLineup ? ui.walk.roomLineup.map((e) => e.airframe) : null, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);

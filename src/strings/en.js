@@ -3796,4 +3796,7 @@ export default {
   "walk.visits_off": "Closed to visitors",
   "walk.visits_opened": "Your hangar is open to visitors",
   "walk.visits_closed": "Your hangar is closed to visitors",
+  "walk.lineup_room": "Lineup",
+  "walk.lineup_room_note": "Every pilot's aircraft side by side, in their own paint.",
+  "walk.lineup_you": "You",
 };
