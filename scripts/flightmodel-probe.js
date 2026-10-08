@@ -92,6 +92,7 @@ const PLANES = {
   tigermoth: { sim: 23, Vs: 9.47, ail: true, rud: true },
   /* The war drone has no hangar power: its mass is plant.c's table's. */
   striker: { sim: 27, Vs: 20.0, ail: true, rud: true, mass: 13.8249 },
+  extra: { sim: 29, Vs: 8.31, ail: true, rud: true },
 };
 
 const arg = (k) => {
