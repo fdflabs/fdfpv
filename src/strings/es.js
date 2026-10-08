@@ -3828,4 +3828,5 @@ export default {
   "walk.lineup_room_note": "Las aeronaves de todos los pilotos lado a lado, con su propia pintura.",
   "walk.lineup_you": "Tú",
   "replay.back_to_hangar": "Volver al hangar",
+  "walk.visit_peer": "Visitar a {callsign}",
 };

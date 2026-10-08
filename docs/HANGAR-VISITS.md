@@ -34,8 +34,11 @@ in it can be used or changed.
 
 ## Client
 
-- From the walkable hangar, the command bar's Visit asks for a callsign.
-  (Listing the pilots of the room the pilot is in is left for later.) The
+- From the walkable hangar, the command bar's Visit asks for a callsign,
+  and in a room it also offers the room's pilots by name (up to three,
+  "Visit <callsign>"), one press each; in an accounts room a pilot's name
+  is their callsign. Known: inside a room the title is the room screen,
+  so the hangar is reached before joining, not from the room. The
   visit opens the room read only: the visited pilot's tier and layout,
   their aircraft, their trophy wall; no prompts but the door, which
   reads "Home" and brings the visitor back to their own hangar.
