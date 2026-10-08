@@ -13778,6 +13778,7 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      flip: input.padLookClick(),
       look: input.padLookStick(),
     };
     if (input.mapUsable()) {
