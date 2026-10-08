@@ -201,6 +201,11 @@ console.log('the progress merge');
     { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 2000, first_turns: 5000 } } }, stamps: {} },
     { v: 1, data: { progress: { v: 2, xp: 1, lessons: { first_takeoff: 1000, race_lap: 3000 } } }, stamps: {} },
   );
+  const fm = mergeBlobs(
+    { v: 1, data: { progress: { v: 2, xp: 1, lessonsFlown: { first_unaided: true } } }, stamps: {} },
+    { v: 1, data: { progress: { v: 2, xp: 1, lessonsFlown: { race_clean: true } } }, stamps: {} },
+  );
+  check('lessons flown merge as the union', JSON.stringify(Object.keys(fm.data.progress.lessonsFlown).sort()) === '["first_unaided","race_clean"]');
   check('lessons passed merge as the union at the earliest pass time', JSON.stringify(lm.data.progress.lessons) === '{"first_takeoff":1000,"first_turns":5000,"race_lap":3000}', JSON.stringify(lm.data.progress.lessons));
   check('firsts paid are the union, and an older computer cannot lower the version', v2.data.progress.v === 2 && v2.data.progress.firsts['mission:itaipu-1:win'] === true, JSON.stringify(v2.data.progress));
   check('saved liveries are the union, one per name, the incoming first',
@@ -625,6 +630,27 @@ console.log('the wallet (wallet.js, docs/ECONOMY.md)');
   r = await call('GET', '/api/account/wallet', undefined, bob);
   check('and the gold after the silver adds nothing more', r.body.wallet.balance === left + 20 + 40 + 60 + 100, JSON.stringify(r.body.wallet));
   check('a bad event id or tier pays nothing', !(await grantEvent(env, bobRow.id, 'Bad Id!', 'gold')) && !(await grantEvent(env, bobRow.id, '2026-w41-x', 'platinum')));
+  /* Flight Club's weekly events (eventpay.js): a stand in for the board's
+   * tiers route, then a dead board. */
+  const BOB_KEY = 'Q'.repeat(87) + '=';
+  await env.DB.prepare('UPDATE accounts SET public_key = ? WHERE id = ?').bind(BOB_KEY, bobRow.id).run();
+  const asked = [];
+  const tierBoard = http.createServer((req, res) => {
+    asked.push(new URL(req.url, 'http://x').searchParams.get('key'));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ tiers: [{ id: '2026-w42-trk-1a2b3c4d', tier: 'silver' }, { id: 'Not An Id', tier: 'gold' }] }));
+  });
+  await new Promise((resolve) => tierBoard.listen(0, '127.0.0.1', resolve));
+  env.BOARD_ORIGIN = `http://127.0.0.1:${tierBoard.address().port}/`;
+  const beforeEvents = (await call('GET', '/api/account/wallet', undefined, bob)).body.wallet.balance;
+  check('the board is asked with the account\'s pilot key', asked.length === 1 && asked[0] === BOB_KEY, JSON.stringify(asked));
+  check('reading the wallet paid the silver it reached (finish, bronze, silver), and not the bad id', beforeEvents === left + 220 + 20 + 40 + 60, String(beforeEvents));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('reading again pays it no second time', r.body.wallet.balance === beforeEvents);
+  await new Promise((resolve) => tierBoard.close(resolve));
+  r = await call('GET', '/api/account/wallet', undefined, bob);
+  check('a board that does not answer pays nothing and the wallet still answers', r.status === 200 && r.body.wallet.balance === beforeEvents);
+  delete env.BOARD_ORIGIN;
   r = await call('GET', '/api/account/wallet');
   check('the wallet needs a session', r.status === 401);
   /* Alice synced flight time above: her wallet holds a grant, for the delete below. */

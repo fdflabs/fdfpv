@@ -182,7 +182,7 @@ export function levelInfo(xp) {
 
 /* A fresh pilot's progress. `unlockAll` is the switch that opens it all. */
 export function freshProgress(unlockAll = false) {
-  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, unlockAll };
+  return { v: PROGRESS_VERSION, xp: 0, courses: {}, challenges: {}, seen: {}, casual: {}, firsts: {}, lessons: {}, lessonsFlown: {}, unlockAll };
 }
 
 /*
@@ -273,6 +273,7 @@ export function normaliseProgress(stored, { existing = false } = {}) {
     casual: flags(p.casual, 500),
     firsts: flags(p.firsts, 2000),
     lessons: passes(p.lessons),
+    lessonsFlown: flags(p.lessonsFlown, 200),
     unlockAll: typeof p.unlockAll === 'boolean' ? p.unlockAll : existing,
   };
 }
@@ -494,10 +495,18 @@ const MISSION_IDS = new Set([...ACT1, ...INTERIOR].map((m) => m.id));
 const MASTERED = AIRFRAMES.filter((af) => af.id === liveryKey(af.id)).map((af) => af.id);
 
 /* Every first the facts show, paid or not: [{ key, xp }], in a fixed order. */
-export function firstsOf({ campaign = null, seconds = {}, lessons = {} } = {}) {
+/*
+ * A LESSON PAYS ONLY IF IT WAS FLOWN (lead decision 2026-10-07): "I fly
+ * already" (src/game/training.js SKIPS) marks the lessons it covers passed
+ * in `lessons` without their being flown; the lesson actually flown is
+ * also flagged in `lessonsFlown`, and only a flagged one is a first, so a
+ * skip is no shortcut to XP or tokens. A covered lesson flown later is
+ * flagged then and pays then.
+ */
+export function firstsOf({ campaign = null, seconds = {}, lessons = {}, flown = {} } = {}) {
   const out = [];
   for (const l of LESSONS) {
-    if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0) {
+    if (isRecord(lessons) && Number.isFinite(lessons[l.id]) && lessons[l.id] > 0 && isRecord(flown) && flown[l.id] === true) {
       out.push({ key: `lesson:${l.id}`, xp: FIRST_XP.lesson });
     }
   }
@@ -537,6 +546,7 @@ export function everyFirst() {
     campaign: { missions: Object.fromEntries([...MISSION_IDS].map((id) => [id, { won: true, stars: MAX_STARS }])) },
     seconds: Object.fromEntries(MASTERED.map((id) => [id, MILESTONE_S.hour])),
     lessons: Object.fromEntries(LESSONS.map((l) => [l.id, 1])),
+    flown: Object.fromEntries(LESSONS.map((l) => [l.id, true])),
   });
 }
 

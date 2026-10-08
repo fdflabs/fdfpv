@@ -195,6 +195,10 @@ import { isMapTrack } from './trackbuilder/model.js';
 import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
+import { createRoomView } from './render/hangarroomview.js';
+import { qualityFor } from './render/quality.js';
+import { dressLivery } from './render/livery.js';
+import { dressParts } from './render/partsfit.js';
 import { celTimeCount } from './render/celmat.js';
 import { MAPS, mapById } from './maps/registry.js';
 import { retiredMap } from './maps/retired.js';
@@ -2006,6 +2010,43 @@ export async function boot({
   let showcase = null;
   /* The aircraft picker's models, in the shell's own renderer. */
   const pickStage = createCarouselStage(shell.renderer);
+  /*
+   * THE WALKABLE HANGAR (docs/HANGAR-ROOM.md): made when the room opens,
+   * on the shell's renderer, and let go when it shuts. The aircraft on its
+   * stand is built again when the seated one changes or the hangar's
+   * editor shuts, since a save there may have repainted it.
+   */
+  const walkRoom = { view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
+  function walkRoomFrame(dt) {
+    const pose = ui.walkFrame(dt);
+    const graphics = ui.settings.graphics;
+    if (walkRoom.view && walkRoom.graphics !== graphics) {
+      walkRoom.view.dispose();
+      walkRoom.view = null;
+    }
+    if (!walkRoom.view) {
+      walkRoom.view = createRoomView(shell.renderer, { graphics: qualityFor(graphics) });
+      walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
+      walkRoom.graphics = graphics;
+      walkRoom.craftKey = null;
+    }
+    const id = ui.settings.airframe;
+    const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
+    walkRoom.hangarWasOpen = ui.hangar.isOpen;
+    if (walkRoom.craftKey !== id || shut) {
+      walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
+      walkRoom.craftKey = id;
+    }
+    walkRoom.ms += dt * 1000;
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit);
+    return walkRoom.view;
+  }
+  function walkRoomShut() {
+    if (walkRoom.view) {
+      walkRoom.view.dispose();
+      walkRoom.view = null;
+    }
+  }
   /*
    * A map named in the address wins over the stored one. boot.js only read
    * it to weight the loading bar; the Ui owns the setting, and it built its
@@ -13763,6 +13804,7 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      flip: input.padLookClick(),
       look: input.padLookStick(),
     };
     if (input.mapUsable()) {
@@ -15298,7 +15340,7 @@ export async function boot({
     /* What the solid world reported, read once per frame in readContacts. */
     leftover: false, interior: 0, roof: false,
     /* Screen state the later phases share. */
-    worldLive: false, attractOn: false, pickerOn: false, studioOn: false,
+    worldLive: false, attractOn: false, pickerOn: false, walkOn: false, studioOn: false,
     drawThis: false, renderMs: 0, capHz: 0, watching: null, motorsTurning: false,
   };
 
@@ -16192,6 +16234,7 @@ export async function boot({
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
+    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk);
     fr.studioOn = ui.screen === 'quad' && !fr.pickerOn;
     fr.worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
@@ -16202,6 +16245,7 @@ export async function boot({
       || ui.screen === 'courses'
       || fr.attractOn
       || fr.pickerOn
+      || fr.walkOn
       || Boolean(camOverride)
       || Boolean(warIntro)
     );
@@ -16700,7 +16744,7 @@ export async function boot({
       }
     }
     fr.drawThis = drawThis;
-    if (fr.worldLive && drawThis && !ui.hangar.isOpen) {
+    if (fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn) {
       dynres.beginGpu();
       if (avionicsHud.on || ballOn) {
         sensors.render(view.post);
@@ -16724,6 +16768,18 @@ export async function boot({
     if (drawThis) {
       renderStats.calls = shell.renderer.info.render.calls;
       renderStats.triangles = shell.renderer.info.render.triangles;
+    }
+    /* The room is drawn in the world's place, and under the picker when
+     * one is open over it; the hangar's editor has a set of its own. */
+    if (fr.walkOn) {
+      const view = walkRoomFrame(dt);
+      if (drawThis && !ui.hangar.isOpen) {
+        view.draw();
+        renderStats.calls = view.stats().calls;
+        renderStats.triangles = view.stats().triangles;
+      }
+    } else {
+      walkRoomShut();
     }
     const pick = ui.hangar.isOpen ? ui.hangar.frame(dt) : ui.carousel.frame(dt);
     if (drawThis) {
@@ -17436,6 +17492,9 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  window.__walkStats = () => (ui.walk ? {
+    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, view: walkRoom.view ? walkRoom.view.stats() : null,
+  } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);
   window.__pickPaint = (id) => pickStage.paint(id);
