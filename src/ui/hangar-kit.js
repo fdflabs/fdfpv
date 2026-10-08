@@ -49,12 +49,12 @@ function withSlot(entry, family, slot, option) {
  * palette, since a light is a colour of light. */
 const LED_COLOURS = ['#ff2a1a', '#ff8a00', '#ffe600', '#22ff44', '#00b7ff', '#7a3cff', '#ff2bd6', '#ffffff'];
 
-/* The entry with its lights changed; no LED colour means no lights. */
+/* The entry with its lights changed; nothing on means no lights. */
 function withLights(entry, change) {
   const lights = { v: LIGHTS_VERSION, ...(entry.lights ?? {}), ...change };
   const out = { ...entry };
   delete out.lights;
-  if (lights.led) {
+  if (lights.led || lights.nav || lights.strobe) {
     out.lights = lights;
   }
   return out;
@@ -106,6 +106,27 @@ function ledRows(hangar, box) {
   box.append(el('p', 'hangar-source', str('kit.pattern_note')));
 }
 
+/* A plane's nav lights and wingtip strobes, each on or off. */
+function navRows(hangar, box) {
+  const lights = hangar.entry.lights ?? {};
+  box.append(el('h3', 'hangar-h', str('kit.lights')));
+  const grid = el('div', 'hangar-cards hangar-cards-small');
+  ['nav', 'strobe'].forEach((k, i) => {
+    const on = lights[k] === true;
+    const b = button(`hangar-card parts-toggle${on ? ' on' : ''}`);
+    b.dataset.key = `light-${k}`;
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    b.append(el('span', 'hangar-card-name', str(`kit.light.${k}`)));
+    b.addEventListener('click', () => {
+      hangar.entry = withLights(hangar.entry, { [k]: !on });
+      hangar.changed(b.dataset.key);
+    });
+    grid.append(b);
+  });
+  box.append(grid);
+}
+
 registerHangarTab({
   id: 'kit',
   focus: 'overview',
@@ -113,7 +134,8 @@ registerHangarTab({
     const box = el('div', 'hangar-tab kit-tab');
     const family = liveryKey(hangar.id);
     const slots = DRAWN.has(family) ? slotsFor(family) : [];
-    if (!slots.length) {
+    const has = lightsFor(family);
+    if (!slots.length && !has.led && !has.nav) {
       box.append(el('p', 'hangar-note', str('kit.none_here')));
       return box;
     }
@@ -137,8 +159,11 @@ registerHangarTab({
       });
       box.append(grid);
     }
-    if (lightsFor(family).led) {
+    if (has.led) {
       ledRows(hangar, box);
+    }
+    if (has.nav) {
+      navRows(hangar, box);
     }
     box.append(el('p', 'hangar-source', str('kit.note')));
     return box;

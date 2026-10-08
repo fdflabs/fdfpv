@@ -26,7 +26,7 @@ import { KITS, KIT_VERSION, LED_PATTERNS, checkKit, kitParts, lightsFor, slotsFo
 import { LIVERIES, entryDrops, normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
 import { encodeLivery } from '../configs/paint.js';
 import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
-import { ledLevel } from '../src/render/kitlights.js';
+import { ledLevel, navLevel } from '../src/render/kitlights.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -94,6 +94,7 @@ check('chase lights one arm a step, round the four', [0, 110, 220, 330, 440].map
 check('strobe double flashes once a second', lv('strobe', 0, 30).level === 1 && lv('strobe', 0, 90).level < 0.1 && lv('strobe', 0, 150).level === 1 && lv('strobe', 0, 500).level < 0.1 && lv('strobe', 0, 1030).level === 1);
 check('throttle follows the stick', lv('throttle', 0, 0, 0).level < lv('throttle', 0, 0, 0.5).level && lv('throttle', 0, 0, 1).level === 1);
 check('battery reddens as the pack runs down', lv('battery', 0, 0, 0, 1).red === 0 && lv('battery', 0, 0, 0, 0).red === 1);
+check('plane strobes double flash on the flight clock', navLevel(30) === 1 && navLevel(90) === 0 && navLevel(150) === 1 && navLevel(600) === 0);
 check('a pattern is the same at the same flight time', same(lv('chase', 1, 987654), lv('chase', 1, 987654)));
 
 /*
@@ -105,7 +106,7 @@ check('a pattern is the same at the same flight time', same(lv('chase', 1, 98765
  * peers' livery: they draw, they do not fly.
  */
 console.log('physics zero');
-const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js')]);
+const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js')]);
 const seen = new Map();
 function reaches(file) {
   if (seen.has(file)) {

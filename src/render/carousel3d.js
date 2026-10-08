@@ -47,6 +47,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery, liveryFor } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
@@ -245,7 +246,7 @@ export function createCarouselStage(renderer) {
     if (m) {
       return m;
     }
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -552,6 +553,11 @@ export function createCarouselStage(renderer) {
     lastByKey.set(view.items[0].id, m);
     fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
     animateParts(m.craft, t0 / 1000);
+    /* The kit's LED pattern and strobes previewed on the stand, on the
+     * page's clock (only the flight's own needs the flight clock). */
+    if (m.craft.group.userData.setLights) {
+      m.craft.group.userData.setLights(t0, 0.5, 1);
+    }
     for (const other of models.values()) {
       other.holder.visible = false;
     }
