@@ -269,6 +269,12 @@ for (const [side, at] of [['w', M3_AT.coverW], ['e', M3_AT.coverE]]) {
     };
   }
 }
+/* Spotted (CONTRACT-SPOTTED.md): the pair back into the scrub west of
+ * the gate, the courier back the way he came along Senda del Vigía. */
+for (const [k, dx] of [['a', 0], ['b', 0.003]]) {
+  ROUTES[`m3-pair-scatter-${k}`] = { pts: km([[4.06 + dx, 13.95], [3.95 + dx, 13.9], [3.75 + dx, 13.82]]), speed: 2.6, end: 'gone' };
+}
+ROUTES['m3-courier-scatter'] = { pts: km([M3_AT.meet, [6.17, 12.91], [6.4, 12.85]]), speed: 2.6, end: 'gone' };
 /* A stopped threat or a struck vehicle: gone at once (no aftermath). */
 ROUTES['m3-stopped'] = { pts: km([M3_AT.gate, [M3_AT.gate[0] + 0.001, M3_AT.gate[1]]]), speed: 10, end: 'gone' };
 /* Stage 3: three look alike pickups from the post's outskirts. */

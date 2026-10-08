@@ -265,7 +265,7 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 10000, 'cleared');
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
-    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 120], 'the strike run');
+    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     check('the run over the gate: THREAT STOPPED, the pair gone, stage 3', e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped'))
       && !view(e).contacts.some((k) => k.group === 'pair' && poseOf(e, k.id)));
@@ -334,13 +334,13 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
   const c = pilot(e, 0, BASE);
   if (toTheGate(e, c)) {
     snap(e, c, 'confirm_pair', 'pair-a');
-    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 120], 'the strike run');
+    flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     const said = (id) => e.r.ops.log.some((x) => x.what === 'cue' && [x.radio].flat().includes(id));
     for (const v of ['v1', 'v2']) {
       watch(e, c, v, () => e.r.ops.match.contacts.find((k) => k.id === v)?.reached[`${v}-stopped`] != null, 300000, `${v} stopped`);
       snap(e, c, `confirm_${v}`, v);
-      flyTo(e, c, [...M.points[`${v}-stop`].at, M.z0 + 120], `the run over ${v}`);
+      flyTo(e, c, [...M.points[`${v}-stop`].at, M.z0 + 250], `the run over ${v}`);
       e.fly(e.clock + 4000);
       if (v === 'v1') {
         check('the first: "There were people in that one. Stop." and Vega\'s word; the mission goes on', said('int3-s3-error') && said('int3-s3-error-2') && view(e).state === 'live');
@@ -348,6 +348,46 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
     }
     check('the second: lost, errors', view(e).state === 'lost' && view(e).why === 'errors', `${view(e).state} ${view(e).why}`);
   }
+}
+
+console.log('spotted (CONTRACT-SPOTTED.md): low over the pair, then low over the courier');
+{
+  const spotOf = (e, id) => e.view(0).spot?.[id];
+  const e = opsRoom(M, ROOM);
+  const c = pilot(e, 0, BASE);
+  if (toTheGate(e, c)) {
+    c.target = (t) => {
+      const p = poseOf(e, 'pair-a');
+      return p ? [p[0] + 30, p[1], p[2] + 60] : c.p;
+    };
+    until(e, () => spotOf(e, 'pair')?.level === 'looking', 120000, 'the pair looking up');
+    check('low over the pair: warned first, "they\'re looking up", still live', e.view(0).state === 'live'
+      && e.cues(0).some((q) => [q.radio].flat().includes('int-spot-warn')));
+    until(e, () => spotOf(e, 'pair')?.at.spotted != null, 120000, 'the pair spots it');
+    check('spotted: the pair runs for the scrub, the match live for its scene', e.view(0).state === 'live' && truth(e, 'pair-a').route === 'm3-pair-scatter-a');
+    until(e, () => ended(e), 20000, 'the loss');
+    e.fly(e.clock + 1000);
+    const v = view(e);
+    check('lost as spotted with advice and the checkpoint of stage 2', v.state === 'lost' && v.why === 'spotted' && v.spotAdvice?.id === 'pair'
+      && ['low', 'over', 'loud'].includes(v.spotAdvice.advice) && v.checkpoint?.stage === 'M3_CP_CONFIRMED_CONTACT', JSON.stringify({ why: v.why, advice: v.spotAdvice, cp: v.checkpoint }));
+  }
+}
+{
+  const e = opsRoom(M, ROOM);
+  const c = pilot(e, 0, BASE);
+  until(e, () => view(e)?.state === 'live', 30000, 'live');
+  c.air = true;
+  flyTo(e, c, over([...M.points.post.at, M.z0]), 'the post');
+  watch(e, c, 'parked', () => Boolean(truth(e, 'courier')), 900000, 'the courier walks');
+  c.target = (t) => {
+    const p = poseOf(e, 'courier');
+    return p ? [p[0], p[1], p[2] + 40] : c.p;
+  };
+  until(e, () => ended(e), 400000, 'the loss');
+  e.fly(e.clock + 1000);
+  /* The scripted pilot is at the Bramor's top speed, so it is heard. */
+  check('down on the courier at full speed: lost as spotted, advice "loud"', view(e).why === 'spotted' && view(e).spotAdvice?.id === 'courier' && view(e).spotAdvice.advice === 'loud',
+    JSON.stringify(view(e).spotAdvice));
 }
 
 finish();
