@@ -31,7 +31,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import * as rec from '../tests/lib/recfile.js';
 import { transcript } from './lib/transcript.js';
 
-const PINNED = 'c8d71aeee3e16dc520dbf2c54f7490186f7d9936c65f8d80bd62d97cf7cae2f6';
+/* Re-pinned when a recording is re-recorded: the flight model lane's
+ * tractors (docs/FLIGHTMODEL.md) moved only their own decode lines. */
+const PINNED = 'cfc4beb2e6014891167795fbf68f7b916465b9c3a5fcc34f1f3597174c285af5';
 const t = transcript();
 const sha = (x) => createHash('sha256').update(x).digest('hex').slice(0, 24);
 const hex = (u8) => Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength).toString('hex');
