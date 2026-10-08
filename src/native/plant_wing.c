@@ -1196,31 +1196,30 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
   const double cl_flat = 2.0 * sin_a * cos_a;
   /* THE TOP OF THE CURVE, docs/FLIGHTMODEL.md: a wing's CL max is the peak
-   * of its lift curve, reached at the stall angle CL max / CL alpha, which
-   * every derivation's stall speed, sqrt(2 W / rho S CL max), is built on.
-   * The wing's own lift, the angle's share of cl_lin, follows the linear
-   * line to a stall_blend short of the stall angle and rounds onto CL max
-   * there on a cubic, the line's value and slope at one end and CL max
-   * level at the other (Hermite); the elevator's and the flaps' lift ride
-   * on it as before. Past the stall angle it holds CL max until the
-   * stalled lift below takes it, or, short of the Reynolds number the
-   * section data reach, blends to the flat plate over two stall_blends.
-   * sigma, the blend that brings in the plate's drag and the stall's
-   * moments, starts where it always did: the drag rises before the peak,
-   * as a real section's does. */
+   * of its lift curve, which every derivation's stall speed, sqrt(2 W / rho
+   * S CL max), is built on. The wing's own lift, the angle's share of
+   * cl_lin, follows the linear line to a stall_blend short of the stall
+   * angle CL max / CL alpha, leaves it below on the parabola tangent to it
+   * there, and tops out at CL max a stall_blend past it, level; a section's
+   * curve is concave over its top, never above its line. The elevator's
+   * and the flaps' lift ride on it as before. Past the top it holds CL max
+   * until the stalled lift below takes it, or, short of the Reynolds number
+   * the section data reach, blends to the flat plate over two
+   * stall_blends. sigma, the blend that brings in the plate's drag and the
+   * stall's moments, and the strips' stall angle are where they always
+   * were: the drag rises before the peak, as a real section's does, and
+   * the gates measure the stall at the linear crossing. */
   const double aw = add_term(alpha, dcl_f / fw->cl_alpha);
   const double a0 = alpha_stall - fw->stall_blend;
+  const double a1 = alpha_stall + fw->stall_blend;
   double wing = clmax;
   if (aa < a0) {
     wing = fw->cl_alpha * aa;
-  } else if (aa < alpha_stall) {
-    const double t = (aa - a0) / fw->stall_blend;
-    const double y0 = fw->cl_alpha * a0, m0 = fw->cl_alpha * fw->stall_blend;
-    wing = (2.0 * t * t * t - 3.0 * t * t + 1.0) * y0 + (t * t * t - 2.0 * t * t + t) * m0 +
-           (-2.0 * t * t * t + 3.0 * t * t) * clmax;
+  } else if (aa < a1) {
+    wing = clmax - fw->cl_alpha * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
   }
   const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * delta_e;
-  const double s_hi = smoothstep(alpha_stall, alpha_stall + 2.0 * fw->stall_blend, aa);
+  const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
   const double cl_old = (1.0 - s_hi) * cl_peak + s_hi * cl_flat;
   double cl_st = cl_old, fall = 0.0, past = 0.0;
   if (sigma > 0.0 && fre > 0.0) {
