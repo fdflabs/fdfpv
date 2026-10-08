@@ -42,6 +42,7 @@
 import { CHALLENGES, everyFirst, firstsOf } from './progress.js';
 import { MAX_STARS, cleanCampaign } from './campaign.js';
 import { flightTotals } from '../share/flighttime.js';
+import { KITS } from '../../configs/kits.js';
 
 /* Tokens a first pays, by the kind of first (progress.js firstsOf keys). */
 export const FIRST_TOKENS = { win: 60, star: 30, flight: 10, ten: 20, hour: 60, lesson: 20 };
@@ -64,13 +65,47 @@ export const EVENT_ID = /^[a-z0-9-]{1,40}$/;
  * new, not a wall. Every id is `<kind>:<paint id>`: a finish of
  * configs/paint.js FINISHES or a decal kind of DECAL_KINDS.
  */
+/* A kit item's price (see kitItems below). */
+export const KIT_PRICE = 70;
+
 export const ITEMS = [
   { id: 'finish:satin', kind: 'finish', paint: 'satin', price: 300 },
   { id: 'finish:pearl', kind: 'finish', paint: 'pearl', price: 500 },
   { id: 'finish:candy', kind: 'finish', paint: 'candy', price: 600 },
   { id: 'finish:gold', kind: 'finish', paint: 'gold', earn: 'challenges' },
   { id: 'decal:ribbon', kind: 'decal', paint: 'ribbon', earn: 'three_stars' },
+  ...kitItems(),
 ];
+
+/*
+ * THE KIT ITEMS (docs/KITS.md section 7; lead decision 2026-10-08: two
+ * sold per family, one earned, the rest free). Per family, from its
+ * catalogue: the last option of the first two slots is sold, and the last
+ * option of the third slot (or, with two slots, of the second, which is
+ * then not sold) is earned by an hour flown on that aircraft. Read off the
+ * catalogue so a family's items follow it when its options change.
+ * KIT_PRICE (above ITEMS, which needs it first) keeps "flying everything once buys the whole shop" true with
+ * every family's two (economy-selftest holds it).
+ */
+function kitItems() {
+  const out = [];
+  for (const [family, slots] of Object.entries(KITS)) {
+    const last = (s) => s.options[s.options.length - 1];
+    const earned = slots[2] ?? slots[1];
+    for (const s of slots.slice(0, 2).filter((x) => x !== earned)) {
+      out.push({ id: `kit:${family}:${s.id}:${last(s)}`, kind: 'kit', family, slot: s.id, option: last(s), price: KIT_PRICE });
+    }
+    if (earned) {
+      out.push({ id: `kit:${family}:${earned.id}:${last(earned)}`, kind: 'kit', family, slot: earned.id, option: last(earned), earn: `hour:${family}` });
+    }
+  }
+  return out;
+}
+
+/* The kit item for a family's slot option, or null when it is free. */
+export function kitItem(family, slot, option) {
+  return itemById(`kit:${family}:${slot}:${option}`);
+}
 
 export function itemById(id) {
   return ITEMS.find((it) => it.id === id) ?? null;
@@ -121,6 +156,11 @@ export function earnedFrom(blob) {
     challenges: f.challenges.length === CHALLENGES.length,
     three_stars: Object.values(f.campaign.missions).some((m) => m.stars >= MAX_STARS),
   };
+  for (const [id, secs] of Object.entries(f.seconds)) {
+    if (secs >= 3600) {
+      feats[`hour:${id}`] = true;
+    }
+  }
   return ITEMS.filter((it) => it.earn && feats[it.earn]).map((it) => it.id);
 }
 

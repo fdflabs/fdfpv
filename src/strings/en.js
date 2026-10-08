@@ -2537,6 +2537,8 @@ export default {
   "kit.lights": "Lights",
   "kit.light.nav": "Nav lights",
   "kit.light.strobe": "Wingtip strobes",
+  "kit.item": "{slot}: {option}",
+  "shop.earn_hour": "Earned by an hour in the air on this aircraft.",
   "kit.note": "Kit parts are looks only: no weight, no drag, the aircraft flies exactly the same.",
   "loadout.payload": "Payload",
   "loadout.payload.none": "None",
