@@ -137,6 +137,13 @@ static int g_stab = 0;
  * on the first acro step after a reset or a mode change. */
 static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
+/* AS3X's heading: the rotation the aircraft has made, per axis, since the
+ * stick last left centre. */
+static double g_as3x_h[3] = { 0.0, 0.0, 0.0 };
+/* The receiver's output, held between its 22 ms frames, and the time to
+ * the next. */
+static double g_as3x_out[3] = { 0.0, 0.0, 0.0 };
+static double g_as3x_t = 0.0;
 /* Weight on wheels, from sim.c's gear. Always 0 on an airframe without. */
 static int g_on_wheels = 0;
 /* The wheel brake, 0 to 1, sim_set_brake; sim.c's gear reads it. */
@@ -234,7 +241,7 @@ void plant_wing_biplane(double out[4]) {
 
 /* The share of a prop's swirl that reaches the fin past the wing's root,
  * the rest turned straight by the root (plant_wing_step, the slipstream).
- * Selig (AIAA 2010-7938, sec. B): on "a typical aerobatic RC/UAV
+ * Selig (AIAA 2010-7638, sec. B): on "a typical aerobatic RC/UAV
  * configuration capable of hover, the net right rolling moment" of the
  * swirl "is near 40% of the propeller torque". On the Extra 300 3D at its
  * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.743
@@ -284,10 +291,13 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
   wquat_rotate(qc, v, out);
 }
 
-/* AS3X's share of its gain at a stick, Spektrum's priority 160. */
-#define AS3X_PRIORITY 1.6
+/* AS3X's share of its gain at a stick, Spektrum's priority 160: "the
+ * gain goes to 0 at 40% stick input" (the AS3000 manual, p. 10). */
+#define AS3X_ZERO 0.4
+/* Spektrum's servo frame, "22ms is the default setting" (AS3000). */
+#define AS3X_FRAME 0.022
 static double as3x_priority(double stick) {
-  const double g = 1.0 - AS3X_PRIORITY * sim_fabs(stick);
+  const double g = 1.0 - sim_fabs(stick) / AS3X_ZERO;
   return g > 0.0 ? g : 0.0;
 }
 
@@ -728,6 +738,11 @@ void plant_wing_reset(void) {
     g_surf[i] = 0.0;
   }
   g_acro_held = 0;
+  for (int i = 0; i < 3; i += 1) {
+    g_as3x_h[i] = 0.0;
+    g_as3x_out[i] = 0.0;
+  }
+  g_as3x_t = 0.0;
   g_on_wheels = 0;
   g_brake = 0.0;
   g_chute = 0;
@@ -1492,9 +1507,24 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * in Manual. No heading term: Spektrum's default is off. Taken only in
    * mode 3, so every other mode's arithmetic is what it was. */
   if (g_stab == 3 && !g_on_wheels && !g_chute) {
-    da = clip(da - as3x_priority(roll) * fw->as3x_k[0] * s->omega[0], fw->throw_a);
-    de = clip(de + as3x_priority(pitch) * fw->as3x_k[1] * s->omega[1], fw->throw_e);
-    delta_r = clip(delta_r - as3x_priority(rudder_stick) * fw->as3x_k[2] * s->omega[2], fw->throw_r);
+    const double st[3] = { roll, pitch, rudder_stick };
+    g_as3x_t -= WING_DT;
+    if (g_as3x_t <= 0.0) {
+      g_as3x_t += AS3X_FRAME;
+      for (int i = 0; i < 3; i += 1) {
+        g_as3x_h[i] = sim_fabs(st[i]) < fw->stab_deadband ? g_as3x_h[i] + s->omega[i] * AS3X_FRAME : 0.0;
+        g_as3x_out[i] = as3x_priority(st[i]) * (fw->as3x_k[i] * s->omega[i] + fw->as3x_kh[i] * g_as3x_h[i]);
+      }
+    }
+    da = clip(da - g_as3x_out[0], fw->throw_a);
+    de = clip(de + g_as3x_out[1], fw->throw_e);
+    delta_r = clip(delta_r - g_as3x_out[2], fw->throw_r);
+  } else {
+    for (int i = 0; i < 3; i += 1) {
+      g_as3x_h[i] = 0.0;
+      g_as3x_out[i] = 0.0;
+    }
+    g_as3x_t = 0.0;
   }
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
@@ -1804,6 +1834,38 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_slip[4] = vi;
     g_slip[5] = xs;
   }
+  /*
+   * THE JET NORMAL FORCE (FixedWingParams.jet_kj), Selig, "Modeling
+   * Propeller Aerodynamics and Slipstream Effects on Small UAVs in
+   * Realtime", AIAA 2010-7638, eq. 13 to 16: air crossing the disc
+   * sideways at V_T leaves in the slipstream along the axis, so the prop
+   * takes its sideways momentum, N_j = k_j rho A w0 V_T, against V_T, w0 the
+   * hover's induced speed sqrt(T / (2 rho A)). Selig: k_j "nearly 100% for
+   * cruciform-nose profile aerobatic foam aircraft" and about 80 percent
+   * behind a smooth cowl, and "for an airplane in hover the damping force
+   * makes hovering flight less demanding of the pilot". It is washed out
+   * away from the hover, which Selig does with the jet parameter m = V_N /
+   * (V_N + w), the axial speed over the disc's: taken here as the weight
+   * 1 - m, the classic propeller normal force his eq. 4 blends with it not
+   * being in this plant. V_T is the disc's own sideways air, the body's and
+   * what the rates add at prop_x ahead of the CG, where the force acts, so
+   * it damps the drift and the nose's swing alike.
+   */
+  double jet_m[3] = { 0.0, 0.0, 0.0 };
+  if (fw->jet_kj > 0.0 && thrust > 0.0) {
+    const double a_disc = WING_PI * fw->slip_r * fw->slip_r;
+    const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * a_disc));
+    const double wi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * thrust / (PLANT.rho * a_disc)) - u_pos);
+    const double wash_out = wi / (u_pos + wi);
+    const double k = fw->jet_kj * PLANT.rho * a_disc * w0 * wash_out;
+    const double vy = v + s->omega[2] * fw->prop_x;
+    const double vz = w - s->omega[1] * fw->prop_x;
+    const double fy = -k * vy, fz = -k * vz;
+    F[1] += fy;
+    F[2] += fz;
+    jet_m[1] = -fw->prop_x * fz;
+    jet_m[2] = fw->prop_x * fy;
+  }
   /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
    * against the sideways speed squared. */
   if (fw->side_cda > 0.0) {
@@ -1904,6 +1966,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[0] += l_slip;
     M[1] -= m_slip;
     M[2] -= n_slip;
+  }
+  if (fw->jet_kj > 0.0) {
+    M[1] += jet_m[1];
+    M[2] += jet_m[2];
   }
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
@@ -4194,7 +4260,13 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_roll_ki = 2.0,
   .acro_pitch_ki = 3.0,
   .acro_i_max = 0.30,
-  .as3x_k = { 0.028, 0.1224, 0.1842 },
+  /* A cowled nose: Selig's 80 percent for a cowling, not the profile
+   * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
+   * (src/render/extracraft.js PROP_S to CG_S, the manual's CG). */
+  .jet_kj = 0.80,
+  .prop_x = 0.302,
+  .as3x_k = { 0.056, 0.2449, 0.3685 },
+  .as3x_kh = { 0.9996, 4.3715, 0 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */

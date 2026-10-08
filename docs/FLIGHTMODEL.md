@@ -557,7 +557,7 @@ the same hashes as on main.
 PR 2 fitted SWIRL_KEEP, the share of a tractor's swirl that reaches the
 fin past the wing's root, at 0.5, the middle of what was unknown. It now
 comes from Selig, "Modeling Propeller Aerodynamics and Slipstream Effects
-on Small UAVs in Realtime" (AIAA 2010-7938), section B, Swirl Effects:
+on Small UAVs in Realtime" (AIAA 2010-7638), section B, Swirl Effects:
 "For a typical aerobatic RC/UAV configuration capable of hover, the net
 right rolling moment is near 40% of the propeller torque", the swirl's
 roll on the wing root, the fin and the fuselage taken together. The
@@ -741,3 +741,62 @@ pinned hash with the call made and without; a Radian's glide sinking
 0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
 falling less far in rising air; it outliving a reset and a still wind,
 and 0 taking it away to the bit.
+
+## The Extra's hover, audited: the jet's normal force and AS3X as E-flite describes it
+
+The owner flew #860 and found AS3X "kinda the same as acro". An
+independent audit (fdfpv-loop/analysis/3D-FLIGHT-ANALYSIS.md) and this
+pass measured why. What changed, each from a source:
+
+- The jet normal force. Air crossing the disc sideways leaves along the
+  axis, so the prop takes its sideways momentum: Selig, AIAA 2010-7638
+  (the paper #852 cited as 7938, corrected here), eq. 13 to 16, N_j = k_j
+  rho A w0 V_T, "for an airplane in hover the damping force makes
+  hovering flight less demanding of the pilot". k_j 0.80, Selig's figure
+  behind a cowling (100 percent is the profile foamies'); at the disc,
+  0.302 m ahead of the CG, so it damps the drift and the nose's swing;
+  washed out away from the hover by 1 - m, m = V_N / (V_N + w). The
+  Extra only so far. Its hover's frozen-stick departure is now a fraction
+  of what it was, and person-limited pilots holding Manual 10 s go from
+  11 to 59 of 648.
+- AS3X as E-flite publishes it. The Timber manual's AS3X column: stick
+  neutral, "Aircraft will continue to fly at its present attitude".
+  #860's mode 3 was a damper alone, which does not do that. Now it has
+  Spektrum's heading term, "keep the model on the last heading of the
+  axis selected until disturbed by the user by stick inputs" (AS3000
+  manual), the rotation since the stick last left centre (the table's
+  stab_deadband, ESTIMATED as no Spektrum figure is published), on roll
+  and pitch; not on yaw, where Spektrum says it "will fight the pilot
+  through any heading changes" and the plant agrees (a 30 deg bank held
+  on the ailerons, rudder centred: 25 deg of sideslip with it, 1.2 in
+  Manual).
+- Priority read right: 160 is "the gain goes to 0 at 40% stick input";
+  #860 had 62.5.
+- The 22 ms servo frame is now in the plant: the receiver samples the
+  rates and writes the surfaces once a frame and holds them. The gains
+  are derived against that loop's delay, half the frame (a sample and
+  hold), as_k = pi / (4 M tau) at the top speed for a 6 dB margin, and
+  the heading's corner a quarter of the rate loop's crossover, kh = k pi
+  / (16 tau): 0.056, 0.2449 and 0.3685; 1.00, 4.37 and 0 (as3x:derive).
+
+Checked: extra:stab now gates AS3X by a disturbance with the sticks
+centred, hanging on the prop and level at 16 m/s, on each axis (the
+angle a 1 rad/s kick turns it in 0.5 s, roll 6.9 against Manual's 24.0
+deg in the hover, pitch 26.7 against 63.2; yaw's rate 0.1 s on, 0.016
+against 0.350 rad/s), and full stick still Manual's rate.
+
+Hover by a person (hover:probe; 648 pilots, 0.2 s late): Manual 59, AS3X
+232; a pilot who leaves the torque to the gyro rather than trimming it
+on the stick, 292 (45 percent). In the page, that pilot holds 10 s with
+the nose within 10 deg and a mean aileron stick of 0.24 (0.61 trimming
+by hand). Every other aircraft's rows are unchanged.
+
+Not changed, measured: the aileron's share of the wash. Deters, Ananda
+and Selig (AIAA 2015-2265) measured the static slipstream: it does not
+contract, it spreads at 6 to 8 deg past x/D 0.5 and a wing splits it
+toward the tips. Their static profile (their Fig. 31), normalised to the
+thrust's momentum, puts 2.1 percent of this aileron's moment in the wash
+on the thrust line, 1.3 percent with the wing's 0.07 m below it, 2.3 with
+the wing's split as well: the model's 1.8 is inside that, so it stays. The
+pilot still holds about half the aileron throw against the torque in
+Manual; that is the aircraft.

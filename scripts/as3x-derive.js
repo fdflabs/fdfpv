@@ -51,7 +51,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const src = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
 const check = process.argv.includes('--check');
 
-const TAU = 0.022;
+const TAU = 0.011;
 const MS = 4;
 /* The aircraft that ship with AS3X: their table and sim id. */
 const AS3X = {
@@ -114,9 +114,15 @@ for (const [name, a] of Object.entries(AS3X)) {
   const V = topSpeed(sim);
   const M = power(sim, V);
   const k = M.map((m) => r4(Math.PI / (4 * m * TAU)));
+  /* Heading on roll and pitch, none on yaw: Spektrum, "Heading gain on
+   * the yaw axis is generally not recommended as it will fight the pilot
+   * through any heading changes" (AR637T manual), which the plant shows:
+   * a 30 deg bank held with the rudder centred slips 25 deg with it, 1.2
+   * in Manual. */
+  const kh = k.map((x, i) => (i === 2 ? 0 : r4(x * Math.PI / (16 * TAU))));
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
-  const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`);
-  console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
+  const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`);
+  console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
   if (!ok) bad += 1;
 }
 if (check && bad) {
