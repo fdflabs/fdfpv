@@ -54,6 +54,8 @@ const QUAD = [
   slot('mount', 'cage', 'plates'),
   slot('antenna', 'dualt', 'pagoda'),
 ];
+/* The interceptor's camera sits in its armoured nose, so no mount slot. */
+const ARMOURED_QUAD = QUAD.filter((s) => s.id !== 'mount');
 const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 
 /* By livery key (configs/liveries.js liveryKey), so a float variant wears
@@ -65,7 +67,7 @@ export const KITS = {
   f16878: JET,
   radian2000: GLIDER, nrj1490: GLIDER,
   zagi1219: WING, bramor2300: WING,
-  '7inch': QUAD, '10inch': QUAD, interceptor: QUAD,
+  '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,
 };
 

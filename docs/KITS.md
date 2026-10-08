@@ -51,7 +51,7 @@ see the kit and the lights.
 | Jet (f16878) | nose: stock, grey radome; fin cap: stock, drag chute fairing; exhaust: stock, burnt titanium; canopy tint: clear, gold |
 | Gliders (radian2000, nrj1490) | nose: stock, long pointed; wingtips: stock, winglet; canopy tint |
 | Flying wings (zagi1219, bramor2300) | winglets: stock, tall, split; nose: stock, camera bubble (drawn only) |
-| Combat quads (7inch, 10inch, interceptor) | arms: stock, cut out, X blade, tapered; top plate: stock, vented, armoured cap; camera mount: stock, TPU cage, side plates; antenna: stock whip, dual T, pagoda (drawn only); prop colour: any palette colour |
+| Combat quads (7inch, 10inch, interceptor) | arms: stock, cut out, X blade, tapered; top plate: stock, vented, armoured cap; camera mount: stock, TPU cage, side plates; antenna: stock whip, dual T, pagoda (drawn only). Prop colour is the existing `props` paint region. The interceptor has no mount slot (its camera is in the armoured nose) |
 | Striker (striker2500) | nose: stock, sensor dome; fins: stock, swept |
 
 Routed to the parts lane, NOT here: prop blade count and diameter (a
@@ -161,7 +161,7 @@ holds, or the PR asks the owner. Real money: none.
 2. Data + sync: configs/kits.js (catalogue, `normaliseKit`), the entry keys,
    code whitelist, `kits:selftest` (migration seeds, physics-zero 1 and 2).
 3. First family's models: combat quads (arms, top plate, camera mount,
-   antenna, prop colour) through builder `opts.kit`, registered with
+   antenna) through builder `opts.kit`, registered with
    `paint.base` so colour, finish and decals still apply.
 4. The Kit page in the hangar (real pointer browser check, pictures).
 5. LEDs and nav lights + `kits:perf`.
