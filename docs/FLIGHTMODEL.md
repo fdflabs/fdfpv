@@ -490,3 +490,44 @@ committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
 Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
 Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
 No gate changed.
+
+## The spin measure, made honest (no plant change)
+
+The probe this lane started from reported every spin recovery in 0.02 to
+0.33 s, which said more about the probe than the aircraft: its recovery
+ended at the first sample under 20 deg/s of yaw. `scripts/stall-probe.js`
+rows B and C now say what they measure:
+
+- **B** names the motion. A spin is the wing held stalled while it turns
+  (its least angle of attack over the last 3 s over the stall); the same
+  yaw rate with the wing flying is a spiral; under 60 deg/s is neither.
+- **C** ends the recovery when the rotation has stopped (under 20 deg/s
+  for half a second running) or the wing has flown (2 deg under its stall
+  for half a second), says which, and gives the turns, time and height
+  from the anti spin controls to that end, and the yaw rate it began from.
+
+On main (the module byte identical, this pull request changes only the
+probe):
+
+| Aircraft | B: last 3 s | C: from, end, turns, s |
+| --- | --- | --- |
+| 1000 mm wing | 290 deg/s, alpha 7.3: spiral, the wing flying | wing flying in 0.50 s, 0.00 turns |
+| Skyhunter | 49 deg/s, alpha 14.1: no spin | 0.09 turns, 0.59 s |
+| Cub | 49 deg/s, alpha 15.7: no spin | 0.07 turns, 0.60 s |
+| Slow Stick | 98 deg/s, alpha 13.8: spin | 0.02 turns, 0.55 s |
+| Radian | 81 deg/s, alpha 14.6: spin | 0.06 turns, 0.58 s |
+| Timber | 50 deg/s, alpha 19.9: no spin | 0.13 turns, 0.59 s |
+| Bramor | 395 deg/s, alpha 15.7: spin | 0.18 turns, 0.67 s |
+| Bombshell | 139 deg/s, alpha 12.3: spin | 0.01 turns, 0.53 s |
+| Kadet | 51 deg/s, alpha 10.6: no spin | 0.05 turns, 0.53 s |
+| F-16 | 283 deg/s, alpha 40.2: spin | 0.04 turns, 0.65 s |
+| Ugly Stik | 39 deg/s, alpha 12.9: no spin | 0.06 turns, 0.60 s |
+| Tiger Moth | 87 deg/s, alpha 16.6: spin | 0.09 turns, 0.63 s |
+
+What it shows: the trainers and the Stik are stalled but turn at 40 to
+50 deg/s, a stalled spiral, not a spin; and every aircraft that does spin
+stops the moment the stick goes forward, in under a fifth of a turn. A
+real light aircraft takes a half to one and a half turns after the anti
+spin controls to stop (FAA-H-8083-3C ch. 5, "Spin recovery"), because its
+spin is autorotation that the wing keeps up until the rotation is taken
+out of it. That is the plant to build next; this is its before.

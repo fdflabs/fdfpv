@@ -22,8 +22,10 @@
  *      60 deg/s past the stall).
  *   C  B's entry for 5 s, then the handbook's recovery (FAA-H-8083-3C
  *      ch. 5): full opposite rudder with the stick half forward until the
- *      rotation stops, then everything centred. The time and height to
- *      the rotation stopped with the wing unstalled.
+ *      rotation stops (under 20 deg/s for half a second), then everything
+ *      centred. The yaw rate it began from, the turns to the stop, and the
+ *      time and height until the wing flies again. B says whether it was a
+ *      spin (the wing held stalled) or a spiral (the wing flying).
  *   D  A's entry for 5 s, then the stick forward to neutral: the time
  *      and height until the wing flies again.
  *   E  A in Acro: the stabiliser does not stop a pilot who holds full back
@@ -194,39 +196,64 @@ function spinB(sim, p) {
   const last = tr.filter((o) => o.t >= 5);
   const yr = mean(last, 'yawRate');
   const a = mean(last, 'alpha');
-  const spin = Math.abs(yr) > 60 / DEG && a > p.alphaStall;
-  return `${tr[tr.length - 1].turns.toFixed(2)} turns in 8 s; last 3 s: yaw rate ${f1(yr)} deg/s, alpha ${f1(a)}, `
+  /* A spin is autorotation: the wing held stalled while it turns. The same
+   * yaw rate with the wing flying is a spiral, a steep turn the rudder
+   * holds, which the stick forward does not stop. Which it is reads off
+   * the angle of attack over the last 3 s, its least as well as its mean,
+   * since a spiral dips in and out of the stall. */
+  const aMin = Math.min(...last.map((o) => o.alpha));
+  const turning = Math.abs(yr) > 60 / DEG;
+  const kind = !turning ? 'no spin' : aMin > p.alphaStall ? 'SPIN' : a > p.alphaStall ? 'SPIN, not steady' : 'SPIRAL, the wing flying';
+  return `${tr[tr.length - 1].turns.toFixed(2)} turns in 8 s; last 3 s: yaw rate ${f1(yr)} deg/s, alpha ${f1(a)} (least ${f1(aMin)}), `
     + `bank ${f1(mean(last, 'fullBank'))}, pitch ${f1(mean(last, 'pitch'))}, ${mean(last, 'v').toFixed(1)} m/s, `
-    + `sink ${(-(tr[tr.length - 1].z - tr[tr.length - 751].z) / 3).toFixed(1)} m/s: ${spin ? 'SPIN' : 'no spin'}`;
+    + `sink ${(-(tr[tr.length - 1].z - tr[tr.length - 751].z) / 3).toFixed(1)} m/s: ${kind}`;
 }
 
+/*
+ * The handbook's recovery from entry's 5 s: anti held until the rotation
+ * has stopped, then everything centred. Stopped is the world yaw rate
+ * under 20 deg/s for half a second running, not one sample under it: a
+ * spinning aircraft's yaw rate swings, and one low sample is not a stop.
+ * The spin is over as well when the wing has flown, 2 deg under its stall,
+ * for half a second running: what turns on after that is a spiral dive,
+ * the wing flying, which a pilot rolls out of on the ailerons and this
+ * probe does not fly. What it reports is the yaw rate when the recovery
+ * began (an aircraft that was not turning had nothing to recover from),
+ * which of the two ended it, the turns from the recovery's start to that
+ * end, and the time and height to it.
+ */
 function recover(sim, p, entry, anti) {
   let t0 = null;
   let z0 = null;
-  let done = null;
-  let stopped = false;
-  const tr = flight(sim, p, 12, (ms, o) => {
+  let turns0 = 0;
+  let yaw0 = 0;
+  let calm = 0;
+  let flown = 0;
+  let stoppedAt = null;
+  let how = '';
+  flight(sim, p, 15, (ms, o) => {
     if (ms < 5000) {
       return entry(ms, o);
     }
     if (t0 === null) {
       t0 = o.t;
       z0 = o.z;
+      turns0 = o.turns;
+      yaw0 = o.yawRate;
     }
-    if (!stopped && Math.abs(o.yawRate) < 20 / DEG) {
-      stopped = true;
+    calm = Math.abs(o.yawRate) < 20 / DEG ? calm + MS : 0;
+    flown = o.alpha < p.alphaStall - 2 / DEG ? flown + MS : 0;
+    if (stoppedAt === null && (calm >= 500 || flown >= 500)) {
+      stoppedAt = o;
+      how = calm >= 500 ? 'rotation stopped' : `wing flying, ${f1(o.yawRate)} deg/s of spiral left`;
     }
-    if (done === null && stopped && o.alpha < p.alphaStall - 2 / DEG) {
-      done = o;
-    }
-    return stopped ? [0, 0, 0, 0] : anti;
+    return stoppedAt ? [0, 0, 0, 0] : anti;
   });
-  void tr;
-  if (!done) {
-    return 'no recovery in 7 s';
+  const from = `from ${f1(yaw0)} deg/s`;
+  if (!stoppedAt) {
+    return `${from}: still spinning after 10 s`;
   }
-  return `recovered in ${(done.t - t0).toFixed(2)} s, ${(z0 - done.z).toFixed(1)} m`;
-}
+  return `${from}: ${how} in ${Math.abs(stoppedAt.turns - turns0).toFixed(2)} turns, ${(stoppedAt.t - t0).toFixed(2)} s, ${(z0 - stoppedAt.z).toFixed(1)} m`;}
 
 for (const [key, p] of Object.entries(PLANES)) {
   if (only && !only.has(key)) continue;
