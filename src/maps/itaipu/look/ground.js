@@ -906,6 +906,19 @@ const CROPS = /* glsl */ `
 `;
 
 /*
+ * The slow patchiness, lush to dry, in the ground and the turf alike: the
+ * noise is white per texel, so its scale is a texel, NOISE_PX to a tile.
+ * At w / 870 a texel was 3.4 m, which a pixel from 100 m up already
+ * averages to grey, and the grass from the air was one even green smear;
+ * these texels are 215, 70 and 23 m, a paddock's and a stand's size.
+ * .r is the lightness, .g where it is dry. Three bilinear octaves spread
+ * only about 0.12 round 0.5, so the spread is stretched.
+ */
+const PATCHES = (w) => `clamp((textureLod(uNoise, ${w} / 55000.0 + 0.29, 0.0) * 0.45
+  + textureLod(uNoise, ${w} / 18000.0 + 0.13, 0.0) * 0.35
+  + textureLod(uNoise, ${w} / 6000.0 + 0.57, 0.0) * 0.2 - 0.5) * 2.5 + 0.5, 0.0, 1.0)`;
+
+/*
  * The ground's colour. The noise is one texture of four independent
  * channels (noiseTexture) read at five scales; its mipmaps take each
  * scale to its mean as a pixel outgrows it, so nothing finer than the
@@ -991,9 +1004,10 @@ const ALBEDO = /* glsl */ `
       col = mix(col, macro, watery);
 
       /* The slow patchiness, lush to dry, hundreds of metres across. */
-      col *= 0.88 + 0.24 * (0.6 * n5.r + 0.4 * n4.r);
-      float dry = smoothstep(0.42, 0.75, n5.g * 0.6 + n4.g * 0.4);
-      col = mix(col, col * vec3(1.2, 1.05, 0.7), dry * (sw.g + 0.5 * sw.b) * 0.6);
+      vec4 patches = ${PATCHES('w')};
+      col *= 0.65 + 0.7 * patches.r;
+      float dry = smoothstep(0.4, 0.7, patches.g);
+      col = mix(col, col * vec3(1.35, 1.1, 0.6), dry * (sw.g + 0.5 * sw.b) * 0.9);
 
       /* Fields: strips turned per block and rows along them, over the
        * ring; the hero's 10 m satellite has the real parcels, so there only
@@ -1162,6 +1176,7 @@ ${NEAR}
  * fixed seed so every run draws the same ground.
  */
 const NOISE_PX = 256;
+
 export function noiseTexture(anisotropy) {
   const data = new Uint8Array(NOISE_PX * NOISE_PX * 4);
   let x = 0x9e3779b9;
@@ -1400,9 +1415,7 @@ const TURF_VERTEX = /* glsl */ `
     vec3 field = macro * ${v3(GRADE[1])};
     vec3 other = ${v3(FIELD_COL)} * clamp(lumM / ${lum(CLASS_MEAN[1]).toFixed(4)}, 0.7, 1.3);
     vec3 c = mix(other, field, clamp(mask.g * 1.6, 0.0, 1.0));
-    vec4 n4 = textureLod(uNoise, base / 290.0 + 0.13, 0.0);
-    vec4 n5 = textureLod(uNoise, base / 870.0 + 0.29, 0.0);
-    c *= 0.88 + 0.24 * (0.6 * n5.r + 0.4 * n4.r);
+    c *= 0.65 + 0.7 * ${PATCHES('base')}.r;
     c *= mix(${v3(LUSH)}, ${v3(STRAW)}, dry) / ${v3(GRASS_MEAN)} * (0.85 + 0.3 * hb1);
     float lumT = dot(c, vec3(0.3, 0.59, 0.11));
     c = max(vec3(lumT) + (c - lumT) * ${PASTURE_SAT.toFixed(2)}, vec3(0.0));
