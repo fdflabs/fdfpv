@@ -209,6 +209,9 @@ jobs:
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
+      # The race results' lap table ends above the menu at 1280x720
+      # (scripts/results-layout-check.js).
+      - run: npm run results:layout
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
