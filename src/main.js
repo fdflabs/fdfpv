@@ -11171,9 +11171,10 @@ export async function boot({
 
   /*
    * THE AIR, docs/WEATHER-CONTRACT.md: null is calm. The plant's wind
-   * outlives sim_reset, so a calm run after a windy one sets still air once;
-   * a run that was calm all along makes no call at all, which keeps every
-   * calm flight's call stream (recorded flights, contact:golden) as it was.
+   * outlives sim_reset, so a run after a windy one sets still air once (the
+   * launch stand steps in it; the first flight step sets the new air); a
+   * run after a calm one makes no call at all, which keeps every calm
+   * flight's call stream (recorded flights, contact:golden) as it was.
    * In a room the room's air (its welcome, set by the host) on the room's
    * clock, so every pilot meets a front where the others do; the clock is
    * read once per run, which keeps the run's own steps a function of its
@@ -11206,9 +11207,11 @@ export async function boot({
      * not know (a newer server) or a world without weather: still air. */
     const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
     weather = known ? makeWeather(view.id, pick.preset, pick.seed) : null;
-    weatherT0 = welcome ? roomLinkState.roomNow() / 1000 : 0;
+    /* null until the room's clock has synced: the run's own clock then. */
+    const roomMs = welcome ? roomLinkState.roomNow() : null;
+    weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
-    if (!weather && windSet) {
+    if (windSet) {
       setWind(0, 0, 0);
       windSet = false;
     }
@@ -18934,6 +18937,9 @@ export async function boot({
     if (!journal.restore(mark, simT)) {
       return { ok: false, match: false };
     }
+    /* The restored region holds the recorded frame's wind, so the next run
+     * must clear it whatever this run's air was. */
+    windSet = true;
     const back = readState();
     const match = stateHash(back) === hash;
     const nowWall = performance.now();
