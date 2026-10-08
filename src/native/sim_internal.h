@@ -920,6 +920,16 @@ typedef struct FixedWingParams {
   double slip_cn_r;
   double slip_cy_b;
   double slip_cl_b;
+  /*
+   * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
+   * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
+   * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
+   * fineness (NASA TR R-474): a force against the sideways speed squared,
+   * which the table's linear side force leaves out and which carries the
+   * weight in a knife edge with the thrust's share. Taken at the CG. Zero
+   * is an aircraft without, and then nothing is read.
+   */
+  double side_cda;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
