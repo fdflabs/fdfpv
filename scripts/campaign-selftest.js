@@ -183,11 +183,11 @@ check('a change to it is stamped', stampChanges({ campaign: pc }, { campaign: ph
 
 console.log('The Interior (docs/campaign/interior/PLAN.md section 3, TECH-NEEDS.md N20)');
 check('its five missions, in order', INTERIOR.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5');
-check('Mission 1 is held in development: not started on the live server, started with dev', INTERIOR[0].release === 'development'
-  && !released('interior-1') && released('interior-1', true));
-check('2 to 5 are soon in the gate (no mission file) and never started, dev or not', INTERIOR.slice(1).every((m) => m.release === 'soon'
+check('Missions 1 and 2 are held in development: not started on the live server, started with dev', INTERIOR.slice(0, 2).every((m) => m.release === 'development'
+  && !released(m.id) && released(m.id, true)));
+check('3 to 5 are soon in the gate (no mission file) and never started, dev or not', INTERIOR.slice(2).every((m) => m.release === 'soon'
   && !Object.hasOwn(OPS_MISSIONS, m.id) && !released(m.id) && !released(m.id, true)));
-check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1'));
+check('Missions 1 and 2 have their mission files, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1') && Object.hasOwn(OPS_MISSIONS, 'interior-2'));
 check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
   && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
 check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
