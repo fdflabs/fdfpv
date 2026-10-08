@@ -49,6 +49,7 @@ import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { liveryKey, lookFor, normaliseEntry, paintable } from '../../configs/liveries.js';
+import { unpackEntry } from '../../configs/paint.js';
 import { PROPS, normalisePlane } from '../../configs/hangar-parts.js';
 import { FIGURE_COUNT, FLAG_CHUTE, FLAG_GEAR_DOWN, FLAG_QUAD, FLAG_SMOKE } from '../share/roomwire.js';
 
@@ -144,7 +145,7 @@ export function buildPeerCraft(profile, look = null) {
   /* The peer's visual kit (configs/kits.js) is built into the drawing,
    * so it is read before the build; profileKey already rebuilds on a new
    * livery, which carries it. */
-  const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), profile.livery)) : null;
+  const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
   const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined });
   if (paint) {
     dressLivery(craft, id, paint);
