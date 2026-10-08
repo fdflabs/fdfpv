@@ -17,6 +17,9 @@
  *      the model from the Top view names the region and side beside it
  *      and a click puts the colour on that region's top; from the Bottom
  *      view the label says underside and a click paints the underside.
+ *   6. Undo on the Timber: a top colour, then an underside; the Undo
+ *      button takes the underside off, Z the top colour, and Undo is then
+ *      off with the paint as it opened.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -336,6 +339,40 @@ async function clickToPaint(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+async function undoSteps(page) {
+  console.log('6. undo on the Timber');
+  await openHangar(page, 'timber1500');
+  await page.click('.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const start = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  const pick = async (n) => {
+    const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+    await steady(page, `.hangar [data-key="${keys[n]}"]`);
+    await page.click(`.hangar [data-key="${keys[n]}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+  };
+  await page.click('.hangar [data-key="side-top"]');
+  await pick(5);
+  await page.until('Boolean(window.__ui.hangar.entry.regions)', 5000).catch(() => {});
+  const topOnly = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  await page.click('.hangar [data-key="side-under"]');
+  await pick(6);
+  await page.until('Boolean(window.__ui.hangar.entry.under)', 5000).catch(() => {});
+  const both = await page.evaluate('window.__ui.hangar.entry');
+  say(Boolean(both.regions) && Boolean(both.under), `a top colour and an underside on: ${JSON.stringify(both)}`);
+  await steady(page, '.hangar [data-key="undo"]');
+  await page.click('.hangar [data-key="undo"]');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
+  const one = await page.evaluate('JSON.stringify(window.__ui.hangar.entry)');
+  say(one === topOnly, `the Undo button takes the underside off: ${one}`);
+  await page.tap('KeyZ');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(start)}`, 5000).catch(() => {});
+  const two = await page.evaluate("({ entry: JSON.stringify(window.__ui.hangar.entry), off: document.querySelector('.hangar [data-key=\"undo\"]').disabled })");
+  say(two.entry === start && two.off, `Z takes the top colour off, back to how it opened, and Undo is off: ${JSON.stringify(two)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -346,6 +383,7 @@ async function main() {
     await closedFlipped(page);
     await underEach(page);
     await clickToPaint(page);
+    await undoSteps(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

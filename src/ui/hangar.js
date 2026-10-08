@@ -148,6 +148,8 @@ const HOVER_SOUND_MS = 70;
 /* A press and release on the model that moved less than this, CSS
  * pixels, is a click that paints and not a drag that turns it. */
 const PAINT_CLICK_SLOP = 6;
+/* How many paint changes Undo goes back through since the hangar opened. */
+const UNDO_MAX = 30;
 const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'flip'];
 /* The workshop's preset views (docs/redesign/WORKSHOP-PAINT.md): a camera
  * view of src/render/hangarstage.js and whether the plane is flipped for
@@ -374,6 +376,14 @@ export class Hangar {
     this.saveBtn = button('carousel-choose hangar-save', str('hangar.save'));
     this.saveBtn.dataset.key = 'save';
     this.resetBtn.addEventListener('click', () => this.reset());
+    /* UNDO: the paint as it was before each change since opening, as
+     * JSON, the newest last; `paintNow` the paint as last recorded. */
+    this.undoBtn = button('hangar-reset hangar-undo', str('hangar.undo'));
+    this.undoBtn.dataset.key = 'undo';
+    this.undoBtn.disabled = true;
+    this.undoBtn.addEventListener('click', () => this.undo());
+    this.undoStack = [];
+    this.paintNow = '{}';
     this.backBtn.addEventListener('click', () => this.cancel());
     this.saveBtn.addEventListener('click', () => this.save());
     /* MY HANGAR (src/ui/builds.js): what is on the stand kept as a build
@@ -384,7 +394,9 @@ export class Hangar {
     this.mineBtn.addEventListener('click', () => this.startMine());
     const right = el('div', 'hangar-buttons-end');
     right.append(this.mineBtn, this.backBtn, this.saveBtn);
-    buttons.append(this.resetBtn, right);
+    const left = el('div', 'hangar-buttons-left');
+    left.append(this.resetBtn, this.undoBtn);
+    buttons.append(left, right);
     this.buttonsEl = buttons;
     this.mineForm = el('div', 'hangar-mine-form');
     this.mineForm.hidden = true;
@@ -545,6 +557,9 @@ export class Hangar {
     this.paintHit = null;
     this.paintClick = false;
     this.brush = null;
+    this.undoStack = [];
+    this.paintNow = JSON.stringify(this.entry);
+    this.undoBtn.disabled = true;
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -839,11 +854,42 @@ export class Hangar {
   }
 
   changed(focusKey, sound = 'select') {
+    this.recordPaint();
     this.hover = null;
     this.paint(0);
     this.preview();
     this.focusKey(focusKey);
     this.sound(sound);
+  }
+
+  /* A change to the paint goes on the undo stack as the paint before it. */
+  recordPaint() {
+    const now = JSON.stringify(this.entry);
+    if (now === this.paintNow) {
+      return;
+    }
+    this.undoStack.push(this.paintNow);
+    if (this.undoStack.length > UNDO_MAX) {
+      this.undoStack.shift();
+    }
+    this.paintNow = now;
+    this.undoBtn.disabled = false;
+  }
+
+  /* The paint back as it was before the last change. Power, parts and
+   * tuning are choices on their own tabs and are not undone here. */
+  undo() {
+    const prev = this.undoStack.pop();
+    if (prev === undefined) {
+      return;
+    }
+    this.entry = JSON.parse(prev);
+    this.paintNow = prev;
+    this.undoBtn.disabled = this.undoStack.length === 0;
+    this.shop.stopPlacing();
+    this.shop.sel = -1;
+    this.pulseSeq += 1;
+    this.changed('undo', 'back');
   }
 
   /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
@@ -1555,6 +1601,10 @@ export class Hangar {
   viewKey(code) {
     if (code === 'KeyV') {
       this.toggleFlip();
+      return true;
+    }
+    if (code === 'KeyZ' && !this.naming) {
+      this.undo();
       return true;
     }
     const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];

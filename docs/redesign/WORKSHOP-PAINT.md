@@ -45,11 +45,12 @@ Most of item 23 is built and live. The plan listed it as new; it is not.
    chosen paints that region and side. Uses the decal aim's raycast
    (`aimed`), which already returns the hit in the model's frame; the hit
    mesh's material maps back to a region through `livery.materials()`.
-5. **Symmetry and undo.** Symmetry: a decal placed with symmetry on is
-   placed mirrored too (the existing `mirror`), and is on by default.
-   Undo: the last 30 paint changes since the hangar opened, Ctrl+Z / a
-   button / a pad's B on the paint page. A stack of whole looks, since a
-   look is small (configs/paint.js caps it).
+5. **Symmetry and undo.** Symmetry needs nothing new: a region's colour
+   is both sides at once, and a new decal already comes with its mirrored
+   copy on (`m: true`, configs/paint.js newDecal). Undo: the last 30 paint
+   changes since the hangar opened, the Undo button beside Reset or Z. A
+   stack of whole entries, since an entry is small. A pad has no Undo:
+   every pad button is already taken in the hangar.
 6. **A/B against stock**: hold a button (or H) and the model shows the
    kit's look, release and it is back. Nothing stored.
 7. **Patterns masked per region**: camo, splinter, checks, stripes, as a
