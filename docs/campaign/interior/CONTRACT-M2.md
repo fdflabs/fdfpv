@@ -65,3 +65,27 @@ live room refuses it and a dev room starts it, and a scripted solo pilot
 both branches (A and B) with the right stars and flags; a detected run
 loses UNSEEN and its flag without failing. Plus lint:header, lint:dashes,
 lint:copy. src/share changes need a VM deploy (the room runs them).
+
+## 6. Measured in this PR, and what changed from the plan
+
+- **Places moved onto open ground.** On the land, every M2 spot in
+  MISSIONS 1.9's layout is under the canopy (a watcher there is never
+  seen, from the side or from above). routes.js M2_AT moves each to the
+  nearest ground open from seven of eight sides at 250 m (within 25 to
+  300 m of 1.9's); Claro Nuevo, the handoffs and A's post sit within a
+  short walk or ride of Estancia La Ceniza.
+- **Length.** The scripted solo pilot (Bramor 25 m/s, quad 15 m/s, no
+  searching) wins in 39 min following B and 43 min following A; MISSIONS
+  says 25 to 35. interior:m2 keeps the 35 min check and fails on it. The
+  long legs: Pista Cero to Claro Viejo, the watcher's ride from a far zone
+  to the handoff (up to 6 km), the walk to the property. Owner question
+  in the PR.
+- **Courier by motorcycle.** On foot the A branch took 58 min.
+
+## 7. The spotted rule (lane spotted, CONTRACT-SPOTTED.md)
+
+M2's photo-the-people beats, for `mission.spotters` once its engine
+lands: the watchers (`watchers`, stage 1 and 2), the handoff pair and
+the courier (`handoff`, stage 2), the returner (`returner`, stage 3,
+alongside the property site that is already there), Claro Nuevo and the
+old courier (`nuevo`, `old`, stage 4). Not wired in this PR.
