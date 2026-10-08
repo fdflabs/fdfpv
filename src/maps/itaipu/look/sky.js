@@ -263,6 +263,16 @@ const CLOUD_SOFT = 0.07;
 const CLOUD_BILLOW = 220;
 const CLOUD_ERODE = 0.14;
 const CLOUD_DEPTH = 800;
+/* How much higher a cell's base may stand than CLOUD_BASE, over a noise
+ * CLOUD_LIFT_SIZE across, and how ragged a base is, metres. One height
+ * for every cell drew the same flat bottom across the whole sky, a row
+ * of cut outs on a shelf (the owner, 7 October: "not real at all"); a
+ * real field's bases share a level within a few hundred metres, the
+ * lifting condensation level drifting with the ground's moisture. */
+const CLOUD_LIFT = 350;
+const CLOUD_LIFT_SIZE = 3200;
+const CLOUD_RAG = 30;
+const CLOUD_TOP = CLOUD_BASE + CLOUD_LIFT + CLOUD_DEPTH;
 const CLOUD_STEPS = 64;
 const CLOUD_SPAN = 4000;
 const CLOUD_SIGMA = 0.032;
@@ -294,7 +304,7 @@ const SKY_CUBE_CUT = 40;
 /* The height the backdrop takes a cloud to stand at when it reads the
  * cube from where the cube was drawn: the deck's lower middle, where most
  * of a cell's light comes from. */
-const SKY_CUBE_AT = CLOUD_BASE + 0.35 * CLOUD_DEPTH;
+const SKY_CUBE_AT = CLOUD_BASE + 0.5 * CLOUD_LIFT + 0.35 * CLOUD_DEPTH;
 /* The environment's share of the backdrop's radiance (THE LIGHT IS THIS
  * SKY, in the module doc, says why it is not 1). */
 const ENV_GAIN = 0.55;
@@ -407,15 +417,25 @@ const SKY_GLSL = /* glsl */ `
     f = f * f * (3.0 - 2.0 * f);
     return mix(skyNoise(p.xz + y * 17.13), skyNoise(p.xz + (y + 1.0) * 17.13), f);
   }
+  /* A cell's base over (x, z) (CLOUD_LIFT): its level, and a few tens of
+   * metres of rag so no base is ruled. */
+  float cloudBase(vec2 xz) {
+    return ${CLOUD_BASE.toFixed(1)} + ${CLOUD_LIFT.toFixed(1)} * skyNoise(xz / ${CLOUD_LIFT_SIZE.toFixed(1)} + 41.7)
+      + ${CLOUD_RAG.toFixed(1)} * (skyNoise(xz / 140.0 + 9.1) - 0.5);
+  }
+  /* How far up its cell q stands, 0 at the base and 1 at the top. */
+  float cloudH(vec3 q) {
+    return (q.y - cloudBase(q.xz)) / ${CLOUD_DEPTH.toFixed(1)};
+  }
   float cloudDensity(vec3 q, int octaves) {
-    float h = (q.y - ${CLOUD_BASE.toFixed(1)}) / ${CLOUD_DEPTH.toFixed(1)};
+    float h = cloudH(q);
     if (h < 0.0 || h > 1.0) {
       return 0.0;
     }
     float edge = ${CLOUD_EDGE.toFixed(3)} + ${CLOUD_TAPER.toFixed(3)} * h * h;
     /* The tops lean a little downwind, and the field is eroded by the
      * billows, more at the cell's rim and top than in its body. */
-    vec2 at = q.xz + vec2(0.35, 0.2) * (q.y - ${CLOUD_BASE.toFixed(1)});
+    vec2 at = q.xz + vec2(0.35, 0.2) * (h * ${CLOUD_DEPTH.toFixed(1)});
     float n = cloudField(at, octaves);
     float billow = 0.6 * skyNoise3(q / ${CLOUD_BILLOW.toFixed(1)}) + 0.4 * skyNoise3(q / ${(CLOUD_BILLOW * 0.43).toFixed(1)} + 5.3);
     n -= ${CLOUD_ERODE.toFixed(3)} * (1.0 - billow) * (0.6 + 0.8 * h);
@@ -443,7 +463,7 @@ const SKY_GLSL = /* glsl */ `
       float horizon = smoothstep(0.01, 0.06, d.y);
       vec3 sky = uZenith * 0.45 + uHaze * 0.4;
       float t0 = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
-      float t1 = min((${(CLOUD_BASE + CLOUD_DEPTH).toFixed(1)} - uCam.y) / d.y,
+      float t1 = min((${CLOUD_TOP.toFixed(1)} - uCam.y) / d.y,
         t0 + ${CLOUD_SPAN.toFixed(1)} / max(length(d.xz), 1e-3));
       float dt = (t1 - t0) / ${CLOUD_STEPS.toFixed(1)};
       float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
@@ -458,7 +478,7 @@ const SKY_GLSL = /* glsl */ `
         if (dens < 0.002) {
           continue;
         }
-        float h = (q.y - ${CLOUD_BASE.toFixed(1)}) / ${CLOUD_DEPTH.toFixed(1)};
+        float h = clamp(cloudH(q), 0.0, 1.0);
         float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3);
         float sunT = exp(-${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens)) * mix(0.45, 1.0, h);
         vec3 lq = uSunCol * (sunT * (${CLOUD_LIT.toFixed(3)} + 0.5 * hg * (1.0 - dens)))
