@@ -226,25 +226,29 @@ async function steady(page, selector) {
   let last = '';
   let same = 0;
   for (let i = 0; i < 100; i++) {
-    /* A control waiting out its entrance delay stands still too, so no
-     * finite animation in the hangar may be pending or running. */
+    /* A control waiting out its own staggered entrance delay stands still
+     * too, so no finite keyframe animation on it may be pending or
+     * running (a colour transition on hover moves nothing). Only its own: the panel's slide in runs for many seconds on a starved
+     * page, and its movement shows in the place read below anyway. */
     const r = await page.evaluate(`(() => {
       const b = document.querySelector(${JSON.stringify(selector)});
       if (!b) return 'none';
       const moving = document.getAnimations().some((a) => a.playState !== 'finished' && a.effect && a.effect.target
-        && a.effect.target.closest && a.effect.target.closest('.hangar') && a.effect.getComputedTiming().endTime !== Infinity);
-      if (moving) return 'moving';
+        && a.effect.target === b && a.animationName && a.effect.getComputedTiming().endTime !== Infinity);
+      if (moving) {
+        return 'moving ' + document.getAnimations().filter((a) => a.playState !== 'finished' && a.effect && a.effect.target && a.effect.target === b && a.animationName).map((a) => [a.animationName || a.transitionProperty || a.constructor.name, a.playState, a.effect.target.className].join(':')).join(',');
+      }
       const r = b.getBoundingClientRect();
       return [r.left, r.top, r.width, getComputedStyle(b).opacity].join();
     })()`);
-    same = r === last && r !== 'none' && r !== 'moving' ? same + 1 : 0;
+    same = r === last && r !== 'none' && !r.startsWith('moving') ? same + 1 : 0;
     if (same >= 2) {
       return;
     }
     last = r;
     await page.sleep(120);
   }
-  throw new Error(`${selector} never stood still`);
+  throw new Error(`${selector} never stood still: ${last}`);
 }
 
 /* A real pointer click on a button once it stands still. */
