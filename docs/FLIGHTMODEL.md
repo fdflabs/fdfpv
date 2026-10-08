@@ -491,26 +491,6 @@ Stick, the Zagi, the NRJ, `war:legacy` and `crash:core`'s digests.
 Regenerated: `configs/power-estimates.js`, `tools/audio/flights.json`.
 No gate changed.
 
-## The rudder only aircraft's level hold, retuned for the wash
-
-PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
-under power, and Stabilised rolls those two on the rudder. The level
-hold's roll gains were tuned on a rudder in the free stream, so its loop
-gain rose with the wash's ratio and it took back more of the pilot's own
-yaw stick: bombshell:stab's "full right yaw stick ... wins over the level
-hold, right of a quarter of its throw" read -2.7 deg against its -5, and
-slowstick:stab's -7.5 sat on its -7.5 limit. Each gain is now its old
-value over the rudder's authority ratio in the wash at the trim, 1 + dp fv
-/ q (scripts/stab-hold-derive.js, `npm run stab:hold`, in CI): the loop
-as it was tuned, on the aircraft as it now flies. No check changed.
-
-| | trim | rudder gain in the wash | kp | kd | yaw stick's rudder |
-| --- | --- | --- | --- | --- | --- |
-| Bombshell | stick 0.732, 7.93 m/s | 1.446 | 1.6 to 1.11 | 0.6 to 0.42 | -2.7 to -5.4 deg (-5.4 before the wash) |
-| Slow Stick | stick 0.739, 5.44 m/s | 1.309 | 2.0 to 1.53 | 0.8 to 0.61 | -7.5 to -9.6 deg (-7.5 before) |
-
-Stabilised only: Manual and Acro, and every recorded flight, replay to
-the same hashes as on main.
 ## PR 5, built: the 3D aircraft
 
 E-flite's Extra 300 3D 1.3m (EFL115500), the aircraft docs/EXTRA-STAGE1.md
@@ -550,6 +530,85 @@ one with roll authority at zero airspeed: its ailerons start 77 mm out,
 inside the wash. The probe's harrier pilot is integrator limited at 29
 deg; extra:gates E11, flown to the alpha, holds 40. AUTH here is one step
 of full stick, the gates' E10 a 20 ms average from rest.
+
+## The rudder only aircraft's level hold, retuned for the wash
+
+PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
+under power, and Stabilised rolls those two on the rudder. The level
+hold's roll gains were tuned on a rudder in the free stream, so its loop
+gain rose with the wash's ratio and it took back more of the pilot's own
+yaw stick: bombshell:stab's "full right yaw stick ... wins over the level
+hold, right of a quarter of its throw" read -2.7 deg against its -5, and
+slowstick:stab's -7.5 sat on its -7.5 limit. Each gain is now its old
+value over the rudder's authority ratio in the wash at the trim, 1 + dp fv
+/ q (scripts/stab-hold-derive.js, `npm run stab:hold`, in CI): the loop
+as it was tuned, on the aircraft as it now flies. No check changed.
+
+| | trim | rudder gain in the wash | kp | kd | yaw stick's rudder |
+| --- | --- | --- | --- | --- | --- |
+| Bombshell | stick 0.732, 7.93 m/s | 1.446 | 1.6 to 1.11 | 0.6 to 0.42 | -2.7 to -5.4 deg (-5.4 before the wash) |
+| Slow Stick | stick 0.739, 5.44 m/s | 1.309 | 2.0 to 1.53 | 0.8 to 0.61 | -7.5 to -9.6 deg (-7.5 before) |
+
+Stabilised only: Manual and Acro, and every recorded flight, replay to
+the same hashes as on main.
+
+## SWIRL_KEEP from a source: Selig 2010
+
+PR 2 fitted SWIRL_KEEP, the share of a tractor's swirl that reaches the
+fin past the wing's root, at 0.5, the middle of what was unknown. It now
+comes from Selig, "Modeling Propeller Aerodynamics and Slipstream Effects
+on Small UAVs in Realtime" (AIAA 2010-7938), section B, Swirl Effects:
+"For a typical aerobatic RC/UAV configuration capable of hover, the net
+right rolling moment is near 40% of the propeller torque", the swirl's
+roll on the wing root, the fin and the fuselage taken together. The
+Extra 300 3D is that aircraft. At its hover the root's (1 - K) Q and the
+fin's roll in the swirl make 0.40 Q at K = 0.743 (scripts/extra-derive.js
+solves it; the fin's roll is linear in K); taken 0.74. Selig's fuselage
+coil is in the root's share here. Searched and found no number: Veldhuis
+(Propeller Wing Aerodynamic Interference, TU Delft 2005) and Witkowski,
+Lee and Sullivan (J. Aircraft 26(9), 1989) describe the wing's recovery
+of the swirl without a share a plant can take.
+
+More of the swirl at the fin swings a tractor harder on its take off roll
+(the Cub, Timber and Bombshell 20 deg by liftoff with the rudder left
+alone; the P-51 45), and the root takes less of the torque back: the
+Extra's hanging torque roll, E8, re-derived to 178 deg/s (146 at 0.5),
+the plant 218; E9, full aileron against it, 209 (232), the plant 212.
+
+### The probe, main to this
+
+ Aircraft | HOVER held of 8 s | HANG roll rate deg/s 
+ --- | --- | --- 
+ 1000 mm wing | 0.71 | -6.1 
+ Skyhunter | 0.82 | 0.1 
+ Cub | 1.12 → 0.92 | 2.0 → 1.7 
+ Slow Stick | 0.41 | -0.5 → -0.6 
+ Radian | 1.27 → 1.20 | 2.6 
+ Turbo Timber | 7.05 → 5.60 | 0.4 → 0.2 
+ Bramor | 0.32 | 3.7 
+ Bombshell | 0.46 → 0.45 | -3.2 → -3.9 
+ Kadet Senior | 1.01 | 0.8 
+ P-51D | 1.70 → 1.32 | 4.0 → 3.9 
+ F-16 | 0.57 | 1.3 
+ Zagi HP | 0.17 | 3.3 
+ Ugly Stik | 3.10 → 3.06 | 1.2 → 1.1 
+ Tiger Moth | 1.20 → 1.19 | 0.1 
+ Striker | 2.27 | 17.0 
+ Extra 300 3D | 8.00 | -0.7 
+
+### Changed, and why
+
+- The Ugly Stik's take off pilot and the river check's landing and taxi
+  pilot hold the line on the rudder as every other take off pilot does
+  (rudderHold, heading and centreline): their own gains no longer held
+  the stronger swing (the Stik 0.73 m off the line against 0.5; the
+  floatplane 2.8 m off its channel's line and out of the water taxiing).
+- The Extra's stab self test takes the Cub's form: sticks centred it
+  swings left, the heading held on the rudder it tracks.
+- Re-recorded: every tractor's recording and the Extra's; re-pinned their
+  hashes, recfile, replaylib's P-51 trace and simmod's transcript.
+  Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
+  its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
 
 ## Vertical air at the craft, for the weather
 

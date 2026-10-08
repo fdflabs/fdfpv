@@ -234,11 +234,13 @@ void plant_wing_biplane(double out[4]) {
 
 /* The share of a prop's swirl that reaches the fin past the wing's root,
  * the rest turned straight by the root (plant_wing_step, the slipstream).
- * FITTED: no published figure gives it for a model; the literature says
- * only that the wing recovers a significant part (Veldhuis 2005). Half,
- * the middle of what is unknown, and docs/FLIGHTMODEL.md has what the
- * take off roll does at a quarter and at all of it. */
-#define SWIRL_KEEP 0.5
+ * Selig (AIAA 2010-7938, sec. B): on "a typical aerobatic RC/UAV
+ * configuration capable of hover, the net right rolling moment" of the
+ * swirl "is near 40% of the propeller torque". On the Extra 300 3D at its
+ * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.743
+ * (scripts/extra-derive.js); the fuselage's coil, which Selig counts, is in
+ * the root's share. docs/FLIGHTMODEL.md. */
+#define SWIRL_KEEP 0.74
 
 /* The slipstream as the last step took it (FixedWingParams.slip_r): its
  * roll, pitch and yaw moments in the body frame as they were added, the
