@@ -27,7 +27,6 @@ import { LIVERIES, entryDrops, normaliseEntry, normaliseLiveries, normaliseSaves
 import { encodeLivery } from '../configs/paint.js';
 import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
 
-
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
 let passed = 0;
