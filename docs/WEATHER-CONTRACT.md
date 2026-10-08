@@ -130,9 +130,12 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
 4. Visuals: rain streaks round the camera while a front passes
    (src/render/rain.js: one draw call, moved in the vertex shader, hidden and
    free while dry, so calm costs nothing). Haze and reduced visibility are
-   NOT built: every map's fog and aerial perspective live in its look
+   NOT built here: every map's fog and aerial perspective live in its look
    modules (itaipu/look, the clouds and photoreal lanes' lines); asked of
-   those lanes in the plan file.
+   those lanes in the plan file. The hook for them: once a drawn frame the
+   shell calls `view.setWet?.(wet)`, `out.wet` at the camera, 0 to 1, and
+   0 whenever it is dry, calm or not flying, so a map's 0 must be its dry
+   look exactly.
 
 ## The checks
 

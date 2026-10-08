@@ -88,11 +88,11 @@ try {
   await page.evaluate(`window.__weather('front', ${SEED})`);
   const inFront = await throwAt(wet, y);
   await shot('rain-front.png');
-  check('inside a front it rains', inFront.shown === true, JSON.stringify(inFront));
+  check('inside a front it rains, and the map is handed how hard', inFront.shown === true && inFront.wet > 0.9, JSON.stringify(inFront));
   check('and the rain says what it is in the thermal picture (sensor:check coverage)', inFront.thermal === true);
   const outside = await throwAt(dry, y);
   await shot('rain-dry.png');
-  check('outside every front it does not', outside.shown === false, JSON.stringify(outside));
+  check('outside every front it does not, and the map is handed 0', outside.shown === false && outside.wet === 0, JSON.stringify(outside));
   const other = page.errors.slice(errors0).filter((e) => !/^network: .*ERR_CONNECTION_REFUSED/.test(e));
   check('the page logged nothing', other.length === 0, other.slice(0, 3).join(' | ').slice(0, 600));
 } finally {
