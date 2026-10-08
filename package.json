@@ -499,7 +499,8 @@
     "kits:selftest": "node scripts/kits-selftest.js",
     "kits:quads": "node scripts/kits-quads-check.js",
     "kits:hangar": "node scripts/kits-hangar-check.js",
-    "kits:replay": "node scripts/kits-replay.js"
+    "kits:replay": "node scripts/kits-replay.js",
+    "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
     "nodemailer": "10.0.14",

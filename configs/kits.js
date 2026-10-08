@@ -32,22 +32,50 @@ export const LIGHTS_VERSION = 1;
 
 const slot = (id, ...options) => ({ id, options: ['stock', ...options] });
 
-const TRAINER = [
-  slot('spinner', 'bullet', 'flat', 'none'),
-  slot('wingtips', 'raked', 'drooped', 'winglet'),
-  slot('wheels', 'pants', 'tundra'),
-  slot('fin', 'swept'),
-  slot('canopy', 'smoke', 'gold'),
-];
-const WARBIRD = [
+/*
+ * The planes, each its own list (docs/KITS.md section 3): a slot only
+ * where the airframe has the part, an option only where it draws
+ * differently from stock inside the stock model's box. A canopy that is a
+ * paint region already (the Radian's, the F-16's) has no tint slot, since
+ * the Paint page colours it.
+ */
+const CUB = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'tundra')];
+/* The Timber stands on tundra tyres already. */
+const TIMBER = [slot('spinner', 'bullet', 'flat'), slot('canopy', 'smoke', 'gold')];
+const KADET = [slot('spinner', 'bullet', 'flat'), slot('wheels', 'pants'), slot('canopy', 'smoke', 'gold')];
+const SLOWSTICK = [slot('spinner', 'bullet'), slot('wheels', 'tundra')];
+const UGLYSTIK = [slot('spinner', 'bullet'), slot('wheels', 'pants')];
+/* The Skyhunter is a pusher on booms: no wheels, no cabin glass, its
+ * fins a pair on the booms. */
+const SKY = [slot('spinner', 'bullet'), slot('wingtips', 'winglet')];
+const P51 = [
   slot('spinner', 'twotone', 'striped'),
-  slot('exhausts', 'stacks', 'dampers'),
+  slot('exhausts', 'dampers'),
   slot('wheels', 'covered'),
-  slot('canopy', 'bubble'),
+  slot('canopy', 'smoke'),
 ];
-const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium'), slot('canopy', 'gold')];
-const GLIDER = [slot('nose', 'pointed'), slot('wingtips', 'winglet'), slot('canopy', 'smoke')];
-const WING = [slot('winglets', 'tall', 'split'), slot('nose', 'bubble')];
+/* The Tiger Moth's cockpits are open, so no canopy slot. */
+const TIGERMOTH = [
+  slot('spinner', 'twotone', 'striped'),
+  slot('exhausts', 'stacks'),
+  slot('wheels', 'covered'),
+];
+/* The Bombshell's Cox spinner nut is too small to band, and its glow
+ * engine has no exhaust stacks to change. */
+const BOMBSHELL = [slot('spinner', 'bullet'), slot('wheels', 'covered'), slot('canopy', 'smoke')];
+/* The F-16's canopy is already gold tinted and a paint region of its own,
+ * so a tint slot would only repeat the Paint page. */
+const JET = [slot('nose', 'radome'), slot('fincap', 'chute'), slot('exhaust', 'titanium')];
+/* The Radian's canopy is a paint region, so no tint slot; the NRJ is a
+ * throw glider with no canopy and no tips a winglet belongs on. */
+const RADIAN = [slot('nose', 'pointed'), slot('wingtips', 'winglet')];
+const NRJ = [slot('nose', 'pointed')];
+/* The Zagi's winglets already set its height and its aftmost point, so a
+ * taller one would grow the box the referee meets: raked and split keep
+ * the stock outline's corners instead. */
+const ZAGI = [slot('winglets', 'raked', 'split'), slot('nose', 'bubble')];
+/* The Bramor's nose is its gimbal ball, the box's front, so no bubble. */
+const BRAMOR = [slot('winglets', 'raked', 'split')];
 const QUAD = [
   slot('arms', 'cutout', 'blade', 'tapered'),
   slot('top', 'vented', 'armoured'),
@@ -61,19 +89,24 @@ const STRIKER = [slot('nose', 'dome'), slot('fins', 'swept')];
 /* By livery key (configs/liveries.js liveryKey), so a float variant wears
  * its plane's kit. */
 export const KITS = {
-  sky1800: TRAINER, cub1400: TRAINER, kadet1981: TRAINER, slowstick1180: TRAINER,
-  uglystik1567: TRAINER, timber1500: TRAINER, extra3d1308: TRAINER,
-  p51d1450: WARBIRD, tigermoth1803: WARBIRD, bombshell1118: WARBIRD,
+  sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
+  uglystik1567: UGLYSTIK, timber1500: TIMBER,
+  /* The Extra arrived after the kit models: no slots until it has its own. */
+  extra3d1308: [],
+  p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
-  radian2000: GLIDER, nrj1490: GLIDER,
-  zagi1219: WING, bramor2300: WING,
+  radian2000: RADIAN, nrj1490: NRJ,
+  zagi1219: ZAGI, bramor2300: BRAMOR,
   '7inch': QUAD, '10inch': QUAD, interceptor: ARMOURED_QUAD,
   striker2500: STRIKER,
 };
 
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
-export const DRAWN = new Set(['7inch', '10inch', 'interceptor']);
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
+  'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
+  'p51d1450', 'tigermoth1803', 'bombshell1118',
+  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
