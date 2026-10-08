@@ -237,6 +237,14 @@ export function buildPeerCraft(profile, look = null) {
       gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
     }
     drive(p, 1, gear);
+    /* The kit's LEDs and strobes, run on this page's sim clock (the wire
+     * carries no clock of the pilot's, so a peer's chase is not in step
+     * with their own screen). The wire has no stick or pack either, so
+     * a peer's throttle pattern sits at half and its battery one solid
+     * (docs/KITS.md section 4). */
+    if (craft.setLights) {
+      craft.setLights(simT * 1000, 0.5, 1);
+    }
     smokeOn = false;
     if (smoke) {
       const at = craft.group.userData.smokeNozzle;
