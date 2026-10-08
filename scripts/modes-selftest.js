@@ -61,7 +61,7 @@ const exists = (p) => access(join(root, p)).then(() => true, () => false);
 
 console.log('modes: the entries');
 const ids = MODES.map((m) => m.id);
-check('the five activities, each once', ids.length === 5 && new Set(ids).size === 5 && ['race', 'tag', 'combat', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
+check('the six activities, each once', ids.length === 6 && new Set(ids).size === 6 && ['race', 'tag', 'combat', 'jam', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
 const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'straightToLobby', 'makeable'];
 const worlds = new Set(MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id));
 for (const m of MODES) {
@@ -83,8 +83,8 @@ for (const m of MODES) {
 check('every card way is distinct', new Set(MODES.map((m) => m.card.way)).size === MODES.length);
 
 console.log('modes: what the tables held before');
-check('ROOM_MODES is race, tag, combat, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['race', 'tag', 'combat']), JSON.stringify(ROOM_MODES));
-check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['race', 'tag', 'combat', 'war']), JSON.stringify(ROOM_SETUPS));
+check('ROOM_MODES is race, tag, combat, jam, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['race', 'tag', 'combat', 'jam']), JSON.stringify(ROOM_MODES));
+check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['race', 'tag', 'combat', 'jam', 'war']), JSON.stringify(ROOM_SETUPS));
 check('ROOM_MODES is the registry\'s makeable', JSON.stringify(ROOM_MODES) === JSON.stringify(MAKEABLE));
 check('ROOM_SETUPS is the registry\'s setups', JSON.stringify(ROOM_SETUPS) === JSON.stringify(SETUPS));
 check('combat rounds are 3 or 5 minutes', JSON.stringify(ROUND_MINUTES) === '[3,5]');
@@ -92,7 +92,7 @@ check('tag goals are roomtag\'s', JSON.stringify(modeById('tag').setting.choices
 check('setting keys: war mission, combat minutes, tag goal',
   modeById('war').setting.key === 'mission' && modeById('combat').setting.key === 'minutes' && modeById('tag').setting.key === 'goal'
   && modeById('race').setting === null && modeById('free').setting === null);
-check('a race is the one round a newcomer waits out', MODES.filter((m) => !m.allowDropIn).map((m) => m.id).join() === 'race');
+check('a race and a jam are the rounds a newcomer waits out', MODES.filter((m) => !m.allowDropIn).map((m) => m.id).join() === 'race,jam');
 check('only free flight is open ended', MODES.filter((m) => m.openEnded).map((m) => m.id).join() === 'free');
 check('only the war asks consent and is public only when made for', MODES.filter((m) => m.consent).map((m) => m.id).join() === 'war'
   && MODES.filter((m) => m.publicOnlyWhenMadeFor).map((m) => m.id).join() === 'war');

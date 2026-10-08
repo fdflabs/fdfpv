@@ -48,6 +48,7 @@
   "freestyle-wing1000",
   "combat",
   "ace",
+  "jam",
   "campaign",
   "interior",
   "training"
@@ -60,6 +61,7 @@
   "way-freestyle-wing1000": "club",
   "way-friends": null,
   "way-interior": "ops",
+  "way-jam": "club",
   "way-nope": null,
   "way-race-5inch": "club",
   "way-training": "club",
@@ -71,6 +73,7 @@
    "freestyle-wing1000",
    "combat",
    "ace",
+   "jam",
    "training"
   ],
   "hangar": [],
@@ -208,6 +211,7 @@
   "freestyle-wing1000": "plane",
   "friends": "all",
   "interior": "plane",
+  "jam": "all",
   "race-5inch": "all",
   "training": "plane",
   "war": "all"
@@ -402,6 +406,46 @@
    "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 50 210 L 38 96 L 104 150 L 150 70 L 196 150 L 262 96 L 250 210 Z\" fill=\"currentColor\" fill-opacity=\"0.45\" stroke=\"currentColor\" stroke-width=\"8\" stroke-opacity=\"0.9\" stroke-linejoin=\"round\"/><rect x=\"50\" y=\"222\" width=\"200\" height=\"26\" rx=\"6\" fill=\"currentColor\" fill-opacity=\"0.7\"/></svg>"
   },
   {
+   "action": "way-jam",
+   "airframes": [
+    "7inch",
+    "10inch",
+    "interceptor",
+    "sky1800",
+    "cub1400",
+    "radian2000",
+    "bramor2300",
+    "slowstick1180",
+    "timber1500",
+    "timber1500f",
+    "cub1400f",
+    "bombshell1118",
+    "kadet1981",
+    "uglystik1567",
+    "tigermoth1803",
+    "p51d1450",
+    "f16878",
+    "zagi1219",
+    "nrj1490",
+    "striker2500"
+   ],
+   "art": "assets/gate/flight.jpg",
+   "blurb": "One spot, one run each while the others watch. Hard tricks, clean landings, no repeats.",
+   "facts": [
+    "45 to 90 second runs",
+    "Best of three rounds",
+    "Invite code"
+   ],
+   "game": "jam",
+   "home": "swiss2",
+   "id": "jam",
+   "label": "Trick Battle",
+   "lobby": "jam",
+   "mode": "freestyle",
+   "room": true,
+   "svg": "<svg viewBox=\"0 0 300 300\" role=\"img\" aria-hidden=\"true\" preserveAspectRatio=\"xMidYMid meet\" class=\"craft-plan\"><path d=\"M 150 236 A 86 86 0 1 1 236 150\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"14\" stroke-opacity=\"0.8\" stroke-linecap=\"round\"/><path d=\"M 206 140 L 236 182 L 266 140 Z\" fill=\"currentColor\" fill-opacity=\"0.8\"/></svg>"
+  },
+  {
    "action": "way-war",
    "airframes": [
     "7inch",
@@ -569,6 +613,16 @@
    ],
    "id": "ace",
    "label": "¡Atrapa al As!"
+  },
+  {
+   "blurb": "Un lugar, una pasada cada uno mientras los demás miran. Trucos difíciles, aterrizajes limpios, sin repetir.",
+   "facts": [
+    "Pasadas de 45 a 90 segundos",
+    "Al mejor de tres rondas",
+    "Código de invitación"
+   ],
+   "id": "jam",
+   "label": "Batalla de Trucos"
   },
   {
    "blurb": "Drones de ataque vienen por Itaipú. Trae a tu escuadrón y defiende la represa.",
