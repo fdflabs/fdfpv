@@ -46,7 +46,7 @@
 
 import { airframeById } from './airframes.js';
 import { MAX_SAVED, checkPaint, cleanName, decodeLivery } from './paint.js';
-import { checkKit, checkLights } from './kits.js';
+import { checkKit, checkLights, kitParts } from './kits.js';
 
 /*
  * THE COVERING ON OFFER, by the makers' own names and numbers. The hex is
@@ -481,6 +481,8 @@ export function lookFor(airframeId, entry) {
     finishes: (entry && entry.finishes) || {},
     decals: (entry && entry.decals) || [],
     wear: ((entry && entry.wear) || 0) / 100,
+    kit: kitParts(liveryKey(airframeId), entry && entry.kit),
+    lights: (entry && entry.lights) || null,
   };
 }
 

@@ -474,7 +474,8 @@
     "lint:dashes": "node scripts/dash-lint.js",
     "briefing:selftest": "node scripts/briefing-selftest.js",
     "sky:smooth": "node scripts/sky-smooth-check.js",
-    "kits:selftest": "node scripts/kits-selftest.js"
+    "kits:selftest": "node scripts/kits-selftest.js",
+    "kits:quads": "node scripts/kits-quads-check.js"
   },
   "dependencies": {
     "nodemailer": "10.0.14",
