@@ -550,3 +550,61 @@ as it was tuned, on the aircraft as it now flies. No check changed.
 
 Stabilised only: Manual and Acro, and every recorded flight, replay to
 the same hashes as on main.
+
+## SWIRL_KEEP from a source: Selig 2010
+
+PR 2 fitted SWIRL_KEEP, the share of a tractor's swirl that reaches the
+fin past the wing's root, at 0.5, the middle of what was unknown. It now
+comes from Selig, "Modeling Propeller Aerodynamics and Slipstream Effects
+on Small UAVs in Realtime" (AIAA 2010-7938), section B, Swirl Effects:
+"For a typical aerobatic RC/UAV configuration capable of hover, the net
+right rolling moment is near 40% of the propeller torque", the swirl's
+roll on the wing root, the fin and the fuselage taken together. The
+Extra 300 3D is that aircraft. At its hover the root's (1 - K) Q and the
+fin's roll in the swirl make 0.40 Q at K = 0.743 (scripts/extra-derive.js
+solves it; the fin's roll is linear in K); taken 0.74. Selig's fuselage
+coil is in the root's share here. Searched and found no number: Veldhuis
+(Propeller Wing Aerodynamic Interference, TU Delft 2005) and Witkowski,
+Lee and Sullivan (J. Aircraft 26(9), 1989) describe the wing's recovery
+of the swirl without a share a plant can take.
+
+More of the swirl at the fin swings a tractor harder on its take off roll
+(the Cub, Timber and Bombshell 20 deg by liftoff with the rudder left
+alone; the P-51 45), and the root takes less of the torque back: the
+Extra's hanging torque roll, E8, re-derived to 178 deg/s (146 at 0.5),
+the plant 218; E9, full aileron against it, 209 (232), the plant 212.
+
+### The probe, main to this
+
+ Aircraft | HOVER held of 8 s | HANG roll rate deg/s 
+ --- | --- | --- 
+ 1000 mm wing | 0.71 | -6.1 
+ Skyhunter | 0.82 | 0.1 
+ Cub | 1.12 → 0.92 | 2.0 → 1.7 
+ Slow Stick | 0.41 | -0.5 → -0.6 
+ Radian | 1.27 → 1.20 | 2.6 
+ Turbo Timber | 7.05 → 5.60 | 0.4 → 0.2 
+ Bramor | 0.32 | 3.7 
+ Bombshell | 0.46 → 0.45 | -3.2 → -3.9 
+ Kadet Senior | 1.01 | 0.8 
+ P-51D | 1.70 → 1.32 | 4.0 → 3.9 
+ F-16 | 0.57 | 1.3 
+ Zagi HP | 0.17 | 3.3 
+ Ugly Stik | 3.10 → 3.06 | 1.2 → 1.1 
+ Tiger Moth | 1.20 → 1.19 | 0.1 
+ Striker | 2.27 | 17.0 
+ Extra 300 3D | 8.00 | -0.7 
+
+### Changed, and why
+
+- The Ugly Stik's take off pilot and the river check's landing and taxi
+  pilot hold the line on the rudder as every other take off pilot does
+  (rudderHold, heading and centreline): their own gains no longer held
+  the stronger swing (the Stik 0.73 m off the line against 0.5; the
+  floatplane 2.8 m off its channel's line and out of the water taxiing).
+- The Extra's stab self test takes the Cub's form: sticks centred it
+  swings left, the heading held on the rudder it tracks.
+- Re-recorded: every tractor's recording and the Extra's; re-pinned their
+  hashes, recfile, replaylib's P-51 trace and simmod's transcript.
+  Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
+  its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
