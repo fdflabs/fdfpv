@@ -33,7 +33,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { openPage, keyInfo } from '../tests/lib/page.js';
 import {
-  ROOMS, LAYOUTS, occupancy, blocked, cellAt, cellCentre,
+  ROOMS, LAYOUTS, WALK_SPEED, occupancy, blocked, cellAt, cellCentre,
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
 
@@ -155,6 +155,18 @@ try {
   const legend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
   check('the command bar names the walk keys', legend.includes(en['walk.walk']) && legend.includes(en['walk.use']), JSON.stringify(legend));
 
+  /* The pace: S held walks back toward the door at WALK_SPEED, whatever
+   * the frame rate (a frame's milliseconds once went in as seconds and
+   * capped every step, three times too fast at 60 fps). Timed by the
+   * page's own clock round the press. */
+  const back = await page.evaluate('window.__walkStats().pose.z');
+  const t0 = await page.evaluate('performance.now()');
+  await hold('KeyS', 300);
+  const t1 = await page.evaluate('performance.now()');
+  const moved = (await stats()).pose.z - back;
+  const pace = moved / ((t1 - t0) / 1000);
+  check('S held walks back at a walking pace', pace > 1.0 && pace < WALK_SPEED * 1.15, `${moved.toFixed(2)} m in ${(t1 - t0).toFixed(0)} ms, ${pace.toFixed(2)} m/s, walk speed ${WALK_SPEED}`);
+  s = await stats();
   const z0 = s.pose.z;
   await hold('KeyW', 500);
   s = await stats();

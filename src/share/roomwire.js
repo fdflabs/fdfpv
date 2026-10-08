@@ -192,7 +192,7 @@ export const ROOM_STATUSES = ['paused', 'menu', 'hidden', 'loading', 'crashcam']
 
 /* The games a private room's host starts: toilet paper combat, Catch
  * the Ace (roomtag) and the war mode (docs/WARFARE-PLAN.md). */
-export const ROOM_GAMES = ['combat', 'tag', 'war'];
+export const ROOM_GAMES = ['combat', 'tag', 'jam', 'war'];
 
 /*
  * The shape a room accepts for a profile: { airframe, map, figure,

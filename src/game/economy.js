@@ -91,6 +91,7 @@ function factsOf(blob) {
     campaign: cleanCampaign(data.campaign),
     seconds: flightTotals(data.flightTime).byAirframe,
     lessons: isRecord(progress.lessons) ? progress.lessons : {},
+    flown: isRecord(progress.lessonsFlown) ? progress.lessonsFlown : {},
     challenges: CHALLENGES.filter((c) => done[c.id] === true).map((c) => c.id),
   };
 }
