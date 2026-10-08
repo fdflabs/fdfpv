@@ -55,6 +55,10 @@ import { badWordIn } from '../tracks-api/words.js';
 
 /* The finishes a region can wear. `film` only on a film region, where it
  * is the kit's own; the others there make the film an opaque paint. */
+/* The patterns a region can wear in a second colour, drawn by
+ * src/render/finish.js finPattern as their place in this list plus one. */
+export const PATTERNS = ['checks', 'stripes', 'camo', 'splinter'];
+
 export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium', 'satin', 'pearl', 'candy', 'gold'];
 
 /* The finishes and decals that are owned, not unlocked: sold for tokens or

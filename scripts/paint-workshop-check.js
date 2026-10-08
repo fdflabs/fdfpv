@@ -23,6 +23,10 @@
  *   7. A/B on the Timber (its saved underside on): Stock pressed shows the
  *      kit's colours and no underside, pressed again the pilot's paint
  *      back; H the same; a swatch picked while on stock ends it.
+ *   8. Patterns on every paint family: a pattern (each family the next
+ *      in the list) on the first region that is not film, a swatch then
+ *      its second colour; the model's material draws both, and a picture
+ *      of each from above.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -50,6 +54,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { AIRFRAMES } from '../configs/airframes.js';
+import { PATTERNS } from '../configs/paint.js';
 import { coloursFor, liveryKey, paintable } from '../configs/liveries.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -414,6 +419,46 @@ async function abStock(page) {
   await page.evaluate('window.__ui.carousel.close(); true');
 }
 
+async function patternsEach(page) {
+  console.log('8. patterns on every paint family');
+  let n = 0;
+  for (const id of FAMILIES) {
+    await openHangar(page, id);
+    await page.click('.hangar [data-key="tab-colours"]');
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+    const region = await page.evaluate("(window.__ui.hangar.regions.find((r) => !r.film) || {}).id || null");
+    if (!region) {
+      const offered = await page.evaluate("Boolean(document.querySelector('.hangar [data-key=\"pattern-checks\"]'))");
+      say(!offered, `${id}: every region is film, so no pattern is offered`);
+      await closeHangar(page);
+      await page.evaluate('window.__ui.carousel.close(); true');
+      continue;
+    }
+    const pattern = PATTERNS[n % PATTERNS.length];
+    n += 1;
+    await steady(page, `.hangar [data-key="region-${region}"]`);
+    await page.click(`.hangar [data-key="region-${region}"]`);
+    await steady(page, `.hangar [data-key="pattern-${pattern}"]`);
+    await page.click(`.hangar [data-key="pattern-${pattern}"]`);
+    await page.until(`(window.__ui.hangar.entry.patterns || {})[${JSON.stringify(region)}]`, 5000).catch(() => {});
+    const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+    const key = keys[10];
+    const hex = key.slice('colour-'.length);
+    await steady(page, `.hangar [data-key="${key}"]`);
+    await page.click(`.hangar [data-key="${key}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+    await page.click('.hangar [data-key="view-top"]');
+    const want = { p: PATTERNS.indexOf(pattern) + 1, c: hex };
+    await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(id)}); const u = l && l.uniforms[${JSON.stringify(region)}]; return Boolean(u) && JSON.stringify(u.pattern) === ${JSON.stringify(JSON.stringify(want))}; })()`, 20000).catch(() => {});
+    await page.until(LANDED('top'), 60000).catch(() => {});
+    const u = (await look(page, id)).uniforms[region];
+    await shot(page, `${id}-pattern`);
+    say(Boolean(u) && JSON.stringify(u.pattern) === JSON.stringify(want), `${id}: ${pattern} on the ${region} in ${hex}: ${JSON.stringify(u)}`);
+    await closeHangar(page);
+    await page.evaluate('window.__ui.carousel.close(); true');
+  }
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -426,6 +471,7 @@ async function main() {
     await clickToPaint(page);
     await undoSteps(page);
     await abStock(page);
+    await patternsEach(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
