@@ -13,8 +13,9 @@ half) is another lane's.
   a seat on the scoreboard, a name tag. Its name always says it is an AI
   pilot: `AI Brave Fox 3` in English, `IA Zorro Valiente 3` in Spanish
   (`bots.name` in src/strings). An AI pilot is never shown without the mark.
-- The game lobby shows the AI pilots in its seat list, marked the same way,
-  and the host has one row: AI pilots, Off / Easy / Normal / Hard.
+- The game lobby shows the AI pilots in its seat list, marked the same way.
+  The host's row (AI pilots, Off / Easy / Normal / Hard) is PR 4; until it
+  lands a room made for tag fills at Normal.
 - A real pilot joining a room takes a seat an AI pilot held: the AI pilot
   leaves (a normal leave on every screen) and the newcomer is never refused
   `full` because of AI pilots.
@@ -71,9 +72,13 @@ check, the tick's batch recipients). Those 17 go through one helper,
   on 2026-10-07): 0.016 to 0.038 ms CPU per AI pilot per room second for the
   flight and the choices, so 7 in a room are under 0.3 ms of every second.
   What they add to the room's judging (tag's frontier moves on every tick,
-  pairs grow with seats) is measured in PR 3 through RoomCore, and BOT_CAP
-  is set from that, with the number next to the constant. The VM's slower
-  core is measured after the deploy (the same selftest, run there).
+  pairs grow with seats) measured in PR 3 through RoomCore (rooms:selftest,
+  3 AI pilots and one person in a live match for 120 room seconds): 2 to 3 ms
+  CPU a room second for the whole room, judging, relaying and flying, on
+  this desktop. A room never has more than FILL_TO - 1 = 3 AI pilots, so
+  that is the cap; a VM core two or three times slower still spends under
+  1 % of itself on such a room. The VM's own number is the same check run
+  there after the deploy.
 
 ## How they fly
 
@@ -82,9 +87,14 @@ check, the tick's batch recipients). Those 17 go through one helper,
   path. Its profile names the Zagi (`zagi1219`, a flying wing: no gear,
   flaps or rudder to animate), so its hull (src/game/midair.js hullFor)
   and its drawing are an ordinary peer's.
-- Tag: as a hunter, pure pursuit with lead on the Ace (warhunt.js's); as
-  the Ace, flee: steer away from the nearest hunter along the corridor; with
-  the orb free, fly to the orb.
+- Tag: as a hunter, pure pursuit with lead on the Ace (warhunt.js's) at
+  tag's CHASE_BOOST, as a person hunting flies; as the Ace, flee: away from
+  the nearest hunter along the valley; with the orb free, fly to the orb.
+  On the last 150 m to a target it may come down to the target's height
+  (never under 2 m), or a pilot sat on the strip could never be caught.
+- v1 AI pilots never crash: a mid air with one breaks the person as any
+  mid air does (the referee's hit), and the AI pilot flies on. Crashing
+  them (and their wreck) is a later PR if the owner wants it.
 - Where: AI pilots fly only where the server knows the ground. v1 is
   swiss2 (tag's home world): the valley floor corridor, within 150 m of the
   valley axis (src/maps/alps/terrain.js valleyAxis, copied with a selftest

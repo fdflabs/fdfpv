@@ -2564,6 +2564,7 @@ export default {
   "replay.export_no_sound": "Este navegador no puede codificar el sonido.",
   "replay.export_wrong_size": "la imagen era de {got}, la película de {want}",
   "rooms.name": "{animal} {adj} {n}",
+  "rooms.bot_name": "IA {name}",
   "friends.title": "Volar con amigos",
   "friends.lede": "Entra en una sala de la lista, o crea la tuya y ponle nombre: pública para que todos la encuentren, o privada para hasta ocho amigos con su código. Todos ven los aviones de todos, con sus propios colores.",
   "friends.row_off": "Entra en una sala de la lista, o crea la tuya.",

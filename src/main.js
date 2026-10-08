@@ -3167,6 +3167,9 @@ export async function boot({
     if (typeof pick === 'string') {
       return pick;
     }
+    if (pick && pick.bot) {
+      return str('rooms.bot_name', { name: roomName(pick.bot) });
+    }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
   function roomProfile() {
