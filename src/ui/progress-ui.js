@@ -304,6 +304,10 @@ export class Progress {
 
   gatePass() {
     this.award(this.watch.gatePass());
+    if (this.lesson) {
+      this.lesson.gatePass();
+      this.lessonNews();
+    }
   }
 
   touch(kind) {

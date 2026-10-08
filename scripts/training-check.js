@@ -96,7 +96,7 @@ try {
     };
   })()`);
   check('the Learn to fly card opens the lessons page, every lesson under its track', listed
-    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Racing', JSON.stringify(listed));
+    && listed.lessons.join() === LESSONS.map((l) => l.id).join() && listed.tracks.join() === 'First flight,Fixed wing,Multirotor,Racing', JSON.stringify(listed));
   check('nothing on it is locked: every lesson has Fly', listed && listed.plays === LESSONS.length, JSON.stringify(listed));
   await shot(page, 'lessons');
 
@@ -158,6 +158,16 @@ try {
   /* That card's aircraft picker, closed as a pilot backs out of it. */
   await page.tap('Escape');
   await page.until('!window.__ui.carousel.isOpen', 10000).catch(() => {});
+
+  /* A QUAD LESSON seats the interceptor in angle mode. */
+  await page.evaluate("window.__ui.show('title'); true");
+  await page.sleep(300);
+  await page.evaluate('(window.__training.open(), true)');
+  await page.until("!!document.querySelector('.training-box')", 15000);
+  await click(page, '[data-lesson="quad_hover"] .campaign-play');
+  await page.until("window.__ui.progress.lesson && window.__ui.progress.lesson.lesson.id === 'quad_hover'", 15000).catch(() => {});
+  const quad = await page.evaluate("({ airframe: window.__ui.settings.airframe, mode: window.__ui.settings.flightMode, map: window.__ui.settings.map })");
+  check('Hover seats the interceptor in angle mode on the valley', quad.airframe === 'interceptor' && quad.mode === 'angle' && quad.map === 'swiss2', JSON.stringify(quad));
 
   /* I FLY ALREADY: First flight's skip flies the unaided round in Acro,
    * and its pass, fed to Progress as the frames would feed it, passes the

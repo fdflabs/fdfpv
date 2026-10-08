@@ -55,16 +55,28 @@ for (const l of LESSONS) {
 }
 expect('ids are unique', new Set(LESSONS.map((l) => l.id)).size, LESSONS.length);
 
-/* A flight as frames: each segment is { ms, grounded, yawRate, crashed }. */
+/* A flight as frames: each segment is { ms, grounded, yawRate, crashed,
+ * agl, x, z, battery }; `gates` after the frames is passes and rims in
+ * order, 'g' and 'r'. */
 const FRAME_MS = 16;
-function fly(id, segments, { laps = [] } = {}) {
+function fly(id, segments, { laps = [], gates = '' } = {}) {
   const w = new LessonWatch(lessonById(id));
   let t = 0;
   let heading = 0.3;
   for (const s of segments) {
     for (let end = t + s.ms; t < end; t += FRAME_MS) {
       heading += (s.yawRate ?? 0) * FRAME_MS / 1000;
-      w.tick({ simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)) });
+      w.tick({
+        simMs: t, crashed: Boolean(s.crashed), grounded: Boolean(s.grounded), heading: Math.atan2(Math.sin(heading), Math.cos(heading)),
+        agl: s.agl ?? (s.grounded ? 0 : 30), pos: { x: s.x ?? 0, z: s.z ?? 0 }, battery: s.battery ?? 'ok',
+      });
+    }
+  }
+  for (const g of gates) {
+    if (g === 'g') {
+      w.gatePass();
+    } else {
+      w.rim();
     }
   }
   for (const lap of laps) {
@@ -78,6 +90,22 @@ function fly(id, segments, { laps = [] } = {}) {
 const ground = (ms) => ({ ms, grounded: true });
 const air = (ms, yawRate = 0) => ({ ms, grounded: false, yawRate });
 const crash = { ms: 32, crashed: true, grounded: true };
+const at = (ms, agl, x = 0, z = 0) => ({ ms, grounded: false, agl, x, z });
+
+expect('height: 21 s at 30 m', fly('wing_height', [ground(300), at(21000, 30)]), true);
+expect('height: 15 s, a dip to 20 m, 15 s', fly('wing_height', [at(15000, 30), at(500, 20), at(15000, 30)]), false);
+expect('approaches: three landings', fly('wing_approaches', [air(5000), ground(1200), air(5000), ground(1200), air(5000), ground(1200)]), true);
+expect('approaches: one long landing is not three', fly('wing_approaches', [air(5000), ground(6000)]), false);
+expect('approaches: a crash on the third', fly('wing_approaches', [air(5000), ground(1200), air(5000), ground(1200), air(5000), crash, ground(1200)]), false);
+expect('dead stick: low battery, then down', fly('wing_deadstick', [air(5000), { ms: 500, grounded: false, battery: 'warning' }, ground(1200)]), true);
+expect('dead stick: down with a full pack', fly('wing_deadstick', [air(5000), ground(1200)]), false);
+expect('hover: 16 s in the box', fly('quad_hover', [ground(300), at(16000, 2, 0.5, -0.5)]), true);
+expect('hover: drifts 5 m away', fly('quad_hover', [at(8000, 2), at(8000, 2, 5, 0)]), false);
+expect('hover: too high', fly('quad_hover', [at(16000, 6)]), false);
+expect('throttle: 6 s at 10 m', fly('quad_throttle', [at(3000, 4), at(6000, 10.4)]), true);
+expect('throttle: 6 s at 12 m', fly('quad_throttle', [at(6000, 12)]), false);
+expect('precision: ten in a row', fly('quad_precision', [], { gates: 'gggrgggggggggg' }), true);
+expect('precision: a touch at nine', fly('quad_precision', [], { gates: 'gggggggggrggg' }), false);
 const CIRCLE = 2 * Math.PI / 8; /* rad/s: a circle in 8 s */
 
 expect('takeoff: 21 s up', fly('first_takeoff', [ground(500), air(21000)]), true);
@@ -137,6 +165,7 @@ for (const t of TRACKS) {
  * cannot import (it needs Three.js), so its length is read from the source. */
 const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8'))[1]);
 expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
+expect('every quad mode is angle or acro', LESSONS.every((l) => l.mode == null || ['angle', 'acro'].includes(l.mode)), true);
 expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);
 expect('a glide lesson flies where there is a strip', LESSONS.filter((l) => l.aid === 'glide').every((l) => Boolean(STRIPS[l.place])), true);
 const pts = glidePoints(STRIPS.swiss2, 3);
@@ -154,7 +183,7 @@ expect('behind and a little right: right, not ahead', gateCue(eye, { x: 1, y: 0,
 
 /* I fly already: each track's skip is its own lesson, and what a lesson
  * covers is earlier lessons of its own track. */
-for (const t of TRACKS) {
+for (const t of Object.keys(SKIPS)) {
   const l = lessonById(SKIPS[t]);
   expect(`${t}: its skip is one of its lessons`, Boolean(l) && l.track === t, true);
 }
