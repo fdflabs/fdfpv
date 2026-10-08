@@ -13,6 +13,10 @@
  *      the first region's underside only (the model's material carries
  *      it, the top keeps its colour); a picture of each. The Timber's is
  *      saved, kept in the settings, and after a reload still drawn.
+ *   5. Click to paint on the Timber: a colour picked, then the pointer over
+ *      the model from the Top view names the region and side beside it
+ *      and a click puts the colour on that region's top; from the Bottom
+ *      view the label says underside and a click paints the underside.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -277,6 +281,61 @@ async function underEach(page) {
   }
 }
 
+async function mouse(page, type, x, y) {
+  await page.cdp.send('Input.dispatchMouseEvent', { type, x, y, button: type === 'mouseMoved' ? 'none' : 'left', clickCount: 1 }, page.sessionId);
+}
+
+/* Hover the stage on a small grid out from its middle until the label
+ * names a region; returns the point and what the hangar heard. */
+async function hoverModel(page) {
+  const box = await page.evaluate("(() => { const r = document.querySelector('.hangar-stage').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()");
+  for (const [dx, dy] of [[0, 0], [60, 0], [-60, 0], [0, 30], [0, -30], [120, 10], [-120, 10]]) {
+    const x = box.x + dx;
+    const y = box.y + dy;
+    await mouse(page, 'mouseMoved', x, y);
+    const heard = await page.until(`(() => { const h = window.__ui.hangar.paintHit; const l = document.querySelector('.hangar-hover-label'); return Boolean(h) && !l.hidden; })()`, 4000)
+      .then(() => true, () => false);
+    if (heard) {
+      const hit = await page.evaluate("({ hit: window.__ui.hangar.paintHit, label: document.querySelector('.hangar-hover-label').textContent })");
+      return { x, y, ...hit };
+    }
+  }
+  return null;
+}
+
+async function clickToPaint(page) {
+  console.log('5. click to paint on the Timber');
+  await openHangar(page, 'timber1500');
+  await page.click('.hangar [data-key="tab-colours"]');
+  await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  const key = keys[4];
+  const hex = key.slice('colour-'.length);
+  await steady(page, `.hangar [data-key="${key}"]`);
+  await page.click(`.hangar [data-key="${key}"]`);
+  await page.until(`window.__ui.hangar.brush === ${JSON.stringify(hex)}`, 5000);
+  for (const [view, side] of [['top', 'top'], ['bottom', 'under']]) {
+    await page.click(`.hangar [data-key="view-${view}"]`);
+    await page.until(LANDED('top'), 60000).catch(() => {});
+    await page.until(ROLLED(view === 'bottom' ? Math.PI : 0), 60000).catch(() => {});
+    const at = await hoverModel(page);
+    say(Boolean(at) && at.hit.side === side && at.label.includes(side === 'under' ? 'Underside' : 'Top'),
+      `${view}: the pointer over the model names it: ${JSON.stringify(at)}`);
+    if (!at) {
+      continue;
+    }
+    await shot(page, `5-hover-${view}`);
+    await mouse(page, 'mousePressed', at.x, at.y);
+    await mouse(page, 'mouseReleased', at.x, at.y);
+    const field = side === 'under' ? 'under' : 'regions';
+    await page.until(`((window.__ui.hangar.entry.${field} || {})[${JSON.stringify(at.hit.region)}]) === ${JSON.stringify(hex)}`, 10000).catch(() => {});
+    const entry = await page.evaluate('window.__ui.hangar.entry');
+    say((entry[field] || {})[at.hit.region] === hex, `${view}: a click paints the ${at.hit.region}'s ${side} ${hex}: ${JSON.stringify(entry)}`);
+  }
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -286,6 +345,7 @@ async function main() {
     await flipAndViews(page);
     await closedFlipped(page);
     await underEach(page);
+    await clickToPaint(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

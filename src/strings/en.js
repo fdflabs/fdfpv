@@ -1928,6 +1928,7 @@ export default {
   "hangar.flip": "Flip",
   "hangar.side_top": "Top",
   "hangar.side_under": "Underside",
+  "hangar.hover_region": "{region}, {side}",
   "hangar.view_top": "Top",
   "hangar.view_bottom": "Bottom",
   "hangar.view_left": "Left",
