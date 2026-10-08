@@ -775,7 +775,7 @@ pass measured why. What changed, each from a source:
 - The 22 ms servo frame is now in the plant: the receiver samples the
   rates and writes the surfaces once a frame and holds them. The gains
   are derived against that loop's delay, half the frame (a sample and
-  hold), as_k = pi / (4 M tau) at the top speed for a 6 dB margin, and
+  hold), as3x_k = pi / (4 M tau) at the top speed for a 6 dB margin, and
   the heading's corner a quarter of the rate loop's crossover, kh = k pi
   / (16 tau): 0.056, 0.2449 and 0.3685; 1.00, 4.37 and 0 (as3x:derive).
 
