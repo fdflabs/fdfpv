@@ -832,7 +832,8 @@ export class OpsHud {
     /* The people below noticing the aircraft (CONTRACT-SPOTTED.md) share
      * the boundary's place: both say "get out of here", and the boundary
      * is the more urgent. */
-    const spot = Object.values((v && v.spot) || {}).map((x) => x.level).find((l) => l === 'spotted' || l === 'looking');
+    const levels = Object.values((v && v.spot) || {}).map((x) => x.level);
+    const spot = ['spotted', 'looking'].find((l) => levels.includes(l));
     this.bound.set(bound ? str(`ops.hud.boundary_${bound}`) : spot ? str(`ops.hud.spot_${spot}`) : '');
 
     /* The EO / IR / MAP / TGT / LRF row. */
