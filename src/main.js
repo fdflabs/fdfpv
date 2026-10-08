@@ -149,6 +149,7 @@ import {
 } from './share/ops/guide.js';
 import { RolesBoard, roleName } from './ui/rolesboard.js';
 import { playInteriorFilm, filmsFor as opsFilmsFor } from './render/interiorfilms.js';
+import { spotFilm } from './share/ops/spotfilm.js';
 import { FILMS as OPS_FILMS } from './share/interior/films/index.js';
 import { Debrief } from './ui/debrief.js';
 import { createOpsCampaignScreen } from './ui/opscampaign.js';
@@ -163,6 +164,9 @@ import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
 import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import {
+  createNudger as createWarNudger, ground as warGround, headingOf as warHeadingOf, nudgeOf as warNudgeOf, threatOf as warThreatOf,
+} from './share/war/nudge.js';
 import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
@@ -239,6 +243,7 @@ import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
+import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
@@ -258,6 +263,7 @@ const WING_MOUNTS = {
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
+  extra3d1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
@@ -282,7 +288,7 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
-import { makeWeather } from './game/weather.js';
+import { makeWeather, MAPS as WEATHER_MAPS, PRESET_IDS as WEATHER_PRESETS } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
@@ -1500,6 +1506,8 @@ export async function boot({
   /* The match whose mission palette the thermal core has been set to. */
   let opsPaletteFor = null;
   let opsOutroShown = null;
+  /* The spotted end scene last played: match, spotter and moment. */
+  let opsSpotShown = null;
   /* The prologue owed before the campaign's page: its film id, or null. */
   let opsPrologueDue = null;
   /* Own stills as pictures the film can draw, by item. */
@@ -1513,7 +1521,7 @@ export async function boot({
     warIntroStop();
     warIntroFor = `ops:${id}`;
     warIntroFov = shell.camera.fov;
-    const film = OPS_FILMS[id];
+    const film = opts.film ?? OPS_FILMS[id];
     const h = playInteriorFilm(shell.quad.parent || view.scene, shell.camera, id, {
       map: view.id,
       canvas: shell.canvas,
@@ -1628,6 +1636,30 @@ export async function boot({
       });
     } else if (intro && opsFilmOn(intro) && !briefing) {
       warIntroStop();
+    }
+    /* Spotted (CONTRACT-SPOTTED.md): the cut to the people scattering,
+     * on the room's clock from the moment they saw you, then the fail. */
+    const spot = v.state === 'live' && mission && mode !== 'replay' && map && opsWorldUp(map)
+      ? (mission.spotters ?? []).find((sp) => v.spot?.[sp.id]?.at.spotted != null) : null;
+    const spotKey = spot ? `${match}:${spot.id}:${v.spot[spot.id].at.spotted}` : null;
+    if (spot && opsSpotShown !== spotKey) {
+      opsSpotShown = spotKey;
+      const t0 = v.spot[spot.id].at.spotted;
+      const world = opsWorld(mission);
+      const ps = (v.contacts || []).filter((c) => (c.id === spot.group || c.group === spot.group) && c.route)
+        .map((c) => world.poseOnRoute(c.route, t0 - c.t0)).filter((p) => p && p.action !== 'gone');
+      if (ps.length) {
+        /* Ops frame (x east, y north) to the world's (x, -z). */
+        const at = [ps.reduce((a, p) => a + p.x, 0) / ps.length, -ps.reduce((a, p) => a + p.y, 0) / ps.length];
+        const cam = shell.camera.position;
+        const from = Math.atan2(cam.x - at[0], cam.z - at[1]);
+        opsFilmPlay('spotted', {
+          film: spotFilm(map, at, spot.scene, from),
+          clock: () => roomLinkState.roomNow() - t0,
+          seen: true,
+          onSeen: () => {},
+        });
+      }
     }
     /* The outro on a win, then the debrief. */
     const outro = opsFilmOf(v.mission, 'outro');
@@ -5675,6 +5707,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    warNudgeFrame(v, live, wallMs);
     worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
@@ -5699,6 +5732,30 @@ export async function boot({
     const m = roomWar.mission();
     warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
     warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
+  }
+
+  /* The war's guide nudge (src/share/war/nudge.js), for a mission that
+   * asks for it: after no progress for a while, and only into a quiet
+   * radio, where the attacker nearest the targets is. Progress is the
+   * stage moving on, a kill, the nearest threat changing, or closing on
+   * it. */
+  const warNudger = createWarNudger();
+  let warNudgeAt = 0;
+  function warNudgeFrame(v, live, wallMs) {
+    const m = roomWar.mission();
+    if (!m || !m.nudge || !roomWar.live() || mode !== 'flight' || ui.screen !== 'flight' || warIntro || wallMs < warNudgeAt) {
+      return;
+    }
+    warNudgeAt = wallMs + 1000;
+    const here = warGround([pCurr.x, pCurr.y, pCurr.z]);
+    const threat = warThreatOf(live, m.targets);
+    const dist = threat ? Math.hypot(threat.at[0] - here[0], threat.at[1] - here[1]) : null;
+    warNudger.progress(`${v.stage ? v.stage.id : ''}|${live.length}|${threat ? threat.id : ''}`, wallMs, dist);
+    if (!threat || !radioQuiet() || !warNudger.due(wallMs)) {
+      return;
+    }
+    warSay([warNudgeOf(threat, here, warHeadingOf([camFwd.x, camFwd.y, camFwd.z]))], 'guide');
+    warNudger.nudged(wallMs);
   }
 
   /* The game running in this room, as this screen knows it, or null. */
@@ -6737,6 +6794,7 @@ export async function boot({
         drawnAirframe: p.rig ? p.rig.airframe : null,
         at: p.rig ? p.rig.group.position.toArray() : null,
         paint: p.rig ? p.rig.paint() : null,
+        decals: p.rig ? p.rig.decals() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
@@ -11755,7 +11813,11 @@ export async function boot({
    * launch stand steps in it; the first flight step sets the new air); a
    * run after a calm one makes no call at all, which keeps every calm
    * flight's call stream (recorded flights, contact:golden) as it was.
-   * Picked by window.__weather until the room and the settings pick it.
+   * In a room the room's air (its welcome, set by the host) on the room's
+   * clock, so every pilot meets a front where the others do; the clock is
+   * read once per run, which keeps the run's own steps a function of its
+   * own clock. A war is calm (docs/WEATHER-CONTRACT.md). Solo, the pick
+   * window.__weather made, until the settings pick it.
    */
   let weatherPick = { preset: 'calm', seed: 0 };
   let weather = null;
@@ -11769,8 +11831,19 @@ export async function boot({
       throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
     }
   }
+  let weatherT0 = 0;
+  let weatherFlown = null;
   function seatWeather() {
-    weather = makeWeather(view.id, weatherPick.preset, weatherPick.seed);
+    const welcome = roomLinkState.state().welcome;
+    const pick = welcome ? (roomWar.on() ? null : welcome.weather) : weatherPick;
+    /* A room's air is from the network, and may name what this build does
+     * not know (a newer server) or a world without weather: still air. */
+    const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
+    weather = known ? makeWeather(view.id, pick.preset, pick.seed) : null;
+    /* null until the room's clock has synced: the run's own clock then. */
+    const roomMs = welcome ? roomLinkState.roomNow() : null;
+    weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
       setWind(0, 0, 0);
       windSet = false;
@@ -11779,11 +11852,17 @@ export async function boot({
   /* Before a step: the air at the craft, on the plant's own clock. */
   function pushWeather(st) {
     poseFromState(st, airPos);
-    weather.at(airPos.x, airPos.y, airPos.z, st[0], airOut);
+    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
     setWind(airSim.x, airSim.y, airOut.gust);
     windSet = true;
   }
+  /* The air this run flies, { map, preset, seed }, or null for calm. */
+  window.__weatherFlown = () => weatherFlown;
+  window.__roomWeather = (preset) => {
+    roomLinkState.sendWeather(preset);
+    return true;
+  };
   window.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     weatherPick = { preset, seed: seed >>> 0 };
@@ -16890,6 +16969,7 @@ export async function boot({
    * flight is not a flat panel in between. Prop discs spin at a visibly
    * aliased fraction of true RPM; on the title a cruise spin stands in.
    */
+  const LED_BATTERY = { ok: 1, warning: 0.4, critical: 0 };
   function dressWorld() {
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
@@ -16925,6 +17005,11 @@ export async function boot({
     }
     if (shell.setProp) {
       shell.setProp(stateCurr[14]);
+    }
+    /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
+     * a replay flashes as the flight did; the pack as the OSD bands it. */
+    if (shell.quad.userData.setLights) {
+      shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
@@ -17448,6 +17533,9 @@ export async function boot({
     }
     if (pick && pick.hangar && pick.hangar.aim) {
       ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+    }
+    if (pick && pick.hangar) {
+      ui.hangar.pointed(pick.hangar.point ? pickStage.pickPart(pick.items[0].id, pick.hangar.point.x, pick.hangar.point.y) : null);
     }
     studioFrame(dt, nowWall);
   }
@@ -18153,6 +18241,8 @@ export async function boot({
 
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
+  /* The exploded part at client pixels on the hangar's model, for a check. */
+  window.__hangarPartAt = (x, y) => (ui.hangar.isOpen ? pickStage.pickPart(ui.hangar.id, x, y) : null);
   window.__walkStats = () => (ui.walk ? {
     pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);

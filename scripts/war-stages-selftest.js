@@ -605,7 +605,11 @@ const STORY = {
       }],
       objectives: [{ id: 'hold-a', text: 'war.obj.a', fail: { destroyed: 'a' } }],
       cues: [{ at: 0, music: 'combat' }, { at: 1, radio: 'wave-strike' }, { at: 0, text: 'war.stage.calm' },
-        { when: { destroyed: 'a' }, cutaway: { target: 'a', ms: 2500 } }],
+        { when: { destroyed: 'a' }, cutaway: { target: 'a', ms: 2500 } },
+        /* A skip fired before the cue is due drops it; one not fired by
+         * then leaves it told. */
+        { at: 1, radio: 'wave-loiter', skip: { time: 0.5 } },
+        { at: 1.5, radio: 'wave-fpv', skip: { destroyed: 'a' } }],
       exits: [{ when: { destroyed: 'a' }, to: { pick: ['twist-x', 'twist-y'] }, after: 0 }],
     },
     {
@@ -731,6 +735,7 @@ console.log('the room: a story');
   let families = true;
   let turned = true;
   let cueOk = true;
+  let skipOk = true;
   let failOk = true;
   const detail = [];
   for (const seed of seeds) {
@@ -765,6 +770,10 @@ console.log('the room: a story');
       cueOk = false;
       detail.push(`cues ${JSON.stringify(cues)}`);
     }
+    if (cues.some((c) => c.radio === 'wave-loiter') || !cues.some((c) => c.radio === 'wave-fpv' && c.at === GO + 1500)) {
+      skipOk = false;
+      detail.push(`skip ${JSON.stringify(cues.map((c) => c.radio).filter(Boolean))}`);
+    }
     const failedView = e.of(0).map((m) => m.war).find((w) => w.stage && w.stage.id === 'calm' && w.stage.objectives[0].state === 'failed');
     if (!failedView && !(down && e.of(0).map((m) => m.war).some((w) => w.stage && w.stage.id !== 'calm'))) {
       failOk = false;
@@ -774,6 +783,7 @@ console.log('the room: a story');
   check('on a route of its family', families);
   check('turned about its route\'s last point by its az, inside the window', turned, detail.join(' '));
   check('the music at the entry, the radio line 1 s in, the cutaway when a falls, each at its room ms', cueOk, detail.slice(0, 2).join(' '));
+  check('a cue whose skip fired first is dropped, one whose skip has not is told', skipOk, detail.filter((d) => d.startsWith('skip')).slice(0, 2).join(' '));
   check('the objective fails when its target falls', failOk);
   check('over ten seeds both twists are met', twists.has('twist-x') && twists.has('twist-y'), [...twists].join(','));
 

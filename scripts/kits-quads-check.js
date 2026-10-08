@@ -115,6 +115,40 @@ async function boxes(page) {
   }
 }
 
+/* What a room draws for another pilot (src/render/peers.js
+ * buildPeerCraft), from the profile the room passes on untouched
+ * (src/share/roomwire.js checkProfile): the kit in its livery is drawn. */
+async function peers(page) {
+  console.log('3. another pilot in a room wears their kit');
+  const got = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { buildPeerCraft } = await import('./src/render/peers.js');
+    const sig = (c) => {
+      const pts = [];
+      c.group.updateMatrixWorld(true);
+      c.group.traverse((o) => {
+        if (o.isMesh && o.geometry.attributes.position) {
+          pts.push(o.geometry.attributes.position.count);
+        }
+      });
+      return pts.join(',');
+    };
+    const out = {};
+    for (const [id, parts] of Object.entries(${JSON.stringify(WORN)})) {
+      const base = { airframe: id, map: 'swiss2', figure: 0, parts: null };
+      const plain = buildPeerCraft({ ...base, livery: null });
+      const kitted = buildPeerCraft({ ...base, livery: { kit: { v: 1, parts } } });
+      out[id] = sig(plain) !== sig(kitted);
+      plain.dispose();
+      kitted.dispose();
+    }
+    return out;
+  })()`);
+  for (const [id, drawn] of Object.entries(got)) {
+    say(drawn, `${id}: a peer with a kit is drawn differently from one without`);
+  }
+}
+
 async function pictures(page) {
   console.log('2. each quad in the hangar wearing its kit');
   for (const id of QUADS) {
@@ -149,6 +183,7 @@ async function main() {
     await page.until('window.__map && window.__map().ready', 400000);
     await boxes(page);
     await pictures(page);
+    await peers(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
