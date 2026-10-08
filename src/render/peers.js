@@ -143,9 +143,13 @@ export function buildPeerCraft(profile, look = null) {
   /* A peer on an old tab can still fly an aircraft this build no longer
    * has: it is drawn as that aircraft's successor, a plane for a plane. */
   const id = airframeById(currentAirframeId(profile.airframe)).id;
-  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true });
-  if (paintable(id)) {
-    dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)));
+  /* The peer's visual kit (configs/kits.js) is built into the drawing,
+   * so it is read before the build; profileKey already rebuilds on a new
+   * livery, which carries it. */
+  const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
+  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined });
+  if (paint) {
+    dressLivery(craft, id, paint);
   }
   let smoke = null;
   if (PROPS[id]) {
