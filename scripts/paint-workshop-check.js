@@ -430,7 +430,7 @@ async function patternsEach(page) {
   let n = 0;
   for (const id of FAMILIES) {
     await openHangar(page, id);
-    await page.click('.hangar [data-key="tab-colours"]');
+    await press(page, '.hangar [data-key="tab-colours"]');
     await page.until("window.__ui.hangar.tab === 'colours'", 5000);
     const region = await page.evaluate("(window.__ui.hangar.regions.find((r) => !r.film) || {}).id || null");
     if (!region) {
@@ -442,18 +442,15 @@ async function patternsEach(page) {
     }
     const pattern = PATTERNS[n % PATTERNS.length];
     n += 1;
-    await steady(page, `.hangar [data-key="region-${region}"]`);
-    await page.click(`.hangar [data-key="region-${region}"]`);
-    await steady(page, `.hangar [data-key="pattern-${pattern}"]`);
-    await page.click(`.hangar [data-key="pattern-${pattern}"]`);
+    await press(page, `.hangar [data-key="region-${region}"]`);
+    await press(page, `.hangar [data-key="pattern-${pattern}"]`);
     await page.until(`(window.__ui.hangar.entry.patterns || {})[${JSON.stringify(region)}]`, 5000).catch(() => {});
     const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
     const key = keys[10];
     const hex = key.slice('colour-'.length);
-    await steady(page, `.hangar [data-key="${key}"]`);
-    await page.click(`.hangar [data-key="${key}"]`);
+    await press(page, `.hangar [data-key="${key}"]`);
     await mouse(page, 'mouseMoved', 400, 450);
-    await page.click('.hangar [data-key="view-top"]');
+    await press(page, '.hangar [data-key="view-top"]');
     const want = { p: PATTERNS.indexOf(pattern) + 1, c: hex };
     await page.until(`(() => { const l = window.__pickLook(${JSON.stringify(id)}); const u = l && l.uniforms[${JSON.stringify(region)}]; return Boolean(u) && JSON.stringify(u.pattern) === ${JSON.stringify(JSON.stringify(want))}; })()`, 20000).catch(() => {});
     await page.until(LANDED('top'), 60000).catch(() => {});
