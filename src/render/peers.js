@@ -44,7 +44,7 @@
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { dressLivery } from './livery.js';
-import { readDecals } from './decals.js';
+import { dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
@@ -145,7 +145,13 @@ export function buildPeerCraft(profile, look = null) {
   const id = airframeById(currentAirframeId(profile.airframe)).id;
   const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true });
   if (paintable(id)) {
-    dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)));
+    /* The colours at once, the layers over the next frames
+     * (dressDecalsLater), so a full livery joining is no long frame. */
+    const paint = lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry));
+    dressLivery(craft, id, { ...paint, decals: [] });
+    if (paint.decals.length) {
+      dressDecalsLater(craft, paint.decals);
+    }
   }
   let smoke = null;
   if (PROPS[id]) {
