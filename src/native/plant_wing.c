@@ -202,6 +202,10 @@ static double g_debug[20];
 static double g_fan_n = 0.0;
 static double g_fan_v = 0.0;
 static double g_esc_ramp = 0.0;
+/* An electric prop's speed over its full (prop_spool), and whether the
+ * next step takes it at the duty's as a launch does. */
+static double g_prop_n = 0.0;
+static int g_prop_hot = 0;
 
 /* A fan that idles is a turbine: a ducted fan's table with an idle. No
  * table had both before the Striker's, so this is false on every other. */
@@ -742,6 +746,8 @@ void plant_wing_reset(void) {
   g_fan_n = fan_idles(PLANT.fw) ? PLANT.fw->throttle_idle : 0.0;
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
+  g_prop_n = 0.0;
+  g_prop_hot = 0;
   g_discus = 0;
   g_discus_t = 0.0;
 }
@@ -784,6 +790,46 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
     g_fan_v = 0.0;
   }
   return g_fan_n;
+}
+
+/*
+ * AN ELECTRIC PROP'S SPEED, one step. The rotor, J = j_prop, turns at w
+ * under the motor's torque less the prop's: J w' = Kt (d V - Ke w) / R -
+ * Q. The table has every figure that takes, at full: the speed, w_f, 0.85
+ * of the no load speed (the plant's rule), so the windings drop 0.15 of the
+ * pack's V at the full current I_f, R = 0.15 V / I_f; Kt = V / w_nl, so
+ * the motor's torque at full is Kt I_f, which is the prop's at full, Q_f =
+ * torque_arm thrust_static (the Extra's 0.68 against 0.65 N m); and the
+ * prop's torque goes with its speed squared. Over its full speed, n:
+ *
+ *   J w_f n' = Q_f (K_M (d - n) + d^2 - n^2),   K_M = 0.85 / 0.15
+ *
+ * which is still n = d at rest, the plant's speed at a duty, and answers
+ * a small step with the time constant J w_f / (Q_f (K_M + 2 n)): the
+ * Extra's 66 ms at its hover. With the drive off (a flat pack, a cut
+ * motor, the chute) only the prop's drag slows it. A launch starts it at
+ * the duty. Taken explicitly at the 1 ms step, under a tenth of the least
+ * time constant here (scripts/spool-derive.js).
+ */
+#define PROP_K_M (0.85 / 0.15)
+static int prop_spools(const FixedWingParams *fw) {
+  return fw->j_prop > 0.0 && fw->current_full > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
+}
+
+static double prop_spool(const FixedWingParams *fw, double de, int off) {
+  if (g_prop_hot) {
+    g_prop_hot = 0;
+    g_prop_n = de;
+  }
+  const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
+  const double q_f = fw->torque_arm * fw->thrust_static;
+  const double n = g_prop_n;
+  const double drive = off ? 0.0 : PROP_K_M * (de - n) + de * de;
+  g_prop_n = n + SIM_DT * q_f * (drive - n * n) / (fw->j_prop * w_f);
+  if (g_prop_n < 0.0) {
+    g_prop_n = 0.0;
+  }
+  return g_prop_n;
 }
 
 int plant_wing_set_gear(int up) {
@@ -993,6 +1039,8 @@ void plant_wing_launch(SimState *s, double speed) {
     g_fan_n = 1.0;
     g_fan_v = 0.0;
   }
+  /* A plane thrown or launched has its motor already running. */
+  g_prop_hot = 1;
   const double fwd[3] = { speed, 0.0, 0.0 };
   double v[3];
   wquat_rotate(s->quat, fwd, v);
@@ -1688,7 +1736,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The propulsor's speed as a fraction of full: a prop's is the duty's
    * this step; a ducted fan's lags it, fan_spool above. */
   const int fan = fw->fan_tau > 0.0;
-  const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
+  double n = duty_e;
+  if (fan) {
+    n = fan_spool(fw, throttle, duty_e, dead || g_chute);
+  } else if (prop_spools(fw)) {
+    n = prop_spool(fw, duty_e, dead || g_chute);
+  }
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
   /* The chase boost's faster prop has the faster pitch speed; exact at

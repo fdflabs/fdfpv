@@ -66,15 +66,18 @@ const PINNED = {
   'trace.baseline.2400.10': '4458a33d2e47833754ccfa09548cc5cb7b9654be8026a7902a76c71dee84ba2a',
   'trace.baseline.30.7.vnull': '0cbbaec9f1eebc99a4843b25f453f161af329d5b76e4f74b6b8bcb6445744c78',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
-  'trace.wing.60.10': 'f9167edf03b4a8e0d4479bee71c253b494b40ecf52ef84fcbe44a8230cc3f067',
-  'trace.wing.50.10.v3.9': 'f9167edf03b4a8e0d4479bee71c253b494b40ecf52ef84fcbe44a8230cc3f067',
+  /* Re-pinned: an electric prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.wing.60.10': 'cbd00b931d38ed0b88e838f3dcc64aa8de1c3ca579d28a27ef2ef66f87f79dc7',
+  'trace.wing.50.10.v3.9': 'cbd00b931d38ed0b88e838f3dcc64aa8de1c3ca579d28a27ef2ef66f87f79dc7',
   /* Re-pinned: the props' gyroscope (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': '5800408161c4d08ea420f4babeeceaf2fe9e9e26f27e7022f65681da3a298d47',
+  /* Re-pinned: an electric prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': 'b7b8a03f72f4c8d8be43fb80781cc7d1bdf4f9211f59371937007df1721a1468',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
-  'trace.p51.72.25': '4996cd1d34b4c9cee45f84eed7fb1df61cced965ad84fc802cb3348d5f3141aa',
+  /* Re-pinned: an electric prop spins up (docs/FLIGHTMODEL.md). */
+  'trace.p51.72.25': '4a6ed573235f8015b7c233dd3d24ca303a2bcaceffa5c721076df83d5fb9ca68',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
   'sched.synth.60.10.one': 'c7b0d1d856cfdc00c800f8192e144d73df5243b9610b43180cd93b45c97433ce',
