@@ -267,6 +267,115 @@ async function keys(page) {
   await closeHangar(page, false);
 }
 
+/* A real pointer drag from one client point to another, in steps. */
+async function drag(page, from, to, steps = 8) {
+  const send = (type, x, y) => page.cdp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: 1 }, page.sessionId);
+  await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x, y: from.y }, page.sessionId);
+  await send('mousePressed', from.x, from.y);
+  for (let i = 1; i <= steps; i += 1) {
+    await send('mouseMoved', from.x + ((to.x - from.x) * i) / steps, from.y + ((to.y - from.y) * i) / steps);
+    await page.sleep(60);
+  }
+  await page.sleep(300);
+  await send('mouseReleased', to.x, to.y);
+  await page.sleep(500);
+}
+
+const handle = (page, key) => page.evaluate(`(() => { const h = document.querySelector('.hangar [data-key="${key}"]'); if (!h) { return null; } const r = h.getBoundingClientRect(); return r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null; })()`);
+
+async function gizmo(page) {
+  console.log('7. the transform handles on the model, dragged with the pointer');
+  await openHangar(page, 'timber1500');
+  await press(page, 'view-top');
+  await page.sleep(1500);
+  await press(page, 'decal-add');
+  await press(page, 'kind-circle');
+  await page.until('(() => { const p = window.__ui.hangar.shop.placing; return Boolean(p && p.hit && p.hit.n); })()', 60000).catch(() => {});
+  await page.tap('Enter');
+  await page.until('(window.__ui.hangar.entry.decals || []).length === 4', 20000).catch(() => {});
+  for (let i = 0; i < 6; i += 1) {
+    await press(page, 'size-up');
+  }
+  await page.sleep(2000);
+  const at = 3;
+  const shown = await page.evaluate("!document.querySelector('.paint-gizmo').hidden");
+  const c = await handle(page, 'gizmo-move');
+  say(shown && Boolean(c), `the new circle has handles over it (${JSON.stringify(c)})`);
+  if (!c) {
+    await closeHangar(page, false);
+    return;
+  }
+  let was = (await entry(page)).decals[at];
+  const corner = await handle(page, 'gizmo-scale-1');
+  await drag(page, corner, { x: c.x + (corner.x - c.x) * 1.6, y: c.y + (corner.y - c.y) * 1.6 });
+  let d = (await entry(page)).decals[at];
+  say(d.s > was.s * 1.4 && d.s < was.s * 1.8, `a corner dragged out 1.6 times sizes it: ${was.s} to ${d.s}`);
+  await shot(page, 'gizmo-scaled');
+  was = d;
+  const turn = await handle(page, 'gizmo-turn');
+  const rx = turn.x - c.x;
+  const ry = turn.y - c.y;
+  await drag(page, turn, { x: c.x - ry, y: c.y + rx }, 12);
+  d = (await entry(page)).decals[at];
+  const turned = ((d.r - was.r + 540) % 360) - 180;
+  say(Math.abs(Math.abs(turned) - 90) < 12, `the turn handle a quarter round the centre turns it ${turned} degrees`);
+  await shot(page, 'gizmo-turned');
+  was = d;
+  const body = await handle(page, 'gizmo-move');
+  const stretch = await handle(page, 'gizmo-stretch');
+  await drag(page, stretch, { x: body.x + (stretch.x - body.x) * 1.5, y: body.y + (stretch.y - body.y) * 1.5 });
+  d = (await entry(page)).decals[at];
+  say(d.a > was.a * 1.25, `the edge handle stretches it: ${was.a} to ${d.a}`);
+  was = d;
+  const mid = await handle(page, 'gizmo-move');
+  /* Out onto the wing's top skin: let go off the model, a move is undone. */
+  await drag(page, mid, { x: mid.x + 70, y: mid.y - 30 }, 10);
+  d = (await entry(page)).decals[at];
+  const moved = Math.hypot(d.p[0] - was.p[0], d.p[1] - was.p[1], d.p[2] - was.p[2]);
+  say(moved > 0.02 && d.s === was.s, `its body dragged onto the wing moves it over the skin ${(moved * 1000).toFixed(0)} mm and keeps its size`);
+  await shot(page, 'gizmo-moved');
+  await press(page, 'decal-1');
+  await page.sleep(800);
+  const lockedHandles = await page.evaluate("getComputedStyle(document.querySelector('.hangar [data-key=\"gizmo-scale-0\"]')).display");
+  say(lockedHandles === 'none', `the locked star shows no handles (${lockedHandles})`);
+  await closeHangar(page, false);
+}
+
+/* A standard pad, its buttons held while window.__padHeld names them. */
+async function padPress(page, index) {
+  await page.evaluate(`(() => { window.__padHeld = [${index}]; return true; })()`);
+  await page.sleep(350);
+  await page.evaluate('(() => { window.__padHeld = []; return true; })()');
+  await page.sleep(450);
+}
+
+async function pad(page) {
+  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place');
+  await openHangar(page, 'timber1500');
+  await page.evaluate(`(() => {
+    window.__padHeld = [];
+    const pad = () => ({ id: 'check pad', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
+    navigator.getGamepads = () => [pad()];
+    return true;
+  })()`);
+  await page.sleep(500);
+  await page.evaluate("window.__ui.hangar.focusKey('decal-0'); true");
+  await padPress(page, 0);
+  const sel = await page.evaluate('window.__ui.hangar.shop.sel');
+  say(sel === 0, `A on the first layer chooses it (sel ${sel})`);
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-matte'); true");
+  await padPress(page, 0);
+  const d = (await entry(page)).decals[0];
+  say(d.fi === 'matte', `A on Matte gives it a matte finish (${d.fi})`);
+  await page.evaluate("window.__ui.hangar.focusKey('layer-up'); true");
+  await padPress(page, 0);
+  const e = await entry(page);
+  say(e.decals[1].fi === 'matte' && e.decals[1].k === 'stripe', `A on Up moves the layer up the stack: ${e.decals.map((o) => o.k)}`);
+  await page.evaluate('navigator.getGamepads = () => []; true');
+  await closeHangar(page, false);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -278,6 +387,8 @@ async function main() {
     await groups(page);
     await callsign(page);
     await keys(page);
+    await gizmo(page);
+    await pad(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

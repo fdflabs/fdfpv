@@ -900,9 +900,9 @@ export class RoomOps {
   /* The advice a loss to a spotter carries, for the fail card, or null. */
   spotAdvice() {
     const m = this.match;
-    const rule = (this.mission().lost ?? []).find((x) => x.spot && x.why === m.why);
-    const st = rule && m.state === 'lost' ? m.spot?.[rule.spot] : null;
-    return st?.advice ? { id: rule.spot, advice: st.advice, h: st.worst.h } : null;
+    const id = m.state === 'lost' ? m.spotLost : null;
+    const st = id ? m.spot?.[id] : null;
+    return st?.advice ? { id, advice: st.advice, h: st.worst.h } : null;
   }
 
   /* Each pilot outside the mission's boundary is warned, warned a last
@@ -990,7 +990,9 @@ export class RoomOps {
       /* A spotter's loss waits out its end scene, then says its advice. */
       const t = at == null ? null : at + Math.round((sp?.scene ?? 0) * 1000);
       if (t != null && t <= g && (!loss || t < loss.t)) {
-        loss = { t, why: rule.why, radio: sp ? [sp.lines.spotted, 1, sp.lines[m.spot[sp.id].advice]] : rule.radio };
+        loss = {
+          t, why: rule.why, spot: rule.spot ?? null, radio: sp ? [sp.lines.spotted, 1, sp.lines[m.spot[sp.id].advice]] : rule.radio,
+        };
       }
     }
     const out = m.bounds.find((b) => b.level === 'out' && b.t <= g);
@@ -1000,6 +1002,8 @@ export class RoomOps {
     const due = exits ? exitDue(ctx) : null;
     if (loss && (!due || loss.t <= due.t)) {
       this.finish(core, loss.t, 'lost', loss.why);
+      /* Which spotter it was: two spotters share the why 'spotted'. */
+      m.spotLost = loss.spot;
       told.push(...this.endLines(st, loss.t, loss.radio));
       return { dirty: true, told };
     }

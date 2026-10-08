@@ -44,6 +44,7 @@ import { RIVER, STREAMS } from '../hydro.js';
 import {
   BRIDGES, BUILDINGS, CROSSINGS, PLACES, ROADS,
 } from '../places.js';
+import { M3_AT } from '../routes.js';
 
 /* Every k-th point of a long line, its ends kept: the BOARD draws the
  * river at a few pixels a point, not the hydrology's 20 m. */
@@ -59,6 +60,10 @@ function thin(points, k) {
 const STREAM_KM2 = 10;
 const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 const building = (id) => BUILDINGS.find((b) => b.id === id).at;
+/* Mission 3's UNKNOWN contacts round Puesto Arenal as its intro lights
+ * them (INTROS.md M3 shots 5 and 6): where its stage 1 starts them. */
+const M3_DOTS = [M3_AT.farmhouse, M3_AT.checkpoint, [4.25, 13.5], M3_AT.obsA, M3_AT.field, M3_AT.obsB, [3.85, 14.2], M3_AT.meet]
+  .map(([e, n]) => ({ at: gridToWorld(e, n) }));
 
 export const BOARD_MAP = Object.freeze({
   /* The ground the land's picture covers: the data's whole square, a
@@ -108,8 +113,7 @@ export const BOARD_MAP = Object.freeze({
     camp: { kind: 'dot', style: 'alert', items: [{ at: PLACES.claroViejo.at }] },
     /* Mission 2's (INTROS.md M2): the places a watcher could see the road
      * from, a line from each to the camp they warned; both camps, named;
-     * the remote post whose alarm ends the mission (MISSIONS.md 1.9's
-     * first layout until Mission 3 lays it on the land). */
+     * the remote post whose alarm ends the mission (Mission 3's `post`). */
     'm2-zones': {
       kind: 'tick',
       style: 'mark',
@@ -125,6 +129,11 @@ export const BOARD_MAP = Object.freeze({
       style: 'place',
       items: [PLACES.claroViejo, PLACES.claroNuevo].map((p) => ({ at: p.at, name: p.name })),
     },
-    'm2-arenal': { kind: 'dot', style: 'alert', items: [{ at: gridToWorld(4.0, 14.0), name: 'interior.place.puesto_arenal' }] },
+    'm2-arenal': { kind: 'dot', style: 'alert', items: [{ at: gridToWorld(...M3_AT.post), name: 'interior.place.puesto_arenal' }] },
+    post: { kind: 'point', style: 'place', items: [{ at: gridToWorld(...M3_AT.post), name: 'interior.place.puesto_arenal' }] },
+    'post-unknown': { kind: 'dot', style: 'mark', items: M3_DOTS },
+    'post-find': { kind: 'dot', style: 'mark', items: M3_DOTS.slice(0, 1) },
+    'post-follow': { kind: 'dot', style: 'mark', items: M3_DOTS.slice(0, 3) },
+    'post-identify': { kind: 'dot', style: 'mark', items: M3_DOTS.slice(0, 5) },
   },
 });

@@ -137,6 +137,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
+import { feedSnow } from './share/ops/feed.js';
 import { HOLD_BANK, holdOf, holdPose } from './share/ops/hold.js';
 import { opsWorldOf } from './share/opsworlds.js';
 import { resolve as opsResolve } from './share/ops/stages.js';
@@ -1947,6 +1948,8 @@ export async function boot({
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,
+    /* The forward feed's snow on this screen now (src/share/ops/feed.js). */
+    feed: () => opsFeedSnow(),
     /* The platform holds: the role flown, and each held aircraft, where
      * its hold has it now and where its model is drawn (scene frame). */
     holds: () => ({
@@ -11664,8 +11667,21 @@ export async function boot({
       shell.quad.visible = true;
     }
     wreckRig.setCraftVisible(shell.quad.visible);
-    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride && !warIntro);
+    /* An ops mission's forward feed breaking up (src/share/ops/feed.js):
+     * the snow is on whatever picture the pilot flies by, FPV or ball. */
+    const feed = opsFeedSnow();
+    fpvFail.signal(feed);
+    fpvFail.update(nowWall, ((runDamage && fpvLensLive) || feed > 0) && !camOverride && !warIntro);
   }
+  function opsFeedSnow() {
+    const m = roomOps.room() ? roomOps.mission() : null;
+    if (!m || !m.feed) {
+      return 0;
+    }
+    threePosToDoc(pCurr.x, pCurr.y, pCurr.z, feedDoc);
+    return feedSnow(m, roomOps.view(), roomOps.seat(), [feedDoc.x, feedDoc.y]);
+  }
+  const feedDoc = { x: 0, y: 0, z: 0 };
 
   function crashSummary() {
     const names = Object.keys(DAMAGE_FLAGS).filter((k) => (crashFlags & DAMAGE_FLAGS[k]) !== 0);
@@ -11763,12 +11779,16 @@ export async function boot({
   let weather = null;
   let windSet = false;
   const airPos = new THREE.Vector3();
-  const airOut = { x: 0, z: 0, gust: 0 };
+  const airOut = { x: 0, z: 0, gust: 0, up: 0 };
   const airSim = { x: 0, y: 0, z: 0 };
-  function setWind(vx, vy, gust) {
+  function setWind(vx, vy, gust, up) {
     const code = sim.e.sim_set_wind(vx, vy, gust);
     if (code !== SIM_OK) {
       throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
+    }
+    const codeUp = sim.e.sim_set_air_vertical(up);
+    if (codeUp !== SIM_OK) {
+      throw new Error(`sim_set_air_vertical refused ${up}: ${simErrorName(codeUp)}`);
     }
   }
   let weatherT0 = 0;
@@ -11785,7 +11805,7 @@ export async function boot({
     weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
     weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
-      setWind(0, 0, 0);
+      setWind(0, 0, 0, 0);
       windSet = false;
     }
   }
@@ -11794,7 +11814,7 @@ export async function boot({
     poseFromState(st, airPos);
     weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
-    setWind(airSim.x, airSim.y, airOut.gust);
+    setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
   }
   /* The air this run flies, { map, preset, seed }, or null for calm. */
@@ -17473,6 +17493,10 @@ export async function boot({
     }
     if (pick && pick.hangar && pick.hangar.aim) {
       ui.hangar.aimed(pickStage.pick(pick.items[0].id, pick.hangar.aim.x, pick.hangar.aim.y));
+    }
+    if (ui.hangar.isOpen) {
+      const layer = ui.hangar.shop.gizmoLayer();
+      ui.hangar.shop.gizmoAt(layer && pick ? pickStage.outline(pick.items[0].id, layer) : null);
     }
     if (pick && pick.hangar) {
       ui.hangar.pointed(pick.hangar.point ? pickStage.pickPart(pick.items[0].id, pick.hangar.point.x, pick.hangar.point.y) : null);

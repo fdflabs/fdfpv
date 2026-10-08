@@ -83,6 +83,8 @@ const code = encodeLivery('7inch', 'night', q);
 const back = readCode(code);
 check('a v1 code carries kit and lights', !back.error && same(back.entry.kit, q.kit) && same(back.entry.lights, q.lights), back.error ?? '');
 check('a code with a bad kit is refused', readCode(encodeLivery('7inch', 'x', { kit: { v: 1, parts: { spinner: 'bullet' } } })).error === 'bad_value');
+check('a code with a newer kit version is refused with the version sentence', readCode(encodeLivery('7inch', 'x', { kit: { v: 2, parts: { arms: 'x' } } })).error === 'version');
+check('a code with newer lights is refused too', readCode(encodeLivery('7inch', 'x', { lights: { v: 9, led: '#ffffff' } })).error === 'version');
 const plain = readCode(encodeLivery('sky1800', 'old', { regions: { wing: '#ff0000' } }));
 check('an old code reads the same', !plain.error && same(plain.entry, { regions: { wing: '#ff0000' } }));
 

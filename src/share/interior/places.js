@@ -193,6 +193,39 @@ export const ROADS = [
     surface: 'earth',
     points: path([[4.86, 4.85], [5.1, 4.86], [5.36, 4.84], [5.46, 4.84]]),
   },
+  /* Mission 3's tracks round Puesto Arenal (routes.js M3_AT, the same
+   * points its vehicles drive): south past the checkpoint, east by the
+   * farmhouse, north to the decoy's field and on to the command site. */
+  {
+    id: 'arenal-south',
+    width: 4.5,
+    surface: 'earth',
+    points: path([[4.06, 13.93], [4.12, 13.86], [4.4, 13.0], [4.7, 12.0]]),
+  },
+  {
+    id: 'arenal-east',
+    width: 4,
+    surface: 'earth',
+    points: path([[4.2, 13.75], [4.9, 13.0], [5.2, 13.1]]),
+  },
+  {
+    id: 'arenal-farm',
+    width: 4,
+    surface: 'earth',
+    points: path([[4.9, 13.0], [5.6, 12.4], [5.9, 12.6], [6.4, 12.2]]),
+  },
+  {
+    id: 'arenal-north',
+    width: 3.5,
+    surface: 'earth',
+    points: path([[4.1, 14.15], [4.5, 14.3], [4.926, 14.424]]),
+  },
+  {
+    id: 'arenal-command',
+    width: 3.5,
+    surface: 'earth',
+    points: path([[4.25, 14.0], [5.2, 14.3], [6.0, 14.6], [6.7, 15.0], [7.12, 15.215], [7.15, 15.245]]),
+  },
 ];
 
 /* The bridge: a two span concrete road bridge (TECH-NEEDS M1 assets),
@@ -312,6 +345,34 @@ export const BUILDINGS = [
   {
     id: 'estancia-notes', kind: 'crate', at: estancia(-2, 3), dir: [1, 0], w: 0.9, d: 0.08, h: 1.9, roof: 'flat', ridge: 0, colour: '#8a7a5c',
   },
+  /* Puesto Arenal (MISSIONS.md M3): a barracks and an office round a
+   * yard, a container, the gatehouse at its south east gate. */
+  {
+    id: 'arenal-barracks', kind: 'house', at: g(3.985, 14.012), dir: [1, 0], w: 20, d: 8, h: 3, roof: 'gable', ridge: 1.6, colour: '#c8c1ad',
+  },
+  {
+    id: 'arenal-office', kind: 'house', at: g(4.03, 14.02), dir: [0, 1], w: 11, d: 7, h: 2.9, roof: 'hip', ridge: 1.4, colour: '#d6cdb6',
+  },
+  {
+    id: 'arenal-container', kind: 'container', at: g(3.978, 13.982), dir: [1, 0], w: 6.06, d: 2.44, h: 2.59, roof: 'flat', ridge: 0, colour: '#56604a',
+  },
+  {
+    id: 'arenal-gatehouse', kind: 'house', at: g(4.044, 13.924), dir: [1, 0], w: 4, d: 3.5, h: 2.5, roof: 'shed', ridge: 0.6, colour: '#bdb39b',
+  },
+  /* The farmhouse near the post, and its shed. */
+  {
+    id: 'arenal-farmhouse', kind: 'house', at: g(5.186, 13.118), dir: dirOf(g(5.18, 13.117), g(5.19, 13.119)), w: 11, d: 7, h: 2.7, roof: 'hip', ridge: 1.6, colour: '#d9c9a9',
+  },
+  {
+    id: 'arenal-farmshed', kind: 'openshed', at: g(5.168, 13.1), dir: [0, 1], w: 12, d: 8, h: 4, roof: 'shed', ridge: 0.9, colour: '#8d9396',
+  },
+  /* The temporary command site: two tents in its clearing. */
+  {
+    id: 'command-tent-1', kind: 'tent', at: g(7.167, 15.271), dir: [1, 0], w: 5, d: 4, h: 1.8, roof: 'hip', ridge: 1.1, colour: '#5f5e46',
+  },
+  {
+    id: 'command-tent-2', kind: 'tent', at: g(7.186, 15.279), dir: dirOf(g(7.18, 15.27), g(7.183, 15.28)), w: 4, d: 3.5, h: 1.7, roof: 'hip', ridge: 1, colour: '#66644a',
+  },
 ];
 
 /*
@@ -410,6 +471,12 @@ export const OPENINGS = [
   { id: 'east-gap-1', at: g(9.03, 8.94), r: 8 },
   { id: 'east-clearing', at: g(8.92, 9.18), r: 16 },
   { id: 'east-gap-2', at: g(8.76, 9.29), r: 7 },
+  /* Mission 3: the post's yard and perimeter, the farmhouse's yard, the
+   * decoy's field, the command site's clearing. */
+  { id: 'puesto-arenal', at: g(4.0, 13.98), r: 75 },
+  { id: 'arenal-farm', at: g(5.19, 13.108), r: 45 },
+  { id: 'arenal-field', at: g(4.926, 14.424), r: 45 },
+  { id: 'command-site', at: g(7.17, 15.265), r: 28 },
   ...ROADS.map((r) => ({ id: `road-${r.id}`, points: r.points, width: r.width + 2 })),
 ];
 

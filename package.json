@@ -169,6 +169,7 @@
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
+    "bots:selftest": "node scripts/bots-selftest.js",
     "jam:selftest": "node scripts/jam-selftest.js",
     "jam:twopage": "node scripts/jam-two-page.js",
     "voicechat:selftest": "node scripts/voicechat-selftest.js",
@@ -311,6 +312,7 @@
     "stall:derive": "node scripts/stall-derive.js",
     "stall:probe": "node scripts/stall-probe.js",
     "wash:derive": "node scripts/wash-derive.js",
+    "air:vertical": "node scripts/air-vertical-selftest.js",
     "extra:gates": "node scripts/extra-gates.js",
     "extra:stab": "node scripts/extra-stab-selftest.js",
     "extra:record": "node scripts/wing-record.js extra",
@@ -412,6 +414,8 @@
     "interior:views": "node scripts/interior-views.js",
     "interior:collide": "node scripts/interior-collide.js",
     "interior:camp": "node scripts/interior-camp-check.js",
+    "interior:feed": "node scripts/interior-feed-check.js",
+    "interior:m3": "node scripts/interior-m3-selftest.js",
     "canopy:los": "node scripts/canopy-los.js",
     "people:route": "node scripts/people-route.js",
     "lint:copy": "node scripts/copy-lint.js",
@@ -466,6 +470,7 @@
     "hangar:garage": "node scripts/garage-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "paint:workshop": "node scripts/paint-workshop-check.js",
+    "gallery:admin": "node scripts/gallery-admin-check.js",
     "gallery:check": "node scripts/gallery-check.js",
     "livery:layers": "node scripts/livery-layers-check.js",
     "livery:editor": "node scripts/livery-editor-check.js",
@@ -496,7 +501,9 @@
     "sky:smooth": "node scripts/sky-smooth-check.js",
     "kits:selftest": "node scripts/kits-selftest.js",
     "kits:quads": "node scripts/kits-quads-check.js",
-    "kits:hangar": "node scripts/kits-hangar-check.js"
+    "kits:hangar": "node scripts/kits-hangar-check.js",
+    "kits:replay": "node scripts/kits-replay.js",
+    "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
     "nodemailer": "10.0.14",

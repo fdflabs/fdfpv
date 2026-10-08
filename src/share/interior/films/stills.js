@@ -852,6 +852,86 @@ export const STILLS = {
       ballFrame(ctx, w, h);
     },
   },
+  /* Mission 3's northern vehicle (INTROS.md M3 outro): from above, a
+   * pickup newer than anything the Column had, two commercial containers
+   * strapped in its bed and a whip antenna; the analyst's frame when
+   * nobody captured it. */
+  'rec:north_vehicle': {
+    kind: 'rec',
+    people: 0,
+    draw(ctx, w, h) {
+      const r = rng('rec:north_vehicle');
+      field(ctx, r, w, h, 110);
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.5);
+      ctx.rotate(-0.35);
+      ctx.fillStyle = grey(70, 0.45);
+      ctx.fillRect(-w * 0.17 + 8, -h * 0.11 + 10, w * 0.34, h * 0.22);
+      ctx.fillStyle = grey(200);
+      ctx.fillRect(-w * 0.17, -h * 0.11, w * 0.34, h * 0.22);
+      ctx.fillStyle = grey(40);
+      ctx.fillRect(w * 0.07, -h * 0.09, w * 0.07, h * 0.18);
+      /* The bed: two boxed containers with strap lines. */
+      ctx.fillStyle = grey(150);
+      ctx.fillRect(-w * 0.15, -h * 0.09, w * 0.09, h * 0.08);
+      ctx.fillRect(-w * 0.15, h * 0.01, w * 0.09, h * 0.08);
+      ctx.strokeStyle = grey(60);
+      ctx.lineWidth = Math.max(1, w / 400);
+      for (const y of [-0.05, 0.05]) {
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.16, h * y);
+        ctx.lineTo(-w * 0.05, h * y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = grey(25);
+      ctx.lineWidth = Math.max(2, w / 220);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, -h * 0.1);
+      ctx.lineTo(w * 0.02, -h * 0.3);
+      ctx.stroke();
+      ctx.restore();
+      finish(ctx, w, h, 'rec', r);
+      ballFrame(ctx, w, h);
+    },
+  },
+  /* The same vehicle closer, from its side: the containers' stencilled
+   * panels and a dish on the cab, gear the Column never carried. */
+  'int3-north-close': {
+    kind: 'recent',
+    people: 0,
+    draw(ctx, w, h) {
+      const r = rng('int3-north-close');
+      sky(ctx, w, h, 0.28, '#3a4450', '#59626a');
+      ctx.fillStyle = '#3d4236';
+      ctx.fillRect(0, h * 0.28, w, h);
+      treeLine(ctx, r, w, h, h * 0.29, h * 0.06, '#20261c');
+      /* Cab and bed in profile, low sun gone: the camera's night grade. */
+      ctx.fillStyle = '#c8ccc8';
+      ctx.fillRect(w * 0.18, h * 0.5, w * 0.64, h * 0.16);
+      ctx.fillRect(w * 0.56, h * 0.38, w * 0.22, h * 0.13);
+      ctx.fillStyle = '#20262a';
+      ctx.fillRect(w * 0.6, h * 0.41, w * 0.15, h * 0.07);
+      ctx.fillStyle = '#16191b';
+      for (const x of [0.28, 0.7]) {
+        ctx.beginPath();
+        ctx.arc(w * x, h * 0.67, h * 0.055, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#8e948f';
+      ctx.fillRect(w * 0.2, h * 0.36, w * 0.15, h * 0.14);
+      ctx.fillRect(w * 0.36, h * 0.38, w * 0.15, h * 0.12);
+      ctx.fillStyle = '#5c625e';
+      for (const [x, y] of [[0.22, 0.39], [0.38, 0.41]]) {
+        ctx.fillRect(w * x, h * y, w * 0.1, h * 0.025);
+      }
+      ctx.fillStyle = '#d9ddd8';
+      ctx.beginPath();
+      ctx.ellipse(w * 0.67, h * 0.35, w * 0.035, h * 0.02, -0.3, 0, 2 * Math.PI);
+      ctx.fill();
+      finish(ctx, w, h, 'recent', r);
+      ballFrame(ctx, w, h);
+    },
+  },
   'rec:symbol': {
     kind: 'rec',
     people: 0,

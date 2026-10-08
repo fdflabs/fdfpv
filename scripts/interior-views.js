@@ -136,6 +136,12 @@ const VIEWS = [
       nuevo: true, mast: 1, parked: 0, cold: true,
     },
   },
+  /* Mission 3: Puesto Arenal from a Bramor's 400 m and through the
+   * ball's zoom, the farmhouse, the command site's clearing. */
+  { id: 'm3-post-400', cam: pose(4.4, 13.5, 400, 4.0, 13.98) },
+  { id: 'zoom-m3-post-500', cam: pose(4.3, 13.6, 350, 4.02, 13.96), fov: 5.5 },
+  { id: 'zoom-m3-farm-400', cam: pose(5.45, 12.85, 260, 5.2, 13.1), fov: 6 },
+  { id: 'zoom-m3-command-400', cam: pose(7.4, 15.0, 260, 7.17, 15.265), fov: 6 },
 ];
 
 const opts = { views: '', hour: '' };

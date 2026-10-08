@@ -16,8 +16,6 @@
  *     room set in this film, as Mission 3's): the line carries it
  *   - the alert's card reads COMMUNICATION LOST alone: the card's letter
  *     spacing runs a longer one off a 16:9 screen
- *   - Puesto Arenal stands at MISSIONS.md 1.9's first layout on the BOARD
- *     until Mission 3 lays it on the land
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -38,12 +36,13 @@
 import { BOARD_CAMERA } from './common.js';
 import { gridToWorld } from '../frame.js';
 import { PLACES } from '../places.js';
+import { M3_AT } from '../routes.js';
 
 const BOTH = {
   at: [(PLACES.claroViejo.at[0] + PLACES.claroNuevo.at[0]) / 2, (PLACES.claroViejo.at[1] + PLACES.claroNuevo.at[1]) / 2],
   span: Math.round(1.4 * Math.abs(PLACES.claroNuevo.at[0] - PLACES.claroViejo.at[0])),
 };
-const ARENAL = { at: gridToWorld(4.0, 14.0), span: 2400 };
+const ARENAL = { at: gridToWorld(...M3_AT.post), span: 2400 };
 
 export default {
   id: 'int2-outro',
