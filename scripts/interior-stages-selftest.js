@@ -126,7 +126,7 @@ console.log('data');
       }
     }
   }
-  for (const r of [M.lines.boundary.warning, M.lines.boundary.final, M.lines.fail, M.lines.take, M.lines.downed, ...M.lost.map((l) => l.radio)]) {
+  for (const r of [M.lines.boundary.warning, M.lines.boundary.final, M.lines.fail, M.lines.take, M.lines.downed, ...M.lost.map((l) => l.radio).filter(Boolean), ...M.spotters.flatMap((x) => [x.warn, ...Object.values(x.lines)])]) {
     used.add(r);
   }
   /* The guide's: each objective's brief, and the nudges' and the first
@@ -1182,6 +1182,73 @@ console.log('fails: the ISR down');
   ci.air = false;
   f.fly(f.clock + 3000);
   check('the ISR down with a tracker still up: the line, no fail', f.view(0).state === 'live' && heard(f, 1 - isr, 'int-lost-aircraft'));
+}
+
+console.log('fails: spotted (CONTRACT-SPOTTED.md)');
+/* To stage 3, the pair found, then down on it: `off` metres south of
+ * pair-a and `h` over it at `v` m/s; `sweep` flies passes that many
+ * metres east and west of it, 40 s each, at `v`. Returns { e, c, go(h) }
+ * where go moves the hold to a new height. */
+function lowOnPair({
+  off = 150, h = 120, v = 18, sweep = 0,
+} = {}) {
+  const e = opsRoom(M, { ...ROOM, n: 1 });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  until(e, () => e.view(0).contacts.some((k) => k.id === 'pair-a' && k.state !== 'undiscovered'), 600000, 'the pair found');
+  const hold = { h };
+  c.v = v;
+  c.target = (t) => {
+    const k = contact(e, 'pair-a');
+    const p = k && W.poseOnRoute(k.route, t - k.t0);
+    const x = sweep * (Math.floor(t / 40000) % 2 ? 1 : -1);
+    return p ? [p.x + x, p.y - off, p.z + hold.h] : c.p;
+  };
+  return { e, c, go: (x) => { hold.h = x; } };
+}
+const spotOf = (e, id = 'pair') => e.view(0).spot[id];
+
+for (const [name, opts, want] of [['low', { off: 150 }, 'low'], ['over', { off: 0 }, 'over'], ['loud', { off: 150, v: TOP_MS, sweep: 400 }, 'loud']]) {
+  const { e } = lowOnPair(opts);
+  until(e, () => heard(e, 0, 'int-spot-warn'), 400000, `${name}: the warning`);
+  check(`${name}: warned first, "they're looking up", still live`, e.view(0).state === 'live' && spotOf(e).level === 'looking');
+  until(e, () => spotOf(e).at.spotted != null, 60000, `${name}: spotted`);
+  const t = spotOf(e).at.spotted;
+  const k = contact(e, 'pair-a');
+  check(`${name}: spotted, the pair runs for cover, the match still live for its end scene`, e.view(0).state === 'live' && k.route.includes('-alt-'), k.route);
+  until(e, () => e.view(0).state !== 'live', 10000, `${name}: the loss`);
+  const v = e.view(0);
+  check(`${name}: lost as spotted after the 6 s scene, advice "${want}" with the height it came in at`, v.state === 'lost' && v.why === 'spotted' && v.endAt === t + 6000
+    && v.spotAdvice?.advice === want && v.spotAdvice.h < 200, JSON.stringify({ why: v.why, endAt: v.endAt, t, a: v.spotAdvice }));
+  check(`${name}: the radio says they saw you, then the advice`, heard(e, 0, 'int-spot-seen') && heard(e, 0, `int-spot-${want}`));
+  if (name !== 'low') {
+    continue;
+  }
+  check('spotted: its checkpoint is the stage it was lost in', v.checkpoint?.stage === e.view(0).stage.id, JSON.stringify(v.checkpoint));
+  e.say(0, {
+    type: 'ops', op: 'start', mission: 'interior-1', from: 'checkpoint',
+  });
+  pilot(e, 0, BASE);
+  until(e, () => e.view(0).state === 'live', 10000, 'the restart live');
+  e.fly(e.clock + 5000);
+  const r = e.view(0);
+  check('spotted then restarted: the checkpoint again, nobody looking up, no advice', r.restarted === v.checkpoint.stage && r.spot.pair.value === 0
+    && r.spot.pair.at.spotted == null && r.spotAdvice === null, JSON.stringify({ restarted: r.restarted, spot: r.spot.pair }));
+}
+
+{
+  const { e, go } = lowOnPair({ off: 150, h: 170 });
+  until(e, () => heard(e, 0, 'int-spot-warn'), 400000, 'climbed out: the warning');
+  go(600);
+  until(e, () => spotOf(e).value === 0, 120000, 'climbed out: the value back at 0');
+  e.fly(e.clock + 30000);
+  const v = e.view(0);
+  check('warned then climbed out: never spotted, calm again, still flying', v.state === 'live' && v.spot.pair.at.spotted == null && v.spot.pair.level === 'calm'
+    && !heard(e, 0, 'int-spot-seen'), JSON.stringify(v.spot.pair));
 }
 
 console.log('the pilots');

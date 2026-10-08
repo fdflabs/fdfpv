@@ -47,15 +47,17 @@ spotters: [{
 ```
 
 An aircraft is EXPOSED to a person when it is airborne, lower than `height`
-over the person, nearer than `range` (slant), and no crown stands between
-them (`world.canopyBlocks`, the same line of sight contacts.js uses). Speed
+over the person and nearer than `range` (slant). With a crown between them
+(`world.canopyBlocks`, the same line of sight contacts.js uses) it counts
+half: people under trees hear an engine they cannot see. Speed
 is the room's: the distance between the seat's poses one second apart (the
 pose wire carries no throttle, and speed is what makes a propeller loud).
 
 State, `m.spot[id] = { value, level, at: { looking?, spotted? }, worst, advice }`,
 room-authoritative, stepped on the room's grid like alert.js, rounded to the
 millionth. `at.looking` re-arms when the value falls back to 0. It is in the
-checkpoint and the view; a restart restores the checkpoint's.
+view (sent again on a level or a 0 crossing, as a site's). It is NOT in the
+checkpoint: a restart is a fresh approach, nobody looking up.
 
 Triggers (stages.js): `{ looking: id }`, `{ spotted: id }`, the room ms the
 level was reached. A mission loses on it with a `lost` rule:
