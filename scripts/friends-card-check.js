@@ -127,7 +127,7 @@ async function arrowTo(page, want) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`a private room by its code, rooms at ${rooms}`);
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Learn to fly';
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
 const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 const a = await openPage({ root, url, width: 1280, height: 720 });
@@ -145,7 +145,7 @@ try {
   /* FLIGHT CLUB AT 1280 BY 720: four cards, no Fly with friends. */
   const cards = await a.evaluate(CARDS);
   const view = await a.evaluate(VIEW);
-  check('Flight Club\'s four cards, no Fly with friends (the owner, 2026-10-02)', cards.map((c) => c.name).join() === NAMES, cards.map((c) => c.name).join());
+  check('Flight Club\'s five cards, no Fly with friends (the owner, 2026-10-02)', cards.map((c) => c.name).join() === NAMES, cards.map((c) => c.name).join());
   const tops = cards.map((c) => c.box[1]);
   check('side by side in one row, inside the window, tags clear of the bar, none overlapping, no sideways scroll',
     inside(cards, view) && apart(cards) && Math.max(...tops) - Math.min(...tops) <= 4 && view.sw <= view.w,
