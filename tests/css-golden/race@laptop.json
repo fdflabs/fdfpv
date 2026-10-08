@@ -11,6 +11,7 @@
    "(max-width: 520px)": false,
    "(max-width: 560px)": false,
    "(max-width: 600px)": false,
+   "(max-width: 640px)": false,
    "(max-width: 760px)": false,
    "(max-width: 860px)": false,
    "(max-width: 860px) and (min-height: 521px) and (max-height: 700px)": false,
@@ -74,7 +75,7 @@
  "states": {
   "calibrate": "d95e3449e84514836622b0b5",
   "courses": "680b8998837a22962d08dfd7",
-  "credits": "c582aa7aeb987d4302a4ba69",
+  "credits": "b90952a57f7907e6c47198c0",
   "fc": "4ef8e819a7aa30f99d2781bb",
   "freestyle": "1aa3e08e1d07daf1c8012297",
   "friends": "d49f38e96bf0f6873b769866",
