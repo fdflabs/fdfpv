@@ -42,7 +42,10 @@ see the kit and the lights.
 ## 3. Catalogue per family (first pass; every item cosmetic only)
 
 "Inside" means the drawn part stays inside the stock part's box
-(configs/hulls.js), see section 5.
+(configs/hulls.js), see section 5. `kits:quads` and `kits:planes` hold
+each option to the whole stock model's box plus 1 cm, and to drawing
+differently from stock; each plane has its own slot list, a slot only
+where the airframe has the part.
 
 | Family (airframes) | Slots and options |
 | --- | --- |
@@ -52,7 +55,7 @@ see the kit and the lights.
 | Gliders (radian2000, nrj1490) | nose: stock, long pointed; wingtips: stock, winglet; canopy tint |
 | Flying wings (zagi1219, bramor2300) | winglets: stock, tall, split; nose: stock, camera bubble (drawn only) |
 | Combat quads (7inch, 10inch, interceptor) | arms: stock, cut out, X blade, tapered; top plate: stock, vented, armoured cap; camera mount: stock, TPU cage, side plates; antenna: stock whip, dual T, pagoda (drawn only). Prop colour is the existing `props` paint region. The interceptor has no mount slot (its camera is in the armoured nose) |
-| Striker (striker2500) | nose: stock, sensor dome; fins: stock, swept |
+| Striker (striker2500) | nose: stock, sensor dome (under the nose cap, above the skid's foot); fins: stock, swept (the stock root and height, the tip pulled back) |
 
 Routed to the parts lane, NOT here: prop blade count and diameter (a
 different prop is thrust and mass; hangar-parts.js `PROPS` already sells

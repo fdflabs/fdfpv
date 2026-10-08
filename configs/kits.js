@@ -73,7 +73,7 @@ export const KITS = {
 
 /* The families whose builders draw their kit so far (docs/KITS.md section
  * 8); the hangar offers the Kit tab on these only. */
-export const DRAWN = new Set(['7inch', '10inch', 'interceptor']);
+export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
