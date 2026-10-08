@@ -67,6 +67,7 @@ jobs:
       - run: npm run ratescurve:selftest
       - run: npm run panels:golden
       - run: npm run rooms:selftest
+      - run: npm run jam:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
@@ -280,6 +281,7 @@ jobs:
       - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
+      - run: npm run kits:selftest
       # The hangar's workshop in the real shell: Flip, the preset views and a
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).

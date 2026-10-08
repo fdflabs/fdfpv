@@ -106,6 +106,8 @@ import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { createJamRun, createRoomJam } from './share/roomjam.js';
+import { jamHudView, jamResultsView, jamTurnShout } from './ui/jamhud.js';
 import { MODES, modeById, modeOfRoom, modeOfWire } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
@@ -214,10 +216,14 @@ import {
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
+import { setAtlasPreset } from './render/decals.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { accrue, impactsFrom, propulsionHealth, realismFlight, startSortie, wearRecordOf, wornPowerBlock, wornQuadBlocks } from '../configs/wear.js';
+import { learnPartTable } from './ui/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
+import { packEntry } from '../configs/paint.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -559,6 +565,8 @@ async function importMapModule(entry, loading) {
  * that water attached. */
 async function loadMap(shell, id, loading, mapOptions) {
   const options = withTimeOption(mapOptions);
+  /* Liveries dressed in this world draw their layers at its preset. */
+  setAtlasPreset(options.quality);
   const entry = mapById(id);
   /* Track mode's seat is resolved to a world by worldId before anything
    * asks for one, so a seat reaching here is a caller that skipped it. */
@@ -2901,9 +2909,22 @@ export async function boot({
   /* Trick targets (deriveObstacles output) for the current map, or null,
    * in which case the detector recognises open-air tricks only. */
   let obstacles = null;
+  /* A Trick Battle run of this pilot's (TRICK BATTLE, below): its own
+   * scorer beside the freestyle one, fed the same tricks and crashes. A
+   * reader of the detector only, so a recorded flight replays the same. */
+  let jamScore = null;
   const trickDetector = new TrickDetector((trick) => {
     score.land(trick);
+    if (jamScore) {
+      jamScore.land(trick);
+    }
   });
+  function scoreCrash() {
+    score.crash();
+    if (jamScore) {
+      jamScore.crash();
+    }
+  }
   /*
    * Called on every map change. Race courses get no trick targets. Heights
    * come from the map's own ground query so a wall modelled deep into the
@@ -3185,7 +3206,9 @@ export async function boot({
       airframe: id,
       map: view ? view.id : worldId(),
       figure: figurePick(),
-      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
+      /* Packed (configs/paint.js packEntry), so MAX_DECALS layers fit the
+       * room's PROFILE_MAX_BYTES. */
+      livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) ? packEntry(ui.settings.livery[liveryKey(id)]) : null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
       ...(status ? { status } : {}),
@@ -3226,6 +3249,8 @@ export async function boot({
   const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
   /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
+  /* Trick Battle (src/share/roomjam.js, docs/JAM-PLAN.md). */
+  const roomJam = createRoomJam((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
   /* Ops missions (src/share/roomops.js), wired below at THE CAMERA BALL. */
@@ -3275,7 +3300,7 @@ export async function boot({
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
-  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', jam: 'jam.card', war: 'war.card', free: 'ui.free_flight_card' };
   /*
    * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
    * a room's socket that dropped, or a rooms server that said it was
@@ -3299,6 +3324,7 @@ export async function boot({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
       roomTag.onWelcome(w);
+      roomJam.onWelcome(w);
       roomWar.onWelcome(w);
       roomOps.onWelcome(w);
       roomPeersClear();
@@ -3395,7 +3421,7 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
-      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomJam.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
         /* Not the room's refusal of the aircraft a war just put this pilot
          * out of (warSeatCraft): only one still flown says it. */
@@ -3445,6 +3471,10 @@ export async function boot({
         roomRaceRunId = null;
         roomRaceHud.update(null);
         roomTag.clear();
+        roomJam.clear();
+        jamScore = null;
+        roomJamRun = null;
+        roomJamHud.update(null);
         roomTagRunId = null;
         roomTagHud.update(null);
         tagMarkPeers();
@@ -3670,6 +3700,31 @@ export async function boot({
     }];
   }
 
+  /* Trick Battle's block on the room screen (docs/JAM-PLAN.md): the host
+   * starts one in passing at a run length, or ends the one on. */
+  function jamRows(host, w, lead) {
+    if (!w) {
+      return [];
+    }
+    const head = { label: str('jam.card'), section: true };
+    const on = roomJam.on();
+    const err = roomJam.error();
+    if (host && !on) {
+      return [head, ...modeById('jam').setting.choices.map((seconds, i) => ({
+        label: str('jam.start', { s: seconds }),
+        note: err ? str(`jam.error_${err}`) : str('jam.row_note'),
+        action: `friends-jam-${seconds}`,
+        primary: lead && i === 0,
+      }))];
+    }
+    const v = roomJam.view();
+    const state = on ? str('jam.state_on', { n: v.round, of: v.rounds }) : '';
+    if (host) {
+      return [head, { label: str('jam.stop'), value: state, note: str('jam.stop_note'), action: 'friends-jam-end' }];
+    }
+    return [head, { label: str('jam.card'), value: state, note: str(on ? 'jam.row_note' : 'jam.waiting'), info: true }];
+  }
+
   /*
    * DEFEND ITAIPU (docs/WARFARE-PLAN.md, docs/WAR-WIRING.md): the room's
    * war, the client's half in roomWar. What this shell does with it:
@@ -3892,16 +3947,23 @@ export async function boot({
     return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
   }
 
+  /* A pilot of a Trick Battle while another flies its run: held on its
+   * slot, the camera on the runner (docs/JAM-PLAN.md). */
+  function jamWatching() {
+    return roomJam.watching() && !roomWatching() && (mode === 'flight' || mode === 'paused');
+  }
+
   /* The teammate to watch this frame, stepped by `step` through the ones
    * drawn in the air here in seat order, or kept while it still flies;
    * null when spectating none. */
   function warWatch(step = 0) {
-    if (!warSpectating() && !roomWatching()) {
+    if (!warSpectating() && !roomWatching() && !jamWatching()) {
       warWatchSeat = -1;
       return null;
     }
+    const runner = jamWatching() ? roomJam.view().runner : null;
     const seats = [...roomPeers.values()]
-      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED))
+      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED) && (runner == null || p.seat === runner))
       .map((p) => p.seat)
       .sort((a, b) => a - b);
     if (!seats.length) {
@@ -3949,6 +4011,9 @@ export async function boot({
 
   function warWatchBanner() {
     const peer = warWatch();
+    if (jamWatching()) {
+      return peer ? str('jam.watching', { name: roomName(peer.name) }) : str('jam.watching_none');
+    }
     if (roomWatching()) {
       return peer ? str('rooms.watching', { name: roomName(peer.name) }) : str('rooms.watching_none');
     }
@@ -4088,6 +4153,21 @@ export async function boot({
       },
       rows: () => [],
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
+    },
+    jam: {
+      on: () => roomJam.on(),
+      ended: () => roomJam.view().state === 'results',
+      start: 'friends-lobby-start',
+      begin: (lobby) => roomJam.start(lobby.seconds),
+      setting: {
+        key: modeById('jam').setting.key,
+        choices: () => modeById('jam').setting.choices,
+        label: 'lobby.seconds',
+        note: 'lobby.seconds_note',
+        value: (n) => str('lobby.seconds_value', { n }),
+      },
+      rows: () => [],
+      line: (lobby) => str('lobby.jam_line', { n: lobby.seconds }),
     },
     /* The race goes off the track the host chose, from My tracks; the
      * pilots in the lobby have it built under the lobby screen, and are on
@@ -5395,6 +5475,9 @@ export async function boot({
     if (roomTag.on()) {
       return 'tag';
     }
+    if (roomJam.on()) {
+      return 'jam';
+    }
     if (roomWar.on()) {
       return 'war';
     }
@@ -5594,6 +5677,7 @@ export async function boot({
     }
     roomRaceFrame(now, wallMs);
     roomTagFrame(now, wallMs);
+    roomJamFrame(now, wallMs);
     roomWarFrame(now, wallMs, dt);
     roomSessionFrame(link.welcome, wallMs);
     if (wallMs > roomProfileCheckAt) {
@@ -5697,7 +5781,7 @@ export async function boot({
    * wherever the room is, so its rounds never move anybody off a track. */
   function roomTarget(w) {
     const t = roomRace.track();
-    const free = roomTag.on() || roomWar.on();
+    const free = roomTag.on() || roomJam.on() || roomWar.on();
     return { world: w.map, track: t && t.map === w.map && !free ? t : null };
   }
   const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
@@ -6538,6 +6622,11 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  window.__wear = () => ({
+    sortie: sortie ? { airframe: sortie.airframe, packId: sortie.packId, fullS: sortie.fullS, flew: sortie.lastTs >= 0 } : null,
+    seated: wornSeated,
+    delta: ui.wearDelta ?? null,
+  });
   /* For scripts/replay-world.js: a room message handed to the war as the
    * room's socket hands it (the check scripts a war's hits and struck
    * lines on a real room's match), what the map shows now (each target
@@ -6791,12 +6880,13 @@ export async function boot({
         race: roomRaceRows(host),
         tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
         combat: combatRows(host, w, game === 'combat'),
+        jam: jamRows(host, w, game === 'jam'),
         war: warRows(host, w),
       };
       /* Defend Itaipu last, unless the room or its pilot came for it, and
        * only on Itaipu (warRows): a public room there says why not. */
       const first = game || (wanted === 'war' ? 'war' : null);
-      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
+      const order = first ? [first, ...['race', 'tag', 'combat', 'jam', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'jam', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -7115,6 +7205,14 @@ export async function boot({
       roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
       return;
     }
+    if (action.startsWith('friends-jam-') && modeById('jam').setting.choices.includes(Number(action.slice('friends-jam-'.length)))) {
+      roomJam.start(Number(action.slice('friends-jam-'.length)));
+      return;
+    }
+    if (action === 'friends-jam-end' || action === 'friends-end-jam') {
+      roomJam.end();
+      return;
+    }
     if (action === 'friends-combat-stop') {
       roomCombat.stop();
       return;
@@ -7269,7 +7367,7 @@ export async function boot({
       }
     }
     roomRace.frame(now);
-    raceHoldMs = roomRun() ? roomRace.holdMs(now) : roomTagHoldMs(now);
+    raceHoldMs = roomRun() ? roomRace.holdMs(now) : Math.max(roomTagHoldMs(now), roomJam.holdMs(now));
     /* An air start lets go when its own countdown runs out (tickAirStart),
      * so the room's is written into it; a parked aircraft is held by
      * raceHoldMs where it would take off, and its GO is shown here. */
@@ -7321,6 +7419,13 @@ export async function boot({
   ui.roomResultsRows = () => {
     if (roomResultsOf === 'tag') {
       return roomTagResultsRows();
+    }
+    if (roomResultsOf === 'jam') {
+      return [
+        { label: str('roomtag.fly_on'), action: 'restart', note: str('jam.fly_on_note'), primary: true },
+        ...ui.friendsItems(),
+        { label: str('ui.back_to_title'), action: 'title' },
+      ];
     }
     const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomRace.seat();
     return [
@@ -7612,6 +7717,91 @@ export async function boot({
     roomTagHudAt = wallMs + 250;
     roomTagHud.update(mode === 'flight' && ui.screen === 'flight' ? tagHudView(roomTag, now, roomSeatName) : null);
   }
+
+  /*
+   * TRICK BATTLE (src/share/roomjam.js, docs/JAM-PLAN.md). Every new turn
+   * puts every pilot of the room back on its slot (the "same spot"); the
+   * runner's is held to its go and then flies a run its own scorer counts
+   * (jamScore, fed by the detector above) while createJamRun tells the
+   * room; everybody else is held all the turn with the camera on the
+   * runner (jamWatching). The room's clock ends the run.
+   */
+  const roomJamHud = new RoomRaceHud(ui.root);
+  let roomJamRun = null;
+  let roomJamTurn = null;
+  let roomJamHudAt = 0;
+  function roomJamFrame(now, wallMs) {
+    const w = roomLinkState.state().welcome;
+    const v = roomJam.view();
+    const key = roomJam.on() ? `${v.id}:${v.round}:${v.runner}:${v.goAt}` : null;
+    if (w && key && key !== roomJamTurn) {
+      roomJamTurn = key;
+      roomLeaveCrashCam();
+      /* Up from the lobby screen, or back onto the slot from the air. */
+      roomCall('game', { restart: true });
+      if (mode !== 'replay') {
+        tagShout.shout(jamTurnShout(roomJam, roomSeatName));
+      }
+    }
+    const turn = roomJam.takeTurn(now);
+    if (turn) {
+      jamScore = new FreestyleScore({ timed: false });
+      roomJamRun = createJamRun(jamScore, turn.endAt, (m) => roomLinkState.send(m));
+    }
+    if (roomJamRun && !roomJam.mine()) {
+      /* The room closed the run first (the host's end, a reconnect). */
+      roomJamRun = null;
+      jamScore = null;
+    }
+    if (roomJamRun) {
+      jamScore.tick(simTimeMs);
+      if (roomJamRun.frame(wallMs, now)) {
+        roomJamRun = null;
+      }
+    }
+    const done = roomJam.takeResults();
+    if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
+      if (mode === 'flight') {
+        leaveFlightForResults();
+      }
+      jamScore = null;
+      roomJamRun = null;
+      roomJamHud.update(null);
+      roomResultsOf = 'jam';
+      ui.showRoomResults(jamResultsView(roomJam, roomSeatName));
+    }
+    if (!roomJam.on()) {
+      roomJamTurn = null;
+    }
+    if (wallMs < roomJamHudAt) {
+      return;
+    }
+    roomJamHudAt = wallMs + 250;
+    const own = roomJamRun && jamScore ? { total: Math.round(jamScore.total()), last: lastJamTrick() } : null;
+    roomJamHud.update(mode === 'flight' && ui.screen === 'flight' ? jamHudView(roomJam, now, roomSeatName, own) : null);
+  }
+  function lastJamTrick() {
+    const r = jamScore.tricks.at(-1);
+    return r ? { name: r.name, points: Math.max(0, Math.round(r.net)) } : null;
+  }
+  /* The host's start, for the checks (the lobby's Start now sends it too). */
+  window.__roomJamStart = (seconds) => roomJam.start(seconds);
+  window.__roomJam = () => {
+    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    return {
+      view: roomJam.view(),
+      seat: roomJam.seat(),
+      mine: roomJam.mine(),
+      watching: jamWatching(),
+      watched: jamWatching() && warWatchSeat >= 0 ? warWatchSeat : null,
+      hold: roomJam.holdMs(now),
+      run: roomJamRun ? { endAt: roomJamRun.endAt } : null,
+      own: jamScore ? { total: jamScore.total(), tricks: jamScore.tricks.length } : null,
+      hud: roomJamHud.key ? JSON.parse(roomJamHud.key) : null,
+      results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'jam'),
+      standings: roomJam.standings(),
+    };
+  };
 
   /*
    * The Ace marked for everybody: the peer marks' role (src/ui/peermarks.js),
@@ -9673,6 +9863,86 @@ export async function boot({
    * first and seats what the new choice has, or a prop put back to stock
    * would stay seated.
    */
+  /*
+   * CAREER AND WAR WEAR (configs/wear.js, docs/PARTS-WEAR.md). A sortie
+   * is one run of a campaign mission or a war room: at its seat the
+   * charger turns packs around, a charged pack is picked, and the plant
+   * is seated on that pack's and the airframe's wear; when it ends (a
+   * reset, or leaving for the results) what it did is accrued. Every
+   * other flight seats exactly the blocks it always has. `sortie` is
+   * { airframe, packId, kinds, wear, fullS, lastTs } while one flies,
+   * else null; `ui.wearDelta` is the last sortie's delta, for the
+   * debrief. The wear record is the parts entry's (settings.parts[id]
+   * .wear), by the module's part table, whose kinds say which parts are
+   * the motors and props.
+   */
+  let sortie = null;
+  /* The worn blocks last seated, as plain arrays, for the checks. */
+  let wornSeated = null;
+  const FULL_THROTTLE = 0.95;
+  function realismNow() {
+    return realismFlight({ mission: Boolean(roomOps.room() && roomOps.mission()), war: roomWar.on() });
+  }
+  function sortieSeat(airframeId, choice) {
+    if (!realismNow()) {
+      sortie = null;
+      return null;
+    }
+    if (sortie && sortie.airframe === airframeId) {
+      /* Seated again mid sortie (a refit, a settings pass): the same pack
+       * and wear; only endSortie ends it. */
+      return { wear: sortie.wear, pack: sortie.packId ? ui.settings.packs[sortie.packId] : null };
+    }
+    /* Another airframe seated mid sortie ends the one flying. */
+    endSortie();
+    const table = damage.table();
+    learnPartTable(airframeId, table);
+    const kinds = table.map((t) => t.kind);
+    const got = startSortie(ui.settings, airframeId, choice);
+    ui.settings.packs = got.packs;
+    ui.persistSettings();
+    const wear = propulsionHealth(got.record, kinds);
+    sortie = { airframe: airframeId, packId: got.packId, kinds, wear, fullS: 0, lastTs: -1 };
+    return { wear, pack: got.packId ? got.packs[got.packId] : null };
+  }
+  /* Seconds at full throttle, from the sticks the plant is fed. */
+  function sortieSticks(ts, throttle) {
+    if (sortie.lastTs >= 0 && throttle >= FULL_THROTTLE && ts > sortie.lastTs) {
+      sortie.fullS += ts - sortie.lastTs;
+    }
+    sortie.lastTs = ts;
+  }
+  /* What the sortie did, accrued, before the plant forgets it. True when
+   * there was one that flew, so the next run seats afresh. */
+  function endSortie() {
+    if (!sortie || sortie.lastTs < 0) {
+      return false;
+    }
+    const af = airframeById(sortie.airframe);
+    const p = readPower();
+    const choice = powerChoice(af.id, ui.settings.power);
+    const option = POWER[af.id] ? powerOption(af.id, choice.option) : null;
+    const flight = {
+      airframe: af.id,
+      kinds: sortie.kinds,
+      packId: sortie.packId,
+      drawnC: p ? p.chargeC : 0,
+      capacityC: p ? p.capacityC : 0,
+      minCellV: p ? p.cellOcv : 0,
+      lvcV: option && option.kind === 'electric' ? option.lvcV : 0,
+      fullThrottleS: sortie.fullS,
+      impacts: runDamage ? impactsFrom(damage.parts(), sortie.kinds.length) : [],
+    };
+    const entry = partsEntry(ui.settings.parts, af.id);
+    const got = accrue(ui.settings.packs, wearRecordOf(ui.settings, af.id), flight);
+    ui.settings.packs = got.packs;
+    ui.settings.parts = normaliseParts({ ...ui.settings.parts, [af.id]: { ...entry, wear: got.record } });
+    ui.wearDelta = got.delta;
+    ui.persistSettings();
+    sortie = null;
+    return true;
+  }
+
   function applyPower(s) {
     const af = airframeById(runAirframe);
     /* What the engine is heard as: the same choice the plant is built
@@ -9684,12 +9954,18 @@ export async function boot({
       if (cleared !== SIM_OK) {
         throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(cleared)}`);
       }
-      const motors = motorsBlock(af.id, choice);
+      const worn = sortieSeat(af.id, choice);
+      const blocks = worn
+        ? wornQuadBlocks(af.id, choice, motorsBlock(af.id, choice), propPackBlock(af.id, choice), worn.wear, worn.pack)
+        : { motors: motorsBlock(af.id, choice), propPack: propPackBlock(af.id, choice) };
+      const plain = (b) => (b ? Array.from(b) : null);
+      wornSeated = worn ? { motors: plain(blocks.motors), propPack: plain(blocks.propPack) } : null;
+      const motors = blocks.motors;
       const code = motors ? sim.setMotors(motors) : SIM_OK;
       if (code !== SIM_OK) {
         throw new Error(`sim_set_motors refused ${choice.option} on ${af.id}: ${simErrorName(code)}`);
       }
-      const propPack = propPackBlock(af.id, choice);
+      const propPack = blocks.propPack;
       const packed = propPack ? sim.setPropPack(propPack) : SIM_OK;
       if (packed !== SIM_OK) {
         throw new Error(`sim_set_prop_pack refused ${choice.prop} and ${choice.pack} on ${af.id}: ${simErrorName(packed)}`);
@@ -9717,7 +9993,10 @@ export async function boot({
      * option's own block, or the table's, exactly as it was. */
     const parts = partsEntry(s.parts, af.id);
     const own = powerParams(af.id, option, pack);
-    const block = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const fitted = parts.prop === 'stock' ? own : partsPowerBlock(af.id, option, parts.prop, own ?? powerBlock(af.id, option, pack));
+    const worn = sortieSeat(af.id, { option, pack });
+    const block = worn ? wornPowerBlock(af.id, { option, pack }, fitted, worn.wear, worn.pack) : fitted;
+    wornSeated = worn && block ? { power: Array.from(block) } : null;
     const code = block ? sim.setPower(block) : sim.clearPower();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_power refused ${option}/${pack} on ${af.id}: ${simErrorName(code)}`);
@@ -11008,7 +11287,7 @@ export async function boot({
     turtleRecover = false;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
-      score.crash();
+      scoreCrash();
     }
     race.voidLap(str('main.wrecked_lap_over'), nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
@@ -11177,6 +11456,15 @@ export async function boot({
     if (af.combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
       applyCombat(af);
     }
+    /* A sortie that flew is accrued and the next one seated on its own
+     * pack; a flight that left career or war for a casual one goes back
+     * to fresh blocks. */
+    const wasSortie = sortie !== null;
+    if (endSortie() || (wasSortie && !realismNow()) || (!wasSortie && realismNow())) {
+      applyPower(ui.settings);
+      applyTuning(ui.settings);
+      applyParts(ui.settings);
+    }
     sim.reset();
     plantStarts += 1;
     /* Setting the damage mode clears the crash state, so a war or room
@@ -11313,7 +11601,7 @@ export async function boot({
      * pair with half a roll after it. Race maps never reach the scorer. */
     if (view.mode === 'freestyle') {
       trickDetector.reset();
-      score.crash();
+      scoreCrash();
     }
     dropTurtle();
     sim.rest();
@@ -12935,6 +13223,7 @@ export async function boot({
    * turtle, or mid flip) is set on its wheels first, or the next run would
    * start with its motors still parked. */
   function leaveFlightForResults() {
+    endSortie();
     mode = 'results';
     if (isTurtleParked()) {
       if (!turtleFlip.active) {
@@ -15707,6 +15996,9 @@ export async function boot({
       lastTs = ts;
       const ax = applyTurtleRc(rc.roll, rc.pitch);
       traceInput(ts, ax[0], ax[1], rc.yaw, rc.throttle);
+      if (sortie) {
+        sortieSticks(ts, rc.throttle);
+      }
       return sim.input(ts, ax[0], ax[1], rc.yaw, rc.throttle) === SIM_OK;
     };
     if (rcLink.isPerfect()) {
@@ -15954,7 +16246,7 @@ export async function boot({
     if (view.mode === 'freestyle') {
       if (hard) {
         trickDetector.reset();
-        score.crash();
+        scoreCrash();
       } else {
         /* The ground is not tappable (TrickDetector.bump). */
         trickDetector.bump(undefined, false);
@@ -17260,7 +17552,7 @@ export async function boot({
     if (crashed && inFlight) {
       return ['Crashed', true];
     }
-    if (inFlight && (warSpectating() || roomWatching())) {
+    if (inFlight && (warSpectating() || roomWatching() || jamWatching())) {
       return [warWatchBanner(), true];
     }
     if (inFlight && roomWar.live() && roundOf(roomWar.view())?.state === 'result') {
