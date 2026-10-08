@@ -78,10 +78,11 @@ PRESETS[id] = { speed, layers: [[h, mul], ...], gust, front }
   front   null, or { every, width, speed, boost, gust }: bands `every` m
           apart, `width` m wide, moving downwind at `speed` m/s; inside one
           the mean is multiplied by up to `boost` and `gust` m/s is added.
-MAPS[mapId] = { base, zones: [{ a: [x, z], b: [x, z], r, shelter, gust }] }
-  a zone is a capsule (segment a b, radius r, map frame); at its axis the
-  mean is multiplied by `shelter` and `gust` m/s is added, fading to nothing
-  at r (smoothstep).
+MAPS[mapId] = { base, toX, toZ, zones: [{ line: [[x, z], ...], r, shelter, gust, top }] }
+  a zone is the band of radius r round a polyline (map frame); on the line
+  the mean is multiplied by `shelter` and `gust` m/s is added, fading to
+  nothing at r (smoothstep), and with height from `top` m above base to
+  twice that. Overlapping segments of one line count once (nearest point).
 seed: unsigned 32 bit. It turns the wind's direction (within about 25
 degrees of the map's prevailing direction) and shifts the fronts' phase.
 ```
@@ -102,9 +103,11 @@ a front is where it is for everyone. A war flies calm. Needs a VM deploy
   the plan file: a host setter for the vertical air at the craft (the way
   `plant_air_lift` is read now, but from the host), or a list of thermals the
   host declares. Until then thermals stay the Radian's fixed three.
-- No terrain sampling for shelter: zones are authored per map. Itaipu has the
-  main dam; Swiss2, Alps and the Interior have none yet (their base heights
-  are 0, a placeholder until authored).
+- No terrain sampling at run time: zones are authored per map from a
+  height probe (window.__heightAt on a 100 m grid). Itaipu: the dam crest.
+  Swiss2 and the Alps (one valley): wind along the valley, a sheltered
+  floor, rough rims. The Interior: wind from the north east, Rio Sereno's
+  lowland a little calmer and rougher. Sources and numbers in weather.js.
 - No random numbers at run time, no wall clock.
 - No weather in the war mode or campaign until their owners ask.
 - Known edge: the map to plant rotation (`qSpawn`) is built with JS trig once
