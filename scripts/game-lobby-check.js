@@ -7,7 +7,7 @@
  * multi"):
  *
  *   SIM_GPU=1 node scripts/game-lobby-check.js --game=combat [outdir]
- *   (--game= combat, tag, war, free or race; npm run game:lobby -- --game=tag)
+ *   (--game= combat, tag, jam, war, free or race; npm run game:lobby -- --game=tag)
  *
  *   A clicks the card, one click, and is in the lobby of a public room
  *   made for the game, named for A. Escape from it is the title's cards,
@@ -99,6 +99,11 @@ const GAMES = {
     card: 'ace', world: 'swiss2', chip: 'Catch the Ace', upMs: 60000,
     on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
     end: (core, now) => core.tag.abandon(core, now),
+  },
+  jam: {
+    card: 'jam', world: 'swiss2', chip: 'Trick Battle', upMs: 60000,
+    on: "['turn', 'run'].includes(window.__roomJam().view.state)",
+    end: (core, now) => core.jam.abandon(core, now),
   },
   war: {
     card: 'campaign', world: 'itaipu', chip: 'War 1', upMs: 150000,
