@@ -192,6 +192,7 @@ try {
     stand: { label: en['walk.stand'], open: 'window.__ui.carousel.isOpen' },
     bench: { label: en['walk.bench'], open: 'window.__ui.hangar.isOpen' },
     shelf: { label: en['walk.shelf'], open: 'window.__ui.hangar.isOpen' },
+    shop: { label: en['walk.shop'], open: "window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'shop'" },
   };
   for (const st of s.stations.filter((x) => opens[x.id])) {
     const want = opens[st.id];

@@ -3763,4 +3763,5 @@ export default {
   "training.lesson.race_clean_note": "One lap without touching a gate, a banner, a pylon or a hoop.",
   "training.lesson.race_ghost": "Beat your ghost",
   "training.lesson.race_ghost_note": "Fly a lap faster than the ghost of your best lap.",
+  "walk.shop": "Shop",
 };
