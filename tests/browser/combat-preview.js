@@ -49,6 +49,7 @@ import { buildF16Craft } from '../../src/render/f16craft.js';
 import { buildZagiCraft } from '../../src/render/zagicraft.js';
 import { buildP51Craft } from '../../src/render/p51craft.js';
 import { buildTigermothCraft } from '../../src/render/tigermothcraft.js';
+import { buildExtraCraft } from '../../src/render/extracraft.js';
 import { buildUglystikCraft } from '../../src/render/uglystikcraft.js';
 import { buildDlgCraft } from '../../src/render/dlgcraft.js';
 
@@ -66,6 +67,7 @@ const SHIPPED = {
   zagi1219: buildZagiCraft,
   p51d1450: buildP51Craft,
   tigermoth1803: buildTigermothCraft,
+  extra3d1308: buildExtraCraft,
   uglystik1567: buildUglystikCraft,
   nrj1490: buildDlgCraft,
 };

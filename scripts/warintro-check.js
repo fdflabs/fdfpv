@@ -312,13 +312,22 @@ try {
       `${shot('haze').drawn.strike} ${shot('pass').drawn.strike}`);
     row('ten: the ten Strikers', shot('ten').drawn.strike === 10, `${shot('ten').drawn.strike}`);
     row('face: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot('face').counter || ''), shot('face').counter || 'none');
-    const LINE = ['ten', 'q1', 'q2', 'q3', 'strk', 'int', 'ten2', 'int2'];
-    row('line: the eight aircraft on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
+    /* Pass 2's line (INTROS.md 5.1 shot 6, 9d7e2d5f): a 75 mm lens low
+     * along the row frames the quads and the interceptors; the Striker on
+     * its rail stands on the crest out of it, and is the next shots'. */
+    const LINE = ['ten', 'q1', 'q2', 'q3', 'int', 'ten2', 'int2'];
+    row('line: the quads and the interceptors on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
     row('props, thrown, fan: the quad spinning up, the Striker off its rail, the interceptor', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('strks')
       && shot('fan').cast.includes('ints'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
-    row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
+    /* As many Strikers as the cut flies in the shot (pass 2: two head on
+     * and the west four, so each reads big), not a fixed count. */
+    const waveStrikes = FILM.agents.filter((a) => a.kind === 'strike' && (a.shots ?? []).includes('wave')).reduce((n, a) => n + a.n, 0);
+    row(`wave: ${waveStrikes} Strikers, FPVs and Loiterers, and six defenders rising`, waveStrikes > 0 && shot('wave').drawn.strike >= waveStrikes && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
       && ['q4', 'q5', 'q6', 'q7', 'strks', 'int3'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
-    row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
+    /* The card is the mission the film is held under (FILM_TITLE): First
+     * Light's for its own film, the first mission still playing "2030" for
+     * the default. */
+    row(`wave: the mission's own card, its title over "Mission ${FILM_TITLE.n}"`, shot('wave').titles.includes(EN[FILM_TITLE.key]), shot('wave').titles.join(' | '));
     row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
   }
   if (FILM.id === 'spillway') {

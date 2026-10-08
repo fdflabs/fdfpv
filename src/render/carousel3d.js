@@ -47,7 +47,8 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
-import { dressLivery } from './livery.js';
+import { addNavLights } from './navlights.js';
+import { dressLivery, liveryFor } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
@@ -232,14 +233,20 @@ export function createCarouselStage(renderer) {
    * drawing, the Striker's engine above all, so each loadout handed is a
    * model of its own too, kept like the rest. */
   function modelFor(id, key = id, combat = null) {
-    const at = combat ? `${key}#${JSON.stringify(combat)}` : key;
+    /* In the hangar's preview, or the saved paint. A visual kit
+     * (configs/kits.js) is built into the drawing, so each kit is a model
+     * of its own too. */
+    const preview = key === id ? previews.get(id) : undefined;
+    const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
+    const lights = (preview ?? liveryFor(id))?.lights ?? undefined;
+    const fitted = (kit && Object.values(kit).some((o) => o !== 'stock') ? `~${JSON.stringify(kit)}` : '')
+      + (lights ? `*${JSON.stringify(lights)}` : '');
+    const at = (combat ? `${key}#${JSON.stringify(combat)}` : key) + fitted;
     let m = models.get(at);
     if (m) {
       return m;
     }
-    /* In the hangar's preview, or the saved paint. */
-    const preview = key === id ? previews.get(id) : undefined;
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined }), id, preview ?? undefined), id);
+    const craft = addNavLights(dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit, lights }), id, preview ?? undefined), id), lights);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -546,6 +553,11 @@ export function createCarouselStage(renderer) {
     lastByKey.set(view.items[0].id, m);
     fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
     animateParts(m.craft, t0 / 1000);
+    /* The kit's LED pattern and strobes previewed on the stand, on the
+     * page's clock (only the flight's own needs the flight clock). */
+    if (m.craft.group.userData.setLights) {
+      m.craft.group.userData.setLights(t0, 0.5, 1);
+    }
     for (const other of models.values()) {
       other.holder.visible = false;
     }
@@ -710,6 +722,19 @@ export function createCarouselStage(renderer) {
     return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z], region: owner ? owner[0] : null, under: n.y < -0.1 };
   }
 
+  /* The exploded part under client pixels on the hangar's model, or
+   * null (src/render/hangar-exploded.js partAt). */
+  function pickPart(id, clientX, clientY) {
+    const m = lastByKey.get(id);
+    if (!m || !m.holder.visible) {
+      return null;
+    }
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, 1 - ((clientY - rect.top) / rect.height) * 2);
+    ray.setFromCamera(ndc, camera);
+    return exploder.partAt(m, ray);
+  }
+
   /* A model's region colours as #rrggbb, for a check; null if not built.
    * `id` is its key: an airframe id, or a build's card key. */
   function paint(id) {
@@ -740,5 +765,5 @@ export function createCarouselStage(renderer) {
     return c ? { propulsion: c.propulsion ?? null, antenna: c.antenna ?? null } : null;
   }
 
-  return { draw, repaint, paint, pick, look, fitted, combat, stats: () => ({ ...stats }) };
+  return { draw, repaint, paint, pick, pickPart, look, fitted, combat, stats: () => ({ ...stats }) };
 }
