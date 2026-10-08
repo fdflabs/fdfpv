@@ -385,6 +385,24 @@ function checkEntry(family, entry) {
   } else if (entry.regions !== undefined) {
     dropped += 1;
   }
+  /* `under`: a region's underside in a colour of its own, the faces that
+   * look down in the aircraft's frame (src/render/finish.js). Not on a
+   * film region, whose colour is baked into its film. */
+  if (entry.under && typeof entry.under === 'object' && !Array.isArray(entry.under)) {
+    const under = {};
+    for (const r of l.regions) {
+      const v = typeof entry.under[r.id] === 'string' ? entry.under[r.id].toLowerCase() : null;
+      if (!r.film && isHex(v)) {
+        under[r.id] = v;
+      }
+    }
+    dropped += Object.keys(entry.under).length - Object.keys(under).length;
+    if (Object.keys(under).length) {
+      out.under = under;
+    }
+  } else if (entry.under !== undefined) {
+    dropped += 1;
+  }
   const paint = checkPaint(l.regions, entry);
   dropped += paint.dropped;
   if (Object.keys(paint.finishes).length) {
@@ -439,12 +457,14 @@ export function colourNumbers(colours) {
 
 /*
  * What the renderer dresses a model in (src/render/livery.js): each
- * region's colour as a number, the finishes, the decals and the wear, a
+ * region's colour as a number, the underside's where a region has one
+ * of its own, the finishes, the decals and the wear, a
  * fraction from 0 (factory new) to 1.
  */
 export function lookFor(airframeId, entry) {
   return {
     colours: colourNumbers(coloursFor(airframeId, entry)),
+    under: colourNumbers((entry && entry.under) || {}),
     finishes: (entry && entry.finishes) || {},
     decals: (entry && entry.decals) || [],
     wear: ((entry && entry.wear) || 0) / 100,

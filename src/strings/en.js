@@ -1928,6 +1928,8 @@ export default {
   "hangar.tab_colours": "Colours",
   "hangar.reset": "Reset to stock",
   "hangar.flip": "Flip",
+  "hangar.side_top": "Top",
+  "hangar.side_under": "Underside",
   "hangar.view_top": "Top",
   "hangar.view_bottom": "Bottom",
   "hangar.view_left": "Left",
