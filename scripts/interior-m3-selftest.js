@@ -231,6 +231,14 @@ function snap(e, c, id, who = null) {
   e.fly(e.clock + 800);
   return view(e).captures.slice(n).some((x) => x.item === id);
 }
+/* The role this seat flies now (roles.js active): a role's triggers
+ * count only the aircraft flying it (the room's holds, #841), so a solo
+ * pilot switches to the strike, relay or recon role as a player would. */
+function as(e, key) {
+  e.say(0, { type: 'ops', op: 'active', key });
+  e.fly(e.clock + 500);
+  return e.view(0).roles?.active?.[e.seatOf(0)] === key;
+}
 function flyTo(e, c, p, label, ms = 1200000) {
   c.target = p;
   return until(e, () => dist(c.p, p) < 2, ms, label);
@@ -265,8 +273,10 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     until(e, () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 10000, 'cleared');
     check('CONFIRM IDENTIFICATION on the pair after its action: cleared, HOSTILE CONFIRMED, not yet stopped',
       clsOf(e, 'pair-a') === 'hostile' && contact(e, 'pair-a') && !e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped')));
+    check('the pilot takes the strike role for the run', as(e, 'strike'));
     flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
+    as(e, 'isr');
     check('the run over the gate: THREAT STOPPED, the pair gone, stage 3', e.cues(0).some((q) => [q.text].flat().includes('ops.interior.m3.stopped'))
       && !view(e).contacts.some((k) => k.group === 'pair' && poseOf(e, k.id)));
     until(e, () => contact(e, 'v3'), 60000, 'the pickups');
@@ -276,10 +286,13 @@ console.log('a clean run: every classification earned, one strike, the relay, no
     watch(e, c, 'v3', () => clsOf(e, 'v3') === 'hostile', 300000, 'v3 meets');
     until(e, stageIs(e, 'M3_CP_RELAY'), 30000, 'stage 4');
     check('the three pickups: CIVILIAN, EMPTY, HOSTILE CONFIRMED', clsOf(e, 'v1') === 'civilian' && clsOf(e, 'v3') === 'hostile' && view(e).stage.id === 'M3_CP_RELAY');
+    as(e, 'recon');
     flyTo(e, c, over([...M.points.command.at, M.z0]), 'the command site');
+    as(e, 'relay');
     flyTo(e, c, [...M.points.relay.at, M.z0 + 400], 'the relay volume');
     e.fly(e.clock + 11000);
     check('the relay held 10 s in its volume: forward feed stable', e.cues(0).some((q) => [q.radio].flat().includes('int3-s4-stable')));
+    as(e, 'isr');
     flyTo(e, c, over([...M.points.command.at, M.z0], 300, 200), 'back over the command site');
     for (const id of ['temp_shelter', 'command_motos', 'route_markers']) {
       snap(e, c, id);
@@ -334,6 +347,7 @@ console.log('two civilian pickups struck: an error each, the second fails the mi
   const c = pilot(e, 0, BASE);
   if (toTheGate(e, c)) {
     snap(e, c, 'confirm_pair', 'pair-a');
+    check('the pilot takes the strike role for the run', as(e, 'strike'));
     flyTo(e, c, [...M.points['strike-gate'].at, M.z0 + 250], 'the strike run');
     until(e, stageIs(e, 'M3_CP_FIRST_ENGAGEMENT'), 60000, 'stage 3');
     const said = (id) => e.r.ops.log.some((x) => x.what === 'cue' && [x.radio].flat().includes(id));
