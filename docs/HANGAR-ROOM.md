@@ -23,7 +23,7 @@ main room with the pilot second, the war field hangar third.
 | stand | the aircraft picker (`hangar-aircraft`) | this lane | yes |
 | bench | paint and parts (`customise`) | paint lane, parts lane | yes, today's hangar tabs |
 | shelf | parts bench | parts lane | no: `customise` until it lands |
-| shop | the shop | progression lane | no: drawn, no prompt until it lands |
+| shop | the hangar on its Shop tab (`hangar-shop`) | progression lane | yes |
 | trophy wall | campaign progress and records | progression lane | no: drawn, no prompt until it lands |
 | tv | replays | this lane later (item 28) | no: drawn, no prompt until it lands |
 | door | Fly (`fly`, the same as the launch card) | existing | yes |

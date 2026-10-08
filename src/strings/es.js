@@ -4125,4 +4125,5 @@ export default {
   "training.lesson.race_clean_note": "Una vuelta sin tocar una puerta, un cartel, un pilón ni un aro.",
   "training.lesson.race_ghost": "Gana a tu fantasma",
   "training.lesson.race_ghost_note": "Vuela una vuelta más rápida que el fantasma de tu mejor vuelta.",
+  "walk.shop": "Tienda",
 };

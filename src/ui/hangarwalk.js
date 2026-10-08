@@ -36,14 +36,15 @@ import { hubWays } from './ways.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
- * does not exist yet has no action here and gives no prompt (the shop,
- * the trophy wall and the TV until their lanes land); the bench and the
- * shelf need an aircraft that can be customised.
+ * does not exist yet has no action here and gives no prompt (the trophy
+ * wall and the TV until their lanes land); the bench, the shelf and the
+ * shop need an aircraft that can be customised, as the hangar does.
  */
 const STATIONS = {
   stand: { action: () => 'hangar-aircraft', label: 'walk.stand' },
   bench: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.bench' },
   shelf: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.shelf' },
+  shop: { action: (ui) => (customisable(ui.settings.airframe) ? 'hangar-shop' : null), label: 'walk.shop' },
   door: { action: (ui) => (ui.walk.tier === 'field' ? warWay(ui) : 'fly'), label: 'walk.door' },
 };
 
