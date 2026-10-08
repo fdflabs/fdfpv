@@ -287,7 +287,7 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
-import { makeWeather } from './game/weather.js';
+import { makeWeather, MAPS as WEATHER_MAPS, PRESET_IDS as WEATHER_PRESETS } from './game/weather.js';
 import { KINDS, TURNED } from './game/collide.js';
 import {
   conditionOf, createDamageLink, damagedPart, isPowered, isWreck, PART_STATE_DOUBLES, STATE,
@@ -11583,7 +11583,11 @@ export async function boot({
    * launch stand steps in it; the first flight step sets the new air); a
    * run after a calm one makes no call at all, which keeps every calm
    * flight's call stream (recorded flights, contact:golden) as it was.
-   * Picked by window.__weather until the room and the settings pick it.
+   * In a room the room's air (its welcome, set by the host) on the room's
+   * clock, so every pilot meets a front where the others do; the clock is
+   * read once per run, which keeps the run's own steps a function of its
+   * own clock. A war is calm (docs/WEATHER-CONTRACT.md). Solo, the pick
+   * window.__weather made, until the settings pick it.
    */
   let weatherPick = { preset: 'calm', seed: 0 };
   let weather = null;
@@ -11597,8 +11601,19 @@ export async function boot({
       throw new Error(`sim_set_wind refused ${vx} ${vy} ${gust}: ${simErrorName(code)}`);
     }
   }
+  let weatherT0 = 0;
+  let weatherFlown = null;
   function seatWeather() {
-    weather = makeWeather(view.id, weatherPick.preset, weatherPick.seed);
+    const welcome = roomLinkState.state().welcome;
+    const pick = welcome ? (roomWar.on() ? null : welcome.weather) : weatherPick;
+    /* A room's air is from the network, and may name what this build does
+     * not know (a newer server) or a world without weather: still air. */
+    const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
+    weather = known ? makeWeather(view.id, pick.preset, pick.seed) : null;
+    /* null until the room's clock has synced: the run's own clock then. */
+    const roomMs = welcome ? roomLinkState.roomNow() : null;
+    weatherT0 = Number.isFinite(roomMs) ? roomMs / 1000 : 0;
+    weatherFlown = weather ? { map: view.id, preset: pick.preset, seed: pick.seed } : null;
     if (windSet) {
       setWind(0, 0, 0);
       windSet = false;
@@ -11607,11 +11622,17 @@ export async function boot({
   /* Before a step: the air at the craft, on the plant's own clock. */
   function pushWeather(st) {
     poseFromState(st, airPos);
-    weather.at(airPos.x, airPos.y, airPos.z, st[0], airOut);
+    weather.at(airPos.x, airPos.y, airPos.z, weatherT0 + st[0], airOut);
     worldDirToSim(airOut.x, 0, airOut.z, airSim);
     setWind(airSim.x, airSim.y, airOut.gust);
     windSet = true;
   }
+  /* The air this run flies, { map, preset, seed }, or null for calm. */
+  window.__weatherFlown = () => weatherFlown;
+  window.__roomWeather = (preset) => {
+    roomLinkState.sendWeather(preset);
+    return true;
+  };
   window.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
     weatherPick = { preset, seed: seed >>> 0 };
