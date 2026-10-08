@@ -2020,7 +2020,10 @@ export async function boot({
   /* Where a replay the hangar's TV opened goes back to: { mode, which }. */
   let tvReturn = null;
   const walkRoom = { lastTurntable: null, view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
-  function walkRoomFrame(dt) {
+  /* dtMs is the frame's, in milliseconds as everywhere in the frame loop;
+   * the walk and the room's springs take seconds. */
+  function walkRoomFrame(dtMs) {
+    const dt = dtMs / 1000;
     const pose = ui.walkFrame(dt);
     const graphics = ui.settings.graphics;
     if (walkRoom.view && walkRoom.graphics !== graphics) {
