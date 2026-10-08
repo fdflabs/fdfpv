@@ -1526,6 +1526,8 @@ export class FpvOsd {
     } else if (this.batt === 'warning') {
       warning = str('osd.low_battery');
       blink = true;
+    } else if (x.condition === 'impaired' && x.damagedPart) {
+      warning = str('osd.damaged', { part: str(`osd.part_${x.damagedPart}`) });
     } else if (!x.armed && !x.flown && this.vFilt / x.cells < CELL_FULL) {
       warning = str('osd.batt_not_full');
     }

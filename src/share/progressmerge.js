@@ -26,9 +26,11 @@
  * THE RULES, by section kind:
  *
  *   progress   XP is the higher of the two; courses flown, challenges
- *              done and the rest are flags, and a flag set on either side
- *              is set; medals per course the better of the two; Unlock
- *              all is on if either turned it on.
+ *              done, firsts paid and the rest are flags, and a flag set on
+ *              either side is set; Unlock all is on if either turned it
+ *              on; lessons passed are the union at the earlier pass
+ *              time; medals per course the better of the two; the
+ *              version is the newer of the two.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
  *   keyed      one entry per plane (or per tune, or per build), the newer
@@ -110,7 +112,7 @@ export const SYNCED_SECTIONS = {
   flightTime: 'devices',
 };
 
-const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual'];
+const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual', 'firsts'];
 
 function isRecord(o) {
   return Boolean(o) && typeof o === 'object' && !Array.isArray(o);
@@ -269,6 +271,22 @@ function mergeProgress(a, b) {
     }
   }
   out.unlockAll = a.unlockAll === true || b.unlockAll === true;
+  /* Lessons passed: every lesson either passed, at the earlier pass. */
+  const la = isRecord(a.lessons) ? a.lessons : {};
+  const lb = isRecord(b.lessons) ? b.lessons : {};
+  out.lessons = {};
+  for (const id of [...new Set([...Object.keys(la), ...Object.keys(lb)])].sort()) {
+    const t = [la[id], lb[id]].filter((v) => Number.isFinite(v) && v > 0);
+    if (t.length) {
+      out.lessons[id] = Math.min(...t);
+    }
+  }
+  /* The newer shape of the two (progress.js PROGRESS_VERSION): an older
+   * build's sync must not mark merged progress as its own older version,
+   * or the next load would migrate it again. */
+  const va = Number.isInteger(a.v) ? a.v : 1;
+  const vb = Number.isInteger(b.v) ? b.v : 1;
+  out.v = Math.max(va, vb);
   return out;
 }
 
