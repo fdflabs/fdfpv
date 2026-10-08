@@ -205,6 +205,10 @@ export function trigger(trig, ctx) {
   if (trig.alert != null) {
     return after(m.sites[trig.alert]?.at[trig.level] ?? null);
   }
+  if (trig.looking != null || trig.spotted != null) {
+    const id = trig.looking ?? trig.spotted;
+    return after(m.spot?.[id]?.at[trig.looking != null ? 'looking' : 'spotted'] ?? null);
+  }
   if (trig.route != null) {
     const ts = membersOf(m.contacts, trig.route).map((c) => c.reached[trig.point]).filter((t) => t != null);
     return after(earliest(ts));

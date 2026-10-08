@@ -26,6 +26,10 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wash } from './lib/wash.js';
+import { derive as deriveWash } from './wash-derive.js';
+
+const SLIP = deriveWash('FW_KADET1981');
 const DEG = 180 / Math.PI;
 const rho = 1.225;
 const g = 9.81;
@@ -207,9 +211,14 @@ function deriv(x, de, d) {
   const CL = CLa * a + CLde * de;
   const CD = CD0 + k * CL * CL;
   const L = qb * S * CL, Dr = qb * S * CD, Tt = T(Math.max(0, u), d);
+  /* The prop's wash over the tail, the plant's slip_* (scripts/wash-derive.js). */
+  const ws = wash(SLIP, Tt, u);
+  const xa = -w * Math.cos(SLIP.slip_a0) - u * Math.sin(SLIP.slip_a0);
+  const kh = rho * ws.vi * ws.fh, ph = ws.dp * ws.fh;
   const Fx = L * (-w / V) - Dr * u / V + Tt;
-  const Fz = L * (u / V) - Dr * w / V;
-  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt;
+  const Fz = L * (u / V) - Dr * w / V + S * (kh * SLIP.slip_cl_a * xa + ph * CLde * de);
+  const My = qb * S * c * (Cm0 + Cma * a + Cmq * q * c / (2 * V) + Cmde * de) - thrustZ * Tt +
+    S * c * (kh * (SLIP.slip_cm_a * xa + Cmq * q * c / 2) + ph * Cmde * de);
   return [Fx / m - g * Math.sin(thp) + q * w, Fz / m - g * Math.cos(thp) - q * u, My / Iyy, q];
 }
 function solve3(A, bb) {
@@ -549,6 +558,20 @@ rows.push([`trim at ${f(Vtrim, 2)} m/s`, `theta ${f(lmT.thetaDeg, 2)} de ${f(lmT
  * attitude at the throw's 9 m/s is the one that trims level flight there. */
 const lm9 = longitudinalModes(9.0);
 rows.push(['trim at 9.0 m/s, the hand launch', `theta ${f(lm9.thetaDeg, 2)} de ${f(lm9.deDeg, 2)} throttle stick ${f(lm9.duty)}, pitch stick ${f(stickFor(lm9.deDeg / DEG, throwE))}`]);
+/* The throw is at full throttle, and under full power the wash over the
+ * stabiliser (docs/FLIGHTMODEL.md) makes the same elevator stronger: the
+ * elevator that holds that level flight's angle of attack at 9 m/s with
+ * the throttle open is what the throw holds. */
+const de9 = (() => {
+  const x = [9 * Math.cos(lm9.thetaDeg / DEG), -9 * Math.sin(lm9.thetaDeg / DEG), 0, lm9.thetaDeg / DEG];
+  let lo = -throwE, hi = throwE;
+  for (let it = 0; it < 80; it += 1) {
+    const mid = (lo + hi) / 2;
+    if (deriv(x, mid, 1)[2] > 0) hi = mid; else lo = mid;
+  }
+  return (lo + hi) / 2;
+})();
+rows.push(['   the same angle at full throttle, in the wash', `de ${f(de9 * DEG, 2)}, pitch stick ${f(stickFor(de9, throwE))}`]);
 /* Full up elevator: where the linear pitching moment trims, as an angle of
  * the zero lift line, against the stall's. */
 rows.push(['alpha trim at full up, linear moment; alpha stall (deg)', `${f((Cm0 + Cmde * throwE) / -Cma * DEG, 1)} ${f(CLmax / CLa * DEG, 1)}`]);

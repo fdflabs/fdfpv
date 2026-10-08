@@ -412,8 +412,13 @@ int sim_set_flight_style(int arcade);
  * fins, rail launched and landed on its belly skid, 27 on a 110 cc boxer
  * twin and a 30 in wooden prop, 28 on a 140 N class turbojet whose thrust
  * lags the stick, both carrying a warhead in the nose through
- * sim_set_addons. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 23, 27 and 28 are fixed wings: no Betaflight, the sticks go to the
+ * sim_set_addons, and 29 E-flite's Extra 300 3D 1.3m
+ * (docs/EXTRA-STAGE1.md, docs/FLIGHTMODEL.md), a foam aerobatic taildragger
+ * whose thrust is about two and a half times its weight, which hangs on its
+ * prop with its surfaces in the slipstream: the aircraft removed as 14 on
+ * 2026-09-29, back under a new id on 2026-10-08 so nothing recorded on 14
+ * replays as it. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 23 and 27 to 29 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -461,6 +466,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_INTERCEPTOR_ID 26
 #define SIM_AIRFRAME_STRIKER_PROP_ID 27
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
+#define SIM_AIRFRAME_EXTRA3D1308_ID 29
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -598,6 +604,12 @@ double sim_boost(void);
  * bottom wing's, and the linear lift each would carry at the cell's
  * angle, for the gates. Zeros on a monoplane. Additive, version
  * unchanged.
+ * sim_wing_slip(out[6]): the prop's slipstream as the last step took it,
+ * docs/FLIGHTMODEL.md: its moments about body x, y and z as they were
+ * added, the disc's pressure jump (Pa), the induced speed (m/s) and the
+ * swirl's sideways speed over the fin (m/s), for the gates that take one
+ * term of the moment alone. Zeros on an aircraft without a wash.
+ * Additive, version unchanged.
  */
 int sim_wing_launch(double speed);
 /* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
@@ -614,6 +626,7 @@ int sim_wing_surfaces(double *out);
 int sim_plane_surfaces(double *out);
 int sim_wing_debug(double *out);
 int sim_wing_biplane(double *out);
+int sim_wing_slip(double *out);
 
 /*
  * sim_wheel_loads(out[4]): the normal load on each ground contact point an
