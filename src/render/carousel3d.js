@@ -47,7 +47,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
-import { dressLivery } from './livery.js';
+import { dressLivery, liveryFor } from './livery.js';
 import { layerOutline, paintTargets, readDecals } from './decals.js';
 import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
@@ -239,7 +239,8 @@ export function createCarouselStage(renderer) {
     }
     /* In the hangar's preview, or the saved paint. */
     const preview = key === id ? previews.get(id) : undefined;
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined }), id, preview ?? undefined), id);
+    const kit = (preview ?? liveryFor(id))?.kit ?? undefined;
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined, kit }), id, preview ?? undefined), id);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
