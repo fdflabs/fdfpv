@@ -306,6 +306,11 @@ console.log('a designation before the action is refused by Ibarra and stops noth
   snap(e, c, 'confirm_pair', 'pair-a');
   e.fly(e.clock + 4000);
   check('"We don\'t have that yet."; the pair not cleared', e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-notyet')) && clsOf(e, 'pair-a') === 'poi');
+  /* Lenient by choice (CONTRACT-M3.md gap 2): the early box stands, so
+   * the clearance comes with the action without a second one. */
+  watch(e, c, 'pair-a', () => e.cues(0).some((q) => [q.radio].flat().includes('int3-s2-cleared')), 300000, 'the action');
+  check('the early designation stands: cleared when the pair reaches the gate, no second box', clsOf(e, 'pair-a') === 'hostile'
+    && e.r.ops.match.captures.filter((x) => x.item === 'confirm_pair').length === 1);
 }
 
 console.log('two civilian pickups struck: an error each, the second fails the mission');
