@@ -154,7 +154,7 @@ function freeCraft(group) {
 /* The craft's optional handles, each null on an aircraft without it:
  * control surfaces, a folding prop, the Bramor's parachute, flaps,
  * retracts, and a launch rail with its pose. */
-const OPTIONAL_HANDLES = ['setLights', 'setSurfaces', 'setProp', 'setChute', 'setFlaps', 'setGear', 'launcher', 'launcherRest'];
+const OPTIONAL_HANDLES = ['setSurfaces', 'setProp', 'setChute', 'setFlaps', 'setGear', 'launcher', 'launcherRest'];
 
 /*
  * The session: renderer, camera and the flown airframe.

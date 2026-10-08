@@ -16690,8 +16690,8 @@ export async function boot({
     }
     /* The kit's arm LEDs (docs/KITS.md section 4) on the flight clock, so
      * a replay flashes as the flight did; the pack as the OSD bands it. */
-    if (shell.setLights) {
-      shell.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
+    if (shell.quad.userData.setLights) {
+      shell.quad.userData.setLights(simTimeMs, input.channels.throttle || 0, LED_BATTERY[fpvOsd.batt] ?? 1);
     }
     if (shell.cameraMount) {
       shell.cameraMount.rotation.x = cameraTiltRad(camTilt);
