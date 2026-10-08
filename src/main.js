@@ -212,14 +212,14 @@ import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../co
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
 import {
-  AIRFRAMES, DEFAULT_AIRFRAME, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, isWarAirframe,
+  AIRFRAMES, DEFAULT_AIRFRAME, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, currentAirframeId, isWarAirframe,
 } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
-import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { PROPS, addonParams, normalisePlane, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
 import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
-import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
+import { liveryKey, lookFor, normaliseEntry, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
 import { GLIDER_MOUNT_FORWARD, GLIDER_MOUNT_UP } from './render/glidercraft.js';
@@ -2026,28 +2026,37 @@ export async function boot({
     const dt = dtMs / 1000;
     const pose = ui.walkFrame(dt);
     const graphics = ui.settings.graphics;
-    if (walkRoom.view && walkRoom.graphics !== graphics) {
+    /* A new room (a visit, or home from one) is a new view, as a new
+     * graphics preset is. */
+    if (walkRoom.view && (walkRoom.graphics !== graphics || walkRoom.walk !== ui.walk)) {
       walkRoom.view.dispose();
       walkRoom.view = null;
     }
+    const visit = ui.walk.visit;
     if (!walkRoom.view) {
       walkRoom.view = createRoomView(shell.renderer, { graphics: qualityFor(graphics) });
       walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
       walkRoom.graphics = graphics;
+      walkRoom.walk = ui.walk;
       walkRoom.craftKey = null;
-      loadPhotoWall(walkRoom.view);
+      if (visit) {
+        walkRoom.view.setCraft(visitCraft(visit));
+        walkRoom.craftKey = `visit:${visit.callsign}`;
+      } else {
+        loadPhotoWall(walkRoom.view);
+      }
     }
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
     walkRoom.hangarWasOpen = ui.hangar.isOpen;
-    if (walkRoom.craftKey !== id || shut) {
+    if (!visit && (walkRoom.craftKey !== id || shut)) {
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
     /* The trophy wall: every first paid, in key order so a wall reads the
      * same each visit (src/game/progress.js firsts). */
     const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
-    walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
+    walkRoom.view.setTrophies(visit ? [...visit.firsts].sort() : Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
     const photo = ui.walk.photo;
     turntableStep(photo);
@@ -2119,6 +2128,22 @@ export async function boot({
     if (t >= TURNTABLE_S && tt.rec.state === 'recording') {
       tt.rec.stop();
     }
+  }
+
+  /* A visited pilot's aircraft in their own paint and parts, normalised
+   * here as a peer's are (src/render/peers.js): what arrived is another
+   * account's, so a colour or a part this build does not know is dropped. */
+  function visitCraft(visit) {
+    const id = airframeById(currentAirframeId(visit.airframe)).id;
+    const craft = craftBuilderFor(id)({ name: 'visit-craft', fog: false });
+    if (paintable(id)) {
+      dressLivery(craft, id, lookFor(id, normaliseEntry(liveryKey(id), visit.look)));
+    }
+    const entry = PROPS[id] ? normalisePlane(id, visit.parts) : null;
+    if (entry) {
+      dressParts(craft, id, { entry: { ...entry, damage: null }, option: null });
+    }
+    return craft;
   }
 
   /* The newest photos onto the room's photo wall, each made small first:
@@ -13557,6 +13582,9 @@ export async function boot({
   /* One sync now, resolving to whether it changed anything here, for
    * scripts/account-browser-check.js, which cannot wait out the minute. */
   window.__accountSync = () => accountUi.sync();
+  /* The hangar's visits switch is sent at once rather than within the
+   * minute: a friend is waiting at the door (src/ui/hangarwalk.js). */
+  ui.onSyncNow = () => accountUi.sync();
   /*
    * Fly and Restart start a run the same way once the loaded config is the
    * current one: a tune still being fetched would sim_init underneath a run
@@ -17585,7 +17613,7 @@ export async function boot({
   /* The picker and the hangar (scripts/hangar-check.js, progress-check.js). */
   window.__carouselStats = () => pickStage.stats();
   window.__walkStats = () => (ui.walk ? {
-    pose: ui.walk.pose, tier: ui.walk.tier, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
+    pose: ui.walk.pose, tier: ui.walk.tier, visit: ui.walk.visit ? ui.walk.visit.callsign : null, craft: ui.walk.visit ? ui.walk.visit.airframe : walkRoom.craftKey, stations: ui.walk.stations, prompt: ui.walk.promptKey, turntable: walkRoom.lastTurntable, view: walkRoom.view ? walkRoom.view.stats() : null,
   } : null);
   window.__lastSwap = () => lastSwap;
   window.__craftPaint = () => shell.craftPaint(drawnCraft);

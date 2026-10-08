@@ -62,6 +62,9 @@
  *   POST   /api/account/wallet/buy { item }  { wallet }, or 404 no such
  *            item, 409 { why: 'owned' | 'earned' }, 402 { why: 'short' }
  *
+ *   GET    /api/hangar/<callsign>  { visit } another pilot's hangar, read
+ *            only, no session (hangarRoute); 404 when closed or nobody
+ *
  *   POST   /api/waitlist           { credential }  the GIS ID token of
  *            whoever asks for a place in the beta: { approved }, true when
  *            the address already has its invite
@@ -94,6 +97,7 @@ import {
   fromBase64, keyLinkMessage, sha256Base64, toBase64, verifySignature,
 } from '../src/share/identity.js';
 import { blobRefusal, cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
+import { visitOf } from '../src/share/hangarvisit.js';
 import {
   NAME_ADJECTIVES, NAME_ANIMALS,
 } from '../src/share/roomwire.js';
@@ -105,7 +109,7 @@ import { json, nowUtc, readBody, refuse, spend } from './http.js';
 import { inviteOnly, invited, joinWaitlist } from './waitlist.js';
 import { buyItem, deleteWallet, settleWallet } from './wallet.js';
 import {
-  ACCOUNT_WRITE_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
+  ACCOUNT_WRITE_LIMIT, HANGAR_VISIT_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
 } from './limits.js';
 
 const TOKEN_RE = /^[0-9a-f]{64}$/;
@@ -533,6 +537,34 @@ export async function waitlistRoute(env, request) {
     return refuse(422, 'That Google account has no verified email address to invite.');
   }
   return json(200, await joinWaitlist(env, verdict.email));
+}
+
+/*
+ * GET /api/hangar/<callsign>: another pilot's hangar, read only
+ * (docs/HANGAR-VISITS.md), no session needed. A closed hangar answers as
+ * a callsign nobody holds does, so whether the pilot exists is not given
+ * away.
+ */
+export async function hangarRoute(env, request, path) {
+  if (!accountsOn(env)) {
+    return refuse(503, 'Sign in is not available on this server.');
+  }
+  const limited = await spend(env, request, 'hangar', HANGAR_VISIT_LIMIT, 'Too many visits from here. Try again in a few minutes.');
+  if (limited) {
+    return limited;
+  }
+  let raw = '';
+  try {
+    raw = decodeURIComponent(path.slice('/api/hangar/'.length));
+  } catch (e) {
+    return refuse(404, 'No hangar to visit.');
+  }
+  const name = normaliseName(raw);
+  const row = name ? await env.DB.prepare('SELECT callsign, progress FROM accounts WHERE callsign_key = ?').bind(name.toLowerCase()).first() : null;
+  const held = row ? heldProgress(row) : null;
+  /* The blob is { v, data, stamps }; the sections are in data. */
+  const visit = held ? visitOf(held.data, row.callsign) : null;
+  return visit ? json(200, { visit }) : refuse(404, 'No hangar to visit.');
 }
 
 export async function accountRoute(env, request, path) {
