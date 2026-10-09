@@ -72,7 +72,7 @@ import {
 import {
   UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
-import { standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../../render/library/roofs.js';
 import { setSolidSurface } from '../../../game/crashworld.js';
 import { frame as kitFrame } from '../buildings/parts.js';
 import { chalet, church } from '../buildings/houses.js';
@@ -599,7 +599,7 @@ const WIND = new THREE.Vector2(0.8, -0.6).normalize();
  * hamlet's houses and the promenade join), `bake`, the kit's bake the
  * buildings are put into (the caller bakes it, buildings/bake.js), and,
  * when the map collides, its colliders and its list of roofs: every
- * building here is walls under a roof that is ground (alps/roofs.js),
+ * building here is walls under a roof that is ground (library/roofs.js),
  * its footprint the one it always had and noted as it always was, by
  * the push below.
  */

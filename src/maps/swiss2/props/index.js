@@ -96,7 +96,7 @@ import {
 import { placeInto, placeBoathouse } from './lakeside.js';
 import { stadel } from '../buildings/houses.js';
 import { roadside } from './roadside.js';
-import { standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../../render/library/roofs.js';
 
 /* Huts note their footprints for the meadow and the forest to keep off
  * only this far from the strip, as they always have: noting more would

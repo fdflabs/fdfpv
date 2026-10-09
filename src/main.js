@@ -11314,7 +11314,7 @@ export async function boot({
   /* The solids near crashProbe for the free bodies. A roof the craft is
    * on stands over the walls under it, and the city's staircase stands up
    * into it: the parts meet the roof, which is the ground, not them. The
-   * same solids the sweep lets through (src/maps/alps/roofs.js cover),
+   * same solids the sweep lets through (src/render/library/roofs.js cover),
    * chosen from where the plant is, so the set stays a function of the
    * flight. */
   function declareCrashSolids(must = -1) {
@@ -11392,7 +11392,7 @@ export async function boot({
 
   /*
    * A ROOF IS A SOLID FOR THE BROKEN PARTS. The craft stands on a roof
-   * through the plant's ground plane (src/maps/alps/roofs.js), but a free
+   * through the plant's ground plane (src/render/library/roofs.js), but a free
    * part has no ground but that one plane under the craft, and the roof was
    * declared to the plant as nothing: a Cub's aileron that fell on a roof
    * beside the craft went through the tiles and came to rest on the walls'
@@ -15660,7 +15660,7 @@ export async function boot({
     }
     /* A roof that is the craft's ground is its contact, not the walls
      * under it, which the swept hull would otherwise reach through the
-     * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
+     * shell (src/render/library/roofs.js). Same fromY as the ground plane. */
     if (view.cover) {
       view.cover(obsTo.x, obsTo.z, obsTo.y - SURFACE_BIAS);
     }
@@ -19642,7 +19642,7 @@ export async function boot({
    * otherwise load a second three.js whose classes this scene's objects are
    * not instances of. */
   window.__three = THREE;
-  /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
+  /* The roofs (src/render/library/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
    * the walls under it, so a capture can fly at a real roof. Empty where
    * a map has none. Harness only. */

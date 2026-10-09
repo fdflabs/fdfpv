@@ -70,11 +70,13 @@ after pictures.
 | Water edges, streams, silt | not yet | `interior/ribbons.js`, `swiss2/water/`, `itaipu/water/`, `alps/nature.js` | one each |
 | Rocks | not yet | `swiss2/vegetation/rocks.js`, `swiss2/rock/`, `alps/nature.js` | Swiss valley, Alps |
 | People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
-| Buildings and roofs | not yet | `alps/kit.js`, `alps/roofs.js` (shared), `interior/built.js`, `itaipu/town/` | all four |
+| Roofs as ground (records, solids under them) | `roofs.js` | used by `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
+| Building models | not yet | `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | one each (Swiss on the Alps kit) |
 | Fences | not yet | `alps/kit.js`, `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Vehicles | not yet | `alps/vehicles.js` (shared with the Swiss valley), `src/render/interior/vehicles.js` | three |
 | Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `alps/kit.js` | one each |
-| Lit materials (the sun and cloud shadow patch) | not yet | `itaipu/look/light.js` `makeLit`, `swiss2/light.js` | Itaipu, Interior; Swiss valley |
+| Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
+| Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
 
 The Alps keep their cel look by decision (2026-10-07): their kit and roofs
 are the base the Swiss valley is built on and stay where they are until a
