@@ -12033,7 +12033,7 @@ export async function boot({
     if (!flying) {
       rain.frame(shell.camera, 0, 0, 0, 0);
       wetShown = 0;
-      view.setWet?.(0);
+      view.setWet?.(wetHold ?? 0);
       return;
     }
     const c = shell.camera.position;
@@ -12043,8 +12043,53 @@ export async function boot({
     /* The map's own haze in the rain, if its look has one (the photoreal
      * lane's): 0 must be the dry look exactly. */
     wetShown = rainAt.wet;
-    view.setWet?.(wetShown);
+    view.setWet?.(wetHold ?? wetShown);
   }
+  /* The look held at a rain intensity whatever the air, for the haze
+   * check's pictures (null lets the air decide again). Harness only. */
+  let wetHold = null;
+  window.__wetHold = (w) => {
+    wetHold = w;
+  };
+  /* One frame drawn now at rain intensity `wet`, read back, for
+   * scripts/weather-haze-check.js: the look's own setWet and post chain,
+   * in one task, so nothing between two calls moves but `wet`. Returns
+   * the frame's FNV-1a hash, its mean luma, the luma's standard
+   * deviation (its contrast) and a luma thumbnail. Harness only. */
+  window.__wetFrame = (wet) => {
+    view.setWet?.(wet);
+    if (view.post) {
+      view.post.render();
+    } else {
+      shell.renderer.render(view.scene, shell.camera);
+    }
+    const gl = shell.renderer.getContext();
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+    const px = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let hash = 0x811c9dc5;
+    let sum = 0;
+    let sum2 = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      hash = Math.imul(hash ^ px[i], 16777619);
+      hash = Math.imul(hash ^ px[i + 1], 16777619);
+      hash = Math.imul(hash ^ px[i + 2], 16777619);
+      const l = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      sum += l;
+      sum2 += l * l;
+    }
+    const n = w * h;
+    /* A 64 by 36 luma thumbnail, nearest sample, to compare frames by. */
+    const thumb = [];
+    for (let y = 0; y < 36; y += 1) {
+      for (let x = 0; x < 64; x += 1) {
+        const k = (Math.floor((y + 0.5) * h / 36) * w + Math.floor((x + 0.5) * w / 64)) * 4;
+        thumb.push(Math.round(0.2126 * px[k] + 0.7152 * px[k + 1] + 0.0722 * px[k + 2]));
+      }
+    }
+    return { hash: hash >>> 0, luma: sum / n, contrast: Math.sqrt(Math.max(0, sum2 / n - (sum / n) ** 2)), thumb, w, h };
+  };
   window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
