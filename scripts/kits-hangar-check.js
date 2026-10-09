@@ -265,6 +265,38 @@ async function navLights(page, id) {
   await closeAll(page);
 }
 
+/* The Night Timber X's own LEDs (docs/NIGHTTIMBER-STAGE1.md section 5):
+ * its Kit tab's switch pressed through Always on, Off and back to At
+ * night, the entry read after each, the model's lights shown only when
+ * on (the hangar is day), and Save keeping it. */
+async function factorySwitch(page) {
+  const id = 'nighttimber1200';
+  await openHangar(page, id);
+  await press(page, '.hangar [data-key="tab-kit"]');
+  await page.until("window.__ui.hangar.tab === 'kit'", 5000);
+  const read = () => page.evaluate('JSON.stringify(window.__ui.hangar.entry.lights || null)');
+  await press(page, '.hangar [data-key="factory-on"]');
+  await page.sleep(400);
+  const on = await read();
+  say(on === JSON.stringify({ v: LIGHTS_VERSION, factory: 'on' }), `${id}: Always on is stored: ${on}`);
+  await shot(page, `${id}-factory-on`);
+  await press(page, '.hangar [data-key="factory-off"]');
+  await page.sleep(400);
+  const off = await read();
+  say(off === JSON.stringify({ v: LIGHTS_VERSION, factory: 'off' }), `${id}: Off is stored: ${off}`);
+  await press(page, '.hangar [data-key="factory-auto"]');
+  await page.sleep(400);
+  const auto = await read();
+  say(auto === 'null', `${id}: At night is the default and leaves no lights key: ${auto}`);
+  await press(page, '.hangar [data-key="factory-on"]');
+  await page.sleep(300);
+  await press(page, '.hangar [data-key="save"]');
+  await page.until(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null) === ${JSON.stringify(JSON.stringify({ v: LIGHTS_VERSION, factory: 'on' }))}`, 10000).catch(() => {});
+  const saved = await page.evaluate(`JSON.stringify(((window.__ui.settings.livery || {})['${id}'] || {}).lights || null)`);
+  say(saved === JSON.stringify({ v: LIGHTS_VERSION, factory: 'on' }), `${id}: Save keeps the switch: ${saved}`);
+  await closeAll(page);
+}
+
 /* Every plane family: red left, green right, white aft, the strobes on
  * the flight clock, and nothing added without lights. */
 async function navEveryPlane(page) {
@@ -304,6 +336,7 @@ async function main() {
       await navLights(page, id);
     }
     await navEveryPlane(page);
+    await factorySwitch(page);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
