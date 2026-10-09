@@ -136,9 +136,16 @@ const SERVED = `(() => {
   const by = {};
   for (const u of urls) { by[s[u]] = (by[s[u]] || 0) + 1; }
   return { n: urls.length, by, unversioned: urls.filter((u) => !/[?]v=/.test(u)).length,
-    versions: [...new Set(urls.map((u) => (u.match(/[?]v=([^&]+)/) || [])[1] || ''))],
-    wasm: performance.getEntriesByType('resource').map((e) => e.name).filter((n) => n.includes('sim.wasm')) };
+    versions: [...new Set(urls.map((u) => (u.match(/[?]v=([^&]+)/) || [])[1] || ''))] };
 })()`;
+
+/* The wasm URLs a site was asked for since request number `from`. Read off
+ * the server and not the page's resource timing, whose buffer keeps 250
+ * entries: the shell loads over 400 modules first, so sim.wasm fell off the
+ * end and the wasm checks failed with an empty list. */
+function wasmAsked(site, from) {
+  return site.requests.slice(from).filter((u) => u.includes('sim.wasm'));
+}
 
 async function navigate(page, url) {
   await page.cdp.send('Page.navigate', { url }, page.sessionId);
@@ -184,6 +191,7 @@ try {
   servers.push(s.server);
   await navigate(page, `${s.origin}/`);
   const before = await page.evaluate(SERVED);
+  before.wasm = wasmAsked(stamped, 0);
   check('every module loads through the map at ?v=A', before.n > 50 && before.unversioned === 0
     && before.versions.length === 1 && before.versions[0] === 'aaaaaaaaaaaa' && before.by.aaaaaaaaaaaa === before.n,
   `${before.n} modules, ${before.unversioned} unversioned`);
@@ -210,8 +218,10 @@ try {
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
 
   await page.evaluate("sessionStorage.setItem('fdfpv.room', 'K7PZ2M'); true");
+  const reloadFrom = stamped.requests.length;
   await reloadAndWait(page, "document.querySelector('.update-bar:not(.room-bar) .update-reload').click(); true");
   const after = await page.evaluate(SERVED);
+  after.wasm = wasmAsked(stamped, reloadFrom);
   check('after Reload every module is the new deploy\'s', after.n > 50 && after.unversioned === 0
     && after.by.bbbbbbbbbbbb === after.n && after.versions.join() === 'bbbbbbbbbbbb',
   `${after.n} modules, ${JSON.stringify(after.by)}`);
