@@ -101,6 +101,8 @@ try {
   await page.sleep(5000);
   const api = asked.filter((u) => u.startsWith(API_ORIGIN));
   check(`no request to ${API_ORIGIN}`, api.length === 0 && asked.length > 50, `${asked.length} requests, ${api.length} to the API: ${api.slice(0, 3).join(' ')}`);
+  const foreign = [...new Set(asked.filter((u) => /^https?:/.test(u) && !u.startsWith(origin)).map((u) => new URL(u).host))];
+  console.log(`  note  other hosts asked: ${foreign.join(' ') || 'none'}`);
   if (page.errors.length) {
     console.log(`  note  ${page.errors.length} page errors, first: ${page.errors.slice(0, 3).join(' | ')}`);
   }

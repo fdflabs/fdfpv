@@ -36,6 +36,11 @@ A preview runs a build nobody merged, so it must not reach real data.
 - Board: off `SITE_HOSTS` the page has no board (src/share/board.js), so no
   preview lap reaches the real leaderboard.
 
+The page then behaves as a fork with no board does (`NO_BOARD`): its board
+reads go to an address that never resolves and fail like a server that is
+down, so lists are empty, and the bug form cannot send. Report what a
+preview does wrong on its pull request.
+
 Settings and progress on a preview live in that host's own storage. The
 `?rooms=`, `?tracks=` and `?board=` overrides still outrank all of this, for
 a developer pointing a preview at a local stack on purpose.
