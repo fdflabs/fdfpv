@@ -64,6 +64,15 @@ check('nothing stored in a profile from before progression: all open', normalise
 check('a stored switch wins over the profile\'s age', normaliseProgress({ unlockAll: false }, { existing: true }).unlockAll === false);
 const bad = normaliseProgress({ xp: -5.5, courses: { a: true, b: 1, c: 'yes' }, challenges: ['x'], seen: null, unlockAll: 'on' });
 check('junk is made safe', bad.xp === 0 && same(bad.courses, { a: true }) && same(bad.challenges, {}) && same(bad.seen, {}) && same(bad.casual, {}) && bad.unlockAll === false, JSON.stringify(bad));
+/* The lessons (src/game/training.js): a profile stored before them has
+ * no field, which reads as none passed, every other field kept. */
+const old = { v: 1, xp: 420, courses: { 'track:t1': true }, challenges: { first_course: true }, seen: {}, casual: {}, unlockAll: false };
+const moved = normaliseProgress(old);
+check('a profile from before the lessons keeps everything and has none passed', same(moved.lessons, {}) && moved.xp === 420
+  && same(moved.courses, old.courses) && same(moved.challenges, old.challenges) && moved.unlockAll === false, JSON.stringify(moved));
+const kept = normaliseProgress({ ...old, lessons: { first_takeoff: 1760000000000.5, race_lap: 'yes', first_land: -1, first_turns: NaN } });
+check('a passed lesson keeps its time, whole; anything else is dropped', same(kept.lessons, { first_takeoff: 1760000000000 }), JSON.stringify(kept.lessons));
+check('and survives a round trip', same(normaliseProgress(JSON.parse(JSON.stringify(kept))).lessons, kept.lessons));
 check('XP is whole and bounded', normaliseProgress({ xp: 123.9 }).xp === 123 && normaliseProgress({ xp: 1e12 }).xp === 1e7 && normaliseProgress({ xp: NaN }).xp === 0);
 
 console.log('the stored shape\'s versions (docs/ECONOMY.md section 3)');
@@ -105,9 +114,17 @@ const ceiling = everything.reduce((n, f) => n + f.xp, 0);
 check('every fact at once has a ceiling: stars clamp to three', everything.filter((f) => f.key.includes(':star')).length === 12 * 3 && ceiling < 1e5, `${everything.length} firsts, ${ceiling} XP`);
 const learner = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 1759800000000, not_yet_written: 1759800000001, bad: 'x' } });
 check('lesson passes are kept as times, unknown ids too, junk dropped', learner.lessons.first_takeoff === 1759800000000 && learner.lessons.not_yet_written && !('bad' in learner.lessons));
-const lessonEv = awardFirsts(learner, { lessons: learner.lessons });
-check('a known lesson passed is a first, paid once; an unknown one pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_takeoff'])
-  && learner.xp === FIRST_XP.lesson && awardFirsts(learner, { lessons: learner.lessons }).length === 0);
+/* "I fly already": first_unaided flown, the three before it covered. */
+const skipper = normaliseProgress({ v: 2, xp: 0, lessons: { first_takeoff: 5, first_turns: 5, first_land: 5, first_unaided: 5 }, lessonsFlown: { first_unaided: true } });
+const skipEv = awardFirsts(skipper, { lessons: skipper.lessons, flown: skipper.lessonsFlown });
+check('a skip pays only the lesson flown: the covered ones are passed and pay nothing', same(skipEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_unaided'])
+  && skipper.xp === FIRST_XP.lesson && Object.keys(skipper.lessons).length === 4);
+skipper.lessonsFlown.first_turns = true;
+check('a covered lesson flown later pays then, once', same(awardFirsts(skipper, { lessons: skipper.lessons, flown: skipper.lessonsFlown }).filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_turns']));
+learner.lessonsFlown = { first_takeoff: true, not_yet_written: true };
+const lessonEv = awardFirsts(learner, { lessons: learner.lessons, flown: learner.lessonsFlown });
+check('a known lesson flown is a first, paid once; an unknown one pays nothing', same(lessonEv.filter((e) => e.type === 'first').map((e) => e.key), ['lesson:first_takeoff'])
+  && learner.xp === FIRST_XP.lesson && awardFirsts(learner, { lessons: learner.lessons, flown: learner.lessonsFlown }).length === 0);
 check('milestones by name', same(milestonesOf({ cub1400: MILESTONE_S.ten }, 'cub1400f'), { flight: true, ten: true, hour: false }));
 
 console.log('what is locked');

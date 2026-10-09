@@ -51,14 +51,15 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import {
-  coloursFor, liveryKey, lookFor, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
+  coloursFor, liveryKey, lookFor, normaliseEntry, normaliseSwatches, paletteColour, paletteFor, regionsFor, schemesFor,
+  toggleSwatch,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
 import { flightTotals } from '../share/flighttime.js';
 import { milestonesOf } from '../game/progress.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
-import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
+import { PATTERNS, WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
 import { el, padLevels } from './dom.js';
 
@@ -145,6 +146,14 @@ const COUNT_MS = 520;
  * swatches, so a sweep across a row is a ripple and not a buzz. */
 const HOVER_SOUND_MS = 70;
 /* What pollPad edge triggers on; the right stick's look is read as a level. */
+/* A press and release on the model that moved less than this, CSS
+ * pixels, is a click that paints and not a drag that turns it. */
+const PAINT_CLICK_SLOP = 6;
+/* How many paint changes Undo goes back through since the hangar opened. */
+const UNDO_MAX = 30;
+/* A new pattern's second colour until the pilot picks one: near black,
+ * which reads over every kit colour. */
+const PATTERN_COLOUR = '#17191b';
 const PAD_KEYS = ['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'flip'];
 /* The workshop's preset views (docs/redesign/WORKSHOP-PAINT.md): a camera
  * view of src/render/hangarstage.js and whether the plane is flipped for
@@ -209,6 +218,20 @@ function withScheme(entry, scheme) {
   return out;
 }
 
+/* An entry with a region's pattern in a second colour `hex`. */
+function withPatternColour(entry, region, hex) {
+  return { ...entry, patterns: { ...entry.patterns, [region]: { ...entry.patterns[region], c: hex } } };
+}
+
+/* An entry with a region's underside in `hex`. Kept even when it is the
+ * top's colour in the entry: a combat aircraft's top is drawn in its
+ * loadout finish's colour (src/render/combatpaint.js), not the entry's,
+ * so the entry cannot tell an underside that matches from one that does
+ * not. */
+function withUnder(entry, region, hex) {
+  return { ...entry, under: { ...(entry.under ?? {}), [region]: hex } };
+}
+
 /* The power choice a stored one names, made valid for these options. A
  * quad's has a prop as well (`power.props`, src/main.js quadPower). */
 export function powerChoice(power, stored) {
@@ -261,6 +284,11 @@ function fitted(estimate, extraG, thrustK) {
   return est;
 }
 
+/* The tabs whose set comes apart, exploded (src/render/hangar-exploded.js). */
+const EXPLODED_TABS = new Set(['power', 'parts']);
+/* Pixels a press may move and still be a click on the model. */
+const CLICK_SLOP = 6;
+
 export class Hangar {
   constructor(host) {
     this.host = host;
@@ -275,7 +303,20 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.flip = false;
     this.view = null;
+    this.stockView = false;
+    /* CLICK TO PAINT (docs/redesign/WORKSHOP-PAINT.md): where the pointer
+     * is over the stage on the Colours tab's paint page, client pixels, a
+     * click waiting on the renderer's answer for it, and the last colour
+     * picked, which a click on the model puts on. */
+    this.paintAim = null;
+    this.paintHit = null;
+    this.paintClick = false;
+    this.brush = null;
+    /* Which side of the region the colours paint: 'top' or 'under'. */
+    this.paintSide = 'top';
     this.hover = null;
+    this.pointer = null;
+    this.partUnder = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
     this.lastHoverSound = 0;
@@ -329,7 +370,17 @@ export class Hangar {
       return b;
     });
     this.viewsEl.append(...this.viewBtns);
-    this.stage.append(this.flipBtn, this.viewsEl);
+    /* The name of the region and side under the pointer, beside it. */
+    this.hoverLabel = el('div', 'hangar-hover-label');
+    this.hoverLabel.hidden = true;
+    /* A/B: the kit's own paint on the model while pressed, the pilot's
+     * back when let go; nothing changes in what is kept. */
+    this.stockBtn = button('hangar-flip hangar-stock', str('hangar.ab_stock'));
+    this.stockBtn.dataset.key = 'ab';
+    this.stockBtn.setAttribute('aria-pressed', 'false');
+    this.stockBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    this.stockBtn.addEventListener('click', () => this.setStockView(!this.stockView));
+    this.stage.append(this.flipBtn, this.viewsEl, this.hoverLabel, this.stockBtn);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
@@ -349,6 +400,14 @@ export class Hangar {
     this.saveBtn = button('carousel-choose hangar-save', str('hangar.save'));
     this.saveBtn.dataset.key = 'save';
     this.resetBtn.addEventListener('click', () => this.reset());
+    /* UNDO: the paint as it was before each change since opening, as
+     * JSON, the newest last; `paintNow` the paint as last recorded. */
+    this.undoBtn = button('hangar-reset hangar-undo', str('hangar.undo'));
+    this.undoBtn.dataset.key = 'undo';
+    this.undoBtn.disabled = true;
+    this.undoBtn.addEventListener('click', () => this.undo());
+    this.undoStack = [];
+    this.paintNow = '{}';
     this.backBtn.addEventListener('click', () => this.cancel());
     this.saveBtn.addEventListener('click', () => this.save());
     /* MY HANGAR (src/ui/builds.js): what is on the stand kept as a build
@@ -359,7 +418,9 @@ export class Hangar {
     this.mineBtn.addEventListener('click', () => this.startMine());
     const right = el('div', 'hangar-buttons-end');
     right.append(this.mineBtn, this.backBtn, this.saveBtn);
-    buttons.append(this.resetBtn, right);
+    const left = el('div', 'hangar-buttons-left');
+    left.append(this.resetBtn, this.undoBtn);
+    buttons.append(left, right);
     this.buttonsEl = buttons;
     this.mineForm = el('div', 'hangar-mine-form');
     this.mineForm.hidden = true;
@@ -431,7 +492,9 @@ export class Hangar {
       if (e.pointerType === 'touch') {
         this.setHint('touch');
       }
-      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
+      /* The part under the pointer as it went down: the press takes the
+       * pointer off the renderer's picking until it lifts. */
+      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0, part: this.partUnder };
       s.setPointerCapture(e.pointerId);
     });
     s.addEventListener('wheel', (e) => {
@@ -440,7 +503,9 @@ export class Hangar {
     }, { passive: false });
     s.addEventListener('pointermove', (e) => {
       if (!this.drag || e.pointerId !== this.drag.id) {
+        this.pointer = { x: e.clientX, y: e.clientY };
         this.shop.pointerMove(e);
+        this.paintAim = this.paintingByHand() && e.pointerType !== 'touch' ? { x: e.clientX, y: e.clientY } : null;
         return;
       }
       this.turn += (e.clientX - this.drag.x) * DRAG_TURN;
@@ -455,15 +520,29 @@ export class Hangar {
     const end = (e) => {
       if (this.drag && e.pointerId === this.drag.id) {
         /* A press that did not turn the plane is a click on it, which
-         * places a decal while one is being placed. */
-        if (e.type === 'pointerup') {
+         * places a decal while one is being placed, paints by hand, or
+         * goes to the card of the exploded part it is on. */
+        if (e.type === 'pointerup' && this.drag.moved < CLICK_SLOP && this.drag.part) {
           this.shop.pointerClick(e, this.drag.moved);
+          this.goToPart(this.drag.part);
+        } else if (e.type === 'pointerup' && !this.shop.pointerClick(e, this.drag.moved)
+          && this.paintingByHand() && this.drag.moved <= PAINT_CLICK_SLOP) {
+          this.paintAim = { x: e.clientX, y: e.clientY };
+          this.paintClick = true;
         }
         this.drag = null;
       }
     };
     s.addEventListener('pointerup', end);
     s.addEventListener('pointercancel', end);
+    s.addEventListener('pointerleave', () => {
+      this.pointer = null;
+      this.pointed(null);
+      if (!this.paintClick) {
+        this.paintAim = null;
+        this.aimedPaint(null);
+      }
+    });
   }
 
   /*
@@ -483,7 +562,7 @@ export class Hangar {
    * `suggest` the name a new build is offered, `full` when there is no
    * room for one; a save as a new build hands onSave `asNew: { name }`.
    */
-  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onSwatches = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.closeMine(false);
     this.mine = mine;
@@ -506,6 +585,17 @@ export class Hangar {
     this.orbit = { elev: 0, zoom: 1 };
     this.setFlip(false);
     this.setView(null);
+    this.paintSide = 'top';
+    this.paintAim = null;
+    this.paintHit = null;
+    this.paintClick = false;
+    this.brush = null;
+    this.undoStack = [];
+    this.paintNow = JSON.stringify(this.entry);
+    this.undoBtn.disabled = true;
+    this.stockView = false;
+    this.stockBtn.classList.remove('on');
+    this.stockBtn.setAttribute('aria-pressed', 'false');
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -513,6 +603,10 @@ export class Hangar {
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
+    /* The pilot's own colours, every plane's, written at once like the
+     * saved liveries, since they are a library and not this plane's paint. */
+    this.swatchLib = normaliseSwatches(settings.swatches);
+    this.onSwatches = onSwatches;
     this.revealSeq += 1;
     this.focus = tabFocus(this.tab, this.quad());
     this.isOpen = true;
@@ -609,7 +703,18 @@ export class Hangar {
   /* The entry on show: the chosen one, with whatever the cursor or the
    * pointer is over tried on it. */
   shownEntry() {
-    return this.shop.shownEntry(this.triedEntry());
+    return this.stockView ? {} : this.shop.shownEntry(this.triedEntry());
+  }
+
+  setStockView(on) {
+    if (on === this.stockView) {
+      return;
+    }
+    this.stockView = on;
+    this.stockBtn.classList.toggle('on', on);
+    this.stockBtn.setAttribute('aria-pressed', String(on));
+    this.preview();
+    this.sound('select');
   }
 
   triedEntry() {
@@ -631,7 +736,49 @@ export class Hangar {
     if (h.patch) {
       return this.shop.withDecal(this.entry, h.decal, h.patch);
     }
+    if (h.side === 'under') {
+      return withUnder(this.entry, h.region, h.hex);
+    }
+    if (h.side === 'pattern') {
+      return withPatternColour(this.entry, h.region, h.hex);
+    }
     return { ...this.entry, regions: { ...(this.entry.regions ?? {}), [h.region]: h.hex } };
+  }
+
+  /* Painting the underside of the region on show: not a film's. */
+  underSide() {
+    return this.sidePainted() === 'under';
+  }
+
+  /* What a swatch paints on the region on show: 'top', 'under' or
+   * 'pattern' (its pattern's second colour). A film region is all top. */
+  sidePainted() {
+    const r = this.regions.find((x) => x.id === this.region);
+    if (!r || r.film) {
+      return 'top';
+    }
+    if (this.paintSide === 'pattern') {
+      return this.entry.patterns && this.entry.patterns[r.id] ? 'pattern' : 'top';
+    }
+    return this.paintSide;
+  }
+
+  /* A pattern on the region on show, or none ('none'); the swatches then
+   * paint its second colour. */
+  pickPattern(p) {
+    const patterns = { ...(this.entry.patterns ?? {}) };
+    if (p === 'none') {
+      delete patterns[this.region];
+      this.paintSide = 'top';
+    } else {
+      patterns[this.region] = { p, c: (patterns[this.region] && patterns[this.region].c) ?? PATTERN_COLOUR };
+      this.paintSide = 'pattern';
+    }
+    this.entry = { ...this.entry, patterns };
+    if (!Object.keys(patterns).length) {
+      delete this.entry.patterns;
+    }
+    this.changed(`pattern-${p}`);
   }
 
   /* Show the plane in what is on show now. Due rather than done: the
@@ -708,6 +855,14 @@ export class Hangar {
     this.changed(`scheme-${id}`);
   }
 
+  /* The underside is painted with the plane rolled over, so it faces the
+   * camera; the top with it upright. */
+  pickSide(side) {
+    this.paintSide = side;
+    this.setFlip(side === 'under');
+    this.changed(`side-${side}`, 'move');
+  }
+
   pickRegion(id) {
     this.region = id;
     this.focus = id;
@@ -721,6 +876,17 @@ export class Hangar {
       return;
     }
     const v = hex.toLowerCase();
+    this.brush = v;
+    if (this.underSide()) {
+      this.entry = withUnder(this.entry, this.region, v);
+      this.changed(`colour-${v}`);
+      return;
+    }
+    if (this.sidePainted() === 'pattern') {
+      this.entry = withPatternColour(this.entry, this.region, v);
+      this.changed(`colour-${v}`);
+      return;
+    }
     const bare = coloursFor(this.id, { scheme: this.entry.scheme })[this.region];
     const regions = { ...(this.entry.regions ?? {}) };
     if (v === bare) {
@@ -777,11 +943,75 @@ export class Hangar {
   }
 
   changed(focusKey, sound = 'select') {
+    this.recordPaint();
+    /* A change is seen on the model, so the comparison with stock ends. */
+    this.setStockView(false);
     this.hover = null;
     this.paint(0);
     this.preview();
     this.focusKey(focusKey);
     this.sound(sound);
+  }
+
+  /* A change to the paint goes on the undo stack as the paint before it. */
+  recordPaint() {
+    const now = JSON.stringify(this.entry);
+    if (now === this.paintNow) {
+      return;
+    }
+    this.undoStack.push(this.paintNow);
+    if (this.undoStack.length > UNDO_MAX) {
+      this.undoStack.shift();
+    }
+    this.paintNow = now;
+    this.undoBtn.disabled = false;
+  }
+
+  /* The paint back as it was before the last change. Power, parts and
+   * tuning are choices on their own tabs and are not undone here. */
+  undo() {
+    const prev = this.undoStack.pop();
+    if (prev === undefined) {
+      return;
+    }
+    this.entry = JSON.parse(prev);
+    this.paintNow = prev;
+    this.undoBtn.disabled = this.undoStack.length === 0;
+    this.shop.stopPlacing();
+    this.shop.sel = -1;
+    this.pulseSeq += 1;
+    this.changed('undo', 'back');
+  }
+
+  /* THE PILOT'S OWN COLOURS: the library's swatches, tried on and
+   * picked like the palette's, and Keep (or Forget) for the colour on show. */
+  swatchRow(region, hex, side) {
+    const row = el('div', 'hangar-palette hangar-mine-colours');
+    this.swatchLib.list.forEach((c, i) => {
+      const b = button(`hangar-swatch${c === hex ? ' on' : ''}`);
+      b.dataset.key = `mine-colour-${c}`;
+      b.style.setProperty('--swatch', c);
+      b.style.setProperty('--i', String(i));
+      b.title = c;
+      b.setAttribute('aria-label', c);
+      this.trial(b, { region: region.id, hex: c, side }, region.id);
+      b.addEventListener('click', () => this.pickColour(c));
+      row.append(b);
+    });
+    const kept = this.swatchLib.list.includes(hex);
+    const keep = button('hangar-side-btn hangar-keep-colour', str(kept ? 'hangar.forget_colour' : 'hangar.keep_colour'));
+    keep.dataset.key = 'keep-colour';
+    keep.dataset.focus = region.id;
+    keep.addEventListener('click', () => {
+      this.swatchLib = toggleSwatch(this.swatchLib, hex);
+      if (this.onSwatches) {
+        this.onSwatches(this.swatchLib);
+      }
+      this.changed('keep-colour');
+    });
+    const box = el('div', 'hangar-mine-box');
+    box.append(el('h3', 'hangar-h', str('hangar.my_colours')), row, keep);
+    return box;
   }
 
   /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
@@ -1249,11 +1479,41 @@ export class Hangar {
     box.append(list);
 
     const region = this.regions.find((r) => r.id === this.region);
+    if (region && !region.film) {
+      const sides = el('div', 'hangar-sides');
+      for (const side of ['top', 'under']) {
+        const on = this.paintSide === side;
+        const b = button(`hangar-side-btn${on ? ' on' : ''}`, str(`hangar.side_${side}`));
+        b.dataset.key = `side-${side}`;
+        b.dataset.focus = region.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => this.pickSide(side));
+        sides.append(b);
+      }
+      box.append(sides);
+      /* The pattern over the region, in a second colour the swatches
+       * paint once one is on. */
+      const pats = el('div', 'hangar-sides hangar-patterns');
+      const current = this.entry.patterns && this.entry.patterns[region.id] ? this.entry.patterns[region.id].p : 'none';
+      for (const p of ['none', ...PATTERNS]) {
+        const on = current === p;
+        const b = button(`hangar-side-btn${on ? ' on' : ''}`, str(`hangar.pattern_${p}`));
+        b.dataset.key = `pattern-${p}`;
+        b.dataset.focus = region.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => this.pickPattern(p));
+        pats.append(b);
+      }
+      box.append(pats);
+    }
     if (region) {
-      const hex = colours[region.id];
+      const side = this.sidePainted();
+      const under = side === 'under';
+      const own = side === 'pattern' ? this.entry.patterns[region.id].c : under ? (this.entry.under && this.entry.under[region.id]) : null;
+      const hex = own ?? colours[region.id];
       /* The scheme's own colour here, which is the first swatch, so there
        * is always a way back to it. */
-      const kit = coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
+      const kit = side !== 'top' ? colours[region.id] : coloursFor(this.id, { scheme: this.entry.scheme })[region.id];
       const named = paletteColour(hex);
       const nameBox = el('div', 'hangar-colour');
       const chip = el('span', `hangar-colour-chip${region.film ? ' film' : ''}`);
@@ -1280,7 +1540,7 @@ export class Hangar {
         b.title = `${c.brand} ${c.name}`;
         b.setAttribute('aria-label', `${c.brand} ${c.name}`);
         b.setAttribute('aria-pressed', String(on));
-        this.trial(b, { region: region.id, hex: c.hex }, region.id);
+        this.trial(b, { region: region.id, hex: c.hex, side }, region.id);
         b.addEventListener('click', () => this.pickColour(c.hex));
         pal.append(b);
       });
@@ -1296,6 +1556,7 @@ export class Hangar {
       });
       pal.append(custom);
       box.append(pal);
+      box.append(this.swatchRow(region, hex, side));
       if (region.film) {
         box.append(el('p', 'hangar-source', str('hangar.film_note')));
       }
@@ -1481,6 +1742,14 @@ export class Hangar {
       this.toggleFlip();
       return true;
     }
+    if (code === 'KeyH' && !this.naming) {
+      this.setStockView(!this.stockView);
+      return true;
+    }
+    if (code === 'KeyZ' && !this.naming) {
+      this.undo();
+      return true;
+    }
     const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];
     if (preset && !this.naming) {
       this.pickView(preset.id);
@@ -1617,6 +1886,9 @@ export class Hangar {
     const r = this.stage.getBoundingClientRect();
     const turn = this.turn;
     this.turn = 0;
+    if (!this.paintingByHand() && !this.hoverLabel.hidden) {
+      this.hoverLabel.hidden = true;
+    }
     const tabs = {};
     eachHook((h, t) => {
       if (h.frame) {
@@ -1636,18 +1908,110 @@ export class Hangar {
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),
-        /* The Power tab's choice, which the set pulls apart to show. */
-        power: this.tab === 'power' ? { airframe: this.id, ...this.choice } : null,
-        stay: this.tab === 'colours' && this.shop.stay(),
-        aim: this.shop.aim(),
+        /* The Power tab's choice, which the set pulls apart to show, on
+         * the Parts tab too. */
+        power: EXPLODED_TABS.has(this.tab) ? { airframe: this.id, ...this.choice } : null,
+        /* Where the pointer is over the stage, for the renderer to find
+         * the exploded part under it (pointed()). */
+        point: EXPLODED_TABS.has(this.tab) && this.pointer && !this.drag ? { ...this.pointer } : null,
+        /* The idle turn waits while the pointer is on an exploded part, so
+         * the part stays under it to be clicked. */
+        stay: (this.tab === 'colours' && this.shop.stay()) || Boolean(this.partUnder),
+        aim: this.shop.aim() ?? (this.paintAim && this.paintingByHand() ? { ...this.paintAim } : null),
         tabs,
       },
     };
   }
 
+  /*
+   * THE CLICKABLE EXPLODED VIEW: the renderer's answer for the pointer,
+   * the part out of the model under it ('prop', 'motor', 'engine', 'pack',
+   * 'tank') or null. Its card lights; a click goes to it (goToPart).
+   */
+  pointed(kind) {
+    this.partUnder = kind;
+    this.stage.classList.toggle('on-part', Boolean(kind));
+    /* Every frame, since a repaint makes new cards. */
+    const want = kind ? this.partCard(kind) : null;
+    for (const b of this.side.querySelectorAll('.hangar-card.picked')) {
+      if (b !== want) {
+        b.classList.remove('picked');
+      }
+    }
+    if (want && !want.classList.contains('picked')) {
+      want.classList.add('picked');
+    }
+  }
+
+  /* The card a part is chosen on, on the tab that is open: the chosen
+   * prop's on the Parts tab, else the Power tab's option, prop or pack. */
+  partCard(kind) {
+    const on = (prefix) => this.side.querySelector(`.hangar-card.on[data-key^="${prefix}"]`);
+    if (kind === 'prop') {
+      return on('prop-') ?? on('option-');
+    }
+    if (kind === 'pack' || kind === 'tank') {
+      return on('pack-');
+    }
+    return on('option-');
+  }
+
+  /* A click on a part: to its card, on the Power tab when the Parts tab
+   * has none for it, scrolled into view and focused. */
+  goToPart(kind) {
+    if (!this.partCard(kind)) {
+      this.setTab('power');
+    }
+    const b = this.partCard(kind);
+    if (b) {
+      b.scrollIntoView({ block: 'nearest' });
+      /* After the press is done with, which would take the focus back. */
+      requestAnimationFrame(() => b.focus());
+    }
+  }
+
   /* Where the aim (frame().hangar.aim) landed on the model, from the
    * renderer: { p, n } in the model's frame, or null. */
   aimed(hit) {
-    this.shop.aimed(hit);
+    if (this.shop.aim()) {
+      this.shop.aimed(hit);
+      return;
+    }
+    this.aimedPaint(hit);
+  }
+
+  /* The Colours tab's paint page, where a click on the model paints. */
+  paintingByHand() {
+    return this.isOpen && this.tab === 'colours' && this.shop.page === 'paint' && !this.shop.placing;
+  }
+
+  /* The renderer's answer under the pointer: name the region and side
+   * beside it, and on a click choose them and put the last colour on. */
+  aimedPaint(hit) {
+    const r = hit && hit.region ? this.regions.find((x) => x.id === hit.region) : null;
+    const side = r && !r.film && hit.under ? 'under' : 'top';
+    this.paintHit = r ? { region: r.id, side } : null;
+    this.hoverLabel.hidden = !r || !this.paintAim;
+    if (r && this.paintAim) {
+      const box = this.stage.getBoundingClientRect();
+      this.hoverLabel.textContent = r.film
+        ? str(`livery.region.${r.id}`)
+        : str('hangar.hover_region', { region: str(`livery.region.${r.id}`), side: str(`hangar.side_${side}`) });
+      this.hoverLabel.style.transform = `translate(${this.paintAim.x - box.left + 14}px, ${this.paintAim.y - box.top + 14}px)`;
+    }
+    if (!this.paintClick) {
+      return;
+    }
+    this.paintClick = false;
+    if (!r) {
+      return;
+    }
+    this.region = r.id;
+    this.paintSide = side;
+    if (this.brush) {
+      this.pickColour(this.brush);
+    } else {
+      this.changed(`region-${r.id}`, 'move');
+    }
   }
 }

@@ -39,6 +39,7 @@
  */
 
 import { GOALS } from './roomtag.js';
+import { RUN_SECONDS } from './roomjam.js';
 
 /* A combat round's lengths in minutes, the host's choice between rounds;
  * the first is a room's until its host picks. */
@@ -57,8 +58,9 @@ export const ROUND_MINUTES = [3, 5];
  *   minElsewhere  the same in a room made for something else, where the
  *                 game is a host's start in passing
  *   allowSolo     Ready alone starts a round
- *   allowAI       AI pilots fill seats: none exist (the owner, 2026-10-02:
- *                 not before a later phase)
+ *   allowAI       AI pilots fill seats (edge/rooms/roombots.js, docs/
+ *                 AI-PILOTS-CONTRACT.md): Catch the Ace first; combat and
+ *                 races when the room can fly them there
  *   allowDropIn   a pilot arriving mid round flies in; a race went off a
  *                 grid, so its newcomer waits in the lobby
  *   openEnded     the round has no end: on until the room is empty
@@ -106,7 +108,7 @@ export const MODES = [
     minPlayers: 1,
     minElsewhere: 2,
     allowSolo: true,
-    allowAI: false,
+    allowAI: true,
     allowDropIn: true,
     openEnded: false,
     setting: { key: 'goal', choices: GOALS.map((g) => g.goal) },
@@ -132,6 +134,27 @@ export const MODES = [
     consent: false,
     publicOnlyWhenMadeFor: false,
     straightToLobby: true,
+    makeable: true,
+  },
+  {
+    id: 'jam',
+    category: 'flightclub',
+    card: {
+      way: 'jam', label: 'jam.card', blurb: 'jam.card_blurb', facts: ['jam.card_runs', 'jam.card_rounds', 'friends.card_code'],
+      art: 'assets/gate/flight.jpg', home: 'swiss2',
+    },
+    minPlayers: 1,
+    minElsewhere: 2,
+    allowSolo: true,
+    allowAI: false,
+    /* A newcomer watches the match out: its turn order was set at the
+     * start (docs/JAM-PLAN.md). */
+    allowDropIn: false,
+    openEnded: false,
+    setting: { key: 'seconds', choices: RUN_SECONDS },
+    consent: false,
+    publicOnlyWhenMadeFor: false,
+    straightToLobby: false,
     makeable: true,
   },
   {

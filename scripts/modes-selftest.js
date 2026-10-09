@@ -61,7 +61,7 @@ const exists = (p) => access(join(root, p)).then(() => true, () => false);
 
 console.log('modes: the entries');
 const ids = MODES.map((m) => m.id);
-check('the five activities, each once', ids.length === 5 && new Set(ids).size === 5 && ['race', 'tag', 'combat', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
+check('the six activities, each once', ids.length === 6 && new Set(ids).size === 6 && ['race', 'tag', 'combat', 'jam', 'war', 'free'].every((id) => ids.includes(id)), ids.join(','));
 const BOOLS = ['allowSolo', 'allowAI', 'allowDropIn', 'openEnded', 'consent', 'publicOnlyWhenMadeFor', 'straightToLobby', 'makeable'];
 const worlds = new Set(MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id));
 for (const m of MODES) {
@@ -69,7 +69,7 @@ for (const m of MODES) {
   check(`${m.id}: flags are booleans`, BOOLS.every((k) => typeof m[k] === 'boolean'), BOOLS.filter((k) => typeof m[k] !== 'boolean').join(','));
   check(`${m.id}: player minimums are whole and at least 1`, [m.minPlayers, m.minElsewhere].every((n) => Number.isInteger(n) && n >= 1));
   check(`${m.id}: allowSolo is a minimum of 1`, m.allowSolo === (m.minPlayers === 1));
-  check(`${m.id}: no AI pilots (none exist)`, m.allowAI === false);
+  check(`${m.id}: AI pilots only where the room flies them (Catch the Ace, edge/rooms/roombots.js)`, m.allowAI === (m.id === 'tag'));
   check(`${m.id}: setting is null or a key with choices`, m.setting === null
     || (typeof m.setting.key === 'string' && (m.setting.choices === null || (Array.isArray(m.setting.choices) && m.setting.choices.length > 0))));
   const c = m.card;
@@ -83,8 +83,8 @@ for (const m of MODES) {
 check('every card way is distinct', new Set(MODES.map((m) => m.card.way)).size === MODES.length);
 
 console.log('modes: what the tables held before');
-check('ROOM_MODES is race, tag, combat, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['race', 'tag', 'combat']), JSON.stringify(ROOM_MODES));
-check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['race', 'tag', 'combat', 'war']), JSON.stringify(ROOM_SETUPS));
+check('ROOM_MODES is race, tag, combat, jam, in that order', JSON.stringify(ROOM_MODES) === JSON.stringify(['race', 'tag', 'combat', 'jam']), JSON.stringify(ROOM_MODES));
+check('ROOM_SETUPS is ROOM_MODES then war', JSON.stringify(ROOM_SETUPS) === JSON.stringify(['race', 'tag', 'combat', 'jam', 'war']), JSON.stringify(ROOM_SETUPS));
 check('ROOM_MODES is the registry\'s makeable', JSON.stringify(ROOM_MODES) === JSON.stringify(MAKEABLE));
 check('ROOM_SETUPS is the registry\'s setups', JSON.stringify(ROOM_SETUPS) === JSON.stringify(SETUPS));
 check('combat rounds are 3 or 5 minutes', JSON.stringify(ROUND_MINUTES) === '[3,5]');
@@ -92,7 +92,7 @@ check('tag goals are roomtag\'s', JSON.stringify(modeById('tag').setting.choices
 check('setting keys: war mission, combat minutes, tag goal',
   modeById('war').setting.key === 'mission' && modeById('combat').setting.key === 'minutes' && modeById('tag').setting.key === 'goal'
   && modeById('race').setting === null && modeById('free').setting === null);
-check('a race is the one round a newcomer waits out', MODES.filter((m) => !m.allowDropIn).map((m) => m.id).join() === 'race');
+check('a race and a jam are the rounds a newcomer waits out', MODES.filter((m) => !m.allowDropIn).map((m) => m.id).join() === 'race,jam');
 check('only free flight is open ended', MODES.filter((m) => m.openEnded).map((m) => m.id).join() === 'free');
 check('only the war asks consent and is public only when made for', MODES.filter((m) => m.consent).map((m) => m.id).join() === 'war'
   && MODES.filter((m) => m.publicOnlyWhenMadeFor).map((m) => m.id).join() === 'war');
@@ -115,7 +115,11 @@ const cards = WAYS.filter((w) => w.gate !== false);
  * the campaigns src/game/campaign.js lists, in Operations, and nothing
  * else may skip the registry. */
 const opsCards = cards.filter((w) => w.opsCampaign);
-check('every card on the title is an activity of the registry, or a campaign of ops missions', cards.filter((w) => !w.opsCampaign).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+/* Learn to fly is solo lessons, never a room, so it has no mode either
+ * (docs/TRAINING-DAMAGE-CONTRACT.md): one card, in Flight Club. */
+const trainingCards = cards.filter((w) => w.training);
+check('every card on the title is an activity of the registry, a campaign of ops missions, or Learn to fly', cards.filter((w) => !w.opsCampaign && !w.training).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+check('Learn to fly is one card, in Flight Club, with no lobby', trainingCards.length === 1 && trainingCards[0].category === 'flightclub' && !Object.hasOwn(trainingCards[0], 'lobby'));
 check('a campaign card is a campaign of src/game/campaign.js, in Operations, with no lobby', opsCards.length > 0 && opsCards.every((w) => w.opsCampaign === INTERIOR_CAMPAIGN.id && w.category === 'operations' && !Object.hasOwn(w, 'lobby')),
   opsCards.map((w) => `${w.id}:${w.opsCampaign}:${w.category}`).join());
 

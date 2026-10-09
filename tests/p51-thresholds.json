@@ -23,16 +23,16 @@
   "p18_landing": { "approach": 10.94, "z0": 10, "maxTouchSpeed": 11.6, "pitchTolDeg": 1.5 },
   "s17_unmoved": {
     "quad": "9fdc42323baad668",
-    "wing": "d7b7743dfde9a0cc",
-    "sky": "02b8a7aa3d79c02c",
-    "cub": "c121859d26c23129",
-    "glider": "183fa4a9da9e624f",
-    "bramor": "f58582158e8f18a6",
-    "bramorChute": "6c35bf1d12a3268b",
-    "slowstick": "97dd6be9d36aa3b5",
-    "bombshell": "92c5201bee9ac593",
-    "timber": "7557ae52048aba13",
-    "timberf": "7fc95d275b4f2e72",
-    "kadet": "c4b3dfe7a70afdaa"
+    "wing": "8f9ddc4ca6fc3e8a",
+    "sky": "1b166c496e3f1e6f",
+    "cub": "e2ed1d69ae1fb7fe",
+    "glider": "2f2259fbcb6334d2",
+    "bramor": "d7def8b5e961919e",
+    "bramorChute": "d031d77e46cf79c6",
+    "slowstick": "aa18fa61d3381c79",
+    "bombshell": "76368c7aceede0e2",
+    "timber": "fdcae821e4b95657",
+    "timberf": "9186df82d7c924be",
+    "kadet": "095078b8f2a09764"
   }
 }

@@ -59,6 +59,7 @@ import './hangar-tuning.js';
 import './hangar-parts.js';
 import './hangar-shop.js';
 import './hangar-combat.js';
+import './hangar-kit.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
@@ -1168,6 +1169,14 @@ export class Ui {
       this.onCampaignCard();
       return;
     }
+    /* Any other card ends a lesson in flight. */
+    if (!way.training && this.progress) {
+      this.progress.endLesson();
+    }
+    if (way.training && this.onTrainingCard) {
+      this.onTrainingCard();
+      return;
+    }
     if (way.opsCampaign && this.onOpsCampaignCard) {
       this.onOpsCampaignCard(way.opsCampaign);
       return;
@@ -1383,6 +1392,10 @@ export class Ui {
         suggest: this.buildName(id),
         full: this.myBuilds.length >= MAX_BUILDS,
       },
+      onSwatches: (lib) => {
+        s.swatches = lib;
+        this.persistSettings();
+      },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
         if (list.length) {
@@ -1470,19 +1483,22 @@ export class Ui {
       });
   }
 
-  /* The Parts tab's damage, which is the airframe's own, into the slots
-   * when what was saved was not the slots. Whether it changed. */
+  /* The Parts tab's damage and wear repairs, which are the airframe's
+   * own, into the slots when what was saved was not the slots. Whether
+   * they changed. */
   keepDamage(id, res) {
     const s = this.settings;
     if (!res.settings.parts) {
       return false;
     }
     const was = s.parts && s.parts[id];
-    const want = res.settings.parts[id] ? res.settings.parts[id].damage ?? null : null;
-    if (JSON.stringify((was && was.damage) ?? null) === JSON.stringify(want)) {
+    const got = res.settings.parts[id] ?? {};
+    const want = { damage: got.damage ?? null, wear: got.wear ?? null };
+    const had = { damage: (was && was.damage) ?? null, wear: (was && was.wear) ?? null };
+    if (JSON.stringify(had) === JSON.stringify(want)) {
       return false;
     }
-    s.parts = normaliseParts({ ...s.parts, [id]: { prop: 'stock', addons: [], ...(was ?? {}), damage: want } });
+    s.parts = normaliseParts({ ...s.parts, [id]: { prop: 'stock', addons: [], ...(was ?? {}), ...want } });
     return true;
   }
 
@@ -1497,6 +1513,11 @@ export class Ui {
 
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
+    /* In an ops match with several roles held, they step the role flown
+     * (src/main.js PLATFORM HOLDS) and not the aircraft. */
+    if (this.screen === 'flight' && this.cycleHold && this.cycleHold(dir)) {
+      return;
+    }
     if (this.onHotSwap && this.screen === 'flight') {
       this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }

@@ -290,6 +290,7 @@ typedef struct {
 #define SIM_AIRFRAME_INTERCEPTOR 26
 #define SIM_AIRFRAME_STRIKER_PROP 27
 #define SIM_AIRFRAME_STRIKER_JET 28
+#define SIM_AIRFRAME_EXTRA3D1308 29
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -297,8 +298,10 @@ typedef struct {
  * aircraft were removed on 2026-09-29 and the ids stay reserved
  * (sim_abi.h). 24, 25 and 26 are the combat quads of 2026-10-01
  * (docs/COMBAT-DRONES.md); 27 and 28 are the Striker on its piston engine
- * and on its turbojet (the same doc, section 7). */
-#define SIM_AIRFRAME_COUNT 29
+ * and on its turbojet (the same doc, section 7). 29 is the 3D aircraft of
+ * the flight model lane, the Extra 300 3D under a new id, 14 staying
+ * reserved (docs/FLIGHTMODEL.md). */
+#define SIM_AIRFRAME_COUNT 30
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -598,6 +601,13 @@ typedef struct FixedWingParams {
   double acro_roll_ki;
   double acro_pitch_ki;
   double acro_i_max;
+  /* The rate damper of mode 3 (E-flite's AS3X with SAFE Select off): each
+   * surface is the stick's, at the full throw and expo, less this many
+   * radians of surface per rad/s of the body's roll, pitch and yaw rate,
+   * clipped at the throw. No attitude, no rate cap, no hold. Zero where
+   * the aircraft has no such receiver, and mode 3 there is Manual.
+   * scripts/as3x-derive.js. */
+  double as3x_k[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
@@ -884,6 +894,87 @@ typedef struct FixedWingParams {
   double discus_pitch;
   double discus_h;
   double discus_de;
+  /*
+   * THE SLIPSTREAM over the tail and the ailerons, docs/FLIGHTMODEL.md,
+   * revived from the removed Extra 300's (docs/EXTRA-STAGE1.md in git at
+   * 1c0872b3^) for every aircraft whose prop blows over its tail. slip_r is
+   * the prop's radius; zero is an aircraft whose surfaces are not in its
+   * wash (a pusher behind its tail, a fan whose exhaust passes nothing, a
+   * glider), and then nothing below is read. By momentum theory the wash
+   * far behind the disc carries the disc's pressure jump, T / A, over the
+   * free stream's dynamic pressure, at 2 v_i over the free stream's speed,
+   * in a stream contracted to R sqrt((V + v_i)/(V + 2 v_i)). The share of
+   * each surface inside that stream: the stabiliser's, the contracted
+   * radius over slip_yh, its half span; the fin's, over its height above
+   * the thrust line slip_hv[0] and below it slip_hv[1]; the ailerons', the
+   * share of their roll moment inboard of the contracted radius, from
+   * slip_ya[0] to slip_ya[1] out along the span. A control in the wash
+   * meets the pressure jump on top of the free stream's; an angle or rate
+   * term, a crossflow over a faster stream, meets rho v_i times the
+   * crossflow, which is what makes it act with the aircraft standing still
+   * in the air. The tail's shares of the table's derivatives: its lift
+   * slope and pitch stiffness, taken about slip_a0, the body's angle of
+   * attack at which the stabiliser carries no lift with the elevator
+   * neutral, and the fin's weathercock, yaw damping, side force and roll
+   * per sideslip. cm_q, cm_de, cl_de, cn_dr, cy_dr, cl_dr and cl_da are the
+   * surfaces' alone. scripts/wash-derive.js derives every table's.
+   */
+  double slip_r;
+  double slip_yh;
+  double slip_hv[2];
+  double slip_ya[2];
+  double slip_a0;
+  double slip_cl_a;
+  double slip_cm_a;
+  double slip_cn_b;
+  double slip_cn_r;
+  double slip_cy_b;
+  double slip_cl_b;
+  /*
+   * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
+   * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
+   * viscous crossflow (NACA TR 1048) with Jorgensen's eta for a body's
+   * fineness (NASA TR R-474): a force against the sideways speed squared,
+   * which the table's linear side force leaves out and which carries the
+   * weight in a knife edge with the thrust's share. Taken at the CG. Zero
+   * is an aircraft without, and then nothing is read.
+   */
+  double side_cda;
+  /*
+   * THE SURFACE'S KNEE, docs/EDGE-STAGE1.md: a plain flap's lift stops
+   * growing in proportion to its angle past 15 deg or so as the flow
+   * leaves it (DATCOM's K', plain flaps). Where it is set, the aero reads
+   * each surface's angle as delta / sqrt(1 + (delta / surf_knee)^2), rad:
+   * a knee of 0.5 keeps 0.96 of a 15 deg throw and half of a 50 deg one.
+   * The drawn surfaces keep their real angle. Zero on every table built
+   * for throws under 20 deg, which then reads its angles as it always did.
+   */
+  double surf_knee;
+  /*
+   * PAST THE LINEAR ANGLES, docs/EXTRA-STAGE1.md, for an aircraft flown
+   * hanging on its prop, sideways and backwards. hi_alpha 1: the pitching
+   * moment's stiffness term takes the sine of the zero lift line's angle
+   * and every sideslip term the sine of the sideslip, which are the
+   * linear terms at small angles and stay bounded and continuous all the
+   * way round, where the angles themselves wrap at 180 deg and would flip
+   * the moment. rot_k: the air a slow
+   * aircraft turns through, N m s^2, roll, pitch and yaw: each surface's
+   * strips swept through still air by the rotation, a flat plate's normal
+   * force on each, which the linear rate damping, proportional to the
+   * airspeed, loses as the aircraft stops; the two are taken together as
+   * the root of their squares' sum, so either one alone is itself.
+   * Zero in each is an aircraft without, and leaves its arithmetic as it
+   * was. The prop's precession is j_prop's, above.
+   */
+  int hi_alpha;
+  /* With hi_alpha, the tail's own flow (plant_wing.c): the stabiliser's
+   * lift slope a_t, the fin's a_v, the downwash's d eps / d alpha, and the
+   * normal force coefficient each saturates on, a flat plate's. */
+  double tail_at;
+  double tail_av;
+  double tail_deda;
+  double tail_cn;
+  double rot_k[3];
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -902,6 +993,7 @@ extern const FixedWingParams FW_F16878;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_STRIKER_PROP;
 extern const FixedWingParams FW_STRIKER_JET;
+extern const FixedWingParams FW_EXTRA3D1308;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;
@@ -959,6 +1051,7 @@ void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);
 void plant_wing_biplane(double out[4]);
+void plant_wing_slip(double out[6]);
 void plant_wing_set_stab(int mode);
 int plant_wing_stab(void);
 /* Weight on wheels, set by sim.c after each step's contact: 1 while any
@@ -978,10 +1071,12 @@ double plant_air_lift(const double pos[3]);
  * RMS per axis. SIM_WIND_ON is 0 while all three are zero, and then no
  * step reads any of it, which is what keeps every trace without wind bit
  * identical. plant_wind is the air's velocity at step `step`, world x y
- * (z is always 0), the same everywhere. */
+ * (z is the host's vertical air, SIM_AIR_W, sim_set_air_vertical), the
+ * same everywhere. SIM_WIND_ON is 1 while any of the four is not zero. */
 extern int SIM_WIND_ON;
 extern double SIM_WIND[2];
 extern double SIM_GUST;
+extern double SIM_AIR_W;
 void plant_wind(long long step, double out[3]);
 /* The parachute: 1 pulls it on an airframe that has one and returns 0,
  * anything else returns -1; 0 stows it again, which a reset also does.
