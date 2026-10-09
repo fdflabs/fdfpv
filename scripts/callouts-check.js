@@ -93,9 +93,13 @@ async function shot(page, name) {
 /* What the overlay shows: its class, every row's text and box, the combo. */
 const HUD = `(() => {
   const hud = document.querySelector('.score-hud');
+  /* The layout box, not the painted one: the slam animation starts a row
+   * 42 px left and scaled, and on a slow machine a snapshot lands
+   * mid flight. Where the row rests is what can cover the cues. */
   const rows = [...document.querySelectorAll('.score-name')].map((r) => {
-    const b = r.getBoundingClientRect();
-    return { text: r.textContent, cls: r.className, left: b.left, right: b.right, top: b.top, bottom: b.bottom };
+    const host = r.offsetParent ? r.offsetParent.getBoundingClientRect() : { left: 0 };
+    const left = host.left + r.offsetLeft;
+    return { text: r.textContent, cls: r.className, left, right: left + r.offsetWidth };
   });
   const total = document.querySelector('.score-total');
   const combo = document.querySelector('.score-combo');
@@ -137,9 +141,11 @@ for (const lang of ['en', 'es']) {
         r0 ? r0.text : JSON.stringify(one));
       check(`${tag}: the score's total stays off with the score off`, one.shown && !one.totalShown && /is-callouts/.test(one.cls), one.cls);
 
-      await page.evaluate(land('aileron_roll', 10));
-      await new Promise((r) => setTimeout(r, 250));
-      await page.evaluate(land('hammerhead', 5.5));
+      /* One call, so the chain cannot bank between them however slowly
+       * the machine runs the page. */
+      /* The loop's combo banks first, so the chain below is exactly three. */
+      await until(page, "getComputedStyle(document.querySelector('.score-combo')).display === 'none'", 20000);
+      await page.evaluate(`${land('half_roll', 9)}; ${land('aileron_roll', 10)}; ${land('hammerhead', 5.5)}; true`);
       await new Promise((r) => setTimeout(r, 400));
       const three = await page.evaluate(HUD);
       await shot(page, `callout-${tag}-chain`);
