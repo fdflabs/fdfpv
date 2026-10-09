@@ -30,7 +30,8 @@
  *
  *   D (not the race or the war) opens Flight Club and presses Watch beside
  *   that room: on its watch seat, no seat of its own and unseen by the
- *   pilots, the camera on a pilot; J follows the next, Escape leaves.
+ *   pilots, the camera on a pilot; J follows the next, Escape is the pause
+ *   menu (Resume, Room, Settings, Leave the room) and its Leave row leaves.
  *
  * The race (--game=race): A's lobby has no track yet, and its Track row
  * opens My tracks; A plays its own track there and is back in the lobby,
@@ -146,6 +147,17 @@ function check(name, ok, detail = '') {
   } else {
     failed += 1;
   }
+}
+
+/* A watcher's Escape is the pause menu (lead 2026-10-09); its Leave the
+ * room row leaves. Returns what the menu showed before the press. */
+async function leaveByPause(page) {
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 5000).catch(() => {});
+  const menu = await page.evaluate("({ phase: window.__rooms().phase, screen: window.__ui.screen, actions: window.__ui.items().filter((it) => !it.bar).map((it) => it.action) })");
+  await page.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === 'friends-leave')); return true; })()");
+  await page.tap('Enter');
+  return menu;
 }
 
 async function shot(page, name) {
@@ -457,8 +469,8 @@ try {
       const aPeers = await a.evaluate('window.__rooms().peers.length');
       check('B\'s Watch instead in the lobby: B is in the same room on its watch seat, and gone from A\'s pilots', bw.code === code && bw.watch && bw.seat === 0 && aPeers === 0,
         JSON.stringify({ ...bw, aPeers }));
-      /* And back to flying: Escape leaves, the card's one click is A's lobby again. */
-      await b.tap('Escape');
+      /* And back to flying: Escape, Leave the room, the card's one click is A's lobby again. */
+      await leaveByPause(b);
       await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 15000).catch(() => {});
       await b.click(cardSel);
       await b.until(`window.__rooms().code === ${JSON.stringify(code)} && !window.__rooms().watch && ${IN_LOBBY}`, 60000).catch(() => {});
@@ -511,7 +523,7 @@ try {
    * pilots are flying in a listed room (not the race's, waiting on its
    * grid, nor the war's, private): Flight Club, then Watch beside the
    * room, each a real pointer's click. D has no seat and no aircraft, the
-   * camera follows a pilot, J steps to the next, Escape leaves. */
+   * camera follows a pilot, J steps to the next, Escape and Leave leave. */
   if (WATCHED) {
     /* B's page is done with: three browsers at a time, not four. */
     bErrors = b.errors.slice();
@@ -552,10 +564,12 @@ try {
     check('J: the camera follows the next pilot', next.watching !== null && next.watching !== seen.watching && next.watchGap < 30,
       JSON.stringify({ was: seen.watching, now: next.watching, gap: next.watchGap }));
     await shot(d, '5-d-watching-next');
-    await d.tap('Escape');
+    const menu = await leaveByPause(d);
+    check('Escape is a watcher\'s pause menu, still in the room: Resume, Room, Settings, Leave',
+      menu.phase === 'open' && menu.screen === 'paused' && menu.actions.join() === 'resume,friends,pilot,friends-leave', JSON.stringify(menu));
     await d.until("window.__rooms().phase === 'idle' && window.__ui.screen !== 'flight'", 15000).catch(() => {});
     const left = await d.evaluate("({ phase: window.__rooms().phase, screen: window.__ui.screen })");
-    check('Escape leaves the room for the menus', left.phase === 'idle' && left.screen !== 'flight', JSON.stringify(left));
+    check('its Leave the room row leaves for the menus', left.phase === 'idle' && left.screen !== 'flight', JSON.stringify(left));
   }
 
   const errs = [...bErrors, ...[a, b, c, d].filter(Boolean).flatMap((p) => p.errors)].filter((e) => !e.startsWith('network:'));

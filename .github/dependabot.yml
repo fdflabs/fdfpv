@@ -1,0 +1,50 @@
+# Dependabot: one grouped pull request a week per ecosystem, gated by the
+# same checks.yml every pull request runs. How the lead merges them, and
+# what is deliberately left out (the Betaflight submodule, the three.js and
+# muxer builds pinned in the import maps), is in docs/DEPENDENCIES.md.
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+
+version: 2
+updates:
+  # ws and nodemailer: the VM's rooms and tracks servers. A merged bump
+  # reaches them only with the next deploy/vm/deploy.sh.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Asuncion
+    groups:
+      npm:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: deps
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Asuncion
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: deps

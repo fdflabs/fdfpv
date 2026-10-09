@@ -24,6 +24,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { bindKey } from './controls.js';
+
 /* Keys by what they mean, the arrows and WASD alike. */
 const UP = new Set(['ArrowUp', 'KeyW']);
 const DOWN = new Set(['ArrowDown', 'KeyS']);
@@ -74,6 +76,24 @@ function flightKey(ui, code) {
   }
   if (code === 'BracketLeft' || code === 'BracketRight') {
     ui.cycleSwap(code === 'BracketRight' ? 1 : -1);
+    return true;
+  }
+  return false;
+}
+
+/* Start pauses a flight and resumes the pause menu, on its press. */
+function startPress(ui, down) {
+  const was = ui.padStartPrev;
+  ui.padStartPrev = down;
+  if (!down || was) return false;
+  if (ui.screen === 'flight') {
+    ui.lastInput = 'pad';
+    flightKey(ui, 'Escape');
+    return true;
+  }
+  if (ui.screen === 'paused') {
+    ui.lastInput = 'pad';
+    ui.act('resume');
     return true;
   }
   return false;
@@ -142,6 +162,8 @@ export const keyMethods = {
     this.noteInteraction();
     /* A text field is open: typing is for it. */
     if (this.nameDialog && !this.nameDialog.hidden) return true;
+    /* Settings > Controls is waiting for the key to bind. */
+    if (!repeat && bindKey(this, code)) return true;
 
     /* Held keys repeat only as navigation; a repeated Enter or Escape
      * would press twice. */
@@ -194,7 +216,12 @@ export const keyMethods = {
     }
   },
 
+  pollStart(down) {
+    return startPress(this, down);
+  },
+
   pollPad(nav) {
+    if (startPress(this, Boolean(nav.start))) return;
     const anyHeld = PAD_KEYS.some((k) => nav[k]);
     /* The hangar and the picker read the pad themselves. Leaving them,
      * the next poll only learns what is still held, so the press that

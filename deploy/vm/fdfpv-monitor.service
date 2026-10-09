@@ -1,0 +1,37 @@
+# fdfpv-monitor.service: the off-box monitor of the live game and the VM,
+# on the owner's DESKTOP (a systemd --user unit there, not on the VM). Runs
+# monitor.sh as installed by README.md "Monitoring". Run by
+# fdfpv-monitor.timer.
+#
+# CURL_HOME pins every curl to IPv4: ntfy.sh's free quota is per source
+# address, and another device on this LAN spends the IPv6 /64's.
+#
+# Measured 2026-10-08 through this unit: 5.3 s wall clock, 1.1 s of CPU,
+# 21 MB memory peak a run; no ceiling set at that size.
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV: off-box monitor of the game and the VM
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=CURL_HOME=%h/.config/fdfpv-monitor/curl-ipv4
+ExecStart=%h/.local/lib/fdfpv-monitor/monitor.sh
+Nice=10
+TimeoutStartSec=3min

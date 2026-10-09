@@ -4313,3 +4313,133 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .rot_k = { 0.01580, 0.04108, 0.03462 },
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
 };
+
+/* E-flite's Night Timber X 1.2m, EFL13850 and EFL13875,
+ * docs/NIGHTTIMBER-STAGE1.md and scripts/nighttimber-derive.js, where each
+ * number has its formula and source and the estimated ones say so. The
+ * Timber X's STOL high wing with oversized surfaces, flown as its manual's
+ * 3D setup has it: the flaps mixed into the ailerons at the ailerons'
+ * travel, full span ailerons, the flaps still going down together on the
+ * flap switch; the slats left in the box, as the manual's CG is given. A
+ * BL10 900 kV on 4S turns a 13 x 4, clockwise seen from behind, on a
+ * thrust line through the CG: a thrust about one and a half times its
+ * weight, so it hangs on the prop, the Extra's high angle terms carrying
+ * it there. */
+const FixedWingParams FW_NIGHTTIMBER1200 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.200,          /* E-flite, 47.5 in */
+  .area = 0.2866,         /* E-flite's 34 dm^2 is with the slats: 0.243 of 0.288 of it */
+  .chord = 0.2388,        /* S/b, a constant chord */
+  .cl_alpha = 4.9038,     /* wing and tail, Nelson eq. 2.52 */
+  .cl_max = 1.15,         /* clean, the Turbo Timber's thick semi symmetric section */
+  /* The zero lift line 5 degrees under the body axis, the Turbo Timber's. */
+  .alpha_zl = -5.0 * WING_PI / 180.0,
+  .sin_zl = -0.08715574274765817,
+  .cos_zl = 0.9961946980917455,
+  .cd0 = 0.0459,          /* the Timber's, its tundra tyres' share on a smaller wing */
+  .k_induced = 0.08121,   /* 1/(pi 0.78 5.025) */
+  .cl_de = -0.4630,
+  .cy_beta = -0.5127,
+  .cy_dr = 0.2096,
+  .cl_beta = -0.0252,     /* a flat high wing, the fin mostly under the thrust line */
+  .cl_p = -0.7491,
+  .cl_da = 0.4465,        /* full span: the flaps mixed in at the ailerons' travel */
+  .cl_r_per_cl = 0.25,
+  .cl_dr = -0.0059,
+  .cm_0 = 0.0383,         /* trims at 13 m/s with the elevator neutral */
+  .cm_alpha = -0.3349,    /* static margin 0.068 at the manual's 89 mm */
+  .cm_q = -9.585,
+  .cm_de = 1.0393,
+  .cn_beta = 0.1544,
+  .cn_r = -0.1996,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.133, /* the Turbo Timber's */
+  .cn_dr = -0.1013,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* E-flite's high rates, 45, 55 and 55 mm, over the surfaces' widest
+   * chords; the control derivatives carry Roskam's large deflection K'. */
+  .throw_a = 28.92 * WING_PI / 180.0,
+  .throw_e = 35.81 * WING_PI / 180.0,
+  .throw_r = 33.75 * WING_PI / 180.0,
+  .surface_max = 28.92 * WING_PI / 180.0,
+  .expo = 0.0,            /* the manual sets none: "after first flights, you may adjust expo" */
+  .thrust_static = 25.93, /* N, ESTIMATED: the BL10 on 4S against APC's 13 x 4E, 10,058 rpm */
+  .pitch_speed = 19.17,
+  .rpm_no_load = 13320.0,
+  .torque_arm = 0.01459,  /* the prop's 0.378 N m at 25.9 N */
+  .j_prop = 0.000171,     /* a 25 g 13 in blade and the BL10's can, ESTIMATED */
+  .thrust_z = 0.0,        /* the thrust line through the CG */
+  .pfactor = 1.89,        /* the Cub's blade element figure on a 13 in prop, as the Extra's */
+  .current_full = 37.4,
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  /* The Turbo Timber's loops, its throws and surfaces near these. */
+  .stab_roll_kp = 1.2,
+  .stab_roll_kd = 0.12,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 7.71 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.782, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 360.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 200.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 3.0,
+  .acro_roll_kd = 0.30,
+  .acro_roll_ff = 0.25,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .as3x_k = { 0.0934, 0.2367, 0.6655 }, /* npm run as3x:derive */
+  .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
+  /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
+   * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
+   * "SPEED 2.0S"). The mix is the manual's 14 and 20 percent of the
+   * elevator's travel, taken down, as one gain through both notches. */
+  .flap_half = 0.328206,
+  .flap_full = 0.632256,
+  .flap_rate = 0.316128,
+  .cl_df = 1.3649,
+  .cl_df2 = -1.0160,
+  .clmax_df = 0.4819,
+  .cd_df2 = 0.1463,
+  .cm_dcl_f = 0.3984,
+  .de_df = -0.212333,
+  /* No slats: they ship in the box, and the manual's CG is without them. */
+  /* Past the stall, the Turbo Timber's section (docs/STALL-STAGE1.md). */
+  .stall_arm_ac = 0.1227, /* the CG 0.123 of the chord behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.0273, /* the plate's centre of pressure at 0.40, just behind the CG */
+  .stall_dw = 0.2705,
+  .stall_asym = 0.00419,  /* 1 mm of trailing edge over the chord */
+  .stall_k = 0.63,
+  .stall_top = 3.7 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  /* The slipstream, the high angles and the slow air,
+   * scripts/nighttimber-derive.js: the 13 in prop; the stabiliser's half
+   * span, the fin over and under the thrust line, the ailerons' span. */
+  .slip_r = 0.1651,
+  .slip_yh = 0.2475,
+  .slip_hv = { 0.080, 0.147 },
+  .slip_ya = { 0.0935, 0.5629 },
+  .slip_a0 = 0.0272,
+  .slip_cl_a = 0.4095,
+  .slip_cm_a = -0.9192,
+  .slip_cn_b = 0.1946,
+  .slip_cn_r = -0.1881,
+  .slip_cy_b = -0.4027,
+  .slip_cl_b = 0.0112,
+  .strip_tau = { 0.1749, 0.4643, 0.4643, 0.3496 }, /* the ailerons and flaperons from 0.093 m to 0.563 */
+  .hi_alpha = 1,
+  .tail_at = 3.812,
+  .tail_av = 3.394,
+  .tail_deda = 0.569,
+  .tail_cn = 1.17,        /* a flat plate normal to the flow, Hoerner */
+  .side_cda = 0.1152,
+  .rot_k = { 0.01132, 0.01439, 0.01218 },
+};

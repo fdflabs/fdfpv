@@ -2012,3 +2012,74 @@ export function recordExtraFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * E-flite's Night Timber X 1.2m, airframe 30, docs/NIGHTTIMBER-STAGE1.md:
+ * a taildragger standing 4.5 deg nose up on its tundra tyres, the CG
+ * 0.2562 m up, as E-flite's side photograph has it, or thrown at its
+ * cruise. The flaps' notch as given, up unless asked.
+ */
+export const NIGHTTIMBER_AIRFRAME = 30;
+export const NIGHTTIMBER_REST = { z: 0.2562, pitchDeg: 4.5 };
+export function nighttimberPrelude(sim, { flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(NIGHTTIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_wing_launch(13), 'sim_wing_launch');
+}
+export function nighttimberGroundPrelude(sim, { mu = 1.4, e = 0, flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(NIGHTTIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = NIGHTTIMBER_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, NIGHTTIMBER_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * The Night Timber's recording for the cross-host check: from standing on
+ * the strip with half flaps (left there: a replay carries the sticks, not
+ * the flap switch), a second at idle, the take off at full throttle, a
+ * pull to the vertical, hanging on
+ * the prop with the throttle holding height and the ailerons holding the
+ * torque, then two seconds with them let go, full throttle out of it and
+ * back to level, a second of full rudder: twenty two seconds, the flaps,
+ * the slipstream and the high angle terms in the hashed trace.
+ */
+export function recordNightTimberFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  nighttimberGroundPrelude(sim, { flaps: 1 });
+  const samples = [];
+  let iT = 0.8;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.6 * (bank - b) - 0.06 * p));
+    const nose = (t) => Math.max(-1, Math.min(1, 1.5 * (t - pitch) - 0.12 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...extraTakeoffSticks(s), 1];
+    } else if (ms < 9000) {
+      sticks = [hold(0), nose(0.45), 0, 1];
+    } else if (ms < 16000) {
+      iT += 0.0008 * (0 - vz);
+      iT = Math.max(0.3, Math.min(1, iT));
+      const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
+      sticks = [...hangSticks(s, { rollRate: ms < 14000 ? 0 : null }), ms < 11000 ? 0.9 : thr];
+    } else if (ms < 20000) {
+      sticks = [hold(0), nose(0.1), 0, 1];
+    } else {
+      sticks = [hold(0), nose(0.1), ms < 21000 ? 1 : 0, 0.6];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
