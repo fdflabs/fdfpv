@@ -39,7 +39,7 @@ import {
 import { roofShell, gableProfile } from '../../alps/kit.js';
 import {
   flatTop, pyramidTop, shedTop, spireCore,
-} from '../../alps/roofs.js';
+} from '../../../render/library/roofs.js';
 
 /*
  * How a house's masonry storey is finished and what grows on it. No two
