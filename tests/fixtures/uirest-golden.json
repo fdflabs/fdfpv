@@ -255,6 +255,10 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -371,6 +375,10 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
       },
       {
        "value": "p51d1450",
@@ -2474,6 +2482,139 @@
     }
    },
    "extra3d1308:unfitted": null,
+   "nighttimber1200:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "nighttimber1200:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nighttimber1200:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",
@@ -3958,6 +4099,10 @@
        "label": "Extra 300 3D"
       },
       {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
+      },
+      {
        "value": "p51d1450",
        "label": "P-51D Mustang"
       },
@@ -4074,6 +4219,10 @@
       {
        "value": "extra3d1308",
        "label": "Extra 300 3D"
+      },
+      {
+       "value": "nighttimber1200",
+       "label": "Night Timber X"
       },
       {
        "value": "p51d1450",
@@ -6177,6 +6326,139 @@
     }
    },
    "extra3d1308:unfitted": null,
+   "nighttimber1200:bare": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "stock",
+       "addons": [],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": null
+    }
+   },
+   "nighttimber1200:full": {
+    "build": {
+     "key": "build:b1",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    },
+    "card": {
+     "key": "nighttimber1200",
+     "look": {
+      "colours": {
+       "wing": 15921902,
+       "fuselage": 15921902,
+       "tail": 15921902,
+       "trim": 15616543,
+       "stripe": 1513755,
+       "grey": 9277845
+      },
+      "under": {},
+      "patterns": {},
+      "finishes": {},
+      "decals": [],
+      "wear": 0,
+      "kit": {},
+      "lights": null
+     },
+     "fit": {
+      "id": "nighttimber1200",
+      "entry": {
+       "prop": "big",
+       "addons": [
+        "lights"
+       ],
+       "damage": null
+      },
+      "option": "stock"
+     },
+     "combat": {
+      "load": "x"
+     }
+    }
+   },
+   "nighttimber1200:unfitted": null,
    "p51d1450:bare": {
     "build": {
      "key": "build:b1",

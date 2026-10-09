@@ -71,6 +71,7 @@ export const SIM_TUNE_DOUBLES = 11;
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
+const NIGHTTIMBER_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL13850-Manual-EN.pdf';
 const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
@@ -219,6 +220,13 @@ export const TUNING = {
     packKg: 0.27, nose: 0.26, tail: -0.83,
     throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
     flaps: null,
+  },
+  nighttimber1200: {
+    chord: 0.2388, area: 0.2866, margin: 0.068,
+    cg: { mm: 89, datum: 'tuning.datum.root_le', range: [86, 105], source: `E-flite manual p. 8, "89mm +/- 3mm back from the leading edge with the carbon joiner" or "102mm +/- 3mm ... with the steel joiner for maximum 3D performance", without the slats (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
+    packKg: 0.27, nose: 0.339, tail: -0.716,
+    throws: { high: [28.92, 35.81, 33.75], low: [22.13, 28.60, 23.82], source: `E-flite manual p. 3: high 45, 55 and 55 mm, low 35, 45 and 40 mm, at the surfaces' widest chords, 93, 94 and 99 mm (docs/NIGHTTIMBER-STAGE1.md); ${NIGHTTIMBER_MANUAL}` },
+    flaps: { mix: -0.212333, angles: [0, 0.328206, 0.632256], source: `E-flite manual pp. 3 and 4: half 30 mm, full 55 mm; the flap mix 14 percent of the elevator at half and 20 at full; ${NIGHTTIMBER_MANUAL}` },
   },
 
   p51d1450: {

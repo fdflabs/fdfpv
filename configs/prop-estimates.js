@@ -382,5 +382,31 @@ export const PROP_ESTIMATES = {
         currentA: 27.941
       }
     }
+  },
+  nighttimber1200: {
+    stock: {
+      "13x65e": {
+        thrustN: 31.4881,
+        pitchSpeedMs: 28.737,
+        currentA: 53.814
+      },
+      "12x6e": {
+        thrustN: 26.5784,
+        pitchSpeedMs: 28.0285,
+        currentA: 42.751
+      }
+    },
+    "3s": {
+      "13x65e": {
+        thrustN: 17.8449,
+        pitchSpeedMs: 21.568,
+        currentA: 30.192
+      },
+      "12x6e": {
+        thrustN: 15.0637,
+        pitchSpeedMs: 21.0282,
+        currentA: 24.01
+      }
+    }
   }
 };

@@ -486,6 +486,37 @@
    }
   },
   {
+   "id": "nighttimber1200",
+   "name": "craft",
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "keys": [
+    "blades",
+    "cameraMount",
+    "discs",
+    "group",
+    "leds",
+    "livery",
+    "propSpin",
+    "setFlaps",
+    "setSurfaces",
+    "stator"
+   ],
+   "dims": {
+    "bodyLength": 1.055,
+    "bodyWidth": 1.2,
+    "bodyHeight": 0.4346,
+    "motorArm": 0.0777817459305,
+    "propRadius": 0.0635,
+    "hullRadius": 0.0635,
+    "motorDiagonal": 0.22,
+    "sweepRadius": 0.1735
+   }
+  },
+  {
    "id": "p51d1450",
    "name": "craft",
    "scale": [
@@ -708,24 +739,28 @@
    15
   ],
   [
-   "p51d1450",
+   "nighttimber1200",
    16
   ],
   [
-   "f16878",
+   "p51d1450",
    17
   ],
   [
-   "zagi1219",
+   "f16878",
    18
   ],
   [
-   "nrj1490",
+   "zagi1219",
    19
   ],
   [
-   "striker2500",
+   "nrj1490",
    20
+  ],
+  [
+   "striker2500",
+   21
   ],
   [
    "5inch",
