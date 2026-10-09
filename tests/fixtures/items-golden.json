@@ -307,7 +307,7 @@
      "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
      "facts": [
       "Short lessons, in order",
-      "Stabilised first, then Acro",
+      "SAFE Select first, then AS3X",
       "Nothing waits on them"
      ],
      "svg": "<svg 623 chars>",
@@ -1057,7 +1057,7 @@
     {
      "id": "title:a-quad",
      "label": "Plane",
-     "value": "Cub, Acro",
+     "value": "Cub, Manual",
      "note": "The machine. Tune, PIDs, camera angle, field of view, flight mode and the firmware bench, which is every firmware key the module compiles.",
      "action": "quad",
      "drives": {}
@@ -1812,7 +1812,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "striker-acro",
+        "tune": "striker-stab",
         "airframe": "striker2500",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
@@ -6750,7 +6750,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -6768,7 +6768,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -23864,7 +23864,7 @@
      "blurb": "Lessons from the first takeoff to racing your ghost, one step at a time.",
      "facts": [
       "Short lessons, in order",
-      "Stabilised first, then Acro",
+      "SAFE Select first, then AS3X",
       "Nothing waits on them"
      ],
      "svg": "<svg 623 chars>",
@@ -24614,7 +24614,7 @@
     {
      "id": "title:a-quad",
      "label": "Avión",
-     "value": "Cub, Acro",
+     "value": "Cub, Manual",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -25369,7 +25369,7 @@
       },
       "adjust(-1)": {
        "settings": {
-        "tune": "striker-acro",
+        "tune": "striker-stab",
         "airframe": "striker2500",
         "tuneFor.interceptor": "betaflight-interceptor",
         "cameraAngle": 5,
@@ -30307,7 +30307,7 @@
      "drives": {
       "adjust(+1)": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,
@@ -30325,7 +30325,7 @@
       },
       "pick(\"radian2000\")": {
        "settings": {
-        "tune": "radian-acro",
+        "tune": "radian-manual",
         "airframe": "radian2000",
         "tuneFor.cub1400": "cub-stab",
         "cameraAngle": 5,

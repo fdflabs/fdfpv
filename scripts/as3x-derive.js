@@ -1,6 +1,7 @@
 /*
  * as3x-derive.js: the gains of mode 3's rate damper (FixedWingParams.as3x_k),
- * E-flite's AS3X with SAFE Select off, for each aircraft that ships with it.
+ * E-flite's AS3X with SAFE Select off, for each aircraft that ships with it
+ * and each one a pilot may fit a Spektrum AS3X receiver to (docs/CONTROLLERS.md).
  * AS3X adds to each servo's command a term against the body's rate on that
  * axis; Horizon publishes no gains, only that too much shows as
  * "oscillation at high speed" (the Extra 300 3D manual, p. 4 and its AS3X
@@ -53,9 +54,23 @@ const check = process.argv.includes('--check');
 
 const TAU = 0.022;
 const MS = 4;
-/* The aircraft that ship with AS3X: their table and sim id. */
+/* The aircraft with an AS3X row: their table and sim id. The Extra and
+ * the Timber ship with it; the rest may be fitted with it. */
 const AS3X = {
   FW_EXTRA3D1308: { sim: 29 },
+  FW_TIMBER1500: { sim: 7 },
+  FW_TIMBER1500F: { sim: 9 },
+  FW_CUB1400: { sim: 4 },
+  FW_CUB1400F: { sim: 10 },
+  FW_SLOWSTICK1180: { sim: 5 },
+  FW_RADIAN2000: { sim: 6 },
+  FW_BOMBSHELL1118: { sim: 11 },
+  FW_KADET1981: { sim: 12 },
+  FW_P51D1450: { sim: 15 },
+  FW_F16878: { sim: 16 },
+  FW_ZAGI1219: { sim: 17 },
+  FW_UGLYSTIK1567: { sim: 19 },
+  FW_TIGERMOTH1803: { sim: 23 },
 };
 
 async function planeSim(id) {
@@ -100,11 +115,19 @@ function power(sim, V) {
     return { om: [s[11], s[12], s[13]], sf: Array.from(new Float64Array(sim.e.memory.buffer, sim.surfPtr, 4)) };
   };
   const base = one([0, 0, 0]);
-  const axis = (sticks, k, surf) => {
+  /* The receiver's roll and pitch commands, back out of the mix: an
+   * elevon is pitch plus roll, a tail's ailerons are opposed and its
+   * elevator a slot of its own, so both read the same way. */
+  const cmd = (sf) => [(sf[1] - sf[0]) / 2, sf[2] + (sf[0] + sf[1]) / 2, sf[3]];
+  const axis = (sticks, k) => {
     const r = one(sticks);
-    return Math.abs((r.om[k] - base.om[k]) / (MS / 1000) / (r.sf[surf] - base.sf[surf]));
+    const d = cmd(r.sf)[k] - cmd(base.sf)[k];
+    /* An axis with no surface of its own (no ailerons on a rudder mix,
+     * no rudder on the Zagi) has nothing for the gyro to move. */
+    if (d === 0) return 0;
+    return Math.abs((r.om[k] - base.om[k]) / (MS / 1000) / d);
   };
-  return [axis([0.1, 0, 0], 0, 1), axis([0, 0.1, 0], 1, 2), axis([0, 0, 0.1], 2, 3)];
+  return [axis([0.1, 0, 0], 0), axis([0, 0.1, 0], 1), axis([0, 0, 0.1], 2)];
 }
 
 const r4 = (x) => Number(x.toFixed(4));
@@ -113,7 +136,7 @@ for (const [name, a] of Object.entries(AS3X)) {
   const sim = await planeSim(a.sim);
   const V = topSpeed(sim);
   const M = power(sim, V);
-  const k = M.map((m) => r4(Math.PI / (4 * m * TAU)));
+  const k = M.map((m) => (m > 0 ? r4(Math.PI / (4 * m * TAU)) : 0));
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`);
   console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);

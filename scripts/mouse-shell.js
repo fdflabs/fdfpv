@@ -300,7 +300,7 @@ async function plane(page) {
   console.log('Timber, Free Flight, swiss2, Acro tune:');
   await page.evaluate("window.__ui.craftGate = true; window.__ui.show('title'); window.__ui.act('way-freestyle-wing1000'); true");
   await page.until("window.__ui.settings.map === 'swiss2' && window.__map && window.__map().ready", 400000);
-  await page.evaluate(`(() => { const ui = window.__ui; ui.settings.airframe = 'timber1500'; ui.settings.tune = 'timber-acro';
+  await page.evaluate(`(() => { const ui = window.__ui; ui.settings.airframe = 'timber1500'; ui.settings.tune = 'timber-as3x';
     ui.settings.wingView = 'fpv'; ui.onAction('fly', ui.settings); return true; })()`);
   await page.until("window.__craftState && window.__craftState().mode === 'flight' && window.__craft().run === 'timber1500'", 400000);
   const mouse = makeMouse(page);
