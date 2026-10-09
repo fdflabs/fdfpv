@@ -605,6 +605,16 @@ export function rudderHold(s) {
   return Math.max(-1, Math.min(1, 6.0 * (runwayHeading(s) + 0.3 * s[2]) + 0.6 * s[13]));
 }
 
+/* A powered stall's wings held level on the rudder, the ailerons neutral,
+ * as the handbook flies one (FAA-H-8083-3C ch. 5, power on stalls: right
+ * rudder against the tractor's left turning tendencies, a wing picked up
+ * with the rudder and not the ailerons, which near the stall take the
+ * down going wing deeper into it). The rudder only aircraft's wings level
+ * law, -1.2 bank - 0.12 p, on the yaw stick. */
+export function rudderLevel(s) {
+  return Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
+}
+
 export function takeoffSticks(s, { vRotate = 8.9 } = {}) {
   const { pitch, bank } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);

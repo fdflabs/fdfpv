@@ -30,7 +30,7 @@
 import * as THREE from 'three';
 import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath } from './path.js';
-import { standWalls, recordAt, gableTop, frameElements } from './roofs.js';
+import { standWalls, recordAt, gableTop, frameElements } from '../../render/library/roofs.js';
 
 const STEEL = 0x9aa0a6;
 const STEEL_DARK = 0x5d6369;

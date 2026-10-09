@@ -10,7 +10,9 @@
  * valley. A flies and starts a match: the crown moves on A's screen to and
  * between AI pilots, and A's scoreboard names them as AI. B joins: an AI
  * pilot leaves for it, and B sees the rest named as AI too. B leaves: an
- * AI pilot comes back. Pictures in outdir, which is not in the repository.
+ * AI pilot comes back. A makes a private room: no AI pilots until A, its
+ * host, clicks Normal on the AI pilots row; B joins it and reads the
+ * host's choice; A clicks Off and they leave. Pictures in outdir, which is not in the repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -84,6 +86,34 @@ async function shot(page, name) {
 
 const bots = (r) => r.peers.filter((p) => /^AI /.test(p.name));
 
+/* The AI pilots row on the page's room screen: its value, whether it is
+ * the host's (it has choices) or an info row. */
+const AI_ROW = `(() => {
+  const r = window.__ui.friendsRows().find((x) => x.label === 'AI pilots');
+  return r ? { value: r.value, info: Boolean(r.info), choices: (r.options || []).length } : null;
+})()`;
+
+/* Puts the room screen up and clicks the AI pilots row's `choice` with a
+ * real pointer. */
+async function chooseAi(page, choice) {
+  await page.evaluate(`(() => {
+    const ui = window.__ui;
+    if (ui.screen !== 'friends') { ui.show('friends'); }
+    return true;
+  })()`);
+  await page.sleep(300);
+  const marked = await page.evaluate(`(() => {
+    const ui = window.__ui;
+    const i = ui.items().findIndex((it) => it.label === 'AI pilots');
+    const row = i >= 0 ? ui.menuRows[i - ui.rowOffset] : null;
+    const b = row ? [...row.querySelectorAll('button')].find((x) => x.textContent.trim() === ${JSON.stringify(choice)}) : null;
+    document.querySelectorAll('[data-check="ai"]').forEach((x) => delete x.dataset.check);
+    if (b) { b.dataset.check = 'ai'; }
+    return Boolean(b);
+  })()`);
+  return marked && page.click('[data-check="ai"]');
+}
+
 const { startRooms } = await import('../edge/rooms/node.js');
 const scratch = mkdtempSync(join(tmpdir(), 'bots-two-page-'));
 const local = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
@@ -154,6 +184,39 @@ try {
   await a.until(`window.__rooms().peers.length === ${FILL_TO - 1} && window.__rooms().peers.filter((p) => /^AI /.test(p.name)).length === ${FILL_TO - 1}`, 30000).catch(() => {});
   ra = await a.evaluate('window.__rooms()');
   check('B leaves: an AI pilot comes back', bots(ra).length === FILL_TO - 1, ra.peers.map((p) => p.name).join(', '));
+
+  /* A PRIVATE ROOM: no AI pilots until its host switches them on, from
+   * the room screen's AI pilots row, with a real pointer. */
+  const priv = await a.evaluate("window.__roomCreate({ map: 'swiss2', mode: 'tag', public: false })");
+  await a.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(priv)}`, 30000);
+  await a.sleep(1500);
+  let ai = await a.evaluate(AI_ROW);
+  check('A makes a private Catch the Ace room: no AI pilots, its row says Off, with the host\'s choices',
+    (await a.evaluate('window.__rooms().peers.length')) === 0 && ai && ai.value === 'Off' && ai.choices === 4, JSON.stringify(ai));
+  const clicked = await chooseAi(a, 'Normal');
+  await a.until(`window.__rooms().peers.filter((p) => /^AI /.test(p.name)).length === ${FILL_TO - 1}`, 30000).catch(() => {});
+  ai = await a.evaluate(AI_ROW);
+  check(`A clicks Normal: ${FILL_TO - 1} AI pilots join the private room`, clicked
+    && bots(await a.evaluate('window.__rooms()')).length === FILL_TO - 1 && ai.value === 'Normal', JSON.stringify(ai));
+  await shot(a, 'a-private-room-ai-on');
+  const flagsShown = await a.evaluate("[...document.querySelectorAll('.war-lobby-flag')].map((e) => e.textContent)");
+  check(`the lobby's pilot list marks the ${FILL_TO - 1} AI pilots as AI, never NOT READY`,
+    flagsShown.filter((f) => f === 'AI PILOT').length === FILL_TO - 1 && flagsShown.filter((f) => f === 'NOT READY').length === 1, flagsShown.join(', '));
+  b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6') });
+  await b.until('window.__shellReady === true', 300000);
+  await b.evaluate(`window.__roomJoin(${JSON.stringify(priv)}); true`);
+  await b.until(`window.__rooms().phase === 'open' && window.__rooms().peers.length === ${FILL_TO - 1}`, 30000).catch(() => {});
+  const bAi = await b.evaluate(AI_ROW);
+  check('B joins by code: an AI pilot leaves for it, and B reads the host\'s choice, no choices of its own',
+    bots(await b.evaluate('window.__rooms()')).length === FILL_TO - 2 && bAi && bAi.value === 'Normal' && bAi.info && bAi.choices === 0, JSON.stringify(bAi));
+  const off = await chooseAi(a, 'Off');
+  await b.until("window.__rooms().peers.length === 1", 30000).catch(() => {});
+  const bOff = await b.evaluate(AI_ROW);
+  check('A clicks Off: every AI pilot leaves, on B\'s screen too, and B\'s row says Off',
+    off && (await b.evaluate('window.__rooms().peers.length')) === 1 && bOff && bOff.value === 'Off', JSON.stringify(bOff));
+  await b.close();
+  b = null;
+
   const errs = a.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
