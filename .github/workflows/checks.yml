@@ -47,6 +47,7 @@ jobs:
       - run: npm run session:golden
       - run: npm run actions:golden
       - run: npm run items:golden
+      - run: npm run lint:es-leaks
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
@@ -260,6 +261,10 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # A pull request's preview, staged and stamped as preview.yml does,
+      # boots on a host that is not the game's with no sign-in and no
+      # request to the production API (docs/PREVIEWS.md).
+      - run: npm run preview:check
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
@@ -357,6 +362,11 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      # A deploy under an open tab: every module and the wasm at the
+      # page's version, the new-version bar held off the flight screen and
+      # shown on Paused and the title, its Reload landing on the new deploy
+      # (scripts/version-reload-check.js, src/ui/update.js).
+      - run: npm run version:reload
       # The mode registry (src/share/modes.js) whole, and the wire's lists
       # read off it with their values of before (docs/redesign/PLAN.md 3).
       - run: npm run modes:selftest

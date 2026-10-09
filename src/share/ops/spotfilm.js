@@ -22,9 +22,13 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The orbit: wide enough to hold a group running 50 m apart, high
- * enough to read as a watcher's picture, a sixth of a turn. */
-export const SPOT_ORBIT = { r: 260, h: 180, turn: 1.05, lens: 40 };
+/* The orbit: at head height among the trunks, close and wide, because
+ * the people being photographed walk under crowns (Mission 1's
+ * concealment routes) and any shot from above sees only canopy (the
+ * 260 m out, 180 m up first cut did). A sixth of a turn. */
+export const SPOT_ORBIT = {
+  r: 22, h: 2, turn: 1.05, lens: 24, grade: 'air',
+};
 
 /*
  * The film over the people at `at` ([x, z] in the world's metres, three
@@ -45,7 +49,7 @@ export function spotFilm(map, at, s, from = 0) {
     shots: [{
       id: 'scatter',
       min: s,
-      grade: 'steel',
+      grade: SPOT_ORBIT.grade,
       camera: {
         type: 'orbit', agl: true, ease: 'io', centre: [at[0], 0, at[1]], r: SPOT_ORBIT.r, h: SPOT_ORBIT.h, a: [from, from + SPOT_ORBIT.turn], lens: SPOT_ORBIT.lens,
       },
