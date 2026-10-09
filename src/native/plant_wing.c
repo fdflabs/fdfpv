@@ -4571,11 +4571,7 @@ const FixedWingParams FW_HERCULES3077 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 6.0,
   .acro_i_max = 0.30,
-<<<<<<< HEAD
   .as3x_k = { 0.1387, 0.2202, 0.7441 }, /* a fitted AR637T's AS3X, npm run as3x:derive */
-=======
-  .as3x_k = { 0.1482, 0.2355, 0.7963 }, /* a fitted AR637T's AS3X, npm run as3x:derive */
->>>>>>> 5e6d0100b31ff0ea2b522cd70ec4c404fbe9adb7
   .yaw_coord_k = 1.5,
   /* Past the stall, scripts/stall-derive.js's tailed form on this
    * aircraft's numbers; the 18 percent section's rounded trailing edge
