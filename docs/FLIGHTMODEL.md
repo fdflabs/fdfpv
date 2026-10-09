@@ -870,3 +870,74 @@ pinned hash with the call made and without; a Radian's glide sinking
 0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
 falling less far in rising air; it outliving a reset and a still wind,
 and 0 taking it away to the bit.
+
+## A prop spins up
+
+The owner noticed the throttle reaches the thrust in the step it is
+asked; a real rotor has inertia. Every prop now spins up by its drive's
+own equation, every figure from the table already there (plant_wing.c,
+prop_spool): the rotor's inertia j_prop (PR 3's estimates) turned by the
+drive's torque less the prop's, the prop's torque going with its speed
+squared, Q_f = torque_arm thrust_static at full.
+
+**Electric motors** (Drela, "First-Order DC Electric Motor Model", MIT
+16.50 notes, 2007: Q = (I - I0)/Kv, I = (V - w/Kv)/R). The table's speed
+at full is 0.85 of no load (the plant's rule), so the circuit (pack, ESC
+and windings) drops 0.15 of the pack's voltage at the full current, which
+sets R; Kt is V over the no load speed, so the motor's torque at full is
+Kt I_f, which matches the prop's torque_arm times thrust_static (the
+Extra's 0.68 and 0.65 N m). Over the full speed,
+J w_f n' = Q_f (5.67 (d - n) + d^2 - n^2), whose rest is still n = d, the
+plant's speed at a duty: the thrust curve and the trims are where they
+were, and only the getting there takes time. The current a step draws is
+that circuit's, up to V/R at a stall; no ESC here clamps it in running
+(none of these aircraft's ESC listings names a current limiter, and we
+found no source for one acting on a throttle step), so none is modelled.
+With the stick pulled back (d < n) the same equation brakes the prop
+harder than its drag alone: that is the ESC's damped light (synchronous
+rectification, BLHeli's default "damped light" mode) returning the back
+EMF's current to the pack.
+
+**Glow and petrol engines** (Ugly Stik, Tiger Moth, Kadet, Bombshell, the
+Striker's boxer). At a fixed throttle an engine's torque changes slowly
+with its speed (Heywood, Internal Combustion Engine Fundamentals, 1988,
+ch. 2, brake torque against speed), taken as flat, so the drive is the
+torque that holds n = d and J w_f n' = Q_f (d^2 - n^2): with no back EMF to
+stiffen it, an engine answers several times slower than a motor of its
+power. The carburettor's own delay, a few revolutions of mixture, has no
+source we found for engines this size and is left out (it would only add
+to the lag). An engine is running from the reset, at its idle.
+
+A thrown or launched plane starts at the duty; a cut or flat motor or a
+dead engine coasts down on the prop's drag alone. The ducted fan keeps its
+own sourced fan_tau and the turbojet its spool.
+
+spool:derive (in CI) measures it off the plant, 63 and 90 percent of the
+thrust's change, ms, nose up and held still:
+
+ Aircraft | half to full | full to half | rest (idle) to full
+ --- | --- | --- | ---
+ sky1800 | 88/183 | 48/101 | 117/214
+ cub1400 | 119/248 | 83/207 | 158/290
+ radian2000 | 129/269 | 90/226 | 172/316
+ bramor2300 | 60/126 | 42/105 | 80/147
+ slowstick1180 | 100/209 | 70/174 | 133/244
+ timber1500 | 130/271 | 66/134 | 173/317
+ bombshell1118 (glow) | 327/649 | 284/634 | 404/718
+ kadet1981 (glow) | 423/760 | 362/728 | 544/836
+ uglystik1567 (glow) | 319/625 | 196/430 | 436/728
+ tigermoth1803 (glow) | 319/625 | 262/609 | 436/728
+ extra3d1308 | 60/103 | 27/48 | 100/182
+ p51d1450 | 274/555 | 158/375 | 363/640
+ f16878 (its fan_tau, unchanged) | 195/337 | 147/277 | 415/561
+ zagi1219 | 48/100 | 34/84 | 64/117
+ striker2500 (petrol) | 304/548 | 183/384 | 443/744
+
+Gates that measured from rest in one step now hold the prop at speed
+first, as the real measurement is taken: slowstick S11 and P-51 P10/P11
+(tests/lib/wingpilot.js fullThrottleHeld), extra E10/E10b (a second at the
+throttle), flightmodel-probe AUTH and TORQ, and hover-probe (the pilot
+arrives in the hover with the motor at 0.6). The Striker's piston gate
+"the thrust is the stick's" (under 50 ms) contradicted a rotor with
+inertia and is re-derived: its rpm reaches 90 percent of full in 0.5 to
+1.0 s about the 0.75 s the equation gives standing still.

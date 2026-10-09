@@ -39,6 +39,7 @@ jobs:
       - run: npm run widgets:golden
       - run: npm run trickslist:golden
       - run: npm run keys:golden
+      - run: npm run keybinds:selftest
       - run: npm run menucontrols:golden
       - run: npm run nav:golden
       - run: npm run uirest:golden
@@ -47,6 +48,7 @@ jobs:
       - run: npm run session:golden
       - run: npm run actions:golden
       - run: npm run items:golden
+      - run: npm run lint:es-leaks
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check
@@ -60,6 +62,7 @@ jobs:
       - run: npm run strings:selftest
       - run: npm run pids:selftest
       - run: npm run version:check
+      - run: npm run csp:selftest
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
@@ -173,6 +176,7 @@ jobs:
       - run: npm run tigermoth:stab
       - run: npm run extra:gates
       - run: npm run extra:stab
+      - run: npm run nighttimber:gates
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest
@@ -260,6 +264,10 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # A pull request's preview, staged and stamped as preview.yml does,
+      # boots on a host that is not the game's with no sign-in and no
+      # request to the production API (docs/PREVIEWS.md).
+      - run: npm run preview:check
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
@@ -299,6 +307,9 @@ jobs:
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # The Escape menu in the real shell: a quad and a plane in en and es and
+      # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
+      - run: npm run pause:menus -- /tmp/pause-menus
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
       # The livery gallery against a local tracks server: list, like, sort,
@@ -309,6 +320,7 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
       - run: npm run stab:glide

@@ -5,6 +5,7 @@
  *
  *     node scripts/items-golden.js            compare
  *     node scripts/items-golden.js --record   write tests/fixtures/items-golden.json
+ *     node scripts/items-golden.js --dump es  print one language's rows as JSON
  *
  * The browser golden (scripts/ui-golden.js) walks the screens of seven
  * stored profiles, which is most of what these methods do, but it cannot
@@ -46,6 +47,11 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const FILE = join(root, 'tests', 'fixtures', 'items-golden.json');
 const RECORD = process.argv.includes('--record');
+/* --dump takes the language before any screen module loads, as the page
+ * does (src/boot.js): rows built from the table at load time, like
+ * MID_RUN_WARNING, are only in that language then. The record switches
+ * language after loading, so those stay English in its es half. */
+const DUMP = process.argv.includes('--dump') ? process.argv[process.argv.indexOf('--dump') + 1] : null;
 
 /* ---- the stand-in page ---- */
 
@@ -104,7 +110,7 @@ globalThis.window = {
   location: {
     href: 'https://example.test/?map=track',
     search: '',
-    hostname: 'example.test',
+    hostname: 'paraguayandronecombatsimulator.com',
     origin: 'https://example.test',
     reload: () => { calls.push('reload'); },
   },
@@ -122,6 +128,13 @@ Object.defineProperty(globalThis, 'navigator', {
 Object.defineProperty(globalThis, 'performance', { value: { now: () => 1000 }, configurable: true, writable: true });
 globalThis.fetch = async () => ({ ok: false, status: 503, text: async () => '' });
 
+if (DUMP) {
+  const { useLocale: take } = await import('../src/strings/index.js');
+  if (await take(DUMP) !== DUMP) {
+    console.error(`items-golden: no language ${DUMP}`);
+    process.exit(1);
+  }
+}
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS } = await import('../src/ui/settings.js');
 const { useLocale } = await import('../src/strings/index.js');
@@ -522,7 +535,13 @@ const SCENARIOS = [
   scenario('paused', { fields: { screen: 'paused', returnTo: 'paused' } }),
   scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow(), friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
+  scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
   scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'paused', returnTo: 'paused' } }),
+  /* The pause menu's Flight panel: a quad, a quad with the race rows, planes. */
+  scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow() } }),
+  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-as3x', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
   /* Results: a room's, freestyle, a free world, a track. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),
@@ -578,7 +597,7 @@ const SCENARIOS = [
 
 async function recordAll() {
   const out = {};
-  for (const locale of ['en', 'es']) {
+  for (const locale of DUMP ? [DUMP] : ['en', 'es']) {
     await useLocale(locale);
     out[locale] = {};
     for (const sc of SCENARIOS) {
@@ -589,6 +608,11 @@ async function recordAll() {
 }
 
 const got = await recordAll();
+if (DUMP) {
+  /* Exit only once a pipe has taken it all: exiting at once cuts it short. */
+  process.stdout.write(`${JSON.stringify(got[DUMP])}\n`, () => process.exit(0));
+  await new Promise(() => {});
+}
 const text = `${JSON.stringify(got, null, 1)}\n`;
 
 if (RECORD) {
