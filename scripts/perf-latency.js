@@ -31,7 +31,7 @@
  * main thread's side only (the compositor still runs at 60), and it is
  * how a 90 Hz number is taken here.
  *
- * --late=1 seedsthe low latency input setting (latencyMode: 'low'; without it 'standard', now that low is the default) before
+ * --late=1 seeds the low latency input setting (latencyMode: 'low'; without it 'standard', now that low is the default) before
  * boot, so the same script measures it.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
