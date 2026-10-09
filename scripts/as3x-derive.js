@@ -12,12 +12,14 @@
  * rad of surface) with a pure delay tau crosses over near w = k M, where
  * the delay's phase is k M tau; it oscillates at k M tau = pi / 2. Half
  * that, k = pi / (4 M tau). M is the plant's own at the top speed, level
- * at full throttle: one 4 ms step with a small stick against the same
- * step centred, over the surface's angle that stick gave. tau is the
- * servo frame AS3X writes at, 22 ms, Spektrum's default ("22ms is the
- * default setting", the AS3000 manual), the gyro's sample held a frame
- * before the servo sees it. The gain is at centre stick; plant_wing.c
- * takes it out as the stick moves, Spektrum's priority.
+ * at full throttle, the servos given time to get there. tau is the
+ * servo frame the gyro writes at, 11 ms, the one Spektrum allows with
+ * digital servos ("Only use 11ms and 5.5 ms with digital servos", the
+ * AS3000 manual), the rates' sample held a frame before the servo sees
+ * it. The gain is at centre stick; plant_wing.c takes it out as the
+ * stick moves, Spektrum's priority. The servos' own slew is not in the
+ * formula, so the plant's loop is also kicked at 35 m/s below and must
+ * settle.
  *
  * With --check it fails when a table differs from what it derives. Run
  * with npm run as3x:derive (dist/sim.wasm built first).
@@ -51,7 +53,7 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const src = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
 const check = process.argv.includes('--check');
 
-const TAU = 0.022;
+const TAU = 0.011;
 const MS = 4;
 /* The aircraft that ship with AS3X: their table and sim id. */
 const AS3X = {

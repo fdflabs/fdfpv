@@ -297,9 +297,10 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
 /* Gone at 40 percent stick: Spektrum's priority 160, "the gain goes to 0
  * at 40% stick input" (the AS3000 manual, p. 10). */
 #define AS3X_ZERO 0.4
-/* The receiver writes the servos once a frame: "22ms is the default
- * setting" (AS3000). */
-#define AS3X_FRAME 0.022
+/* The receiver writes the servos once a frame. Spektrum's frames are 22,
+ * 11 and 5.5 ms, "22ms is the default setting", "Only use 11ms and 5.5 ms
+ * with digital servos" (AS3000); the Extra's are digital, so 11. */
+#define AS3X_FRAME 0.011
 static double as3x_priority(double stick) {
   const double g = 1.0 - sim_fabs(stick) / AS3X_ZERO;
   return g > 0.0 ? g : 0.0;
@@ -1507,7 +1508,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /*
    * Mode 3, the gyro (scripts/as3x-derive.js): a heading lock gyro, the
    * electronics a 3D aircraft may carry (the owner, 2026-10-08: any real
-   * electronics). Once a 22 ms frame it reads the rates and writes each
+   * electronics). Once an 11 ms frame it reads the rates and writes each
    * surface's offset, held to the next: a damper on the body's rate, and
    * a heading term on the rotation beyond what the stick asks, its stick
    * times as3x_rate. A centred stick holds the attitude ("Aircraft will
@@ -4293,12 +4294,13 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
   .jet_kj = 0.80,
   .prop_x = 0.302,
-  /* A 23 g digital servo's class, 0.13 s per 60 deg, ESTIMATED: E-flite
-   * publishes no figure for the Extra's. */
-  .servo_rate = 8.0,
-  .as3x_k = { 0.0254, 0.1184, 0.1804 },
-  .as3x_kh = { 0.2267, 1.0567, 1.6101 },
-  .as3x_rate = { 6.406, -3.838, -5.194 },
+  /* E-flite publishes no speed for the Extra's 23 g digital servo
+   * (EFL11598); Hitec's D89MW, a 25 g digital servo of its class, is
+   * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
+  .servo_rate = 9.52,
+  .as3x_k = { 0.0509, 0.2368, 0.3609 },
+  .as3x_kh = { 0.9086, 4.2269, 6.442 },
+  .as3x_rate = { 6.406, -3.84, -5.199 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
