@@ -2679,7 +2679,7 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
   if (SIM_WIND_ON) {
     double wa[3];
     plant_wind(s->step_index, wa);
-    const double va[3] = { s->vel[0] - wa[0], s->vel[1] - wa[1], s->vel[2] };
+    const double va[3] = { s->vel[0] - wa[0], s->vel[1] - wa[1], s->vel[2] - wa[2] };
     quat_rotate_inv(s->quat, va, v_body);
   } else {
     quat_rotate_inv(s->quat, s->vel, v_body);

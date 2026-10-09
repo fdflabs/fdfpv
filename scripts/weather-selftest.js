@@ -34,7 +34,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
-import { makeWeather, PRESET_IDS, MAPS, WIND_MAX, GUST_MAX } from '../src/game/weather.js';
+import { makeWeather, PRESET_IDS, MAPS, WIND_MAX, GUST_MAX, UP_MAX } from '../src/game/weather.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -62,13 +62,14 @@ function samples(n) {
   return out;
 }
 function trace(w, pts) {
-  const o = { x: 0, z: 0, gust: 0 };
-  const f = new Float64Array(pts.length * 3);
+  const o = { x: 0, z: 0, gust: 0, up: 0 };
+  const f = new Float64Array(pts.length * 4);
   pts.forEach(([x, y, z, t], i) => {
     w.at(x, y, z, t, o);
-    f[3 * i] = o.x;
-    f[3 * i + 1] = o.z;
-    f[3 * i + 2] = o.gust;
+    f[4 * i] = o.x;
+    f[4 * i + 1] = o.z;
+    f[4 * i + 2] = o.gust;
+    f[4 * i + 3] = o.up;
   });
   return Buffer.from(f.buffer).toString('hex');
 }
@@ -103,13 +104,13 @@ for (const m of Object.keys(MAPS)) {
       w.at(((i * 7919) % 20000) - 10000, ((i * 13) % 3000) - 200, ((i * 104729) % 20000) - 10000, (i % 3600) + 0.001 * i, o);
       const v2 = o.x * o.x + o.z * o.z;
       worst = Math.max(worst, v2);
-      if (!(v2 <= 30 * 30) || !(o.gust > 0) || !(o.gust <= GUST_MAX) || !Number.isFinite(v2)) {
+      if (!(v2 <= 30 * 30) || !(o.gust > 0) || !(o.gust <= GUST_MAX) || !Number.isFinite(v2) || !(Math.abs(o.up) <= UP_MAX)) {
         bad += 1;
       }
     }
   }
 }
-check('every sample within 30 m/s and 0 < gust <= 10', bad === 0, `${bad} out, fastest ${Math.sqrt(worst).toFixed(2)} m/s, cap ${WIND_MAX}`);
+check('every sample within 30 m/s, 0 < gust <= 10 and |up| <= 10', bad === 0, `${bad} out, fastest ${Math.sqrt(worst).toFixed(2)} m/s, cap ${WIND_MAX}`);
 
 console.log('3. layers, zones, fronts');
 const speed = (w, x, y, z, t) => {
@@ -142,6 +143,51 @@ const river = speed(inr, 1098, 250, 210, 0);
 const plain = speed(inr, -4000, 300, 4000, 0);
 check('the Interior: Rio Sereno\'s lowland is calmer and rougher than the plain', river[0] < plain[0] && river[1] > plain[1],
   `river ${river[0].toFixed(2)} gust ${river[1].toFixed(2)}, plain ${plain[0].toFixed(2)} gust ${plain[1].toFixed(2)}`);
+console.log('3b. vertical air');
+{
+  const v = { x: 0, z: 0, gust: 0, up: 0 };
+  let rise = 0;
+  let sink = 0;
+  let riseAt = null;
+  const th = makeWeather('interior', 'breeze', 11);
+  for (let i = 0; i < 40000; i += 1) {
+    const x = ((i * 7919) % 8000) - 4000;
+    const z = ((i * 104729) % 8000) - 4000;
+    th.at(x, 240 + 300, z, 100, v);
+    if (v.up > rise) {
+      rise = v.up;
+      riseAt = [x, z];
+    }
+    sink = Math.min(sink, v.up);
+  }
+  check('breeze over the Interior has thermals 1.5 to 3 m/s and sink beside them', rise > 1.5 && rise <= 3 && sink < 0 && sink > -1,
+    `rise ${rise.toFixed(2)} at ${riseAt}, sink ${sink.toFixed(2)}`);
+  th.at(riseAt[0], 240 + 3, riseAt[1], 100, v);
+  const low = v.up;
+  th.at(riseAt[0], 240 + 1500, riseAt[1], 100, v);
+  check('a thermal forms off the ground and is gone above the cloud base', Math.abs(low) < 0.3 * rise && v.up === 0,
+    `${low.toFixed(2)} at 3 m, ${v.up} at 1500 m`);
+  const later = [];
+  for (let t = 100; t < 100 + 900; t += 60) {
+    th.at(riseAt[0], 540, riseAt[1], t, v);
+    later.push(v.up);
+  }
+  check('it drifts away or dies within its life', Math.min(...later) < 0.5 * rise, later.map((u) => u.toFixed(1)).join(' '));
+  const fr0 = makeWeather('interior', 'front', 11);
+  let most = 0;
+  for (let i = 0; i < 20000; i += 1) {
+    fr0.at(((i * 7919) % 8000) - 4000, 540, ((i * 104729) % 8000) - 4000, 100, v);
+    most = Math.max(most, Math.abs(v.up));
+  }
+  check('an overcast front has no thermals (and the Interior no ridge)', most === 0, `${most}`);
+  const dam = makeWeather('itaipu', 'breeze', 0);
+  dam.at(142, 240, -1760, 0, v);
+  const windward = v.up;
+  dam.at(142, 240, -1680, 0, v);
+  const lee = v.up;
+  check('the dam lifts the air on its windward side and lets it down in its lee', windward > 0.5 && lee < 0,
+    `windward ${windward.toFixed(2)}, lee ${lee.toFixed(2)} m/s`);
+}
 const fr = makeWeather('itaipu', 'front', 9);
 let lo = Infinity;
 let hi = 0;
@@ -164,6 +210,7 @@ async function fly(weather, steps, reuse = null) {
   must(sim.reset(), 'reset');
   /* Calm's one call: what makes the next check hold. */
   must(sim.e.sim_set_wind(0, 0, 0), 'still');
+  must(sim.e.sim_set_air_vertical(0), 'still up');
   must(sim.e.sim_set_pose(0, 0, 30 + MAPS.itaipu.base, 1, 0, 0, 0), 'pose');
   const a = { x: 0, z: 0, gust: 0 };
   let met = 0;
@@ -175,6 +222,7 @@ async function fly(weather, steps, reuse = null) {
       const s = sim.readState().state;
       weather.at(-s[2], s[3], -s[1], s[0], a);
       must(sim.e.sim_set_wind(-a.z, -a.x, a.gust), 'wind');
+      must(sim.e.sim_set_air_vertical(a.up), 'up');
       met = Math.max(met, a.x * a.x + a.z * a.z);
     }
     must(sim.step(1), 'step');

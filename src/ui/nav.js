@@ -58,7 +58,6 @@ const CRUMBS = {
   fc: ['ui.quad', 'ui.firmware_bench'],
   paused: ['ui.paused'],
   results: ['ui.run_complete'],
-  walk: ['hub.hangar', 'walk.card'],
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
@@ -314,6 +313,10 @@ function crumbTrail(ui) {
   if (hub) {
     return [str('ui.product_name'), str(hub.label)];
   }
+  /* A walkable hangar is under the hub it was opened from. */
+  if (ui.screen === 'walk' && ui.walk) {
+    return ui.walk.tier === 'field' ? [str('hub.ops'), str('walk.field')] : [str('hub.hangar'), str('walk.card')];
+  }
   return CRUMBS[ui.screen] || [SCREEN_TITLES[ui.screen] || ui.screen];
 }
 
@@ -345,6 +348,7 @@ export const navMethods = {
     } else if (this.screen === 'title') {
       this.renderTitleCards();
       this.renderTitleRooms();
+      this.renderTitleStats();
     }
     if (this.screens && this.screens.title) {
       /* onGate(), the one definition of "the gate is up", and never
@@ -653,6 +657,7 @@ export const navMethods = {
       const node = hint.action ? btn('legend-act', '') : el('i', null);
       node.append(...hint.keys.map((k) => el('span', kbd, k)), document.createTextNode(` ${hint.text}`));
       if (hint.action) {
+        node.dataset.action = hint.action;
         node.addEventListener('click', () => this.act(hint.action));
       }
       this.frameLegend.append(node);
@@ -700,8 +705,16 @@ export const navMethods = {
       return hints;
     }
     const pad = this.lastInput === 'pad';
+    if (this.screen === 'walk' && this.walk && this.walk.photo) {
+      return [
+        { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
+        { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
+        { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
+      ];
+    }
     if (this.screen === 'walk') {
       return [
+        { keys: ['P'], text: str('walk.photo'), action: 'walk-photo' },
         { keys: pad ? ['Pitch', 'Roll'] : ['W A S D'], text: str('walk.walk') },
         { keys: [pad ? 'A' : 'E'], text: str('walk.use') },
         { keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' },

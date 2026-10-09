@@ -2070,6 +2070,9 @@
         {
          "tag": "BUTTON",
          "cls": "legend-act",
+         "dataset": {
+          "action": "back"
+         },
          "type": "button",
          "children": [
           {
@@ -10003,6 +10006,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -10113,6 +10119,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -10224,6 +10233,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -12452,6 +12464,9 @@
         {
          "tag": "BUTTON",
          "cls": "legend-act",
+         "dataset": {
+          "action": "back"
+         },
          "type": "button",
          "children": [
           {
@@ -20385,6 +20400,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -20495,6 +20513,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {
@@ -20606,6 +20627,9 @@
        {
         "tag": "BUTTON",
         "cls": "legend-act",
+        "dataset": {
+         "action": "back"
+        },
         "type": "button",
         "children": [
          {

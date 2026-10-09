@@ -45,7 +45,7 @@ import { normalisePlane, normaliseParts } from '../../configs/hangar-parts.js';
 import { normalisePacks } from '../../configs/wear.js';
 import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
-import { normaliseLiveries, normaliseSaves } from '../../configs/liveries.js';
+import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
@@ -189,6 +189,8 @@ export const DEFAULTS = {
   tuneFor: {},
   livery: {},
   liverySaves: {},
+  /* The pilot's own colours (configs/liveries.js normaliseSwatches). */
+  swatches: { list: [] },
   rates: RATE_DEFAULTS,
   ratesSplitPitch: false,
   pids: {},
@@ -549,6 +551,7 @@ export function loadSettings() {
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(raw.progress, { existing: Object.keys(raw).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
+  s.swatches = normaliseSwatches(s.swatches);
   s.campaign = cleanCampaign(s.campaign);
   s.flightTime = cleanFlightTime(s.flightTime);
 

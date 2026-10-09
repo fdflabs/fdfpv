@@ -58,10 +58,11 @@ function furthest(group, dir) {
 
 /*
  * Nav lights and strobes on a built plane, by lights { nav, strobe }.
- * Sets craft.group.userData.setLights(tMs) when there are strobes. The bulbs are sized
- * by the span so a glider's read as a Cub's do.
+ * Sets craft.group.userData.setLights(tMs) when there are strobes. The
+ * bulbs are sized by the span so a glider's read as a Cub's do. `fog` as
+ * the craft was built: a far light fades with its plane.
  */
-export function addNavLights(craft, lights) {
+export function addNavLights(craft, lights, fog = true) {
   if (!craft || !lights || !(lights.nav || lights.strobe)) {
     return craft;
   }
@@ -72,7 +73,7 @@ export function addNavLights(craft, lights) {
   const r = Math.max(0.004, (right.x - left.x) * 0.008);
   const bulb = new THREE.SphereGeometry(r, 8, 6);
   const add = (hex, at, name) => {
-    const mesh = new THREE.Mesh(bulb, new THREE.MeshBasicMaterial({ color: hex, fog: false }));
+    const mesh = new THREE.Mesh(bulb, new THREE.MeshBasicMaterial({ color: hex, fog }));
     mesh.name = name;
     mesh.position.copy(at);
     group.add(mesh);
