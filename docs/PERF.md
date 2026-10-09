@@ -662,8 +662,11 @@ already in the tree: the pad is polled on its own 2 ms timer and every reading s
 (src/input/input.js startPolling); readings are applied on the sim clock at the moment they were taken
 (main.js stampSticks); the deadband is a 1.2 % hard cut with no smoothing (src/input/padmap.js), so the
 shell's input adds no filter lag. Stepping the plant from a timer between frames would make the
-stick to plant number smaller without showing the pilot anything sooner. The remaining tail is GPU
-contention, a render cost, measured above. Headless has no compositor or vsync; on a 60 Hz desktop
+stick to plant number smaller without showing the pilot anything sooner. The remaining tail is not in
+the shell's JS or the draw's CPU side. This method cannot tell the GPU busy with other processes from
+the GPU busy with this page's own work (a shader compile, an upload), since both show as idle before
+the next callback; with 95 % of GPU 0 taken by other processes, contention is the likely one, and an
+uncontended run would settle it. Headless has no compositor or vsync; on a 60 Hz desktop
 add one to two frames to the submit column, the same for any input path.
 
 ## P7, feel: the other pilots in a room
