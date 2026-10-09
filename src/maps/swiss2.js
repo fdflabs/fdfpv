@@ -77,7 +77,7 @@ import {
   natureSites, buildShore, buildReeds, buildDrifts,
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
-import { standWalls } from './alps/roofs.js';
+import { standWalls } from '../render/library/roofs.js';
 import { PAINT } from './alps/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
@@ -382,7 +382,7 @@ function photoStyle() {
        * them on the way in changes nothing else. */
       const addBox = colliders.addBox.bind(colliders);
       /* A roofed building notes its whole footprint once and then puts
-       * up the walls under its roofs with `noted` set (alps/roofs.js
+       * up the walls under its roofs with `noted` set (library/roofs.js
        * standWalls), so the footprints are the ones they always were. */
       colliders.noteFootprint = (x0, z0, x1, z1) => {
         stage.footprints.push({ minX: Math.min(x0, x1), minZ: Math.min(z0, z1), maxX: Math.max(x0, x1), maxZ: Math.max(z0, z1) });

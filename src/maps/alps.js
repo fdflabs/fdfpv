@@ -68,7 +68,7 @@ import {
 } from './alps/terrain.js';
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
-import { makeRoofs } from './alps/roofs.js';
+import { makeRoofs } from '../render/library/roofs.js';
 import { buildLife } from './alps/life.js';
 import { CEL_LOOK } from './alps/look.js';
 
@@ -234,7 +234,7 @@ export async function buildValley(shell, progress, q, style) {
   colliders.build();
   /* Every roof the valley has, the village's, the farm's, the gondola's,
    * a style's own and nature's (the jetty's deck), as ground a craft can
-   * land on (alps/roofs.js). */
+   * land on (library/roofs.js). */
   const roofs = makeRoofs([...village.roofs, ...(nature.roofs ?? [])]);
   progress(0.9, 'shaders');
   await yieldToPaint();
@@ -340,7 +340,7 @@ export async function buildValley(shell, progress, q, style) {
      * surface: a wing that lands on the water rests on it rather than in
      * the basin. And the roofs: the highest within a step of fromY, the
      * city's rule, so a craft over a roof lands on it and one under the
-     * eaves does not (alps/roofs.js). */
+     * eaves does not (library/roofs.js). */
     height: (x, z, fromY) => roofs.height(x, z, fromY, ground(x, z)),
     /* The shell's obstacle pass, every pass: while a roof is the craft's
      * ground, the walls under it let the sweep through (roofs.js). */
