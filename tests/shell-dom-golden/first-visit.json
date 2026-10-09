@@ -948,7 +948,7 @@
         ],
         "on": [
          [
-          31,
+          36,
           "click"
          ]
         ]
@@ -994,7 +994,7 @@
         ],
         "on": [
          [
-          30,
+          35,
           "click"
          ]
         ],
@@ -1288,6 +1288,15 @@
            ]
           ]
          }
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "gate-stats"
+         ]
         ]
        },
        {
@@ -5195,6 +5204,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot screen-controls"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Controls"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-fc"
      ],
      [
@@ -6241,6 +6364,106 @@
     "attrs": [
      [
       "class",
+      "screen screen-modal"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Flight"
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Back to the pause menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-results"
      ],
      [
@@ -6449,6 +6672,75 @@
     "tag": "div",
     "attrs": [
      [
+      "class",
+      "screen screen-walk"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "on": [
+     [
+      26,
+      "pointerdown"
+     ],
+     [
+      27,
+      "pointermove"
+     ],
+     [
+      28,
+      "wheel"
+     ],
+     [
+      29,
+      "pointerup"
+     ],
+     [
+      30,
+      "pointercancel"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "walk-prompt"
+       ],
+       [
+        "hidden",
+        ""
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "kbd",
+        "kids": [
+         {
+          "t": "E"
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "walk-prompt-label"
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
       "aria-atomic",
       "true"
      ],
@@ -6497,7 +6789,7 @@
     ],
     "on": [
      [
-      26,
+      31,
       "click"
      ]
     ],
@@ -6529,7 +6821,7 @@
     ],
     "on": [
      [
-      27,
+      32,
       "click"
      ]
     ],
@@ -6561,7 +6853,7 @@
     ],
     "on": [
      [
-      28,
+      33,
       "click"
      ]
     ],
@@ -6597,7 +6889,7 @@
     ],
     "on": [
      [
-      29,
+      34,
       "click"
      ]
     ]
@@ -6658,11 +6950,11 @@
       ],
       "on": [
        [
-        32,
+        37,
         "mousedown"
        ],
        [
-        36,
+        41,
         "click"
        ]
       ],
@@ -6698,11 +6990,11 @@
       ],
       "on": [
        [
-        34,
+        39,
         "mousedown"
        ],
        [
-        35,
+        40,
         "click"
        ]
       ]
@@ -6729,11 +7021,11 @@
       ],
       "on": [
        [
-        33,
+        38,
         "mousedown"
        ],
        [
-        37,
+        42,
         "click"
        ]
       ],
@@ -6788,11 +7080,11 @@
     ],
     "on": [
      [
-      55,
+      60,
       "click"
      ],
      [
-      56,
+      61,
       "keydown"
      ]
     ],
@@ -6855,7 +7147,7 @@
             ],
             "on": [
              [
-              38,
+              43,
               "click"
              ]
             ],
@@ -6883,7 +7175,7 @@
             ],
             "on": [
              [
-              39,
+              44,
               "click"
              ]
             ],
@@ -6911,7 +7203,7 @@
             ],
             "on": [
              [
-              40,
+              45,
               "click"
              ]
             ],
@@ -6939,7 +7231,7 @@
             ],
             "on": [
              [
-              41,
+              46,
               "click"
              ]
             ],
@@ -6967,23 +7259,23 @@
         ],
         "on": [
          [
-          44,
+          49,
           "pointerdown"
          ],
          [
-          45,
+          50,
           "pointermove"
          ],
          [
-          46,
+          51,
           "pointerup"
          ],
          [
-          47,
+          52,
           "pointercancel"
          ],
          [
-          48,
+          53,
           "wheel"
          ]
         ],
@@ -7006,7 +7298,7 @@
           ],
           "on": [
            [
-            42,
+            47,
             "click"
            ]
           ],
@@ -7034,7 +7326,7 @@
           ],
           "on": [
            [
-            43,
+            48,
             "click"
            ]
           ],
@@ -7130,7 +7422,7 @@
             ],
             "on": [
              [
-              49,
+              54,
               "click"
              ]
             ],
@@ -7169,7 +7461,7 @@
             ],
             "on": [
              [
-              50,
+              55,
               "click"
              ]
             ],
@@ -7197,7 +7489,7 @@
             ],
             "on": [
              [
-              51,
+              56,
               "click"
              ]
             ],
@@ -7270,7 +7562,7 @@
             ],
             "on": [
              [
-              52,
+              57,
               "click"
              ]
             ],
@@ -7294,7 +7586,7 @@
             ],
             "on": [
              [
-              54,
+              59,
               "click"
              ]
             ],
@@ -7318,7 +7610,7 @@
             ],
             "on": [
              [
-              53,
+              58,
               "click"
              ]
             ],
@@ -7367,11 +7659,11 @@
     ],
     "on": [
      [
-      77,
+      105,
       "click"
      ],
      [
-      78,
+      106,
       "keydown"
      ]
     ],
@@ -7386,7 +7678,7 @@
       ],
       "on": [
        [
-        76,
+        100,
         "focusin"
        ]
       ],
@@ -7468,24 +7760,28 @@
           ],
           "on": [
            [
-            63,
+            70,
             "pointerdown"
            ],
            [
-            64,
+            71,
             "wheel"
            ],
            [
-            65,
+            72,
             "pointermove"
            ],
            [
-            66,
+            73,
             "pointerup"
            ],
            [
-            67,
+            74,
             "pointercancel"
+           ],
+           [
+            75,
+            "pointerleave"
            ]
           ],
           "kids": [
@@ -7520,11 +7816,11 @@
             ],
             "on": [
              [
-              68,
+              76,
               "pointerdown"
              ],
              [
-              69,
+              77,
               "click"
              ]
             ],
@@ -7539,12 +7835,430 @@
             "attrs": [
              [
               "class",
+              "hangar-views"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-top"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                78,
+                "pointerdown"
+               ],
+               [
+                79,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Top"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-bottom"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                80,
+                "pointerdown"
+               ],
+               [
+                81,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Bottom"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-left"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                82,
+                "pointerdown"
+               ],
+               [
+                83,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Left"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-right"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                84,
+                "pointerdown"
+               ],
+               [
+                85,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Right"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-front"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                86,
+                "pointerdown"
+               ],
+               [
+                87,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Front"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-rear"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                88,
+                "pointerdown"
+               ],
+               [
+                89,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Rear"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "hangar-hover-label"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "aria-pressed",
+              "false"
+             ],
+             [
+              "class",
+              "hangar-flip hangar-stock"
+             ],
+             [
+              "data-key",
+              "ab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              90,
+              "pointerdown"
+             ],
+             [
+              91,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Stock"
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
               "paint-reticle"
              ],
              [
               "hidden",
               ""
              ]
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "paint-gizmo"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ],
+            "on": [
+             [
+              101,
+              "pointerdown"
+             ],
+             [
+              102,
+              "pointermove"
+             ],
+             [
+              103,
+              "pointerup"
+             ],
+             [
+              104,
+              "pointercancel"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "svg",
+              "kids": [
+               {
+                "tag": "polygon",
+                "attrs": [
+                 [
+                  "class",
+                  "paint-gizmo-body"
+                 ],
+                 [
+                  "data-key",
+                  "gizmo-move"
+                 ]
+                ]
+               }
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-0"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-1"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-2"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-3"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-stretch"
+               ],
+               [
+                "data-key",
+                "gizmo-stretch"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-turn"
+               ],
+               [
+                "data-key",
+                "gizmo-turn"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-skew"
+               ],
+               [
+                "data-key",
+                "gizmo-skew"
+               ]
+              ]
+             }
             ]
            }
           ]
@@ -7593,7 +8307,7 @@
             ],
             "on": [
              [
-              57,
+              62,
               "click"
              ]
             ],
@@ -7625,7 +8339,7 @@
             ],
             "on": [
              [
-              58,
+              63,
               "click"
              ]
             ],
@@ -7657,7 +8371,7 @@
             ],
             "on": [
              [
-              59,
+              64,
               "click"
              ]
             ],
@@ -7689,13 +8403,45 @@
             ],
             "on": [
              [
-              60,
+              65,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Parts"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-shop"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              66,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Shop"
              }
             ]
            },
@@ -7721,13 +8467,45 @@
             ],
             "on": [
              [
-              61,
+              67,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Loadout"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-kit"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              68,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Kit"
              }
             ]
            },
@@ -7753,7 +8531,7 @@
             ],
             "on": [
              [
-              62,
+              69,
               "click"
              ]
             ],
@@ -7775,7 +8553,7 @@
           ],
           "on": [
            [
-            70,
+            92,
             "pointerleave"
            ]
           ]
@@ -7810,30 +8588,105 @@
           ],
           "kids": [
            {
-            "tag": "button",
+            "tag": "div",
             "attrs": [
              [
               "class",
-              "hangar-reset"
-             ],
-             [
-              "data-key",
-              "reset"
-             ],
-             [
-              "type",
-              "button"
-             ]
-            ],
-            "on": [
-             [
-              71,
-              "click"
+              "hangar-buttons-left"
              ]
             ],
             "kids": [
              {
-              "t": "Reset to stock"
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset"
+               ],
+               [
+                "data-key",
+                "reset"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                93,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Reset to stock"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "undo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                94,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Undo"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "redo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                95,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Redo"
+               }
+              ]
              }
             ]
            },
@@ -7864,7 +8717,7 @@
               ],
               "on": [
                [
-                74,
+                98,
                 "click"
                ]
               ],
@@ -7892,7 +8745,7 @@
               ],
               "on": [
                [
-                72,
+                96,
                 "click"
                ]
               ],
@@ -7920,7 +8773,7 @@
               ],
               "on": [
                [
-                73,
+                97,
                 "click"
                ]
               ],
@@ -7977,7 +8830,7 @@
         "value": "#000000",
         "on": [
          [
-          75,
+          99,
           "input"
          ]
         ]
@@ -8954,7 +9807,7 @@
         ],
         "on": [
          [
-          31,
+          36,
           "click"
          ]
         ]
@@ -9000,7 +9853,7 @@
         ],
         "on": [
          [
-          30,
+          35,
           "click"
          ]
         ],
@@ -9294,6 +10147,15 @@
            ]
           ]
          }
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "gate-stats"
+         ]
         ]
        },
        {
@@ -13201,6 +14063,120 @@
     "attrs": [
      [
       "class",
+      "screen screen-page screen-pilot screen-controls"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Controls"
+       }
+      ]
+     },
+     {
+      "tag": "p",
+      "attrs": [
+       [
+        "class",
+        "rates-lede"
+       ]
+      ],
+      "kids": [
+       {
+        "t": "Choose the key for each flight action. Press a row, then the key; Escape cancels, Backspace puts the default back."
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu menu-scroll"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Goes back. Changes are already stored. Arrow keys still move the menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-page screen-fc"
      ],
      [
@@ -14247,6 +15223,106 @@
     "attrs": [
      [
       "class",
+      "screen screen-modal"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "h2",
+      "kids": [
+       {
+        "t": "Flight"
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "menu-stage"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu"
+         ],
+         [
+          "role",
+          "listbox"
+         ]
+        ]
+       },
+       {
+        "tag": "div",
+        "attrs": [
+         [
+          "class",
+          "menu-help"
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "hint"
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-keys"
+         ]
+        ],
+        "kids": [
+         {
+          "tag": "kbd",
+          "kids": [
+           {
+            "t": "Esc"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "hint-copy"
+         ]
+        ],
+        "kids": [
+         {
+          "t": "Back to the pause menu."
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
+      "class",
       "screen screen-results"
      ],
      [
@@ -14455,6 +15531,75 @@
     "tag": "div",
     "attrs": [
      [
+      "class",
+      "screen screen-walk"
+     ],
+     [
+      "style",
+      "display: none;"
+     ]
+    ],
+    "on": [
+     [
+      26,
+      "pointerdown"
+     ],
+     [
+      27,
+      "pointermove"
+     ],
+     [
+      28,
+      "wheel"
+     ],
+     [
+      29,
+      "pointerup"
+     ],
+     [
+      30,
+      "pointercancel"
+     ]
+    ],
+    "kids": [
+     {
+      "tag": "div",
+      "attrs": [
+       [
+        "class",
+        "walk-prompt"
+       ],
+       [
+        "hidden",
+        ""
+       ]
+      ],
+      "kids": [
+       {
+        "tag": "kbd",
+        "kids": [
+         {
+          "t": "E"
+         }
+        ]
+       },
+       {
+        "tag": "span",
+        "attrs": [
+         [
+          "class",
+          "walk-prompt-label"
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "div",
+    "attrs": [
+     [
       "aria-atomic",
       "true"
      ],
@@ -14503,7 +15648,7 @@
     ],
     "on": [
      [
-      26,
+      31,
       "click"
      ]
     ],
@@ -14535,7 +15680,7 @@
     ],
     "on": [
      [
-      27,
+      32,
       "click"
      ]
     ],
@@ -14567,7 +15712,7 @@
     ],
     "on": [
      [
-      28,
+      33,
       "click"
      ]
     ],
@@ -14603,7 +15748,7 @@
     ],
     "on": [
      [
-      29,
+      34,
       "click"
      ]
     ]
@@ -14664,11 +15809,11 @@
       ],
       "on": [
        [
-        32,
+        37,
         "mousedown"
        ],
        [
-        36,
+        41,
         "click"
        ]
       ],
@@ -14704,11 +15849,11 @@
       ],
       "on": [
        [
-        34,
+        39,
         "mousedown"
        ],
        [
-        35,
+        40,
         "click"
        ]
       ]
@@ -14735,11 +15880,11 @@
       ],
       "on": [
        [
-        33,
+        38,
         "mousedown"
        ],
        [
-        37,
+        42,
         "click"
        ]
       ],
@@ -14794,11 +15939,11 @@
     ],
     "on": [
      [
-      55,
+      60,
       "click"
      ],
      [
-      56,
+      61,
       "keydown"
      ]
     ],
@@ -14861,7 +16006,7 @@
             ],
             "on": [
              [
-              38,
+              43,
               "click"
              ]
             ],
@@ -14889,7 +16034,7 @@
             ],
             "on": [
              [
-              39,
+              44,
               "click"
              ]
             ],
@@ -14917,7 +16062,7 @@
             ],
             "on": [
              [
-              40,
+              45,
               "click"
              ]
             ],
@@ -14945,7 +16090,7 @@
             ],
             "on": [
              [
-              41,
+              46,
               "click"
              ]
             ],
@@ -14973,23 +16118,23 @@
         ],
         "on": [
          [
-          44,
+          49,
           "pointerdown"
          ],
          [
-          45,
+          50,
           "pointermove"
          ],
          [
-          46,
+          51,
           "pointerup"
          ],
          [
-          47,
+          52,
           "pointercancel"
          ],
          [
-          48,
+          53,
           "wheel"
          ]
         ],
@@ -15012,7 +16157,7 @@
           ],
           "on": [
            [
-            42,
+            47,
             "click"
            ]
           ],
@@ -15040,7 +16185,7 @@
           ],
           "on": [
            [
-            43,
+            48,
             "click"
            ]
           ],
@@ -15136,7 +16281,7 @@
             ],
             "on": [
              [
-              49,
+              54,
               "click"
              ]
             ],
@@ -15175,7 +16320,7 @@
             ],
             "on": [
              [
-              50,
+              55,
               "click"
              ]
             ],
@@ -15203,7 +16348,7 @@
             ],
             "on": [
              [
-              51,
+              56,
               "click"
              ]
             ],
@@ -15276,7 +16421,7 @@
             ],
             "on": [
              [
-              52,
+              57,
               "click"
              ]
             ],
@@ -15300,7 +16445,7 @@
             ],
             "on": [
              [
-              54,
+              59,
               "click"
              ]
             ],
@@ -15324,7 +16469,7 @@
             ],
             "on": [
              [
-              53,
+              58,
               "click"
              ]
             ],
@@ -15373,11 +16518,11 @@
     ],
     "on": [
      [
-      77,
+      105,
       "click"
      ],
      [
-      78,
+      106,
       "keydown"
      ]
     ],
@@ -15392,7 +16537,7 @@
       ],
       "on": [
        [
-        76,
+        100,
         "focusin"
        ]
       ],
@@ -15474,24 +16619,28 @@
           ],
           "on": [
            [
-            63,
+            70,
             "pointerdown"
            ],
            [
-            64,
+            71,
             "wheel"
            ],
            [
-            65,
+            72,
             "pointermove"
            ],
            [
-            66,
+            73,
             "pointerup"
            ],
            [
-            67,
+            74,
             "pointercancel"
+           ],
+           [
+            75,
+            "pointerleave"
            ]
           ],
           "kids": [
@@ -15526,11 +16675,11 @@
             ],
             "on": [
              [
-              68,
+              76,
               "pointerdown"
              ],
              [
-              69,
+              77,
               "click"
              ]
             ],
@@ -15545,12 +16694,430 @@
             "attrs": [
              [
               "class",
+              "hangar-views"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-top"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                78,
+                "pointerdown"
+               ],
+               [
+                79,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Top"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-bottom"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                80,
+                "pointerdown"
+               ],
+               [
+                81,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Bottom"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-left"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                82,
+                "pointerdown"
+               ],
+               [
+                83,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Left"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-right"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                84,
+                "pointerdown"
+               ],
+               [
+                85,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Right"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-front"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                86,
+                "pointerdown"
+               ],
+               [
+                87,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Front"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "aria-pressed",
+                "false"
+               ],
+               [
+                "class",
+                "hangar-view"
+               ],
+               [
+                "data-key",
+                "view-rear"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                88,
+                "pointerdown"
+               ],
+               [
+                89,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Rear"
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "hangar-hover-label"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "aria-pressed",
+              "false"
+             ],
+             [
+              "class",
+              "hangar-flip hangar-stock"
+             ],
+             [
+              "data-key",
+              "ab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              90,
+              "pointerdown"
+             ],
+             [
+              91,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Stock"
+             }
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
               "paint-reticle"
              ],
              [
               "hidden",
               ""
              ]
+            ]
+           },
+           {
+            "tag": "div",
+            "attrs": [
+             [
+              "class",
+              "paint-gizmo"
+             ],
+             [
+              "hidden",
+              ""
+             ]
+            ],
+            "on": [
+             [
+              101,
+              "pointerdown"
+             ],
+             [
+              102,
+              "pointermove"
+             ],
+             [
+              103,
+              "pointerup"
+             ],
+             [
+              104,
+              "pointercancel"
+             ]
+            ],
+            "kids": [
+             {
+              "tag": "svg",
+              "kids": [
+               {
+                "tag": "polygon",
+                "attrs": [
+                 [
+                  "class",
+                  "paint-gizmo-body"
+                 ],
+                 [
+                  "data-key",
+                  "gizmo-move"
+                 ]
+                ]
+               }
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-0"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-1"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-2"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-scale"
+               ],
+               [
+                "data-key",
+                "gizmo-scale-3"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-stretch"
+               ],
+               [
+                "data-key",
+                "gizmo-stretch"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-turn"
+               ],
+               [
+                "data-key",
+                "gizmo-turn"
+               ]
+              ]
+             },
+             {
+              "tag": "div",
+              "attrs": [
+               [
+                "class",
+                "paint-gizmo-handle paint-gizmo-skew"
+               ],
+               [
+                "data-key",
+                "gizmo-skew"
+               ]
+              ]
+             }
             ]
            }
           ]
@@ -15599,7 +17166,7 @@
             ],
             "on": [
              [
-              57,
+              62,
               "click"
              ]
             ],
@@ -15631,7 +17198,7 @@
             ],
             "on": [
              [
-              58,
+              63,
               "click"
              ]
             ],
@@ -15663,7 +17230,7 @@
             ],
             "on": [
              [
-              59,
+              64,
               "click"
              ]
             ],
@@ -15695,13 +17262,45 @@
             ],
             "on": [
              [
-              60,
+              65,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Parts"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-shop"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              66,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Shop"
              }
             ]
            },
@@ -15727,13 +17326,45 @@
             ],
             "on": [
              [
-              61,
+              67,
               "click"
              ]
             ],
             "kids": [
              {
               "t": "Loadout"
+             }
+            ]
+           },
+           {
+            "tag": "button",
+            "attrs": [
+             [
+              "class",
+              "carousel-tab hangar-tab-btn"
+             ],
+             [
+              "data-key",
+              "tab-kit"
+             ],
+             [
+              "role",
+              "tab"
+             ],
+             [
+              "type",
+              "button"
+             ]
+            ],
+            "on": [
+             [
+              68,
+              "click"
+             ]
+            ],
+            "kids": [
+             {
+              "t": "Kit"
              }
             ]
            },
@@ -15759,7 +17390,7 @@
             ],
             "on": [
              [
-              62,
+              69,
               "click"
              ]
             ],
@@ -15781,7 +17412,7 @@
           ],
           "on": [
            [
-            70,
+            92,
             "pointerleave"
            ]
           ]
@@ -15816,30 +17447,105 @@
           ],
           "kids": [
            {
-            "tag": "button",
+            "tag": "div",
             "attrs": [
              [
               "class",
-              "hangar-reset"
-             ],
-             [
-              "data-key",
-              "reset"
-             ],
-             [
-              "type",
-              "button"
-             ]
-            ],
-            "on": [
-             [
-              71,
-              "click"
+              "hangar-buttons-left"
              ]
             ],
             "kids": [
              {
-              "t": "Reset to stock"
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset"
+               ],
+               [
+                "data-key",
+                "reset"
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                93,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Reset to stock"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "undo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                94,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Undo"
+               }
+              ]
+             },
+             {
+              "tag": "button",
+              "attrs": [
+               [
+                "class",
+                "hangar-reset hangar-undo"
+               ],
+               [
+                "data-key",
+                "redo"
+               ],
+               [
+                "disabled",
+                ""
+               ],
+               [
+                "type",
+                "button"
+               ]
+              ],
+              "on": [
+               [
+                95,
+                "click"
+               ]
+              ],
+              "kids": [
+               {
+                "t": "Redo"
+               }
+              ]
              }
             ]
            },
@@ -15870,7 +17576,7 @@
               ],
               "on": [
                [
-                74,
+                98,
                 "click"
                ]
               ],
@@ -15898,7 +17604,7 @@
               ],
               "on": [
                [
-                72,
+                96,
                 "click"
                ]
               ],
@@ -15926,7 +17632,7 @@
               ],
               "on": [
                [
-                73,
+                97,
                 "click"
                ]
               ],
@@ -15983,7 +17689,7 @@
         "value": "#000000",
         "on": [
          [
-          75,
+          99,
           "input"
          ]
         ]
@@ -16009,10 +17715,10 @@
  },
  "fields": {
   "announcer": {
-   "node": "#ui.24"
+   "node": "#ui.27"
   },
   "banner": {
-   "node": "#ui.25"
+   "node": "#ui.28"
   },
   "barStopCount": 0,
   "boardNote": {
@@ -16022,59 +17728,59 @@
    "node": "#ui.4.0.0.0.1"
   },
   "bugChip": {
-   "node": "#ui.26"
+   "node": "#ui.29"
   },
   "calAxes": {
-   "node": "#ui.20.5"
+   "node": "#ui.21.5"
   },
   "calAxisCells": [],
   "calCanSave": false,
   "calCanSkip": false,
   "calCancelBtn": {
-   "node": "#ui.20.7.0"
+   "node": "#ui.21.7.0"
   },
   "calHint": {
-   "node": "#ui.20.3"
+   "node": "#ui.21.3"
   },
   "calKicker": {
-   "node": "#ui.20.1"
+   "node": "#ui.21.1"
   },
   "calList": {
-   "node": "#ui.20.6"
+   "node": "#ui.21.6"
   },
   "calModeBtn": {
-   "node": "#ui.20.7.4"
+   "node": "#ui.21.7.4"
   },
   "calPrompt": {
-   "node": "#ui.20.2"
+   "node": "#ui.21.2"
   },
   "calRevBtn": {
-   "node": "#ui.20.7.3"
+   "node": "#ui.21.7.3"
   },
   "calSaveBtn": {
-   "node": "#ui.20.7.5"
+   "node": "#ui.21.7.5"
   },
   "calSkipBtn": {
-   "node": "#ui.20.7.1"
+   "node": "#ui.21.7.1"
   },
   "calStickLeft": {
    "keys": [
     [
      "box",
      {
-      "node": "#ui.20.4.0"
+      "node": "#ui.21.4.0"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.20.4.0.0.2"
+      "node": "#ui.21.4.0.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.20.4.0.1"
+      "node": "#ui.21.4.0.1"
      }
     ]
    ]
@@ -16084,30 +17790,36 @@
     [
      "box",
      {
-      "node": "#ui.20.4.1"
+      "node": "#ui.21.4.1"
      }
     ],
     [
      "nub",
      {
-      "node": "#ui.20.4.1.0.2"
+      "node": "#ui.21.4.1.0.2"
      }
     ],
     [
      "cap",
      {
-      "node": "#ui.20.4.1.1"
+      "node": "#ui.21.4.1.1"
      }
     ]
    ]
   },
   "calZeroBtn": {
-   "node": "#ui.20.7.2"
+   "node": "#ui.21.7.2"
   },
   "carousel": {
    "instance": "Carousel"
   },
   "checkVersion": "function",
+  "controlsHelp": {
+   "node": "#ui.19.2.1"
+  },
+  "controlsMenu": {
+   "node": "#ui.19.2.0"
+  },
   "courseCardHost": {
    "node": "#ui.8.2.1"
   },
@@ -16145,34 +17857,34 @@
    "node": "#ui.2.0"
   },
   "fcAttitude": {
-   "node": "#ui.19.2.1.2"
+   "node": "#ui.20.2.1.2"
   },
   "fcDirty": {
-   "node": "#ui.19.0.0.3"
+   "node": "#ui.20.0.0.3"
   },
   "fcExit": {
-   "node": "#ui.19.1"
+   "node": "#ui.20.1"
   },
   "fcExitCopy": {
-   "node": "#ui.19.1.2.1"
+   "node": "#ui.20.1.2.1"
   },
   "fcHelp": {
-   "node": "#ui.19.2.1.1.1"
+   "node": "#ui.20.2.1.1.1"
   },
   "fcLeave": {
-   "node": "#ui.19.1.1"
+   "node": "#ui.20.1.1"
   },
   "fcMenu": {
-   "node": "#ui.19.2.1.1.0"
+   "node": "#ui.20.2.1.1.0"
   },
   "fcPages": {
-   "node": "#ui.19.2.1.0"
+   "node": "#ui.20.2.1.0"
   },
   "fcSaveExit": {
-   "node": "#ui.19.1.0"
+   "node": "#ui.20.1.0"
   },
   "fcTabs": {
-   "node": "#ui.19.2.0"
+   "node": "#ui.20.2.0"
   },
   "firstNote": {
    "node": "#ui.4.0.0.0.5"
@@ -16211,10 +17923,13 @@
    "node": "#ui.12.3.0"
   },
   "gateCards": {
-   "node": "#ui.4.0.1"
+   "node": "#ui.4.0.2"
   },
   "gateRooms": {
    "node": "#ui.4.0.0.1"
+  },
+  "gateStats": {
+   "node": "#ui.4.0.1"
   },
   "hangar": {
    "instance": "Hangar"
@@ -16346,19 +18061,19 @@
    "node": "detached div.map-cards"
   },
   "musicDock": {
-   "node": "#ui.31"
+   "node": "#ui.34"
   },
   "musicNext": {
-   "node": "#ui.31.2"
+   "node": "#ui.34.2"
   },
   "musicPrev": {
-   "node": "#ui.31.0"
+   "node": "#ui.34.0"
   },
   "musicTitle": {
-   "node": "#ui.31.1"
+   "node": "#ui.34.1"
   },
   "nameDialog": {
-   "node": "#ui.32"
+   "node": "#ui.35"
   },
   "osd": {
    "node": "#ui.0"
@@ -16499,10 +18214,10 @@
    "map": []
   },
   "padCards": {
-   "node": "#ui.21.4"
+   "node": "#ui.22.4"
   },
   "padHint": {
-   "node": "#ui.21.3"
+   "node": "#ui.22.3"
   },
   "padInfo": {
    "keys": [
@@ -16517,30 +18232,30 @@
    ]
   },
   "padKicker": {
-   "node": "#ui.21.1"
+   "node": "#ui.22.1"
   },
   "padNoBtn": {
-   "node": "#ui.21.5.1"
+   "node": "#ui.22.5.1"
   },
   "padPickPhase": "wiggle",
   "padPickReason": "boot",
   "padPrompt": {
-   "node": "#ui.21.2"
+   "node": "#ui.22.2"
   },
   "padSkipBtn": {
-   "node": "#ui.21.5.2"
+   "node": "#ui.22.5.2"
   },
   "padYesBtn": {
-   "node": "#ui.21.5.0"
+   "node": "#ui.22.5.0"
   },
   "pauseChip": {
-   "node": "#ui.27"
+   "node": "#ui.30"
   },
   "pausedHelp": {
-   "node": "#ui.22.1.1"
+   "node": "#ui.23.1.1"
   },
   "pausedMenu": {
-   "node": "#ui.22.1.0"
+   "node": "#ui.23.1.0"
   },
   "pidsHelp": {
    "node": "#ui.18.2.2"
@@ -16580,6 +18295,12 @@
   "quadMenu": {
    "node": "#ui.10.2.1"
   },
+  "quickHelp": {
+   "node": "#ui.24.1.1"
+  },
+  "quickMenu": {
+   "node": "#ui.24.1.0"
+  },
   "ratesHelp": {
    "node": "#ui.17.2.2"
   },
@@ -16608,34 +18329,34 @@
    ]
   },
   "resultsBody": {
-   "node": "#ui.23.0.0.3"
+   "node": "#ui.25.0.0.3"
   },
   "resultsHead": {
-   "node": "#ui.23.0.0.1"
+   "node": "#ui.25.0.0.1"
   },
   "resultsHelp": {
-   "node": "#ui.23.0.1.0.1"
+   "node": "#ui.25.0.1.0.1"
   },
   "resultsHero": {
-   "node": "#ui.23.0.0.2"
+   "node": "#ui.25.0.0.2"
   },
   "resultsHeroCap": {
-   "node": "#ui.23.0.0.2.0"
+   "node": "#ui.25.0.0.2.0"
   },
   "resultsHeroMeta": {
-   "node": "#ui.23.0.0.2.2"
+   "node": "#ui.25.0.0.2.2"
   },
   "resultsHeroTime": {
-   "node": "#ui.23.0.0.2.1"
+   "node": "#ui.25.0.0.2.1"
   },
   "resultsKicker": {
-   "node": "#ui.23.0.0.0"
+   "node": "#ui.25.0.0.0"
   },
   "resultsMenu": {
-   "node": "#ui.23.0.1.0.0"
+   "node": "#ui.25.0.1.0.0"
   },
   "resultsNote": {
-   "node": "#ui.23.0.0.4"
+   "node": "#ui.25.0.0.4"
   },
   "roomBar": {
    "node": "#ui.3.2"
@@ -16797,42 +18518,60 @@
      }
     ],
     [
-     "fc",
+     "controls",
      {
       "node": "#ui.19"
      }
     ],
     [
-     "calibrate",
+     "fc",
      {
       "node": "#ui.20"
      }
     ],
     [
-     "padpick",
+     "calibrate",
      {
       "node": "#ui.21"
      }
     ],
     [
-     "paused",
+     "padpick",
      {
       "node": "#ui.22"
      }
     ],
     [
-     "results",
+     "paused",
      {
       "node": "#ui.23"
+     }
+    ],
+    [
+     "quick",
+     {
+      "node": "#ui.24"
+     }
+    ],
+    [
+     "results",
+     {
+      "node": "#ui.25"
+     }
+    ],
+    [
+     "walk",
+     {
+      "node": "#ui.26"
      }
     ]
    ]
   },
   "signinChip": {
-   "node": "#ui.29"
+   "node": "#ui.32"
   },
   "signinPanel": {
-   "node": "#ui.30"
+   "node": "#ui.33"
   },
   "standingsHelp": {
    "node": "#ui.15.2.2"
@@ -16847,19 +18586,19 @@
    "node": "#ui.15.2.0"
   },
   "swapChip": {
-   "node": "#ui.28"
+   "node": "#ui.31"
   },
   "titleBest": {
    "node": "#ui.4.0.0.0.3"
   },
   "titleHelp": {
-   "node": "#ui.4.0.2.1.1"
+   "node": "#ui.4.0.3.1.1"
   },
   "titleHint": {
-   "node": "#ui.4.0.2.0"
+   "node": "#ui.4.0.3.0"
   },
   "titleMenu": {
-   "node": "#ui.4.0.2.1.0"
+   "node": "#ui.4.0.3.1.0"
   },
   "trickCanvas": {
    "node": "#ui.6.2.0"
@@ -16892,6 +18631,12 @@
   "updateReady": false,
   "updateReload": {
    "node": "#ui.3.3.1"
+  },
+  "walkPrompt": {
+   "node": "#ui.26.0"
+  },
+  "walkPromptLabel": {
+   "node": "#ui.26.0.1"
   },
   "warLobbyEl": {
    "node": "#ui.12.2"
