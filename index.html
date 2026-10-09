@@ -398,6 +398,20 @@
         letter-spacing: 0.06em; text-transform: uppercase;
       }
       .score-hud .score-name { animation: score-name-slam 2.2s cubic-bezier(0.14, 1, 0.3, 1) forwards; }
+      /* Callouts without the score keep the names, the chain and its
+         verdict; the total stays off. */
+      .score-hud.is-callouts .score-total { display: none; }
+      /* A judged aerobatic figure: the name big, the grade word and the
+         points under it. It wraps inside the left column, so at phone
+         width it grows down rather than across the attitude cues in the
+         middle. */
+      .score-name.is-figure {
+        flex-wrap: wrap; column-gap: 10px; row-gap: 0; max-width: min(34vw, 340px);
+        white-space: normal; font-size: clamp(19px, 2.5vw, 30px); line-height: 1.05;
+      }
+      .score-name.is-figure .score-name-text { flex-basis: 100%; }
+      .score-name-tag.is-grade { color: var(--mint); opacity: 1; font-size: 0.6em; font-weight: 700; }
+      .score-name.is-sloppy .score-name-tag.is-grade { color: var(--amber); }
       .score-name.is-sloppy { color: var(--amber); }
       .score-name.is-bump { color: var(--sakura); }
       /* The burst goes behind the words by paint order among positioned

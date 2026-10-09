@@ -371,6 +371,10 @@ jobs:
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+      # The trick callouts on the flight screen, en and es, desktop and
+      # phone, clear of the attitude cues (scripts/callouts-check.js,
+      # docs/TRICKS-CATALOG.md).
+      - run: npm run callouts:check -- --out=/tmp/callouts
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy

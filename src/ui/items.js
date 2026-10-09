@@ -472,6 +472,7 @@ function freestyleRows(ui, s) {
       rowClass: s.freestyleScoring === 'off' ? undefined : 'row-warn',
       pickOnly: true,
     },
+    toggle(str('ui.trick_callouts'), str('ui.trick_callouts_note'), s.trickCallouts, (v) => { s.trickCallouts = Boolean(v); }),
     machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
     flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
     crashDamageRow(s),

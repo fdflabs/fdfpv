@@ -75,6 +75,7 @@ import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
 import { TrickDetector } from './game/trickdetect.js';
+import { FigureDetector } from './game/figuredetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
@@ -3293,6 +3294,14 @@ export async function boot({
       jamScore.land(trick);
     }
   });
+  /* A fixed wing's aerobatic figures (docs/TRICKS-CATALOG.md), landed
+   * through the same scorers. A fixed wing feeds this one and not the
+   * quad detector, whose flips and rolls would name its loops. */
+  const figureDetector = new FigureDetector((figure) => trickDetector.onTrick(figure));
+  /* Decided per frame with `scoring`, consulted every step. */
+  let figureCraft = false;
+  /* The checks land a trick as a detector would (scripts/callouts-check.js). */
+  window.__trickLand = (trick) => trickDetector.onTrick({ endMs: simTimeMs, ...trick });
   function scoreCrash() {
     score.crash();
     if (jamScore) {
@@ -8226,12 +8235,34 @@ export async function boot({
     if (!roomJam.on()) {
       roomJamTurn = null;
     }
+    jamWatchCallout(v);
     if (wallMs < roomJamHudAt) {
       return;
     }
     roomJamHudAt = wallMs + 250;
     const own = roomJamRun && jamScore ? { total: Math.round(jamScore.total()), last: lastJamTrick() } : null;
     roomJamHud.update(mode === 'flight' && ui.screen === 'flight' ? jamHudView(roomJam, now, roomSeatName, own) : null);
+  }
+  /* A watcher sees the runner's tricks called out as they land: the
+   * room's `last` for each new trick of the run, through the same overlay
+   * as the pilot's own. */
+  let jamWatchSeen = null;
+  /* How many the watcher has had called out, and the last, for the checks. */
+  const jamWatchShown = { n: 0, name: null };
+  function jamWatchCallout(v) {
+    const live = roomJam.on() && !roomJam.mine() && v.state === 'run' ? v.live : null;
+    const key = live && live.last ? `${v.id}:${v.round}:${v.runner}:${live.tricks}` : null;
+    if (key === jamWatchSeen) {
+      return;
+    }
+    jamWatchSeen = key;
+    if (!key || mode !== 'flight') {
+      return;
+    }
+    const l = live.last;
+    jamWatchShown.n += 1;
+    jamWatchShown.name = l.name;
+    ui.scoreEvents([{ kind: 'trick', name: l.name, points: l.points, execution: l.execution, ...(typeof l.grade === 'number' ? { grade: l.grade } : {}) }]);
   }
   function lastJamTrick() {
     const r = jamScore.tricks.at(-1);
@@ -8250,6 +8281,7 @@ export async function boot({
       hold: roomJam.holdMs(now),
       run: roomJamRun ? { endAt: roomJamRun.endAt } : null,
       own: jamScore ? { total: jamScore.total(), tricks: jamScore.tricks.length } : null,
+      watchCallouts: { ...jamWatchShown },
       hud: roomJamHud.key ? JSON.parse(roomJamHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'jam'),
       standings: roomJam.standings(),
@@ -11808,6 +11840,7 @@ export async function boot({
     turtleRecover = false;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
       scoreCrash();
     }
     race.voidLap(str('main.wrecked_lap_over'), nowWall);
@@ -12285,6 +12318,7 @@ export async function boot({
      * pair with half a roll after it. Race maps never reach the scorer. */
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
       scoreCrash();
     }
     dropTurtle();
@@ -12466,6 +12500,7 @@ export async function boot({
     score.timed = scoredRun();
     score.reset();
     trickDetector.restart();
+    figureDetector.restart();
     ui.resetScore();
     /* Only the recording in flight dies; the session book keeps its laps. */
     ghostRecorder.abort();
@@ -12770,6 +12805,7 @@ export async function boot({
     introMs = -1;
     if (view.mode === 'freestyle') {
       trickDetector.reset();
+      figureDetector.reset();
     }
     seatRestHeight(to, !inAir && onWater);
 
@@ -16653,6 +16689,7 @@ export async function boot({
       return;
     }
     scoring = view.mode === 'freestyle' && !crashed;
+    figureCraft = Boolean(airframeById(runAirframe).fixedWing);
     fr.groundClosing = 0;
     fr.groundSpeed = 0;
     fr.groundHit = false;
@@ -16879,6 +16916,10 @@ export async function boot({
    * Both go through frame.js, so nothing new crosses the frame boundary.
    */
   function feedRecogniser(st) {
+    if (figureCraft) {
+      figureDetector.step(0.001, st);
+      return;
+    }
     poseFromState(st, scorePos);
     simQuatToThree(st[7], st[8], st[9], st[10], scoreQuat);
     scoreQuat.premultiply(qSpawn);
@@ -16986,6 +17027,7 @@ export async function boot({
     if (view.mode === 'freestyle') {
       if (hard) {
         trickDetector.reset();
+        figureDetector.reset();
         scoreCrash();
       } else {
         /* The ground is not tappable (TrickDetector.bump). */
@@ -18133,6 +18175,9 @@ export async function boot({
    * why its score can be posted at all; read off score.over() rather than
    * off the drained events, which belong to the overlay.
    */
+  function landedClean(e) {
+    return e.kind === 'trick' && (typeof e.grade === 'number' ? e.grade >= 6 : e.execution === 'CLEAN');
+  }
   function scoreFrame() {
     const wasOver = score.over();
     score.tick(simTimeMs);
@@ -18140,7 +18185,13 @@ export async function boot({
     scoreState = scoreView.state;
     scoreRemainMs = scoreView.remainMs;
     ui.setScore(scoreView);
-    ui.scoreEvents(score.drainEvents());
+    const events = score.drainEvents();
+    ui.scoreEvents(events);
+    /* The landed chime for a trick landed clean, only where its callout
+     * is on screen. */
+    if (events && ui.scoreHud.visible && events.some(landedClean)) {
+      flightCue('trick');
+    }
     if (!wasOver && score.over()) {
       endFreestyleRun();
     }
@@ -20004,6 +20055,7 @@ export async function boot({
       refreshCrashWorld(back);
     }
     trickDetector.reset();
+    figureDetector.reset();
     race.voidLap(str('replay.lap_void'), nowWall);
     view.setNextGate(race.nextSceneIndex(), race.followSceneIndex());
     mode = 'flight';

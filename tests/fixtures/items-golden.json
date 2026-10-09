@@ -3201,6 +3201,32 @@
      }
     },
     {
+     "id": "freestyle:trick-callouts",
+     "label": "Trick callouts",
+     "value": "On",
+     "note": "Names every trick and aerobatic figure as you land it, with its grade, its points and the chain. Shown with the score off too.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "trickCallouts": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "trickCallouts": false
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-quad",
      "label": "Quad",
      "value": "Factory default",
@@ -3400,6 +3426,32 @@
       "pick(\"off\")": {
        "settings": {
         "freestyleScoring": "off"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:trick-callouts",
+     "label": "Trick callouts",
+     "value": "On",
+     "note": "Names every trick and aerobatic figure as you land it, with its grade, its points and the chain. Shown with the score off too.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "trickCallouts": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "trickCallouts": false
        }
       }
      }
@@ -27260,6 +27312,32 @@
      }
     },
     {
+     "id": "freestyle:anuncios-de-trucos",
+     "label": "Anuncios de trucos",
+     "value": "On",
+     "note": "Nombra cada truco y figura acrobática al completarla, con su nota, sus puntos y la cadena. También con el puntaje apagado.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "trickCallouts": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "trickCallouts": false
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-quad",
      "label": "Dron",
      "value": "De fábrica",
@@ -27459,6 +27537,32 @@
       "pick(\"off\")": {
        "settings": {
         "freestyleScoring": "off"
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:anuncios-de-trucos",
+     "label": "Anuncios de trucos",
+     "value": "On",
+     "note": "Nombra cada truco y figura acrobática al completarla, con su nota, sus puntos y la cadena. También con el puntaje apagado.",
+     "sw": true,
+     "on": true,
+     "current": true,
+     "fns": [
+      "adjust",
+      "flip"
+     ],
+     "drives": {
+      "adjust(+1)": {},
+      "adjust(-1)": {
+       "settings": {
+        "trickCallouts": false
+       }
+      },
+      "flip()": {
+       "settings": {
+        "trickCallouts": false
        }
       }
      }
