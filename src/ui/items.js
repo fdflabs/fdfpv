@@ -114,6 +114,11 @@ function tuneName(id) {
 }
 
 /* The rate system's name: Classic is Betaflight's, the rest are brands. */
+/* A firmware field's label and note from configs/ (rates.js, pids.js),
+ * which name them in English for the bench and the pinned transcripts;
+ * the rows read them from the string table under spec.<group>.<key>. */
+const specText = (base) => ({ label: str(`${base}.label`), note: str(`${base}.note`) });
+
 const rateTypeName = (type) => str(`rates.type_${type.toLowerCase()}`);
 
 /* configs/rates.js ratesSummary, in the pilot's language: that one is the
@@ -1008,14 +1013,15 @@ function ratesRoomRows(ui, s) {
   /* One firmware field. While roll and pitch are joined, roll writes both. */
   const field = (axis, key) => {
     const spec = rateField(r.type, key);
-    const notes = [spec.note];
+    const text = specText(`spec.rates.${normaliseRates(r).type.toLowerCase()}.${key}`);
+    const notes = [text.note];
     if (key !== 'expo') {
       notes.push(str('ui.at_full_stick_this_axis_is', { fullStickDeg: fullStickDeg(r, axis) }));
     }
     if (axis === 'yaw' && key === 'srate') {
       notes.push(str('ui.quads_yaw_slower_than_they_roll', { cameraAngle: s.cameraAngle, v2: Math.round(tilt * 100), v3: Math.round(fullStickDeg(r, 'yaw') * tilt) }));
     }
-    return number(spec.label, notes.join(' '), spec, r[axis][key], (v) => {
+    return number(text.label, notes.join(' '), spec, r[axis][key], (v) => {
       r[axis][key] = v;
       if (!split && axis === 'roll') {
         r.pitch[key] = v;
@@ -1078,8 +1084,8 @@ function ratesRoomRows(ui, s) {
       (n) => (n >= 100 ? 'Off' : `${n}%`),
       (n) => { r.throttleCap = n; },
     ),
-    number(THROTTLE_CURVE_FIELDS.thrMid.label, str('ui.this_quad_hovers_near_percent_of', { note: THROTTLE_CURVE_FIELDS.thrMid.note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),
-    number(THROTTLE_CURVE_FIELDS.thrExpo.label, THROTTLE_CURVE_FIELDS.thrExpo.note, THROTTLE_CURVE_FIELDS.thrExpo, r.thrExpo, (v) => { r.thrExpo = v; }),
+    number(specText('spec.throttle.thrMid').label, str('ui.this_quad_hovers_near_percent_of', { note: specText('spec.throttle.thrMid').note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),
+    number(specText('spec.throttle.thrExpo').label, specText('spec.throttle.thrExpo').note, THROTTLE_CURVE_FIELDS.thrExpo, r.thrExpo, (v) => { r.thrExpo = v; }),
     { label: str('ui.presets'), section: true },
     /* A refused write stays on the screen until the next save or delete. */
     ...(ui.ratesNotice ? [{ label: str('ui.not_saved'), value: '', info: true, rowClass: 'row-warn', note: ui.ratesNotice }] : []),
@@ -1138,23 +1144,24 @@ function pidsRows(ui, s) {
   const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName: seatedName }).trim() : '';
   const sliderRow = (k) => {
     const spec = SLIDERS[k];
+    const text = specText(`spec.slider.${k}`);
     const tuneVal = live.baseline[k];
     const moved = Boolean(entry && entry.sliders && k in entry.sliders);
-    const notes = [spec.note];
+    const notes = [text.note];
     if (moved) {
       notes.push(str('ui.ships_this_at_setting_it_back', { tuneName: seatedName, tuneVal }));
     }
     if (k === 'master' && rpNote) {
       notes.push(rpNote);
     }
-    const row = number(spec.label, notes.join(' '), spec, moved ? entry.sliders[k] : tuneVal, (v) => {
+    const row = number(text.label, notes.join(' '), spec, moved ? entry.sliders[k] : tuneVal, (v) => {
       setPidSlider(s.pids, s.tune, k, v, tuneVal);
     });
     /* Drawn as a real track, as Configurator draws these. */
     row.range = { min: spec.cliMin, max: spec.cliMax };
     return row;
   };
-  const pidRow = (axis, f) => number(PID_FIELD_SPECS[f].label, PID_FIELD_SPECS[f].note, PID_FIELD_SPECS[f], entry.pids[axis][f], (v) => {
+  const pidRow = (axis, f) => number(specText(`spec.pid.${f}`).label, specText(`spec.pid.${f}`).note, PID_FIELD_SPECS[f], entry.pids[axis][f], (v) => {
     entry.pids[axis][f] = v;
   });
   const axisName = { roll: str('ratespanel.roll'), pitch: str('ui.pitch'), yaw: 'Yaw' };
