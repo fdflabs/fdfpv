@@ -119,6 +119,23 @@ const VIEWS = [
   { id: 'zoom-camp-600', cam: [campX + 420, world.groundAt(campX, campZ) + 430, campZ + 40, campX, world.groundAt(campX, campZ) + 1, campZ], fov: 5.5 },
   { id: 'zoom-colonia-500', cam: pose(9.2, 5.75, 300, 9.35, 6.16), fov: 5.5 },
   { id: 'zoom-motorcycle-400', cam: pose(8.4, 5.7, 260, 8.6, 6.1), fov: 8 },
+  /* Mission 2's places (places.js M2_AT), with its camps as its story has
+   * them (`camp`, life.js setCamp): Claro Nuevo from 60 m and from the
+   * standoff, Estancia La Ceniza from 40 m, Claro Viejo stripped. */
+  {
+    id: 'm2-nuevo-low', cam: pose(14.66, 13.16, 60, 14.715, 13.225), camp: { nuevo: true },
+  },
+  {
+    id: 'm2-nuevo-standoff', cam: pose(14.7, 12.93, 300, 14.71, 13.225), camp: { nuevo: true },
+  },
+  {
+    id: 'm2-estancia-low', cam: pose(13.9, 12.42, 40, 13.955, 12.47, 2), camp: { nuevo: true },
+  },
+  {
+    id: 'm2-camp-stripped', cam: pose(8.6, 9.38, 60, 8.58, 9.455), camp: {
+      nuevo: true, mast: 1, parked: 0, cold: true,
+    },
+  },
   /* Mission 3: Puesto Arenal from a Bramor's 400 m and through the
    * ball's zoom, the farmhouse, the command site's clearing. */
   { id: 'm3-post-400', cam: pose(4.4, 13.5, 400, 4.0, 13.98) },
@@ -256,6 +273,10 @@ try {
       fail(`${v.id}: the camera at y ${y.toFixed(1)} is within a metre of the ground, ${ground} under it`);
       continue;
     }
+    const camp = {
+      nuevo: false, mast: 0, parked: Infinity, cold: false, ...v.camp,
+    };
+    await page.evaluate(`(window.__mapScene().userData.interior.life.setCamp({ nuevo: ${camp.nuevo}, mast: ${camp.mast}, parked: ${camp.parked}, cold: ${camp.cold} }), "")`);
     await page.evaluate(`(window.__setCam(${v.cam.join(',')}, ${v.fov || FOV}), "")`);
     await settle(page);
     await page.sleep(2500);

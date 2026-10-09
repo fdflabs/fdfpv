@@ -256,8 +256,20 @@ const ACTIONS = {
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
-  'hangar-walk'(ui) { ui.openWalk(); },
+  'hangar-walk'(ui) { ui.openWalk('main'); },
   'field-walk'(ui) { ui.openWalk('field'); },
+  'walk-photo'(ui) { ui.togglePhoto(); },
+  'walk-photo-take'(ui) { ui.takePhoto(); },
+  /* The walkable hangar's shop counter: the hangar opened on its Shop tab
+   * (src/ui/hangar-shop.js), for the seated aircraft. */
+  /* The trophy wall: the hangar on its Challenges tab, which lists the
+   * firsts the wall's trophies stand for (src/ui/progress-ui.js). */
+  'hangar-trophies'(ui) {
+    ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'challenges');
+  },
+  'hangar-shop'(ui) {
+    ui.openHangar(ui.settings.airframe, () => ui.renderMenu(), ui.wornBuild(ui.settings.airframe), 'shop');
+  },
   customise(ui) {
     /* The aircraft in the air may be a My Hangar build; a change in the
      * hangar is then a change to that build. */

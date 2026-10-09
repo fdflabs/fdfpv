@@ -906,7 +906,7 @@ export const AIRFRAMES = [
     trackClass: 'wing',
     cells: 4,
     ...packStates(),
-    defaultTune: 'extra-acro',
+    defaultTune: 'extra-as3x',
     gravityBase: 1.0,
     rates: stockRates(),
     cameraFov: 100,

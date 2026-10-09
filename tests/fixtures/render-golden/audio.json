@@ -3082,7 +3082,7 @@
    ],
    "logged": [
     [
-     "error",
+     "warn",
      "audio: the context says running but its clock has stood at 0.000 s for 1.6 s; suspending and resuming it"
     ]
    ],
@@ -3483,7 +3483,7 @@
    ],
    "logged": [
     [
-     "error",
+     "warn",
      "audio: the context says running but its clock has stood at 0.250 s for 2.0 s; suspending and resuming it"
     ]
    ],
@@ -3888,7 +3888,7 @@
    ],
    "logged": [
     [
-     "error",
+     "warn",
      "audio: the context says running but its clock has stood at 0.250 s for 2.0 s; suspending and resuming it"
     ]
    ],
@@ -4128,7 +4128,7 @@
    ],
    "logged": [
     [
-     "error",
+     "warn",
      "audio: the context says running but its clock has stood at 0.400 s for 1.6 s; suspending and resuming it"
     ],
     [
