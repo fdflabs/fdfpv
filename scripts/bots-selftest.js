@@ -3,7 +3,7 @@
  * (edge/rooms/bots.js, docs/AI-PILOTS-CONTRACT.md) in plain Node: the same
  * calls give the same poses bit for bit, a save and restore mid flight
  * flies on bit for bit, every pose stays in the corridor, the valley's
- * axis is alps/terrain.js's, a hunter catches a pilot flying straight,
+ * axis is alps/heights.js's, a hunter catches a pilot flying straight,
  * an Ace on Hard runs longer than one on Easy, and what it costs.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -123,7 +123,7 @@ function corridorRows() {
 }
 
 function axisRow() {
-  const src = readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8');
   const m = src.match(/export function valleyAxis\(z\) \{\s*return ([^;]+);/);
   const theirs = m ? new Function('z', `return ${m[1]};`) : null;
   let worst = Infinity;
@@ -133,7 +133,7 @@ function axisRow() {
       worst = Math.max(worst, Math.abs(theirs(z) - valleyAxis(z)));
     }
   }
-  check("the corridor's axis is alps/terrain.js valleyAxis", worst < 1e-6, m ? `${m[1]}, worst ${worst.toExponential(1)} m` : 'valleyAxis not found');
+  check("the corridor's axis is alps/heights.js valleyAxis", worst < 1e-6, m ? `${m[1]}, worst ${worst.toExponential(1)} m` : 'valleyAxis not found');
 }
 
 /* A pilot flying down the valley's axis at 14 m/s (slower than every
