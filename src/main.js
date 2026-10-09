@@ -69,6 +69,7 @@ import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
+import { translate as translateKey } from './input/keybinds.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
@@ -15041,6 +15042,9 @@ export async function boot({
     }
   }
 
+  /* The pilot's key bindings (src/input/keybinds.js), in flight only: the
+   * menus keep every key as it is. */
+  input.translateKey = (code) => (ui.screen === 'flight' ? translateKey(ui.settings.keybinds, runAirframe, code) : code);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {

@@ -61,6 +61,7 @@ const CRUMBS = {
   howto: ['ui.how_to_fly'],
   tricks: ['ui.freestyle', 'ui.trick_list'],
   credits: ['ui.credits'],
+  controls: ['ui.settings', 'keybinds.title'],
   friends: ['friends.title'],
   rooms: ['friends.title', 'roombrowser.title'],
   roomnew: ['friends.title', 'roombrowser.title', 'roombrowser.new_title'],
@@ -85,6 +86,7 @@ const MENU_FIELD = {
   standings: 'standingsMenu',
   rates: 'ratesMenu',
   pids: 'pidsMenu',
+  controls: 'controlsMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
   results: 'resultsMenu',
@@ -267,6 +269,10 @@ function leaveFor(ui, screen) {
   /* pidsFrom survives the bench, because the bench comes back to PIDs:
    * dropping it there is how Quad, Tune, Every setting, back, back once
    * landed on the title. */
+  if (leaving('controls')) {
+    ui.binding = null;
+    ui.keybindMsg = null;
+  }
   if (leaving('pids') && screen !== 'fc') {
     ui.pidsFrom = null;
   }
