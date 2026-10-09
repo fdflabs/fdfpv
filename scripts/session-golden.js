@@ -158,6 +158,7 @@ Object.defineProperty(globalThis, 'performance', { value: { now: () => 1000 }, c
 
 const { Ui } = await import('../src/ui/ui.js');
 const { DEFAULTS: LIVE_DEFAULTS, SETTINGS_KEY } = await import('../src/ui/settings.js');
+const { settingsDelta, storeView } = await import('../tests/lib/golden-settings.js');
 /* loadSettings hands out DEFAULTS' own objects where nothing is stored, so
  * a Ui that then edits its progress edits the defaults for the next one.
  * The methods are given a copy taken before any constructor ran. */
@@ -812,12 +813,13 @@ function construct(search, hash, seed) {
   const fields = {};
   /* Copied now: the closures driven below write into settings. */
   for (const k of Object.getOwnPropertyNames(ui)) fields[k] = JSON.parse(JSON.stringify(fieldValue(ui[k])));
+  fields.settings = settingsDelta(fields.settings);
   const out = {
     fields,
     calls: calls.splice(0),
     windowOn: windowListeners.map((l) => `${l.type}${l.capture ? '!' : ''}`),
     rootOn: rootEl.listeners.map((l) => `${l.type}${l.capture ? '!' : ''}`),
-    store: Object.fromEntries(store),
+    store: storeView(store),
   };
   /* The closures, driven. */
   const drive = {};

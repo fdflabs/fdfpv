@@ -930,7 +930,7 @@ export const AIRFRAMES = [
     /*
      * AeroTetris's C-130 Hercules 3077, docs/HERCULES-STAGE1.md: a laser
      * cut balsa and ply C-130H at 1:13.13, 6.73 kg on four Power 25s each
-     * on its own 3S pack, simId 30 on the fixed wing plant, which takes the
+     * on its own 3S pack, simId 31 on the fixed wing plant, which takes the
      * four props as one thrust line (docs/HERCULES-CONTRACT.md). A high
      * wing, the upswept tail with its rear ramp and cargo door, which O
      * opens in flight, and a fixed tricycle gear in the sponsons whose nose
@@ -939,7 +939,7 @@ export const AIRFRAMES = [
      * over the ground.
      */
     id: 'hercules3077',
-    simId: 30,
+    simId: 31,
     fixedWing: true,
     /* A rear ramp and cargo door the plant opens in flight (O), and the
      * paradrop out of it (P): docs/HERCULES-CONTRACT.md. */

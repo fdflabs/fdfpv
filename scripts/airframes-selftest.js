@@ -64,4 +64,4 @@ t.rec('rows do not share objects', () => {
   return shared;
 });
 
-t.finish('configs/airframes.js', '1ba6f0a02fa9747101b230cbb37d7c39ec0401c561e95af8bec315901902b8e2');
+t.finish('configs/airframes.js', '1481f669f5935f8d6655fcc06980a9fe5dba239875b783054d6750c96ba7a33f');
