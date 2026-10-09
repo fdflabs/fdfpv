@@ -72,6 +72,7 @@ jobs:
       - run: npm run rooms:selftest
       - run: npm run bots:selftest
       - run: npm run jam:selftest
+      - run: npm run figures:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
@@ -177,6 +178,7 @@ jobs:
       - run: npm run extra:gates
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
+      - run: npm run figures:plant
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest

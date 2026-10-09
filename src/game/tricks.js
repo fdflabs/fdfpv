@@ -23,6 +23,7 @@
  */
 
 import { str } from '../strings/index.js';
+import { figureById, figureIdOfTrick, figurePoints } from './figures.js';
 import {
   TRICKS,
   BUILDING_BLOCKS,
@@ -60,12 +61,21 @@ for (const { name, points } of BUILDING_BLOCKS) {
   if (!byName.has(name)) byName.set(name, { name, category: blockCategory, difficulty: 'Block', points });
 }
 
+/* Aerobatic figures (figures.js) answer under their `fig:<id>` names but
+ * stay out of trickNames(): that list is the workbook's, and the goldens
+ * pin it. */
+function figureEntry(name) {
+  const id = figureIdOfTrick(name);
+  const f = id ? figureById(id) : null;
+  return f ? { name, category: f.family, difficulty: f.k, points: figurePoints(id) } : undefined;
+}
+
 export function trickByName(name) {
-  return byName.get(name);
+  return byName.get(name) ?? figureEntry(name);
 }
 
 export function trickPoints(name) {
-  const entry = byName.get(name);
+  const entry = trickByName(name);
   if (!entry) throw new Error(`tricks: no trick named ${name}`);
   return entry.points;
 }
