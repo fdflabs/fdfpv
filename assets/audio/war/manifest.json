@@ -24446,6 +24446,415 @@
      "sha256": "f90d9d9c7de04462aa35734c3dac6edcc2437d5b875ba1fd1da81e7f41aeb116"
     }
    }
+  },
+  "itaipu-2-g-channel.en": {
+   "text": "Boats come down the channel to the gates. Fly low over the water north of the spillway and hit them early. Fast movers follow them in.",
+   "speaker": "crest",
+   "seconds": 7.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4194044812,
+     "heard": "Boats come down the channel to the gates, fly low over the water north of the spillway and hit them early. Fast movers follow them in.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 35646,
+     "sha256": "b6141f439cb02ccd8090bdfbb8701f54bf5407af4feb08fe95939ebdd3dfb3cf"
+    },
+    "mp3": {
+     "bytes": 30812,
+     "sha256": "7420d3b17bfa3765cdefc2b7008416164d417bb04bf3f7d2a3ee5677b8752d6b"
+    }
+   }
+  },
+  "itaipu-2-g-channel.es": {
+   "text": "Las lanchas bajan por el canal hacia las compuertas. Vuelen bajo sobre el agua, al norte del vertedero, y péguenles temprano. Detrás vienen atacantes rápidos.",
+   "speaker": "crest",
+   "seconds": 9.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1033985887,
+     "heard": "Las lanchas bajan por el canal hacia las compuertas, vuelen bajo sobre el agua al norte del vertedero y péguenles temprano. Detrás vienen atacantes rápidos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 42469,
+     "sha256": "26d4ec2bb8fb8c5057bd28986c2b793e15164b7799443a79b0d058eb265a30f7"
+    },
+    "mp3": {
+     "bytes": 38180,
+     "sha256": "9aa4cbdf924a4a1fd375e6147d5fd375e1953dff7aa69a378b9e24c3eac7bf77"
+    }
+   }
+  },
+  "itaipu-2-g-chute.en": {
+   "text": "The Hunters chase your bird over the chute. Don't fly straight. Turn into them and take them first.",
+   "speaker": "crest",
+   "seconds": 4.425,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2972854555,
+     "heard": "The hunters chase your bird over the chute, don't fly straight, turn into them and take them first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20255,
+     "sha256": "57b49677cc9974737c7427bc16aa7e6cb8306dca3ff2c1d9685028f3b577d9d8"
+    },
+    "mp3": {
+     "bytes": 18644,
+     "sha256": "2ec9d1eedbe0ecf7620566cf9a653c73bec34fd19a5cd44cdd295efccb07cb2a"
+    }
+   }
+  },
+  "itaipu-2-g-chute.es": {
+   "text": "Los cazadores persiguen su aparato sobre el canal de descarga. No vuelen recto. Giren hacia ellos y derríbenlos primero.",
+   "speaker": "crest",
+   "seconds": 7.225,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4088257271,
+     "heard": "Los cazadores persiguen su aparato sobre el canal de descarga, no vuelen recto, giren hacia ellos y derriben los primero.",
+     "wer": 0.105,
+     "extra": 1,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2281795865,
+     "heard": "Los cazadores persiguen su aparato sobre el canal de descarga, no vuelen recto, giren hacia ellos y derrivenlos primero.",
+     "wer": 0.053,
+     "extra": 0,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3026779111,
+     "heard": "Los cazadores persiguen su aparato sobre el canal de descarga. No vuelen recto, giren hacia ellos y derriben los primeros.",
+     "wer": 0.158,
+     "extra": 1,
+     "missing": [
+      "derribenlos",
+      "primero"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 689805189,
+     "heard": "Los cazadores persiguen su aparato sobre el canal de descarga. No vuelen recto, giren hacia ellos y derribenlos primero.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 32902,
+     "sha256": "fadb903f43f386f13614ecd1887f49cbf2bd7a85348ea2f4d995ebb95158893e"
+    },
+    "mp3": {
+     "bytes": 29732,
+     "sha256": "7a32900ba43eb74960b1b54ce14c3fb410ea5e34b67fcc6e7c7d35c42e82b040"
+    }
+   }
+  },
+  "itaipu-2-g-gates.en": {
+   "text": "Protect the spillway gates on the right bank. Loiterers come high and dive. Climb and take them before the dive.",
+   "speaker": "crest",
+   "seconds": 6.085,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3510173678,
+     "heard": "Protect the spillway gates on the right bank. Loiterers come high and dive. Climb and take them before the dive.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27766,
+     "sha256": "c5c65e88be30d24b25998dcc9e5dad4873836492387c0a445453d2a6a280689d"
+    },
+    "mp3": {
+     "bytes": 25268,
+     "sha256": "1550d4e919b46d5c9f725045188ec82ae80f85cfeaba77cb4afe67f824915c1a"
+    }
+   }
+  },
+  "itaipu-2-g-gates.es": {
+   "text": "Protejan las compuertas del vertedero en la margen derecha. Los merodeadores llegan alto y se lanzan en picada. Suban y derríbenlos antes de la picada.",
+   "speaker": "crest",
+   "seconds": 8.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2305858297,
+     "heard": "Protejan las compuertas del vertedero en la margen derecha. Los merodeadores llegan alto y se lanzan en picada. Suban y derríbenlos antes de la picada.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 40847,
+     "sha256": "608dd0f9319a111d1a7378d27e76227e5ce2973f35c0368ffe88a816c4c38f23"
+    },
+    "mp3": {
+     "bytes": 36356,
+     "sha256": "dd652cfc953a42999cd3051f74269b0bd74d08f6ed0092c56204f15215f014cc"
+    }
+   }
+  },
+  "itaipu-2-g-spill.en": {
+   "text": "Guard the working gates, the marked ones. While they open, every hit on one costs double. Stay over them until the spill runs.",
+   "speaker": "crest",
+   "seconds": 8.105,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1788338334,
+     "heard": "Guard the working gates, the marked ones. While they open, every hit on one costs double. Stay over them until the spill runs.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 36655,
+     "sha256": "c0bbf12670a36e87617f4bd8a8d49e84cbb2520338623ed8d5d7b00f16ac48e7"
+    },
+    "mp3": {
+     "bytes": 32156,
+     "sha256": "3c74f502c5efeab6b18527698fd63fccdf5d6d18226c32ba9f3221bdfa1cf1a4"
+    }
+   }
+  },
+  "itaipu-2-g-spill.es": {
+   "text": "Las compuertas marcadas son las que funcionan. Mientras se abren, cada impacto en una de ellas cuesta el doble. Quédense encima hasta que corra el agua.",
+   "speaker": "crest",
+   "seconds": 8.375,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4227054750,
+     "heard": "Las compuertas marcadas son las que funcionan. Mientras se abren, cada impacto en una de ellas cuesta el doble. Quédense encima hasta que corra el agua.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 38041,
+     "sha256": "d2cc1130ba19c354746588e374aa2146e449887c0438a0dc7f0e94eb542c0cdf"
+    },
+    "mp3": {
+     "bytes": 34220,
+     "sha256": "1e63fc6b7c378e68ddb459c0293ea05455ec550fd8b3a0f1e5000532192fc379"
+    }
+   }
+  },
+  "itaipu-2-g-spray.en": {
+   "text": "Their markers vanish in the spray. Hold over the working gates and take them as they come out of it.",
+   "speaker": "crest",
+   "seconds": 5.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2820281622,
+     "heard": "Their markers vanish in the spray, hold over the working gates and take them as they come out of it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24269,
+     "sha256": "cf0ff7a54706f3885a51ca11b0e83343f4f4c9a37613d2e8f537db475ae88404"
+    },
+    "mp3": {
+     "bytes": 21476,
+     "sha256": "890462eeaa817e6cbe4989deded5466e35e669ae0adf7dfa24dbaf98b0fe6e0a"
+    }
+   }
+  },
+  "itaipu-2-g-spray.es": {
+   "text": "Sus marcas desaparecen en la bruma. Quédense sobre las compuertas en servicio y derríbenlos cuando salgan.",
+   "speaker": "crest",
+   "seconds": 6.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3017600823,
+     "heard": "Sus marcas desaparecen en la bruma. Quédense sobre las compuertas en servicio y delívenlos cuando salgan.",
+     "wer": 0.062,
+     "extra": 0,
+     "missing": [
+      "derribenlos"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1260903251,
+     "heard": "Sus marcas desaparecen en la bruma. Quédense sobre las compuertas en servicio y derríbenlos cuando salgan.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30721,
+     "sha256": "1b53c2aa565b8ac6268a16221846ac076e812ff0bb97e739a2fdfbcc3ae2c5ef"
+    },
+    "mp3": {
+     "bytes": 27500,
+     "sha256": "9d132da92d4a7e7c653639db61e7ee7501aa5cd17e6796602832c4f55ca29f80"
+    }
+   }
+  },
+  "itaipu-2-g-west-arm.en": {
+   "text": "Fly west along the shore, low over the water. Stop the boats before they reach the gates.",
+   "speaker": "crest",
+   "seconds": 5.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3502818809,
+     "heard": "Fly west along the shore, low over the water. Stop the boats before they reach the gates.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24432,
+     "sha256": "c3c075ceec407ac0eb9ac8b54e1bbce1e0f8c73f43c17543c2ef18e8a6d80fe9"
+    },
+    "mp3": {
+     "bytes": 21188,
+     "sha256": "dedb6dd7e3544ef4b2b288db0a7f9342ecd6aa5d548ebb0d9044d1e7b6598370"
+    }
+   }
+  },
+  "itaipu-2-g-west-arm.es": {
+   "text": "Vuelen al oeste por la costa, bajo sobre el agua. Paren las lanchas antes de que lleguen a las compuertas.",
+   "speaker": "crest",
+   "seconds": 6.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2562894514,
+     "heard": "Vuelen al oeste por la costa, bajo sobre el agua. Paren las lanchas antes de que lleguen a las compuertas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 30685,
+     "sha256": "877069e854a738476baa42018d15f36dddd8c7a484b8580029076f5f59f9a95c"
+    },
+    "mp3": {
+     "bytes": 27236,
+     "sha256": "0b0359cc441df69fa3929ab715c3bf32d9a208b4524c876e9180e5c09f6edcd1"
+    }
+   }
+  },
+  "itaipu-2-g-working.en": {
+   "text": "Protect the working gates. Water, high and low, all at once. The closest to the gates first.",
+   "speaker": "crest",
+   "seconds": 5.975,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2191888954,
+     "heard": "Protect the working gates. Water, high and low, all at once. The closest to the gates first.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27196,
+     "sha256": "079c66e6e3cdc2936006d830a460f58285463c86b189096dca3a0b64181bd8a7"
+    },
+    "mp3": {
+     "bytes": 23660,
+     "sha256": "912ea53de08f73c7550afb6c3c4837d3cb962b1fea5f40cf2d8544c46a0214ac"
+    }
+   }
+  },
+  "itaipu-2-g-working.es": {
+   "text": "Protejan las compuertas en servicio. Por agua, por arriba y por abajo, todo a la vez. Primero el más cercano a las compuertas.",
+   "speaker": "crest",
+   "seconds": 7.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 9705237,
+     "heard": "Protejan las compuertas en servicio. Por agua, por arriba y por abajo, todo a la vez. Primero el más cercano a las compuertas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 34610,
+     "sha256": "1abe6eb68cbbfd6ccd963532f6d6fe1bbc284859d7c4b1d1d4983ca2d9858f9e"
+    },
+    "mp3": {
+     "bytes": 30236,
+     "sha256": "10735bf731ff0c2c33ede142e6bb3cfaee36ff4e9317406d7a3ec5b18476d175"
+    }
+   }
   }
  },
  "models": {
