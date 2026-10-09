@@ -23,7 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as kit from '../../../src/maps/alps/kit.js';
+import * as kit from '../../../src/render/library/kit.js';
 import { makeRng } from '../../../src/render/library/noise.js';
 import { describeGeometry, describeMaterial, makeTable, hashBytes } from '../render-golden-lib.js';
 
