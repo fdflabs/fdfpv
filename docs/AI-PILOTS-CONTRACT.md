@@ -99,13 +99,20 @@ check, the tick's batch recipients). Those 17 go through one helper,
   the nearest hunter along the valley; with the orb free, fly to the orb.
   On the last 150 m to a target it may come down to the target's height
   (never under 2 m), or a pilot sat on the strip could never be caught.
-- v1 AI pilots never crash: a mid air with one breaks the person as any
-  mid air does (the referee's hit), and the AI pilot flies on. Crashing
-  them (and their wreck) is a later PR if the owner wants it.
+- AI pilots crash as people do: a referee hit that breaks a part of one
+  (the same `brk` a person's plant applies), or its belly on the ground
+  the page's pilot hits (edge/rooms/grounds.js, the very field the page
+  builds; what is built on the ground, roofs and decks, is not there). It
+  falls from where it was, lies 5 s where it came to rest (FLAG_CRASHED,
+  drawn intact: no wreck table), and is born again in the air, untouchable
+  for 5 s, as a person's fresh flight is (5 s only, parked or not: lead,
+  2026-10-09).
+  A softer touch moves a person and leaves the AI pilot flying, unmoved.
 - Where: AI pilots fly only where the server knows the ground. v1 is
   swiss2 (tag's home world): the valley floor corridor, within 150 m of the
-  valley axis (src/maps/alps/terrain.js valleyAxis, copied with a selftest
-  that it matches) and between 20 m and 120 m over the flat floor. A room on
+  valley axis (src/maps/alps/heights.js valleyAxis, copied with a selftest
+  that it matches) and between 20 m and 120 m, over a floor that rolls
+  between about -2 and 8 m. A room on
   another world gets no AI pilots until that world has a server floor.
 - Difficulty: speed, turn rate, lead and a reaction delay, three steps.
   Easy is beatable by a first-week pilot, Hard is not a sure thing for the
