@@ -57,7 +57,7 @@ try {
   await page.evaluate("window.__showSticks = true; window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
   await page.sleep(2000);
-  await page.evaluate(PILOT('video', th));
+  await page.evaluate(PILOT(`video-${TUNE}`, th));
   /* The four sticks' values over the gimbals, for the film only. */
   await page.evaluate(`(() => {
     const box = document.createElement('div');
