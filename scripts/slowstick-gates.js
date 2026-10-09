@@ -49,7 +49,7 @@ import { startServer } from '../tests/lib/server.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 import {
   SLOWSTICK_AIRFRAME, fly, wingDebug, wheelLoads, attitude, must, slowstickGroundPrelude, skyPrelude,
-  wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, RC_STEP_MS, wingSlip
+  wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, RC_STEP_MS, wingSlip, rudderLevel,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -247,7 +247,10 @@ check: {
     let n = 0;
     let o = null;
     for (let ms = 0; ms < t9.seconds * 1000; ms += RC_STEP_MS) {
-      o = step(sim, [0, 1, 0, duty]);
+      /* Power on, the wings level on the rudder as the handbook flies a power
+       * on stall (rudderLevel, FAA-H-8083-3C ch. 5); the swirl and P factor
+       * turn a tractor left there with the rudder left alone. */
+      o = step(sim, [0, 1, duty ? rudderLevel(o ? o.s : sim.readState().state) : 0, duty]);
       const { pitch } = attitude(o.s);
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
       minPitch = Math.min(minPitch, pitch * DEG);
