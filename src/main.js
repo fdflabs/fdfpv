@@ -16386,6 +16386,8 @@ export async function boot({
      * builder is building on the same screen, where Y carries a gate. */
     if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
+      /* The menus poll the pad only while one is up, so Start is read here. */
+      ui.pollStart(input.padStartButton());
     }
     if (worldHold && mode === 'title') {
       releaseWorldHold();

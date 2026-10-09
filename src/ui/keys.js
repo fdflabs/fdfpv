@@ -212,6 +212,10 @@ export const keyMethods = {
     }
   },
 
+  pollStart(down) {
+    return startPress(this, down);
+  },
+
   pollPad(nav) {
     if (startPress(this, Boolean(nav.start))) return;
     const anyHeld = PAD_KEYS.some((k) => nav[k]);
