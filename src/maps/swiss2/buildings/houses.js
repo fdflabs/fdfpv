@@ -2,7 +2,7 @@
  * houses.js: the chalets, the farmhouse, the barns, the Gasthof, the
  * bakery and the church, as they are built in the Bernese Oberland.
  *
- * Each is alps/kit.js's builder of the same name made again from
+ * Each is library/kit.js's builder of the same name made again from
  * parts.js: the same plan, storey heights, roof shell, jetty and window
  * slots, returning the same extents, and drawing the village's rng
  * exactly where the cel builder does (a two storey chalet once, for its
@@ -36,7 +36,7 @@ import {
   REVEAL, masonry, deepWindow, deepDoor, wallBench, dripEdge,
   climber, paintedBand, paintedQuoins, notes, dressRoof, hangingBasket, churchDoor,
 } from './parts.js';
-import { roofShell, gableProfile } from '../../alps/kit.js';
+import { roofShell, gableProfile } from '../../../render/library/kit.js';
 import {
   flatTop, pyramidTop, shedTop, spireCore,
 } from '../../../render/library/roofs.js';
@@ -176,7 +176,7 @@ export function chalet(f, rng, spec) {
   }
   for (let k = 0; k < floors; k += 1) {
     const fy = y1 + k * floorH;
-    /* The rng, where and as often as alps/kit.js's chalet draws it. */
+    /* The rng, where and as often as library/kit.js's chalet draws it. */
     const hasBalcony = k === floors - 1 || floors === 1 || rng() < 0.6;
     for (const [wall, on] of [[east, true], [west, balconies === 'both']]) {
       const withBalcony = on && hasBalcony;
@@ -695,7 +695,7 @@ export function church(f, spec) {
   const spire = cached(`s2spire${tw}`, () => new THREE.ConeGeometry(tw * 0.58, 13, 8).translate(0, 6.5, 0));
   f.put('slate', spire, 0, SOCLE + towerH + 0.3, tz, Math.PI / 8);
   /* The cap and the spire are ground over the tower's walls, as the cel
-   * church's are (alps/kit.js). */
+   * church's are (library/kit.js). */
   const cap = frame(f, 0, SOCLE + towerH + 0.3, tz);
   cap.roofFaces({
     top: [...flatTop(-(tw + 0.5) / 2, -(tw + 0.5) / 2, (tw + 0.5) / 2, (tw + 0.5) / 2, 0), ...pyramidTop(8, tw * 0.58, 0, 13, -Math.PI / 8)],

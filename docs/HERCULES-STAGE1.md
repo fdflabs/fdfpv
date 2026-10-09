@@ -1,6 +1,6 @@
 # C-130 Hercules, stage 1: the aircraft, the model and what it is meant to do
 
-The owner's balsa Hercules (docs/HERCULES-CONTRACT.md), airframe 30,
+The owner's balsa Hercules (docs/HERCULES-CONTRACT.md), airframe 31,
 `hercules3077`, on the fixed wing plant, `src/native/plant_wing.c`, with a
 parameter table of its own, `FW_HERCULES3077`. Every number below is
 printed by `npm run hercules:derive` (scripts/hercules-derive.js) with its

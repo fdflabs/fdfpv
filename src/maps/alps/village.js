@@ -32,7 +32,7 @@ import {
   villageMaterials, makeBake, bakeAll, frame,
   chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, fountain, bench, busShelter,
   roadSign, telegraphPole, cone, fence,
-} from './kit.js';
+} from '../../render/library/kit.js';
 import { ribbon } from './ribbon.js';
 import { standWalls } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';

@@ -13,8 +13,8 @@ and their sources.
 ## What the brief said, checked against the tree
 
 - "Following how #825 added the Extra 300 3D (airframe 29)": true, #825
-  is the pattern, and 30 is the next free id (checked against every open
-  pull request's branch on 2026-10-08).
+  is the pattern, and 31 is the id (30 went to the Night Timber X, #879,
+  merged to main first; checked against every open pull request).
 - "A T-shaped tail": stale. The C-130 has a conventional tail: its
   tailplane sits on the upswept rear fuselage under a tall fin, not on top
   of the fin. It is drawn as the real one is.
@@ -73,7 +73,7 @@ and their sources.
 
 ## Data shapes
 
-The aircraft: `configs/airframes.js` id `hercules3077`, simId 30, its
+The aircraft: `configs/airframes.js` id `hercules3077`, simId 31, its
 tables in every file #825 touched (docs/HERCULES-STAGE1.md lists them).
 
 The doors: `sim_wing_set_door(open)` and `sim_wing_door()` (0 closed to 1
@@ -144,7 +144,7 @@ checks it, numbers it, keeps it under `drops` in its storage and sends
 ## PRs (stacked, in this order)
 
 1. `w34-hercules-aircraft`: this contract and docs/HERCULES-STAGE1.md, the
-   aircraft as airframe 30 in every table, its drawn model, gates.
+   aircraft as airframe 31 in every table, its drawn model, gates.
 2. `w34-hercules-doors`: the plant's door channel, O and the switches.
 3. `w34-hercules-drop`: src/game/paradrop.js, P, the drawn loads, solo.
 4. `w34-hercules-roomdrops`: the room keeps and sends drops; the cap's perf

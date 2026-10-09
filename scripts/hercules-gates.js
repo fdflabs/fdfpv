@@ -1,5 +1,5 @@
 /*
- * hercules-gates.js: the AeroTetris C-130 Hercules 3077 (airframe 30)
+ * hercules-gates.js: the AeroTetris C-130 Hercules 3077 (airframe 31)
  * against docs/HERCULES-STAGE1.md, every band in
  * tests/hercules-thresholds.json, each derived in scripts/hercules-derive.js
  * from the kit's published figures and the full size scaled to it. The
