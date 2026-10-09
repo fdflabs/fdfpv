@@ -4150,4 +4150,7 @@ export default {
   "stats.tracks_sub": "Cada pista con una vuelta cerrada",
   "stats.missions": "Misiones ganadas",
   "stats.stars": "{n} de {max} estrellas",
+  "stats.flights.one": "{n} vuelo",
+  "stats.flights.other": "{n} vuelos",
+  "stats.game": "{won}/{played} ganadas · mejor {best}",
 };

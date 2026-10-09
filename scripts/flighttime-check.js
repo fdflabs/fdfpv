@@ -37,6 +37,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import { countTotals } from '../src/share/pilotcounts.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { flightTotals } from '../src/share/flighttime.js';
@@ -208,6 +209,12 @@ try {
   await page.sleep(PAUSE_MS);
   const sat = flightTotals(await recordOf(page)).seconds;
   check('sitting on the ground adds nothing', sat === t.seconds, `${t.seconds} then ${sat}`);
+  /* One run, paused and resumed, flown and landed: one flight
+   * (src/share/pilotcounts.js), in free flight, kept in storage too. */
+  const counts = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.settings.pilotCounts))');
+  const storedCounts = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}').pilotCounts || {}`);
+  check('the run counts as one flight, the pause and the landing do not add one', countTotals(counts).flights === 1
+    && Object.values(counts)[0].flights.free === 1 && JSON.stringify(storedCounts) === JSON.stringify(counts), JSON.stringify(counts));
 
   console.log('what the pilot sees');
   await page.evaluate("window.__ui.act('pause'); true");

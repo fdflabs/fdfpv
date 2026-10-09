@@ -4145,4 +4145,7 @@ export default {
   "stats.tracks_sub": "Every track with a lap closed",
   "stats.missions": "Missions won",
   "stats.stars": "{n} of {max} stars",
+  "stats.flights.one": "{n} flight",
+  "stats.flights.other": "{n} flights",
+  "stats.game": "{won}/{played} won · best {best}",
 };
