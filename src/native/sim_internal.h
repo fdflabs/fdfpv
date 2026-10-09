@@ -876,6 +876,17 @@ typedef struct FixedWingParams {
    * over which its drag coefficient more than halves.
    */
   double cd0_re;
+  /* The wing's own lift slope, per rad, where cl_alpha is the wing and
+   * tail's: the stall angle is the wing's, CL max over this, and the
+   * tail's share of the slope lifts on past it. Zero: cl_alpha for both. */
+  double cl_alpha_wing;
+  /* The stall across the Reynolds numbers on the chord: at stall_re[0]
+   * and [1], the wing's CL max and the angle its lift peaks at, rad,
+   * straight between them and held past them. Zero leaves cl_max and
+   * stall_blend as the table has them. */
+  double stall_re[2];
+  double stall_clmax[2];
+  double stall_peak[2];
   /*
    * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
    * wingtip. Zero discus_v is an aircraft that is not, which

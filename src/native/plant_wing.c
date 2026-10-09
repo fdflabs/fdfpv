@@ -334,6 +334,11 @@ static double clip(double x, double lim) {
  * move. a - (-b) is a + b exactly in IEEE 754, and 0 - (+-0) is +0, so
  * this is the sum for every nonzero term and the identity for a zero one.
  */
+/* The wing's own lift slope (FixedWingParams.cl_alpha_wing). */
+static double wing_cla(const FixedWingParams *fw) {
+  return fw->cl_alpha_wing > 0.0 ? fw->cl_alpha_wing : fw->cl_alpha;
+}
+
 static double add_term(double sum, double term) {
   return sum - (0.0 - term);
 }
@@ -1242,7 +1247,8 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
                         double dr, double r, double cl_lin, double dcl_f, double stall, double k, double top, double out[2]) {
   out[0] = 0.0;
   out[1] = 0.0;
-  const double aa = add_term(alpha + (da + dr), dcl_f / fw->cl_alpha);
+  const double cla = wing_cla(fw);
+  const double aa = add_term(alpha + (da + dr), dcl_f / cla);
   const double sigma = smoothstep(stall - fw->stall_blend, stall + fw->stall_blend, sim_fabs(aa));
   if (!(sigma > 0.0)) {
     return;
@@ -1259,14 +1265,14 @@ static void strip_stall(const FixedWingParams *fw, double alpha, double sin_a, d
    * of the wing's lift and the roll damping's cla da, so on the held lift
    * a strip's roll damping is gone and a rate that pushes it deeper takes
    * nothing more. */
-  const double lin = r * fw->cl_alpha * aa;
-  const double hold = r * fw->cl_alpha * stall;
-  const double lift = stalled_lift(fw, k, top, hold, stall, dcl_f / fw->cl_alpha, aa, sp, cp, &fall, &past);
+  const double lin = r * cla * aa;
+  const double hold = r * cla * stall;
+  const double lift = stalled_lift(fw, k, top, hold, stall, dcl_f / cla, aa, sp, cp, &fall, &past);
   const double blended = (1.0 - sigma) * lin + sigma * lift;
   /* The linear wing's roll damping acts on the roll about the flight path,
    * the roll rate's da and the yaw rate's dr together (plant_wing_step's
    * stability axis rates), so a stalled strip takes both back. */
-  const double ref = r * fw->cl_alpha * add_term(alpha, dcl_f / fw->cl_alpha) + fw->cl_alpha * (da + dr);
+  const double ref = r * cla * add_term(alpha, dcl_f / cla) + cla * (da + dr);
   out[0] = past * (blended - ref);
   out[1] = past * sigma * (2.0 * sp * sp - fw->k_induced * cl_lin * cl_lin);
 }
@@ -1290,8 +1296,9 @@ typedef struct {
 } WingLift;
 static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, double dcl_f, double clmax, double k_stall,
                       double fre, double sin_a, double cos_a, WingLift *o) {
-  const double alpha_stall = clmax / fw->cl_alpha;
-  const double aa = sim_fabs(add_term(alpha, dcl_f / fw->cl_alpha));
+  const double cla = wing_cla(fw);
+  const double alpha_stall = clmax / cla;
+  const double aa = sim_fabs(add_term(alpha, dcl_f / cla));
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
   const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
   const double cl_flat = 2.0 * sin_a * cos_a;
@@ -1309,21 +1316,21 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
    * stall's moments, and the strips' stall angle are where they always
    * were: the drag rises before the peak, as a real section's does, and
    * the gates measure the stall at the linear crossing. */
-  const double aw = add_term(alpha, dcl_f / fw->cl_alpha);
+  const double aw = add_term(alpha, dcl_f / cla);
   const double a0 = alpha_stall - fw->stall_blend;
   const double a1 = alpha_stall + fw->stall_blend;
   double wing = clmax;
   if (aa < a0) {
-    wing = fw->cl_alpha * aa;
+    wing = cla * aa;
   } else if (aa < a1) {
-    wing = clmax - fw->cl_alpha * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
+    wing = clmax - cla * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
   }
   const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * delta_e;
   const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
   const double cl_old = (1.0 - s_hi) * cl_peak + s_hi * cl_flat;
   double cl_st = cl_old, fall = 0.0, past = 0.0;
   if (sigma > 0.0 && fre > 0.0) {
-    const double shift = dcl_f / fw->cl_alpha;
+    const double shift = dcl_f / cla;
     /* What the stalled wing holds is CL max, the top of the curve above,
      * with the elevator's lift on it, taken on the side the wing is
      * stalling on, so a symmetric section holds the same lift on its back
@@ -1338,6 +1345,12 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   o->fall = fall;
   o->past = past;
   o->cl = add_term(cl_old, fre * past * (cl_st - cl_old));
+  /* The tail's share of the slope (cl_alpha_wing), which does not stall
+   * with the wing: its lift at the angle, sin cos for alpha so it is
+   * bounded on its side. Nothing where the table gives no wing slope. */
+  if (fw->cl_alpha_wing > 0.0) {
+    o->cl += (fw->cl_alpha - fw->cl_alpha_wing) * sin_a * cos_a;
+  }
 }
 
 /*
@@ -1463,6 +1476,25 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   const double u = vb[0], v = vb[1], w = vb[2];
   const double V2 = u * u + v * v + w * w;
   const double V = sim_sqrt(V2);
+  /* The stall across the Reynolds numbers (FixedWingParams.stall_re): CL
+   * max and the angle the lift peaks at, from the section's data at two
+   * Reynolds numbers, straight between them at the chord's; the peak is a
+   * stall_blend past the stall angle CL max / CL alpha (wing_lift), so the
+   * blend is what puts it there. A copy, as for the damage above. */
+  FixedWingParams fw_re;
+  if (fw->stall_re[0] > 0.0) {
+    fw_re = *fw;
+    const double re = V * fw->chord * PLANT.rho / AIR_MU;
+    double x = 0.0;
+    if (re > fw->stall_re[0]) {
+      x = re >= fw->stall_re[1] ? 1.0 : (re - fw->stall_re[0]) / (fw->stall_re[1] - fw->stall_re[0]);
+    }
+    fw_re.cl_max = fw->stall_clmax[0] + x * (fw->stall_clmax[1] - fw->stall_clmax[0]);
+    const double peak = fw->stall_peak[0] + x * (fw->stall_peak[1] - fw->stall_peak[0]);
+    const double b = peak - fw_re.cl_max / wing_cla(fw);
+    fw_re.stall_blend = b > fw->stall_blend ? b : fw->stall_blend;
+    fw = &fw_re;
+  }
   /* The discus launch's zoom lasts as long as the climb does. */
   if (g_discus == 2 && !(s->vel[2] > 0.0)) {
     g_discus = 0;
@@ -1629,7 +1661,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * curve to a higher alpha. All of it zero without them. */
   const double dcl_f = fw->cl_df * df + fw->cl_df2 * df * df;
   const double clmax = add_term(add_term(fw->cl_max, fw->clmax_df * df), g_slats ? fw->slat_dclmax : 0.0);
-  const double alpha_stall = clmax / fw->cl_alpha;
+  const double alpha_stall = clmax / wing_cla(fw);
   double sin_b = 0.0, cos_b = 1.0;
   if (Vxz > 0.5) {
     sin_b = -w / Vxz;
@@ -2054,7 +2086,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     }
     const double chord_mean = fw->area / fw->span;
     const double kr = -fw->cl_p * fw->area * fw->span * fw->span /
-                      (4.0 * fw->cl_alpha * chord_mean * half * half * half * cyy);
+                      (4.0 * wing_cla(fw) * chord_mean * half * half * half * cyy);
     /* A section along the span: the strip nearest its own limit, its
      * section's CL max over its share of the wing's lift, stalls first. */
     double kmin = 0.0;
@@ -4215,6 +4247,17 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .chord = 0.2927,        /* the mean aerodynamic chord of the measured taper */
   .cl_alpha = 4.704,      /* wing and tail, Nelson eq. 2.52 */
   .cl_max = 0.95,         /* a thick symmetric section at 2e5 */
+  /* The stall from a measured section, docs/EXTRA-STAGE1.md: Timmer's
+   * NACA 0018 (Wind Engineering 32(6), 2008), the nearest measured
+   * symmetric section at these Reynolds numbers (the Extra's is 14
+   * percent): CL max 0.988 at 11.6 deg at 1.5e5 and 1.056 at 15.1 at 3e5.
+   * The wing's: 0.9 of the section's (Raymer, Aircraft Design, sec.
+   * 12.4), its peak further on by the induced angle CL / (pi A e); the
+   * wing's own slope extra-derive's a_w, 2 pi A / (A + 2). */
+  .cl_alpha_wing = 4.390,
+  .stall_re = { 1.5e5, 3.0e5 },
+  .stall_clmax = { 0.8892, 0.9504 },
+  .stall_peak = { 0.2839, 0.3506 },
   /* A symmetric section at no incidence: zero lift on the body axis. */
   .alpha_zl = 0.0,
   .sin_zl = 0.0,
