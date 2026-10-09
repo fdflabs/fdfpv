@@ -60,7 +60,7 @@ export const PRESETS = {
   gusty: { speed: 6, layers: LAYERS, gust: 2, front: null, thermal: 1.2 },
   front: {
     speed: 5, layers: LAYERS, gust: 1.2, thermal: 0,
-    front: { every: 2400, width: 300, speed: 8, boost: 2.2, gust: 3 },
+    front: { every: 2400, width: 300, speed: 8, boost: 2.2, gust: 3, rain: 1 },
   },
 };
 /* One thermal at most in each square this wide, m, and the chance that it
@@ -348,8 +348,10 @@ function thermalDepth(above) {
  * The air for one room: null for calm (the shell then sets still air once,
  * and the plant is exactly what it was before weather existed), else
  * { at(x, y, z, t, out) } writing out.x, out.z (the mean, m/s, toward),
- * out.gust (RMS, m/s) and out.up (the air's vertical speed, m/s, up
- * positive: thermals and ridge lift and sink), within the ABI's limits. Throws on an unknown map or
+ * out.gust (RMS, m/s), out.up (the air's vertical speed, m/s, up
+ * positive: thermals and ridge lift and sink), within the ABI's limits,
+ * and out.wet, how hard it rains, 0 to 1, which only the picture reads.
+ * Throws on an unknown map or
  * preset: a room naming one is a bug to see, not still air to fly in.
  */
 export function makeWeather(mapId, presetId, seed) {
@@ -382,6 +384,7 @@ export function makeWeather(mapId, presetId, seed) {
       const above = y - map.base;
       let mean = p.speed * layerMul(p.layers, above);
       let gust = p.gust;
+      let wet = 0;
       for (let i = 0; i < map.zones.length; i += 1) {
         const zone = map.zones[i];
         const k = (1 - smooth(0, zone.r * zone.r, lineDist2(zone.line, x, z)))
@@ -397,6 +400,7 @@ export function makeWeather(mapId, presetId, seed) {
         const k = 1 - smooth(0, 0.5 * f.width, u < 0 ? -u : u);
         mean *= 1 + (f.boost - 1) * k;
         gust += f.gust * k;
+        wet = f.rain * k;
       }
       mean = mean < WIND_MAX ? mean : WIND_MAX;
       /* A face across the wind lifts the air on its windward side, about
@@ -418,6 +422,7 @@ export function makeWeather(mapId, presetId, seed) {
       out.x = dx * mean;
       out.z = dz * mean;
       out.gust = gust < GUST_FLOOR ? GUST_FLOOR : (gust > GUST_MAX ? GUST_MAX : gust);
+      out.wet = wet;
       return out;
     },
   };

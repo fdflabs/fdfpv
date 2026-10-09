@@ -47,7 +47,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng } from '../../alps/noise.js';
+import { makeRng } from '../noise.js';
 import { REGIONS } from './atlas.js';
 
 /*

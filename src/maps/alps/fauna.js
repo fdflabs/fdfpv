@@ -26,9 +26,9 @@
  */
 
 import * as THREE from 'three';
-import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
+import { makeParts, bakeParts, instanced, box, boxUp } from '../../render/library/vehicles/parts.js';
 import { makePath, arc } from './path.js';
-import { smoothstep } from './noise.js';
+import { smoothstep } from '../../render/library/noise.js';
 import { streamX } from './terrain.js';
 
 const COAT = {
