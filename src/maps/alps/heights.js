@@ -20,7 +20,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fbm, noise2, smoothstep } from './noise.js';
+import { fbm, noise2, smoothstep } from '../../render/library/noise.js';
 
 /* The heightfield: a square this many metres on a side, centred on the
  * origin, sampled on a grid this fine. Thirty metre cells are coarse for a

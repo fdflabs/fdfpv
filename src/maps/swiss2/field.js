@@ -20,7 +20,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fbm, noise2, smoothstep } from '../alps/noise.js';
+import { fbm, noise2, smoothstep } from '../../render/library/noise.js';
 import {
   HALF, CELL, CELLS, FLOOR_HALF, WALL_REACH, RIDGE, SIDE_Z, LIP_DX, LIP_RISE, POOL, terrainHeight, valleyAxis,
 } from '../alps/heights.js';
