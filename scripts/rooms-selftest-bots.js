@@ -148,7 +148,7 @@ export function botsSection(check) {
     check('a tab that cannot mark an AI pilot (ROOM_LEVEL 2) gets none', e.bots().length === 0);
     const f = tagRoom({ mode: 'combat' });
     f.join(0);
-    const g = tagRoom({ map: 'alps' });
+    const g = tagRoom({ map: 'itaipu' });
     g.join(0);
     const h = tagRoom({ mode: null });
     h.join(0);
@@ -171,7 +171,24 @@ export function botsSection(check) {
     r3.bots.restore(saved);
     check('a private room switched on stays on when restored, and one never stored starts off',
       r3.bots.level === 'normal' && new RoomCore({ ...q2.r.meta }).bots.level === 'off', `${r3.bots.level}`);
-    check('none in a combat room, on a world they cannot fly, or in free flight', f.bots().length + g.bots().length + h.bots().length === 0);
+    check('none in a combat room, on a world they cannot fly (Itaipu), or in free flight', f.bots().length + g.bots().length + h.bots().length === 0);
+    const al = tagRoom({ map: 'alps' });
+    al.join(0);
+    al.run(3000, [0]);
+    check('the alps fill as the Swiss valley does, every AI pilot on the alps', al.bots().length === FILL_TO - 1 && al.bots().every((b) => b.profile.map === 'alps')
+      && al.r.bots.bots.map === 'alps', al.bots().map((b) => b.profile.map).join(','));
+    /* A private room, the only kind a host may move. */
+    const mv = tagRoom({ open: false });
+    mv.join(0);
+    mv.say(0, { type: 'bots', level: 'normal' });
+    mv.run(3000, [0]);
+    const seatsBefore = mv.bots().map((b) => b.seat).join(',');
+    mv.say(0, { type: 'world', map: 'alps' });
+    const joins = mv.socks[0].got.filter((m) => m.type === 'join' && m.bot && m.profile.map === 'alps').length;
+    check('the host moves the room to the alps: its AI pilots leave and alps ones fill', mv.bots().length === FILL_TO - 1 && mv.bots().every((b) => b.profile.map === 'alps')
+      && joins === FILL_TO - 1 && mv.r.bots.bots.map === 'alps', `${seatsBefore} then ${mv.bots().map((b) => `${b.seat}:${b.profile.map}`).join(',')}, ${joins} alps joins`);
+    mv.say(0, { type: 'world', map: 'itaipu' });
+    check('and to Itaipu: they all leave', mv.bots().length === 0, `${mv.bots().length}`);
   }
   {
     const e = tagRoom({ cap: FILL_TO });
