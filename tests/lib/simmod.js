@@ -37,7 +37,7 @@ export const SIM_ERR_BAD_STATE = -3;
 export const SIM_ERR_CONFIG_PARSE = -4;
 export const SIM_ABI_VERSION = 1;
 export const POWER_STATE_DOUBLES = 10;
-export const TUNE_DOUBLES = 11;
+export const TUNE_DOUBLES = 12;
 const ADDONS_STATE_DOUBLES = 8;
 
 export function simErrorName(code) {

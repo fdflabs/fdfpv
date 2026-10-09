@@ -700,6 +700,9 @@ typedef struct FixedWingParams {
   double cd_df2;          /* drag per rad^2 of flap */
   double cm_dcl_f;        /* pitching moment per unit of flap lift, nose up + */
   double de_df;           /* the radio's mix: elevator rad per rad of flap */
+  /* The radio's elevator to flap mix, sim_wing_set_tune: flap, as a share
+   * of flap_full, per unit of up elevator stick. Zero on every table. */
+  double elev_flap;
   /* Fixed leading edge slats, fitted or not (sim_wing_set_slats): the
    * CLmax they add, which moves the stall to a higher alpha on the same
    * lift curve, and the drag they cost. Zero on an aircraft without. */

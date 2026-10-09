@@ -8,7 +8,8 @@
  * presses left on its Rate row pick the manual's low rate, and the plant
  * flies those throws at once, in the paused run (sim_wing_tune). One press
  * left on the aileron expo takes 30 percent to 20, which the plant flies
- * too. Back returns to the pause menu. No page error. Pictures in outdir.
+ * too, and one press right on the elevator to flap mix takes it from off
+ * to 25 percent in the plant. Back returns to the pause menu. No page error. Pictures in outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -65,7 +66,7 @@ async function click(page, selector) {
  * aileron expo (SIM_TUNE_* in src/native/sim_abi.h). */
 const plant = (page) => page.evaluate(`(() => {
   const t = window.__craft().tune;
-  return t && { throws: [t[3], t[4], t[5]].map((r) => Math.round(r * ${DEG} * 10) / 10), expoA: t[6], mode: window.__craftState().mode };
+  return t && { throws: [t[3], t[4], t[5]].map((r) => Math.round(r * ${DEG} * 10) / 10), expoA: t[6], elevFlap: t[11], mode: window.__craftState().mode };
 })()`);
 const near = (a, b) => a.every((x, i) => Math.abs(x - b[i]) < 0.05);
 const round = (a) => a.map((x) => Math.round(x * 10) / 10);
@@ -116,6 +117,12 @@ try {
   await page.sleep(500);
   const expo = await plant(page);
   check('one press left on the aileron expo takes it from 30 to 20 percent in the plant', expo && Math.abs(expo.expoA - 0.2) < 1e-9, `${expoRow}: ${JSON.stringify(expo)}`);
+  const mixRow = rows.find((id) => /elevator-to-flap/.test(id));
+  await click(page, `[data-row-id="${mixRow}"] .row-label`);
+  await page.tap('ArrowRight');
+  await page.sleep(500);
+  const mixed = await plant(page);
+  check('one press right on the Timber\'s elevator to flap mix takes it from off to 25 percent in the plant', mixed && Math.abs(mixed.elevFlap - 0.25) < 1e-9, `${mixRow}: ${JSON.stringify(mixed)}`);
   await shot(page, 'low');
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});

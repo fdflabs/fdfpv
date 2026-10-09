@@ -1969,6 +1969,7 @@ static const PlantParams *plant_tune_over(const PlantParams *base) {
   g_fw_tune.tune_expo[2] = t[SIM_TUNE_EXPO_R];
   g_fw_tune.trim_e = t[SIM_TUNE_TRIM_E];
   g_fw_tune.de_df = t[SIM_TUNE_FLAP_MIX];
+  g_fw_tune.elev_flap = t[SIM_TUNE_ELEV_FLAP];
   g_plant_tune = *base;
   g_plant_tune.fw = &g_fw_tune;
   const double mb = t[SIM_TUNE_BALLAST_KG];
@@ -1995,7 +1996,8 @@ int plant_set_tune(const double *in) {
       || !in_range(in[SIM_TUNE_EXPO_E], 0.0, 1.0)
       || !in_range(in[SIM_TUNE_EXPO_R], 0.0, 1.0)
       || !in_range(in[SIM_TUNE_TRIM_E], -10.0 * deg, 10.0 * deg)
-      || !in_range(in[SIM_TUNE_FLAP_MIX], -1.0, 1.0)) {
+      || !in_range(in[SIM_TUNE_FLAP_MIX], -1.0, 1.0)
+      || !in_range(in[SIM_TUNE_ELEV_FLAP], 0.0, 1.0)) {
     return SIM_ERR_BAD_ARG;
   }
   for (int i = 0; i < SIM_TUNE_DOUBLES; i += 1) {
@@ -2033,6 +2035,7 @@ void plant_tune_read(double *out) {
   out[SIM_TUNE_EXPO_R] = fw ? fw->expo : 0.0;
   out[SIM_TUNE_TRIM_E] = 0.0;
   out[SIM_TUNE_FLAP_MIX] = fw ? fw->de_df : 0.0;
+  out[SIM_TUNE_ELEV_FLAP] = fw ? fw->elev_flap : 0.0;
 }
 
 int plant_tune_on(void) {

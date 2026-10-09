@@ -168,6 +168,9 @@ static double g_chute_t = 0.0;
  */
 static int g_flap_notch = 0;
 static double g_flap = 0.0;
+/* What the elevator to flap mix put on top of the notch last step, so the
+ * drawn flaps are the ones flying. Zero without the mix. */
+static double g_flap_mix = 0.0;
 
 /*
  * THE RETRACTS, docs/P51-STAGE1.md: the gear selected up (1) or down (0),
@@ -733,6 +736,7 @@ void plant_wing_reset(void) {
   g_chute = 0;
   g_chute_t = 0.0;
   g_flap = flap_target();
+  g_flap_mix = 0.0;
   g_gear_up = 0;
   g_gear = 0.0;
   for (int i = 0; i < 4; i += 1) {
@@ -824,12 +828,13 @@ int plant_wing_set_flaps(int notch) {
 }
 
 double plant_wing_flaps(void) {
-  return g_flap;
+  return add_term(g_flap, g_flap_mix);
 }
 
 void plant_wing_flaps_stow(void) {
   g_flap_notch = 0;
   g_flap = 0.0;
+  g_flap_mix = 0.0;
 }
 
 void plant_wing_flaps_settle(void) {
@@ -1393,6 +1398,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_discus = 0;
   }
   const int preset = g_discus == 2;
+  /* The pitch stick as the radio has it, before any stabiliser below
+   * rewrites it: the elevator to flap mix is the transmitter's. */
+  const double pitch_radio = g_chute ? 0.0 : pitch;
 
   /* On its wheels a stabiliser has nothing to hold: the gear holds the
    * attitude, so an attitude loop would only wind its error up against the
@@ -1443,7 +1451,18 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_flap -= fw->flap_rate * WING_DT;
     if (g_flap < flap_t) g_flap = flap_t;
   }
-  const double df = g_flap;
+  /* The radio's elevator to flap mix, a pilot's 3D setup ("elevator
+   * flaps", docs/FLIGHTMODEL.md): up elevator lowers the flaps by
+   * elev_flap of their full travel at full stick, on top of the notch.
+   * It is the transmitter's mix on the flap servos, which follow it as the
+   * other surfaces follow their sticks; only the notch's switch is slowed.
+   * Down only, within the flaps' travel. Zero leaves df the notch's. */
+  double df = g_flap;
+  if (fw->elev_flap > 0.0) {
+    df = g_flap + fw->elev_flap * fw->flap_full * (pitch_radio > 0.0 ? pitch_radio : 0.0);
+    if (df > fw->flap_full) df = fw->flap_full;
+  }
+  g_flap_mix = df - g_flap;
 
   /* The retracts travel toward what is selected at their own rate. */
   if (fw->gear_time > 0.0) {
@@ -1511,7 +1530,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const int ailerons = fw->mix == FW_MIX_TAIL;
     g_surf[0] = ailerons ? -da : 0.0;
     g_surf[1] = ailerons ? da : 0.0;
-    g_surf[2] = clip(add_term(de, fw->de_df * df), fw->throw_e);
+    g_surf[2] = clip(add_term(de, fw->de_df * g_flap), fw->throw_e);
     g_surf[3] = delta_r;
     delta_e = g_surf[2];
   }

@@ -8,7 +8,7 @@
  *
  *   TUNING[airframeId] is a fixed wing's data, below. The pilot's setup is
  *   settings.tuning[airframeId] = { packMm, ballastG, rate, expo: { a, e,
- *   r }, trimDeg, flapStart, flapMix }, every field optional, a missing
+ *   r }, trimDeg, flapStart, flapMix, elevFlap }, every field optional, a missing
  *   one the stock value; normalizeTuning validates a stored map on load and
  *   drops whatever is the stock value, so an empty entry is the kit as it
  *   comes. tuneBlock(airframeId, entry, massKg, packKg) is the plant's
@@ -64,9 +64,9 @@ import { TABLE, powerBlock, powerOption } from './power.js';
 /* sim_abi.h's SIM_TUNE_* layout. */
 export const SIM_TUNE = {
   CG_SHIFT: 0, BALLAST_KG: 1, BALLAST_X: 2, THROW_A: 3, THROW_E: 4, THROW_R: 5,
-  EXPO_A: 6, EXPO_E: 7, EXPO_R: 8, TRIM_E: 9, FLAP_MIX: 10,
+  EXPO_A: 6, EXPO_E: 7, EXPO_R: 8, TRIM_E: 9, FLAP_MIX: 10, ELEV_FLAP: 11,
 };
-export const SIM_TUNE_DOUBLES = 11;
+export const SIM_TUNE_DOUBLES = 12;
 
 /* The plant writes its throws as degrees * pi / 180, and so does this, so
  * the high rate is the very double the table holds. */
@@ -75,6 +75,11 @@ const PI = 3.14159265358979323846;
 const rad = (deg) => (deg * PI) / 180;
 
 export const RATES = ['low', 'mid', 'high'];
+/* The radio's elevator to flap mix, percent of full flap at full up
+ * elevator, on a plane with flaps: the 3D pilot's "elevator flaps" that
+ * steady a harrier (docs/FLIGHTMODEL.md). Off as every kit ships; the
+ * steps are a transmitter's coarse ones, the amount is the pilot's. */
+export const ELEV_FLAPS = [0, 25, 50, 75, 100];
 export const STOCK_EXPO = 30;
 /* How far a pack slides in its bay either way, mm: ESTIMATED, no kit
  * publishes it; the hook and loop trays of these kits leave about an inch
@@ -271,6 +276,7 @@ export function stockEntry(airframeId) {
     trimDeg: 0,
     flapStart: 0,
     flapMix: Boolean(t && t.flaps),
+    elevFlap: 0,
   };
 }
 
@@ -373,6 +379,9 @@ export function normalizeEntry(airframeId, raw, limits) {
     if (raw.flapMix === false) {
       out.flapMix = false;
     }
+    if (ELEV_FLAPS.includes(raw.elevFlap) && raw.elevFlap !== 0) {
+      out.elevFlap = raw.elevFlap;
+    }
   }
   return Object.keys(out).length ? out : null;
 }
@@ -433,6 +442,7 @@ export function tuneBlock(airframeId, entry, massKg, packKg) {
   out[SIM_TUNE.EXPO_R] = e.expo.r / 100;
   out[SIM_TUNE.TRIM_E] = rad(e.trimDeg);
   out[SIM_TUNE.FLAP_MIX] = t.flaps && e.flapMix ? t.flaps.mix : 0;
+  out[SIM_TUNE.ELEV_FLAP] = t.flaps ? e.elevFlap / 100 : 0;
   return out;
 }
 

@@ -4155,4 +4155,6 @@ export default {
   "ui.plane_rate_pick_note": "Los recorridos del {plane} con el stick a fondo, alerones, profundidad y timón, como los da su manual. Bajo es el rate bajo del manual, o el 70 por ciento del alto si no lo da; Medio es el punto medio, el centro de un interruptor de tres posiciones.",
   "ui.plane_expo": "Expo de {surface}",
   "ui.plane_expo_note": "Suaviza el stick cerca del centro sin cambiar el recorrido a fondo: 0 es lineal, 100 todo curva.",
+  "ui.plane_elev_flap": "Mezcla de profundidad a flaps",
+  "ui.plane_elev_flap_note": "Una mezcla de radio que los pilotos de 3D usan para el harrier: la profundidad arriba baja también los flaps, esta parte de su recorrido total con el stick a fondo, sumada al interruptor de flaps. Apagada como viene el avión.",
 };
