@@ -60,6 +60,10 @@ jobs:
           node-version: 22
       - name: Stamp the version
         run: node scripts/stamp-version.js /tmp/site "${GITHUB_SHA::12}"
+      # After the stamp: the policy allows the stamped import map by its hash.
+      # Pages sends no header a site chooses, so it is a meta tag (scripts/csp.js).
+      - name: Write the Content-Security-Policy
+        run: node scripts/csp.js /tmp/site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: /tmp/site

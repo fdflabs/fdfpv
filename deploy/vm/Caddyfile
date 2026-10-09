@@ -50,6 +50,18 @@
 }
 
 (servers) {
+	# Security headers on every answer (docs/SECURITY-HEADERS.md). The
+	# servers answer JSON, WebSockets, GIFs and films to the game's own
+	# origin; none of it is a page, so the policy forbids everything and
+	# nothing here may be framed. The board's pages get their own policy in
+	# its handle below, which runs later and so replaces this one.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		-Server
+	}
 	# The board believes X-Forwarded-For under BOARD_TRUST_PROXY, so it is
 	# set here to the connecting address rather than appended to whatever a
 	# client sent, and the two country headers it would believe are removed:
@@ -57,6 +69,10 @@
 	# client's own.
 	redir /board /board/ 308
 	handle_path /board/* {
+		# The board's pages and admin: its own modules, no inline script,
+		# inline <style> in the pages, pictures it draws into blob: and
+		# data: URLs, and every request to its own origin.
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		reverse_proxy 127.0.0.1:3180 {
 			header_up X-Forwarded-For {remote_host}
 			header_up -Cf-Ipcountry
