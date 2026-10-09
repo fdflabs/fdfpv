@@ -324,6 +324,7 @@
     "nighttimber:gates": "node scripts/nighttimber-gates.js",
     "nighttimber:record": "node scripts/wing-record.js nighttimber",
     "nighttimber:derive": "node scripts/nighttimber-derive.js",
+    "nighttimber:lights": "node scripts/nighttimber-lights-check.js",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",
