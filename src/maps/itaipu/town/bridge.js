@@ -35,7 +35,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { roofRecord } from '../../alps/roofs.js';
+import { roofRecord } from '../../../render/library/roofs.js';
 import { wallBoxes } from './plan.js';
 
 /* Metres over the river's lowest ground along the line. */

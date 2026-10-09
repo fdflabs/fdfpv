@@ -199,7 +199,7 @@ export function yards(t) {
         const top = outbuilding(at(p.x, p.z, turn), spec);
         take(p.x, p.z, spec.w / 2 + 0.5, turn, spec.d / 2 + 0.6);
         /* Its walls under its roof, which is ground, with the old box
-         * its footprint (alps/roofs.js standWalls). */
+         * its footprint (library/roofs.js standWalls). */
         const roofs = bake.roofs.slice(from.roofs);
         for (const r of roofs) {
           r.kind ??= spec.kind;

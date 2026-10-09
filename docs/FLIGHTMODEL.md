@@ -712,6 +712,135 @@ the plant 218; E9, full aileron against it, 209 (232), the plant 212.
   Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
   its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
 
+## The Skyhunter's wash: a pusher between its booms
+
+The Skyhunter's prop is behind its wing and ahead of its H tail: its wash
+blows the middle of the stabiliser, 0.456 m of span between the booms,
+and passes both boom fins 0.232 m out (docs/SKYHUNTER-STAGE1.md, the 3D
+model), and no wing root stands behind the prop to turn its swirl back.
+Two table fields say so: `slip_pusher` (no root: the swirl's share at
+the tail is all of it, and nothing recovers it) and `slip_hv` both zero
+(no fin in the wash: its share is 0). Every other table's arithmetic is
+as it was. From scripts/wash-derive.js on its derivation's tail numbers.
+
+| Skyhunter | main | this |
+| --- | --- | --- |
+| AUTH pitch, yaw rad/s² at zero airspeed | 0, 0 | 31.3, 0 |
+| HOVER held of 8 s | 0.82 | 4.31 |
+| HARR pitch | 11.3 deg | 17.2 deg |
+
+Re-recorded nothing: the Skyhunter's committed recording is kept (its
+recorder does not reproduce it on main either) and its hash, replaylib's
+trace and simmod's transcript are re-pinned. Every other hash is the
+previous pull request's.
+
+## The stall, part 1: CL max at the top of the curve, and the moment break
+
+### The lift
+
+The probe found every minimum flying speed 3 to 12 percent over its
+derivation because the plant's lift curve topped out at 0.80 to 0.88 of
+each table's CL max (UGLYSTIK and TIGERMOTH-STAGE1 said as much: "the
+plant's curve rounds off short of CL max, as every aircraft's does"). Every
+derivation's stall speed, sqrt(2 W / rho S CL max), takes CL max as the
+peak of the curve. Now it is: the wing's own lift follows the linear line
+to a stall_blend short of the stall angle, leaves it below on the parabola
+tangent to it there, and tops out at CL max a stall_blend past it, level;
+the stalled section holds CL max for stall_top before it falls. The plate's
+drag and the strips' stall angle start where they always did, and the gates
+measure the stall at the linear crossing as before.
+scripts/lib/liftcurve.js is the curve for the derivations (Kadet, Bombshell,
+Slow Stick, stab:glide), formula for formula.
+
+### The moment break: the centre of pressure moves aft at the stall
+
+The stalled lift used to act at the aerodynamic centre for as long as the
+section held it, and only move to the plate's centre of pressure as it
+fell. A section that stalls from its trailing edge separates from CL max on
+and its centre of pressure moves aft with the separation: its quarter chord
+moment breaks nose down at the stall itself, not when the lift falls
+(Abbott and von Doenhoff, Theory of Wing Sections, the cm_c/4 curves of the
+NACA 24xx, 00xx and Clark Y class sections; Hoerner, Fluid Dynamic Lift, the
+centre of pressure's travel with separation). Critzos, Heyson and Boswinkle,
+NACA TN 3361 (the NACA 0012 to 180 deg), say the same in words: the
+quarter chord moment "become[s] negative after the stall (alpha = 14 deg)
+and remain[s] negative to 180 deg". They give the sign, not the speed: how
+fast the arm moves is the model's choice, not a measured curve, and the
+sourced curve would come from TN 3361's figure 1, which is not digitised
+here. It moves over one stall_blend from the stall angle, a choice bounded
+by the P-51's flight test on one side and the trainers' gates on the other.
+Spread over the whole plateau and the fall instead (stall_top and two
+blends), the Stik's U11b reads bank 19.1, the Slow Stick's S9b yaw 28.5
+and the P-51's P19 pb/2V 0.119, past the XP-51's band; over one blend all
+three pass, P19 at 0.107. The arm now moves over the
+stall's own blend (past) rather than over the fall, on the monoplane and on
+each of a biplane's wings. With CL max held at the old arm, the aircraft
+whose CG is behind its wing's aerodynamic centre (the Ugly Stik, the Tiger
+Moth) pitched up harder at full up and stalled deeper, and dropped a wing at
+a held powered stall (U11b 33 deg, T8b 18); with the break at the stall
+their trim is main's again (the Stik 14.2 deg of alpha against 14.0).
+Independent flight test agreement: the P-51's slow pull to full up, P19,
+reads pb/2V 0.107 in its first second, against the XP-51's 0.079 (NACA)
+inside the band of 0.04 to 0.118 it was derived on; 0.112 before.
+
+### Minimum flying speed, the probe's, #853 to this
+
+ Aircraft | STALL m/s 
+ --- | --- 
+ 1000 mm wing | 8.03 → 7.19 
+ Skyhunter | 10.31 → 9.15 
+ Cub | 8.94 → 8.07 
+ Slow Stick | 4.82 → 4.54 
+ Radian | 7.11 → 6.49 
+ Turbo Timber | 7.98 → 7.31 
+ Bramor | 14.06 → 13.80 
+ Bombshell | 6.94 → 6.66 
+ Kadet Senior | 8.28 → 7.42 
+ P-51D | 11.06 → 9.74 
+ F-16 | 12.82 → 11.80 
+ Zagi HP | 7.90 → 7.38 
+ Ugly Stik | 10.60 → 9.46 
+ Tiger Moth | 9.89 → 8.99 
+ Striker | 7.87 → 8.87 
+ Extra 300 3D | 9.32 → 8.36 
+
+Against each derivation: the 1000 mm wing 7.19 (7.25), Skyhunter 9.15
+(9.2), Cub 8.07 (8.1), Radian 6.49 (6.49), Zagi 7.38 (7.36), Ugly Stik 9.46
+(9.48), F-16 11.80 (11.98), P-51 9.74 (10.06), Timber 7.31 (7.20), Kadet
+7.42 (7.15), Bombshell 6.66 (6.49), Slow Stick 4.54 (4.43): the remaining
+few percent over on the trainers is the elevator's down load at full up,
+which the probe flies with and the formula leaves out. The Tiger Moth's
+derivation put its stall at the top wing's CL max, 9.47 m/s; the cell keeps
+lifting on its bottom wing past that, and the cell's own maximum on the
+plant's curve is CL 1.106, 8.76 m/s (the bip_* wings through
+scripts/lib/liftcurve.js); the plant flies 8.99. T2 still measures the top
+wing's crossing and is unchanged.
+
+### Gates re-derived, each said so in its source
+
+- Bands derived on the old curve, re-derived on the new one with their
+  tolerances: Kadet S9a (sink 1.21 m/s at 7.72 m/s, was 1.88 at 9.0),
+  Bombshell S9a (1.23 at 6.83, was 1.98 at 7.7), Slow Stick S9a (0.92 at
+  4.63, was 2.09 at 5.7, the first derivation's flat plate), Slow Stick
+  S15's take off (3.20 m at 4.63 m/s, was 4.9 m at 5.2). stab:glide's
+  curve is the new one; no table moved. The Slow Stick's hand toss in
+  wing:contact is thrown with the elevator neutral: 0.1 up climbed the
+  throw down to 4.9 m/s on the true curve.
+- Powered held stalls, flown as the handbook flies them (FAA-H-8083-3C ch.
+  5, power on stalls: right rudder against the left turning tendencies, a
+  wing picked up with the rudder): the Kadet, Bombshell and Slow Stick S9b
+  hold the wings on the rudder, their only roll control; the Tiger Moth's
+  T8b takes the yaw rate out on the rudder, as Great Planes' manual says
+  ("always be ready to apply right rudder to counteract engine torque");
+  the Stik's U11b and the Moth's T8b aileron holds have an integral, as the
+  Kadet's S8 bank hold, slow (0.2 per second per radian) against a stalled
+  wing's roll response. No band moved; every one passes.
+- tuning:check U2 read the Radian's static margin from two angles the
+  second of which, 2.9 deg of body angle, is past where its curve now
+  leaves the linear line; both points are on the linear lift now, and the
+  Radian's documented margin is the table's own, -cm_alpha / cl_alpha,
+  1.304 / 5.709 = 0.228 (it read 0.234 off the old curve's blend). The
+  hangar's tuning page shows 22.8 percent for it.
 ## A hover a person can fly, and the Extra's AS3X
 
 The owner flew the Extra 300 3D and could not hover it. HOVER above is
