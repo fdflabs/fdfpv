@@ -192,6 +192,10 @@ export const TABLE = {
     simId: 29, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,
     flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
   },
+  hercules3077: {
+    simId: 30, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
+    flightTime: null,
+  },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -675,6 +679,25 @@ const EXTRA = [
   },
 ];
 
+/* The Hercules 3077, docs/HERCULES-STAGE1.md: AeroTetris names no power
+ * system. Four E-flite Power 25s, 870 kV, on 12 x 8Es and 40 A ESCs, each
+ * on its own 3S 5000, as Paschaloudis's 11 ft C-130 flies four packs
+ * (Model Airplane News); the plant takes the four packs as one 3S of four
+ * times the charge. The thrust and current are ESTIMATED, four motors
+ * against APC's 12 x 8E (scripts/hercules-derive.js). The packs sit on
+ * the cargo floor at the kit's CG. */
+const HERCULES_PACKS = [
+  lipo('3s5000x4', 3, 20000, 1640, 'https://www.modelairplanenews.com/video-electric-11-foot-c-130/'),
+];
+const HERCULES = [
+  {
+    id: 'stock', name: 'power.hercules.stock', kind: 'electric', voice: 'wing',
+    kv: 870, propIn: 12, pitchIn: 8, blades: 2,
+    thrustN: 81.30, currentA: 147.1, rpmNoLoad: 9657, pitchSpeedMs: 27.80, lvcV: 3.0,
+    massKg: 6.728, cgShiftM: 0, packs: HERCULES_PACKS, pack: '3s5000x4',
+    source: ['https://www.horizonhobby.com/product/power-25-brushless-outrunner-motor-870kv/EFLM4025A.html', 'https://aerotetris.com/models/c130-3077.php', 'https://www.apcprop.com/files/PER3_12x8E.dat'],
+  },
+];
 const TIGER_TANKS = [
   tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, GP_TIGER),
 ];
@@ -718,6 +741,7 @@ export const POWER = {
   uglystik1567: STIK,
   tigermoth1803: TIGER,
   extra3d1308: EXTRA,
+  hercules3077: HERCULES,
   f16878: F16,
   p51d1450: P51,
   zagi1219: ZAGI,

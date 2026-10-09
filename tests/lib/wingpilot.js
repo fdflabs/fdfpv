@@ -1988,3 +1988,73 @@ export function recordExtraFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * AeroTetris's C-130 Hercules 3077, airframe 30, docs/HERCULES-STAGE1.md:
+ * a tricycle standing level on its wheels, the CG 0.2604 m up
+ * (src/render/herculescraft.js), or thrown at its cruise.
+ */
+export const HERCULES_AIRFRAME = 30;
+export const HERCULES_REST = { z: 0.2604, pitchDeg: 0 };
+export function herculesPrelude(sim) {
+  must(sim.e.sim_set_airframe(HERCULES_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(16), 'sim_wing_launch');
+}
+export function herculesGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(HERCULES_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = HERCULES_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, HERCULES_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+/* A tricycle's take off as the Kadet's: full throttle, the wings held
+ * level on the ailerons and the heading on the rudder and nose wheel
+ * against the four props' torque, the elevator eased up past 1.1 Vs. */
+export function herculesTakeoffSticks(s, { vRotate = 10.63 } = {}) {
+  const { bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+  const roll = Math.max(-1, Math.min(1, -0.8 * bank - 0.1 * s[11]));
+  const yaw = Math.max(-1, Math.min(1, 1.5 * heading + 0.2 * s[13]));
+  return [roll, v < vRotate ? 0 : Math.min(0.6, (v - vRotate) * 0.6), yaw, 1];
+}
+
+/*
+ * The Hercules' recording for the cross-host check: from standing on the
+ * strip, a second at rest, eight of full throttle taking off, a climb to
+ * 70 percent with the wings held on the ailerons, a held 30 deg bank to
+ * the right, a second of full rudder and the throttle back to a glide:
+ * twenty four seconds, the take off and the four props' torque in the
+ * hashed trace, and still flying at the end.
+ */
+export function recordHerculesFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  herculesGroundPrelude(sim);
+  const samples = [];
+  for (let ms = 0; ms < 24000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const hold = (b) => Math.max(-1, Math.min(1, -0.8 * (bank - b) - 0.1 * s[11]));
+    const nose = (t) => Math.max(-1, Math.min(1, 2.0 * (t - pitch) + 0.2 * s[12]));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 9000) {
+      sticks = herculesTakeoffSticks(s);
+    } else if (ms < 14000) {
+      sticks = [hold(0), nose(0.12), 0, 1];
+    } else if (ms < 19000) {
+      sticks = [hold(30 * Math.PI / 180), nose(0.05), 0, 0.7];
+    } else if (ms < 20000) {
+      sticks = [hold(0), nose(0.05), 1, 0.7];
+    } else {
+      sticks = [hold(0), nose(-0.05), 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

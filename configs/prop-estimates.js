@@ -382,5 +382,19 @@ export const PROP_ESTIMATES = {
         currentA: 27.941
       }
     }
+  },
+  hercules3077: {
+    stock: {
+      "11x7e": {
+        thrustN: 64.6732,
+        pitchSpeedMs: 25.4836,
+        currentA: 107.392
+      },
+      "12x6e": {
+        thrustN: 74.5322,
+        pitchSpeedMs: 21.5494,
+        currentA: 119.133
+      }
+    }
   }
 };

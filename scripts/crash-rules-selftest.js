@@ -305,7 +305,7 @@ check('a point on the box face is not inside', near(box.interiorOfHit(2, 1, 1), 
 check('a centre 5 cm outside the box is outside', box.interiorOfHit(2.05, 1, 1) < -0.04);
 
 /* Reach walk: slide the seated hull from the gap's middle towards a floor
- * (top at y 0) and a ceiling (bottom at y 1), and take the first touch. */
+ * (top at y 0) and a ceiling (bottom at y GAP), and take the first touch. */
 const STEPS = 20000;
 const LEVEL = [0, 1];
 const INVERTED = [1, 0];
@@ -321,18 +321,21 @@ function firstTouch(rig, from, to, [aqX, aqW]) {
 }
 
 const reachOk = (got, want) => got !== null && Math.abs(got - want) < 1e-3;
-const fromCeiling = (y) => (y === null ? null : 1 - y);
+/* The gap is 2 m: the Hercules' fin stands 0.62 m over its CG and its
+ * wheels 0.26 under, which a 1 m gap's middle already touched. */
+const GAP = 2;
+const fromCeiling = (y) => (y === null ? null : GAP - y);
 
 for (const frame of AIRFRAMES) {
   C.setCraftAirframe(frame.dims);
   const rig = new C.Colliders();
   rig.addBox('wall', -5, -1, -5, 5, 0, 5);
-  rig.addBox('wall', -5, 1, -5, 5, 3, 5);
+  rig.addBox('wall', -5, GAP, -5, 5, GAP + 2, 5);
   rig.build();
-  const down = firstTouch(rig, 0.45, 0.0, LEVEL);
-  const up = fromCeiling(firstTouch(rig, 0.55, 1.0, LEVEL));
-  const invDown = firstTouch(rig, 0.45, 0.0, INVERTED);
-  const invUp = fromCeiling(firstTouch(rig, 0.55, 1.0, INVERTED));
+  const down = firstTouch(rig, 0.95, 0.0, LEVEL);
+  const up = fromCeiling(firstTouch(rig, 1.05, GAP, LEVEL));
+  const invDown = firstTouch(rig, 0.95, 0.0, INVERTED);
+  const invUp = fromCeiling(firstTouch(rig, 1.05, GAP, INVERTED));
   const { vHalfDown, vHalfUp } = frame.dims;
   check(`${frame.id} reaches its declared depth below`, reachOk(down, vHalfDown), down);
   check(`${frame.id} reaches its declared height above`, reachOk(up, vHalfUp), up);

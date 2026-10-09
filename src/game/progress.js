@@ -123,8 +123,9 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'strike
  * request; the F-16 stays at 11 rather than move, since where a plane
  * opens is the owner's call. The Extra 300 3D came back on 2026-10-08
  * (docs/FLIGHTMODEL.md) at its old 9: a hover and a torque roll are
- * skills the P-51 does not teach. 8 and 10 open no plane. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra3d1308: 9, f16878: 11 };
+ * skills the P-51 does not teach. The Hercules opens at 8 (the lead's
+ * decision, 2026-10-08, docs/HERCULES-CONTRACT.md); 10 opens no plane. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, tigermoth1803: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra3d1308: 9, hercules3077: 8, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

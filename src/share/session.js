@@ -59,7 +59,7 @@ const SEAT_KEYS = {
  * moves it to its successor (configs/airframes.js retiredAirframe).
  */
 const FIXED_WINGS = new Set([
-  'bombshell1118', 'bramor2300', 'cub1400', 'cub1400f', 'edge1524', 'extra1308', 'extra3d1308', 'f16878', 'kadet1981',
+  'bombshell1118', 'bramor2300', 'cub1400', 'cub1400f', 'edge1524', 'extra1308', 'extra3d1308', 'f16878', 'hercules3077', 'kadet1981',
   'nrj1490', 'p51d1450', 'pitts850', 'quickie1293', 'radian2000', 'sky1800', 'slowstick1180', 'striker2500',
   'tigermoth1803', 'timber1500', 'timber1500f', 'uglystik1567', 'wing1000', 'wot41334', 'zagi1219',
 ]);

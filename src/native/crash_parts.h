@@ -1732,4 +1732,110 @@ static const PartDef PARTS_EXTRA3D1308[] = {
     .npts = 2, .pts = { { -0.40, 0.0, 0.05 }, { -0.40, 0.0, 0.14 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * AEROTETRIS C-130 HERCULES 3077, SIM_AIRFRAME_HERCULES3077,
+ * herculescraft.js. 6.73 kg on a laser cut balsa and ply frame, sheeted
+ * and glassed, a high wing on the fuselage's top, four Power 25s in
+ * nacelles under it (docs/HERCULES-STAGE1.md). Wheels: 0 left main, 1
+ * right main, 2 the nose wheel, 3 the tail cone's bumper. The plant takes
+ * the four props as one thrust line, so no motor or prop here is the
+ * plant's motor 0: a prop or a nacelle broken off is a part lost, not a
+ * quarter of the thrust (docs/HERCULES-CONTRACT.md). Strengths ESTIMATED
+ * from the Kadet's balsa figures scaled to the bigger sections.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_HERCULES3077[] = {
+  /* 0 the fuselage from the radome to the ramp's hinge, sheeted balsa
+   * over ply formers, the packs on its floor: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.40, 0.92, -0.165, 0.165, -0.195, 0.155) },
+  /* 1 the upswept tail cone and the ramp's frame, a sheeted shell, ESTIMATED
+   * at twice the Kadet's open truss for its closed section. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = 3,
+    .mass = 0.30, .joint = { -0.40, 0.0, -0.02 }, .m_max = 60.0, .f_max = 600.0, .k = 5.0e4,
+    .npts = 8, .pts = { { -0.40, 0.165, -0.195 }, { -0.40, -0.165, -0.195 }, { -0.40, 0.165, 0.155 }, { -0.40, -0.165, 0.155 },
+                        { -1.326, 0.04, 0.03 }, { -1.326, -0.04, 0.03 }, { -1.326, 0.04, 0.14 }, { -1.326, -0.04, 0.14 } } },
+  /* 2 the tailplane on the tail cone, 3 the elevators, 35 percent of it. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.11, .joint = { -1.08, 0.0, 0.067 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127),
+    .f_max = 100.0, .k = 2500.0, BOX(-1.16, -1.02, -0.611, 0.611, 0.060, 0.074) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.06, .joint = { -1.16, 0.0, 0.067 }, .m_max = 1.5, .f_max = 40.0, .k = 2000.0,
+    BOX(-1.22, -1.16, -0.611, 0.611, 0.062, 0.072) },
+  /* 4 the fin on the tail cone's top, 5 the rudder. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -1.10, 0.0, 0.155 }, .m_max = 2.0 * BALSA_M(0.0127, 0.0127), .f_max = 80.0, .k = 2000.0,
+    BOX(-1.25, -0.98, -0.005, 0.005, 0.155, 0.620) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { -1.25, 0.0, 0.35 }, .m_max = 1.2, .f_max = 35.0, .k = 1500.0,
+    BOX(-1.326, -1.25, -0.005, 0.005, 0.155, 0.620) },
+  /* 6, 7 the two wing panels plugged into the fuselage's top on a spar
+   * joiner: two spar boxes as the Kadet's on a deeper section, ESTIMATED
+   * at 150 N m up and down and 90 fore and aft. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.475, .joint = { -0.05, 0.165, 0.145 }, .m_max = 150.0, .m_max_z = 90.0, .f_max = 600.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.145, 0.165, 0.110 }, { -0.322, 0.165, 0.110 }, { 0.145, 0.165, 0.190 }, { -0.322, 0.165, 0.190 },
+                        { 0.082, 1.5385, 0.170 }, { -0.133, 1.5385, 0.170 }, { 0.082, 1.5385, 0.200 }, { -0.133, 1.5385, 0.200 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.475, .joint = { -0.05, -0.165, 0.145 }, .m_max = 150.0, .m_max_z = 90.0, .f_max = 600.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.145, -0.165, 0.110 }, { -0.322, -0.165, 0.110 }, { 0.145, -0.165, 0.190 }, { -0.322, -0.165, 0.190 },
+                        { 0.082, -1.5385, 0.170 }, { -0.133, -1.5385, 0.170 }, { 0.082, -1.5385, 0.200 }, { -0.133, -1.5385, 0.200 } } },
+  /* 8, 9 the ailerons, 0.66 to 0.97 of the half span. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.04, .joint = { -0.14, 1.25, 0.175 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0,
+    BOX(-0.20, -0.13, 1.015, 1.492, 0.165, 0.185) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.04, .joint = { -0.14, -1.25, 0.175 }, .m_max = 1.0, .f_max = 30.0, .k = 2000.0,
+    BOX(-0.20, -0.13, -1.492, -1.015, 0.165, 0.185) },
+  /* 10 to 13 the Power 25s in their nacelles, left outboard to right
+   * outboard, each on a 3 mm ply firewall as PL_MOTOR_M is. */
+  { .kind = SIM_PART_MOTOR, .parent = 6, .mat = SIM_MAT_ALU, .motor = -1, .wheel = -1,
+    .mass = 0.186, .joint = { 0.21, 0.7539, 0.0998 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    BOX(0.21, 0.26, 0.7359, 0.7719, 0.0818, 0.1178) },
+  { .kind = SIM_PART_MOTOR, .parent = 6, .mat = SIM_MAT_ALU, .motor = -1, .wheel = -1,
+    .mass = 0.186, .joint = { 0.21, 0.3846, 0.0998 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    BOX(0.21, 0.26, 0.3666, 0.4026, 0.0818, 0.1178) },
+  { .kind = SIM_PART_MOTOR, .parent = 7, .mat = SIM_MAT_ALU, .motor = -1, .wheel = -1,
+    .mass = 0.186, .joint = { 0.21, -0.3846, 0.0998 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    BOX(0.21, 0.26, -0.4026, -0.3666, 0.0818, 0.1178) },
+  { .kind = SIM_PART_MOTOR, .parent = 7, .mat = SIM_MAT_ALU, .motor = -1, .wheel = -1,
+    .mass = 0.186, .joint = { 0.21, -0.7539, 0.0998 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    BOX(0.21, 0.26, -0.7719, -0.7359, 0.0818, 0.1178) },
+  /* 14 to 17 the APC 12 x 8Es, glass filled nylon. */
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = -1, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.026, .joint = { 0.26, 0.7539, 0.0998 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.315, 0.7539, 0.0998 }, { 0.1524, 0.0, 0.0 } } },
+  { .kind = SIM_PART_PROP, .parent = 11, .mat = SIM_MAT_NYLON_GF, .motor = -1, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.026, .joint = { 0.26, 0.3846, 0.0998 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.315, 0.3846, 0.0998 }, { 0.1524, 0.0, 0.0 } } },
+  { .kind = SIM_PART_PROP, .parent = 12, .mat = SIM_MAT_NYLON_GF, .motor = -1, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.026, .joint = { 0.26, -0.3846, 0.0998 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.315, -0.3846, 0.0998 }, { 0.1524, 0.0, 0.0 } } },
+  { .kind = SIM_PART_PROP, .parent = 13, .mat = SIM_MAT_NYLON_GF, .motor = -1, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.026, .joint = { 0.26, -0.7539, 0.0998 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.315, -0.7539, 0.0998 }, { 0.1524, 0.0, 0.0 } } },
+  /* 18 the four 3S 5000s on the cargo floor, strapped as one. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 1.64, .joint = { 0.23, 0.0, -0.13 }, .m_max = 20.0, .f_max = 4.0 * VELCRO_12, .k = 3.0e5,
+    BOX(0.10, 0.36, -0.10, 0.10, -0.16, -0.10) },
+  /* 19, 20 the mains in their sponsons, 21 the steered nose leg, wire. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.12, .joint = { -0.08, 0.15, -0.18 }, .m_max = WIRE_M(0.005), .f_max = 900.0, .k = 5890.0,
+    BOX(-0.12, -0.04, 0.14, 0.19, -0.265, -0.18) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.12, .joint = { -0.08, -0.15, -0.18 }, .m_max = WIRE_M(0.005), .f_max = 900.0, .k = 5890.0,
+    BOX(-0.12, -0.04, -0.19, -0.14, -0.265, -0.18) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.06, .joint = { 0.66, 0.0, -0.18 }, .m_max = WIRE_M(0.004), .f_max = 400.0, .k = 1420.0,
+    BOX(0.64, 0.69, -0.02, 0.02, -0.265, -0.18) },
+  /* 22 the FPV camera in the flight deck's windscreen. */
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.80, 0.0, 0.10 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.79, 0.81, -0.010, 0.010, 0.09, 0.11) },
+  /* 23 the rear ramp on its two hinges, a hatch: a ply frame under balsa
+   * sheet, its servo's horn the weak point, ESTIMATED. */
+  { .kind = SIM_PART_CANOPY, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.08, .joint = { -0.60, 0.0, -0.15 }, .m_max = 3.0, .f_max = 80.0, .k = 2.0e4,
+    BOX(-0.84, -0.60, -0.115, 0.115, -0.17, -0.12) },
+};
+
 #endif /* CRASH_PARTS_H */
