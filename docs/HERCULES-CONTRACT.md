@@ -117,8 +117,8 @@ checks it, numbers it, keeps it under `drops` in its storage and sends
   rocketry size for this load. Knacke, Parachute Recovery Systems Design
   Manual (NWC TP 6575, 1991), table 5-1: a flat circular canopy's C_D0 is
   0.75 to 0.80 on its nominal area; 0.78 taken. Rate of descent at sea
-  level, `v = sqrt(2 m g / (rho C_D S0))` = sqrt(2 0.25 9.81 / (1.225
-  0.78 0.164)) = **5.6 m/s**.
+  level, `v = sqrt(2 m g / (rho (C_D S0 + the box's C_D A)))` = sqrt(2
+  0.25 9.81 / (1.225 (0.128 + 0.009))) = **5.40 m/s**.
 - **The opening**: a static line, 0.6 m, pulls the canopy as the load
   clears the ramp; it fills in `n D0 / v` with Knacke's fill constant n
   about 8 for a solid flat canopy, and the drag area grows with the
@@ -160,8 +160,8 @@ checks it, numbers it, keeps it under `drops` in its storage and sends
 - `npm run paradrop:selftest`: a drop in steady wind lands where the hand
   calculation says, and the same record twice gives the same path bit for
   bit, with gusts.
-- `npm run keys:hercules`: O and P on the Hercules, and on the Bramor and
-  a smoke fitted aircraft still the chute and the smoke.
-- `npm run rooms:drops` (browser, two pages and a late joiner): the same
+- `npm run hercules:keys` (browser): O and P on the Hercules, and on the
+  Bramor P still its chute and O no door.
+- `npm run hercules:room` (browser, two pages and a late joiner): the same
   drops at the same places.
 - lint:header, lint:dashes, lint:copy.
