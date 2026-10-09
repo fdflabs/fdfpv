@@ -15875,6 +15875,162 @@
      "sha256": "1fb12b78494cbc44615e727f6a6b4035b3c31f62f3cf62aef9b64f49f857d288"
     }
    }
+  },
+  "film-itaipu-2-o2.en": {
+   "text": "Every bird that came home, I'll have ready by dark.",
+   "speaker": "taller",
+   "seconds": 3.925,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1837565267,
+     "heard": "Every bird that came home, I'll have ready by dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17921,
+     "sha256": "0abee152b58eb8b8171f46081df66dfabdbf02cfedb8f4e60c56d199e40b058f"
+    },
+    "mp3": {
+     "bytes": 18956,
+     "sha256": "4b98cdf12f578fa5fb718024d56b8148e65495f8b1b545132644185f3177074a"
+    }
+   }
+  },
+  "film-itaipu-2-o2.es": {
+   "text": "Cada aparato que volvió, lo tengo listo antes de que oscurezca.",
+   "speaker": "taller",
+   "seconds": 4.525,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3603932485,
+     "heard": "Cada aparato que volvió lo tengo listo antes de que oscurezca.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20583,
+     "sha256": "6b511631818df84b6ebb49b7013372bd26abb0f1cfbe5bcf882f12651c234846"
+    },
+    "mp3": {
+     "bytes": 21860,
+     "sha256": "e5d893114b40d22af8a0076b0c1cee2aa751f4017f746ad2a6ef03e9aba29b2f"
+    }
+   }
+  },
+  "film-itaipu-2-o3.en": {
+   "text": "West arm's empty. They've gone to look at something else.",
+   "speaker": "mirador",
+   "seconds": 3.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1762756321,
+     "heard": "West arms empty. They've gone to look at something else.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16522,
+     "sha256": "45009031c8c560dfb7360fd54e6118b10fbcac114c76cab32ce5dfc032bf67e4"
+    },
+    "mp3": {
+     "bytes": 16628,
+     "sha256": "3fa408ac580adcb58509b008836697129f032088d79f4bdd9a7b22d21492d819"
+    }
+   }
+  },
+  "film-itaipu-2-o3.es": {
+   "text": "El brazo oeste está vacío. Se fueron a mirar otra cosa.",
+   "speaker": "mirador",
+   "seconds": 3.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3243897191,
+     "heard": "El brazo oeste está vacío, se fueron a mirar otra cosa.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15481,
+     "sha256": "74c4b2335ffe0dd12960e9faf37230a6e5ce98379bac5eac82cc847c04fb553e"
+    },
+    "mp3": {
+     "bytes": 15260,
+     "sha256": "a1e60acd803628252baf3f5d3b95b23eb309cf82311ab498cb0861fe6acd57e3"
+    }
+   }
+  },
+  "film-itaipu-2-o4.en": {
+   "text": "Everything we make leaves through that yard. Tonight, they'll want it dark.",
+   "speaker": "crest",
+   "seconds": 4.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2866737872,
+     "heard": "Everything we make leaves through that yard. Tonight, they'll want it dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19984,
+     "sha256": "c5fa375da15473994d266cf97c37c1947d4598ebe7feb38d6e48099fe7eb95f6"
+    },
+    "mp3": {
+     "bytes": 18836,
+     "sha256": "4640cf211daa3e02fdda34c58a9f176a73aeaef6f6357d6a5a4c6771e17e9e41"
+    }
+   }
+  },
+  "film-itaipu-2-o4.es": {
+   "text": "Todo lo que generamos sale por esa subestación. Esta noche la van a querer a oscuras.",
+   "speaker": "crest",
+   "seconds": 5.045,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2487243504,
+     "heard": "Todo lo que generamos, sale por esa subestación. Esta noche la van a querer a oscuras.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23039,
+     "sha256": "b78fc79a7dcd2cdb226a82b849e984cc8e2cd6c9b5bbe86f2b5db6df8a77fe47"
+    },
+    "mp3": {
+     "bytes": 20972,
+     "sha256": "1ca3d4c4ba0a1d9402454aa87d8ef8d32a6de5d6f37169e3d06891136fb33cd7"
+    }
+   }
   }
  },
  "models": {

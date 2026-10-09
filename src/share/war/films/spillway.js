@@ -54,7 +54,7 @@ const ALONG = (() => {
 const UP = [ALONG[1], -ALONG[0]];
 const RESERVOIR_Y = 219;
 
-function gate(i, off, y) {
+export function gate(i, off, y) {
   const u = i / 13;
   return [
     GATE_W[0] + (GATE_E[0] - GATE_W[0]) * u + UP[0] * off,
@@ -65,11 +65,11 @@ function gate(i, off, y) {
 
 /* Where the jets off the flip buckets come down in a plume of spray
  * (the chute's axis runs from the gates to its lip near (-805, -553)). */
-const PLUME = [-790, 175, -470];
+export const PLUME = [-790, 175, -470];
 
 /* The spillway's middle, and the angle round it (0 is +z) of upstream. */
-const MID = gate(6.5, 0, 215);
-const UPSTREAM_A = Math.atan2(UP[0], UP[1]);
+export const MID = gate(6.5, 0, 215);
+export const UPSTREAM_A = Math.atan2(UP[0], UP[1]);
 
 export default {
   id: 'spillway',
