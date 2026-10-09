@@ -517,7 +517,7 @@
     "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
-    "nodemailer": "10.0.14",
-    "ws": "8.21.3"
+    "nodemailer": "10.0.15",
+    "ws": "8.22.0"
   }
 }
