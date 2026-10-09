@@ -90,16 +90,21 @@ async function cacheFirst(cacheName, key, fill) {
   return res;
 }
 
+/* One copy per page, whatever its query: a ?share= or ?rooms= link is
+ * the same document, and keying by the whole URL would keep a copy of
+ * index.html for every link a pilot ever opened. */
 async function networkFirst(request) {
   const cache = await caches.open(PAGES);
+  const key = new URL(request.url);
+  key.search = '';
   try {
     const res = await fetch(request);
     if (keepable(res)) {
-      await cache.put(request.url, res.clone());
+      await cache.put(key.href, res.clone());
     }
     return res;
   } catch (e) {
-    const hit = await cache.match(request.url, { ignoreSearch: true });
+    const hit = await cache.match(key.href);
     if (hit) {
       return hit;
     }
