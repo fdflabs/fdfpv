@@ -4285,7 +4285,12 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
   .stall_arm_cp = 0.1482,
   .stall_dw = 0.2661,
-  .stall_asym = 0.00342,
+  /* No built in side: a kit's build tolerance has one, but which this
+   * Extra's is nobody knows, and a fixed left made every power off pull
+   * drop the left wing (the owner, 2026-10-09). What drops a wing is what
+   * drops it on the field: the pilot's own rudder and aileron, the gusts,
+   * and under power the prop's torque and swirl. */
+  .stall_asym = 0.0,
   .stall_k = 0.70,
   .stall_top = 2.0 * WING_PI / 180.0,
   .strip_c = { 1.213, 1.071, 0.929, 0.787 },

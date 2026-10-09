@@ -209,6 +209,34 @@ check('a bank it is left in is not levelled: still past half of it 2 s on', Math
 const as3xYaw = fly(0, 0, 1, 0.75, 1);
 check('full right yaw stick yaws the nose right', as3xYaw.rAll * DEG > 3, `${deg(as3xYaw.rAll)} deg/s over the hold`);
 
+/* A pull with the power off, the owner's case (2026-10-09: "when i pull
+ * on elevator when having zero accelerator ... it pulls left then banks
+ * left and then yaw left"). Level at 16 m/s, throttle closed, sticks
+ * centred 1 s, then the elevator held: nothing on the aircraft picks a
+ * side, so a quarter stick, short of the stall, and a half stick, through
+ * it, stay wings level; a small rudder at the break drops the wing it
+ * yaws toward, either way (the handbook's wing drop toward the yaw). In
+ * Manual and AS3X. */
+function powerOffPull(mode, pitch, rudder) {
+  must(sim.e.sim_wing_set_stab(mode), 'set mode');
+  throwAt(120, 16);
+  fly(0, 0, 0, 0, 1);
+  const lead = fly(0, pitch, 0, 0, 1.2);
+  const after = fly(0, pitch, rudder, 0, 1.0);
+  must(sim.e.sim_wing_set_stab(0), 'set manual');
+  return { bank: after.endBank, worst: Math.max(lead.worstBank, after.worstBank) };
+}
+console.log('power off pull');
+for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
+  const quarter = powerOffPull(mode, 0.25, 0);
+  check(`${name}: a quarter stick pull, power off, short of the stall: wings within 3 deg`, quarter.worst * DEG < 3, `${deg(quarter.worst)} deg`);
+  const half = powerOffPull(mode, 0.5, 0);
+  check(`${name}: a half stick pull through the stall, power off, no rudder: wings within 3 deg`, half.worst * DEG < 3, `${deg(half.worst)} deg`);
+  const left = powerOffPull(mode, 0.5, -0.05);
+  const right = powerOffPull(mode, 0.5, 0.05);
+  check(`${name}: the same with a touch of left rudder drops the left wing, right the right`, left.bank < 0 && right.bank > 0, `${deg(left.bank)} and ${deg(right.bank)} deg`);
+}
+
 console.log('manual');
 must(sim.e.sim_wing_set_stab(0), 'clear stab');
 throwAt(3, 12);
