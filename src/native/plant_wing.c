@@ -1224,37 +1224,41 @@ static void wing_lift(const FixedWingParams *fw, double alpha, double delta_e, d
   const double sigma = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, aa);
   const double cl_lin = add_term(fw->cl_alpha * alpha + fw->cl_de * delta_e, dcl_f);
   const double cl_flat = 2.0 * sin_a * cos_a;
-  /* Past the stall angle the section's lift, stalled_lift: the plant's
-   * peak lift held, then the fall, brought in over a stall_blend; as far
-   * as the Reynolds number the section data reach (fre), and the plate
-   * below them. fre and past are exactly zero where it is not taken, and
-   * the lift is the curve's through add_term. */
-  const double cl_old = (1.0 - sigma) * cl_lin + sigma * cl_flat;
+  /* THE TOP OF THE CURVE, docs/FLIGHTMODEL.md: a wing's CL max is the peak
+   * of its lift curve, which every derivation's stall speed, sqrt(2 W / rho
+   * S CL max), is built on. The wing's own lift, the angle's share of
+   * cl_lin, follows the linear line to a stall_blend short of the stall
+   * angle CL max / CL alpha, leaves it below on the parabola tangent to it
+   * there, and tops out at CL max a stall_blend past it, level; a section's
+   * curve is concave over its top, never above its line. The elevator's
+   * and the flaps' lift ride on it as before. Past the top it holds CL max
+   * until the stalled lift below takes it, or, short of the Reynolds number
+   * the section data reach, blends to the flat plate over two
+   * stall_blends. sigma, the blend that brings in the plate's drag and the
+   * stall's moments, and the strips' stall angle are where they always
+   * were: the drag rises before the peak, as a real section's does, and
+   * the gates measure the stall at the linear crossing. */
+  const double aw = add_term(alpha, dcl_f / fw->cl_alpha);
+  const double a0 = alpha_stall - fw->stall_blend;
+  const double a1 = alpha_stall + fw->stall_blend;
+  double wing = clmax;
+  if (aa < a0) {
+    wing = fw->cl_alpha * aa;
+  } else if (aa < a1) {
+    wing = clmax - fw->cl_alpha * (a1 - aa) * (a1 - aa) / (4.0 * fw->stall_blend);
+  }
+  const double cl_peak = (aw < 0.0 ? -wing : wing) + fw->cl_de * delta_e;
+  const double s_hi = smoothstep(a1, a1 + 2.0 * fw->stall_blend, aa);
+  const double cl_old = (1.0 - s_hi) * cl_peak + s_hi * cl_flat;
   double cl_st = cl_old, fall = 0.0, past = 0.0;
   if (sigma > 0.0 && fre > 0.0) {
     const double shift = dcl_f / fw->cl_alpha;
-    /* What the stalled wing holds is the most lift the plant's own curve
-     * reaches through its stall blend, found on sixteen steps across it:
-     * a section holds its peak flat past the stall (the UIUC curves), and
-     * this is the peak the plant's wing actually reaches. The lift at the
-     * stall angle itself, the blend's midpoint, is some 0.1 under it, and
-     * holding that sank a stalled Cub at 2.7 m/s. The elevator's lift is
-     * in the curve, as it is in the lift the step flies on. */
-    double cl_s = 0.0;
-    /* On the negative side the curve is walked at -ai, where the elevator's
-     * lift counts the other way against it: the peak is taken on the side
-     * the wing is stalling on, so a symmetric section holds the same lift
-     * on its back as right way up. The positive side is the arithmetic it
-     * always was. */
+    /* What the stalled wing holds is CL max, the top of the curve above,
+     * with the elevator's lift on it, taken on the side the wing is
+     * stalling on, so a symmetric section holds the same lift on its back
+     * as right way up. */
     const int neg = add_term(alpha, shift) < 0.0;
-    for (int i = 0; i <= 16; i += 1) {
-      const double ai = alpha_stall - fw->stall_blend + fw->stall_blend * 0.125 * i;
-      const double si = smoothstep(alpha_stall - fw->stall_blend, alpha_stall + fw->stall_blend, ai);
-      const double ag = neg ? clip(ai + shift, 0.5) : clip(ai - shift, 0.5);
-      const double lin = neg ? fw->cl_alpha * ai - fw->cl_de * delta_e : fw->cl_alpha * ai + fw->cl_de * delta_e;
-      const double c = (1.0 - si) * lin + si * 2.0 * sim_sin_small(ag) * sim_cos_small(ag);
-      cl_s = c > cl_s ? c : cl_s;
-    }
+    const double cl_s = neg ? clmax - fw->cl_de * delta_e : clmax + fw->cl_de * delta_e;
     cl_st = stalled_lift(fw, k_stall, fw->stall_top, cl_s, alpha_stall, shift, add_term(alpha, shift), sin_a, cos_a, &fall, &past);
   }
   o->cl_lin = cl_lin;
@@ -1315,7 +1319,7 @@ static void biplane_lift(const FixedWingParams *fw, double alpha, double delta_e
     const double lin = alone[i].cl_lin;
     const double cn_st = add_term(2.0 * sin_a, (a->cl_st - cl_flat) * cos_a);
     const double stall = fre * a->past * a->sigma;
-    const double post = ((1.0 - a->fall) * ac - a->fall * cp) * cn_st - ac * lin - dw * (lin - a->cl_st);
+    const double post = ((1.0 - a->past) * ac - a->past * cp) * cn_st - ac * lin - dw * (lin - a->cl_st);
     m += area * (stall * post + (1.0 - stall) * ac * (a->cl_lin - lin));
   }
   for (int i = 0; i < 2; i += 1) {
@@ -1881,7 +1885,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * it was. */
   const double cm_low = -sigma * (fw->lowre_arm_ac * cl_lin + fw->lowre_arm_cp * cl_flat);
   const double cn_st = add_term(2.0 * sin_a, (cl_st - cl_flat) * cos_a);
-  const double cm_post = sigma * (((1.0 - fall) * fw->stall_arm_ac - fall * fw->stall_arm_cp) * cn_st
+  const double cm_post = sigma * (((1.0 - past) * fw->stall_arm_ac - past * fw->stall_arm_cp) * cn_st
                                   - fw->stall_arm_ac * cl_lin_m - stall_dw * (cl_lin_m - cl_st));
   const double cm_stall = biplane ? cm_bip : add_term(cm_low, fre * past * (cm_post - cm_low));
   /* The flaps' own moment rides on the lift they add: the section's nose
