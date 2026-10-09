@@ -327,8 +327,15 @@ check: {
     let worstP = 0;
     let ailSum = 0;
     let o = { s: sim.readState().state };
+    /* With power the hold has an integral, as S8's bank hold on the Kadet:
+     * the torque and the swirl are a steady moment on a stalled wing at a
+     * low dynamic pressure, which a proportional hold leaves as a steady
+     * bank; what U11b measures is a wing drop (the roll rate and the
+     * aileron it takes), not the hold's offset. */
+    let iBank = 0;
     for (let ms = 0; ms < t11.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = duty ? edgeRoll(o.s) : 0;
+      iBank = Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000));
+      const roll = duty ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
       ailSum += Math.abs(roll);
       o = step(sim, [roll, 1, 0, duty]);
       worstP = Math.max(worstP, Math.abs(o.s[11]) * DEG);

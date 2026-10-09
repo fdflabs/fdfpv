@@ -1732,4 +1732,84 @@ static const PartDef PARTS_EXTRA3D1308[] = {
     .npts = 2, .pts = { { -0.40, 0.0, 0.05 }, { -0.40, 0.0, 0.14 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * E-FLITE NIGHT TIMBER X 1.2m, SIM_AIRFRAME_NIGHTTIMBER1200,
+ * nighttimbercraft.js. 1.698 kg of hollow core EPO, a two piece high wing
+ * on an aluminium tube over the cabin, the stabiliser 0.113 m under the
+ * thrust line on its joiner (docs/NIGHTTIMBER-STAGE1.md). Wheels: 0 left
+ * main, 1 right main, 2 tailwheel, 3 the prop tip's skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_NIGHTTIMBER1200[] = {
+  /* 0 the cowl and cabin, the nose that crushes. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .k = 3.0e5, .crush_s = EPO_CRUSH, .crush_a = 0.0095, .crush_d = 0.10,
+    BOX(-0.36, 0.290, -0.056, 0.056, -0.100, 0.060) },
+  /* 1 the aft fuselage, tapering down to the tail. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.080, .joint = { -0.36, 0.0, -0.03 }, FOAM_SECTION(0.045), .m_max = 22.0, .f_max = 350.0, .k = 2.0e4,
+    BOX(-0.680, -0.36, -0.035, 0.035, -0.135, 0.030) },
+  /* 2 the stabiliser, 3 the elevator, 52 percent of its chord. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -0.53, 0.0, -0.113 }, .m_max = 4.0, .f_max = 150.0, .k = 3000.0,
+    BOX(-0.573, -0.495, -0.2475, 0.2475, -0.119, -0.107) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.025, .joint = { -0.573, 0.0, -0.113 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.660, -0.573, -0.2475, 0.2475, -0.118, -0.108) },
+  /* 4 the fin, 5 the rudder, 0.6 of the vertical tail, run down under the
+   * fuselage to its foot. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.55, 0.0, -0.03 }, .m_max = 3.0, .f_max = 120.0, .k = 3000.0,
+    BOX(-0.617, -0.450, -0.005, 0.005, -0.030, 0.080) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.018, .joint = { -0.617, 0.0, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.716, -0.617, -0.005, 0.005, -0.147, 0.080) },
+  /* 6, 7 the panels on the tube, 8, 9 the flaps and ailerons, moving as
+   * one full span aileron each side. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.200, .joint = { -0.03, 0.056, 0.065 }, CARBON_SPAR(0.005), .m_max = 58.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.239, 0.030), .f_max = 600.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
+    BOX(-0.150, 0.089, 0.056, 0.600, 0.050, 0.080) },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.200, .joint = { -0.03, -0.056, 0.065 }, CARBON_SPAR(0.005), .m_max = 58.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.239, 0.030), .f_max = 600.0, .k = 3000.0,
+    .crush_s = EPO_CRUSH, .crush_a = 0.0017, .crush_d = 0.12,
+    BOX(-0.150, 0.089, -0.600, -0.056, 0.050, 0.080) },
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.030, .joint = { -0.103, 0.33, 0.065 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.150, -0.057, 0.093, 0.563, 0.055, 0.075) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
+    .mass = 0.030, .joint = { -0.103, -0.33, 0.065 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    BOX(-0.150, -0.057, -0.563, -0.093, 0.055, 0.075) },
+  /* 10 the BL10 on its mount, 11 the 13 x 4 composite prop and spinner. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.125, .joint = { 0.260, 0.0, 0.0 }, .m_max = PL_MOTOR_M, .f_max = 500.0, .k = 1.0e6,
+    NOSE_CRUSH(0.0095, 0.10), BOX(0.260, 0.295, -0.018, 0.018, -0.018, 0.018) },
+  { .kind = SIM_PART_PROP, .parent = 10, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.025, .joint = { 0.295, 0.0, 0.0 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.308, 0.0, 0.0 }, { 0.1651, 0.0, 0.0 } } },
+  /* 12 the 4S 2200 on the cabin floor, slid to the CG, 13 its hatch. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.270, .joint = { -0.02, 0.0, -0.060 }, .m_max = 6.0, .f_max = 1.5 * VELCRO_12, .k = 3.0e5,
+    BOX(-0.088, 0.048, -0.018, 0.018, -0.080, -0.040) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.025, .joint = { 0.10, 0.0, -0.095 }, .m_max = 0.8, .f_max = MAGNET_2, .k = 2.0e4,
+    BOX(0.020, 0.200, -0.045, 0.045, -0.105, -0.090) },
+  /* 14, 15 the shock absorbing mains, 16 the tailwheel on 1.5 mm wire. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.080, .joint = { 0.12, 0.04, -0.09 }, .m_max = WIRE_M(0.004), .f_max = 800.0, .k = 1500.0,
+    BOX(0.10, 0.16, 0.04, 0.143, -0.218, -0.09) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.080, .joint = { 0.12, -0.04, -0.09 }, .m_max = WIRE_M(0.004), .f_max = 800.0, .k = 1500.0,
+    BOX(0.10, 0.16, -0.143, -0.04, -0.218, -0.09) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.010, .joint = { -0.62, 0.0, -0.14 }, .m_max = WIRE_M(0.0015), .f_max = 100.0, .k = 350.0,
+    BOX(-0.640, -0.610, -0.006, 0.006, -0.197, -0.14) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.10, 0.0, 0.06 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.090, 0.115, -0.010, 0.010, 0.050, 0.070) },
+  /* Not drawn: where an FPV Timber carries its whip, behind the wing. */
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.40, 0.0, 0.02 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.40, 0.0, 0.02 }, { -0.40, 0.0, 0.11 } } },
+};
+
 #endif /* CRASH_PARTS_H */

@@ -57,7 +57,7 @@
  *
  * HOW IT COLLIDES (section 6, collision model). The shell has capsules,
  * spheres and world aligned boxes. A top a craft can stand on is a roof
- * record (src/maps/alps/roofs.js), a plane over a convex plan, which the
+ * record (src/render/library/roofs.js), a plane over a convex plan, which the
  * plant meets as ground: the crest, the powerhouse roof, the bridge, the
  * chute floor, and the downstream faces too, which are 42 to 62 degrees,
  * well inside what the plant's ground catches (a face rising 0.15 m in one
@@ -86,7 +86,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { insideSlabs, recordAt } from '../../alps/roofs.js';
+import { insideSlabs, recordAt } from '../../../render/library/roofs.js';
 import { FREE_OPEN_M, openAt } from '../../../share/war/hoist.js';
 import { leafTurn, turnDir, turnPoint } from '../../../share/war/leaf.js';
 
