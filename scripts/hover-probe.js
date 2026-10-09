@@ -95,10 +95,20 @@ async function planeSim(af) {
   return sim;
 }
 
-function start(sim, mode) {
+/* Nose up and still with the prop already turning at `throttle`: a pilot
+ * arrives in a hover with the motor running, so the prop is held there a
+ * second, ten of the slowest motor's time constants (prop_spool), first. */
+function start(sim, mode, throttle = 0) {
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
+  for (let ms = 0; ms < 1000; ms += MS) {
+    must(sim.e.sim_set_pose(0, 0, 50, ...NOSE_UP), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    must(sim.input(0, 0, 0, 0, throttle), 'sim_input');
+    must(sim.step(MS), 'sim_step');
+  }
   must(sim.e.sim_set_pose(0, 0, 50, ...NOSE_UP), 'sim_set_pose');
+  must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
 }
 
 /* What the pilot sees: world up in the body frame, the body's belly and
@@ -115,7 +125,7 @@ function read(s) {
 }
 
 function tw(sim, af) {
-  start(sim, 0);
+  start(sim, 0, 1);
   let thrust = 0;
   for (let ms = 0; ms < 1500; ms += MS) {
     must(sim.input(ms / 1000, 0, 0, 0, 1), 'sim_input');
@@ -126,7 +136,7 @@ function tw(sim, af) {
 }
 
 function fly(sim, mode, g) {
-  start(sim, mode);
+  start(sim, mode, 0.6);
   const lag = Math.round(LAG_S * 1000 / MS);
   const seen = [];
   let st = [0, 0, 0, 0.6], base = 0.6, trim = 0, held = 0, worst = 0, roll = 0;

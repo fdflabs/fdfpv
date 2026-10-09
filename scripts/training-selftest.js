@@ -163,7 +163,7 @@ for (const t of TRACKS) {
 
 /* The aids. The Swiss valley's strip is the Alps' terrain's, which Node
  * cannot import (it needs Three.js), so its length is read from the source. */
-const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/terrain.js', import.meta.url), 'utf8'))[1]);
+const stripL = Number(/export const STRIP_L = (\d+)/.exec(readFileSync(new URL('../src/maps/alps/heights.js', import.meta.url), 'utf8'))[1]);
 expect('the strip\'s threshold is the Alps terrain\'s strip end', STRIPS.swiss2.z, stripL / 2);
 expect('every quad mode is angle or acro', LESSONS.every((l) => l.mode == null || ['angle', 'acro'].includes(l.mode)), true);
 expect('every lesson\'s aid is a known one', LESSONS.every((l) => l.aid === undefined || ['glide', 'gate'].includes(l.aid)), true);

@@ -796,6 +796,25 @@
    11
   ]
  },
+ "lobes": {
+  "exports": [
+   "LOBES",
+   "LOBE_DATA",
+   "TEMPLATES",
+   "lobesHit",
+   "lobesTop",
+   "templateOf"
+  ],
+  "LOBES": 7,
+  "TEMPLATES": 12,
+  "data": "b7b7b6b0",
+  "templates": [
+   0,
+   3,
+   6,
+   11
+  ]
+ },
  "low": {
   "type": "Group",
   "name": "interior-trees",
