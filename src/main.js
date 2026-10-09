@@ -69,6 +69,7 @@ import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT, throttleKeys } from './input/input.js';
 import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
+import { translate as translateKey } from './input/keybinds.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
@@ -130,6 +131,7 @@ import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
+import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
@@ -3569,6 +3571,20 @@ export async function boot({
     }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
+  /* Whether a peer is an AI pilot the room flies (shownName). */
+  function roomBot(peer) {
+    return Boolean(peer.name && peer.name.bot);
+  }
+  /* The people here, this pilot too, and the room's AI pilots apart:
+   * "n here" is people, the AI pilots a "+n" after it, since one leaves
+   * for every person who comes (edge/rooms/roombots.js). */
+  function roomHere() {
+    const bots = [...roomPeers.values()].filter(roomBot).length;
+    return { n: roomPeers.size + 1 - bots, bots };
+  }
+  function roomHereText(text, bots) {
+    return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
+  }
   function roomProfile() {
     const status = roomStatus();
     /* Off the air in a war room (its lobby, its briefing) the aircraft the
@@ -4317,6 +4333,7 @@ export async function boot({
   /* In a room on its watch seat (edge/rooms/core.js watch,
    * docs/FLIGHTCLUB-PROGRESSION.md section 3): the war spectator's camera
    * on whoever flies, its own aircraft never shown or sent. */
+  ui.watching = () => roomWatching();
   function roomWatching() {
     const st = roomLinkState.state();
     return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
@@ -7141,10 +7158,11 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
+      const here = roomHere();
       return {
-        value: st.welcome && st.welcome.public
-          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: roomPeers.size + 1 })
-          : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        value: roomHereText(st.welcome && st.welcome.public
+          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: here.n })
+          : str('friends.row_in', { code: st.code, n: here.n }), here.bots),
         note: str('friends.row_in_note'),
         inRoom: true,
       };
@@ -7204,6 +7222,12 @@ export async function boot({
         const out = [];
         for (const peer of roomPeers.values()) {
           const craft = airframeById(peer.profile.airframe).name;
+          /* An AI pilot has no voice, says nothing, and cannot be kicked
+           * or handed the room: its row only says what it is. */
+          if (roomBot(peer)) {
+            out.push({ label: roomName(peer.name), value: craft, note: str('friends.bot_note'), info: true });
+            continue;
+          }
           const muted = roomSafety.isMuted(peer.seat);
           const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
           /* A report picked from this row asks here before it is sent. */
@@ -7311,7 +7335,7 @@ export async function boot({
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
           label: str('friends.here'),
-          value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
+          value: roomHereText(str('friends.here_value', { n: roomHere().n, cap: w ? w.cap : 8 }), roomHere().bots),
           note: str('friends.here_note'),
           info: true,
         },
@@ -12015,6 +12039,79 @@ export async function boot({
     setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
   }
+  /* The rain the air makes, at the camera, on the plant's clock: the
+   * picture only, so read once a frame and never handed to the plant. */
+  const rain = createRain();
+  const rainAt = { x: 0, z: 0, gust: 0, wet: 0 };
+  let wetShown = 0;
+  function rainFrame() {
+    const scene = shell.quad.parent;
+    if (scene && rain.object.parent !== scene) {
+      scene.add(rain.object);
+    }
+    /* Not in a replay: the air is this run's, not the recorded one's. */
+    const flying = weather && stateCurr && (mode === 'flight' || mode === 'paused');
+    if (!flying) {
+      rain.frame(shell.camera, 0, 0, 0, 0);
+      wetShown = 0;
+      view.setWet?.(wetHold ?? 0);
+      return;
+    }
+    const c = shell.camera.position;
+    const t = weatherT0 + stateCurr[0];
+    weather.at(c.x, c.y, c.z, t, rainAt);
+    rain.frame(shell.camera, t, rainAt.x, rainAt.z, rainAt.wet);
+    /* The map's own haze in the rain, if its look has one (the photoreal
+     * lane's): 0 must be the dry look exactly. */
+    wetShown = rainAt.wet;
+    view.setWet?.(wetHold ?? wetShown);
+  }
+  /* The look held at a rain intensity whatever the air, for the haze
+   * check's pictures (null lets the air decide again). Harness only. */
+  let wetHold = null;
+  window.__wetHold = (w) => {
+    wetHold = w;
+  };
+  /* One frame drawn now at rain intensity `wet`, read back, for
+   * scripts/weather-haze-check.js: the look's own setWet and post chain,
+   * in one task, so nothing between two calls moves but `wet`. Returns
+   * the frame's FNV-1a hash, its mean luma, the luma's standard
+   * deviation (its contrast) and a luma thumbnail. Harness only. */
+  window.__wetFrame = (wet) => {
+    view.setWet?.(wet);
+    if (view.post) {
+      view.post.render();
+    } else {
+      shell.renderer.render(view.scene, shell.camera);
+    }
+    const gl = shell.renderer.getContext();
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+    const px = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let hash = 0x811c9dc5;
+    let sum = 0;
+    let sum2 = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      hash = Math.imul(hash ^ px[i], 16777619);
+      hash = Math.imul(hash ^ px[i + 1], 16777619);
+      hash = Math.imul(hash ^ px[i + 2], 16777619);
+      const l = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+      sum += l;
+      sum2 += l * l;
+    }
+    const n = w * h;
+    /* A 64 by 36 luma thumbnail, nearest sample, to compare frames by. */
+    const thumb = [];
+    for (let y = 0; y < 36; y += 1) {
+      for (let x = 0; x < 64; x += 1) {
+        const k = (Math.floor((y + 0.5) * h / 36) * w + Math.floor((x + 0.5) * w / 64)) * 4;
+        thumb.push(Math.round(0.2126 * px[k] + 0.7152 * px[k + 1] + 0.0722 * px[k + 2]));
+      }
+    }
+    return { hash: hash >>> 0, luma: sum / n, contrast: Math.sqrt(Math.max(0, sum2 / n - (sum / n) ** 2)), thumb, w, h };
+  };
+  window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
   window.__weather = (preset, seed) => {
@@ -14709,6 +14806,7 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      start: input.padStartButton(),
       flip: input.padLookClick(),
       look: input.padLookStick(),
     };
@@ -15011,6 +15109,9 @@ export async function boot({
     }
   }
 
+  /* The pilot's key bindings (src/input/keybinds.js), in flight only: the
+   * menus keep every key as it is. */
+  input.translateKey = (code) => (ui.screen === 'flight' ? translateKey(ui.settings.keybinds, runAirframe, code) : code);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -15028,8 +15129,11 @@ export async function boot({
       if (repeat) {
         return;
       }
+      /* Escape is the pause menu, as for a pilot: leaving is a row in it
+       * (lead 2026-10-09), not one stray key. */
       if (code === 'Escape') {
-        ui.onFriends('friends-leave');
+        ui.act('pause');
+        ui.show('paused');
       } else if (code !== 'KeyR' && code !== 'KeyX' && code !== 'Tab') {
         warWatch(code === 'BracketLeft' ? -1 : 1);
       }
@@ -16380,6 +16484,8 @@ export async function boot({
      * builder is building on the same screen, where Y carries a gate. */
     if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
+      /* The menus poll the pad only while one is up, so Start is read here. */
+      ui.pollStart(input.padStartButton());
     }
     if (worldHold && mode === 'title') {
       releaseWorldHold();
@@ -17741,6 +17847,7 @@ export async function boot({
     }
     fr.drawThis = drawThis;
     if (fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn) {
+      rainFrame();
       dynres.beginGpu();
       if (avionicsHud.on || ballOn) {
         sensors.render(view.post);

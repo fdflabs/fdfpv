@@ -535,7 +535,13 @@ const SCENARIOS = [
   scenario('paused', { fields: { screen: 'paused', returnTo: 'paused' } }),
   scenario('paused-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'paused', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow(), friendsRow: friendsRowOut } }),
   scenario('paused-in-room', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, roomBar: { hidden: false }, roomBarView: { button: 'Room', text: 'OWLS' } } }),
+  scenario('paused-watching', { fields: { screen: 'paused', returnTo: 'paused', friendsRow: friendsRowInRoom, inRoom: () => true, watching: () => true } }),
   scenario('paused-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'paused', returnTo: 'paused' } }),
+  /* The pause menu's Flight panel: a quad, a quad with the race rows, planes. */
+  scenario('quick', { fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-rows', { settings: { map: 'alps', graphics: 'medium' }, fields: { screen: 'quick', returnTo: 'paused', liveRow: liveRow(), ghostRow: ghostRow() } }),
+  scenario('quick-plane', { settings: { airframe: 'cub1400', tune: 'cub-stab', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
+  scenario('quick-extra', { settings: { airframe: 'extra3d1308', tune: 'extra-as3x', map: 'alps' }, fields: { screen: 'quick', returnTo: 'paused' } }),
 
   /* Results: a room's, freestyle, a free world, a track. */
   scenario('results-room', { fields: { screen: 'results', roomResults: true, roomResultsRows: () => [{ label: 'Room results', action: 'friends-results' }, { label: 'Back to title', action: 'title' }], inRoom: () => true } }),

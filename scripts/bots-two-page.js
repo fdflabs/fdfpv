@@ -91,6 +91,23 @@ async function shot(page, name) {
 
 const bots = (r) => r.peers.filter((p) => /^AI /.test(p.name));
 
+/* The room screen's rows as the page has them: the "Pilots here" row's
+ * value, and every row naming an AI pilot, with what it offers. */
+const ROWS = `(() => {
+  const rows = window.__ui.friendsRows();
+  const here = rows.find((r) => r.label === ${JSON.stringify('Pilots here')});
+  /* AI pilots' names, never the host's AI pilots row (#866). */
+  const ai = rows.filter((r) => /^AI .* \\d+$/.test(String(r.label)));
+  return { lobby: rows.some((r) => r.action === 'friends-lobby-ready'), here: here ? here.value : null, top: window.__ui.friendsRow().value, ai: ai.map((r) => ({ label: r.label, info: Boolean(r.info), options: (r.options || []).length, pick: Boolean(r.pick) })) };
+})()`;
+function rowsSay(rows, people, ai) {
+  /* A game's lobby has no "Pilots here" row: its panel lists them. */
+  return (rows.here === null || new RegExp(`^${people} of \\d+, \\+${ai} AI pilots?$`).test(rows.here))
+    && (rows.here !== null || rows.lobby)
+    && rows.top.endsWith(`, ${people} here, +${ai} AI pilot${ai === 1 ? '' : 's'}`)
+    && rows.ai.length === ai && rows.ai.every((r) => r.info && !r.options && !r.pick);
+}
+
 /* The AI pilots row on the page's room screen: its value, whether it is
  * the host's (it has choices) or an info row. */
 const AI_ROW = `(() => {
@@ -137,6 +154,9 @@ try {
   check(`alone, A is joined by ${FILL_TO - 1} AI pilots, every one named as one`, bots(ra).length === FILL_TO - 1 && ra.peers.length === FILL_TO - 1,
     ra.peers.map((p) => p.name).join(', '));
   check('A hosts its room', ra.host === ra.seat, `host ${ra.host}, seat ${ra.seat}`);
+  let screen = await a.evaluate(ROWS);
+  check(`A's room screen counts 1 person here, +${FILL_TO - 1} AI pilots apart, and the AI rows offer no mute, report, kick or host`,
+    rowsSay(screen, 1, FILL_TO - 1), JSON.stringify(screen));
 
   await a.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
@@ -252,6 +272,20 @@ try {
   check('B joins: an AI pilot leaves for it, on A\'s screen', bots(ra).length === FILL_TO - 2 && ra.peers.length === FILL_TO - 1, ra.peers.map((p) => p.name).join(', '));
   check('and B sees the rest named as AI, and A as a person', bots(rb).length === FILL_TO - 2 && rb.peers.filter((p) => !/^AI /.test(p.name)).length === 1,
     rb.peers.map((p) => p.name).join(', '));
+  screen = await a.evaluate(ROWS);
+  const rowsB = await b.evaluate(ROWS);
+  await b.evaluate(`(() => {
+    window.__ui.show('friends');
+    const row = [...document.querySelectorAll('.menu-row, [class*=row]')].find((e) => e.textContent.includes('Pilots here'));
+    row?.scrollIntoView({ block: 'start' });
+    return true;
+  })()`);
+  await b.sleep(400);
+  await shot(b, 'b-room-screen-people-and-ai');
+  check(`A and B count 2 people here, +${FILL_TO - 2} AI pilots, no options on the AI rows`, rowsSay(screen, 2, FILL_TO - 2) && rowsSay(rowsB, 2, FILL_TO - 2),
+    `${JSON.stringify(screen)} ${JSON.stringify(rowsB)}`);
+  const human = await a.evaluate(`window.__ui.friendsRows().some((r) => !/^AI /.test(String(r.label)) && (r.options || []).some((o) => o.value === 'mute'))`);
+  check("B's row on A's screen still offers mute and report", human);
   await b.close();
   b = null;
   await a.until(`window.__rooms().peers.length === ${FILL_TO - 1} && window.__rooms().peers.filter((p) => /^AI /.test(p.name)).length === ${FILL_TO - 1}`, 30000).catch(() => {});
