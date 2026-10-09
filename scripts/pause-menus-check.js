@@ -1,7 +1,7 @@
 /*
  * pause-menus-check.js: the Escape menu in the real shell, headless.
  *
- *     node scripts/pause-menus-check.js <outdir>
+ *     node scripts/pause-menus-check.js <outdir> [case ...]
  *
  * For a quad and a plane, in English and Spanish, and on a phone with
  * touch, it flies, presses Escape as a key (the touch case presses the
@@ -83,12 +83,31 @@ function seed(c) {
 /* Resume, Restart, Flight, Change aircraft, Room, Settings, My tracks, Quit. */
 const FIRST_SCREEN_MAX = 8;
 
+/* A finger, not a mouse: touchStart and touchEnd, and the page makes the
+ * click from them as a phone does. tests/lib/page.js click() is a mouse,
+ * whose move repaints the menu's hover between press and release. */
+async function fingerTap(page, selector) {
+  const at = await page.evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) { return null; }
+    el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const b = el.getBoundingClientRect();
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+  })()`);
+  if (!at) {
+    return false;
+  }
+  await page.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] }, page.sessionId);
+  await page.sleep(80);
+  await page.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, page.sessionId);
+  return true;
+}
+
 /* Down to the Flight row and Enter, as keys; on the phone, a tap on it. */
 async function openPanel(page, c, rows) {
   const at = rows.findIndex((r) => r.action === 'quick');
   if (c.touch) {
-    const id = await page.evaluate("window.__ui.items().find((it) => it.action === 'quick').id");
-    await page.click(`[data-row-id="${id}"]`);
+    say(await fingerTap(page, `[data-row-id="${rows[at].id}"]`), 'tapped the Flight row with a finger');
     return;
   }
   for (let i = 0; i < at; i += 1) {
@@ -99,7 +118,7 @@ async function openPanel(page, c, rows) {
 }
 
 const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
-  label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
+  id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
 
 async function shoot(page, name) {
@@ -135,6 +154,7 @@ async function runCase(c, record) {
     say(rows[0] && rows[0].action === 'resume' && cursor === 0, `Resume is first and has the cursor (cursor ${cursor})`);
     say(rows.length <= FIRST_SCREEN_MAX && !rows.some((r) => r.section), `${rows.length} rows, no group header`);
     await shoot(page, c.id);
+    await page.sleep(300);
     await openPanel(page, c, rows);
     const panel = await page.until("window.__ui.screen === 'quick'", 5000).then(() => true, () => false);
     say(panel, 'the Flight row opens the Flight panel');
@@ -160,7 +180,8 @@ async function runCase(c, record) {
 
 await mkdir(outDir, { recursive: true });
 const record = {};
-for (const c of CASES) {
+const only = process.argv.slice(3);
+for (const c of CASES.filter((k) => !only.length || only.includes(k.id))) {
   await runCase(c, record);
 }
 await writeFile(join(outDir, 'rows.json'), `${JSON.stringify(record, null, 1)}\n`);
