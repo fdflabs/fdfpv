@@ -89,7 +89,8 @@ const bots = (r) => r.peers.filter((p) => /^AI /.test(p.name));
 const ROWS = `(() => {
   const rows = window.__ui.friendsRows();
   const here = rows.find((r) => r.label === ${JSON.stringify('Pilots here')});
-  const ai = rows.filter((r) => /^AI /.test(String(r.label)));
+  /* AI pilots' names, never the host's AI pilots row (#866). */
+  const ai = rows.filter((r) => /^AI .* \\d+$/.test(String(r.label)));
   return { lobby: rows.some((r) => r.action === 'friends-lobby-ready'), here: here ? here.value : null, top: window.__ui.friendsRow().value, ai: ai.map((r) => ({ label: r.label, info: Boolean(r.info), options: (r.options || []).length, pick: Boolean(r.pick) })) };
 })()`;
 function rowsSay(rows, people, ai) {
