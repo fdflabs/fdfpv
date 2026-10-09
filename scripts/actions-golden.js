@@ -301,12 +301,37 @@ function snapshot(ui) {
   out.boardNote = ui.boardNote.textContent;
   out.localNote = ui.localNote.textContent;
   out.fcMenuScroll = ui.fcMenu.scrollTop;
-  for (const [k, v] of store) out[`store.${k}`] = v.length > 80 ? `${v.length} chars, hash ${hash(v)}` : v;
+  for (const [k, v] of store) {
+    const fields = jsonObject(v);
+    if (fields) {
+      for (const [f, fv] of Object.entries(fields)) out[`store.${k}.${f}`] = short(JSON.stringify(fv));
+    } else {
+      out[`store.${k}`] = short(v);
+    }
+  }
   return out;
 }
 
-/* A long stored value is written down by size and hash: a settings blob
- * that changed shows, without a page of JSON per step. */
+/* A stored JSON object is written down field by field, so a step's record
+ * names the fields it changed. A hash of the whole blob changed in every
+ * step that saved settings whenever any pull request added a setting, and
+ * two such pull requests, each green, made main red together
+ * (docs/GOLDENS.md). */
+function jsonObject(text) {
+  try {
+    const v = JSON.parse(text);
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* A long value is written down by size and hash, without a page of JSON
+ * per step. */
+function short(text) {
+  return text.length > 80 ? `${text.length} chars, hash ${hash(text)}` : text;
+}
+
 function hash(text) {
   let h = 5381;
   for (let i = 0; i < text.length; i += 1) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
@@ -317,6 +342,11 @@ function changed(before, after) {
   const out = {};
   for (const k of Object.keys(after)) {
     if (JSON.stringify(before[k]) !== JSON.stringify(after[k])) out[k] = after[k];
+  }
+  /* A field a step removed (a deleted track in the stored library) is a
+   * change too. */
+  for (const k of Object.keys(before)) {
+    if (!(k in after)) out[k] = '(removed)';
   }
   return out;
 }
