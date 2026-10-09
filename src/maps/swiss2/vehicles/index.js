@@ -39,7 +39,7 @@ import * as THREE from 'three';
 import {
   PAINT, buildCar as celCar, buildPostbus as celBus, buildTractor as celTractor, buildTrailer as celTrailer,
   buildMotorbike as celMotorbike, buildAircraft as celAircraft,
-} from '../../alps/vehicles.js';
+} from '../../../render/library/vehicles/vehicles.js';
 import { makeKit, placeKit, refinish, farWheel, nearWheel } from './kit.js';
 import { vehicleMaterials } from './materials.js';
 import { postbus } from './bus.js';

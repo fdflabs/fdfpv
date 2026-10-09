@@ -64,8 +64,9 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, makeLit, sunFor, isNight, timeOf, makeNightAmbient,
+  sunDirection, sunFor, isNight, timeOf, makeNightAmbient,
 } from './light.js';
+import { makeLit } from '../../../render/library/lit.js';
 import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
   groundMaterial, makeTurf, noiseTexture, loadImage, loadSite, loadGroundArrays,
