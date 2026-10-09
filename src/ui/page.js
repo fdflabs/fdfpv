@@ -405,6 +405,15 @@ const PAGES = {
     seat: quadShowcase,
     hint: ESC_STORED,
   },
+  /* A plane's rates: the manual's throws and the expo, rows only. */
+  planerates: {
+    classes: 'screen-page screen-pilot',
+    title: 'ui.rates',
+    lede: ['rates-lede', 'ui.plane_rates_lede'],
+    menu: 'planerates',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   pilot: {
     classes: 'screen-page screen-pilot',
     title: 'ui.settings',
@@ -705,7 +714,8 @@ function padpickScreen(shell) {
 }
 
 /* RESULTS: the kicker, the head, the best lap as the hero, the table and
- * a note over the menu, in one copy column. */
+ * a note over the menu, in one copy column; the debrief's facts
+ * (docs/DEBRIEF.md) beside it. */
 function resultsScreen(shell) {
   const hero = keep(shell, 'resultsHero', 'div', 'results-hero');
   hero.append(
@@ -728,7 +738,9 @@ function resultsScreen(shell) {
   const column = el('div', 'results-copy');
   column.append(top, foot);
   const screen = el('div', 'screen screen-results');
-  screen.append(column);
+  /* The facts sit beside the copy column, not in it: the column has no
+   * height to spare over the laps and the menu. */
+  screen.append(column, keep(shell, 'resultsFacts', 'div', 'results-facts'));
   return ['results', screen];
 }
 
@@ -767,7 +779,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids', 'controls'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

@@ -63,6 +63,8 @@ const radioOf = (m) => ({
 });
 export const BRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, radioOf(m).brief]));
 export const DEBRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, { win: radioOf(m).win, lose: radioOf(m).lose }]));
+/* The missions whose win plays an outro film (a mission's `outro`). */
+export const OUTROS = new Set(Object.values(MISSIONS).filter((m) => m.outro).map((m) => m.id));
 /* The lines that end a mission: said at once, over whatever was queued. */
 export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
   ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
@@ -154,6 +156,9 @@ export function createWarCalls() {
         out.push(...BRIEF_LINES[v.mission]);
       } else if (ev.type === 'state' && ev.to === 'live') {
         out.push('start');
+      } else if (ev.type === 'state' && ev.to === 'won' && v && OUTROS.has(v.mission)) {
+        /* A mission with an outro film says its win in the film (its first
+         * line is the debrief, the owner 2026-10-08), not over it. */
       } else if (ev.type === 'state' && (ev.to === 'won' || ev.to === 'lost')) {
         const debrief = v && DEBRIEF_LINES[v.mission]?.[ev.to === 'won' ? 'win' : 'lose'];
         out.push(END_LINES.has(debrief) ? debrief : ev.to === 'won' ? 'win' : 'lose-output');

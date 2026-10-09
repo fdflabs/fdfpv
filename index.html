@@ -3144,6 +3144,31 @@
       }
       .results-hero-meta.gain { color: var(--mint); }
       .results-hero-meta.off { color: var(--sakura); }
+      /* The debrief's facts (docs/DEBRIEF.md): the route from above beside
+         label and value, a panel at the screen's lower right over the
+         craft, clear of the copy column. Empty on a screen with no record.
+         On a narrow screen the column is the whole width, so the panel
+         follows it in the flow instead. */
+      .results-facts {
+        display: flex; gap: 14px; align-items: flex-start; z-index: 1; padding: 12px 14px;
+        background: rgba(10, 13, 14, 0.72); border: 1px solid rgba(215, 221, 221, 0.16);
+      }
+      .results-facts:empty { display: none; }
+      @media (min-width: 900px) {
+        .results-facts { position: absolute; right: 4vw; bottom: calc(3vh + 64px); max-width: min(30em, 44vw); }
+      }
+      .results-route { flex: 0 0 auto; width: 72px; height: 72px; background: rgba(10, 13, 14, 0.55); border: 1px solid rgba(215, 221, 221, 0.18); }
+      .results-route-line { fill: none; stroke: var(--cream); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; opacity: 0.85; }
+      .results-route-start { fill: rgba(10, 13, 14, 0.9); stroke: var(--mint); stroke-width: 1.6; }
+      .results-route-end { fill: var(--sakura); }
+      .results-facts-list {
+        margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; min-width: 0;
+        font-size: 13px; line-height: 1.35; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+      }
+      .results-facts-list dt { color: var(--slate); letter-spacing: 0.06em; }
+      .results-facts-list dd { margin: 0; color: var(--cream); }
+      .results-facts-list dd.gain { color: var(--mint); }
+      .results-facts-list dd.off { color: var(--sakura); }
       .results {
         margin: 18px 0 0; width: 100%; min-width: 0; max-height: min(calc(32vh - var(--bars)), 16em);
         overflow-y: auto; overscroll-behavior: contain;
