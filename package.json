@@ -510,6 +510,7 @@
     "shop:check": "node scripts/shop-check.js",
     "training:selftest": "node scripts/training-selftest.js",
     "training:check": "node scripts/training-check.js",
+    "planerates:check": "node scripts/plane-rates-check.js",
     "flighttime:selftest": "node scripts/flighttime-selftest.js",
     "stats:selftest": "node scripts/stats-selftest.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",

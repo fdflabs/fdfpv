@@ -201,7 +201,8 @@ async function runCase(c, record) {
     record[`${c.id}-flight`] = { lang: c.lang, airframe: c.airframe, rows: quick };
     const plane = c.airframe !== 'interceptor';
     say(await drawn(page, 'quick') === quick.filter((r) => !r.section).length, `every panel row is drawn on the page`);
-    say(quick.some((r) => r.action === 'rates') === !plane, plane ? 'a plane has no Rates row' : 'a quad has its Rates row');
+    say(plane ? quick.some((r) => r.action === 'planerates') && !quick.some((r) => r.action === 'rates') : quick.some((r) => r.action === 'rates'),
+      plane ? 'a plane\'s Rates row is its own throws, never the quad\'s Betaflight rates' : 'a quad has its Rates row');
     await shoot(page, `${c.id}-flight`);
     await page.tap('Escape');
     say(await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false), 'Escape on the panel is the pause menu again');

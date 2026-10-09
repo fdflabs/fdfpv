@@ -211,7 +211,7 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
+  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
 ]);
@@ -232,6 +232,7 @@ export const SCREEN_TITLES = {
   launch: str('ui.before_you_fly'),
   standings: 'Standings',
   rates: 'Rates',
+  planerates: 'Rates',
   pids: 'PIDs',
   controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
