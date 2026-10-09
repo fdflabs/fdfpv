@@ -39,7 +39,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { noise2, smoothstep } from '../../../render/library/noise.js';
 import { HALF, CELL, CELLS } from '../../alps/terrain.js';
 import { apronAt, inBay } from '../terrain.js';
 

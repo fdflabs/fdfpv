@@ -93,7 +93,7 @@ export function bakeStations({ bake, onGround, villageY }) {
 
 /*
  * What stands under a station's roof, as solid parts in its frame
- * (alps/roofs.js partSolids), for the walls lift.js stands: the footing,
+ * (library/roofs.js partSolids), for the walls lift.js stands: the footing,
  * the deck on its wall and the platforms on their columns with their
  * rails, the wheel with its gearbox, the roof's columns and beams, and
  * the machine house to the plate. The way the cabins ride in, over the
@@ -198,7 +198,7 @@ export function station(f, { found, h }) {
   const rf = frame(f, cx, plateY, 0, Math.PI / 2);
   const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.5, ovA: 0.3, ovB: 0.6, pitch: 0.17 });
   Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.3, zB0: 0.6 });
-  /* A roof on columns (alps/roofs.js): the cabins ride in under it, so
+  /* A roof on columns (library/roofs.js): the cabins ride in under it, so
    * it has no walls of its own, and what stands under it is solid by
    * its parts (stationSolids). */
   roof.geo.userData.roof.open = true;

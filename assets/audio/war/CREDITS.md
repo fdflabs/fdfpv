@@ -195,6 +195,13 @@ the text they are spoken from.
 | itaipu-1-g-low-water | `voice/en/itaipu-1-g-low-water.webm`, `voice/en/itaipu-1-g-low-water.mp3`, `voice/es/itaipu-1-g-low-water.webm`, `voice/es/itaipu-1-g-low-water.mp3` |
 | itaipu-1-g-come-for-you | `voice/en/itaipu-1-g-come-for-you.webm`, `voice/en/itaipu-1-g-come-for-you.mp3`, `voice/es/itaipu-1-g-come-for-you.webm`, `voice/es/itaipu-1-g-come-for-you.mp3` |
 | itaipu-1-g-all | `voice/en/itaipu-1-g-all.webm`, `voice/en/itaipu-1-g-all.mp3`, `voice/es/itaipu-1-g-all.webm`, `voice/es/itaipu-1-g-all.mp3` |
+| itaipu-2-g-gates | `voice/en/itaipu-2-g-gates.webm`, `voice/en/itaipu-2-g-gates.mp3`, `voice/es/itaipu-2-g-gates.webm`, `voice/es/itaipu-2-g-gates.mp3` |
+| itaipu-2-g-channel | `voice/en/itaipu-2-g-channel.webm`, `voice/en/itaipu-2-g-channel.mp3`, `voice/es/itaipu-2-g-channel.webm`, `voice/es/itaipu-2-g-channel.mp3` |
+| itaipu-2-g-spill | `voice/en/itaipu-2-g-spill.webm`, `voice/en/itaipu-2-g-spill.mp3`, `voice/es/itaipu-2-g-spill.webm`, `voice/es/itaipu-2-g-spill.mp3` |
+| itaipu-2-g-spray | `voice/en/itaipu-2-g-spray.webm`, `voice/en/itaipu-2-g-spray.mp3`, `voice/es/itaipu-2-g-spray.webm`, `voice/es/itaipu-2-g-spray.mp3` |
+| itaipu-2-g-west-arm | `voice/en/itaipu-2-g-west-arm.webm`, `voice/en/itaipu-2-g-west-arm.mp3`, `voice/es/itaipu-2-g-west-arm.webm`, `voice/es/itaipu-2-g-west-arm.mp3` |
+| itaipu-2-g-chute | `voice/en/itaipu-2-g-chute.webm`, `voice/en/itaipu-2-g-chute.mp3`, `voice/es/itaipu-2-g-chute.webm`, `voice/es/itaipu-2-g-chute.mp3` |
+| itaipu-2-g-working | `voice/en/itaipu-2-g-working.webm`, `voice/en/itaipu-2-g-working.mp3`, `voice/es/itaipu-2-g-working.webm`, `voice/es/itaipu-2-g-working.mp3` |
 | war-g-next | `voice/en/war-g-next.webm`, `voice/en/war-g-next.mp3`, `voice/es/war-g-next.webm`, `voice/es/war-g-next.mp3` |
 | war-g-clock-1 | `voice/en/war-g-clock-1.webm`, `voice/en/war-g-clock-1.mp3`, `voice/es/war-g-clock-1.webm`, `voice/es/war-g-clock-1.mp3` |
 | war-g-clock-2 | `voice/en/war-g-clock-2.webm`, `voice/en/war-g-clock-2.mp3`, `voice/es/war-g-clock-2.webm`, `voice/es/war-g-clock-2.mp3` |

@@ -5,9 +5,9 @@
  *
  *     node scripts/weather-room-check.js      (npm run check:weather-room)
  *
- * The host's page sets 'gusty'; after a fresh run each page flies the same
- * preset and the same seed, the room's, and its plant reports wind. Then
- * 'calm': both fly still air. A pilot who is not the host is refused.
+ * The host's Weather setting goes to the room at its next run; after that
+ * each page flies the same preset and the same seed, the room's. Then
+ * calm: both fly still air. Another pilot's setting changes nothing.
  * Exit 0 on a pass, 1 otherwise.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
@@ -81,12 +81,18 @@ try {
   const calmA = await fly(a);
   check('a new room flies calm', calmA.flown === null, JSON.stringify(calmA.flown));
 
-  await b.evaluate("window.__roomWeather('gusty')");
+  /* A pilot's Weather setting (src/ui/items.js weatherRow), offered to the
+   * room at their next run: the host's is taken, anybody else's is not. */
+  const setWeather = (p, preset) => p.evaluate(`window.__ui.settings.weather = '${preset}'; true`);
+  await setWeather(b, 'gusty');
+  await fly(b);
   await a.evaluate('new Promise((r) => setTimeout(r, 500))');
   const stillB = await fly(b);
   check('a pilot who is not the host cannot set it', stillB.flown === null, JSON.stringify(stillB.flown));
 
-  await a.evaluate("window.__roomWeather('gusty')");
+  await setWeather(b, 'calm');
+  await setWeather(a, 'gusty');
+  await fly(a);
   await a.evaluate('new Promise((r) => setTimeout(r, 500))');
   const fa = (await fly(a)).flown;
   const fb = (await fly(b)).flown;
@@ -94,7 +100,8 @@ try {
     fa && fb && fa.preset === 'gusty' && fb.preset === 'gusty' && fa.seed === fb.seed && fa.map === fb.map,
     `${JSON.stringify(fa)} ${JSON.stringify(fb)}`);
 
-  await a.evaluate("window.__roomWeather('calm')");
+  await setWeather(a, 'calm');
+  await fly(a);
   await a.evaluate('new Promise((r) => setTimeout(r, 500))');
   const ca = (await fly(a)).flown;
   const cb = (await fly(b)).flown;

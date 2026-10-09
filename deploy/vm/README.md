@@ -301,6 +301,112 @@ devAccount), so a changed list needs only the restart above. The accounts server
 be from this change on (its `GET /api/account` answers the account's
 `id`), so deploy both units.
 
+## Backups and restore
+
+Every night the owner's desktop pulls the VM's state over the deploy's SSH
+key (`fdfpv-backup.timer`, a systemd `--user` timer on the DESKTOP, 04:30
+local, caught up at the next start if the desktop was off). Nothing is
+installed on the VM: `backup.sh` streams `backup-remote.sh` to `sudo bash
+-s` there, which answers with a tar.
+
+| File | What | How it is taken |
+| --- | --- | --- |
+| `board.dump` | the board's Postgres database `fdfpvboard`: tracks, times, ghosts, bugs and screenshots, pilots, events, statistics | `pg_dump -Fc`, one snapshot |
+| `tracks.db.gz` | every track, account, gallery entry, the waitlist | `VACUUM INTO` on a read only connection |
+| `rooms.db.gz` | private rooms' codes, seats and races (reconnects) | the same |
+| `metrics.db.gz` | the admin page's history | the same |
+| `etc-fdfpv.tar.gz` | `/etc/fdfpv`: every secret the servers start with | `tar` |
+
+`etc-fdfpv.tar.gz` is a deliberate change from "never copied off the VM"
+above: a restored `tracks.db` without its `ACCOUNTS_SECRET` cannot open
+the pilot keys sealed with it, so a backup without the secrets does not
+restore the accounts. It lands only on the desktop that already holds the
+VM's root SSH key, in a mode 700 directory with mode 600 files.
+
+Not backed up: `/var/lib/fdfpv-vids` (the rendered films, redeployed from
+the repo), `/opt` (code, redeployed by the deploy scripts), the journal.
+
+Layout, in `~/fdfpv-backups` (`FDFPV_BACKUP_DIR`): `daily/<UTC date>/`
+with the files above, `TAKEN`, `REVISIONS` (the commits that were running)
+and `SHA256SUMS`; `weekly/<UTC date>/`, a hard linked copy of each ISO
+week's first daily; `latest`, a link to the newest; `last-success`, the
+time of the last backup that passed its checks (the monitor reads it).
+Kept: 14 dailies, 8 weeklies. About 5 MB a day on 2026-10-08.
+
+A backup counts only once it is checked: `pg_restore --list` reads the
+dump, `PRAGMA integrity_check` says ok for each SQLite file, `gzip -t`
+and `sha256sum -c` pass. A failed one is left as `daily/<date>.failed`
+and the unit fails.
+
+Install or update it on the desktop:
+
+```sh
+mkdir -p ~/.local/lib/fdfpv-backup
+install -m 755 deploy/vm/backup.sh deploy/vm/backup-remote.sh ~/.local/lib/fdfpv-backup/
+install -m 644 deploy/vm/fdfpv-backup.service deploy/vm/fdfpv-backup.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now fdfpv-backup.timer
+systemctl --user start fdfpv-backup.service    # one now, to see it work
+journalctl --user -u fdfpv-backup -n 20
+```
+
+### The restore drill
+
+```sh
+deploy/vm/restore-drill.sh ~/fdfpv-backups/latest ~/Desktop/fdfpv-leaderboard
+```
+
+Restores the backup into throwaway servers on the desktop and proves they
+serve it, touching nothing on the VM: the manifest verifies; the dump
+restores into a fresh `postgres:16` container with every table holding the
+rows the dump's own COPY blocks carry; the board starts on it and lists
+from Postgres; the tracks server starts on the restored `tracks.db` with
+the restored secrets, its admin overview counts the same accounts and
+tracks as the file, and `tracks-api/smoke.js` passes against it; the other
+two SQLite files pass `integrity_check`. Everything it made, the restored
+secrets included, is removed on exit. Run it after any change to the
+backup, and once a month.
+
+### Restoring the VM from a backup (the runbook)
+
+On a rebuilt VM, or to roll the data back. Stop the servers first so
+nothing writes while the files change; rooms in play reconnect after.
+
+```sh
+B=~/fdfpv-backups/latest           # or daily/<date>, weekly/<date>
+VM="ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48"
+(cd $B && sha256sum -c SHA256SUMS)
+deploy/vm/restore-drill.sh $B      # prove this backup first
+
+# 1. The code and the users, if the VM is new: the deploys as above.
+deploy/vm/deploy.sh /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.txt
+deploy/vm/deploy-board.sh /home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt
+
+# 2. Stop what writes.
+$VM 'sudo systemctl stop fdfpv-rooms fdfpv-tracks fdfpv-board fdfpv-metrics.timer'
+
+# 3. The secrets, then the SQLite files (owner and mode as the units expect).
+$VM 'sudo tar -xzf - -C /etc' < $B/etc-fdfpv.tar.gz
+for s in tracks rooms metrics; do
+  gunzip -c $B/$s.db.gz | $VM "sudo bash -c 'rm -f /var/lib/fdfpv-$s/$s.db-wal /var/lib/fdfpv-$s/$s.db-shm && \
+    install -m 644 -o fdfpv-$s -g \$(id -gn fdfpv-$s) /dev/stdin /var/lib/fdfpv-$s/$s.db'"
+done
+# metrics.db is owned fdfpv-metrics:fdfpv-tracks, mode 640:
+$VM 'sudo chown fdfpv-metrics:fdfpv-tracks /var/lib/fdfpv-metrics/metrics.db && sudo chmod 640 /var/lib/fdfpv-metrics/metrics.db'
+
+# 4. The board's database, replaced whole.
+$VM 'sudo -u postgres dropdb --if-exists fdfpvboard && sudo -u postgres createdb -O fdfpv-board fdfpvboard'
+$VM 'sudo -u postgres pg_restore --no-owner --role=fdfpv-board -d fdfpvboard' < $B/board.dump
+
+# 5. Start, and check as in "Check it" below.
+$VM 'sudo systemctl start fdfpv-tracks fdfpv-rooms fdfpv-board fdfpv-metrics.timer'
+curl -s https://api.paraguayandronecombatsimulator.com/api/version https://api.paraguayandronecombatsimulator.com/v2/version
+```
+
+Step 3's `install` writes through `/dev/stdin`, so the file lands with its
+owner and mode in one step and the old WAL is gone before the server
+reopens it (a stale WAL beside a replaced database is replayed into it).
+
 ## Check it
 
 ```sh
