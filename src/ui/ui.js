@@ -498,7 +498,7 @@ export function courseCardRows(subject) {
  */
 export function craftItem(s, swap, shown = s.airframe) {
   const inPlace = swap ? ` ${str('carousel.in_place')}` : '';
-  const note = str('ui.changing_it_loads_that_machine_s', { blurb: airframeById(shown).blurb, v3: inPlace });
+  const note = str('ui.changing_it_loads_that_machine_s', { blurb: str(`airframe.blurb.${airframeById(shown).id}`), v3: inPlace });
   const nameOf = (id) => airframeById(id).name;
   const take = swap ? (id) => { swap(id); } : (id) => { seatAirframe(s, id); };
   return { ...choice(str('ui.aircraft'), note, AIRFRAME_IDS, shown, nameOf, take), pickOnly: true };

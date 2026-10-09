@@ -118,7 +118,7 @@ function tuneName(id) {
 /* A firmware field's label and note from configs/ (rates.js, pids.js),
  * which name them in English for the bench and the pinned transcripts;
  * the rows read them from the string table under spec.<group>.<key>. */
-const specText = (base) => ({ label: str(`${base}.label`), note: str(`${base}.note`) });
+const specText = (base) => ({ label: str(`${base.toLowerCase()}.label`), note: str(`${base.toLowerCase()}.note`) });
 
 const rateTypeName = (type) => str(`rates.type_${type.toLowerCase()}`);
 

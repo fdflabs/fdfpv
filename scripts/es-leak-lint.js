@@ -23,7 +23,8 @@
  * tests/fixtures/es-leaks.json, and that list may only shrink: a leak not
  * on it fails, and so does an entry that no longer happens, so a fix takes
  * its line off. It is a ratchet, not an excuse list. Every name a tune can
- * have must have a key (tune.name.<word>) or be in SHARED.
+ * have must have a key (tune.name.<word>) or be in SHARED, and every
+ * aircraft its description (airframe.blurb.<id>).
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -107,6 +108,8 @@ for (const [name, scene] of Object.entries(english)) {
 
 const names = [...new Set(TUNES.map((t) => t.name))];
 const unkeyed = names.filter((n) => !SHARED.has(n) && en[`tune.name.${n.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`] === undefined);
+/* The aircraft row reads airframe.blurb.<id>; the page throws on a missing key. */
+const unblurbed = AIRFRAMES.filter((a) => en[`airframe.blurb.${a.id}`] === undefined).map((a) => a.id);
 const found = [...new Set(leaks)].sort();
 const strict = found.filter((l) => STRICT.test(l));
 const rest = found.filter((l) => !STRICT.test(l));
@@ -136,6 +139,10 @@ for (const l of gone) {
 }
 for (const n of unkeyed) {
   console.error(`FAIL  tune name "${n}" has no key tune.name.<word> in src/strings and is not in SHARED`);
+  bad += 1;
+}
+for (const id of unblurbed) {
+  console.error(`FAIL  aircraft "${id}" has no airframe.blurb.${id} in src/strings (en and es)`);
   bad += 1;
 }
 if (bad) {
