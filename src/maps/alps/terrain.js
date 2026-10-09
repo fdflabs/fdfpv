@@ -24,7 +24,7 @@
 
 import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
-import { fbm, noise2, smoothstep } from './noise.js';
+import { fbm, noise2, smoothstep } from '../../render/library/noise.js';
 
 /* The heightfield: a square this many metres on a side, centred on the
  * origin, sampled on a grid this fine. Thirty metre cells are coarse for a

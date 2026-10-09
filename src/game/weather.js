@@ -27,6 +27,9 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { CLASS } from './weather-surface-classes.js';
+import { SURFACE } from './weather-surface.js';
+
 /* The ABI's limits (sim_abi.h, sim_set_wind): mean speed, gust RMS. The
  * mean is held a little under the ABI's 30 so a unit direction's last bit
  * can never carry it over and have the call refused. */
@@ -72,6 +75,83 @@ const THERMAL_FROM = [5, 40];
 const THERMAL_TO = [700, 1000];
 export const PRESET_IDS = Object.keys(PRESETS);
 
+/*
+ * The ground under the thermals, docs/WEATHER-CONTRACT.md "The surface".
+ * A thermal's core rises at w* = (g / T * zi * H / (rho cp))^(1/3), the
+ * convective velocity scale (Deardorff 1970; Stull, An Introduction to
+ * Boundary Layer Meteorology, 1988, ch. 11), so with one sun and
+ * one boundary layer it goes as the cube root of the ground's sensible
+ * heat H. Of the sun's net energy H takes B / (1 + B), B the Bowen ratio:
+ * about 0.25 over moist forest and wetland, 0.6 over pasture and crops,
+ * 1.5 over bare soil, rock and built ground (Oke, Boundary Layer
+ * Climates, 1987: typical ranges by surface, not
+ * figures measured here), so relative to open
+ * ground ((0.2 / 0.375)^(1/3) and (0.6 / 0.375)^(1/3)): forest 0.8, bare
+ * 1.15. The presets' rates are open ground's. Water and lying snow make
+ * none: the lake is cooler than the air over it and snow holds at 0 C,
+ * so the air over them is stable (FAA Glider Flying Handbook, ch. 9:
+ * lakes and wet ground are poor sources, often sink). The ordering is
+ * the handbook's; the ratios are derived from the two sources above.
+ */
+const HEAT = [];
+HEAT[CLASS.water] = 0;
+HEAT[CLASS.forest] = 0.8;
+HEAT[CLASS.open] = 1;
+HEAT[CLASS.bare] = 1.15;
+HEAT[CLASS.snow] = 0;
+const WET = [];
+WET[CLASS.water] = 1;
+WET[CLASS.forest] = 0;
+WET[CLASS.open] = 0;
+WET[CLASS.bare] = 0;
+WET[CLASS.snow] = 0;
+/*
+ * Over water, the air the thermals lift comes down: the share of a
+ * strong core's rise it sinks at, the same as the ring of sink round a
+ * core (thermalAt), so a lake on a thermal day is weak sink and on an
+ * overcast one nothing. Continuity sets the sign, not the size; the
+ * ring's share is the model's one figure for compensating sink.
+ */
+const WATER_SINK = 0.15;
+
+/* A grid's runs (weather-surface.js) as one class byte per cell. */
+function decodeRuns(g) {
+  const cls = new Uint8Array(g.n * g.n);
+  const re = /([a-z])(\d+)/g;
+  let at = 0;
+  for (const m of g.runs.matchAll(re)) {
+    const run = Number(m[2]);
+    cls.fill(m[1].charCodeAt(0) - 97, at, at + run);
+    at += run;
+  }
+  if (at !== cls.length) {
+    throw new Error(`weather: a surface grid covers ${at} cells of ${cls.length}`);
+  }
+  return { x0: g.x0, cell: g.cell, n: g.n, cls };
+}
+
+/*
+ * A per class table read at (x, z): bilinear between the cells' centres,
+ * so a drifting thermal fades over a shore instead of stepping; held at
+ * the grid's edge past it. + - * / and floor only.
+ */
+function surfaceAt(grid, table, x, z) {
+  const last = grid.n - 1;
+  let u = (x - grid.x0) / grid.cell - 0.5;
+  let v = (z - grid.x0) / grid.cell - 0.5;
+  u = u < 0 ? 0 : (u > last ? last : u);
+  v = v < 0 ? 0 : (v > last ? last : v);
+  const i = Math.floor(u) < last ? Math.floor(u) : last - 1;
+  const j = Math.floor(v) < last ? Math.floor(v) : last - 1;
+  const fu = u - i;
+  const fv = v - j;
+  const k = j * grid.n + i;
+  const c = grid.cls;
+  const a = table[c[k]] + (table[c[k + 1]] - table[c[k]]) * fu;
+  const b = table[c[k + grid.n]] + (table[c[k + grid.n + 1]] - table[c[k + grid.n]]) * fu;
+  return a + (b - a) * fv;
+}
+
 /* Per map: the height the layers count from (m, map y), the prevailing
  * direction the wind blows toward (unit, map frame), and zones: a line
  * ([[x, z], ...], one segment or more) and the band of radius r round it
@@ -116,6 +196,23 @@ export const MAPS = {
     zones: [{ line: RIO_SERENO, r: 400, shelter: 0.85, gust: 0.4, top: 80, lift: 0 }],
   },
 };
+
+for (const id of Object.keys(MAPS)) {
+  if (!SURFACE[id]) {
+    throw new Error(`weather: ${id} has no surface grid`);
+  }
+  MAPS[id].surface = decodeRuns(SURFACE[id]);
+}
+
+/* The class of the cell (x, z) is in on a map's grid (CLASS), held at the
+ * grid's edge: for the checks and the docs' pictures. */
+export function groundClass(mapId, x, z) {
+  const g = MAPS[mapId].surface;
+  const i = Math.floor((x - g.x0) / g.cell);
+  const j = Math.floor((z - g.x0) / g.cell);
+  const last = g.n - 1;
+  return g.cls[(j < 0 ? 0 : (j > last ? last : j)) * g.n + (i < 0 ? 0 : (i > last ? last : i))];
+}
 
 /* 0 to 1, a cubic: smoothstep without pow. */
 function smooth(e0, e1, x) {
@@ -207,14 +304,12 @@ function faceRate(line, k, x, z, dx, dz) {
  * sim time t: the nine squares round the point, each with a thermal or not
  * by the seed, a core of THERMAL_R with a weak sink round it out to twice
  * that (the air a thermal lifts comes down beside it), each waxing and
- * waning over THERMAL_LIFE from a phase of its own. Integer hashing and + -
- * * / only.
+ * waning over THERMAL_LIFE from a phase of its own, and as strong as the
+ * ground under its core heats the air (HEAT, at the core's place on the
+ * map: the drifting frame's point plus (ox, oz)). `h` is the height's
+ * share, thermalDepth. Integer hashing and + - * / only.
  */
-function thermalAt(seed, x, z, t, above) {
-  const h = smooth(THERMAL_FROM[0], THERMAL_FROM[1], above) * (1 - smooth(THERMAL_TO[0], THERMAL_TO[1], above));
-  if (!(h > 0)) {
-    return 0;
-  }
+function thermalAt(seed, x, z, t, h, grid, ox, oz) {
   const ci = Math.floor(x / THERMAL_CELL);
   const cj = Math.floor(z / THERMAL_CELL);
   let w = 0;
@@ -236,10 +331,17 @@ function thermalAt(seed, x, z, t, above) {
       const ph = t / THERMAL_LIFE + 0.5 * (hashUnit(seed ^ key, 6) + 1);
       const u = ph - Math.floor(ph);
       const life = u < 0.5 ? 2 * u : 2 - 2 * u;
-      w += life * (q < 1 ? (1 - q) * (1 - q) : -0.15 * (1 - (q - 1) / 3));
+      const heat = surfaceAt(grid, HEAT, tx + ox, tz + oz);
+      w += heat * life * (q < 1 ? (1 - q) * (1 - q) : -0.15 * (1 - (q - 1) / 3));
     }
   }
   return w * h;
+}
+
+/* How much of a thermal's rise there is `above` the base: none on the
+ * ground, all of it from THERMAL_FROM up, gone by the cloud base. */
+function thermalDepth(above) {
+  return smooth(THERMAL_FROM[0], THERMAL_FROM[1], above) * (1 - smooth(THERMAL_TO[0], THERMAL_TO[1], above));
 }
 
 /*
@@ -309,8 +411,12 @@ export function makeWeather(mapId, presetId, seed) {
         const r = lift[2 * i + 1];
         up += map.zones[i].lift * lift[2 * i] * mean * (r > 0 ? r : 0.5 * r);
       }
-      if (p.thermal > 0) {
-        up += thermalAt(s, x - driftX * t, z - driftZ * t, t, above) * p.thermal;
+      const h = p.thermal > 0 ? thermalDepth(above) : 0;
+      if (h > 0) {
+        const ox = driftX * t;
+        const oz = driftZ * t;
+        up += thermalAt(s, x - ox, z - oz, t, h, map.surface, ox, oz) * p.thermal;
+        up -= WATER_SINK * p.thermal * h * surfaceAt(map.surface, WET, x, z);
       }
       out.up = up > UP_MAX ? UP_MAX : (up < -UP_MAX ? -UP_MAX : up);
       out.x = dx * mean;

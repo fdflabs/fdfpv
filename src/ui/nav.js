@@ -709,6 +709,7 @@ export const navMethods = {
       return [
         { keys: pad ? ['Roll'] : ['Drag', 'Wheel'], text: str('walk.photo_aim') },
         { keys: [pad ? 'A' : 'Space'], text: str('walk.photo_take'), action: 'walk-photo-take' },
+        { keys: ['T'], text: str('walk.turntable'), action: 'walk-turntable' },
         { keys: [pad ? 'B' : 'P'], text: str('walk.photo_done'), action: 'walk-photo' },
       ];
     }

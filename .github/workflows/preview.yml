@@ -1,0 +1,73 @@
+# A flyable preview of every pull request, before it merges (docs/PREVIEWS.md).
+#
+# GitHub Pages publishes one site per repository, so the preview lives on
+# Cloudflare Pages, free, on its own host: pr-<n>.fdfpv-preview.pages.dev.
+# The tree is staged and stamped exactly as pages.yml stages main, from the
+# merge of the pull request into main, which is what would go live.
+#
+# A preview is solo only. On a host that is not the game's own
+# (src/share/api.js SITE_HOSTS) the page asks no rooms, tracks, accounts or
+# board server, and the rooms server refuses the origin anyway
+# (edge/rooms/front.js), so a build nobody merged never writes real data.
+#
+# Pull requests from forks get no secrets and are skipped. Until the
+# CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets exist the job stages
+# and stamps, then says in its summary that there is nowhere to publish.
+#
+# This file is part of the Paraguayan Drone Combat Simulator.
+#
+# The Paraguayan Drone Combat Simulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# The Paraguayan Drone Combat Simulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
+name: preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage the site
+        run: scripts/stage-site.sh /tmp/site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Stamp the version
+        run: node scripts/stamp-version.js /tmp/site "${HEAD_SHA::12}"
+      - name: Nowhere to publish yet
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::warning::No CLOUDFLARE_API_TOKEN secret, so no preview was published (docs/PREVIEWS.md)."
+      - name: Publish to Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: npx --yes wrangler@4 pages deploy /tmp/site --project-name fdfpv-preview --branch "pr-$PR" --commit-hash "$HEAD_SHA" --commit-dirty=true
+      - name: Link it on the pull request
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/preview-comment.js
