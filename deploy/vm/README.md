@@ -301,6 +301,55 @@ devAccount), so a changed list needs only the restart above. The accounts server
 be from this change on (its `GET /api/account` answers the account's
 `id`), so deploy both units.
 
+## Monitoring
+
+The owner's desktop watches the game and the VM from outside every five
+minutes (`fdfpv-monitor.timer`, a systemd `--user` timer on the DESKTOP,
+`monitor.sh`) and tells the owner's phone through ntfy when something
+changes. What it checks: the site and its deploy stamp; that the stamp is
+main's head within 45 minutes; `/api/version`, `/v2/version` (the same
+commit, or a deploy is half done) and the rooms lobby (`/v2/rooms`); the
+board on Postgres; both certificates over 14 days; over SSH, read only,
+the VM's root disk under 85%, memory over 10% available and caddy,
+postgresql and the three servers active; the last good backup under 26
+hours old (`~/fdfpv-backups/last-success`, see Backups).
+
+A check alerts on a change of state held for two runs (so one dropped
+request pages nobody), and again when it recovers. A heartbeat goes once a
+day after 09:00 local: the monitor is alive, what is failing, and how many
+commits the VM is behind main (information: the VM is deployed by hand).
+
+The ntfy topic and token are in `~/.config/fdfpv-monitor/ntfy.env` (mode
+600, never in the repo); since 2026-10-08 it is the same topic the
+BurnLedger monitor uses, titled "FDFPV". For a topic of its own, change
+`NTFY_URL` there and subscribe to it on the phone. Every curl is pinned to
+IPv4 (ntfy's free quota is per source address; see the unit).
+
+Install or update it on the desktop:
+
+```sh
+mkdir -p ~/.local/lib/fdfpv-monitor ~/.config/fdfpv-monitor/curl-ipv4
+install -m 755 deploy/vm/monitor.sh ~/.local/lib/fdfpv-monitor/
+install -m 644 deploy/vm/fdfpv-monitor.service deploy/vm/fdfpv-monitor.timer ~/.config/systemd/user/
+printf 'ipv4\n' > ~/.config/fdfpv-monitor/curl-ipv4/.curlrc
+# ~/.config/fdfpv-monitor/ntfy.env: NTFY_URL=https://ntfy.sh/<topic> and NTFY_TOKEN=<token>, mode 600
+systemctl --user daemon-reload
+systemctl --user enable --now fdfpv-monitor.timer
+deploy/vm/monitor.sh --dry-run     # every check, nothing sent, no state kept
+journalctl --user -u fdfpv-monitor -n 20
+```
+
+State (what was last told, per check) is in `~/.local/state/fdfpv-monitor`.
+To see an alert fire without breaking anything, point one check at a
+missing file in a scratch state directory; the second run sends DOWN, two
+runs back to normal send RECOVERED:
+
+```sh
+T=$(mktemp -d); export CURL_HOME=~/.config/fdfpv-monitor/curl-ipv4
+FDFPV_MONITOR_STATE=$T FDFPV_BACKUP_DIR=/nonexistent deploy/vm/monitor.sh   # twice
+FDFPV_MONITOR_STATE=$T deploy/vm/monitor.sh                                 # twice
+```
+
 ## Check it
 
 ```sh
