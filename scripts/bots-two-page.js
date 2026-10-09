@@ -145,9 +145,9 @@ try {
     .filter(([, , pg, rg]) => Math.abs(pg - rg) >= 1e-3)));
   /* Where they differ the page stands higher: a roof, a deck or a road
    * on the ground (alps/roofs.js), which the room does not have. */
-  const off = samples.map(([x, z], i) => pageGround[i] - roomGround(x, z)).filter((d) => Math.abs(d) >= 1e-3);
+  const higher = samples.map(([x, z], i) => pageGround[i] - roomGround(x, z)).filter((d) => Math.abs(d) >= 1e-3);
   check(`the room's ground is the page's at ${samples.length} points over the corridor, but what is built on it`,
-    off.length <= samples.length / 50 && off.every((d) => d > 0), `${off.length} differ, all higher on the page: ${off.map((d) => d.toFixed(2)).join(', ')} m`);
+    higher.length <= samples.length / 50 && higher.every((d) => d > 0), `${higher.length} differ, all higher on the page: ${higher.map((d) => d.toFixed(2)).join(', ')} m`);
 
   /* A CRASH. The room crashes an AI pilot as the referee would (the hit
    * itself is rooms:selftest's): A sees it fall, lie on the ground, and
