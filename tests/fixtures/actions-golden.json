@@ -325,8 +325,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -527,8 +527,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -550,8 +550,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -1419,8 +1419,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -1773,8 +1773,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -1817,8 +1817,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -2147,8 +2147,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -2349,8 +2349,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -2372,8 +2372,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -3255,8 +3255,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -3609,8 +3609,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -3653,8 +3653,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -3983,8 +3983,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -4185,8 +4185,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -4208,8 +4208,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -5093,8 +5093,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -5447,8 +5447,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -5491,8 +5491,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -5935,8 +5935,8 @@
       "settings.freestyleMap": "swiss2",
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "wing-acro",
-      "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+      "settings.tune": "wing-stab",
+      "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
      }
     }
    },
@@ -6172,8 +6172,8 @@
       "settings.airframeAsked": true,
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "wing-acro",
-      "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+      "settings.tune": "wing-stab",
+      "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
      }
     }
    },
@@ -6200,8 +6200,8 @@
       "settings.airframeAsked": true,
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "timber-acro",
-      "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+      "settings.tune": "timber-as3x",
+      "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
      }
     }
    },
@@ -7349,8 +7349,8 @@
       "settings.airframeAsked": true,
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "wing-acro",
-      "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+      "settings.tune": "wing-stab",
+      "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
      }
     }
    },
@@ -7773,8 +7773,8 @@
       "settings.airframeAsked": true,
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "wing-acro",
-      "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+      "settings.tune": "wing-stab",
+      "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
      }
     }
    },
@@ -7827,8 +7827,8 @@
       "settings.airframeAsked": true,
       "settings.cameraFov": 100,
       "settings.cameraAngle": 5,
-      "settings.tune": "timber-acro",
-      "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+      "settings.tune": "timber-as3x",
+      "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
      }
     }
    }
@@ -8153,8 +8153,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -8341,8 +8341,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -8362,8 +8362,8 @@
      "settings.airframe": "timber1500",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -9240,8 +9240,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -9566,8 +9566,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -9606,8 +9606,8 @@
      "settings.airframe": "timber1500",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -9931,8 +9931,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -10119,8 +10119,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -10140,8 +10140,8 @@
      "settings.airframe": "timber1500",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -11018,8 +11018,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -11344,8 +11344,8 @@
      "settings.airframe": "bramor2300",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -11384,8 +11384,8 @@
      "settings.airframe": "timber1500",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -11897,8 +11897,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1564 chars, hash 4b011864"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1564 chars, hash 11d5c82"
     }
    },
    "friends-leave": {
@@ -13184,8 +13184,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1564 chars, hash 4b011864"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1564 chars, hash 11d5c82"
     }
    }
   },
@@ -13511,8 +13511,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -13695,8 +13695,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash da807b8a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 3c10bcb1"
     }
    },
    "way-training": {
@@ -13718,8 +13718,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1565 chars, hash ad7ce15f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1565 chars, hash 2fcd8c79"
     }
    },
    "friends-leave": {
@@ -14616,8 +14616,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash da807b8a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 3c10bcb1"
     }
    },
    "way-friends picked:cub": {
@@ -14982,8 +14982,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash da807b8a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 3c10bcb1"
     }
    },
    "way-training picked:cub": {
@@ -15026,8 +15026,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1565 chars, hash ad7ce15f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1565 chars, hash 2fcd8c79"
     }
    }
   },
@@ -15353,8 +15353,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -15549,8 +15549,8 @@
      "settings.map": "alps",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1541 chars, hash 709ddca"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1541 chars, hash 6c95e6f1"
     }
    },
    "way-training": {
@@ -15578,8 +15578,8 @@
      "settings.map": "alps",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1561 chars, hash e980ad1f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1561 chars, hash 2909c8b9"
     }
    },
    "friends-leave": {
@@ -16485,8 +16485,8 @@
      "settings.map": "alps",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1541 chars, hash 709ddca"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1541 chars, hash 6c95e6f1"
     }
    },
    "way-friends picked:cub": {
@@ -16881,8 +16881,8 @@
      "settings.map": "alps",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1541 chars, hash 709ddca"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1541 chars, hash 6c95e6f1"
     }
    },
    "way-training picked:cub": {
@@ -16937,8 +16937,8 @@
      "settings.map": "alps",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1561 chars, hash e980ad1f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1561 chars, hash 2909c8b9"
     }
    }
   },
@@ -17268,8 +17268,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -17463,8 +17463,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -17485,8 +17485,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -18370,8 +18370,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -18710,8 +18710,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -18752,8 +18752,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -19082,8 +19082,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -19284,8 +19284,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -19307,8 +19307,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -20191,8 +20191,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -20545,8 +20545,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -20589,8 +20589,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -20911,8 +20911,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -21096,8 +21096,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-training": {
@@ -21120,8 +21120,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1565 chars, hash 13792d9f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1565 chars, hash 53024939"
     }
    },
    "friends-leave": {
@@ -22014,8 +22014,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends picked:cub": {
@@ -22388,8 +22388,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-training picked:cub": {
@@ -22434,8 +22434,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1565 chars, hash 13792d9f"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1565 chars, hash 53024939"
     }
    }
   },
@@ -22761,8 +22761,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -22956,8 +22956,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -22978,8 +22978,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -23864,8 +23864,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -24204,8 +24204,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -24246,8 +24246,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -24651,8 +24651,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -24846,8 +24846,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -24868,8 +24868,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -25759,8 +25759,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -26099,8 +26099,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -26141,8 +26141,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -26543,8 +26543,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -26738,8 +26738,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -26760,8 +26760,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -27651,8 +27651,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -27991,8 +27991,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -28033,8 +28033,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -28396,8 +28396,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -28591,8 +28591,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -28613,8 +28613,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -29499,8 +29499,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -29839,8 +29839,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -29881,8 +29881,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -30286,8 +30286,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -30481,8 +30481,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -30503,8 +30503,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -31394,8 +31394,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -31734,8 +31734,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -31776,8 +31776,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -32169,8 +32169,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -32364,8 +32364,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -32386,8 +32386,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -33277,8 +33277,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -33617,8 +33617,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -33659,8 +33659,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -34027,8 +34027,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -34222,8 +34222,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -34244,8 +34244,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -35135,8 +35135,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -35475,8 +35475,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -35517,8 +35517,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -35905,8 +35905,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -36100,8 +36100,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -36122,8 +36122,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -37013,8 +37013,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -37353,8 +37353,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -37395,8 +37395,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -37779,8 +37779,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -37974,8 +37974,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -37996,8 +37996,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -38887,8 +38887,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -39227,8 +39227,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -39269,8 +39269,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -39590,8 +39590,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -39785,8 +39785,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -39807,8 +39807,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -40698,8 +40698,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -41038,8 +41038,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -41080,8 +41080,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -41527,8 +41527,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -41722,8 +41722,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -41744,8 +41744,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -42635,8 +42635,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -42975,8 +42975,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -43017,8 +43017,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -43387,8 +43387,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -43582,8 +43582,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -43604,8 +43604,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -44495,8 +44495,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -44835,8 +44835,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -44877,8 +44877,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -45197,8 +45197,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1539 chars, hash 20ce9855"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1539 chars, hash 18938bae"
     }
    },
    "way-friends": {
@@ -45375,8 +45375,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1539 chars, hash 20ce9855"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1539 chars, hash 18938bae"
     }
    },
    "way-training": {
@@ -45398,8 +45398,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1559 chars, hash 87c1e900"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1559 chars, hash f180c366"
     }
    },
    "friends-leave": {
@@ -46298,8 +46298,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1539 chars, hash 20ce9855"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1539 chars, hash 18938bae"
     }
    },
    "way-friends picked:cub": {
@@ -46658,8 +46658,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1539 chars, hash 20ce9855"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1539 chars, hash 18938bae"
     }
    },
    "way-training picked:cub": {
@@ -46702,8 +46702,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1559 chars, hash 87c1e900"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1559 chars, hash f180c366"
     }
    }
   },
@@ -47030,8 +47030,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -47212,8 +47212,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -47233,8 +47233,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -48120,8 +48120,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -48440,8 +48440,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -48480,8 +48480,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -48808,8 +48808,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -48990,8 +48990,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -49011,8 +49011,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -49886,8 +49886,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -50206,8 +50206,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -50246,8 +50246,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -50574,8 +50574,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -50756,8 +50756,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -50777,8 +50777,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -51655,8 +51655,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -51975,8 +51975,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -52015,8 +52015,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -52345,8 +52345,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -52534,8 +52534,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -52556,8 +52556,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -53458,8 +53458,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -53792,8 +53792,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -53834,8 +53834,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -54164,8 +54164,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -54360,8 +54360,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -54383,8 +54383,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -55282,8 +55282,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -55630,8 +55630,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -55674,8 +55674,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -56002,8 +56002,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -56190,8 +56190,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -56211,8 +56211,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -57089,8 +57089,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -57415,8 +57415,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -57455,8 +57455,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -57783,8 +57783,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -57971,8 +57971,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -57992,8 +57992,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -58870,8 +58870,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -59196,8 +59196,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -59236,8 +59236,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -59564,8 +59564,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -59759,8 +59759,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -59781,8 +59781,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -60666,8 +60666,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -61006,8 +61006,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -61048,8 +61048,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -61376,8 +61376,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -61571,8 +61571,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -61593,8 +61593,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -62490,8 +62490,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -62830,8 +62830,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -62872,8 +62872,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -63200,8 +63200,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -63395,8 +63395,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -63417,8 +63417,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -64309,8 +64309,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -64649,8 +64649,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -64691,8 +64691,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -65019,8 +65019,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -65214,8 +65214,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -65236,8 +65236,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -66134,8 +66134,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -66474,8 +66474,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -66516,8 +66516,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -66844,8 +66844,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -67039,8 +67039,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -67061,8 +67061,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -67963,8 +67963,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -68303,8 +68303,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -68345,8 +68345,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -68673,8 +68673,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -68868,8 +68868,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -68890,8 +68890,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -69784,8 +69784,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -70124,8 +70124,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -70166,8 +70166,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -70494,8 +70494,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1529 chars, hash 40b5a75e"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1529 chars, hash 298918e5"
     }
    },
    "way-friends": {
@@ -70689,8 +70689,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1522 chars, hash 7c490d71"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1522 chars, hash 3a186bca"
     }
    },
    "way-training": {
@@ -70711,8 +70711,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1542 chars, hash 2d1ca7a4"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1542 chars, hash d9e40602"
     }
    },
    "friends-leave": {
@@ -71609,8 +71609,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1522 chars, hash 7c490d71"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1522 chars, hash 3a186bca"
     }
    },
    "way-friends picked:cub": {
@@ -71956,8 +71956,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1522 chars, hash 7c490d71"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1522 chars, hash 3a186bca"
     }
    },
    "way-training picked:cub": {
@@ -71999,8 +71999,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1542 chars, hash 2d1ca7a4"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1542 chars, hash d9e40602"
     }
    }
   },
@@ -72327,8 +72327,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -72522,8 +72522,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -72544,8 +72544,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -73428,8 +73428,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -73768,8 +73768,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -73810,8 +73810,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -74138,8 +74138,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -74333,8 +74333,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -74355,8 +74355,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -75236,8 +75236,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -75576,8 +75576,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -75618,8 +75618,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -75946,8 +75946,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -76141,8 +76141,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -76163,8 +76163,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -77057,8 +77057,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -77397,8 +77397,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -77439,8 +77439,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -77767,8 +77767,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -77962,8 +77962,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -77984,8 +77984,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -78870,8 +78870,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -79210,8 +79210,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -79252,8 +79252,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -79580,8 +79580,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -79775,8 +79775,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -79797,8 +79797,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -80681,8 +80681,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -81021,8 +81021,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -81063,8 +81063,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -81391,8 +81391,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -81586,8 +81586,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -81608,8 +81608,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -82494,8 +82494,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -82834,8 +82834,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -82876,8 +82876,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -83228,8 +83228,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -83423,8 +83423,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -83445,8 +83445,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -84333,8 +84333,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -84673,8 +84673,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -84715,8 +84715,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -85054,8 +85054,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -85249,8 +85249,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -85271,8 +85271,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -86159,8 +86159,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -86499,8 +86499,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -86541,8 +86541,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -86862,8 +86862,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -87057,8 +87057,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -87079,8 +87079,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -87967,8 +87967,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -88307,8 +88307,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -88349,8 +88349,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -88680,8 +88680,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -88882,8 +88882,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -88905,8 +88905,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -89792,8 +89792,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -90146,8 +90146,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -90190,8 +90190,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -90521,8 +90521,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -90723,8 +90723,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -90746,8 +90746,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -91633,8 +91633,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -91987,8 +91987,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -92031,8 +92031,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -92362,8 +92362,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -92564,8 +92564,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -92587,8 +92587,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -93474,8 +93474,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -93828,8 +93828,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -93872,8 +93872,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -94200,8 +94200,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -94395,8 +94395,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -94417,8 +94417,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -95309,8 +95309,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -95649,8 +95649,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -95691,8 +95691,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -96019,8 +96019,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -96214,8 +96214,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -96236,8 +96236,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -97124,8 +97124,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -97464,8 +97464,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -97506,8 +97506,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -97834,8 +97834,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -98029,8 +98029,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -98051,8 +98051,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -98923,8 +98923,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -99263,8 +99263,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -99305,8 +99305,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -99633,8 +99633,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -99828,8 +99828,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -99850,8 +99850,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -100732,8 +100732,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -101072,8 +101072,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -101114,8 +101114,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -101442,8 +101442,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -101637,8 +101637,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -101659,8 +101659,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -102545,8 +102545,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -102885,8 +102885,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -102927,8 +102927,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -103255,8 +103255,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -103450,8 +103450,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -103472,8 +103472,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -104365,8 +104365,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -104705,8 +104705,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -104747,8 +104747,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -105075,8 +105075,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -105263,8 +105263,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -105284,8 +105284,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -106170,8 +106170,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -106496,8 +106496,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -106536,8 +106536,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   },
@@ -106864,8 +106864,8 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1545 chars, hash 45f12771"
     }
    },
    "way-friends": {
@@ -107059,8 +107059,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training": {
@@ -107081,8 +107081,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    },
    "friends-leave": {
@@ -107966,8 +107966,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-friends picked:cub": {
@@ -108306,8 +108306,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "settings.tune": "wing-stab",
+     "store.webfpv.settings.v3": "1538 chars, hash 5e1329de"
     }
    },
    "way-training picked:cub": {
@@ -108348,8 +108348,8 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
-     "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "settings.tune": "timber-as3x",
+     "store.webfpv.settings.v3": "1558 chars, hash 6cfcfe16"
     }
    }
   }
