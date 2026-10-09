@@ -160,8 +160,10 @@ export default withWaves({
   title: 'war.mission.itaipu_2',
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
-   * Operations' briefing shows it (src/ui/briefing.js). */
-  estimatedMinutes: [10, 14],
+   * Operations' briefing shows it (src/ui/briefing.js). From the room:
+   * war:stages' ten good bot games end 12.2 to 14.6 minutes after the go
+   * (2026-10-08), past MISSIONS.md's first guess of 10 to 14. */
+  estimatedMinutes: [12, 15],
   targets,
   output: 14000,
   floorMw: 11200,

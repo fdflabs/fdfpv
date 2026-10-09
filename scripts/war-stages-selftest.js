@@ -1231,6 +1231,12 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
   check('the twist\'s own objective is on the HUD once the twist is born, not before', bad.filter((x) => /objective/.test(x)).length === 0,
     bad.filter((x) => /objective/.test(x)).join(' | '));
   check('over the ten games all three twists are met', twists.size === 3, [...twists].join(','));
+  /* The length a squad takes (estimatedMinutes, which Operations'
+   * briefing shows), from the go to the end, on these good bots. */
+  const [lo, hi] = mission.estimatedMinutes;
+  const minutes = games.map((g) => (g.views.at(-1).endAt - g.views.at(-1).goAt) / 60000);
+  check(`every won game ends ${lo} to ${hi} minutes after the go`, minutes.every((x) => x >= lo && x <= hi),
+    minutes.map((x) => x.toFixed(1)).join(' '));
 
   /* Nobody shooting: the headless pass's game, once per twist. The squad
    * flies far off, so every attacker gets through. The first stages take
