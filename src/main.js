@@ -5434,6 +5434,9 @@ export async function boot({
       return;
     }
     warOutroShown = roomWar.match();
+    /* The HUD redraws every 250 ms; without this the win's banner stays
+     * over the film's first frames until the next redraw. */
+    warHudAt = 0;
     const endAt = v.endAt;
     warIntroPlay(`outro:${v.id}`, {
       mission: v.mission,
