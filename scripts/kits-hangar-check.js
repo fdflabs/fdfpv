@@ -23,6 +23,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { LIGHTS_VERSION } from '../configs/kits.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,7 +210,7 @@ async function leds(page) {
   say(await press(page, '.hangar [data-key="pattern-chase"]'), `${id}: the Chase pattern is offered once a colour is on`);
   await page.sleep(300);
   const lights = await page.evaluate('JSON.stringify(window.__ui.hangar.entry.lights || null)');
-  say(lights === JSON.stringify({ v: 1, led: '#00b7ff', pattern: 'chase' }), `${id}: fitted lights ${lights}`);
+  say(lights === JSON.stringify({ v: LIGHTS_VERSION, led: '#00b7ff', pattern: 'chase' }), `${id}: fitted lights ${lights}`);
   await page.click('.hangar [data-key="view-left"]');
   await page.sleep(2500);
   await shot(page, `${id}-4-leds`);
@@ -254,7 +255,7 @@ async function navLights(page, id) {
   await press(page, '.hangar [data-key="light-strobe"]');
   await page.sleep(300);
   const lights = await page.evaluate('JSON.stringify(window.__ui.hangar.entry.lights || null)');
-  say(lights === JSON.stringify({ v: 1, nav: true, strobe: true }), `${id}: nav lights and strobes fitted ${lights}`);
+  say(lights === JSON.stringify({ v: LIGHTS_VERSION, nav: true, strobe: true }), `${id}: nav lights and strobes fitted ${lights}`);
   await press(page, '.hangar [data-key="view-front"]');
   await page.sleep(2500);
   await shot(page, `${id}-nav`);
