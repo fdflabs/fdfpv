@@ -613,7 +613,15 @@ typedef struct FixedWingParams {
    * distance ahead of the CG, m. Zero k_j leaves it out. */
   double jet_kj;
   double prop_x;
+  /* The surfaces' servos' rate, rad/s; zero moves them in the step. */
+  double servo_rate;
   double as3x_k[3];
+  /* The heading hold on top (mode 3), a heading lock gyro's: surface per
+   * rad the aircraft has turned beyond the rate its stick asks for, and
+   * that rate, rad/s per unit stick, signed as the body rate the stick
+   * gives. Zero as3x_kh leaves the damper alone. scripts/as3x-derive.js. */
+  double as3x_kh[3];
+  double as3x_rate[3];
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */

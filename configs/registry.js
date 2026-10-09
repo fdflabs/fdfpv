@@ -335,8 +335,9 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
   },  {
     /* The Extra's three are the real aircraft's: E-flite's receiver flies
-     * AS3X out of the box, a rate damper with no self levelling and no
-     * caps ("When the normal bind process is followed, the SAFE Select
+     * AS3X out of the box, a gyro with no self levelling and no caps
+     * (here a heading lock gyro, plant_wing.c mode 3) ("When the normal
+     * bind process is followed, the SAFE Select
      * system is disabled, leaving specially tuned AS3X technology in place
      * to deliver a pure, unrestricted flight experience", the manual p. 4),
      * which is its default here; Manual is the receiver without the gyro;
@@ -346,7 +347,7 @@ export const TUNES = [
     id: 'extra-as3x',
     airframe: 'extra3d1308',
     name: 'AS3X',
-    note: 'E-flite\'s gyro, as the Extra ships. The sticks are the surfaces at the 3D throws, and the gyro damps the bumps and the torque\'s kicks against the rate the plane is turning at; it fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate: hover, harrier and waterfall are yours to fly.',
+    note: 'A 3D gyro, as the Extra ships with one. The sticks are the surfaces at the 3D throws; centred, the gyro holds the attitude you left it in, against the torque and the gusts; held, it turns at the rate you ask; past 40 percent stick it lets go, so full stick is full throw. Nothing levels it and nothing caps a rate.',
     wingStab: 3,
   },
   {

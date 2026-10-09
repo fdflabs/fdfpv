@@ -11,8 +11,8 @@
  *   <name>.png      the four sticks against time (tools/plot-sticks.py)
  *
  * and prints what a person's thumbs would have done: peak and mean
- * absolute deflection per axis, the stick rate (travel per second, peak
- * and 95th percentile), and the reversals per second.
+ * absolute deflection per axis, the stick rate (travel per second over
+ * 100 ms, peak and 95th percentile), and the reversals per second.
  *
  *   node scripts/hover-video.js [tune] [outdir]   (tune: extra-as3x)
  *
@@ -86,7 +86,13 @@ try {
   const r = T.res || {};
   const sticks = T.sticks || [];
   /* What the thumbs did over the judged 10 s (after the 3 s to catch it). */
-  const judged = sticks.filter((x) => x[0] >= 3);
+  /* Resampled every 100 ms, the pilot's own move interval: a stick rate
+   * is a change over 100 ms, as a thumb makes it, not one display frame's
+   * jump. */
+  const judged = [];
+  for (const x of sticks.filter((y) => y[0] >= 3)) {
+    if (!judged.length || x[0] - judged[judged.length - 1][0] >= 0.1) judged.push(x);
+  }
   const names = ['roll', 'pitch', 'yaw', 'throttle'];
   const human = {};
   for (let k = 0; k < 4; k += 1) {
