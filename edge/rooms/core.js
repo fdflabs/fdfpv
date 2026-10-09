@@ -1236,7 +1236,10 @@ export class RoomCore {
      * judges in a tag match too, whose bubble is a rule of its own on the
      * same bytes: a hunter in the bubble takes the crown, and a hunter
      * that hits the Ace crashes as well (docs/TAG-PLAN.md decision 1). */
-    const hits = this.referee.pose(s.seat, bytes, this.roomMs(now)).flatMap((h) => this.others(null, JSON.stringify(h)));
+    const decided = this.referee.pose(s.seat, bytes, this.roomMs(now));
+    /* A person applies its own side of a hit; an AI pilot's is the room's. */
+    this.bots.hits(decided, this.roomMs(now));
+    const hits = decided.flatMap((h) => this.others(null, JSON.stringify(h)));
     hits.push(...this.tag.pose(this, s, bytes, now));
     /* After the referee: a crash from a hit it just decided is a mid air's. */
     hits.push(...this.combat.pose(this, s, now));

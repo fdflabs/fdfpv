@@ -368,7 +368,7 @@ For every pair of seats, each tick:
 4. **Margin.** A contact counts only when the boxes, each shrunk by
    `MARGIN` (5 cm), still overlap. Section 6.6 says why.
 5. **Excluded:** a seat flagged `spawning` (the five seconds after a spawn
-   or respawn and until 30 m from its slot), a seat already crashed, and
+   or respawn, parked or not, since 2026-10-09), a seat already crashed, and
    a pair both on the ground below 3 m/s (taxiing wingtips).
 6. **Out.** The first step of contact gives the time `tc`, the two parts
    that met, the contact point, the normal (the separating axis of least
@@ -612,7 +612,8 @@ Where the design above was wrong or changed, found by its own checks:
 - **The hit goes to everyone in the room,** not only the two, so a third
   pilot sees the flash at the contact point.
 - **Spawning** is set by the client: five seconds after a flight starts
-  (the sim clock starting again) and until 30 m from where it started.
+  (the sim clock starting again). It also lasted until 30 m from where it
+  started until 2026-10-09 (lead): a parked Ace could never be caught.
 - **Replays (section 6.7):** the plant's side is recorded for free. The
   shell's module calls already go through `src/replay/journal.js`, which
   exists now (section 0 said it did not), so a hit is two more journaled
