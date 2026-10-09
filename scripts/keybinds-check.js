@@ -27,7 +27,12 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { openPage } from '../tests/lib/page.js';
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 let failed = 0;
 let passed = 0;
@@ -41,18 +46,18 @@ function check(name, ok, detail = '') {
   }
 }
 
-/* The seat: the Timber in free flight, so the run starts in the air
- * with nothing to finish. */
+/* The seat: the Timber, so a per aircraft binding has an aircraft to
+ * belong to and the Cub to be absent on. */
 const SEED = `try {
   const k = 'webfpv.settings.v3';
   const s = JSON.parse(localStorage.getItem(k) || '{}');
   if (!s.airframeAsked) {
-    Object.assign(s, { airframe: 'timber1500', airframeAsked: true, map: 'swiss2', freestyleMap: 'swiss2' });
+    Object.assign(s, { airframe: 'timber1500', airframeAsked: true });
     localStorage.setItem(k, JSON.stringify(s));
   }
 } catch (e) { /* storage refused */ }`;
 
-const page = await openPage({ seed: [SEED], account: null });
+const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: [SEED], account: null });
 
 async function rowId(match) {
   return page.evaluate(`(window.__ui.items().find((it) => ${match}) || {}).id || null`);
@@ -157,6 +162,7 @@ try {
 } catch (e) {
   failed += 1;
   console.log(`  FAIL  ${e.message}`);
+  console.log(`  note  page errors: ${page.errors.slice(0, 5).join(' | ')}`);
 } finally {
   await page.close();
 }
