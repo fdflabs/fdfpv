@@ -322,6 +322,7 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
       - run: npm run stab:glide
