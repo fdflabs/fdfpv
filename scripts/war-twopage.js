@@ -182,9 +182,8 @@ const throwTo = (p, at, fresh) => p.evaluate(`window.__crashThrow({ x: ${at[0]},
  * Held at `at`, a whole airframe that can go off. `fresh` puts back one
  * whole, since a quad left on the Mirante's pad may already be a wreck,
  * whose poses say crashed and never detonate; but a fresh flight is
- * spawning (main.js roomSpawning) until it has moved ROOM_SPAWN_M, 30 m,
- * from where it began, which a held craft never does. So it begins 40 m
- * over the point and is thrown down onto it, the same flight.
+ * spawning (main.js roomSpawning) for its first five seconds; it begins
+ * 40 m over the point and is thrown down onto it, the same flight.
  */
 async function hold(p, at) {
   await throwTo(p, [at[0], at[1] + 40, at[2]], true);

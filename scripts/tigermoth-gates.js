@@ -206,7 +206,12 @@ check: {
    * recorded: held there, both wings deep in their stall, it rolls off
    * slowly (docs/TIGERMOTH-STAGE1.md). */
   for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8b', th.t8_stall_power_on, th.t8_stall_power_on.duty, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
-    clockMs = fly(sim, { duty: 0, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    /* The power is set during the entry, as the FAA's power-on stall is
+     * flown (Airplane Flying Handbook ch. 5: set the power, then raise the
+     * nose): the engine is up to speed before the pull, which since the
+     * prop spins up on its inertia (prop_spool) it was not when the
+     * throttle opened at the pull. */
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     let o = { s: sim.readState().state };
