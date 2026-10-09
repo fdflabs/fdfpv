@@ -4479,7 +4479,7 @@ export async function boot({
         note: 'lobby.goal_note',
         value: (n) => plural('count.points', n),
       },
-      rows: () => [],
+      rows: (host) => roomBotRows(host),
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
     },
     jam: {
@@ -4620,6 +4620,8 @@ export async function boot({
          * only the war's aircraft may be. */
         aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
+        /* An AI pilot (src/share/rooms.js shownName). */
+        ai: seat !== w.seat && Boolean(roomPeers.get(seat).name.bot),
         host: seat === w.host,
         me: seat === w.seat,
       })),
@@ -7232,7 +7234,7 @@ export async function boot({
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
-        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        tag: [...(game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host)), ...roomBotRows(host)],
         combat: combatRows(host, w, game === 'combat'),
         jam: jamRows(host, w, game === 'jam'),
         war: warRows(host, w),
@@ -8279,6 +8281,33 @@ export async function boot({
         ui.refreshFriends();
       },
     });
+  }
+
+  /* The host's say over the room's AI pilots (edge/rooms/roombots.js),
+   * where its game has them: off, or how well they fly. A public room
+   * starts with them on, a private one off. Everybody else is told what
+   * the host chose. */
+  const BOT_LEVELS = ['off', 'easy', 'normal', 'hard'];
+  function roomBotRows(host) {
+    const w = roomLinkState.state().welcome;
+    const mode = w ? modeOfRoom(w.mode) : null;
+    if (!w || !mode || !mode.allowAI || !BOT_LEVELS.includes(w.bots)) {
+      return [];
+    }
+    const value = str(`lobby.ai_level.${w.bots}`);
+    if (!host) {
+      return [{ label: str('lobby.ai_pilots'), value, note: str('lobby.ai_pilots_guest_note'), info: true }];
+    }
+    const set = (level) => roomLinkState.send({ type: 'bots', level });
+    return [{
+      label: str('lobby.ai_pilots'),
+      value,
+      note: str('lobby.ai_pilots_note'),
+      current: w.bots,
+      options: BOT_LEVELS.map((l) => ({ value: l, label: str(`lobby.ai_level.${l}`) })),
+      pick: set,
+      adjust: (d) => set(BOT_LEVELS[(BOT_LEVELS.indexOf(w.bots) + d + BOT_LEVELS.length) % BOT_LEVELS.length]),
+    }];
   }
 
   function roomTagAction(action) {
