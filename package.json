@@ -144,6 +144,7 @@
     "trick:golden": "node scripts/trickdetect-golden.js",
     "figures:selftest": "node scripts/figures-selftest.js",
     "figures:plant": "node scripts/figures-plant-check.js",
+    "figures:sweep": "node scripts/figures-plant-sweep.js",
     "callouts:check": "node scripts/callouts-check.js",
     "trickfilm:golden": "node scripts/trickfilm-golden.js",
     "loading:golden": "node scripts/loading-golden.js",

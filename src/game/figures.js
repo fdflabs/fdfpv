@@ -41,7 +41,8 @@ export const POINTS_PER_K = 2;
  * `aresti`: the catalogue numbers K is summed from, or null for a figure
  * on the game's own scale (docs/TRICKS-CATALOG.md gives each one's
  * anchor). `physics`: 'flown' when a person paced pilot flies it on
- * today's plant (scripts/figures-plant-check.js), 'waits' when it needs
+ * today's plant and is named (scripts/figures-plant-check.js, the gate,
+ * and figures-plant-sweep.js, the measure), 'waits' when it needs
  * the 3D lane's stall, spin and snap work, 'unproven' when nothing has
  * flown it on the plant yet. Every row is detected and tested on
  * synthetic paths whatever its physics.
@@ -70,9 +71,9 @@ export const FIGURES = [
   fig('tailslide', 'tail_slides', 15, ['6.2.1.1'], 'unproven'),
   /* Family 7, loops and eights. */
   fig('loop', 'loops', 10, ['7.4.1.1'], 'flown'),
-  fig('outside_loop', 'loops', 15, ['7.4.1.2'], 'unproven'),
-  fig('immelmann', 'loops', 10, ['7.2.1.1', '9.1.3.2'], 'unproven'),
-  fig('split_s', 'loops', 10, ['7.2.2.1', '9.1.3.2'], 'unproven'),
+  fig('outside_loop', 'loops', 15, ['7.4.1.2'], 'flown'),
+  fig('immelmann', 'loops', 10, ['7.2.1.1', '9.1.3.2'], 'flown'),
+  fig('split_s', 'loops', 10, ['7.2.2.1', '9.1.3.2'], 'flown'),
   fig('cuban_8', 'loops', 28, ['7.8.1.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('reverse_cuban_8', 'loops', 28, ['7.8.5.1', '9.1.3.2', '9.1.3.2'], 'unproven'),
   fig('avalanche', 'loops', 21, ['7.4.1.1', '9.9.3.4'], 'waits'),
@@ -82,14 +83,14 @@ export const FIGURES = [
   fig('reverse_half_cuban', 'combinations', 14, ['8.5.2.1', '9.1.3.2'], 'unproven'),
   fig('humpty_bump', 'combinations', 13, ['8.4.1.1'], 'unproven'),
   /* Family 9, rolls, snaps and spins. */
-  fig('half_roll', 'rolls', 4, ['9.1.3.2'], 'unproven'),
+  fig('half_roll', 'rolls', 4, ['9.1.3.2'], 'flown'),
   fig('aileron_roll', 'rolls', 8, ['9.1.3.4'], 'flown'),
-  fig('double_roll', 'rolls', 16, ['9.1.3.4', '9.1.3.4'], 'unproven'),
+  fig('double_roll', 'rolls', 16, ['9.1.3.4', '9.1.3.4'], 'flown'),
   fig('slow_roll', 'rolls', 10, null, 'unproven'),
-  fig('two_point_roll', 'rolls', 9, ['9.2.3.4'], 'unproven'),
+  fig('two_point_roll', 'rolls', 9, ['9.2.3.4'], 'flown'),
   fig('four_point_roll', 'rolls', 11, ['9.4.3.4'], 'flown'),
   fig('eight_point_roll', 'rolls', 15, ['9.8.3.4'], 'unproven'),
-  fig('barrel_roll', 'rolls', 6, null, 'unproven'),
+  fig('barrel_roll', 'rolls', 6, null, 'flown'),
   fig('snap_roll', 'rolls', 11, ['9.9.3.4'], 'waits'),
   fig('negative_snap_roll', 'rolls', 13, ['9.10.3.4'], 'waits'),
   fig('spin', 'spins', 5, ['9.11.1.4'], 'waits'),
