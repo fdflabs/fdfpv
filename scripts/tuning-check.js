@@ -144,8 +144,12 @@ function margin(id, tune) {
     const d = wingDebug(sim);
     return { cm: d[6] / (d[2] * t.area * t.chord), cl: d[3] };
   };
-  const a = at(0.02);
-  const b = at(0.05);
+  /* Both points on the linear lift: the curve rounds onto CL max from a
+   * stall_blend short of the stall angle (docs/FLIGHTMODEL.md), which on
+   * the Radian, 5 deg of zero lift under its body axis, starts at 2.5 deg
+   * of body angle. */
+  const a = at(0.0);
+  const b = at(0.03);
   return -(b.cm - a.cm) / (b.cl - a.cl);
 }
 

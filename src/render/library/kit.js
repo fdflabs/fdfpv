@@ -37,7 +37,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { celMaterial } from '../../render/celmat.js';
+import { celMaterial } from '../celmat.js';
 import {
   roofRecord, shedTop, flatTop, pyramidTop, spireCore,
 } from './roofs.js';

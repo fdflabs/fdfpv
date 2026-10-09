@@ -53,7 +53,7 @@
 
 import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
-import { API_ORIGIN } from './api.js';
+import { API_ORIGIN, SITE_HOSTS } from './api.js';
 import { carryRenamedKeys } from './oldkeys.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
@@ -99,7 +99,12 @@ export function defaultBoardOrigin() {
   if (host === NO_WINDOW) {
     return DEFAULT_BOARD_ORIGIN;
   }
-  return DEV_HOSTS.has(host) ? DEFAULT_BOARD_ORIGIN : PRODUCTION_BOARD_ORIGIN;
+  if (DEV_HOSTS.has(host)) {
+    return DEFAULT_BOARD_ORIGIN;
+  }
+  /* A pull request's preview (docs/PREVIEWS.md) posts no times to the
+   * real board. */
+  return SITE_HOSTS.includes(host) ? PRODUCTION_BOARD_ORIGIN : NO_BOARD;
 }
 
 export function boardOrigin() {
