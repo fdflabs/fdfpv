@@ -222,13 +222,14 @@ const HELPERS = `(async () => {
  * ground, for a craft `half` metres either side of its path. Nearest the
  * spawn first, or tree `only`. Returns the tree, its heading and its
  * path. */
-const PICK = (half, only = -1) => `JSON.stringify((() => {
+const PICK = (half, only = -1, skip = []) => `JSON.stringify((() => {
+  const skip = new Set(${JSON.stringify(skip)});
   const { P, f, veg, clumps, around } = window.__vegCheck;
   const sp = window.__map().spawn;
   const ground = (x, z) => window.__heightAt(x, z);
   const lone = [];
   for (let t = 0; t < f.count; t += 1) {
-    if (f.k[t] === P.K_LONE && (${only} < 0 || t === ${only})) {
+    if (f.k[t] === P.K_LONE && !skip.has(t) && (${only} < 0 || t === ${only})) {
       lone.push(t);
     }
   }
@@ -359,27 +360,43 @@ async function main() {
     await page.evaluate("(() => { const n = document.getElementById('ui'); if (n) { n.style.display = 'none'; } return 1; })()");
 
     /* The tree, picked for a craft of a metre either side, which the
-     * Timber is inside (measured below). */
-    const guess = JSON.parse(await page.evaluate(PICK(HALF_BOUND), 120000));
-    if (!guess) {
-      throw new Error('no lone tree with room under its crown found in the hero');
-    }
+     * Timber is inside (measured below). A tree is picked on the forest streamed in round the spawn; once the
+     * camera settles at it, the chunks round it fill in and a neighbour or
+     * a canopy may stand within its clearing, so it is picked again there
+     * and, if it no longer qualifies, the next one is tried. */
+    const skip = [];
+    let guess = null;
+    let tree = null;
+    let half = 0;
+    for (let tries = 0; tries < 6 && !tree; tries += 1) {
+      guess = JSON.parse(await page.evaluate(PICK(HALF_BOUND, -1, skip), 120000));
+      if (!guess) {
+        throw new Error(`no lone tree with room under its crown found in the hero (${skip.length} dropped once settled)`);
+      }
 
     /* The set round the tree before the first throw, which is the one
      * that declares the crash world, and the camera left there, so no
      * refill moves the trees' indices under the plant while it flies at
      * them (src/main.js declareCrashWorld collects the trees once a map). */
-    await settleAt(page, guess.x, guess.z, 60, true);
+      await settleAt(page, guess.x, guess.z, 60, true);
 
     /* The craft's half span, level, measured on the drawn Timber held
      * 30 m over the tree's ground. */
-    await page.evaluate(`window.__crashThrow(${JSON.stringify({ fresh: true, hold: true, x: guess.x - guess.ux * 40, y: guess.y + 30, z: guess.z - guess.uz * 40, yaw: 90 })})`);
-    await page.sleep(300);
-    const half = await page.evaluate('window.__vegCheck.halfSpan(0, 1)');
-    if (!(half <= HALF_BOUND)) {
-      throw new Error(`the Timber's half span is ${half} m, over the ${HALF_BOUND} m its tree was picked for`);
+      await page.evaluate(`window.__crashThrow(${JSON.stringify({ fresh: true, hold: true, x: guess.x - guess.ux * 40, y: guess.y + 30, z: guess.z - guess.uz * 40, yaw: 90 })})`);
+      await page.sleep(300);
+      half = await page.evaluate('window.__vegCheck.halfSpan(0, 1)');
+      if (!(half <= HALF_BOUND)) {
+        throw new Error(`the Timber's half span is ${half} m, over the ${HALF_BOUND} m its tree was picked for`);
+      }
+      tree = JSON.parse(await page.evaluate(PICK(half, guess.t), 120000));
+      if (!tree) {
+        console.log(`tree ${guess.t} no longer has room once the forest round it streamed in; trying the next`);
+        skip.push(guess.t);
+      }
     }
-    const tree = JSON.parse(await page.evaluate(PICK(half, guess.t), 120000));
+    if (!tree) {
+      throw new Error(`no lone tree kept room under its crown once settled at it (${skip.join(', ')})`);
+    }
     console.log(`tree ${tree.t} at ${tree.x.toFixed(1)}, ${tree.z.toFixed(1)}: ${tree.height.toFixed(1)} m tall, lowest leaf ${tree.lowest.toFixed(2)} m up, `
       + `${tree.leafAgl.toFixed(2)} m over the path ${tree.off.toFixed(2)} m off the trunk (bark ${tree.bark.toFixed(2)}, half span ${half.toFixed(2)}), crown reach ${tree.reach.toFixed(1)} m`);
     await page.evaluate(`window.__setCam(${tree.x + tree.lx * 25 - tree.ux * 10}, ${tree.y + 7}, ${tree.z + tree.lz * 25 - tree.uz * 10}, ${tree.x}, ${tree.y + 4}, ${tree.z}, 60)`);
