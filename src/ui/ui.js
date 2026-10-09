@@ -236,6 +236,7 @@ export const SCREEN_TITLES = {
   controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
   paused: 'Paused',
+  quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
