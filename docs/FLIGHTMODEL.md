@@ -817,8 +817,8 @@ Considered and not built:
 
 Gated in extra:stab: a 1 rad/s kick on each axis with the sticks centred,
 hanging on the prop and level at 16 m/s, turns the Extra less in 0.5 s
-than in Manual (hanging: roll 16.3 against 24.0 deg, pitch 15.9 against
-63.2, yaw 0.3 against 8.1); full stick is Manual's rate within 2
+than in Manual (hanging: roll 7.7 against 24.0 deg, pitch 8.0 against
+63.2, yaw 0.1 against 8.1); full stick is Manual's rate within 2
 percent; a bank it is left in stays.
 
 The person-paced hover (hover:probe's limits, the video's technique, a
