@@ -5,21 +5,20 @@
  *   node scripts/pilot-stats-check.js [outdir]
  *
  * Page EN, signed in to an accounts server of its own, 1280 by 720, a
- * profile seeded with known hours on four aircraft over two computers, a
+ * profile from before the counts were kept (the migration: its hours and
+ * level as ever, nought flights, no room game line) seeded with known hours on four aircraft over two computers, a
  * level, medals, tracks lapped and two campaign wins: every number on the
  * panel is the one the seed makes. The arrows still walk the cards, Tab
  * never lands in the panel, and a click on it reaches nothing. Then a
  * second computer's hour goes up to the account, a sync runs, and the
  * total and the most flown aircraft move by that hour. The flights and
- * the Catch the Ace! and Trick Battle results are seeded over two
- * computers too, a third computer's counts arrive by the same sync and
- * add to them (its best score the new best), and the tokens are the
- * wallet the account server answered with.
+ * the Catch the Ace! and Trick Battle results of two computers reach it
+ * by a sync first (page ES has them in its own storage), a third
+ * computer's arrive by the later sync and add to them (its best score the
+ * new best), and the tokens are the wallet the account server answered
+ * with.
  *
  * Page ES, the same seed with ?lang=es: the same numbers in Spanish.
- *
- * Page OLD, a profile from before the counts were kept: its hours and
- * level as ever, nought flights and no room game line.
  *
  * Page EMPTY, a brand new pilot, in en and es: zeros, level 1 and the
  * one line nudge.
@@ -232,9 +231,26 @@ function numbers(got, want, tag) {
 console.log('Flight Club\'s pilot stats');
 const rooms = await roomsServer('', 'pilotstats');
 const at = (lang) => `/index.html?lang=${lang}&rooms=${encodeURIComponent(rooms.url)}`;
-const en = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED], account: 'StatsPilot' });
+const en = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED_OLD], account: 'StatsPilot' });
 try {
   await toClub(en);
+  /* AN OLD PROFILE: the hours and the level as before, the counts start
+   * at nought, and no room game line where no match was ever kept. */
+  const was = await en.evaluate(READ);
+  numbers(was, {
+    time: WANT.en.time, level: WANT.en.level, modes: WANT.en.modes, flights: '0 flights', games: {},
+  }, 'old profile:');
+  const kept = await en.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}')`);
+  check('old profile: its hours are untouched by the load', flightTotals(kept.flightTime).seconds === flightTotals(FLIGHT).seconds);
+  await shot(en, 'old-en-1280x720');
+  /* The two computers' counts, put to the account, reach it by a sync. */
+  await en.until('window.__accountSync !== undefined', 10000);
+  await en.evaluate('window.__accountSync()');
+  const { accounts, account } = en;
+  const first = (await accounts.api('GET', '/api/account/progress', undefined, account.session)).progress;
+  await accounts.api('PUT', '/api/account/progress', { progress: { v: 1, data: { ...first.data, pilotCounts: COUNTS }, stamps: first.stamps || {} } }, account.session);
+  await en.evaluate('window.__accountSync()');
+  await en.until(`(document.querySelector('[data-stat="flights"]') || {}).textContent === ${JSON.stringify(WANT.en.flights)}`, 20000).catch(() => {});
   const got = await en.evaluate(READ);
   check('en: the panel is up on Flight Club', got.shown);
   const names = await en.evaluate("[...document.querySelectorAll('.screen-title .gate-card-name')].map((n) => n.textContent)");
@@ -286,9 +302,6 @@ try {
 
   /* A SYNC BRINGS ANOTHER COMPUTER'S HOUR: an hour on the Interceptor,
    * Track Day, from the office, put to the account; then this page syncs. */
-  await en.until('window.__accountSync !== undefined', 10000);
-  await en.evaluate('window.__accountSync()');
-  const { accounts, account } = en;
   const held = (await accounts.api('GET', '/api/account/progress', undefined, account.session)).progress;
   const data = {
     ...held.data,
@@ -331,23 +344,6 @@ try {
   check('es: no page error', errorsOf(es).length === 0, errorsOf(es).slice(0, 3).join(' | '));
 } finally {
   await es.close();
-}
-
-/* AN OLD PROFILE: the hours and the level as before, the counts start at
- * nought, and no room game line where no match was ever kept. */
-const old = await openPage({ root, url: at('en'), width: 1280, height: 720, seed: [SEEDED_OLD] });
-try {
-  await toClub(old);
-  const got = await old.evaluate(READ);
-  numbers(got, {
-    time: WANT.en.time, level: WANT.en.level, modes: WANT.en.modes, flights: '0 flights', games: {}, tokens: null,
-  }, 'old profile:');
-  const kept = await old.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}')`);
-  check('old profile: its hours are untouched by the load', flightTotals(kept.flightTime).seconds === flightTotals(FLIGHT).seconds);
-  await shot(old, 'old-en-1280x720');
-  check('old profile: no page error', errorsOf(old).length === 0, errorsOf(old).slice(0, 3).join(' | '));
-} finally {
-  await old.close();
 }
 
 const NUDGE = {
