@@ -72,7 +72,7 @@ export const RESERVED = new Set([
 
 /* Keys a pilot can choose: letters, digits, the punctuation on the main
  * block and the function keys, less the reserved ones. */
-const CHOOSABLE = /^(Key[A-Z]|Digit[0-9]|F([1-9]|1[0-2])|Comma|Slash|Semicolon|Quote|Backslash|Numpad[0-9])$/;
+const CHOOSABLE = /^(Key[A-Z]|Digit[0-9]|F([1-9]|1[0-2])|Comma|Slash|Semicolon|Quote|Backslash)$/;
 
 /* Whether any key is moved; settings keep no field until one is. */
 export function hasKeybinds(binds) {
@@ -241,9 +241,9 @@ export function translate(binds, airframe, code) {
 
 /* A key code as the pilot reads it on the key: 'KeyR' is R, 'Digit4' 4. */
 export function keyLabel(code) {
-  const m = /^(?:Key|Digit|Numpad)(.+)$/.exec(code);
+  const m = /^(?:Key|Digit)(.+)$/.exec(code);
   if (m) {
-    return code.startsWith('Numpad') ? `Num ${m[1]}` : m[1];
+    return m[1];
   }
   return { Comma: ',', Slash: '/', Semicolon: ';', Quote: "'", Backslash: '\\' }[code] || code;
 }

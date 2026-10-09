@@ -69,31 +69,31 @@ for (const k of ['KeyW', 'Escape', 'Tab', 'Space', 'KeyJ', 'ArrowUp', 'F8']) {
 check('a key that is no key is refused', !bind(b, 'reset', 'MetaLeft').ok);
 
 console.log('a binding for one aircraft');
-r = bind(none, 'chute', 'KeyN', 'bramor');
-check('the Bramor pulls its chute on N', r.ok && translate(r.binds, 'bramor', 'KeyN') === 'KeyP' && translate(r.binds, 'bramor', 'KeyP') === null);
+r = bind(none, 'chute', 'KeyN', 'bramor2300');
+check('the Bramor pulls its chute on N', r.ok && translate(r.binds, 'bramor2300', 'KeyN') === 'KeyP' && translate(r.binds, 'bramor2300', 'KeyP') === null);
 check('every other aircraft is as it was', translate(r.binds, 'timber1500', 'KeyN') === 'KeyN' && translate(r.binds, 'timber1500', 'KeyP') === 'KeyP');
-check('it is marked as the aircraft\'s own', boundForAircraft(r.binds, 'bramor', 'chute') && !boundForAircraft(r.binds, 'timber1500', 'chute'));
+check('it is marked as the aircraft\'s own', boundForAircraft(r.binds, 'bramor2300', 'chute') && !boundForAircraft(r.binds, 'timber1500', 'chute'));
 const own = r.binds;
 r = bind(own, 'reset', 'KeyN');
 check('an every-aircraft move onto a key an aircraft uses is refused', !r.ok && r.other === 'chute');
-r = bind(b, 'smoke', 'KeyN', 'edge1524');
+r = bind(b, 'smoke', 'KeyN', 'extra3d1308');
 check('an aircraft move onto the every-aircraft key of another action is refused', !r.ok && r.other === 'reset');
-check('reserved for an aircraft too', !bind(b, 'reset', 'KeyK', 'edge1524').ok);
-r = bind(b, 'reset', 'KeyV', 'edge1524');
+check('reserved for an aircraft too', !bind(b, 'reset', 'KeyK', 'extra3d1308').ok);
+r = bind(b, 'reset', 'KeyV', 'extra3d1308');
 check('V is reserved (the builder)', !r.ok);
-r = bind(b, 'reset', 'KeyB', 'edge1524');
+r = bind(b, 'reset', 'KeyB', 'extra3d1308');
 check('B is reserved (the builder)', !r.ok);
-r = bind(b, 'reset', 'Digit9', 'edge1524');
-check('an aircraft may move an every-aircraft binding again', r.ok && translate(r.binds, 'edge1524', 'Digit9') === 'KeyR'
-  && translate(r.binds, 'edge1524', 'KeyN') === 'KeyN' && translate(r.binds, 'edge1524', 'KeyR') === null
+r = bind(b, 'reset', 'Digit9', 'extra3d1308');
+check('an aircraft may move an every-aircraft binding again', r.ok && translate(r.binds, 'extra3d1308', 'Digit9') === 'KeyR'
+  && translate(r.binds, 'extra3d1308', 'KeyN') === 'KeyN' && translate(r.binds, 'extra3d1308', 'KeyR') === null
   && translate(r.binds, 'cub1400', 'KeyN') === 'KeyR');
 
 console.log('reset to defaults');
-const both = bind(bind(b, 'flaps', 'Digit1').binds, 'chute', 'Digit2', 'bramor').binds;
+const both = bind(bind(b, 'flaps', 'Digit1').binds, 'chute', 'Digit2', 'bramor2300').binds;
 let back = resetAction(both, 'reset');
 check('one action back, for every aircraft', same(back.all, { flaps: 'Digit1' }) && translate(back, null, 'KeyR') === 'KeyR');
-back = resetAction(both, 'chute', 'bramor');
-check('one action back on one aircraft, which then follows every aircraft', !back.by.bramor && translate(back, 'bramor', 'KeyP') === 'KeyP');
+back = resetAction(both, 'chute', 'bramor2300');
+check('one action back on one aircraft, which then follows every aircraft', !back.by.bramor && translate(back, 'bramor2300', 'KeyP') === 'KeyP');
 check('binding the default key is the same as a reset', same(bind(b, 'reset', 'KeyR').binds, emptyKeybinds()));
 check('reset all is the empty value', same(normaliseKeybinds(emptyKeybinds()), { v: 1, all: {}, by: {} }));
 

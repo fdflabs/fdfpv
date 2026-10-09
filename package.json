@@ -50,6 +50,7 @@
     "trickslist:golden": "node scripts/trickslist-golden.js",
     "keys:golden": "node scripts/keys-golden.js",
     "keybinds:selftest": "node scripts/keybinds-selftest.js",
+    "keybinds:check": "node scripts/keybinds-check.js",
     "menucontrols:golden": "node scripts/menucontrols-golden.js",
     "nav:golden": "node scripts/nav-golden.js",
     "overlay:golden": "node scripts/overlay-golden.js",
