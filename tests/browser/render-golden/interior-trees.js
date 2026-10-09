@@ -34,7 +34,8 @@ import * as THREE from 'three';
 import * as trees from '../../../src/maps/interior/trees.js';
 import { KIND, STAND } from '../../../src/share/interior/canopy.js';
 import { LAND } from '../../../src/share/interior/world.js';
-import { describeObject, hashText } from '../render-golden-lib.js';
+import * as crownshape from '../../../src/render/library/crownshape.js';
+import { describeObject, hashText, hashBytes } from '../render-golden-lib.js';
 
 const STAND_R = 900;
 
@@ -52,7 +53,7 @@ function madeTrees() {
     const ground = 0.01 * x - 0.02 * z;
     const h = 9 + (n % 9);
     out.push({
-      x, z, ground, h, r, ry, cy: ground + h - ry, kind: k, tint: ((n * 0.61803398875) % 1),
+      x, z, ground, h, r, ry, cy: ground + h - ry, kind: k, tint: ((n * 0.61803398875) % 1), lobe: n % 12,
     });
     n += 1;
   };
@@ -128,6 +129,13 @@ function build(quality) {
 
 export function cases() {
   return {
+    lobes: () => ({
+      exports: Object.keys(crownshape).sort(),
+      LOBES: crownshape.LOBES,
+      TEMPLATES: crownshape.TEMPLATES,
+      data: hashBytes(new Float64Array(crownshape.LOBE_DATA)),
+      templates: [0, 0.3, 0.5, 0.999].map(crownshape.templateOf),
+    }),
     exports: () => Object.keys(trees).sort().map((k) => [k, typeof trees[k] === 'number' ? trees[k] : typeof trees[k]]),
     high: () => {
       const { t } = build('high');

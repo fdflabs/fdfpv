@@ -99,10 +99,10 @@ const pages = [a, b];
  * thrown from the -x side. Resolves the new hit on each page.
  *
  * A fresh throw puts the plant back to its first step, which mends the
- * last pass's wreck and is a new flight: the page's own spawn protection
- * then lasts until the aircraft is 30 m from where it started, which a
- * pass never flies. So each is first thrown fresh 40 m above its mark,
- * and then onto it. */
+ * last pass's wreck and is a new flight, untouchable for the page's five
+ * seconds of spawn protection (it once lasted until 30 m from the start
+ * too). So each is first thrown fresh 40 m above its mark, and then onto
+ * it. */
 async function pass(m, first, second, n) {
   const throwAt = (side, up, fresh) => `window.__crashThrow({
     x: ${m.x + side * HALF_GAP}, y: ${m.y + up}, z: ${m.z},

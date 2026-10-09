@@ -318,11 +318,25 @@ export function rudderStep(sim, { wingsLevel }) {
 /* The prop's reaction at a standstill and full throttle: one step from
  * rest, where the air has nothing to say yet, so the roll moment is the
  * motor's alone. Returns the torque about body x, negative rolling left. */
-export function propTorque(sim) {
+/*
+ * Full throttle held where it is: from a reset, `pose` and `vel` (the
+ * velocity and rates as sim_set_velocity takes them, still by default)
+ * written back every 1 ms step for `ms`, so an electric prop has spun up to the full
+ * throttle's speed (plant_wing.c, prop_spool) while the aircraft goes
+ * nowhere. The last step is the one the caller reads.
+ */
+export function fullThrottleHeld(sim, pose, vel = [0, 0, 0, 0, 0, 0], ms = 2000) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_pose(0, 0, 50, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.input(0, 0, 0, 0, 1), 'sim_input');
-  must(sim.step(1), 'sim_step');
+  for (let t = 0; t < ms; t += 1) {
+    must(sim.e.sim_set_pose(...pose), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(...vel), 'sim_set_velocity');
+    must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
+    must(sim.step(1), 'sim_step');
+  }
+}
+
+export function propTorque(sim) {
+  fullThrottleHeld(sim, [0, 0, 50, 1, 0, 0, 0]);
   const d = wingDebug(sim);
   /* The motor's roll alone: the slipstream's (sim_wing_slip,
    * docs/FLIGHTMODEL.md) is taken out. */
