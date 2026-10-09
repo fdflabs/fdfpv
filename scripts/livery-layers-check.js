@@ -8,7 +8,9 @@
  * read back (layers drawn, meshes, triangles, the atlas side, the finishes
  * in use and the milliseconds the dress took) and pictured from the top,
  * the left and the bottom. Then the hidden layers drawn nowhere, and a
- * check that 32 layers on every family dress within DRESS_BUDGET_MS.
+ * check that 32 layers on every family dress within DRESS_BUDGET_MS. And
+ * a peer's spread dress cancelled after a frame (a pilot who left the room)
+ * draws nothing more.
  *
  * Usage: node scripts/livery-layers-check.js [outdir]; GRAPHICS=low|medium|high.
  *
@@ -148,6 +150,23 @@ async function main() {
     say(worst.ms <= DRESS_BUDGET_MS, `the slowest dress, ${worst.id}, ${worst.ms.toFixed(1)} ms of ${DRESS_BUDGET_MS}`);
     const want = { low: 512, medium: 1024, high: 2048 }[GRAPHICS];
     say(rows.every((r) => r.atlas === want), `every atlas is the ${GRAPHICS} preset's ${want} px`);
+    console.log('2. a peer that leaves mid-dress stops costing frames');
+    const left = await page.evaluate(`(async () => {
+      const { craftBuilderFor } = await import('/src/render/craft.js');
+      const { cancelDecals, dressDecalsLater, readDecals } = await import('/src/render/decals.js');
+      const layers = ${JSON.stringify(liveries.timber1500.decals)};
+      const whole = craftBuilderFor('timber1500')({ name: 'check-peer' });
+      await dressDecalsLater(whole, layers, 1);
+      const gone = craftBuilderFor('timber1500')({ name: 'check-peer-left' });
+      const run = dressDecalsLater(gone, layers, 1);
+      await new Promise((r) => requestAnimationFrame(r));
+      cancelDecals(gone);
+      const result = await run;
+      await new Promise((r) => setTimeout(r, 500));
+      return { whole: readDecals(whole), result, gone: readDecals(gone) };
+    })()`);
+    say(left.whole.decals === MAX_DECALS - 2 && left.whole.spread.frames > 1 && left.result === null && left.gone.decals === 0 && !left.gone.spread,
+      `a full dress spreads over ${left.whole.spread && left.whole.spread.frames} frames; one cancelled after a frame stops with nothing drawn: ${JSON.stringify({ result: left.result, gone: left.gone })}`);
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

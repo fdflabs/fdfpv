@@ -150,8 +150,192 @@ export class PaintShop {
     this.reticle = el('div', 'paint-reticle');
     this.reticle.hidden = true;
     hangar.stage.append(this.reticle);
+    this.buildGizmo(hangar.stage);
     this.gallery = new Gallery(this);
     this.reset();
+  }
+
+  /*
+   * THE TRANSFORM HANDLES on the model (docs/redesign/LIVERY-LAYERS.md
+   * section 2): the chosen layer's outline as the renderer places it each
+   * frame (gizmoAt), its body dragged to move it over the skin (the aim
+   * the Move button uses, following the pointer), a corner to size it, the
+   * right edge's handle to stretch it, the handle over its top to turn it,
+   * the one off its top edge's right half to lean it.
+   * A drag shows on the model as it goes and is one change when let go,
+   * so a group follows it and Undo takes it back whole. A locked layer
+   * shows its outline and no handles.
+   */
+  buildGizmo(stage) {
+    const NS = 'http://www.w3.org/2000/svg';
+    this.gizmo = el('div', 'paint-gizmo');
+    this.gizmo.hidden = true;
+    this.gizmoSvg = document.createElementNS(NS, 'svg');
+    this.gizmoBody = document.createElementNS(NS, 'polygon');
+    this.gizmoBody.dataset.key = 'gizmo-move';
+    this.gizmoBody.classList.add('paint-gizmo-body');
+    this.gizmoSvg.append(this.gizmoBody);
+    this.gizmo.append(this.gizmoSvg);
+    this.gizmoHandles = {};
+    for (const key of ['scale-0', 'scale-1', 'scale-2', 'scale-3', 'stretch', 'turn', 'skew']) {
+      const h = el('div', `paint-gizmo-handle paint-gizmo-${key.split('-')[0]}`);
+      h.dataset.key = `gizmo-${key}`;
+      this.gizmoHandles[key] = h;
+      this.gizmo.append(h);
+    }
+    stage.append(this.gizmo);
+    this.gizmo.addEventListener('pointerdown', (e) => this.gizmoDown(e));
+    this.gizmo.addEventListener('pointermove', (e) => this.gizmoMove(e));
+    this.gizmo.addEventListener('pointerup', (e) => this.gizmoUp(e, true));
+    this.gizmo.addEventListener('pointercancel', (e) => this.gizmoUp(e, false));
+    this.gizmoDrag = null;
+    this.gizmoShape = null;
+  }
+
+  /* The layer the handles are for, or null: the chosen one on the Decals
+   * page while nothing else holds the pointer. */
+  gizmoLayer() {
+    if (this.gizmoDrag && this.gizmoDrag.mode !== 'move') {
+      return this.decals[this.sel] ?? null;
+    }
+    if (this.page !== 'decals' || this.placing || this.adding || this.sel < 0) {
+      return null;
+    }
+    const d = this.decals[this.sel];
+    return d && !d.h ? d : null;
+  }
+
+  /* The renderer's outline of gizmoLayer() in client pixels, or null. */
+  gizmoAt(o) {
+    /* Moving, the aim's reticle shows where it goes; the handles keep the
+     * pointer, out of sight, until it is let go. */
+    this.gizmo.classList.toggle('moving', Boolean(this.gizmoDrag && this.gizmoDrag.mode === 'move'));
+    if (this.gizmoDrag && this.gizmoDrag.mode === 'move') {
+      return;
+    }
+    const d = this.gizmoLayer();
+    if (!o || !d || !this.h.isOpen) {
+      this.gizmo.hidden = true;
+      this.gizmoShape = null;
+      return;
+    }
+    const r = this.h.stage.getBoundingClientRect();
+    const local = (q) => ({ x: q.x - r.left, y: q.y - r.top });
+    const c = local(o.centre);
+    const top = local(o.top);
+    const right = local(o.right);
+    this.gizmoShape = { centre: o.centre, right: o.right, top: o.top };
+    this.gizmo.hidden = false;
+    this.gizmo.classList.toggle('locked', Boolean(d.l));
+    this.gizmoBody.setAttribute('points', o.corners.map(local).map((q) => `${q.x},${q.y}`).join(' '));
+    const at = (h, q) => {
+      h.style.transform = `translate(${q.x}px, ${q.y}px)`;
+    };
+    o.corners.map(local).forEach((q, k) => at(this.gizmoHandles[`scale-${k}`], q));
+    /* The edge's handle stands off the right edge, and the lean's off the
+     * top edge's right half, so on a layer drawn thin on the screen neither
+     * sits on a corner's and takes its drags. */
+    const off = (from, q, px) => {
+      const l = Math.hypot(q.x - from.x, q.y - from.y) || 1;
+      return { x: q.x + ((q.x - from.x) / l) * px, y: q.y + ((q.y - from.y) / l) * px };
+    };
+    at(this.gizmoHandles.stretch, off(c, right, 22));
+    const topRight = { x: top.x + (right.x - c.x) * 0.5, y: top.y + (right.y - c.y) * 0.5 };
+    at(this.gizmoHandles.skew, off({ x: topRight.x - (top.x - c.x), y: topRight.y - (top.y - c.y) }, topRight, 22));
+    /* The turn handle stands off the top edge, away from the middle. */
+    const len = Math.hypot(top.x - c.x, top.y - c.y) || 1;
+    at(this.gizmoHandles.turn, { x: top.x + ((top.x - c.x) / len) * 22, y: top.y + ((top.y - c.y) / len) * 22 });
+  }
+
+  gizmoDown(e) {
+    const key = e.target.dataset && e.target.dataset.key;
+    const d = this.decals[this.sel];
+    if (!key || !d || d.l || !this.gizmoShape) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    this.gizmo.setPointerCapture(e.pointerId);
+    const mode = { 'gizmo-move': 'move', 'gizmo-turn': 'turn', 'gizmo-stretch': 'stretch', 'gizmo-skew': 'skew' }[key] ?? 'scale';
+    this.gizmoDrag = { id: e.pointerId, mode, d0: d, list0: this.decals, x0: e.clientX, y0: e.clientY, ...this.gizmoShape };
+    if (mode === 'move') {
+      this.startPlacing(d, this.sel);
+      this.placing.aim = { x: e.clientX, y: e.clientY };
+      this.moveReticle();
+    }
+  }
+
+  gizmoMove(e) {
+    const g = this.gizmoDrag;
+    if (!g || e.pointerId !== g.id) {
+      return;
+    }
+    if (g.mode === 'move') {
+      if (this.placing) {
+        this.placing.aim = { x: e.clientX, y: e.clientY };
+        this.moveReticle();
+      }
+      return;
+    }
+    const c = g.centre;
+    const d0 = g.d0;
+    let patch;
+    if (g.mode === 'scale') {
+      const k = Math.hypot(e.clientX - c.x, e.clientY - c.y) / Math.max(1, Math.hypot(g.x0 - c.x, g.y0 - c.y));
+      patch = { s: clamp(d0.s * k, DECAL_LIMITS.size) };
+    } else if (g.mode === 'stretch') {
+      const ax = g.right.x - c.x;
+      const ay = g.right.y - c.y;
+      const along = (x, y) => ((x - c.x) * ax + (y - c.y) * ay) / Math.max(1, ax * ax + ay * ay);
+      const k = along(e.clientX, e.clientY) / Math.max(0.05, along(g.x0, g.y0));
+      patch = { a: clamp(d0.a * Math.max(0.05, k), DECAL_LIMITS.aspect) };
+    } else if (g.mode === 'skew') {
+      /* The lean: how far along the layer's right the pointer has gone,
+       * against the layer's half height on the screen, as an angle. */
+      const rx = g.right.x - c.x;
+      const ry = g.right.y - c.y;
+      const rl = Math.hypot(rx, ry) || 1;
+      const along = ((e.clientX - g.x0) * rx + (e.clientY - g.y0) * ry) / rl;
+      const half = Math.max(4, Math.hypot(g.top.x - c.x, g.top.y - c.y));
+      const by = Math.round((Math.atan2(along, half) * 180) / Math.PI);
+      patch = { x: clamp((d0.x ?? 0) + by, DECAL_LIMITS.skew) };
+    } else {
+      /* Screen y runs down, so a turn the pointer makes clockwise on the
+       * screen is a negative angle about the layer's normal, which faces
+       * the camera. Whole degrees, 15 at a time with Shift. */
+      const a = (Math.atan2(e.clientY - c.y, e.clientX - c.x) - Math.atan2(g.y0 - c.y, g.x0 - c.x)) * (180 / Math.PI);
+      const by = e.shiftKey ? Math.round(-a / TURN_STEP) * TURN_STEP : Math.round(-a);
+      patch = { r: this.turned(d0.r, by) };
+    }
+    const d = checkDecal({ ...d0, ...patch }).decal;
+    if (!d) {
+      return;
+    }
+    g.list = this.withGroup(g.list0, this.sel, d0, d);
+    this.h.entry = { ...this.h.entry, decals: g.list };
+    this.h.preview();
+  }
+
+  gizmoUp(e, done) {
+    const g = this.gizmoDrag;
+    if (!g || e.pointerId !== g.id) {
+      return;
+    }
+    this.gizmoDrag = null;
+    if (g.mode === 'move') {
+      if (done && this.placing && this.placing.hit) {
+        this.place();
+      } else {
+        this.stopPlacing();
+        this.h.changed(`decal-${this.sel}`, 'back');
+      }
+      return;
+    }
+    if (!done || !g.list) {
+      this.setDecals(g.list0, `decal-${this.sel}`, 'back');
+      return;
+    }
+    this.setDecals(g.list, `decal-${this.sel}`, 'adjust');
   }
 
   /* Back to the start, for a hangar just opened. `library` is the saved

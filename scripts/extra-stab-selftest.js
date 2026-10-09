@@ -1,13 +1,13 @@
 /*
- * extra-stab-selftest.js: the Extra 300's stabiliser, acro, rudder and
+ * extra-stab-selftest.js: the Extra 300's stabiliser, AS3X, rudder and
  * surface readback, in the air and on its wheels, in Node.
  *
  * The Cub's checks (cub-stab-selftest.js) on the Extra's own gains and
  * throws, two and a half times the Cub's: Stabilised flies level with the
- * sticks centred and holds the bank and pitch asked for; Acro holds the
- * attitude it is left at, rolls and pitches at the rates it asks for,
- * stops where the stick was centred, and holds inverted; the rudder is the
- * yaw stick in every mode. On its wheels the surfaces stay where the
+ * sticks centred and holds the bank and pitch asked for; AS3X, the mode
+ * the Extra ships in, rolls and pitches at full stick as fast as Manual,
+ * levels nothing, and damps what it is left with; the rudder is the yaw
+ * stick in every mode. On its wheels the surfaces stay where the
  * sticks put them, a take off roll with the sticks centred flies off, and
  * the yaw stick steers the tailwheel. Last, the four surface angles the
  * renderer reads and their signs. Run with npm run extra:stab.
@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
-import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS } from '../tests/lib/wingpilot.js';
+import { attitude, must, extraPrelude, extraGroundPrelude, wheelLoads, wingDebug, RC_STEP_MS, rudderHold } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -167,58 +167,47 @@ check('and yaws the nose right', yawed.r * DEG > 3, `${deg(yawed.r)} deg/s`);
 const unyawed = fly(0, 0, 0, 0.75, 4);
 check('and letting go of it levels the wings again', Math.abs(unyawed.bank * DEG) < 4, `${deg(unyawed.bank)} deg`);
 
-console.log('acro');
-must(sim.e.sim_wing_set_stab(2), 'set acro');
-throwAt(3, 12);
-const acroLevel = fly(0, 0, 0, 0.75, 1);
-const acroHold = fly(0, 0, 0, 0.75, 9, acroLevel.endBank);
-check('centred sticks hold the attitude: bank within 3 degrees over 9 s', acroHold.worst * DEG < 3, `${deg(acroHold.worst)} deg`);
-check('and the pitch where it was, within 3 degrees', Math.abs((acroHold.endPitch - acroLevel.endPitch) * DEG) < 3, `${deg(acroLevel.endPitch)} -> ${deg(acroHold.endPitch)} deg`);
-check('and straight: under 15 m off the line after 10 s', Math.abs(acroHold.y) < 15, `${acroHold.y.toFixed(1)} m`);
-
-/* Three times the Cub's rate, so the roll to inverted is a third of its
- * time: the rate over the last quarter of half a second, then on to past
- * 150 degrees. */
+/* AS3X, mode 3, against Manual flown the same way: the receiver's damper
+ * fades out as the stick leaves centre (Spektrum's priority), so a full
+ * stick is Manual's rate, no cap; nothing levels it; and centred, it damps
+ * the rate the aircraft is left with harder than the airframe alone. */
+function bothModes(fn) {
+  const out = {};
+  for (const [mode, name] of [[0, 'manual'], [3, 'as3x']]) {
+    must(sim.e.sim_wing_set_stab(mode), 'set mode');
+    out[name] = fn();
+  }
+  return out;
+}
+console.log('as3x');
+const rollRates = bothModes(() => {
+  throwAt(120, 16);
+  fly(0, 0, 0, 1.0, 1);
+  return fly(1, 0, 0, 1.0, 0.5).p;
+});
+check('full right stick rolls at Manual\'s rate, within 2 percent: no cap', Math.abs(rollRates.as3x / rollRates.manual - 1) < 0.02, `${deg(rollRates.as3x)} against ${deg(rollRates.manual)} deg/s`);
+const pullRates = bothModes(() => {
+  throwAt(120, 16);
+  fly(0, 0, 0, 1.0, 1);
+  return fly(0, 1, 0, 1.0, 0.5).q;
+});
+check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
+const released = bothModes(() => {
+  throwAt(120, 16);
+  fly(0, 0, 0, 1.0, 1);
+  fly(0, 1, 0, 1.0, 0.3);
+  return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
+});
+check('centred after a pull, the pitch rate 0.1 s on is below Manual\'s: it damps', released.as3x < released.manual, `${deg(released.as3x)} against ${deg(released.manual)} deg/s`);
+must(sim.e.sim_wing_set_stab(3), 'set as3x');
 throwAt(120, 16);
 fly(0, 0, 0, 1.0, 1);
-const rolling = fly(1, 0, 0, 1.0, 0.5);
-check('full right stick rolls at 306 to 396 degrees a second', rolling.p * DEG > 306 && rolling.p * DEG < 396, `${deg(rolling.p)} deg/s`);
-const inverted = fly(1, 0, 0, 1.0, 0.05);
-const invHold = fly(0, 0, 0, 1.0, 0.3);
-const invLater = fly(0, 0, 0, 1.0, 2, invHold.endBank);
-check('and it keeps going past the stabilised cap: 150 degrees or more', Math.abs(inverted.endBank) * DEG > 150, `${deg(inverted.endBank)} deg`);
-check('centred, it stays where it stopped: within 5 degrees for 2 s', invLater.worst * DEG < 5, `${deg(invHold.endBank)} deg, moved ${deg(invLater.worst)}`);
-
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-const partial = fly(0.35, 0, 0, 1.0, 0.5);
-const stop = fly(0, 0, 0, 1.0, 0.25);
-const stopHeld = fly(0, 0, 0, 1.0, 3, stop.endBank);
-check('a partial roll stops sharply: rate under 10 degrees a second 0.25 s after centring', Math.abs(stop.p * DEG) < 10, `${deg(stop.p)} deg/s`);
-check('within about 5 degrees of where the stick was centred', Math.abs((stop.endBank - partial.endBank) * DEG) < 6, `${deg(partial.endBank)} -> ${deg(stop.endBank)} deg`);
-check('and holds that bank, no levelling, within 4 degrees over 3 s', stop.endBank * DEG > 15 && stopHeld.worst * DEG < 4, `${deg(stop.endBank)} deg, moved ${deg(stopHeld.worst)}`);
-
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-const pulling = fly(0, 1, 0, 1.0, 0.5);
-check('full up stick pitches at 75 to 120 degrees a second', pulling.q * DEG > 75 && pulling.q * DEG < 120, `${deg(pulling.q)} deg/s`);
-throwAt(120, 16);
-fly(0, 0, 0, 1.0, 1);
-fly(0, 0.5, 0, 1.0, 0.3);
-const pitched = fly(0, 0, 0, 1.0, 0.3);
-const pitchHeld = fly(0, 0, 0, 1.0, 2);
-check('a nose up input is held, not trimmed away: within 4 degrees over 2 s', pitched.endPitch * DEG > 8 && Math.abs((pitchHeld.endPitch - pitched.endPitch) * DEG) < 4, `${deg(pitched.endPitch)} -> ${deg(pitchHeld.endPitch)} deg`);
-
-throwAt(120, 16);
-fly(0, 0, 0, 0.75, 1);
-const beforeYaw = fly(0, 0, 0, 0.75, 0.5);
-const acroYaw = fly(0, 0, 1, 0.75, 1);
-/* Over the whole hold, not its last quarter second: with no turn
- * coordinator in Acro (2026-09-25) the rudder's yaw overshoots and the nose
- * fishtails before it settles, and a quarter second sample can land in the
- * swing back. */
-check('full right yaw stick yaws the nose right', acroYaw.rAll * DEG > 3, `${deg(acroYaw.rAll)} deg/s over the hold`);
-check('and the roll lock holds the bank against it, within 5 degrees', Math.abs((acroYaw.endBank - beforeYaw.endBank) * DEG) < 5, `${deg(beforeYaw.endBank)} -> ${deg(acroYaw.endBank)} deg`);
+fly(0.35, 0, 0, 1.0, 0.5);
+const leftIn = fly(0, 0, 0, 1.0, 0.3);
+const bankLeft = fly(0, 0, 0, 1.0, 2);
+check('a bank it is left in is not levelled: still past half of it 2 s on', Math.abs(leftIn.endBank) * DEG > 15 && Math.abs(bankLeft.endBank) > 0.5 * Math.abs(leftIn.endBank), `${deg(leftIn.endBank)} -> ${deg(bankLeft.endBank)} deg`);
+const as3xYaw = fly(0, 0, 1, 0.75, 1);
+check('full right yaw stick yaws the nose right', as3xYaw.rAll * DEG > 3, `${deg(as3xYaw.rAll)} deg/s over the hold`);
 
 console.log('manual');
 must(sim.e.sim_wing_set_stab(0), 'clear stab');
@@ -296,7 +285,7 @@ function roll(sticks, seconds, { untilAirborneMs = null } = {}) {
   return out;
 }
 
-for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
+for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
   const rest0 = sim.readState().state;
   const sit = roll(() => [0, 0, 0, 0], 5);
@@ -309,24 +298,30 @@ for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
   check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
-for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [2, 'Acro']]) {
-  onGround(mode);
-  roll(() => [0, 0, 0, 0], 1);
-  const run = roll(() => [0, 0, 0, 1], 8, { untilAirborneMs: 2000 });
-  const lof = run.liftoff;
-  check(`${name}, full throttle and the sticks centred: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
-  if (!lof) continue;
-  check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
-  check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
-  if (mode === 2) {
-    const after = roll(() => [0, 0, 0, 1], 2);
-    check('and Acro holds the attitude it lifted off in, pitch within 4 degrees 2 s later', Math.abs((attitude(after.s).pitch - lof.pitch) * DEG) < 4, `${deg(lof.pitch)} -> ${deg(attitude(after.s).pitch)} deg`);
+/* The take off roll at full throttle. On its wheels every mode flies as
+ * Manual, so with the rudder left alone the prop's swirl on the fin swings
+ * it left in each (docs/FLIGHTMODEL.md); with the pilot's right rudder
+ * holding the runway's heading (rudderHold) it tracks. */
+for (const [mode, name] of [[0, 'Manual'], [1, 'Stabilised'], [3, 'AS3X']]) {
+  for (const feet of [false, true]) {
+    onGround(mode);
+    roll(() => [0, 0, 0, 0], 1);
+    const run = roll(() => [0, 0, feet ? rudderHold(sim.readState().state) : 0, 1], 8, { untilAirborneMs: 2000 });
+    const lof = run.liftoff;
+    check(`${name}, full throttle, ${feet ? 'the heading held on the rudder' : 'the sticks centred'}: it flies off the strip`, lof !== null, lof ? `at ${lof.x.toFixed(1)} m and ${lof.v.toFixed(1)} m/s` : 'never left the ground');
+    if (!lof) continue;
+    if (!feet) {
+      check('it swings left: heading left of the runway at liftoff', lof.heading * DEG > 0, `heading ${deg(lof.heading)} deg`);
+      continue;
+    }
+    check('tracking straight: heading within 5 degrees and under 0.5 m off the line at liftoff', Math.abs(lof.heading * DEG) < 5 && run.worstY < 0.5, `heading ${deg(lof.heading)} deg, ${run.worstY.toFixed(2)} m off`);
+    check('wings level the whole roll: bank under 5 degrees to liftoff', run.worstBank * DEG < 5, `${deg(run.worstBank)} deg`);
   }
 }
 
 /* Taxiing on the Cub's taxi thrust, 1.65 N: 0.21 of the Extra's
  * throttle, where the Cub's check takes 0.35 of its own. */
-for (const [mode, name] of [[1, 'Stabilised'], [2, 'Acro']]) {
+for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   onGround(mode);
   roll(() => [0, 0, 0, 0.21], 2);
   const h0 = heading(sim.readState().state);

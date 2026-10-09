@@ -97,6 +97,30 @@ export function inPolygon(poly, x, z) {
  * reach where it has one. Missions 2 to 5's places are added when they are
  * built (TECH-NEEDS N1): this is Mission 1's corridor.
  */
+/*
+ * MISSION 2's PLACES (MISSIONS.md M2): where they stand on the design
+ * grid (km), * MISSIONS 1.9's first layout, each moved to the nearest ground the
+ * canopy leaves open from seven of eight sides at 250 m (a watcher hid
+ * under a crown is never found). The three watcher zones, Claro Nuevo
+ * and the handoffs sit within 2 km of Estancia La Ceniza so a run fits
+ * the mission's 25 to 35 minutes (lead decision 2026-10-08: 1.9's zones
+ * made it 39 to 43). Estancia La Ceniza's buildings are
+ * BUILDINGS', Claro Nuevo's camp NUEVO_PROPS.
+ */
+export const M2_AT = {
+  cruce: [11.575, 11.4],
+  loma: [12.4, 13.2],
+  corral: [13.7, 11.05],
+  handoffN: [13.675, 12.625],
+  handoffS: [13.625, 12.225],
+  postA: [13.35, 12.725],
+  estancia: [13.95, 12.475],
+  yard: [13.95, 12.44],
+  gate: [14.07, 12.6],
+  claroNuevo: [14.7, 13.225],
+  nuevoEdge: [14.62, 13.15],
+};
+
 export const PLACES = {
   pistaCero: { name: 'interior.place.pista_cero', at: g(3.0, 2.0), r: 250 },
   rutaVieja: { name: 'interior.place.ruta_vieja' },
@@ -120,6 +144,12 @@ export const PLACES = {
   /* The square a pilot may fly in before the boundary warns
    * (MISSIONS 1.7): the played square, less a margin. */
   boundary: { name: 'interior.place.boundary', warn: 7600, final: 7900 },
+  /* Mission 2's (M2_AT). */
+  cruceTranquera: { name: 'interior.place.cruce_tranquera', at: g(...M2_AT.cruce), r: 300 },
+  lomaDelVigia: { name: 'interior.place.loma_del_vigia', at: g(...M2_AT.loma), r: 300 },
+  corralViejo: { name: 'interior.place.corral_viejo', at: g(...M2_AT.corral), r: 300 },
+  estanciaLaCeniza: { name: 'interior.place.estancia_la_ceniza', at: g(...M2_AT.estancia), r: 60 },
+  claroNuevo: { name: 'interior.place.claro_nuevo', at: g(...M2_AT.claroNuevo), r: 32 },
 };
 
 /*
@@ -162,6 +192,39 @@ export const ROADS = [
     width: 4,
     surface: 'earth',
     points: path([[4.86, 4.85], [5.1, 4.86], [5.36, 4.84], [5.46, 4.84]]),
+  },
+  /* Mission 3's tracks round Puesto Arenal (routes.js M3_AT, the same
+   * points its vehicles drive): south past the checkpoint, east by the
+   * farmhouse, north to the decoy's field and on to the command site. */
+  {
+    id: 'arenal-south',
+    width: 4.5,
+    surface: 'earth',
+    points: path([[4.06, 13.93], [4.12, 13.86], [4.4, 13.0], [4.7, 12.0]]),
+  },
+  {
+    id: 'arenal-east',
+    width: 4,
+    surface: 'earth',
+    points: path([[4.2, 13.75], [4.9, 13.0], [5.2, 13.1]]),
+  },
+  {
+    id: 'arenal-farm',
+    width: 4,
+    surface: 'earth',
+    points: path([[4.9, 13.0], [5.6, 12.4], [5.9, 12.6], [6.4, 12.2]]),
+  },
+  {
+    id: 'arenal-north',
+    width: 3.5,
+    surface: 'earth',
+    points: path([[4.1, 14.15], [4.5, 14.3], [4.926, 14.424]]),
+  },
+  {
+    id: 'arenal-command',
+    width: 3.5,
+    surface: 'earth',
+    points: path([[4.25, 14.0], [5.2, 14.3], [6.0, 14.6], [6.7, 15.0], [7.12, 15.215], [7.15, 15.245]]),
   },
 ];
 
@@ -236,6 +299,11 @@ function colonia() {
 }
 
 const PISTA_DIR = dirOf(g(2.75, 1.95), g(3.25, 2.05));
+/* Metres east and north of Estancia La Ceniza's house, in the scene. */
+const estancia = (e, n) => {
+  const [x, z] = g(...M2_AT.estancia);
+  return [x + e, z - n];
+};
 export const BUILDINGS = [
   ...colonia(),
   /* Pista Cero: the container, the tent, the catapult's trailer. */
@@ -254,6 +322,56 @@ export const BUILDINGS = [
   },
   {
     id: 'alpha-shed-2', kind: 'openshed', at: g(5.51, 4.825), dir: [0, 1], w: 24, d: 12, h: 5.5, roof: 'shed', ridge: 1.2, colour: '#8d9396',
+  },
+  /* Estancia La Ceniza (MISSIONS M2 stage 3): the old house, its walls
+   * gone to posts and its roof half off, so the recon quad flies in to
+   * the stash, the radio and the notes; the farm shed beside the yard. */
+  {
+    id: 'estancia-house', kind: 'openshed', at: g(...M2_AT.estancia), dir: [1, 0], w: 12, d: 8, h: 3.2, roof: 'shed', ridge: 0.9, colour: '#b9a988',
+  },
+  {
+    id: 'estancia-shed', kind: 'openshed', at: g(13.972, 12.448), dir: [0, 1], w: 10, d: 7, h: 4, roof: 'gable', ridge: 1.4, colour: '#8f8a80',
+  },
+  /* Inside the house, what the recon quad documents (interior-2.js's
+   * stash, radio and notes, metres east and north of the house's middle
+   * there): the battery boxes, the radio set on its crates, the notes
+   * pinned to a board on a post. */
+  {
+    id: 'estancia-stash', kind: 'crate', at: estancia(0, 0), dir: [1, 0], w: 0.9, d: 0.6, h: 0.5, roof: 'flat', ridge: 0, colour: '#2f3a2c',
+  },
+  {
+    id: 'estancia-radio', kind: 'crate', at: estancia(3, 2), dir: [1, 0], w: 0.55, d: 0.4, h: 1.05, roof: 'flat', ridge: 0, colour: '#24272a',
+  },
+  {
+    id: 'estancia-notes', kind: 'crate', at: estancia(-2, 3), dir: [1, 0], w: 0.9, d: 0.08, h: 1.9, roof: 'flat', ridge: 0, colour: '#8a7a5c',
+  },
+  /* Puesto Arenal (MISSIONS.md M3): a barracks and an office round a
+   * yard, a container, the gatehouse at its south east gate. */
+  {
+    id: 'arenal-barracks', kind: 'house', at: g(3.985, 14.012), dir: [1, 0], w: 20, d: 8, h: 3, roof: 'gable', ridge: 1.6, colour: '#c8c1ad',
+  },
+  {
+    id: 'arenal-office', kind: 'house', at: g(4.03, 14.02), dir: [0, 1], w: 11, d: 7, h: 2.9, roof: 'hip', ridge: 1.4, colour: '#d6cdb6',
+  },
+  {
+    id: 'arenal-container', kind: 'container', at: g(3.978, 13.982), dir: [1, 0], w: 6.06, d: 2.44, h: 2.59, roof: 'flat', ridge: 0, colour: '#56604a',
+  },
+  {
+    id: 'arenal-gatehouse', kind: 'house', at: g(4.044, 13.924), dir: [1, 0], w: 4, d: 3.5, h: 2.5, roof: 'shed', ridge: 0.6, colour: '#bdb39b',
+  },
+  /* The farmhouse near the post, and its shed. */
+  {
+    id: 'arenal-farmhouse', kind: 'house', at: g(5.186, 13.118), dir: dirOf(g(5.18, 13.117), g(5.19, 13.119)), w: 11, d: 7, h: 2.7, roof: 'hip', ridge: 1.6, colour: '#d9c9a9',
+  },
+  {
+    id: 'arenal-farmshed', kind: 'openshed', at: g(5.168, 13.1), dir: [0, 1], w: 12, d: 8, h: 4, roof: 'shed', ridge: 0.9, colour: '#8d9396',
+  },
+  /* The temporary command site: two tents in its clearing. */
+  {
+    id: 'command-tent-1', kind: 'tent', at: g(7.167, 15.271), dir: [1, 0], w: 5, d: 4, h: 1.8, roof: 'hip', ridge: 1.1, colour: '#5f5e46',
+  },
+  {
+    id: 'command-tent-2', kind: 'tent', at: g(7.186, 15.279), dir: dirOf(g(7.18, 15.27), g(7.183, 15.28)), w: 4, d: 3.5, h: 1.7, roof: 'hip', ridge: 1, colour: '#66644a',
   },
 ];
 
@@ -294,6 +412,37 @@ export const CAMP_PROPS = {
 };
 
 /*
+ * THE SECOND CAMP AT CLARO NUEVO (MISSIONS M2 stage 4): CAMP_PROPS' shape
+ * (its shelters keep CAMP_PROPS' ids: camp.js dresses them by id),
+ * spread over the clearing east of its middle (the forest stands west),
+ * spaced wider and kept tidier, with no mark under any roof; the newer
+ * radio's mast, three newer motorcycles. Offsets as Claro Viejo's.
+ */
+const NUEVO = g(...M2_AT.claroNuevo);
+const nuevo = (ox, oz) => [NUEVO[0] + ox, NUEVO[1] + oz];
+export const NUEVO_PROPS = {
+  middle: NUEVO,
+  shelters: [
+    { id: 'shelter-1', at: nuevo(-4, -24), dir: dirOf([0, 0], [1, 0]), w: 6, d: 4.5, h: 2.0, markable: false },
+    { id: 'shelter-2', at: nuevo(26, -22), dir: dirOf([0, 0], [1, 0]), w: 6, d: 4.5, h: 2.0, markable: false },
+    { id: 'shelter-3', at: nuevo(24, 6), dir: dirOf([0, 0], [1, 0]), w: 6, d: 4.5, h: 2.0, markable: false },
+    { id: 'shelter-4', at: nuevo(0, 14), dir: dirOf([0, 0], [1, 0]), w: 6, d: 4.5, h: 2.0, markable: false },
+  ],
+  mast: { id: 'nuevo-mast', at: nuevo(10, -30), h: 11 },
+  solar: { id: 'nuevo-solar', at: nuevo(14, -29), dir: dirOf([0, 0], [0, -1]), w: 1.8, d: 1.1 },
+  lookout: { id: 'nuevo-lookout', at: nuevo(15, -40), deckY: 7.5, w: 2.4 },
+  fire: { id: 'nuevo-fire', at: nuevo(10, 0) },
+  motorcycles: [
+    { id: 'nuevo-moto-1', at: nuevo(13, 16), dir: dirOf([0, 0], [1, 0]) },
+    { id: 'nuevo-moto-2', at: nuevo(15, 17), dir: dirOf([0, 0], [1, 0]) },
+    { id: 'nuevo-moto-3', at: nuevo(17, 18), dir: dirOf([0, 0], [1, 0]) },
+  ],
+  drums: [nuevo(25, -5), nuevo(25.8, -3.8)],
+  crates: [nuevo(29, 1), nuevo(30.2, 1.4)],
+  hammocks: [],
+};
+
+/*
  * THE FOREST'S OPENINGS (canopy.js): no crown stands over these, so a
  * line of sight from the air into them is open where the forest's height
  * allows. A circle { id, at, r } or a strip { id, points, width }. The
@@ -322,6 +471,12 @@ export const OPENINGS = [
   { id: 'east-gap-1', at: g(9.03, 8.94), r: 8 },
   { id: 'east-clearing', at: g(8.92, 9.18), r: 16 },
   { id: 'east-gap-2', at: g(8.76, 9.29), r: 7 },
+  /* Mission 3: the post's yard and perimeter, the farmhouse's yard, the
+   * decoy's field, the command site's clearing. */
+  { id: 'puesto-arenal', at: g(4.0, 13.98), r: 75 },
+  { id: 'arenal-farm', at: g(5.19, 13.108), r: 45 },
+  { id: 'arenal-field', at: g(4.926, 14.424), r: 45 },
+  { id: 'command-site', at: g(7.17, 15.265), r: 28 },
   ...ROADS.map((r) => ({ id: `road-${r.id}`, points: r.points, width: r.width + 2 })),
 ];
 
