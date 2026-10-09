@@ -31,12 +31,12 @@
  * gives it is in it.
  *
  * THE CROWNS are the asset library's (src/render/library/crowns.js);
- * this file places them. Their look is in the fragment, so the geometry
- * the room's line of sight is held to (canopy-los.js casts at the near and mid meshes on
- * the CPU) is untouched. A ball's pixel is kept only where its ray meets
- * the true ellipsoid, lobed a few decimetres in, and is lit by that
- * ellipsoid's normal, so no outline is a polygon's and no face is flat,
- * and nothing is drawn outside the crown canopyBlocks tests. A crown is
+ * this file places them. A crown is canopy.js's: lobes in its ellipsoid
+ * (crownshape.js), with gaps at its edge. Its look is in the fragment: a
+ * ball's pixel is kept only where its ray meets a lobe, and lit by that
+ * lobe's normal, so no outline is a polygon's and no face is flat, and
+ * what is drawn is what canopyBlocks tests (scripts/canopy-los.js draws
+ * the near and mid tiers and asks each pixel). A crown is
  * darker underneath and lit and yellower at its top, broken into clumps
  * of leaves (a value noise in world metres, bump and albedo, faded out
  * as it gets under a pixel), and rimmed by the low sun coming through its
@@ -46,12 +46,11 @@
  * two; a few dry crowns, and the lapacho's pink and yellow rare and
  * muted, as a tree in flower is one crown in hundreds.
  *
- * The crowns' sizes are canopy.js's ellipsoids: the ball's unit radius
+ * The balls' sizes are canopy.js's ellipsoids: the ball's unit radius
  * scaled to r across and ry up, centred at cy, and scaled once more by
- * its own fit (fitOf), so its faces sit as far inside the true crown as
- * its corners stand outside: scripts/canopy-los.js measures how often the
- * drawn crowns and canopyBlocks disagree, which is only ever within a
- * few decimetres of a crown's skin.
+ * its own fit (fitOf), so it holds every lobe; scripts/canopy-los.js
+ * measures how often the drawn crowns and canopyBlocks disagree, which is
+ * only ever within a few decimetres of a lobe's skin.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -280,6 +279,13 @@ export function buildTrees({
   const midSeed = new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1);
   midSeed.setUsage(THREE.DynamicDrawUsage);
   midGeo.setAttribute('aSeed', midSeed);
+  /* Each crown's lobe layout (crownshape.js, canopy.js's tree.lobe). */
+  const nearLobe = new THREE.InstancedBufferAttribute(new Float32Array(NEAR_CAP), 1);
+  const midLobe = new THREE.InstancedBufferAttribute(new Float32Array(MID_CAP), 1);
+  for (const [g, a] of [[nearGeo, nearLobe], [midGeo, midLobe]]) {
+    a.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('aLobe', a);
+  }
   const trunkGeo = new THREE.CylinderGeometry(0.16, 0.24, 1, 5, 1, true);
   trunkGeo.translate(0, 0.5, 0);
   const near = new THREE.InstancedMesh(nearGeo, nearMat, NEAR_CAP);
@@ -305,7 +311,7 @@ export function buildTrees({
    * (r, ry, seed), `cap` of each, drawn by `mat`. */
   function pointLayer(cap, mat, name, dynamic) {
     const geo = new THREE.BufferGeometry();
-    const attrs = [['position', 3], ['color', 3], ['aShape', 3]].map(([n, k]) => {
+    const attrs = [['position', 3], ['color', 3], ['aShape', 3], ['aLobe', 1]].map(([n, k]) => {
       const a = new THREE.BufferAttribute(new Float32Array(cap * k), k);
       if (dynamic) {
         a.setUsage(THREE.DynamicDrawUsage);
@@ -350,6 +356,7 @@ export function buildTrees({
     const shape = new Float32Array(list.length * 3);
     const cols = new Float32Array(list.length * 3);
     const seeds = new Float32Array(list.length);
+    const lobes = new Float32Array(list.length);
     /* What the balls' matrices need besides: the tint (its turn), the
      * ground and whether it is a palm (its trunk). */
     const extra = new Float32Array(list.length * 3);
@@ -361,6 +368,7 @@ export function buildTrees({
       at[k * 3 + 1] = t.cy;
       at[k * 3 + 2] = t.z;
       seeds[k] = seedOf(t);
+      lobes[k] = t.lobe;
       shape[k * 3] = t.r;
       shape[k * 3 + 1] = t.ry;
       shape[k * 3 + 2] = seeds[k];
@@ -370,7 +378,7 @@ export function buildTrees({
       cols[k * 3 + 2] = c[2] * occ[k];
     });
     const ch = {
-      ci, cj, n: list.length, at, shape, cols, seeds, extra, crowns: null, tier: -1, pts: false,
+      ci, cj, n: list.length, at, shape, cols, seeds, lobes, extra, crowns: null, tier: -1, pts: false,
     };
     chunks.set(chunkKey(ci, cj), ch);
     return ch;
@@ -490,6 +498,7 @@ export function buildTrees({
         near.instanceMatrix.array.set(ch.crowns, n * 16);
         trunks.instanceMatrix.array.set(ch.trunks, n * 16);
         near.instanceColor.array.set(ch.cols, n * 3);
+        nearLobe.array.set(ch.lobes, n);
         n += ch.n;
       } else if (ch.tier === 1) {
         if (m + ch.n > MID_CAP) {
@@ -498,6 +507,7 @@ export function buildTrees({
         mid.instanceMatrix.array.set(ch.crownsMid, m * 16);
         mid.instanceColor.array.set(ch.cols, m * 3);
         midSeed.array.set(ch.seeds, m);
+        midLobe.array.set(ch.lobes, m);
         m += ch.n;
       }
     }
@@ -511,12 +521,14 @@ export function buildTrees({
       }
     }
     midSeed.needsUpdate = true;
+    nearLobe.needsUpdate = true;
+    midLobe.needsUpdate = true;
     stats.near = n;
     stats.mid = m;
   }
 
   function refillPoints(ready) {
-    const [pa, ca, sa] = ptsLayer.attrs;
+    const [pa, ca, sa, la] = ptsLayer.attrs;
     let n = 0;
     for (const ch of ready) {
       if (!ch.pts || n + ch.n > PTS_CAP) {
@@ -525,11 +537,12 @@ export function buildTrees({
       pa.array.set(ch.at, n * 3);
       ca.array.set(ch.cols, n * 3);
       sa.array.set(ch.shape, n * 3);
+      la.array.set(ch.lobes, n);
       n += ch.n;
     }
     for (const a of ptsLayer.attrs) {
       a.clearUpdateRanges();
-      a.addUpdateRange(0, n * 3);
+      a.addUpdateRange(0, n * a.itemSize);
       a.needsUpdate = true;
     }
     ptsLayer.geo.setDrawRange(0, n);
