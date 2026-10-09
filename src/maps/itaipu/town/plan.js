@@ -47,7 +47,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { roofRecord, frameElements, roofTop, gableTop, insideSlabs } from '../../alps/roofs.js';
+import { roofRecord, frameElements, roofTop, gableTop, insideSlabs } from '../../../render/library/roofs.js';
 
 /* How far a wall may stand inside its box, metres: the wedge of solid a
  * craft can meet with nothing drawn there. A wall 30 m long 5 degrees

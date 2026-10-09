@@ -1,0 +1,6581 @@
+{
+ "atlases": {
+  "bark": {
+   "map": {
+    "ref": "t0",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "srgb",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 4
+   },
+   "normalMap": {
+    "ref": "t1",
+    "type": "Texture",
+    "size": [
+     512,
+     512,
+     null
+    ],
+    "data": null,
+    "wrap": [
+     1000,
+     1000
+    ],
+    "filter": [
+     1006,
+     1008
+    ],
+    "mips": true,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": true,
+    "anisotropy": 4
+   }
+  },
+  "dispose": "function",
+  "foliage": {
+   "ref": "t2",
+   "type": "Texture",
+   "size": [
+    2048,
+    2048,
+    null
+   ],
+   "data": null,
+   "wrap": [
+    1001,
+    1001
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": false,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "srgb",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": true,
+   "anisotropy": 4
+  },
+  "grass": {
+   "ref": "t3",
+   "type": "Texture",
+   "size": [
+    1024,
+    1792,
+    null
+   ],
+   "data": null,
+   "wrap": [
+    1001,
+    1001
+   ],
+   "filter": [
+    1006,
+    1008
+   ],
+   "mips": false,
+   "format": 1023,
+   "dataType": 1009,
+   "colorSpace": "srgb",
+   "repeat": [
+    1,
+    1
+   ],
+   "offset": [
+    0,
+    0
+   ],
+   "flipY": true,
+   "anisotropy": 4
+  }
+ },
+ "constants": {
+  "VARIANTS": [
+   {
+    "name": "spruce-forest",
+    "kind": "spruce",
+    "seed": 101,
+    "h": 30,
+    "crownBase": 0.34,
+    "reach": 4,
+    "step": 0.62,
+    "per": 6
+   },
+   {
+    "name": "spruce-young",
+    "kind": "spruce",
+    "seed": 102,
+    "h": 20,
+    "crownBase": 0.22,
+    "reach": 3.7,
+    "step": 0.55,
+    "per": 5
+   },
+   {
+    "name": "spruce-open",
+    "kind": "spruce",
+    "seed": 103,
+    "h": 22,
+    "crownBase": 0.05,
+    "reach": 5.2,
+    "step": 0.55,
+    "per": 6
+   },
+   {
+    "name": "fir-forest",
+    "kind": "fir",
+    "seed": 201,
+    "h": 28,
+    "crownBase": 0.3,
+    "reach": 4.4,
+    "step": 0.7,
+    "per": 5
+   },
+   {
+    "name": "fir-open",
+    "kind": "fir",
+    "seed": 202,
+    "h": 18,
+    "crownBase": 0.06,
+    "reach": 5,
+    "step": 0.6,
+    "per": 5
+   },
+   {
+    "name": "larch-tall",
+    "kind": "larch",
+    "seed": 301,
+    "h": 26,
+    "crownBase": 0.28,
+    "reach": 3.9,
+    "step": 0.95,
+    "per": 4
+   },
+   {
+    "name": "larch-open",
+    "kind": "larch",
+    "seed": 302,
+    "h": 17,
+    "crownBase": 0.1,
+    "reach": 4.2,
+    "step": 0.8,
+    "per": 4
+   },
+   {
+    "name": "beech-tall",
+    "kind": "beech",
+    "seed": 401,
+    "h": 24,
+    "trunk": 0.34,
+    "rx": 0.3,
+    "ry": 0.36
+   },
+   {
+    "name": "beech-open",
+    "kind": "beech",
+    "seed": 402,
+    "h": 17,
+    "trunk": 0.22,
+    "rx": 0.42,
+    "ry": 0.4
+   },
+   {
+    "name": "maple",
+    "kind": "maple",
+    "seed": 501,
+    "h": 18,
+    "trunk": 0.28,
+    "rx": 0.4,
+    "ry": 0.38
+   },
+   {
+    "name": "snag",
+    "kind": "snag",
+    "seed": 601,
+    "h": 21,
+    "reach": 1.1,
+    "impostorOnly": true
+   }
+  ],
+  "CLUMP_REACH": 1.2,
+  "AZIMUTHS": 8,
+  "ELEVATIONS": [
+   0,
+   0.698131700798,
+   1.308996939
+  ],
+  "GRID": 17,
+  "MAX_VARIANTS": 12,
+  "ALPHA_CUT": 0.5,
+  "REGIONS": {
+   "spruce": {
+    "u0": 0,
+    "v0": 0.5,
+    "du": 0.25,
+    "dv": 0.5
+   },
+   "fir": {
+    "u0": 0.25,
+    "v0": 0.5,
+    "du": 0.25,
+    "dv": 0.5
+   },
+   "larch": {
+    "u0": 0.5,
+    "v0": 0.5,
+    "du": 0.25,
+    "dv": 0.5
+   },
+   "curtain": {
+    "u0": 0.75,
+    "v0": 0.5,
+    "du": 0.21875,
+    "dv": 0.5
+   },
+   "bark": {
+    "u0": 0.96875,
+    "v0": 0.5,
+    "du": 0.03125,
+    "dv": 0.5
+   },
+   "beech": {
+    "u0": 0,
+    "v0": 0,
+    "du": 0.5,
+    "dv": 0.5
+   },
+   "maple": {
+    "u0": 0.5,
+    "v0": 0,
+    "du": 0.5,
+    "dv": 0.5
+   }
+  },
+  "GRASS_REGIONS": {
+   "clump0": {
+    "u0": 0,
+    "v0": 0.857142857143,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "clump1": {
+    "u0": 0.5,
+    "v0": 0.857142857143,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "clump2": {
+    "u0": 0,
+    "v0": 0.714285714286,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "clump3": {
+    "u0": 0.5,
+    "v0": 0.714285714286,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "clump4": {
+    "u0": 0,
+    "v0": 0.571428571429,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "clump5": {
+    "u0": 0.5,
+    "v0": 0.571428571429,
+    "du": 0.5,
+    "dv": 0.142857142857
+   },
+   "flower0": {
+    "u0": 0,
+    "v0": 0.428571428571,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flower1": {
+    "u0": 0.25,
+    "v0": 0.428571428571,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flower2": {
+    "u0": 0.5,
+    "v0": 0.428571428571,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flower3": {
+    "u0": 0.75,
+    "v0": 0.428571428571,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "weed0": {
+    "u0": 0,
+    "v0": 0.142857142857,
+    "du": 0.25,
+    "dv": 0.285714285714
+   },
+   "weed1": {
+    "u0": 0.25,
+    "v0": 0.142857142857,
+    "du": 0.25,
+    "dv": 0.285714285714
+   },
+   "weed2": {
+    "u0": 0.5,
+    "v0": 0.142857142857,
+    "du": 0.25,
+    "dv": 0.285714285714
+   },
+   "weed3": {
+    "u0": 0.75,
+    "v0": 0.142857142857,
+    "du": 0.25,
+    "dv": 0.285714285714
+   },
+   "flat0": {
+    "u0": 0,
+    "v0": 0,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flat1": {
+    "u0": 0.25,
+    "v0": 0,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flat2": {
+    "u0": 0.5,
+    "v0": 0,
+    "du": 0.25,
+    "dv": 0.142857142857
+   },
+   "flat3": {
+    "u0": 0.75,
+    "v0": 0,
+    "du": 0.25,
+    "dv": 0.142857142857
+   }
+  },
+  "url": "/assets/swiss2/vegetation/leaves.webp",
+  "glsl": [
+   [
+    "DITHER_GLSL",
+    "b7ff71e0"
+   ],
+   [
+    "PLANT_TINT_GLSL",
+    "13cae6f0"
+   ],
+   [
+    "LEAF_SPEC_GLSL",
+    "2b9bd75e"
+   ],
+   [
+    "IMP_FRAME_GLSL",
+    "2a03029a"
+   ]
+  ]
+ },
+ "exports": {
+  "species": [
+   [
+    "CLUMP_REACH",
+    "number"
+   ],
+   [
+    "VARIANTS",
+    "object"
+   ],
+   [
+    "buildVariant",
+    "function"
+   ],
+   [
+    "crownClumps",
+    "function"
+   ],
+   [
+    "triangles",
+    "function"
+   ]
+  ],
+  "plantmat": [
+   [
+    "DITHER_GLSL",
+    "string"
+   ],
+   [
+    "LEAF_SPEC_GLSL",
+    "string"
+   ],
+   [
+    "PLANT_TINT_GLSL",
+    "string"
+   ],
+   [
+    "plantDepthMaterial",
+    "function"
+   ],
+   [
+    "plantMaterial",
+    "function"
+   ],
+   [
+    "windUniforms",
+    "function"
+   ]
+  ],
+  "impostor": [
+   [
+    "AZIMUTHS",
+    "number"
+   ],
+   [
+    "ELEVATIONS",
+    "object"
+   ],
+   [
+    "GRID",
+    "number"
+   ],
+   [
+    "IMP_FRAME_GLSL",
+    "string"
+   ],
+   [
+    "MAX_VARIANTS",
+    "number"
+   ],
+   [
+    "bakeImpostors",
+    "function"
+   ],
+   [
+    "impostorDepthMaterial",
+    "function"
+   ],
+   [
+    "impostorMaterial",
+    "function"
+   ],
+   [
+    "impostorMesh",
+    "function"
+   ]
+  ],
+  "atlas": [
+   [
+    "ALPHA_CUT",
+    "number"
+   ],
+   [
+    "GRASS_REGIONS",
+    "object"
+   ],
+   [
+    "REGIONS",
+    "object"
+   ],
+   [
+    "assetUrl",
+    "function"
+   ],
+   [
+    "loadAtlases",
+    "function"
+   ]
+  ]
+ },
+ "impostors": {
+  "material": {
+   "ref": "m0",
+   "type": "MeshStandardMaterial",
+   "name": "",
+   "transparent": false,
+   "opacity": 1,
+   "depthWrite": true,
+   "depthTest": true,
+   "side": 0,
+   "fog": true,
+   "blending": 1,
+   "vertexColors": false,
+   "alphaTest": 0,
+   "polygonOffset": false,
+   "polygonOffsetFactor": 0,
+   "polygonOffsetUnits": 0,
+   "colorWrite": true,
+   "toneMapped": true,
+   "flatShading": false,
+   "wireframe": false,
+   "roughness": 0.85,
+   "metalness": 0,
+   "emissiveIntensity": 1,
+   "dithering": false,
+   "premultipliedAlpha": false,
+   "visible": true,
+   "stencilWrite": false,
+   "alphaToCoverage": false,
+   "color": "ffffff",
+   "emissive": "000000",
+   "defines": {
+    "STANDARD": "",
+    "THERMAL_KIND": 1
+   },
+   "onBeforeCompile": true,
+   "cacheKey": "swiss2-impostor",
+   "userData": [
+    "impostor",
+    "thermal"
+   ]
+  },
+  "shaders": {
+   "vertex": "66a17119",
+   "fragment": "35339bc6",
+   "added": [
+    "uAlbedo",
+    "uBand",
+    "uImpLight",
+    "uImpView",
+    "uNormalAtlas",
+    "uPad",
+    "uVar"
+   ],
+   "defines": {
+    "STANDARD": "",
+    "THERMAL_KIND": 1
+   },
+   "key": "swiss2-impostor"
+  },
+  "depthShaders": {
+   "vertex": "d6f45358",
+   "fragment": "e199e848",
+   "added": [
+    "uAlbedo",
+    "uBand",
+    "uImpLight",
+    "uImpView",
+    "uNormalAtlas",
+    "uPad",
+    "uVar"
+   ],
+   "defines": {},
+   "key": "swiss2-impostor-depth"
+  },
+  "uniforms": [
+   "uAlbedo",
+   "uBand",
+   "uImpLight",
+   "uImpView",
+   "uNormalAtlas",
+   "uPad",
+   "uVar"
+  ],
+  "mesh": {
+   "type": "Mesh",
+   "name": "swiss2-impostors",
+   "visible": true,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "q": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "s": [
+    1,
+    1,
+    1
+   ],
+   "castShadow": true,
+   "receiveShadow": true,
+   "geometry": {
+    "ref": "g0",
+    "type": "InstancedBufferGeometry",
+    "attrs": {
+     "position": {
+      "n": 4,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "e1829245",
+      "inst": false
+     },
+     "normal": {
+      "n": 4,
+      "size": 3,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "919d15a5",
+      "inst": false
+     },
+     "aTree": {
+      "n": 2,
+      "size": 4,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "5e643a23",
+      "inst": true
+     },
+     "aTree2": {
+      "n": 2,
+      "size": 2,
+      "norm": false,
+      "type": "Float32Array",
+      "hash": "d862fa27",
+      "inst": true
+     }
+    },
+    "morph": [],
+    "index": {
+     "n": 6,
+     "type": "Uint16Array",
+     "hash": "16265387"
+    },
+    "groups": [],
+    "drawRange": [
+     0,
+     "all"
+    ],
+    "userData": []
+   },
+   "material": {
+    "ref": "m1",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": false,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.85,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": false,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "ffffff",
+    "emissive": "000000",
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 1
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-impostor",
+    "userData": [
+     "impostor",
+     "thermal"
+    ]
+   }
+  },
+  "depth": true
+ },
+ "plantMaterials": {
+  "wind": [
+   "uTime",
+   "uWind",
+   "uWindDir"
+  ],
+  "foliage": {
+   "material": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": false,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 2,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": true,
+    "alphaTest": 0.5,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.78,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": false,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "ffffff",
+    "emissive": "000000",
+    "map": {
+     "ref": "t1",
+     "type": "DataTexture",
+     "size": [
+      4,
+      4,
+      null
+     ],
+     "data": "e5f96ac5",
+     "wrap": [
+      1001,
+      1001
+     ],
+     "filter": [
+      1003,
+      1003
+     ],
+     "mips": false,
+     "format": 1023,
+     "dataType": 1009,
+     "colorSpace": "",
+     "repeat": [
+      1,
+      1
+     ],
+     "offset": [
+      0,
+      0
+     ],
+     "flipY": false,
+     "anisotropy": 1
+    },
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 1
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-plant-foliage",
+    "userData": [
+     "plant",
+     "thermal"
+    ]
+   },
+   "shaders": {
+    "vertex": "9ee65a5d",
+    "fragment": "ea53152c",
+    "added": [
+     "uBand",
+     "uFlutter",
+     "uSway",
+     "uTime",
+     "uTransl",
+     "uWind",
+     "uWindDir"
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 1
+    },
+    "key": "swiss2-plant-foliage"
+   },
+   "depth": {
+    "ref": "m0",
+    "type": "MeshDepthMaterial",
+    "name": "",
+    "transparent": false,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 2,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0.8,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "wireframe": false,
+    "dithering": false,
+    "premultipliedAlpha": false,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "map": {
+     "ref": "t1",
+     "type": "DataTexture",
+     "size": [
+      4,
+      4,
+      null
+     ],
+     "data": "e5f96ac5",
+     "wrap": [
+      1001,
+      1001
+     ],
+     "filter": [
+      1003,
+      1003
+     ],
+     "mips": false,
+     "format": 1023,
+     "dataType": 1009,
+     "colorSpace": "",
+     "repeat": [
+      1,
+      1
+     ],
+     "offset": [
+      0,
+      0
+     ],
+     "flipY": false,
+     "anisotropy": 1
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-plant-depth-foliage",
+    "userData": []
+   },
+   "depthShaders": {
+    "vertex": "d34a4993",
+    "fragment": "0bee5f80",
+    "added": [
+     "uFlutter",
+     "uSway",
+     "uTime",
+     "uWind",
+     "uWindDir"
+    ],
+    "defines": {},
+    "key": "swiss2-plant-depth-foliage"
+   }
+  },
+  "foliageTuned": {
+   "ref": "m0",
+   "type": "MeshStandardMaterial",
+   "name": "",
+   "transparent": false,
+   "opacity": 1,
+   "depthWrite": true,
+   "depthTest": true,
+   "side": 2,
+   "fog": true,
+   "blending": 1,
+   "vertexColors": true,
+   "alphaTest": 0.5,
+   "polygonOffset": false,
+   "polygonOffsetFactor": 0,
+   "polygonOffsetUnits": 0,
+   "colorWrite": true,
+   "toneMapped": true,
+   "flatShading": false,
+   "wireframe": false,
+   "roughness": 0.78,
+   "metalness": 0,
+   "emissiveIntensity": 1,
+   "dithering": false,
+   "premultipliedAlpha": false,
+   "visible": true,
+   "stencilWrite": false,
+   "alphaToCoverage": false,
+   "color": "ffffff",
+   "emissive": "000000",
+   "map": {
+    "ref": "t1",
+    "type": "DataTexture",
+    "size": [
+     4,
+     4,
+     null
+    ],
+    "data": "e5f96ac5",
+    "wrap": [
+     1001,
+     1001
+    ],
+    "filter": [
+     1003,
+     1003
+    ],
+    "mips": false,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": false,
+    "anisotropy": 1
+   },
+   "defines": {
+    "STANDARD": "",
+    "THERMAL_KIND": 1
+   },
+   "onBeforeCompile": true,
+   "cacheKey": "swiss2-plant-foliage",
+   "userData": [
+    "plant",
+    "thermal"
+   ]
+  },
+  "bark": {
+   "material": {
+    "ref": "m0",
+    "type": "MeshStandardMaterial",
+    "name": "",
+    "transparent": false,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "fog": true,
+    "blending": 1,
+    "vertexColors": true,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "flatShading": false,
+    "wireframe": false,
+    "roughness": 0.92,
+    "metalness": 0,
+    "emissiveIntensity": 1,
+    "dithering": false,
+    "premultipliedAlpha": false,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "color": "ffffff",
+    "emissive": "000000",
+    "map": {
+     "ref": "t1",
+     "type": "DataTexture",
+     "size": [
+      4,
+      4,
+      null
+     ],
+     "data": "e5f96ac5",
+     "wrap": [
+      1001,
+      1001
+     ],
+     "filter": [
+      1003,
+      1003
+     ],
+     "mips": false,
+     "format": 1023,
+     "dataType": 1009,
+     "colorSpace": "",
+     "repeat": [
+      1,
+      1
+     ],
+     "offset": [
+      0,
+      0
+     ],
+     "flipY": false,
+     "anisotropy": 1
+    },
+    "normalMap": {
+     "ref": "t2",
+     "type": "DataTexture",
+     "size": [
+      4,
+      4,
+      null
+     ],
+     "data": "e5f96ac5",
+     "wrap": [
+      1001,
+      1001
+     ],
+     "filter": [
+      1003,
+      1003
+     ],
+     "mips": false,
+     "format": 1023,
+     "dataType": 1009,
+     "colorSpace": "",
+     "repeat": [
+      1,
+      1
+     ],
+     "offset": [
+      0,
+      0
+     ],
+     "flipY": false,
+     "anisotropy": 1
+    },
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 1
+    },
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-plant-bark",
+    "userData": [
+     "plant",
+     "thermal"
+    ]
+   },
+   "shaders": {
+    "vertex": "ab98303c",
+    "fragment": "cdc04594",
+    "added": [
+     "uBand",
+     "uFlutter",
+     "uSway",
+     "uTime",
+     "uTransl",
+     "uWind",
+     "uWindDir"
+    ],
+    "defines": {
+     "STANDARD": "",
+     "THERMAL_KIND": 1
+    },
+    "key": "swiss2-plant-bark"
+   },
+   "depth": {
+    "ref": "m0",
+    "type": "MeshDepthMaterial",
+    "name": "",
+    "transparent": false,
+    "opacity": 1,
+    "depthWrite": true,
+    "depthTest": true,
+    "side": 0,
+    "blending": 1,
+    "vertexColors": false,
+    "alphaTest": 0,
+    "polygonOffset": false,
+    "polygonOffsetFactor": 0,
+    "polygonOffsetUnits": 0,
+    "colorWrite": true,
+    "toneMapped": true,
+    "wireframe": false,
+    "dithering": false,
+    "premultipliedAlpha": false,
+    "visible": true,
+    "stencilWrite": false,
+    "alphaToCoverage": false,
+    "onBeforeCompile": true,
+    "cacheKey": "swiss2-plant-depth-bark",
+    "userData": []
+   },
+   "depthShaders": {
+    "vertex": "8ad4490a",
+    "fragment": "0bee5f80",
+    "added": [
+     "uFlutter",
+     "uSway",
+     "uTime",
+     "uWind",
+     "uWindDir"
+    ],
+    "defines": {},
+    "key": "swiss2-plant-depth-bark"
+   }
+  },
+  "barkTuned": {
+   "ref": "m0",
+   "type": "MeshStandardMaterial",
+   "name": "",
+   "transparent": false,
+   "opacity": 1,
+   "depthWrite": true,
+   "depthTest": true,
+   "side": 0,
+   "fog": true,
+   "blending": 1,
+   "vertexColors": true,
+   "alphaTest": 0,
+   "polygonOffset": false,
+   "polygonOffsetFactor": 0,
+   "polygonOffsetUnits": 0,
+   "colorWrite": true,
+   "toneMapped": true,
+   "flatShading": false,
+   "wireframe": false,
+   "roughness": 0.92,
+   "metalness": 0,
+   "emissiveIntensity": 1,
+   "dithering": false,
+   "premultipliedAlpha": false,
+   "visible": true,
+   "stencilWrite": false,
+   "alphaToCoverage": false,
+   "color": "ffffff",
+   "emissive": "000000",
+   "map": {
+    "ref": "t1",
+    "type": "DataTexture",
+    "size": [
+     4,
+     4,
+     null
+    ],
+    "data": "e5f96ac5",
+    "wrap": [
+     1001,
+     1001
+    ],
+    "filter": [
+     1003,
+     1003
+    ],
+    "mips": false,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": false,
+    "anisotropy": 1
+   },
+   "normalMap": {
+    "ref": "t2",
+    "type": "DataTexture",
+    "size": [
+     4,
+     4,
+     null
+    ],
+    "data": "e5f96ac5",
+    "wrap": [
+     1001,
+     1001
+    ],
+    "filter": [
+     1003,
+     1003
+    ],
+    "mips": false,
+    "format": 1023,
+    "dataType": 1009,
+    "colorSpace": "",
+    "repeat": [
+     1,
+     1
+    ],
+    "offset": [
+     0,
+     0
+    ],
+    "flipY": false,
+    "anisotropy": 1
+   },
+   "defines": {
+    "STANDARD": "",
+    "THERMAL_KIND": 1
+   },
+   "onBeforeCompile": true,
+   "cacheKey": "swiss2-plant-bark",
+   "userData": [
+    "plant",
+    "thermal"
+   ]
+  }
+ },
+ "variants": [
+  {
+   "kind": "spruce",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 30.8999996185,
+     "crown": 5.4841837883,
+     "cy": 15.4499998093,
+     "radius": 16.7223631127,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 4096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "471caee9",
+        "inst": false
+       },
+       "normal": {
+        "n": 4096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b953a6a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 4096,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2b8bc791",
+        "inst": false
+       },
+       "color": {
+        "n": 4096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "3ec1d6f9",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 4096,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "39330676",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 9210,
+       "type": "Uint16Array",
+       "hash": "e39280f2"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "13d37e96",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "62a83321",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "91fe0e55",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      3070,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 30.8999996185,
+     "crown": 5.57698249817,
+     "cy": 15.4499998093,
+     "radius": 16.754263908,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 439,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "79e19bbb",
+        "inst": false
+       },
+       "normal": {
+        "n": 439,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "edafaa78",
+        "inst": false
+       },
+       "uv": {
+        "n": 439,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "462783f5",
+        "inst": false
+       },
+       "color": {
+        "n": 439,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b50416e8",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 439,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ed44e8c9",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 894,
+       "type": "Uint16Array",
+       "hash": "c0e05e6f"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      298,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.731322739851
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.69453885233
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.665372712594
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.686967690839
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.882520265151
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.896819854667
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.700510764206
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.847421751861
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.790109433448
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.90317571192
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.806481485246
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.691276880167
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.830029846439
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.900981646115
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.735975427125
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.841291505657
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.851674720673
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.773364801425
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.842695944067
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.807687870357
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.815694339788
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.889800944477
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.928440263811
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.833057279754
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.816842222121
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.327172229206
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.449949670583
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.282691314491
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.400657321047
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "spruce",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 20.6000003815,
+     "crown": 3.35666370392,
+     "cy": 10.3000001907,
+     "radius": 11.0498156471,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 2776,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c839d7f3",
+        "inst": false
+       },
+       "normal": {
+        "n": 2776,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "3f2238b5",
+        "inst": false
+       },
+       "uv": {
+        "n": 2776,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "73c14b55",
+        "inst": false
+       },
+       "color": {
+        "n": 2776,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "44e0bfb1",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 2776,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "00c3a4ac",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 6240,
+       "type": "Uint16Array",
+       "hash": "73837191"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a44d164b",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c4bcf8c3",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6df901a9",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      2080,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 20.6000003815,
+     "crown": 3.34816479683,
+     "cy": 10.3000001907,
+     "radius": 11.0471326587,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 325,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "823e2fcb",
+        "inst": false
+       },
+       "normal": {
+        "n": 325,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "9d3c3524",
+        "inst": false
+       },
+       "uv": {
+        "n": 325,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c3543a8b",
+        "inst": false
+       },
+       "color": {
+        "n": 325,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f3b35acc",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 325,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c2f97701",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 666,
+       "type": "Uint16Array",
+       "hash": "931a2067"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      222,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.876510090511
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.685970765902
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.929069341896
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.852684654398
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.716946021644
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.931874335324
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.694626267496
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.726002810365
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.6838546139
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.876578617888
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.841882868856
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.895467986511
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.896641592141
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.788783386247
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.743024729313
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.930796667682
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.868373800749
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.854297276773
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.748900215756
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.681933297487
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.689040848594
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.741899626181
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.793884939104
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.679215449262
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.675994193843
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.275711998623
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.430571128754
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.306189150922
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.44866376766
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "spruce",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 22.6599998474,
+     "crown": 5.25435066223,
+     "cy": 10.3583800793,
+     "radius": 13.6443082277,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 4784,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6b739d20",
+        "inst": false
+       },
+       "normal": {
+        "n": 4784,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "8c398915",
+        "inst": false
+       },
+       "uv": {
+        "n": 4784,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "fd453df1",
+        "inst": false
+       },
+       "color": {
+        "n": 4784,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "18d8afcd",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 4784,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "8ebc815d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 10758,
+       "type": "Uint16Array",
+       "hash": "ae114512"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "91265526",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2725a29f",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b8cbcea1",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      3586,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 22.6599998474,
+     "crown": 4.94434213638,
+     "cy": 10.2060860395,
+     "radius": 13.6674857389,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 523,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b0c7971c",
+        "inst": false
+       },
+       "normal": {
+        "n": 523,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b81dcdd8",
+        "inst": false
+       },
+       "uv": {
+        "n": 523,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bf33fd75",
+        "inst": false
+       },
+       "color": {
+        "n": 523,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "0cc3baa8",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 523,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f884a589",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 1062,
+       "type": "Uint16Array",
+       "hash": "f1e9e38a"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      354,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.913749781996
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.887144105034
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.66151506057
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.919660978196
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.688497714801
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.675692814477
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.839121849192
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.80222333584
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.910568245417
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.666405985393
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.861098211072
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.872635994442
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.681784307016
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.761816643896
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.808203723794
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.694898611717
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.872356697172
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.720553895533
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.85862358626
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.750367906876
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.901820861334
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.664184015272
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.938578250809
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.846044078199
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.718853678908
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.334868456936
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.362604808062
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.288017339678
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.340090024006
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "fir",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 28.8400001526,
+     "crown": 5.92948818207,
+     "cy": 14.4200000763,
+     "radius": 15.9033417773,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 2072,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c387f9c9",
+        "inst": false
+       },
+       "normal": {
+        "n": 2072,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "dcb25dc5",
+        "inst": false
+       },
+       "uv": {
+        "n": 2072,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "42a59bbd",
+        "inst": false
+       },
+       "color": {
+        "n": 2072,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5cd42825",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 2072,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "cd519195",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 4656,
+       "type": "Uint16Array",
+       "hash": "9c3d6c25"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "dd5706bc",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a3b1e3e5",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "9f5e8195",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      1552,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 28.8400001526,
+     "crown": 5.95515727997,
+     "cy": 14.4200000763,
+     "radius": 15.9133174595,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 319,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "77c78bea",
+        "inst": false
+       },
+       "normal": {
+        "n": 319,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "87915b70",
+        "inst": false
+       },
+       "uv": {
+        "n": 319,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f494d9f5",
+        "inst": false
+       },
+       "color": {
+        "n": 319,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "16112fd4",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 319,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "7a2178fd",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 654,
+       "type": "Uint16Array",
+       "hash": "8f3052df"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      218,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.855583792171
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.776958828345
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.769903771412
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.719688855382
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.788456968563
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.773268570723
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.762359059202
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.902496546181
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.932915286701
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.812152058436
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.707293903865
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.822221235121
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.810060167918
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.901359650362
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.843356334995
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.665287685301
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.808858781904
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.767304071831
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.695310869189
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.732655299203
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.83630404314
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.76165777877
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.772871747985
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.793024905613
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.77104384087
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.828242827915
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.370529255131
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.351795255113
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.299695481127
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.27310514003
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "fir",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 18.5400009155,
+     "crown": 4.45815753937,
+     "cy": 8.93893149495,
+     "radius": 10.7973493531,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 2248,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "d0110cdb",
+        "inst": false
+       },
+       "normal": {
+        "n": 2248,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c3925a45",
+        "inst": false
+       },
+       "uv": {
+        "n": 2248,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "db70b5e5",
+        "inst": false
+       },
+       "color": {
+        "n": 2248,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "7fd0a9e5",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 2248,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ca0a6795",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 5052,
+       "type": "Uint16Array",
+       "hash": "725b00f5"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2a386acc",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f7ac449b",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c74681a5",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      1684,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 18.5400009155,
+     "crown": 4.21302747726,
+     "cy": 8.71520829201,
+     "radius": 10.903802415,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 313,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "055ff4e5",
+        "inst": false
+       },
+       "normal": {
+        "n": 313,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4e312258",
+        "inst": false
+       },
+       "uv": {
+        "n": 313,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "0a2a71f2",
+        "inst": false
+       },
+       "color": {
+        "n": 313,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a8ffb020",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 313,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e50ae61d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 642,
+       "type": "Uint16Array",
+       "hash": "04462f0f"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      214,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.734980934067
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.7668707316
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.888417632505
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.766501939716
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.816547654532
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.746085885772
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.730058295596
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.87295983552
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.833437756822
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.876010437757
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.868579330789
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.771000829935
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.866841992335
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.711586304214
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.833385025738
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.851580210403
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.898631022545
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.791759225307
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.84224376996
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.753491520304
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.719270302197
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.90134906061
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.9051791659
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.768970101401
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.869083939614
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.809547087383
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.420290612569
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.441561333463
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.323944844352
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.442529286351
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "larch",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 26.7800006866,
+     "crown": 4.8060464859,
+     "cy": 13.3900003433,
+     "radius": 14.5109185022,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 1304,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "1c5c7ef2",
+        "inst": false
+       },
+       "normal": {
+        "n": 1304,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4722c8e5",
+        "inst": false
+       },
+       "uv": {
+        "n": 1304,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "8772a83d",
+        "inst": false
+       },
+       "color": {
+        "n": 1304,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4ad34d35",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 1304,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ee838835",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2928,
+       "type": "Uint16Array",
+       "hash": "d9e88b2d"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "faf11d4d",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bf31d3f3",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4022e029",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      976,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 26.7800006866,
+     "crown": 4.92655467987,
+     "cy": 13.3900003433,
+     "radius": 14.5529034023,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "cfbb601c",
+        "inst": false
+       },
+       "normal": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "190fe26c",
+        "inst": false
+       },
+       "uv": {
+        "n": 199,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f9052375",
+        "inst": false
+       },
+       "color": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "eff1b1f8",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 199,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f6864405",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 414,
+       "type": "Uint16Array",
+       "hash": "90d3d4f8"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      138,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.835975096505
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.83521656747
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.685497589745
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.685668172324
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.763436439279
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.679630288947
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.696206974974
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.839235202596
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.911751686651
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.760507154306
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.664837053781
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.781778362989
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.695524636703
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.837900365675
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.793753809575
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.847201259797
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.718904771507
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.730949342763
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.788609364303
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.758695701994
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.661615560735
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.934177838806
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.266988464771
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.445176248811
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.268862340087
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.294935876969
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "larch",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 17.5100002289,
+     "crown": 3.29425692558,
+     "cy": 8.75500011444,
+     "radius": 9.54134386686,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 1096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "91a237d7",
+        "inst": false
+       },
+       "normal": {
+        "n": 1096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "3a1c0085",
+        "inst": false
+       },
+       "uv": {
+        "n": 1096,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "959f8825",
+        "inst": false
+       },
+       "color": {
+        "n": 1096,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "dac92e05",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 1096,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2bf93e8d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2460,
+       "type": "Uint16Array",
+       "hash": "154c9a95"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "dabee746",
+        "inst": false
+       },
+       "normal": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6c9619a5",
+        "inst": false
+       },
+       "uv": {
+        "n": 110,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f4757e92",
+        "inst": false
+       },
+       "color": {
+        "n": 110,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "84f6d9e9",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 110,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "865d5925",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 540,
+       "type": "Uint16Array",
+       "hash": "b4e771e1"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      820,
+      180
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 17.5100002289,
+     "crown": 3.71113634109,
+     "cy": 8.64577288181,
+     "radius": 9.80193249327,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "d212f1ff",
+        "inst": false
+       },
+       "normal": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2a0ca2cc",
+        "inst": false
+       },
+       "uv": {
+        "n": 199,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "f9052375",
+        "inst": false
+       },
+       "color": {
+        "n": 199,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "fe38eab4",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 199,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "968d70b9",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 414,
+       "type": "Uint16Array",
+       "hash": "90d3d4f8"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      138,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.784637466781
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.736222543577
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.810487136031
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.742073179195
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.772574215699
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.935570165804
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.892516222224
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.825226976518
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.845409033233
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.67065577874
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.661296225507
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.841868750295
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.69156206863
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.727489072373
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.889312435547
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.817394977296
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.813299321178
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.761270508831
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.784155234396
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.708899875488
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.924159523677
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.665589791043
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.320597365964
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.414594244724
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.350945568085
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.39420069349
+     }
+    ],
+    "rc0": null
+   }
+  },
+  {
+   "kind": "beech",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 23.8000392914,
+     "crown": 9.02502727509,
+     "cy": 11.9000196457,
+     "radius": 15.2339513231,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 1964,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5e2511d4",
+        "inst": false
+       },
+       "normal": {
+        "n": 1964,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "01308375",
+        "inst": false
+       },
+       "uv": {
+        "n": 1964,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "058cfc85",
+        "inst": false
+       },
+       "color": {
+        "n": 1964,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "66fa00c5",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 1964,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6174dd25",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2946,
+       "type": "Uint16Array",
+       "hash": "9d5aae2e"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 615,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "d34e069e",
+        "inst": false
+       },
+       "normal": {
+        "n": 615,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bd88bf6f",
+        "inst": false
+       },
+       "uv": {
+        "n": 615,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6ac5621b",
+        "inst": false
+       },
+       "color": {
+        "n": 615,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a6170bc7",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 615,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6407697d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2184,
+       "type": "Uint16Array",
+       "hash": "9ab1b8fa"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      982,
+      728
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 24.0413379669,
+     "crown": 9.55203056335,
+     "cy": 12.0206689835,
+     "radius": 15.6608293723,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 734,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "fd3be8fa",
+        "inst": false
+       },
+       "normal": {
+        "n": 734,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5371aed9",
+        "inst": false
+       },
+       "uv": {
+        "n": 734,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a98e0aef",
+        "inst": false
+       },
+       "color": {
+        "n": 734,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5a31c535",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 734,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a7dce409",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 1134,
+       "type": "Uint16Array",
+       "hash": "b2baaf80"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      378,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": 3.96826157475,
+       "y": 18.0660129423,
+       "z": 0.752308349673
+      },
+      "rc": 1.94554573168,
+      "depth": 0.703361618984
+     },
+     {
+      "c": {
+       "x": -4.06290143623,
+       "y": 9.87100414046,
+       "z": -0.497967050338
+      },
+      "rc": 1.55985927262,
+      "depth": 0.773293711655
+     },
+     {
+      "c": {
+       "x": 2.23868391663,
+       "y": 16.6564474018,
+       "z": 5.75338013237
+      },
+      "rc": 2.09023359401,
+      "depth": 0.896332662562
+     },
+     {
+      "c": {
+       "x": -1.96650836962,
+       "y": 11.9455500744,
+       "z": 5.09476074046
+      },
+      "rc": 2.0344335181,
+      "depth": 0.809941375041
+     },
+     {
+      "c": {
+       "x": 4.2722730191,
+       "y": 12.2321008907,
+       "z": -2.87314236648
+      },
+      "rc": 1.64635131067,
+      "depth": 0.757816832475
+     },
+     {
+      "c": {
+       "x": -3.55482711513,
+       "y": 18.2413266026,
+       "z": -1.09520030269
+      },
+      "rc": 1.91011761334,
+      "depth": 0.681594104925
+     },
+     {
+      "c": {
+       "x": -0.414487429391,
+       "y": 14.5595461447,
+       "z": -6.1481660221
+      },
+      "rc": 2.12749502298,
+      "depth": 0.856049441779
+     },
+     {
+      "c": {
+       "x": 6.42829742532,
+       "y": 14.3707194708,
+       "z": 1.97089641957
+      },
+      "rc": 1.66261051677,
+      "depth": 0.933846129244
+     },
+     {
+      "c": {
+       "x": -2.64919693836,
+       "y": 20.798052414,
+       "z": 2.88376518586
+      },
+      "rc": 2.33492106467,
+      "depth": 0.918784183757
+     },
+     {
+      "c": {
+       "x": 3.78000217809,
+       "y": 20.5787754564,
+       "z": -2.06596606676
+      },
+      "rc": 2.13838242083,
+      "depth": 0.932405112907
+     },
+     {
+      "c": {
+       "x": -5.05168851393,
+       "y": 14.6381772852,
+       "z": 1.05914683925
+      },
+      "rc": 2.34525290815,
+      "depth": 0.717408417882
+     },
+     {
+      "c": {
+       "x": 1.0507288613,
+       "y": 21.5199157037,
+       "z": -0.102297971661
+      },
+      "rc": 2.08523876877,
+      "depth": 0.837007028162
+     },
+     {
+      "c": {
+       "x": -4.69748411617,
+       "y": 16.0727835758,
+       "z": -3.9984538315
+      },
+      "rc": 1.87464040927,
+      "depth": 0.878379583452
+     },
+     {
+      "c": {
+       "x": 2.53438470556,
+       "y": 9.38030812705,
+       "z": 3.14120063199
+      },
+      "rc": 1.96652864363,
+      "depth": 0.807330142567
+     },
+     {
+      "c": {
+       "x": -2.98268443937,
+       "y": 11.8773234343,
+       "z": -5.58154602767
+      },
+      "rc": 2.40393361241,
+      "depth": 0.926186212618
+     },
+     {
+      "c": {
+       "x": -0.960475858233,
+       "y": 9.17569151873,
+       "z": -3.97745229388
+      },
+      "rc": 1.92904396583,
+      "depth": 0.829811888412
+     },
+     {
+      "c": {
+       "x": 5.89529841508,
+       "y": 14.9205669608,
+       "z": -1.74613772238
+      },
+      "rc": 1.61763023865,
+      "depth": 0.856075417241
+     },
+     {
+      "c": {
+       "x": 3.78163372273,
+       "y": 17.2652713641,
+       "z": -2.97272698624
+      },
+      "rc": 1.71952926366,
+      "depth": 0.745861724215
+     },
+     {
+      "c": {
+       "x": -5.20952253466,
+       "y": 10.4335335704,
+       "z": 2.08368640606
+      },
+      "rc": 2.03845416903,
+      "depth": 0.904447904704
+     },
+     {
+      "c": {
+       "x": 3.28303318452,
+       "y": 9.03421326621,
+       "z": -2.01400579069
+      },
+      "rc": 2.25604489646,
+      "depth": 0.819664984439
+     },
+     {
+      "c": {
+       "x": -2.2674602639,
+       "y": 18.703499353,
+       "z": -4.61226719474
+      },
+      "rc": 1.96013386886,
+      "depth": 0.870419779522
+     },
+     {
+      "c": {
+       "x": -2.57279568963,
+       "y": 17.2449706517,
+       "z": 4.229942846
+      },
+      "rc": 1.90692019458,
+      "depth": 0.762402959689
+     },
+     {
+      "c": {
+       "x": -4.80270496216,
+       "y": 13.6960480499,
+       "z": -2.5027154598
+      },
+      "rc": 1.71539550767,
+      "depth": 0.756577260885
+     },
+     {
+      "c": {
+       "x": 2.43052974207,
+       "y": 14.9918914494,
+       "z": 2.01321313701
+      },
+      "rc": 2.1384,
+      "depth": 0.438336985139
+     },
+     {
+      "c": {
+       "x": 2.47183976216,
+       "y": 14.2754970099,
+       "z": -0.235878472048
+      },
+      "rc": 2.1384,
+      "depth": 0.344870661013
+     },
+     {
+      "c": {
+       "x": -1.63107951727,
+       "y": 17.6089051584,
+       "z": 1.21379254528
+      },
+      "rc": 2.1384,
+      "depth": 0.282382416213
+     },
+     {
+      "c": {
+       "x": 1.70469181925,
+       "y": 13.8761083876,
+       "z": -0.7394520252
+      },
+      "rc": 2.1384,
+      "depth": 0.2580779613
+     }
+    ],
+    "rc0": 1.944
+   }
+  },
+  {
+   "kind": "beech",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 19.1958713531,
+     "crown": 8.91610431671,
+     "cy": 9.59793567657,
+     "radius": 13.3622836286,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 2048,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "9d59dd09",
+        "inst": false
+       },
+       "normal": {
+        "n": 2048,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "fbb1882d",
+        "inst": false
+       },
+       "uv": {
+        "n": 2048,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "00151dc5",
+        "inst": false
+       },
+       "color": {
+        "n": 2048,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "7d34e4cd",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 2048,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e665642d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 3072,
+       "type": "Uint16Array",
+       "hash": "f52f40c5"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 655,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "dcfc3a10",
+        "inst": false
+       },
+       "normal": {
+        "n": 655,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5ed19145",
+        "inst": false
+       },
+       "uv": {
+        "n": 655,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "93e61d36",
+        "inst": false
+       },
+       "color": {
+        "n": 655,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "0fc19bd7",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 655,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "df59a58d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2352,
+       "type": "Uint16Array",
+       "hash": "e1b8f00b"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      1024,
+      784
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 18.4376716614,
+     "crown": 8.8212556839,
+     "cy": 9.21883583069,
+     "radius": 13.0145559258,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 762,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e6f57ba9",
+        "inst": false
+       },
+       "normal": {
+        "n": 762,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "8e48af65",
+        "inst": false
+       },
+       "uv": {
+        "n": 762,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "43605110",
+        "inst": false
+       },
+       "color": {
+        "n": 762,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "63da356d",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 762,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c4979f95",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 1182,
+       "type": "Uint16Array",
+       "hash": "0a05f200"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      394,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": 0.35006741339,
+       "y": 11.7580077352,
+       "z": 6.12773431615
+      },
+      "rc": 2.13230943073,
+      "depth": 0.889635484209
+     },
+     {
+      "c": {
+       "x": -3.65888207218,
+       "y": 11.2893672217,
+       "z": 4.23816626824
+      },
+      "rc": 1.80241158295,
+      "depth": 0.800378581202
+     },
+     {
+      "c": {
+       "x": -1.74633295185,
+       "y": 9.51668711029,
+       "z": -5.11393853128
+      },
+      "rc": 1.99493596047,
+      "depth": 0.763489319785
+     },
+     {
+      "c": {
+       "x": 5.35963030466,
+       "y": 8.10076394104,
+       "z": 2.68364418994
+      },
+      "rc": 2.38937285296,
+      "depth": 0.89445341303
+     },
+     {
+      "c": {
+       "x": 4.56861676693,
+       "y": 11.2777710299,
+       "z": -1.29672499985
+      },
+      "rc": 2.18076973382,
+      "depth": 0.683760448173
+     },
+     {
+      "c": {
+       "x": 1.09606906799,
+       "y": 6.66598007407,
+       "z": -4.90576945753
+      },
+      "rc": 1.91046264998,
+      "depth": 0.87506876301
+     },
+     {
+      "c": {
+       "x": -3.5382435747,
+       "y": 14.5858583555,
+       "z": 0.344988021412
+      },
+      "rc": 2.31157191607,
+      "depth": 0.814803551892
+     },
+     {
+      "c": {
+       "x": 1.95811947498,
+       "y": 8.30720866465,
+       "z": 4.43290372795
+      },
+      "rc": 2.26652148263,
+      "depth": 0.733588109324
+     },
+     {
+      "c": {
+       "x": -1.16906703311,
+       "y": 9.21486178777,
+       "z": 4.52007870553
+      },
+      "rc": 1.6554581864,
+      "depth": 0.669751977557
+     },
+     {
+      "c": {
+       "x": -2.99270488911,
+       "y": 6.79712680942,
+       "z": -3.08455215819
+      },
+      "rc": 2.25175465799,
+      "depth": 0.782776529584
+     },
+     {
+      "c": {
+       "x": -5.16755363152,
+       "y": 8.12445170211,
+       "z": -0.686659219002
+      },
+      "rc": 1.95502928001,
+      "depth": 0.791342207016
+     },
+     {
+      "c": {
+       "x": -3.02567836451,
+       "y": 13.0323136879,
+       "z": -3.19984731275
+      },
+      "rc": 2.12472665148,
+      "depth": 0.74424995834
+     },
+     {
+      "c": {
+       "x": 2.8365186826,
+       "y": 10.9738857369,
+       "z": -5.79320419947
+      },
+      "rc": 1.91008833585,
+      "depth": 0.910550933527
+     },
+     {
+      "c": {
+       "x": -0.758391094361,
+       "y": 5.28994316252,
+       "z": -0.656292030159
+      },
+      "rc": 2.08178349646,
+      "depth": 0.735603134856
+     },
+     {
+      "c": {
+       "x": -3.30015924896,
+       "y": 7.61440258692,
+       "z": 3.89025504033
+      },
+      "rc": 1.55240976467,
+      "depth": 0.809369854573
+     },
+     {
+      "c": {
+       "x": 2.53212066166,
+       "y": 13.9535120625,
+       "z": 3.98192400015
+      },
+      "rc": 2.04197486376,
+      "depth": 0.861091876179
+     },
+     {
+      "c": {
+       "x": 2.51580199624,
+       "y": 15.6067927515,
+       "z": -0.878247011007
+      },
+      "rc": 1.95340184835,
+      "depth": 0.878346799603
+     },
+     {
+      "c": {
+       "x": 4.13316215465,
+       "y": 13.6067849484,
+       "z": 0.85219148082
+      },
+      "rc": 1.58349705438,
+      "depth": 0.774815906771
+     },
+     {
+      "c": {
+       "x": 0.520746159507,
+       "y": 13.8296575305,
+       "z": -4.3818555241
+      },
+      "rc": 2.09171144234,
+      "depth": 0.816619402682
+     },
+     {
+      "c": {
+       "x": -6.52291092591,
+       "y": 10.3953197081,
+       "z": 1.34800465755
+      },
+      "rc": 1.72156069338,
+      "depth": 0.933319122139
+     },
+     {
+      "c": {
+       "x": -0.423609406821,
+       "y": 16.4615509843,
+       "z": 0.595790701197
+      },
+      "rc": 2.20723918983,
+      "depth": 0.92649098604
+     },
+     {
+      "c": {
+       "x": 3.2696965337,
+       "y": 8.63586055257,
+       "z": -3.78009530095
+      },
+      "rc": 1.68426026448,
+      "depth": 0.736824307078
+     },
+     {
+      "c": {
+       "x": -5.13383425246,
+       "y": 10.1637866376,
+       "z": -4.32099413342
+      },
+      "rc": 2.29009375978,
+      "depth": 0.93982381477
+     },
+     {
+      "c": {
+       "x": 1.23823088298,
+       "y": 11.7076363433,
+       "z": 2.57163271125
+      },
+      "rc": 2.12058,
+      "depth": 0.3997491966
+     },
+     {
+      "c": {
+       "x": 2.97454344121,
+       "y": 11.8241725789,
+       "z": -0.0721373384056
+      },
+      "rc": 2.12058,
+      "depth": 0.416725214897
+     },
+     {
+      "c": {
+       "x": 0.626055447207,
+       "y": 9.57876042298,
+       "z": 1.75476548102
+      },
+      "rc": 2.12058,
+      "depth": 0.260938589834
+     },
+     {
+      "c": {
+       "x": -1.81393944702,
+       "y": 12.6771793243,
+       "z": 2.4422272011
+      },
+      "rc": 2.12058,
+      "depth": 0.426075420016
+     }
+    ],
+    "rc0": 1.9278
+   }
+  },
+  {
+   "kind": "maple",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 19.0766525269,
+     "crown": 8.49422645569,
+     "cy": 9.53832626343,
+     "radius": 13.0277421546,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 1876,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "b4525904",
+        "inst": false
+       },
+       "normal": {
+        "n": 1876,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "63d86725",
+        "inst": false
+       },
+       "uv": {
+        "n": 1876,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2a80ac05",
+        "inst": false
+       },
+       "color": {
+        "n": 1876,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4b6284bd",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 1876,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4c1b2399",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2814,
+       "type": "Uint16Array",
+       "hash": "e324a17e"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 645,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e1ad43cc",
+        "inst": false
+       },
+       "normal": {
+        "n": 645,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "c1e4e72d",
+        "inst": false
+       },
+       "uv": {
+        "n": 645,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ec25c2b9",
+        "inst": false
+       },
+       "color": {
+        "n": 645,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6f0d4453",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 645,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "10e6128d",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 2280,
+       "type": "Uint16Array",
+       "hash": "9d178852"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      938,
+      760
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 19.3590164185,
+     "crown": 8.9469575882,
+     "cy": 9.67950820923,
+     "radius": 13.4447038941,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 698,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5913a6d3",
+        "inst": false
+       },
+       "normal": {
+        "n": 698,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "2ed81a79",
+        "inst": false
+       },
+       "uv": {
+        "n": 698,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "3f9ce46c",
+        "inst": false
+       },
+       "color": {
+        "n": 698,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "49e27799",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 698,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5b2a8779",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 1080,
+       "type": "Uint16Array",
+       "hash": "2298d117"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": null,
+     "tris": [
+      360,
+      0
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": -1.83749579782,
+       "y": 10.3321655045,
+       "z": 5.96479214759
+      },
+      "rc": 1.65204228668,
+      "depth": 0.869555930309
+     },
+     {
+      "c": {
+       "x": 5.54844688896,
+       "y": 12.7656575412,
+       "z": 0.327340461475
+      },
+      "rc": 1.70121248887,
+      "depth": 0.823713504234
+     },
+     {
+      "c": {
+       "x": -1.5145158781,
+       "y": 15.7732803151,
+       "z": 2.99001935745
+      },
+      "rc": 2.16486289586,
+      "depth": 0.863343133349
+     },
+     {
+      "c": {
+       "x": 2.17108404929,
+       "y": 16.0020880264,
+       "z": 3.04154759398
+      },
+      "rc": 2.28084643053,
+      "depth": 0.920760040348
+     },
+     {
+      "c": {
+       "x": -6.16840373829,
+       "y": 8.72915208912,
+       "z": -0.802061334336
+      },
+      "rc": 1.81936059952,
+      "depth": 0.915447517131
+     },
+     {
+      "c": {
+       "x": 2.01036283202,
+       "y": 12.0593772369,
+       "z": 5.56612659073
+      },
+      "rc": 1.71800824924,
+      "depth": 0.842320737755
+     },
+     {
+      "c": {
+       "x": 1.58526254192,
+       "y": 7.27150270493,
+       "z": 4.94731011852
+      },
+      "rc": 1.58753036258,
+      "depth": 0.886980083957
+     },
+     {
+      "c": {
+       "x": -5.22784674508,
+       "y": 13.7422226739,
+       "z": -1.99664115039
+      },
+      "rc": 1.82753609244,
+      "depth": 0.888333597314
+     },
+     {
+      "c": {
+       "x": 0.331735821576,
+       "y": 7.32174090938,
+       "z": -4.11538390919
+      },
+      "rc": 1.55640093621,
+      "depth": 0.766431837482
+     },
+     {
+      "c": {
+       "x": -3.42414531055,
+       "y": 8.45062720677,
+       "z": 5.21651011162
+      },
+      "rc": 1.61614509823,
+      "depth": 0.93223931957
+     },
+     {
+      "c": {
+       "x": -4.71112170792,
+       "y": 7.95938546187,
+       "z": 2.0126584782
+      },
+      "rc": 2.3018955021,
+      "depth": 0.823861481743
+     },
+     {
+      "c": {
+       "x": -1.76886726723,
+       "y": 15.3669874331,
+       "z": -1.43449936739
+      },
+      "rc": 1.70707069268,
+      "depth": 0.738822884914
+     },
+     {
+      "c": {
+       "x": 5.13824355113,
+       "y": 9.9298449809,
+       "z": -0.0127432948857
+      },
+      "rc": 1.65617142443,
+      "depth": 0.724897268722
+     },
+     {
+      "c": {
+       "x": 2.78412599322,
+       "y": 13.4420845986,
+       "z": -4.60944081662
+      },
+      "rc": 2.18475486016,
+      "depth": 0.841774966074
+     },
+     {
+      "c": {
+       "x": 0.63649938296,
+       "y": 10.1875036755,
+       "z": -5.1940570282
+      },
+      "rc": 2.37430997599,
+      "depth": 0.732288824786
+     },
+     {
+      "c": {
+       "x": 0.626648892812,
+       "y": 16.9951108352,
+       "z": 0.251941749535
+      },
+      "rc": 1.99336116062,
+      "depth": 0.910562721584
+     },
+     {
+      "c": {
+       "x": -1.09900180949,
+       "y": 13.8344280729,
+       "z": -5.51344395072
+      },
+      "rc": 1.84802198202,
+      "depth": 0.898047075067
+     },
+     {
+      "c": {
+       "x": -4.74550670127,
+       "y": 12.4475917925,
+       "z": 1.26935047362
+      },
+      "rc": 2.12730079594,
+      "depth": 0.723541873517
+     },
+     {
+      "c": {
+       "x": 3.57594085676,
+       "y": 14.9136623537,
+       "z": -1.08245818512
+      },
+      "rc": 1.87427531304,
+      "depth": 0.794335763073
+     },
+     {
+      "c": {
+       "x": -2.08722662329,
+       "y": 6.36588062425,
+       "z": -2.65367263802
+      },
+      "rc": 1.56685677982,
+      "depth": 0.800077089639
+     },
+     {
+      "c": {
+       "x": 3.77373386257,
+       "y": 9.69082304014,
+       "z": 2.79537806765
+      },
+      "rc": 1.58002257689,
+      "depth": 0.672118761716
+     },
+     {
+      "c": {
+       "x": -2.25791656587,
+       "y": 5.72296525774,
+       "z": 2.3767685609
+      },
+      "rc": 1.55999990833,
+      "depth": 0.870781199103
+     },
+     {
+      "c": {
+       "x": 3.93878808978,
+       "y": 9.42273763425,
+       "z": -3.57758049317
+      },
+      "rc": 1.56960142268,
+      "depth": 0.76596823629
+     },
+     {
+      "c": {
+       "x": 3.64812199323,
+       "y": 13.2395771436,
+       "z": 3.39611616175
+      },
+      "rc": 1.63438239474,
+      "depth": 0.778730808636
+     },
+     {
+      "c": {
+       "x": -4.51839346317,
+       "y": 10.6980791287,
+       "z": -2.9026489936
+      },
+      "rc": 2.05352181085,
+      "depth": 0.746038415404
+     },
+     {
+      "c": {
+       "x": -0.983874127341,
+       "y": 12.933954687,
+       "z": -1.61501841885
+      },
+      "rc": 2.1384,
+      "depth": 0.262654010952
+     },
+     {
+      "c": {
+       "x": 1.7399907749,
+       "y": 10.7258640667,
+       "z": -2.53225680993
+      },
+      "rc": 2.1384,
+      "depth": 0.426727888407
+     },
+     {
+      "c": {
+       "x": 2.02279394034,
+       "y": 11.1259319454,
+       "z": 0.504058842967
+      },
+      "rc": 2.1384,
+      "depth": 0.289534889441
+     },
+     {
+      "c": {
+       "x": -1.54363085931,
+       "y": 13.5152192322,
+       "z": 1.81370154001
+      },
+      "rc": 2.1384,
+      "depth": 0.330786261288
+     }
+    ],
+    "rc0": 1.944
+   }
+  },
+  {
+   "kind": "snag",
+   "lods": [
+    {
+     "lod": "near",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 17.3035831451,
+     "crown": 1.53685164452,
+     "cy": 8.65179157257,
+     "radius": 8.96297456051,
+     "foliage": {
+      "ref": "g0",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a338858e",
+        "inst": false
+       },
+       "normal": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e4078b5d",
+        "inst": false
+       },
+       "uv": {
+        "n": 288,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bc25cdc5",
+        "inst": false
+       },
+       "color": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bffb43f5",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 288,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "34de3445",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 576,
+       "type": "Uint16Array",
+       "hash": "f99fc186"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g1",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6398880c",
+        "inst": false
+       },
+       "normal": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e4f23bf4",
+        "inst": false
+       },
+       "uv": {
+        "n": 81,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5e503922",
+        "inst": false
+       },
+       "color": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "009c0eec",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 81,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "1d200615",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 384,
+       "type": "Uint16Array",
+       "hash": "0eb20335"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      192,
+      128
+     ]
+    },
+    {
+     "lod": "mid",
+     "keys": [
+      "bark",
+      "crown",
+      "cy",
+      "foliage",
+      "height",
+      "radius"
+     ],
+     "height": 17.3035831451,
+     "crown": 1.53685164452,
+     "cy": 8.65179157257,
+     "radius": 8.96297456051,
+     "foliage": {
+      "ref": "g2",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "a338858e",
+        "inst": false
+       },
+       "normal": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e4078b5d",
+        "inst": false
+       },
+       "uv": {
+        "n": 288,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bc25cdc5",
+        "inst": false
+       },
+       "color": {
+        "n": 288,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bffb43f5",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 288,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "34de3445",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 576,
+       "type": "Uint16Array",
+       "hash": "f99fc186"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "bark": {
+      "ref": "g3",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6398880c",
+        "inst": false
+       },
+       "normal": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e4f23bf4",
+        "inst": false
+       },
+       "uv": {
+        "n": 81,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "5e503922",
+        "inst": false
+       },
+       "color": {
+        "n": 81,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "009c0eec",
+        "inst": false
+       },
+       "aFlex": {
+        "n": 81,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "1d200615",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 384,
+       "type": "Uint16Array",
+       "hash": "0eb20335"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "tris": [
+      192,
+      128
+     ]
+    }
+   ],
+   "clumps": {
+    "clumps": [
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.718134663943
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.734930774635
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.761534571899
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.706483533559
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.836550255762
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.724265059829
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.745951626934
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.714440815253
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.907292758115
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.813978599831
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.714668670949
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.927293445747
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.750021949084
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.818609217005
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.810577925565
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.721637805235
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.820565215154
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.725453257449
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.661601548307
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.866482095392
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.906093336027
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.899194517871
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.708660303056
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.690520542124
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.772038422003
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.773148387941
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.846529765986
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.257512235502
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.250603141356
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.295454625553
+     },
+     {
+      "c": {
+       "x": null,
+       "y": null,
+       "z": null
+      },
+      "rc": null,
+      "depth": 0.338728950918
+     }
+    ],
+    "rc0": null
+   }
+  }
+ ]
+}

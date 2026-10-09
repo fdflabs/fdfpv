@@ -58,17 +58,18 @@ import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { skyDome } from '../render/scene.js';
 import { attachComposer } from '../render/post.js';
+import { rainBeta } from '../render/rainair.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
-import { makeRng } from './alps/noise.js';
+import { makeRng } from '../render/library/noise.js';
 import {
   HALF, CELL, STRIP_L, STRIP_W, STRIP_Y, LAKE_Y,
   valleyAxis, buildHeightfield, groundTexture, terrainMesh, farRange, groundZone,
 } from './alps/terrain.js';
 import { buildNature } from './alps/nature.js';
 import { buildVillage, villageMaterials } from './alps/village.js';
-import { makeRoofs } from './alps/roofs.js';
+import { makeRoofs } from '../render/library/roofs.js';
 import { buildLife } from './alps/life.js';
 import { CEL_LOOK } from './alps/look.js';
 
@@ -176,6 +177,8 @@ export async function buildValley(shell, progress, q, style) {
   progress(0, 'look');
   const stage = await style.stage(shell, q);
   const { scene } = stage;
+  const dryFog = scene.fog ? { near: scene.fog.near, far: scene.fog.far } : null;
+  let fogWet = false;
   progress(0.1, 'terrain');
   await yieldToPaint();
 
@@ -234,7 +237,7 @@ export async function buildValley(shell, progress, q, style) {
   colliders.build();
   /* Every roof the valley has, the village's, the farm's, the gondola's,
    * a style's own and nature's (the jetty's deck), as ground a craft can
-   * land on (alps/roofs.js). */
+   * land on (library/roofs.js). */
   const roofs = makeRoofs([...village.roofs, ...(nature.roofs ?? [])]);
   progress(0.9, 'shaders');
   await yieldToPaint();
@@ -340,7 +343,7 @@ export async function buildValley(shell, progress, q, style) {
      * surface: a wing that lands on the water rests on it rather than in
      * the basin. And the roofs: the highest within a step of fromY, the
      * city's rule, so a craft over a roof lands on it and one under the
-     * eaves does not (alps/roofs.js). */
+     * eaves does not (library/roofs.js). */
     height: (x, z, fromY) => roofs.height(x, z, fromY, ground(x, z)),
     /* The shell's obstacle pass, every pass: while a roof is the craft's
      * ground, the walls under it let the sweep through (roofs.js). */
@@ -378,6 +381,20 @@ export async function buildValley(shell, progress, q, style) {
      * reset in the map's frame, and the sim clock every drawn frame
      * (src/render/lakewaves.js). probeWater is the drawn surface's height
      * at a point, for the check that it is the plant's. */
+    /* Rain thickens a linear fog by the photo looks' rain extinction
+     * (render/rainair.js): the dry fog's far read as the 5% distance of
+     * an extinction 3 / far, the rain's added to it, near kept in
+     * proportion. 0 puts the stage's own numbers back. A photo look's
+     * compose replaces this with its post chain's. */
+    setWet(wet) {
+      if (!dryFog || (!(wet > 0) && !fogWet)) {
+        return;
+      }
+      fogWet = wet > 0;
+      const far = fogWet ? 3 / (3 / dryFog.far + rainBeta(wet < 1 ? wet : 1)) : dryFog.far;
+      scene.fog.far = far;
+      scene.fog.near = fogWet ? dryFog.near * (far / dryFog.far) : dryFog.near;
+    },
     setWaves(bodies) {
       if (nature.setWaves) {
         nature.setWaves(bodies);

@@ -110,6 +110,7 @@ export const SYNCED_SECTIONS = {
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
+  keybinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
