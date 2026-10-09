@@ -714,7 +714,8 @@ function padpickScreen(shell) {
 }
 
 /* RESULTS: the kicker, the head, the best lap as the hero, the table and
- * a note over the menu, in one copy column. */
+ * a note over the menu, in one copy column; the debrief's facts
+ * (docs/DEBRIEF.md) beside it. */
 function resultsScreen(shell) {
   const hero = keep(shell, 'resultsHero', 'div', 'results-hero');
   hero.append(
@@ -737,7 +738,9 @@ function resultsScreen(shell) {
   const column = el('div', 'results-copy');
   column.append(top, foot);
   const screen = el('div', 'screen screen-results');
-  screen.append(column);
+  /* The facts sit beside the copy column, not in it: the column has no
+   * height to spare over the laps and the menu. */
+  screen.append(column, keep(shell, 'resultsFacts', 'div', 'results-facts'));
   return ['results', screen];
 }
 

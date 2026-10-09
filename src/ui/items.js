@@ -981,11 +981,13 @@ function resultsRows(ui, s) {
   }
   /* A free world has no listing; its track rows would all be grey. */
   const listing = s.map === 'track' ? liveListing() : null;
+  const replay = replayRow(ui.resultsDebrief);
   if (!listing) {
-    return [again, feelRow(), titleRow()];
+    return [again, replay, feelRow(), titleRow()].filter(Boolean);
   }
   return [
     again,
+    replay,
     uploadRow(listing, ui.resultsFastest, ui.timePosted, s.airframe),
     {
       label: str('ui.open_tracks_and_statistics'),
@@ -996,7 +998,22 @@ function resultsRows(ui, s) {
     feelRow(),
     myTracksRow(),
     titleRow(),
-  ];
+  ].filter(Boolean);
+}
+
+/* Watch the replay, from the debrief's record (docs/DEBRIEF.md): greyed
+ * with the reason when there is no clip to open, never a dead row; none
+ * on a screen without a record. */
+function replayRow(d) {
+  if (!d || !d.replay) {
+    return null;
+  }
+  return {
+    label: str('debrief.watch_replay'),
+    action: 'watchreplay',
+    disabled: !d.replay.ok,
+    note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
+  };
 }
 
 /* Post a freestyle run, or why it cannot be: greyed with the reason on
