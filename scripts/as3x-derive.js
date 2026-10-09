@@ -171,6 +171,41 @@ function slopes(sim) {
   return out;
 }
 
+/* The loop as the plant runs it, frame, hold and servo slew included:
+ * level at 35 m/s, past the top speed as a dive takes it (analysis pass
+ * 2's case), each axis kicked 1 rad/s with the sticks centred in mode 3;
+ * the most the kick's rate is still off by 1 to 1.5 s on, rad/s. */
+function kickLeft(sim) {
+  const out = [];
+  for (let ax = 0; ax < 3; ax += 1) {
+    must(sim.reset(), 'sim_reset');
+    must(sim.e.sim_wing_set_stab(3), 'sim_wing_set_stab');
+    must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
+    must(sim.e.sim_wing_launch(35), 'sim_wing_launch');
+    let t = 0;
+    for (let ms = 0; ms < 400; ms += MS) {
+      must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
+      must(sim.step(MS), 'sim_step');
+      t += MS;
+    }
+    const s = sim.readState().state;
+    const w = [s[11], s[12], s[13]];
+    w[ax] += 1;
+    must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'sim_set_velocity');
+    let late = 0;
+    for (let ms = 0; ms < 1500; ms += MS) {
+      must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
+      must(sim.step(MS), 'sim_step');
+      t += MS;
+      if (ms >= 1000) late = Math.max(late, Math.abs(sim.readState().state[11 + ax] - s[11 + ax]));
+    }
+    out.push(late);
+  }
+  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+  return out;
+}
+const KICK_MAX = 0.05;
+
 const r3 = (x) => Number(x.toFixed(3));
 const r4 = (x) => Number(x.toFixed(4));
 let bad = 0;
@@ -185,6 +220,10 @@ for (const [name, a] of Object.entries(AS3X)) {
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
   const rate = slopes(sim).map(r3);
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
+  const left = kickLeft(sim);
+  const settles = left.every((x) => x < KICK_MAX);
+  console.log(`${name.padEnd(18)} at 35 m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
+  if (!settles) bad += 1;
   console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}, as3x_rate ${rate.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
   if (!ok) bad += 1;
 }
