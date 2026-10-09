@@ -59,7 +59,7 @@ after pictures.
 
 | Family | In the library | Built today in | Used by |
 | --- | --- | --- | --- |
-| Lit tree crowns (analytic ellipsoid crowns, lobes, clumps) | `crowns.js` (moving, see below) | `src/maps/interior/trees.js` | Interior |
+| Lit tree crowns (analytic ellipsoid crowns, lobes, clumps) | `crowns.js` | `src/maps/interior/trees.js` | Interior |
 | Broadleaf and conifer models, leaf cards | not yet | `src/maps/swiss2/vegetation/species.js`, `plantmat.js` | Swiss valley, Itaipu |
 | Tree impostors (far trees) | not yet | `src/maps/swiss2/vegetation/impostor.js` | Swiss valley, Itaipu |
 | Far forest canopy surface | not yet | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
