@@ -27,6 +27,7 @@
  */
 
 import { wash } from './lib/wash.js';
+import { wingLift } from './lib/liftcurve.js';
 import { derive as deriveWash } from './wash-derive.js';
 
 const SLIP = deriveWash('FW_KADET1981');
@@ -344,15 +345,16 @@ const restIdle = (() => {
  * pilot rotates at, 1.2 times the stall; and the speed at which it would
  * lift off level with no elevator at all. */
 const stallBlend = 4 / DEG;
+/* The plant's wing, scripts/lib/liftcurve.js: CL max at the top of the
+ * curve. stall_top and stall_k are set below with the stall's other
+ * numbers. */
+const curve = () => ({ cla: CLa, clmax: CLmax, blend: stallBlend, top: stallTop, k: stallK });
 function coeffs(alpha) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha);
   const clLin = CLa * alpha;
   return {
-    CL: (1 - sigma) * clLin + sigma * 2 * Math.sin(alpha) * Math.cos(alpha),
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
   };
 }
 function takeoff(mu, vRot) {
@@ -396,33 +398,14 @@ const smooth = (a0, a1, x) => {
   return t * t * (3 - 2 * t);
 };
 function stalledAt(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const sigma = smooth(aStall - stallBlend, aStall + stallBlend, x);
   const clLin = CLa * alpha + CLde * de;
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const plate = 2 * Math.sin(alpha) * Math.cos(alpha);
-  const clOld = (1 - sigma) * clLin + sigma * plate;
-  const cmLow = -sigma * (armAc * clLin + armCp * plate);
-  const past = smooth(aStall, aStall + stallBlend, x);
-  if (!(sigma > 0)) return { CL: clOld, cmStall: cmLow };
-  let hold = 0;
-  for (let i = 0; i <= 16; i += 1) {
-    const ai = aStall - stallBlend + stallBlend * 0.125 * i;
-    const si = smooth(aStall - stallBlend, aStall + stallBlend, ai);
-    hold = Math.max(hold, (1 - si) * (CLa * ai + CLde * de) + si * 2 * Math.sin(ai) * Math.cos(ai));
-  }
-  const a0 = aStall + stallTop, a1 = a0 + 2 * stallBlend;
-  const fall = smooth(a0, a1, x);
-  let viterna = 0;
-  if (Math.cos(alpha) > 0 && Math.abs(Math.sin(alpha)) > 0.05) {
-    const a2 = (stallK * hold - 2 * Math.sin(a1) * Math.cos(a1)) * Math.sin(a1) / Math.cos(a1) ** 2;
-    viterna = a2 * Math.cos(alpha) ** 2 / Math.sin(alpha);
-  }
-  const sgn = alpha < 0 ? -1 : 1;
-  const clSt = (1 - fall) * sgn * hold + fall * (plate + viterna);
-  const cnSt = 2 * Math.sin(alpha) + (clSt - plate) * Math.cos(alpha);
-  const cmPost = sigma * (((1 - fall) * armAc - fall * armCp) * cnSt - armAc * clLin - stallDw * (clLin - clSt));
-  return { CL: clOld + past * (clSt - clOld), cmStall: cmLow + past * (cmPost - cmLow) };
+  const cmLow = -lc.sigma * (armAc * clLin + armCp * plate);
+  if (!(lc.sigma > 0)) return { CL: lc.CL, cmStall: cmLow };
+  const cnSt = 2 * Math.sin(alpha) + (lc.clSt - plate) * Math.cos(alpha);
+  const cmPost = lc.sigma * (((1 - lc.past) * armAc - lc.past * armCp) * cnSt - armAc * clLin - stallDw * (clLin - lc.clSt));
+  return { CL: lc.CL, cmStall: cmLow + lc.past * (cmPost - cmLow) };
 }
 function cmAt(alpha, de) {
   return Cm0 + Cma * alpha + Cmde * de + stalledAt(alpha, de).cmStall;
@@ -447,16 +430,13 @@ function mush(de) {
  * no speed balances.
  */
 function plantCoeffs(alpha, de) {
-  const aStall = CLmax / CLa;
-  const x = Math.abs(alpha);
-  const t = Math.min(1, Math.max(0, (x - (aStall - stallBlend)) / (2 * stallBlend)));
-  const sigma = t * t * (3 - 2 * t);
+  const lc = wingLift(curve(), alpha, { extra: CLde * de });
   const clLin = CLa * alpha + CLde * de;
   const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
   return {
-    CL: (1 - sigma) * clLin + sigma * clFlat,
-    CD: (1 - sigma) * (CD0 + k * clLin * clLin) + sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
-    sigma, clLin, clFlat,
+    CL: lc.CL,
+    CD: (1 - lc.sigma) * (CD0 + k * clLin * clLin) + lc.sigma * (CD0 + 2 * Math.sin(alpha) ** 2),
+    sigma: lc.sigma, clLin, clFlat,
   };
 }
 function levelTurn(bank, d) {
