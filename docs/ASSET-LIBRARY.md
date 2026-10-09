@@ -70,18 +70,19 @@ after pictures.
 | Water edges, streams, silt | not yet | `interior/ribbons.js`, `swiss2/water/`, `itaipu/water/`, `alps/nature.js` | one each |
 | Rocks | not yet | `swiss2/vegetation/rocks.js`, `swiss2/rock/`, `alps/nature.js` | Swiss valley, Alps |
 | People and postures | not yet | `src/render/interior/figures.js`, `swiss2/village/people.js`, `alps/fauna.js` | one each |
-| Roofs as ground (records, solids under them) | `roofs.js` | used by `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
-| Building models | not yet | `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | one each (Swiss on the Alps kit) |
-| Fences | not yet | `alps/kit.js`, `swiss2/village/pieces.js`, `interior/yards.js` | one each |
+| Roofs as ground (records, solids under them) | `roofs.js` | used by `kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
+| Cel building kit (chalet, barn, farmhouse, gasthof, shop, church, hangar, bridge, street furniture, fence) | `kit.js` | the Alps' village; the Swiss valley's buildings remake its builders photographically | Alps, Swiss valley |
+| Other building models | not yet | `interior/built.js`, `itaipu/town/` | one each |
+| Fences | `kit.js` `fence` (cel) | also `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Cel vehicles and the parts kit | `vehicles/vehicles.js`, `vehicles/parts.js` | the Alps' life, the Swiss valley's vehicles (which refinish them) | Alps, Swiss valley |
 | Interior vehicles (motorcycles, pickup) | not yet | `src/render/interior/vehicles.js` | Interior |
-| Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `alps/kit.js` | one each |
+| Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `kit.js` (bench, fountain, sign) | one each |
 | Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
 | Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
 
-The Alps keep their cel look by decision (2026-10-07): their kit and roofs
-are the base the Swiss valley is built on and stay where they are until a
-family that uses them moves (their noise already has).
+The Alps keep their cel look by decision (2026-10-07). Their kit, roofs,
+vehicles and noise, the base the Swiss valley is built on, are library
+assets now; the Alps still place them exactly as before.
 
 ## Lit tree crowns (`src/render/library/crowns.js`)
 

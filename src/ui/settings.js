@@ -49,6 +49,7 @@ import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../conf
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
+import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -519,6 +520,10 @@ export function loadSettings() {
   if (s.flightMode !== 'angle') s.flightMode = 'acro';
   if (!WING_VIEWS.includes(s.wingView)) s.wingView = 'fpv';
   s.stickMode = normaliseStickMode(s.stickMode);
+  /* Flight keys the pilot moved (src/input/keybinds.js), synced. Absent
+   * until one is, so a profile that moved none is stored as before. */
+  const keybinds = normaliseKeybinds(raw.keybinds);
+  if (hasKeybinds(keybinds)) s.keybinds = keybinds;
 
   s.airframe = currentAirframeId(s.airframe);
   try {
