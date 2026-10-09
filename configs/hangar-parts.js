@@ -460,8 +460,10 @@ export function partsPoints(id, entry, option, baseMassKg) {
  * when it adds nothing (the stock prop, no add-on, nothing taped), which
  * is sim_addons_clear.
  */
-export function addonParams(id, entry, option, baseMassKg) {
-  const pts = partsPoints(id, entry, option, baseMassKg);
+/* `extra`: points that are not hangar parts but ride as add-ons, the
+ * Hercules' cargo still in its hold (src/game/hold.js). */
+export function addonParams(id, entry, option, baseMassKg, extra = []) {
+  const pts = [...partsPoints(id, entry, option, baseMassKg), ...extra];
   const tundra = entry.addons.includes('tundra');
   if (!pts.length && !tundra) {
     return null;

@@ -133,8 +133,9 @@ try {
     const again = window.__paradropRefall();
     return recs.map((r, i) => ({ same: again[i].every((v, k) => Object.is(v, r.rest[k])), rest: r.rest.map((v) => +v.toFixed(2)), wet: r.wet, p: r.p.map((v) => +v.toFixed(2)), air: r.air }));
   })()`).catch((e) => ({ error: String(e) }));
-  const ok3 = Array.isArray(k3) && k3.length === 2 && k3.every((d) => d.same) && k3.every((d) => d.air && d.air.preset === 'gusty');
-  say(ok3, `K3 two presses drop two loads that lie where their records say: ${JSON.stringify(k3).slice(0, 400)}`);
+  const left = await page.evaluate('window.__hold()');
+  const ok3 = Array.isArray(k3) && k3.length === 2 && k3.every((d) => d.same) && k3.every((d) => d.air && d.air.preset === 'gusty') && left === 6;
+  say(ok3, `K3 two presses drop two loads, 6 left in the hold (${left}), that lie where their records say: ${JSON.stringify(k3).slice(0, 400)}`);
   await shot('hercules-drops-down.png');
 
   await page.tap('KeyO');

@@ -306,6 +306,7 @@ import {
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
 import { createParadrops } from './render/paradrops.js';
+import { HOLD_LOADS, holdPoints } from './game/hold.js';
 import { dcos as dcosPerf, fall as paradropFall, SOLO_CAP as PARADROP_SOLO_CAP, ROOM_CAP as PARADROP_ROOM_CAP } from './game/paradrop.js';
 import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
@@ -9293,6 +9294,8 @@ export async function boot({
    * TAKEOFF_THROTTLE releases it.
    */
   let landed = true;
+  /* The Hercules' loads still aboard (THE HOLD, below). */
+  let holdLeft = HOLD_LOADS;
   /* Last frame's landed, for the touchdown edge (input.holdThrottleLow). */
   let landedWas = true;
   /* progressRun's key for the run being judged, and the hangar rev on
@@ -10432,7 +10435,9 @@ export async function boot({
     }
     const { option, pack } = powerChoice(af.id, s.power);
     const parts = partsEntry(s.parts, af.id);
-    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS]);
+    /* The Hercules' cargo still aboard rides as add-ons too (THE HOLD). */
+    const cargo = af.ramp ? holdPoints(holdLeft) : [];
+    const block = addonParams(af.id, parts, powerOption(af.id, option), powerBlock(af.id, option, pack)[SIM_POWER.MASS], cargo);
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
@@ -11617,6 +11622,21 @@ export async function boot({
    * end, 0.844 m behind the CG and 0.17 m under it (herculescraft.js).
    */
   const paradrops = createParadrops(Math.max(PARADROP_SOLO_CAP, PARADROP_ROOM_CAP));
+  /*
+   * THE HOLD (src/game/hold.js, lead decision 2026-10-09): eight real
+   * loads, each a mass where it sits, seated on the plant with the hangar
+   * parts; one leaving lightens the aircraft and moves its CG at once, the
+   * add-ons seated again mid flight. Standing on the ground the hold is
+   * filled again. holdLeft is declared beside `landed`, since applyParts
+   * reads it from the first seat on.
+   */
+  function seatHold() {
+    /* applyParts puts the smoke off at a seat between runs; a load leaving
+     * is not one. */
+    const smoking = smokeOn;
+    applyParts(ui.settings);
+    smokeOn = smoking;
+  }
   const paradropRecords = [];
   const RAMP_LIP = [-0.844, 0, -0.17];
   const lipQ = new THREE.Quaternion();
@@ -11678,6 +11698,10 @@ export async function boot({
       notice = { text: str('main.drop_open_doors'), untilMs: performance.now() + 2200 };
       return false;
     }
+    if (holdLeft <= 0) {
+      notice = { text: str('main.drop_hold_empty'), untilMs: performance.now() + 2600 };
+      return false;
+    }
     const room = inRoom();
     const mine = room ? roomDropRecords.length : paradropRecords.filter((r) => r.map === view.id).length;
     const cap = room ? PARADROP_ROOM_CAP : PARADROP_SOLO_CAP;
@@ -11701,6 +11725,8 @@ export async function boot({
       v: [lipV.x, lipV.y, lipV.z],
       air: weatherFlown,
     };
+    holdLeft -= 1;
+    seatHold();
     if (room) {
       const f = paradropFall(rec, paradropWorld(rec));
       const { id, ...sent } = rec;
@@ -11740,11 +11766,17 @@ export async function boot({
   };
   /* Where each drawn load is now, by its id, for scripts/hercules-room.js. */
   window.__paradropDrawn = () => paradrops.list.map((d) => ({ id: d.id, room: d.room, rest: d.f.rest }));
+  window.__hold = () => holdLeft;
   window.__wingDoor = () => ({
     door: sim.e.sim_wing_door(),
     chute: typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0,
   });
   function paradropFrame() {
+    if (landed && holdLeft < HOLD_LOADS && airframeById(runAirframe).ramp) {
+      holdLeft = HOLD_LOADS;
+      seatHold();
+      notice = { text: str('main.drop_hold_full', { n: HOLD_LOADS }), untilMs: performance.now() + 2200 };
+    }
     const parent = shell.quad.parent;
     if (parent && paradrops.group.parent !== parent) {
       parent.add(paradrops.group);
@@ -18168,6 +18200,7 @@ export async function boot({
       throttle: input.channels.throttle,
       flightMode,
       flaps: af.flaps ? flapNotch : null,
+      hold: af.ramp ? str('ui.hold', { n: holdLeft, of: HOLD_LOADS }) : null,
       gear: gearNow != null
         ? (gearNow >= 1 ? 'up' : gearNow <= 0 ? 'down' : 'moving')
         : null,
