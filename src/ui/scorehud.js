@@ -63,10 +63,10 @@ const LIFE_MS = { row: 2600, burst: 900, ring: 1200 };
  * language.
  */
 const TIER_WORDS = [
-  { at: 5, en: 'Perfect', jp: '最高' },
-  { at: 4, en: 'Wild', jp: 'やばい' },
-  { at: 3, en: 'Sweet', jp: 'すごい' },
-  { at: 2, en: 'Nice', jp: 'いいね' },
+  { at: 5, key: 'scorehud.tier_perfect', jp: '最高' },
+  { at: 4, key: 'scorehud.tier_wild', jp: 'やばい' },
+  { at: 3, key: 'scorehud.tier_sweet', jp: 'すごい' },
+  { at: 2, key: 'scorehud.tier_nice', jp: 'いいね' },
 ];
 
 const tierWord = (mult) => TIER_WORDS.find((w) => mult >= w.at) ?? null;
@@ -270,7 +270,7 @@ export class ScoreHud {
   showBadge(word) {
     this.badge.hidden = !word;
     if (!word) return;
-    this.badgeEn.textContent = word.en;
+    this.badgeEn.textContent = str(word.key);
     this.badgeJp.textContent = word.jp;
     replay(this.badge, () => { this.badge.style.animation = 'none'; }, () => { this.badge.style.animation = ''; });
   }
