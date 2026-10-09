@@ -417,12 +417,15 @@ int sim_set_flight_style(int arcade);
  * whose thrust is about two and a half times its weight, which hangs on its
  * prop with its surfaces in the slipstream: the aircraft removed as 14 on
  * 2026-09-29, back under a new id on 2026-10-08 so nothing recorded on 14
- * replays as it, and 30 AeroTetris's C-130 Hercules 3077
+ * replays as it, and 30 E-flite's Night Timber X 1.2m
+ * (docs/NIGHTTIMBER-STAGE1.md), the Timber X's STOL high wing with flaps
+ * and oversized surfaces, flown on full span ailerons, which hangs on its
+ * prop as the Extra does, and 31 AeroTetris's C-130 Hercules 3077
  * (docs/HERCULES-STAGE1.md), a 3 m balsa C-130H on four electric motors
  * whose props the plant takes as one thrust line, with a rear ramp and
  * cargo door that open in flight. Returns SIM_ERR_BAD_ARG for any id
  * without an aircraft.
- * 2 to 23 and 27 to 30 are fixed wings: no Betaflight, the sticks go to the
+ * 2 to 23 and 27 to 31 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
@@ -471,7 +474,8 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_STRIKER_PROP_ID 27
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
 #define SIM_AIRFRAME_EXTRA3D1308_ID 29
-#define SIM_AIRFRAME_HERCULES3077_ID 30
+#define SIM_AIRFRAME_NIGHTTIMBER1200_ID 30
+#define SIM_AIRFRAME_HERCULES3077_ID 31
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
