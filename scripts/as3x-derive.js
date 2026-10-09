@@ -53,7 +53,8 @@ const configText = await readFile(join(root, 'tests/fixtures/config-baseline.dif
 const src = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
 const check = process.argv.includes('--check');
 
-const TAU = 0.011;
+/* Each table's frame (as3x_frame, zero is 22 ms) is read off its source. */
+const frameOf = (body) => { const m = body.match(/\.as3x_frame = ([0-9.]+)/); return m ? Number(m[1]) : 0.022; };
 const MS = 4;
 /* The aircraft that ship with AS3X: their table and sim id. */
 const AS3X = {
@@ -90,15 +91,16 @@ function topSpeed(sim) {
 }
 
 /* Control power per axis at V, level, full throttle: rad/s^2 per rad.
- * The stick is held 100 ms with the aircraft written back to level at V
- * each 1 ms step, so the servos (servo_rate) have reached it, then one
+ * The stick is held 1.2 s with the aircraft written back to level at V
+ * each 1 ms step, so the prop has spun up (prop_spool) and the servos
+ * (servo_rate) have reached it, then one
  * step's rate over the surface's angle, against the same with the stick
  * centred. */
 function power(sim, V) {
   const one = (sticks) => {
     must(sim.reset(), 'sim_reset');
     must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
-    for (let ms = 0; ms <= 100; ms += 1) {
+    for (let ms = 0; ms <= 1200; ms += 1) {
       must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
       must(sim.e.sim_set_velocity(V, 0, 0, 0, 0, 0), 'sim_set_velocity');
       must(sim.input(ms / 1000, ...sticks, 1), 'sim_input');
@@ -128,6 +130,14 @@ function hoverHeld(sim) {
   must(sim.e.sim_set_pose(0, 0, 50, Math.SQRT1_2, 0, -Math.SQRT1_2, 0), 'sim_set_pose');
   let thr = 0.6, iR = 0, iP = 0, iY = 0, t = 0, st = [0, 0, 0, 0.6];
   const clamp = (x) => Math.max(-1, Math.min(1, x));
+  /* The prop spun up first (prop_spool), the aircraft held where it is. */
+  for (let ms = 0; ms < 1000; ms += MS) {
+    must(sim.e.sim_set_pose(0, 0, 50, Math.SQRT1_2, 0, -Math.SQRT1_2, 0), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    must(sim.input(t / 1000, ...st), 'sim_input');
+    must(sim.step(MS), 'sim_step');
+    t += MS;
+  }
   for (let ms = 0; ms < 6000; ms += MS) {
     const s = sim.readState().state;
     const [w, x, y, z] = [s[7], s[8], s[9], s[10]];
@@ -169,22 +179,24 @@ function slopes(sim) {
       return { st: [0, 0, 0, 0.624], t: 0 };
     });
     const hover = at(() => hoverHeld(sim));
+    if (process.env.AS3X_DEBUG) console.log("axis", ax, "cruise", cruise, "hover", hover);
     out.push(Math.abs(cruise) > Math.abs(hover) ? cruise : hover);
   }
   return out;
 }
 
 /* The loop as the plant runs it, frame, hold and servo slew included:
- * level at 35 m/s, past the top speed as a dive takes it (analysis pass
- * 2's case), each axis kicked 1 rad/s with the sticks centred in mode 3;
+ * level at DIVE times the top speed, past it as a dive takes it (the
+ * Extra's 35 m/s, analysis pass 2's case), each axis kicked 1 rad/s with
+ * the sticks centred in mode 3;
  * the most the kick's rate is still off by 1 to 1.5 s on, rad/s. */
-function kickLeft(sim) {
+function kickLeft(sim, V) {
   const out = [];
   for (let ax = 0; ax < 3; ax += 1) {
     must(sim.reset(), 'sim_reset');
     must(sim.e.sim_wing_set_stab(3), 'sim_wing_set_stab');
     must(sim.e.sim_set_pose(0, 0, 300, 1, 0, 0, 0), 'sim_set_pose');
-    must(sim.e.sim_wing_launch(35), 'sim_wing_launch');
+    must(sim.e.sim_wing_launch(V), 'sim_wing_launch');
     let t = 0;
     for (let ms = 0; ms < 400; ms += MS) {
       must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
@@ -208,6 +220,7 @@ function kickLeft(sim) {
   return out;
 }
 const KICK_MAX = 0.05;
+const DIVE = 35 / 24.08;
 
 const r3 = (x) => Number(x.toFixed(3));
 const r4 = (x) => Number(x.toFixed(4));
@@ -216,6 +229,7 @@ for (const [name, a] of Object.entries(AS3X)) {
   const sim = await planeSim(a.sim);
   const V = topSpeed(sim);
   const M = power(sim, V);
+  const TAU = frameOf(src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0]);
   const k = M.map((m) => r4(Math.PI / (4 * m * TAU)));
   /* The heading's integral corner a quarter of the rate loop's crossover,
    * pi / (4 tau), the usual PI rule: kh = k pi / (16 tau). */
@@ -223,9 +237,9 @@ for (const [name, a] of Object.entries(AS3X)) {
   const body = src.slice(src.indexOf(`const FixedWingParams ${name} = {`)).split('\n};')[0];
   const rate = slopes(sim).map(r3);
   const ok = body.includes(`.as3x_k = { ${k.join(', ')} },`) && body.includes(`.as3x_kh = { ${kh.join(', ')} },`) && body.includes(`.as3x_rate = { ${rate.join(', ')} },`);
-  const left = kickLeft(sim);
+  const left = kickLeft(sim, DIVE * V);
   const settles = left.every((x) => x < KICK_MAX);
-  console.log(`${name.padEnd(18)} at 35 m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
+  console.log(`${name.padEnd(18)} at ${(DIVE * V).toFixed(1)} m/s a 1 rad/s kick leaves ${left.map((x) => x.toFixed(3)).join(', ')} rad/s 1 s on${settles ? '' : '  OSCILLATES'}`);
   if (!settles) bad += 1;
   console.log(`${name.padEnd(18)} top speed ${V.toFixed(2)} m/s, control power ${M.map((m) => m.toFixed(1)).join(' ')} rad/s^2 per rad: as3x_k ${k.join(', ')}, as3x_kh ${kh.join(', ')}, as3x_rate ${rate.join(', ')}${check && !ok ? '  DIFFERS' : ''}`);
   if (!ok) bad += 1;

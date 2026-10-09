@@ -624,6 +624,8 @@ typedef struct FixedWingParams {
    * gives. Zero as3x_kh leaves the damper alone. scripts/as3x-derive.js. */
   double as3x_kh[3];
   double as3x_rate[3];
+  /* The gyro's servo frame, s; zero is Spektrum's default, 22 ms. */
+  double as3x_frame;
   /* Turn coordination in Stabilised and Acro, yaw stick per rad/s of body
    * yaw rate away from the coordinated rate g sin(bank) cos(pitch)/V.
    * Zero where there is no rudder. */
