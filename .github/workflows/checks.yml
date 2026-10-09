@@ -227,6 +227,9 @@ jobs:
       # The turtle in the real page: the wait, the poke, the flip and the
       # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
       - run: npm run turtle:check
+      # A solo race's debrief in the real page: the facts, Watch the replay
+      # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
+      - run: npm run debrief:race
       # The race results' lap table ends above the menu at 1280x720
       # (scripts/results-layout-check.js).
       - run: npm run results:layout
@@ -353,6 +356,9 @@ jobs:
       - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
+      # A plane's Rates row is its own throws, and a pick flies at once
+      # (docs/PLANE-RATES.md).
+      - run: npm run planerates:check
       # A rate change mid run keeps the run, tune loads are generation
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).

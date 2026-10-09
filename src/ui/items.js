@@ -30,6 +30,8 @@
  */
 
 import { airframeById } from '../../configs/airframes.js';
+import { powerChoice } from '../../configs/power.js';
+import { RATES, fullEntry, normalizeEntry, setupFor, throwsFor, tuningFor } from '../../configs/tuning.js';
 import {
   PID_AXES, PID_FIELDS, PID_FIELD_SPECS, SLIDER_KEYS, SLIDERS, pidsAdjusted, pidsEntry, pidsSummary, setPidSlider, setPidsExpert,
 } from '../../configs/pids.js';
@@ -146,8 +148,71 @@ function machineRow(s, note) {
   };
 }
 
-/* The rates room's door, with the whole curve on the row. */
-const ratesRow = (s, note) => ({ label: str('ui.rates'), value: ratesValue(s.rates), action: 'rates', note });
+/* The rates room's door, with the whole curve on the row. A plane's sticks
+ * are its surfaces, so on a plane the row is the plane's own rates, the
+ * throws at full stick and the expo (configs/tuning.js), and the quad's
+ * Betaflight rates, which a plane never flies, are not offered there. */
+function ratesRow(s, note) {
+  const af = airframeById(s.airframe);
+  if (af.fixedWing && tuningFor(af.id)) {
+    const e = fullEntry(af.id, s.tuning && s.tuning[af.id]);
+    return { label: str('ui.rates'), value: planeRateLabel(af.id, e.rate), action: 'planerates', note: str('ui.plane_rates_note') };
+  }
+  return { label: str('ui.rates'), value: ratesValue(s.rates), action: 'rates', note };
+}
+
+const SURFACES = ['a', 'e', 'r'];
+const PLANE_EXPOS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+/* "High, 30° 20° 27°": the rate and its throws at full stick, aileron,
+ * elevator and rudder, the surfaces the plane has. */
+function planeRateLabel(id, rate) {
+  const th = throwsFor(id, rate);
+  const degs = SURFACES.map((k, i) => (th[i] > 0 ? str('tuning.throw', { n: Number(th[i].toFixed(1)) }) : null)).filter(Boolean);
+  return `${str(`tuning.rate.${rate}`)}, ${degs.join(' ')}`;
+}
+
+/* The seated plane's rates: which of the manual's rates, and the expo on
+ * each surface. Each pick is stored as the hangar's Tuning tab stores it
+ * (settings.tuning), so the two always agree, and main.js seats it. */
+function planeRatesRows(ui, s) {
+  const af = airframeById(s.airframe);
+  if (!af.fixedWing || !tuningFor(af.id)) {
+    return [backRow()];
+  }
+  const id = af.id;
+  const e = fullEntry(id, s.tuning && s.tuning[id]);
+  const th = throwsFor(id, 'high');
+  const store = (patch) => {
+    const limits = setupFor(id, powerChoice(id, s.power)).limits;
+    const next = normalizeEntry(id, { ...e, ...patch, expo: { ...e.expo, ...(patch.expo || {}) } }, limits);
+    const all = { ...(s.tuning || {}) };
+    if (next) {
+      all[id] = next;
+    } else {
+      delete all[id];
+    }
+    s.tuning = all;
+  };
+  const rows = [
+    choice(str('tuning.rates'), str('ui.plane_rate_pick_note', { plane: af.short }), RATES, e.rate, (r) => planeRateLabel(id, r), (r) => store({ rate: r })),
+  ];
+  SURFACES.forEach((k, i) => {
+    if (!(th[i] > 0)) {
+      return;
+    }
+    rows.push(choice(
+      str('ui.plane_expo', { surface: str(`tuning.surface.${k}`) }),
+      str('ui.plane_expo_note'),
+      PLANE_EXPOS.includes(e.expo[k]) ? PLANE_EXPOS : [...PLANE_EXPOS, e.expo[k]].sort((a, b) => a - b),
+      e.expo[k],
+      (v) => str('tuning.percent', { n: v }),
+      (v) => store({ expo: { [k]: v } }),
+    ));
+  });
+  rows.push(backRow());
+  return rows;
+}
 
 /* The tune row: the PIDs room's door, saying when the quad flies something
  * other than the tune's own numbers. */
@@ -871,15 +936,16 @@ function pausedRows(ui, s) {
 
 /*
  * The Flight panel: what a pilot changes between attempts, for the
- * aircraft in the air. A plane's tune is its flight mode, and Betaflight
- * rates do not reach a wing, so a plane has no Rates row.
+ * aircraft in the air. A plane's tune is its flight mode, and its Rates
+ * row is its own throws and expo (ratesRow), since Betaflight rates do not
+ * reach a wing.
  */
 function quickRows(ui, s) {
   const plane = Boolean(airframeById(s.airframe).fixedWing);
   return [
     { label: str('pause.aircraft'), section: true },
     plane ? planeModeRow(s) : quadTuneRow(s),
-    ...(plane ? [] : [ratesRow(s, str('pause.rates_note'))]),
+    ratesRow(s, str('pause.rates_note')),
     { ...feelRow(), note: str('pause.feel_note') },
     { label: plane ? str('pause.plane_setup') : str('pause.quad_setup'), action: 'quad', note: str('pause.setup_note') },
     ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str(plane ? 'hangar.row_note' : 'hangar.row_note_quad') }] : []),
@@ -920,11 +986,13 @@ function resultsRows(ui, s) {
   }
   /* A free world has no listing; its track rows would all be grey. */
   const listing = s.map === 'track' ? liveListing() : null;
+  const replay = replayRow(ui.resultsDebrief);
   if (!listing) {
-    return [again, feelRow(), titleRow()];
+    return [again, replay, feelRow(), titleRow()].filter(Boolean);
   }
   return [
     again,
+    replay,
     uploadRow(listing, ui.resultsFastest, ui.timePosted, s.airframe),
     {
       label: str('ui.open_tracks_and_statistics'),
@@ -935,7 +1003,22 @@ function resultsRows(ui, s) {
     feelRow(),
     myTracksRow(),
     titleRow(),
-  ];
+  ].filter(Boolean);
+}
+
+/* Watch the replay, from the debrief's record (docs/DEBRIEF.md): greyed
+ * with the reason when there is no clip to open, never a dead row; none
+ * on a screen without a record. */
+function replayRow(d) {
+  if (!d || !d.replay) {
+    return null;
+  }
+  return {
+    label: str('debrief.watch_replay'),
+    action: 'watchreplay',
+    disabled: !d.replay.ok,
+    note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
+  };
 }
 
 /* Post a freestyle run, or why it cannot be: greyed with the reason on
@@ -1230,6 +1313,7 @@ const SCREENS = {
   quick: quickRows,
   results: resultsRows,
   rates: ratesRoomRows,
+  planerates: planeRatesRows,
   pids: pidsRows,
   controls: controlsRows,
   fc: (ui) => ui.fc.items(),

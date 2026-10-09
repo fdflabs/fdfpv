@@ -211,7 +211,7 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
+  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
   'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
 ]);
@@ -232,6 +232,7 @@ export const SCREEN_TITLES = {
   launch: str('ui.before_you_fly'),
   standings: str('ui.standings'),
   rates: str('ui.rates'),
+  planerates: str('ui.rates'),
   pids: 'PIDs',
   controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
@@ -750,6 +751,8 @@ export class Ui {
     this.freestyleRun = null;
     this.runPosted = null;
     this.resultsFastest = null;
+    /* The flight's debrief record (src/game/debrief.js), or null. */
+    this.resultsDebrief = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
     /* Seed the pad's edges on the next poll rather than acting on them;
      * every screen change sets it (show). */
