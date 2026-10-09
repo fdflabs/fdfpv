@@ -930,6 +930,11 @@ typedef struct FixedWingParams {
   double slip_cn_r;
   double slip_cy_b;
   double slip_cl_b;
+  /* 1 is a pusher: its prop is behind the wing, so no wing root turns its
+   * swirl back (SWIRL_KEEP is for a tractor's root), and its fin may stand
+   * outside the wash altogether, slip_hv both zero (the Skyhunter's boom
+   * fins). */
+  int slip_pusher;
   /*
    * THE FUSELAGE IN A CROSSFLOW, docs/FLIGHTMODEL.md. side_cda: the side
    * view's crossflow drag area, m^2, eta Cdc S_side, Allen and Perkins'
