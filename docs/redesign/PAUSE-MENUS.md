@@ -42,7 +42,8 @@ pictures in ~/.cache/fdfpv-pause-menus/before/):
 | 18 | Quit to title / Leave the room | leave | sometimes | fine |
 
 Count: 13 rows and 2 headers solo; 16 rows and 2 headers in a room with
-Ghost and Live. Duplicates: Rates is on row 9 and the value of row 13; row 12
+Ghost and Live. At 1280 by 720 the list runs past the bottom of the screen:
+Quit is below the fold (picture plane-es.png). Duplicates: Rates is on row 9 and the value of row 13; row 12
 ("Avión") reads as row 3; row 12's value repeats row 8.
 
 Wrong language in es (measured by scripts/es-leak-lint.js, section 6): tune
@@ -194,14 +195,17 @@ Nothing a player can use is removed.
 
 ## 4. Data and code
 
-- `pausedRows(ui, s)` returns the first screen; a new screen `flight` with
-  `flightRows(ui, s)` beside it in src/ui/items.js, both built from the row
+- `pausedRows(ui, s)` returns the first screen; a new screen `quick` (the
+  name `flight` is taken: it is the screen while flying) with
+  `quickRows(ui, s)` beside it in src/ui/items.js, both built from the row
   builders that exist (`tuneRow`, `ratesRow`, `feelRow`, `graphicsRow`, the
   HUD style choice, `ui.ghostItems()`, `ui.liveItems()`).
 - `quadRows` (the machine screen) is not reshaped: Settings, the launch card
   and the pause all reach it.
 - `ui.returnTo` stays 'paused' for every screen reached from the panel, so a
-  change mid run warns and returns the way it does today.
+  change mid run warns and returns the way it does today. Rates and PIDs
+  opened from the panel return to it (`ratesFrom`, `pidsFrom`); the setup
+  screen returns to the pause menu, as every other pause subscreen does.
 - No storage, no sync, no server change.
 
 ## 5. What it does NOT do

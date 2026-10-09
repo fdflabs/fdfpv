@@ -193,7 +193,7 @@ export const TABLE = {
     flightTime: { kind: 'timer', minutesLow: 3, minutesHigh: 3, note: "E-flite's manual timer, '3 minutes' for first flights on the 4S 2200", source: EXTRA_MANUAL },
   },
   hercules3077: {
-    simId: 30, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
+    simId: 31, massKg: 6.728, cells: 3, rCell: 0.0015, propIn: 12, cruiseMs: 15.46,
     flightTime: null,
   },
   p51d1450: {

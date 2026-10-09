@@ -62,6 +62,7 @@ jobs:
       - run: npm run strings:selftest
       - run: npm run pids:selftest
       - run: npm run version:check
+      - run: npm run csp:selftest
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
@@ -175,6 +176,7 @@ jobs:
       - run: npm run tigermoth:stab
       - run: npm run extra:gates
       - run: npm run extra:stab
+      - run: npm run nighttimber:gates
       - run: npm run hercules:gates
       - run: npm run paradrop:selftest
       - run: npm run combat:gates
@@ -307,6 +309,9 @@ jobs:
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # The Escape menu in the real shell: a quad and a plane in en and es and
+      # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
+      - run: npm run pause:menus -- /tmp/pause-menus
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
       # The livery gallery against a local tracks server: list, like, sort,

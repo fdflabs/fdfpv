@@ -66,6 +66,13 @@ export function altButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, 2);
 }
 
+/* Start (Menu on an Xbox pad): pause in flight, resume from the pause
+ * menu. Standard pads only, as the other extras: on a radio a button
+ * number can be the arm switch. */
+export function startButton(gp) {
+  return standard(gp) && Boolean(gp.buttons) && pressed(gp, 9);
+}
+
 /* Y, which the aircraft picker takes as its Floats switch. */
 export function floatsButton(gp) {
   return standard(gp) && Boolean(gp.buttons) && pressed(gp, 3);

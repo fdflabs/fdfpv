@@ -50,7 +50,7 @@
  */
 
 import * as THREE from 'three';
-import { roofShell, gableProfile } from '../../alps/kit.js';
+import { roofShell, gableProfile } from '../../../render/library/kit.js';
 import {
   frame, box, boxUp, cached, prism, plate, SOCLE, near, detail,
   casement, plinth, dripEdge, timberTop, dressRoof, REVEAL, masonry, deepWindow, deepDoor,
