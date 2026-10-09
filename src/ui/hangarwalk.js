@@ -144,6 +144,8 @@ export const walkMethods = {
     } else if (this.walk && this.walk.photo) {
       if (code === 'Space' || code === 'Enter') {
         this.takePhoto();
+      } else if (code === 'KeyT') {
+        this.takeTurntable();
       } else if (code === 'Escape' || code === 'Backspace') {
         this.togglePhoto();
       }
@@ -170,7 +172,9 @@ export const walkMethods = {
 
   walkDrag(dx) {
     if (this.walk && this.walk.photo) {
-      this.walk.photo.yaw -= dx * DRAG_TURN;
+      if (!this.walk.photo.turntable) {
+        this.walk.photo.yaw -= dx * DRAG_TURN;
+      }
     } else if (this.walk) {
       this.walk.orbit -= dx * DRAG_TURN;
     }
@@ -178,7 +182,7 @@ export const walkMethods = {
 
   walkWheel(dy) {
     const p = this.walk && this.walk.photo;
-    if (p) {
+    if (p && !p.turntable) {
       p.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, p.zoom * (1 + dy * ZOOM_STEP)));
     }
   },
@@ -187,7 +191,8 @@ export const walkMethods = {
    * and the walk stop, and the command bar says the photo keys. */
   togglePhoto() {
     const w = this.walk;
-    if (!w) {
+    /* A turntable recording is seen through to its end. */
+    if (!w || (w.photo && w.photo.turntable)) {
       return;
     }
     w.photo = w.photo ? null : { yaw: w.pose.heading + Math.PI, zoom: 1, shoot: false };
@@ -195,6 +200,16 @@ export const walkMethods = {
     w.promptKey = null;
     this.screens.walk.classList.toggle('is-photo', Boolean(w.photo));
     this.syncFrame();
+  },
+
+  /* The turntable: main.js turns the camera once round the stand over
+   * TURNTABLE_S while it records the canvas, then downloads the movie. */
+  takeTurntable() {
+    const p = this.walk && this.walk.photo;
+    if (p && !p.turntable) {
+      p.turntable = { want: true };
+      this.onUiSound?.('select');
+    }
   },
 
   /* A line in the prompt's place for a moment: a photo kept, or why not. */

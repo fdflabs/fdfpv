@@ -17,7 +17,8 @@
  * standing on its three wheels with its fan stopped, ?plane=zagi the
  * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
  * from the grass into a thermal, ?plane=tigermoth the Tiger Moth's, from standing on its three points,
- * and ?plane=extra the Extra 300 3D's, from standing on its wheels through a hover and a torque roll;
+ * ?plane=extra the Extra 300 3D's, from standing on its wheels through a hover and a torque roll,
+ * and ?plane=nighttimber the Night Timber X's, the same from half flaps;
  * with no query
  * it is the wing's, exactly as it always was.
  *
@@ -41,7 +42,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, uglystikGroundPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, tigermothGroundPrelude, extraGroundPrelude, nighttimberGroundPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -62,6 +63,7 @@ const PLANES = {
   dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },
   tigermoth: { rec: '/tests/inputs/tigermoth-baseline.rec', prelude: (sim) => tigermothGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
+  nighttimber: { rec: '/tests/inputs/nighttimber-baseline.rec', prelude: (sim) => nighttimberGroundPrelude(sim, { flaps: 1 }) },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },

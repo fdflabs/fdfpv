@@ -26,11 +26,11 @@
 
 import { RoomCore, TICK_MS } from '../edge/rooms/core.js';
 import { FILL_TO } from '../edge/rooms/roombots.js';
-import { BOT_AIRFRAME } from '../edge/rooms/bots.js';
+import { BOT_AIRFRAME, DOWN_MS, SPAWN_MS } from '../edge/rooms/bots.js';
 import { LOBBY_COUNTDOWN_MS } from '../edge/rooms/gamelobby.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import {
-  FLAG_AIRBORNE, PROTO, ROOM_LEVEL, TYPE_BATCH, decodeBatch, encodePose,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, ROOM_LEVEL, TYPE_BATCH, decodeBatch, decodePose, encodePose,
 } from '../src/share/roomwire.js';
 
 /* A room made for tag on swiss2, as host.js init makes one. */
@@ -154,7 +154,23 @@ export function botsSection(check) {
     h.join(0);
     const q = tagRoom({ open: false });
     q.join(0);
-    check('none in a private tag room until its host can switch them off', q.bots().length === 0);
+    const qWelcome = q.socks[0].got.find((m) => m.type === 'welcome');
+    const before = q.bots().length;
+    q.say(0, { type: 'bots', level: 'easy' });
+    const on = q.bots().length;
+    const levels = q.bots().map((b) => q.r.bots.bots.list.get(b.seat).level);
+    q.say(0, { type: 'bots', level: 'off' });
+    check("a private tag room starts with them off, and its host switches them on at Easy and off again",
+      qWelcome.bots === 'off' && before === 0 && on === FILL_TO - 1 && levels.every((l) => l === 'easy') && q.bots().length === 0,
+      `welcome ${qWelcome.bots}, ${before} before, ${on} on at ${levels.join(',')}, ${q.bots().length} after off`);
+    const q2 = tagRoom({ open: false });
+    q2.join(0);
+    q2.say(0, { type: 'bots', level: 'normal' });
+    const saved = q2.stored.get('bots');
+    const r3 = new RoomCore({ ...q2.r.meta });
+    r3.bots.restore(saved);
+    check('a private room switched on stays on when restored, and one never stored starts off',
+      r3.bots.level === 'normal' && new RoomCore({ ...q2.r.meta }).bots.level === 'off', `${r3.bots.level}`);
     check('none in a combat room, on a world they cannot fly, or in free flight', f.bots().length + g.bots().length + h.bots().length === 0);
   }
   {
@@ -167,6 +183,44 @@ export function botsSection(check) {
     const refused = e.socks.filter((so) => so.got.every((m) => m.type !== 'welcome')).length;
     check('a room full of people and AI never refuses a person: an AI pilot gives up its seat each time',
       full && refused === 0 && e.r.people().length === FILL_TO && e.bots().length === 0, `${refused} refused, ${e.bots().length} AI left`);
+  }
+  {
+    /* A person flies head on into an AI pilot, out of both their spawns:
+     * the referee's hit breaks a part of each, and the AI pilot crashes as
+     * the person does, lies, and is born again. */
+    const e = tagRoom();
+    e.join(0);
+    e.run(SPAWN_MS + 3000);
+    /* The person comes down onto the AI pilot from 60 m over it, 10 m/s
+     * closing, from its first pose, which the room makes untouchable for
+     * SPAWN_MS (safety.js), so they meet a second after that. */
+    const bot = e.bots()[0];
+    const so = e.socks[0];
+    const from = e.clock;
+    let seq = 0;
+    while (!e.r.bots.bots.list.get(bot.seat).down && e.clock < from + SPAWN_MS + 3000) {
+      e.run(e.clock + TICK_MS);
+      const p = decodePose(bot.pose);
+      const over = Math.max(0, 60 - 10 * (e.clock - from) / 1000);
+      seq += 1;
+      e.apply(e.r.message(so, encodePose({
+        ...p, py: p.py + over, flags: FLAG_AIRBORNE, seq, vy: p.vy - 10, motor: 900,
+      }), e.clock, so.address));
+    }
+    const hit = so.got.find((m) => m.type === 'hit' && (m.a === bot.seat || m.b === bot.seat));
+    const flown = e.r.bots.bots.list.get(bot.seat);
+    check('a person flown down into an AI pilot: the referee hits both, and the AI pilot crashes', Boolean(hit) && Boolean(flown.down)
+      && e.r.bots.bots.crashes.hit === 1, hit ? `hit ${hit.a}:${hit.b}, brk ${hit.A.brk}/${hit.B.brk}` : 'no hit');
+    e.run(e.clock + 500);
+    const down = decodePose(bot.pose);
+    /* It falls, lies DOWN_MS, and is born again. */
+    const landed = e.clock;
+    while (!(decodePose(bot.pose).flags & FLAG_AIRBORNE) && e.clock < landed + DOWN_MS + 15000) {
+      e.run(e.clock + TICK_MS);
+    }
+    const up = decodePose(bot.pose);
+    check('its poses say crashed, then, DOWN_MS after it came to rest, airborne and untouchable again', (down.flags & FLAG_CRASHED) !== 0 && (down.flags & FLAG_AIRBORNE) === 0
+      && (up.flags & FLAG_AIRBORNE) !== 0 && (up.flags & FLAG_SPAWNING) !== 0 && e.clock - landed > DOWN_MS, `${down.flags} then ${up.flags}, ${((e.clock - landed) / 1000).toFixed(1)} s down`);
   }
   {
     const e = tagRoom();

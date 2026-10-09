@@ -37,11 +37,12 @@ import {
   RATES_STORAGE_WARNING, listRatePresets, presetMatching, ratePresetById,
 } from '../../configs/ratepresets.js';
 import {
-  RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, RATE_TYPE_LABEL, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
-  formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault, ratesSummary,
+  RATE_AXES, RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
+  formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault,
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
+import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { STICK_MODES, normaliseStickMode } from '../input/stickmode.js';
@@ -58,7 +59,7 @@ import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
-  LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
+  LOCALES, LOCALE_NAMES, currentLocale, hasStr, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
@@ -72,6 +73,7 @@ import {
 } from './settings.js';
 import { VIEW_LABEL } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
+import { controlsRows } from './controls.js';
 /* A cycle: ui.js installs this module. These are read only inside the
  * screen functions, after both modules have run, never at this module's
  * top level. */
@@ -102,10 +104,35 @@ const creditsRow = () => ({ label: str('ui.credits'), action: 'credits', note: s
 /* The flight feel report's door, where a pilot has just been flying. */
 const feelRow = () => ({ label: str('ui.flight_feel'), action: 'feel', note: str('ui.tell_the_tune_work_how_the') });
 
+/* A tune's mode word (Stabilised, Manual) in the pilot's language. The
+ * registry names tunes in English; a name with no key (AS3X, a brand) is
+ * shown as it is, and scripts/es-leak-lint.js holds every name to a key or
+ * to its list of words Spanish shares. */
+function tuneName(id) {
+  const name = tuneById(id).name;
+  const key = `tune.name.${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  return hasStr(key) ? str(key) : name;
+}
+
+/* The rate system's name: Classic is Betaflight's, the rest are brands. */
+const rateTypeName = (type) => str(`rates.type_${type.toLowerCase()}`);
+
+/* configs/rates.js ratesSummary, in the pilot's language: that one is the
+ * bug report's, which stays English. */
+function ratesValue(rates) {
+  const p = normaliseRates(rates);
+  const [roll, pitch, yaw] = RATE_AXES.map((axis) => fullStickDeg(p, axis));
+  const reach = roll === pitch
+    ? str('ui.rates_reach_same', { roll, yaw })
+    : str('ui.rates_reach', { roll, pitch, yaw });
+  const limit = p.throttleCap < 100 ? str('ui.rates_capped', { cap: p.throttleCap }) : '';
+  return `${rateTypeName(p.type)}, ${reach}${limit}`;
+}
+
 /* Quad or Plane: the machine's door, valued at what it is flying. */
 function machineRow(s, note) {
   const af = airframeById(s.airframe);
-  const tune = tuneById(s.tune).name;
+  const tune = tuneName(s.tune);
   return {
     label: af.fixedWing ? str('ui.plane') : str('ui.quad'),
     value: af.fixedWing ? `${af.short}, ${tune}` : tune,
@@ -115,7 +142,7 @@ function machineRow(s, note) {
 }
 
 /* The rates room's door, with the whole curve on the row. */
-const ratesRow = (s, note) => ({ label: str('ui.rates'), value: ratesSummary(s.rates), action: 'rates', note });
+const ratesRow = (s, note) => ({ label: str('ui.rates'), value: ratesValue(s.rates), action: 'rates', note });
 
 /* The tune row: the PIDs room's door, saying when the quad flies something
  * other than the tune's own numbers. */
@@ -124,7 +151,7 @@ function tuneRow(s, midRun) {
   const adjusted = pidsAdjusted(s.pids, s.tune);
   return {
     label: str('ui.tune'),
-    value: adjusted ? `${tune.name}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tune.name,
+    value: adjusted ? `${tuneName(s.tune)}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tuneName(s.tune),
     action: 'pids',
     note: str('ui.opens_where_the_tune_is_chosen', { note: tune.note, pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
   };
@@ -155,6 +182,17 @@ function flightStyleRow(label, arcadeNote, expertNote, s) {
 const crashDamageRow = (s) => toggle(str('ui.crash_damage'), str('ui.crash_damage_note'), s.crashDamage !== false, (v) => {
   s.crashDamage = Boolean(v);
 });
+
+/* The air: the preset's own note, and in a room the host's choice is the
+ * room's (docs/WEATHER-CONTRACT.md). */
+const weatherRow = (s) => choice(
+  str('ui.weather'),
+  str(`weather.${s.weather}_note`),
+  WEATHER_PRESETS,
+  s.weather,
+  (id) => str(`weather.${id}`),
+  (id) => { s.weather = id; },
+);
 
 /* The radio link preset, with the figures of the chosen one in the note. */
 function linkRow(s, perfectNote, figuresKey) {
@@ -437,6 +475,7 @@ function freestyleRows(ui, s) {
     machineRow(s, str('ui.the_machine_its_tune_row_opens', { pids: SCREEN_TITLES.pids })),
     flightStyleRow(str('ui.physics_model'), str('ui.arcade_the_ideal_quad_no_propwash'), str('ui.expert_the_full_physics_propwash_gyro'), s),
     crashDamageRow(s),
+    weatherRow(s),
     backRow(),
   ];
 }
@@ -504,7 +543,7 @@ function yawTipApplies(rates) {
 
 function pilotRows(ui, s) {
   return [
-    { label: 'You', section: true },
+    { label: str('ui.you_section'), section: true },
     choice(str('ui.language'), str('ui.language_note'), LOCALES, currentLocale(), (id) => LOCALE_NAMES[id] || id, (id) => {
       rememberLocale(id);
       window.location.reload();
@@ -525,6 +564,9 @@ function pilotRows(ui, s) {
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
+    { label: str('pause.help'), section: true },
+    { label: str('ui.how_to_fly'), action: 'howto' },
+    creditsRow(),
     backRow(),
   ];
 }
@@ -628,6 +670,7 @@ function stickRows(ui, s) {
     { label: str('ui.choose_joystick'), value: using, action: 'choosepad', note: padChooseNote(info) },
     toggle(str('ui.mouse_flight'), str('ui.mouse_flight_note'), s.mouseFlight, (v) => { s.mouseFlight = Boolean(v); }),
     ...mouse,
+    { label: str('keybinds.title'), action: 'controls', note: str('keybinds.open_note') },
     { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
     {
       label: str('ui.check_sticks'),
@@ -662,13 +705,17 @@ function screenRows(ui, s) {
     choice(str('ui.frame_cap'), str('ui.caps_how_often_the_world_is'), FPS_CAPS, s.fpsCap, (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`), (n) => { s.fpsCap = n; }),
     toggle(str('ui.frame_readout'), str('ui.frame_readout_note'), s.perfOverlay, (v) => { s.perfOverlay = v; }),
     toggle(str('ui.mission_guidance'), str('ui.mission_guidance_note'), s.missionGuidance, (v) => { s.missionGuidance = Boolean(v); }),
-    /* Per aircraft: a combat aircraft defaults to its avionics. */
-    choice(str('ui.hud_style'), str('ui.hud_style_note'), HUD_STYLES, hudStyleFor(s, s.airframe), (id) => str(`ui.hud_${id}`), (id) => {
-      s.hudStyleBy = { ...s.hudStyleBy, [s.airframe]: id };
-    }),
+    hudStyleRow(s),
     choice(str('ui.peer_marks'), str('ui.peer_marks_note'), MARK_STYLES, s.peerMarks, (id) => str(`ui.peer_marks_${id}`), (id) => { s.peerMarks = id; }),
     choice(str('ui.thermal_palette'), str('ui.thermal_palette_note'), AVX_PALETTES, s.avxPalette, (id) => str(`avionics.hud.palette.${id}`), (id) => { s.avxPalette = id; }),
   ];
+}
+
+/* Per aircraft: a combat aircraft defaults to its avionics. */
+function hudStyleRow(s) {
+  return choice(str('ui.hud_style'), str('ui.hud_style_note'), HUD_STYLES, hudStyleFor(s, s.airframe), (id) => str(`ui.hud_${id}`), (id) => {
+    s.hudStyleBy = { ...s.hudStyleBy, [s.airframe]: id };
+  });
 }
 
 function soundRows(s) {
@@ -770,7 +817,7 @@ function recordSentence(s, trackName) {
     ...(weight !== WEIGHT_STOCK ? [str('ui.weight_at_percent', { weight })] : []),
     str('ui.v_per_cell', { v1: s.packVoltage.toFixed(2) }),
     `${s.laps} lap${s.laps === 1 ? '' : 's'}`,
-    str('ui.the_tune', { name: tuneById(s.tune).name }),
+    str('ui.the_tune', { name: tuneName(s.tune) }),
   ];
   let standing;
   if (arcade) {
@@ -786,28 +833,68 @@ function recordSentence(s, trackName) {
 
 /* ---- the pause menu ---- */
 
+/*
+ * The first screen (docs/redesign/PAUSE-MENUS.md): Resume, the run, the
+ * Flight panel, the aircraft, the room when there is one, Settings, out.
+ * Everything a pilot tweaks between attempts is one row down, in the
+ * Flight panel; deep settings and help are in Settings. In a room the
+ * friends row is the room's, by name.
+ */
 function pausedRows(ui, s) {
+  const af = airframeById(s.airframe);
+  const room = ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it));
+  /* Watching a room flies nothing: no run to restart, no aircraft to tune. */
+  if (ui.watching && ui.watching()) {
+    return [
+      { label: str('ui.resume'), action: 'resume', primary: true },
+      ...room,
+      { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
+      { label: str('ui.quit_to_title'), action: 'title' },
+    ];
+  }
   return [
     { label: str('ui.resume'), action: 'resume', primary: true },
     { label: str('ui.restart_run'), action: 'restart' },
-    { label: str('carousel.change_aircraft'), value: airframeById(s.airframe).short, action: 'hotswap', note: str('carousel.row_note') },
-    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
-    ...ui.friendsItems(),
-    { label: str('ui.does_it_feel_wrong'), section: true },
-    tuneRow(s, true),
-    ratesRow(s, str('ui.how_far_the_sticks_go_and_2')),
-    feelRow(),
-    { label: str('ui.elsewhere'), section: true },
-    machineRow(s, str('ui.pids_camera_flight_mode_and_the', { MID_RUN_WARNING })),
-    { label: str('ui.settings'), value: ratesSummary(s.rates), action: 'pilot', note: str('ui.rates_your_radio_graphics_and_sound') },
-    graphicsRow(s),
-    { label: str('ui.how_to_fly'), action: 'howto' },
-    creditsRow(),
+    { label: str('pause.flight'), value: `${af.short}, ${tuneName(s.tune)}`, action: 'quick', note: str('pause.flight_note') },
+    { label: str('carousel.change_aircraft'), value: af.short, action: 'hotswap', note: str('carousel.row_note') },
+    ...room,
+    { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
     ...(s.map === 'track' ? [myTracksRow()] : []),
     { label: str('ui.quit_to_title'), action: 'title' },
   ];
+}
+
+/*
+ * The Flight panel: what a pilot changes between attempts, for the
+ * aircraft in the air. A plane's tune is its flight mode, and Betaflight
+ * rates do not reach a wing, so a plane has no Rates row.
+ */
+function quickRows(ui, s) {
+  const plane = Boolean(airframeById(s.airframe).fixedWing);
+  return [
+    { label: str('pause.aircraft'), section: true },
+    plane ? planeModeRow(s) : quadTuneRow(s),
+    ...(plane ? [] : [ratesRow(s, str('pause.rates_note'))]),
+    { ...feelRow(), note: str('pause.feel_note') },
+    { label: plane ? str('pause.plane_setup') : str('pause.quad_setup'), action: 'quad', note: str('pause.setup_note') },
+    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
+    { label: str('pause.view'), section: true },
+    hudStyleRow(s),
+    graphicsRow(s),
+    ...(ui.ghostItems().length || ui.liveItems().length ? [{ label: str('pause.this_run'), section: true }] : []),
+    ...ui.ghostItems(),
+    ...ui.liveItems(),
+    backRow(),
+  ];
+}
+
+/* tuneRow without the registry's English description of the tune. */
+function quadTuneRow(s) {
+  return { ...tuneRow(s, true), note: str('pause.tune_note') };
+}
+
+function planeModeRow(s) {
+  return { label: str('ui.flight_mode'), value: tuneName(s.tune), action: 'pids', note: str('pause.mode_note') };
 }
 
 /* ---- results ---- */
@@ -976,7 +1063,7 @@ function ratesRoomRows(ui, s) {
   return [
     ...ui.stickPathRow(),
     presetRow,
-    choice(str('ui.rates_type'), str('ui.which_rate_system_the_numbers_below'), RATE_TYPES, r.type, (t) => RATE_TYPE_LABEL[t], (t) => {
+    choice(str('ui.rates_type'), str('ui.which_rate_system_the_numbers_below'), RATE_TYPES, r.type, rateTypeName, (t) => {
       s.rates = profileForType(t, r);
     }),
     toggle(str('ui.separate_pitch'), split ? str('ui.on_pitch_has_its_own_three') : str('ui.off_roll_and_pitch_share_one'), split, (on) => {
@@ -1035,7 +1122,7 @@ function ratesRoomRows(ui, s) {
 /* ---- PIDs ---- */
 
 function pidsRows(ui, s) {
-  const tuneName = tuneById(s.tune).name;
+  const seatedName = tuneName(s.tune);
   /* The readback is only the seated tune's; another tune's is stale. */
   const live = ui.pidsLive && ui.pidsLive.tune === s.tune ? ui.pidsLive : null;
   const tail = [
@@ -1045,8 +1132,8 @@ function pidsRows(ui, s) {
       action: 'pids-default',
       disabled: !pidsAdjusted(s.pids, s.tune),
       note: pidsAdjusted(s.pids, s.tune)
-        ? str('ui.forgets_every_slider_and_hand_set', { tuneName })
-        : str('ui.is_already_flying_its_own_values', { tuneName }),
+        ? str('ui.forgets_every_slider_and_hand_set', { tuneName: seatedName })
+        : str('ui.is_already_flying_its_own_values', { tuneName: seatedName }),
     },
     backRow(),
   ];
@@ -1054,20 +1141,20 @@ function pidsRows(ui, s) {
     /* Until the tune's own values are read back, no row may edit them. */
     return [
       tunePickRow(s, ui.returnTo === 'paused'),
-      { label: str('ui.loading', { tuneName }), info: true, note: str('ui.the_tune_is_being_fetched_and') },
+      { label: str('ui.loading', { tuneName: seatedName }), info: true, note: str('ui.the_tune_is_being_fetched_and') },
       ...tail,
     ];
   }
   const entry = pidsEntry(s.pids, s.tune);
   const expert = Boolean(entry && entry.mode === 'expert' && entry.pids);
-  const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName }).trim() : '';
+  const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName: seatedName }).trim() : '';
   const sliderRow = (k) => {
     const spec = SLIDERS[k];
     const tuneVal = live.baseline[k];
     const moved = Boolean(entry && entry.sliders && k in entry.sliders);
     const notes = [spec.note];
     if (moved) {
-      notes.push(str('ui.ships_this_at_setting_it_back', { tuneName, tuneVal }));
+      notes.push(str('ui.ships_this_at_setting_it_back', { tuneName: seatedName, tuneVal }));
     }
     if (k === 'master' && rpNote) {
       notes.push(rpNote);
@@ -1109,7 +1196,7 @@ function tunePickRow(s, midRun) {
       str('ui.everything_below_belongs_to_this_one', { door, v2: midRun ? MID_RUN_WARNING : '' }),
       ids,
       s.tune,
-      (id) => tuneById(id).name,
+      tuneName,
       (id) => { s.tune = id; },
     ),
     pickOnly: true,
@@ -1133,9 +1220,11 @@ const SCREENS = {
   standings: standingsRows,
   launch: launchRows,
   paused: pausedRows,
+  quick: quickRows,
   results: resultsRows,
   rates: ratesRoomRows,
   pids: pidsRows,
+  controls: controlsRows,
   fc: (ui) => ui.fc.items(),
 };
 

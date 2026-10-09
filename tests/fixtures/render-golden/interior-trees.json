@@ -1,0 +1,1381 @@
+{
+ "exports": [
+  [
+   "CHUNK",
+   256
+  ],
+  [
+   "FAR_M",
+   14000
+  ],
+  [
+   "MID_M",
+   1200
+  ],
+  [
+   "NEAR_M",
+   300
+  ],
+  [
+   "buildTrees",
+   "function"
+  ]
+ ],
+ "high": {
+  "keys": [
+   "dispose",
+   "far",
+   "group",
+   "mid",
+   "near",
+   "points",
+   "setSun",
+   "settle",
+   "stats",
+   "view"
+  ],
+  "group": {
+   "type": "Group",
+   "name": "interior-trees",
+   "visible": true,
+   "p": [
+    0,
+    0,
+    0
+   ],
+   "q": [
+    0,
+    0,
+    0,
+    1
+   ],
+   "s": [
+    1,
+    1,
+    1
+   ],
+   "children": [
+    {
+     "type": "Mesh",
+     "name": "interior-crowns-near",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "castShadow": true,
+     "receiveShadow": true,
+     "frustumCulled": false,
+     "geometry": {
+      "ref": "g0",
+      "type": "IcosahedronGeometry",
+      "attrs": {
+       "position": {
+        "n": 42,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "91be922c",
+        "inst": false
+       },
+       "normal": {
+        "n": 42,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "82dff1de",
+        "inst": false
+       },
+       "aLobe": {
+        "n": 24000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "13fb26b8",
+        "inst": true
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 240,
+       "type": "Uint16Array",
+       "hash": "8d71c858"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m1",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 0.92,
+      "metalness": 0,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "ffffff",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "CROWN_MODE": 0,
+       "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
+       "CROWN_RAY_AT": "vCrW",
+       "CROWN_CENTRE": "vCrC",
+       "CROWN_RADII": "vCrR",
+       "THERMAL_KIND": 1
+      },
+      "onBeforeCompile": true,
+      "cacheKey": "interior-crown-0",
+      "userData": [
+       "thermal"
+      ]
+     },
+     "instances": {
+      "n": 133,
+      "matrices": "6739526e",
+      "colors": "3d10bec1"
+     }
+    },
+    {
+     "type": "Mesh",
+     "name": "interior-crowns-mid",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "receiveShadow": true,
+     "frustumCulled": false,
+     "geometry": {
+      "ref": "g2",
+      "type": "IcosahedronGeometry",
+      "attrs": {
+       "position": {
+        "n": 12,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "9465db88",
+        "inst": false
+       },
+       "normal": {
+        "n": 12,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e99c66bb",
+        "inst": false
+       },
+       "aSeed": {
+        "n": 90000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "cb7ba97a",
+        "inst": true
+       },
+       "aLobe": {
+        "n": 90000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "483f9ec8",
+        "inst": true
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 60,
+       "type": "Uint16Array",
+       "hash": "427e5615"
+      },
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m3",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 0.92,
+      "metalness": 0,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "ffffff",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "CROWN_MODE": 1,
+       "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
+       "CROWN_RAY_AT": "vCrW",
+       "CROWN_CENTRE": "vCrC",
+       "CROWN_RADII": "vCrR",
+       "THERMAL_KIND": 1
+      },
+      "onBeforeCompile": true,
+      "cacheKey": "interior-crown-1",
+      "userData": [
+       "thermal"
+      ]
+     },
+     "instances": {
+      "n": 48,
+      "matrices": "04c1e988",
+      "colors": "cccde127"
+     }
+    },
+    {
+     "type": "Mesh",
+     "name": "interior-trunks",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "castShadow": true,
+     "frustumCulled": false,
+     "geometry": {
+      "ref": "g4",
+      "type": "CylinderGeometry",
+      "attrs": {
+       "position": {
+        "n": 12,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "37298ebe",
+        "inst": false
+       },
+       "normal": {
+        "n": 12,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "1853068d",
+        "inst": false
+       },
+       "uv": {
+        "n": 12,
+        "size": 2,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "3c01ff79",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": {
+       "n": 30,
+       "type": "Uint16Array",
+       "hash": "376be38e"
+      },
+      "groups": [
+       [
+        0,
+        30,
+        0
+       ]
+      ],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m5",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": false,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 1,
+      "metalness": 0,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "3a3631",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "THERMAL_KIND": 1
+      },
+      "onBeforeCompile": false,
+      "cacheKey": null,
+      "userData": [
+       "thermal"
+      ]
+     },
+     "instances": {
+      "n": 133,
+      "matrices": "7905eaf6",
+      "colors": null
+     }
+    },
+    {
+     "type": "Points",
+     "name": "interior-crowns-points",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "receiveShadow": true,
+     "frustumCulled": false,
+     "geometry": {
+      "ref": "g6",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 480000,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "bf3689a1",
+        "inst": false
+       },
+       "color": {
+        "n": 480000,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "6ab94961",
+        "inst": false
+       },
+       "aShape": {
+        "n": 480000,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ce6de8e4",
+        "inst": false
+       },
+       "aLobe": {
+        "n": 480000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4ca9a295",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": null,
+      "groups": [],
+      "drawRange": [
+       0,
+       58
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m7",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": true,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 0.92,
+      "metalness": 0,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "ffffff",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "CROWN_MODE": 2,
+       "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
+       "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
+       "CROWN_CENTRE": "vCrW",
+       "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
+       "THERMAL_KIND": 1
+      },
+      "onBeforeCompile": true,
+      "cacheKey": "itlit|interior-crown-2",
+      "userData": [
+       "s2Lit",
+       "thermal"
+      ]
+     },
+     "onBeforeRender": true
+    },
+    {
+     "type": "Points",
+     "name": "interior-crowns-far",
+     "visible": true,
+     "p": [
+      0,
+      0,
+      0
+     ],
+     "q": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "s": [
+      1,
+      1,
+      1
+     ],
+     "receiveShadow": true,
+     "frustumCulled": false,
+     "geometry": {
+      "ref": "g8",
+      "type": "BufferGeometry",
+      "attrs": {
+       "position": {
+        "n": 9911,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "57612f22",
+        "inst": false
+       },
+       "color": {
+        "n": 9911,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "e877877c",
+        "inst": false
+       },
+       "aShape": {
+        "n": 9911,
+        "size": 3,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "ecdad11e",
+        "inst": false
+       }
+      },
+      "morph": [],
+      "index": null,
+      "groups": [],
+      "drawRange": [
+       0,
+       "all"
+      ],
+      "userData": []
+     },
+     "material": {
+      "ref": "m9",
+      "type": "MeshStandardMaterial",
+      "name": "",
+      "transparent": false,
+      "opacity": 1,
+      "depthWrite": true,
+      "depthTest": true,
+      "side": 0,
+      "fog": true,
+      "blending": 1,
+      "vertexColors": true,
+      "alphaTest": 0,
+      "polygonOffset": false,
+      "polygonOffsetFactor": 0,
+      "polygonOffsetUnits": 0,
+      "colorWrite": true,
+      "toneMapped": true,
+      "flatShading": false,
+      "wireframe": false,
+      "roughness": 0.92,
+      "metalness": 0,
+      "emissiveIntensity": 1,
+      "dithering": false,
+      "premultipliedAlpha": false,
+      "visible": true,
+      "stencilWrite": false,
+      "alphaToCoverage": false,
+      "color": "ffffff",
+      "emissive": "000000",
+      "defines": {
+       "STANDARD": "",
+       "CROWN_MODE": 3,
+       "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
+       "THERMAL_KIND": 1
+      },
+      "onBeforeCompile": true,
+      "cacheKey": "itlit|interior-crown-3",
+      "userData": [
+       "s2Lit",
+       "thermal"
+      ]
+     },
+     "onBeforeRender": true
+    }
+   ]
+  },
+  "shaders": [
+   [
+    "",
+    "MeshStandardMaterial",
+    "interior-crown-0",
+    {
+     "vertex": "cfe37e58",
+     "fragment": "68ee622e",
+     "added": [
+      "uCrFit",
+      "uCrLobes"
+     ],
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 0,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR",
+      "THERMAL_KIND": 1
+     }
+    }
+   ],
+   [
+    "",
+    "MeshStandardMaterial",
+    "interior-crown-1",
+    {
+     "vertex": "cfe37e58",
+     "fragment": "68ee622e",
+     "added": [
+      "uCrFit",
+      "uCrHand",
+      "uCrLobes"
+     ],
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 1,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR",
+      "THERMAL_KIND": 1
+     }
+    }
+   ],
+   [
+    "",
+    "MeshStandardMaterial",
+    "onBeforeCompile( /* shaderobject, renderer */ ) {}",
+    null
+   ],
+   [
+    "",
+    "MeshStandardMaterial",
+    "itlit|interior-crown-2",
+    {
+     "vertex": "ba13f026",
+     "fragment": "ed2366bd",
+     "added": [
+      "uCrBand",
+      "uCrLobes",
+      "uCrPx"
+     ],
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 2,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
+      "CROWN_CENTRE": "vCrW",
+      "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
+      "THERMAL_KIND": 1
+     }
+    }
+   ],
+   [
+    "",
+    "MeshStandardMaterial",
+    "itlit|interior-crown-3",
+    {
+     "vertex": "ba13f026",
+     "fragment": "ed2366bd",
+     "added": [
+      "uCrBand",
+      "uCrPx"
+     ],
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 3,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "THERMAL_KIND": 1
+     }
+    }
+   ]
+  ],
+  "stats": {
+   "chunks": 378,
+   "near": 133,
+   "mid": 48,
+   "points": 58,
+   "far": 9911,
+   "built": 378,
+   "pending": 0
+  }
+ },
+ "lobes": {
+  "exports": [
+   "LOBES",
+   "LOBE_DATA",
+   "TEMPLATES",
+   "lobesHit",
+   "lobesTop",
+   "templateOf"
+  ],
+  "LOBES": 7,
+  "TEMPLATES": 12,
+  "data": "b7b7b6b0",
+  "templates": [
+   0,
+   3,
+   6,
+   11
+  ]
+ },
+ "low": {
+  "type": "Group",
+  "name": "interior-trees",
+  "visible": true,
+  "p": [
+   0,
+   0,
+   0
+  ],
+  "q": [
+   0,
+   0,
+   0,
+   1
+  ],
+  "s": [
+   1,
+   1,
+   1
+  ],
+  "children": [
+   {
+    "type": "Mesh",
+    "name": "interior-crowns-near",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "receiveShadow": true,
+    "frustumCulled": false,
+    "geometry": {
+     "ref": "g0",
+     "type": "IcosahedronGeometry",
+     "attrs": {
+      "position": {
+       "n": 42,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "91be922c",
+       "inst": false
+      },
+      "normal": {
+       "n": 42,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "82dff1de",
+       "inst": false
+      },
+      "aLobe": {
+       "n": 24000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "13fb26b8",
+       "inst": true
+      }
+     },
+     "morph": [],
+     "index": {
+      "n": 240,
+      "type": "Uint16Array",
+      "hash": "8d71c858"
+     },
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "material": {
+     "ref": "m1",
+     "type": "MeshStandardMaterial",
+     "name": "",
+     "transparent": false,
+     "opacity": 1,
+     "depthWrite": true,
+     "depthTest": true,
+     "side": 0,
+     "fog": true,
+     "blending": 1,
+     "vertexColors": false,
+     "alphaTest": 0,
+     "polygonOffset": false,
+     "polygonOffsetFactor": 0,
+     "polygonOffsetUnits": 0,
+     "colorWrite": true,
+     "toneMapped": true,
+     "flatShading": false,
+     "wireframe": false,
+     "roughness": 0.92,
+     "metalness": 0,
+     "emissiveIntensity": 1,
+     "dithering": false,
+     "premultipliedAlpha": false,
+     "visible": true,
+     "stencilWrite": false,
+     "alphaToCoverage": false,
+     "color": "ffffff",
+     "emissive": "000000",
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 0,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR",
+      "THERMAL_KIND": 1
+     },
+     "onBeforeCompile": true,
+     "cacheKey": "interior-crown-0",
+     "userData": [
+      "thermal"
+     ]
+    },
+    "instances": {
+     "n": 133,
+     "matrices": "6739526e",
+     "colors": "3d10bec1"
+    }
+   },
+   {
+    "type": "Mesh",
+    "name": "interior-crowns-mid",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "receiveShadow": true,
+    "frustumCulled": false,
+    "geometry": {
+     "ref": "g2",
+     "type": "IcosahedronGeometry",
+     "attrs": {
+      "position": {
+       "n": 12,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "9465db88",
+       "inst": false
+      },
+      "normal": {
+       "n": 12,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "e99c66bb",
+       "inst": false
+      },
+      "aSeed": {
+       "n": 90000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "cb7ba97a",
+       "inst": true
+      },
+      "aLobe": {
+       "n": 90000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "483f9ec8",
+       "inst": true
+      }
+     },
+     "morph": [],
+     "index": {
+      "n": 60,
+      "type": "Uint16Array",
+      "hash": "427e5615"
+     },
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "material": {
+     "ref": "m3",
+     "type": "MeshStandardMaterial",
+     "name": "",
+     "transparent": false,
+     "opacity": 1,
+     "depthWrite": true,
+     "depthTest": true,
+     "side": 0,
+     "fog": true,
+     "blending": 1,
+     "vertexColors": false,
+     "alphaTest": 0,
+     "polygonOffset": false,
+     "polygonOffsetFactor": 0,
+     "polygonOffsetUnits": 0,
+     "colorWrite": true,
+     "toneMapped": true,
+     "flatShading": false,
+     "wireframe": false,
+     "roughness": 0.92,
+     "metalness": 0,
+     "emissiveIntensity": 1,
+     "dithering": false,
+     "premultipliedAlpha": false,
+     "visible": true,
+     "stencilWrite": false,
+     "alphaToCoverage": false,
+     "color": "ffffff",
+     "emissive": "000000",
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 1,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR",
+      "THERMAL_KIND": 1
+     },
+     "onBeforeCompile": true,
+     "cacheKey": "interior-crown-1",
+     "userData": [
+      "thermal"
+     ]
+    },
+    "instances": {
+     "n": 48,
+     "matrices": "04c1e988",
+     "colors": "cccde127"
+    }
+   },
+   {
+    "type": "Mesh",
+    "name": "interior-trunks",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "frustumCulled": false,
+    "geometry": {
+     "ref": "g4",
+     "type": "CylinderGeometry",
+     "attrs": {
+      "position": {
+       "n": 12,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "37298ebe",
+       "inst": false
+      },
+      "normal": {
+       "n": 12,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "1853068d",
+       "inst": false
+      },
+      "uv": {
+       "n": 12,
+       "size": 2,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "3c01ff79",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": {
+      "n": 30,
+      "type": "Uint16Array",
+      "hash": "376be38e"
+     },
+     "groups": [
+      [
+       0,
+       30,
+       0
+      ]
+     ],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "material": {
+     "ref": "m5",
+     "type": "MeshStandardMaterial",
+     "name": "",
+     "transparent": false,
+     "opacity": 1,
+     "depthWrite": true,
+     "depthTest": true,
+     "side": 0,
+     "fog": true,
+     "blending": 1,
+     "vertexColors": false,
+     "alphaTest": 0,
+     "polygonOffset": false,
+     "polygonOffsetFactor": 0,
+     "polygonOffsetUnits": 0,
+     "colorWrite": true,
+     "toneMapped": true,
+     "flatShading": false,
+     "wireframe": false,
+     "roughness": 1,
+     "metalness": 0,
+     "emissiveIntensity": 1,
+     "dithering": false,
+     "premultipliedAlpha": false,
+     "visible": true,
+     "stencilWrite": false,
+     "alphaToCoverage": false,
+     "color": "3a3631",
+     "emissive": "000000",
+     "defines": {
+      "STANDARD": "",
+      "THERMAL_KIND": 1
+     },
+     "onBeforeCompile": false,
+     "cacheKey": null,
+     "userData": [
+      "thermal"
+     ]
+    },
+    "instances": {
+     "n": 133,
+     "matrices": "7905eaf6",
+     "colors": null
+    }
+   },
+   {
+    "type": "Points",
+    "name": "interior-crowns-points",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "receiveShadow": true,
+    "frustumCulled": false,
+    "geometry": {
+     "ref": "g6",
+     "type": "BufferGeometry",
+     "attrs": {
+      "position": {
+       "n": 480000,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "bf3689a1",
+       "inst": false
+      },
+      "color": {
+       "n": 480000,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "6ab94961",
+       "inst": false
+      },
+      "aShape": {
+       "n": 480000,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "ce6de8e4",
+       "inst": false
+      },
+      "aLobe": {
+       "n": 480000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "4ca9a295",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": null,
+     "groups": [],
+     "drawRange": [
+      0,
+      58
+     ],
+     "userData": []
+    },
+    "material": {
+     "ref": "m7",
+     "type": "MeshStandardMaterial",
+     "name": "",
+     "transparent": false,
+     "opacity": 1,
+     "depthWrite": true,
+     "depthTest": true,
+     "side": 0,
+     "fog": true,
+     "blending": 1,
+     "vertexColors": true,
+     "alphaTest": 0,
+     "polygonOffset": false,
+     "polygonOffsetFactor": 0,
+     "polygonOffsetUnits": 0,
+     "colorWrite": true,
+     "toneMapped": true,
+     "flatShading": false,
+     "wireframe": false,
+     "roughness": 0.92,
+     "metalness": 0,
+     "emissiveIntensity": 1,
+     "dithering": false,
+     "premultipliedAlpha": false,
+     "visible": true,
+     "stencilWrite": false,
+     "alphaToCoverage": false,
+     "color": "ffffff",
+     "emissive": "000000",
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 2,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
+      "CROWN_CENTRE": "vCrW",
+      "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
+      "THERMAL_KIND": 1
+     },
+     "onBeforeCompile": true,
+     "cacheKey": "itlit|interior-crown-2",
+     "userData": [
+      "s2Lit",
+      "thermal"
+     ]
+    },
+    "onBeforeRender": true
+   },
+   {
+    "type": "Points",
+    "name": "interior-crowns-far",
+    "visible": true,
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "q": [
+     0,
+     0,
+     0,
+     1
+    ],
+    "s": [
+     1,
+     1,
+     1
+    ],
+    "receiveShadow": true,
+    "frustumCulled": false,
+    "geometry": {
+     "ref": "g8",
+     "type": "BufferGeometry",
+     "attrs": {
+      "position": {
+       "n": 9911,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "57612f22",
+       "inst": false
+      },
+      "color": {
+       "n": 9911,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "e877877c",
+       "inst": false
+      },
+      "aShape": {
+       "n": 9911,
+       "size": 3,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "ecdad11e",
+       "inst": false
+      }
+     },
+     "morph": [],
+     "index": null,
+     "groups": [],
+     "drawRange": [
+      0,
+      "all"
+     ],
+     "userData": []
+    },
+    "material": {
+     "ref": "m9",
+     "type": "MeshStandardMaterial",
+     "name": "",
+     "transparent": false,
+     "opacity": 1,
+     "depthWrite": true,
+     "depthTest": true,
+     "side": 0,
+     "fog": true,
+     "blending": 1,
+     "vertexColors": true,
+     "alphaTest": 0,
+     "polygonOffset": false,
+     "polygonOffsetFactor": 0,
+     "polygonOffsetUnits": 0,
+     "colorWrite": true,
+     "toneMapped": true,
+     "flatShading": false,
+     "wireframe": false,
+     "roughness": 0.92,
+     "metalness": 0,
+     "emissiveIntensity": 1,
+     "dithering": false,
+     "premultipliedAlpha": false,
+     "visible": true,
+     "stencilWrite": false,
+     "alphaToCoverage": false,
+     "color": "ffffff",
+     "emissive": "000000",
+     "defines": {
+      "STANDARD": "",
+      "CROWN_MODE": 3,
+      "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "THERMAL_KIND": 1
+     },
+     "onBeforeCompile": true,
+     "cacheKey": "itlit|interior-crown-3",
+     "userData": [
+      "s2Lit",
+      "thermal"
+     ]
+    },
+    "onBeforeRender": true
+   }
+  ]
+ }
+}

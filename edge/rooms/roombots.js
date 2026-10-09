@@ -17,7 +17,9 @@
  * THE HOST'S SAY. { type: 'bots', level } from the host: 'off', or a
  * bots.js LEVELS key. Off, every AI pilot leaves; a level, the ones here
  * fly at it from their next aim and the room fills again. Everybody is
- * told { type: 'bots', level }, and the welcome carries `bots`.
+ * told { type: 'bots', level }, and the welcome carries `bots`. A room
+ * starts at defaultLevel: DEFAULT_LEVEL in a public room, off in a private
+ * one, where the host's lobby row switches them on (src/main.js).
  *
  * An AI seat's key in RoomCore.seats is a BotConn: it swallows what the
  * room sends it, so host.js run() never needs to know. The seat record
@@ -59,8 +61,13 @@ import { CHASE_BOOST } from '../../src/share/roomtag.js';
 export const FILL_TO = 4;
 /* The ROOM_LEVEL (src/share/roomwire.js) that names an AI seat as one. */
 export const BOT_ROOM_LEVEL = 3;
-/* The level a room is filled at until its host says otherwise. */
+/* The level a room is filled at until its host says otherwise: a public
+ * room's strangers are joined by AI pilots, while friends in a private
+ * room have them only when its host switches them on (lead, 2026-10-08). */
 export const DEFAULT_LEVEL = 'normal';
+export function defaultLevel(meta) {
+  return meta.public ? DEFAULT_LEVEL : 'off';
+}
 /* What the host may set. */
 export const BOT_LEVELS = ['off', ...Object.keys(LEVELS)];
 /* The flight is stored this often while it flies, room ms: a restart
@@ -97,7 +104,8 @@ function seedOf(code) {
 export class RoomBots {
   constructor(meta) {
     this.bots = new Bots(seedOf(meta.code));
-    this.level = DEFAULT_LEVEL;
+    this.level = defaultLevel(meta);
+    this.meta = meta;
     /* seat -> name pick, for the AI seats this room has. */
     this.names = new Map();
     this.storedAt = -Infinity;
@@ -108,7 +116,7 @@ export class RoomBots {
       return;
     }
     this.bots.restore(saved.flight);
-    this.level = BOT_LEVELS.includes(saved.level) ? saved.level : DEFAULT_LEVEL;
+    this.level = BOT_LEVELS.includes(saved.level) ? saved.level : defaultLevel(this.meta);
     this.names = new Map((saved.seats ?? []).map((s) => [s.seat, s.name]));
   }
 
@@ -183,10 +191,7 @@ export class RoomBots {
   wanted(core) {
     const people = core.people();
     const mode = modeOfRoom(core.meta.mode);
-    /* Public rooms only until the host's lobby row exists (lead,
-     * 2026-10-07): friends in a private room are never left with AI pilots
-     * they cannot remove from the screen. */
-    if (!core.meta.public || !people.length || !mode || !mode.allowAI || core.meta.map !== BOT_MAP || !LEVELS[this.level]) {
+    if (!people.length || !mode || !mode.allowAI || core.meta.map !== BOT_MAP || !LEVELS[this.level]) {
       return 0;
     }
     if (people.some((s) => (s.level || 0) < BOT_ROOM_LEVEL)) {
@@ -305,6 +310,20 @@ export class RoomBots {
       const ace = places.get(m.ace);
       return ace ? { chase: ace, boost: CHASE_BOOST } : null;
     };
+  }
+
+  /* The referee's hits (src/game/midair.js hitMessage): an AI pilot one
+   * broke a part of crashes, as a person whose plant the same side breaks
+   * does. A softer touch moves a person a little and leaves it flying;
+   * the AI pilot flies on unmoved. */
+  hits(decided, roomMs) {
+    for (const h of decided) {
+      for (const side of [h.A, h.B]) {
+        if (side.brk > 0 && this.names.has(side.seat)) {
+          this.bots.crash(side.seat, Math.floor(roomMs));
+        }
+      }
+    }
   }
 
   /* The room tick: every AI seat flown to now, its pose handed to the

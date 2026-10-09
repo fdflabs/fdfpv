@@ -217,11 +217,17 @@ check: {
     const t10 = th.e10_zero_speed;
     const kick = (sticks, throttle) => {
       hanging(sim);
-      /* The prop spun up and the wash formed: the plant's thrust follows
-       * the stick with no lag, so a step at the stick is the wash at once.
-       * The servos slew (servo_rate): the stick held 120 ms with the
-       * aircraft held still, past the 87 ms the elevator's 40 deg takes,
-       * then let go for the next 20 ms. */
+      /* The prop spun up and the wash formed: held still at the throttle
+       * for a second, ten of the motor's time constants (prop_spool,
+       * docs/FLIGHTMODEL.md), then the stick steps. The servos slew
+       * (servo_rate): the stick held 120 ms with the aircraft held still,
+       * past the 70 ms the elevator's 40 deg takes, then let go for the
+       * next 20 ms. */
+      for (let ms = 0; ms < 1000; ms += RC_STEP_MS) {
+        must(sim.e.sim_set_pose(0, 600, 60, H, 0, -H, 0), 'sim_set_pose');
+        must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+        step(sim, [0, 0, 0, throttle]);
+      }
       let s = sim.readState().state;
       const pose = [s[1], s[2], s[3], s[7], s[8], s[9], s[10]];
       for (let ms = 0; ms < 120; ms += RC_STEP_MS) {
