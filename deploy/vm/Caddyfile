@@ -53,13 +53,15 @@
 	# Security headers on every answer (docs/SECURITY-HEADERS.md). The
 	# servers answer JSON, WebSockets, GIFs and films to the game's own
 	# origin; none of it is a page, so the policy forbids everything and
-	# nothing here may be framed. The board's pages get their own policy in
-	# its handle below, which runs later and so replaces this one.
+	# nothing here may be framed. The board's pages set their own policy in
+	# its handle below. This block deletes a header, so Caddy applies all of
+	# it as the answer is written, after the board's: the "?" makes the
+	# policy here a default that the board's, already set, keeps.
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 		-Server
 	}
 	# The board believes X-Forwarded-For under BOARD_TRUST_PROXY, so it is

@@ -16,8 +16,10 @@
  *      forbids everything and framing, the board's pages get the board's,
  *   2. the APIs still answer, CORS included, and a WebSocket upgrades
  *      through Caddy,
- *   3. the board's two pages and its admin sign in screen, in headless
- *      Chromium through Caddy, load with no CSP violation,
+ *   3. the board's two pages, in headless Chromium through Caddy, load with
+ *      no CSP violation, and its admin sign in opens and sends a (wrong)
+ *      password that the board refuses; an injected inline script is the
+ *      control that violations are seen at all,
  *   4. two pages of the game make and join a room through Caddy and fly
  *      (scripts/rooms-two-page.js with Caddy as the rooms origin), with the
  *      game's own policy on too (SIM_CSP, scripts/csp.js).
@@ -51,6 +53,12 @@ import { startTracks } from '../tracks-api/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MODE = process.argv[2] || 'enforce';
+if (!['report', 'enforce'].includes(MODE)) {
+  throw new Error(`${MODE}: report or enforce`);
+}
+/* tests/lib/page.js reports every violation a page meets under SIM_CSP;
+ * the board's pages here get their policy from Caddy, not the test server. */
+process.env.SIM_CSP = MODE;
 const CADDY = process.env.CADDY || 'caddy';
 const BOARD = process.env.FDFPV_BOARD || join(root, '..', 'fdfpv-leaderboard');
 const SITE = 'https://paraguayandronecombatsimulator.com';
@@ -121,7 +129,8 @@ try {
   stops.push(() => rooms.stop());
   const board = child(process.execPath, ['src/server.js'], {
     cwd: BOARD,
-    env: { ...process.env, PORT: String(boardPort), BOARD_HOST: '127.0.0.1', BOARD_FILE: join(scratch, 'board.json'), BOARD_TRUST_PROXY: '1', SIM_ORIGIN: SITE },
+    env: { ...process.env, PORT: String(boardPort), BOARD_HOST: '127.0.0.1', BOARD_FILE: join(scratch, 'board.json'), BOARD_TRUST_PROXY: '1', SIM_ORIGIN: SITE,
+      BOARD_ADMINS: 'keeper@example.com:plain:caddy-check-password' },
   });
   procs.push(board);
 
@@ -136,6 +145,9 @@ try {
     .replace('root * /var/lib/fdfpv-vids', `root * ${scratch}`);
   if (MODE === 'report') {
     conf = conf.replace(/Content-Security-Policy "/g, 'Content-Security-Policy-Report-Only "');
+    if (!conf.includes('?Content-Security-Policy-Report-Only "')) {
+      throw new Error('the report swap missed the default policy');
+    }
   }
   conf += `\nhttp://127.0.0.1:${front} {\n\timport servers\n}\n`;
   await writeFile(join(scratch, 'Caddyfile'), conf);
@@ -183,9 +195,30 @@ try {
       await page.until("document.readyState === 'complete'", 30000);
       await page.sleep(3000);
       const seen = await page.evaluate("document.body ? document.body.innerText.length : 0");
-      const csp = page.errors.filter((e) => /Content Security Policy|CSP violation/.test(e));
+      if (path === '/board/') {
+        /* The admin sign in, with the pointer: open it and sign in as the
+         * keeper this board was started with, through the policy. */
+        const at = await page.evaluate("(() => { const b = document.getElementById('admin-open').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()");
+        for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
+          await page.cdp.send('Input.dispatchMouseEvent', { type, ...at, button: 'left', clickCount: 1 }, page.sessionId);
+        }
+        await page.until("!document.getElementById('admin-sheet').hidden", 10000);
+        await page.evaluate("document.getElementById('admin-email').focus(); true");
+        await page.cdp.send('Input.insertText', { text: 'keeper@example.com' }, page.sessionId);
+        await page.evaluate("document.getElementById('admin-password').focus(); true");
+        await page.cdp.send('Input.insertText', { text: 'caddy-check-password' }, page.sessionId);
+        const asked = await page.evaluate("new Promise((r) => { const f = window.fetch; window.fetch = (...a) => { const p = f(...a); if (String(a[0]).includes('admin/login')) { p.then((x) => r(x.status), () => r('blocked')); } return p; }; document.getElementById('admin-signin').requestSubmit(); setTimeout(() => r('no request'), 8000); })");
+        check('/board/: the admin opens and signs in', asked === 200, String(asked));
+      }
+      const csp = page.errors.filter((e) => e.includes('CSP violation'));
       check(`${path} loads and draws, no CSP violation`, seen > 50 && csp.length === 0,
         csp.length ? csp.slice(0, 3).join(' | ') : `${seen} characters of text`);
+      /* The control: an inline script the board's policy does not allow
+       * must be reported, or the zero above means nothing. */
+      await page.evaluate("document.head.append(Object.assign(document.createElement('script'), { textContent: '1' })); true");
+      await page.sleep(500);
+      const control = page.errors.filter((e) => e.includes('CSP violation') && e.includes('script-src')).length;
+      check(`${path}: an injected inline script is reported`, control > 0, `${control}`);
     } finally {
       await page.close();
     }
