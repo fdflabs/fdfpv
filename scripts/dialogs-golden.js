@@ -150,7 +150,7 @@ globalThis.localStorage = {
 };
 globalThis.document = { createElement: (tag) => new FakeElement(tag), activeElement: null };
 globalThis.window = {
-  location: { href: 'https://example.test/?map=track', search: '', hostname: 'example.test', origin: 'https://example.test' },
+  location: { href: 'https://example.test/?map=track', search: '', hostname: 'paraguayandronecombatsimulator.com', origin: 'https://example.test' },
   innerWidth: 1600,
   innerHeight: 900,
   devicePixelRatio: 2,

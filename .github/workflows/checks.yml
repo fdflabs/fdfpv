@@ -261,6 +261,10 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # A pull request's preview, staged and stamped as preview.yml does,
+      # boots on a host that is not the game's with no sign-in and no
+      # request to the production API (docs/PREVIEWS.md).
+      - run: npm run preview:check
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
