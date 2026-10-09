@@ -493,7 +493,7 @@ const ONE_OF = {
  * profile still on one moves to the aircraft's current default once. */
 const OLD_WING_STOCK = { bramor2300: 'wing-stab', sky1800: 'sky-stab' };
 
-const WING_VIEWS = ['fpv', 'chase', 'los', 'ball'];
+const WING_VIEWS = ['fpv', 'chase', 'los', 'pilot', 'ball'];
 
 /*
  * The stored profile, every field present and valid. Reading it also

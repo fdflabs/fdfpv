@@ -1744,6 +1744,7 @@ export default {
   "main.view_fpv": "FPV camera. C changes the view.",
   "main.view_chase": "Chase camera. C changes the view.",
   "main.view_los": "Line of sight, from the strip. C changes the view.",
+  "main.view_pilot": "The pilot's eye, from the strip, nothing zoomed. C changes the view.",
   "ui.fly_label": "Fly",
   "main.throw_it_with_l": "Throttle up to throw it, or press L. C changes the camera.",
   "main.launch_it_off_the_catapult": "Throttle up or press L to launch it off the catapult. P pulls the parachute. C changes the camera.",

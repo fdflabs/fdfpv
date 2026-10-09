@@ -1749,6 +1749,7 @@ export default {
   "main.view_fpv": "Cámara FPV. C cambia la vista.",
   "main.view_chase": "Cámara de persecución. C cambia la vista.",
   "main.view_los": "A la vista, desde la pista. C cambia la vista.",
+  "main.view_pilot": "Los ojos del piloto, desde la pista, sin zoom. C cambia la vista.",
   "ui.fly_label": "Volar",
   "main.throw_it_with_l": "Sube el acelerador para lanzarla, o pulsa L. C cambia la cámara.",
   "main.launch_it_off_the_catapult": "Sube el acelerador o pulsa L para lanzarlo con la catapulta. P abre el paracaídas. C cambia la cámara.",
