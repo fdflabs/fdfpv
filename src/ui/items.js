@@ -37,8 +37,8 @@ import {
   RATES_STORAGE_WARNING, listRatePresets, presetMatching, ratePresetById,
 } from '../../configs/ratepresets.js';
 import {
-  RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, RATE_TYPE_LABEL, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
-  formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault, ratesSummary,
+  RATE_AXES, RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
+  formatRate, fullStickDeg, hoverStickPercent, normaliseRates, profileForType, rateField, ratesAreDefault,
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
@@ -58,7 +58,7 @@ import { nameRules, readAccount, readPilotName } from '../share/pilot.js';
 import { lapSlot, readPendingTime, readPostedBest } from '../share/session.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
-  LOCALES, LOCALE_NAMES, currentLocale, plural, rememberLocale, str,
+  LOCALES, LOCALE_NAMES, currentLocale, hasStr, plural, rememberLocale, str,
 } from '../strings/index.js';
 import { customisable } from './builds.js';
 import { flightTimeText } from './carousel.js';
@@ -102,10 +102,35 @@ const creditsRow = () => ({ label: str('ui.credits'), action: 'credits', note: s
 /* The flight feel report's door, where a pilot has just been flying. */
 const feelRow = () => ({ label: str('ui.flight_feel'), action: 'feel', note: str('ui.tell_the_tune_work_how_the') });
 
+/* A tune's mode word (Stabilised, Manual) in the pilot's language. The
+ * registry names tunes in English; a name with no key (AS3X, a brand) is
+ * shown as it is, and scripts/es-leak-lint.js holds every name to a key or
+ * to its list of words Spanish shares. */
+function tuneName(id) {
+  const name = tuneById(id).name;
+  const key = `tune.name.${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  return hasStr(key) ? str(key) : name;
+}
+
+/* The rate system's name: Classic is Betaflight's, the rest are brands. */
+const rateTypeName = (type) => str(`rates.type_${type.toLowerCase()}`);
+
+/* configs/rates.js ratesSummary, in the pilot's language: that one is the
+ * bug report's, which stays English. */
+function ratesValue(rates) {
+  const p = normaliseRates(rates);
+  const [roll, pitch, yaw] = RATE_AXES.map((axis) => fullStickDeg(p, axis));
+  const reach = roll === pitch
+    ? str('ui.rates_reach_same', { roll, yaw })
+    : str('ui.rates_reach', { roll, pitch, yaw });
+  const limit = p.throttleCap < 100 ? str('ui.rates_capped', { cap: p.throttleCap }) : '';
+  return `${rateTypeName(p.type)}, ${reach}${limit}`;
+}
+
 /* Quad or Plane: the machine's door, valued at what it is flying. */
 function machineRow(s, note) {
   const af = airframeById(s.airframe);
-  const tune = tuneById(s.tune).name;
+  const tune = tuneName(s.tune);
   return {
     label: af.fixedWing ? str('ui.plane') : str('ui.quad'),
     value: af.fixedWing ? `${af.short}, ${tune}` : tune,
@@ -115,7 +140,7 @@ function machineRow(s, note) {
 }
 
 /* The rates room's door, with the whole curve on the row. */
-const ratesRow = (s, note) => ({ label: str('ui.rates'), value: ratesSummary(s.rates), action: 'rates', note });
+const ratesRow = (s, note) => ({ label: str('ui.rates'), value: ratesValue(s.rates), action: 'rates', note });
 
 /* The tune row: the PIDs room's door, saying when the quad flies something
  * other than the tune's own numbers. */
@@ -124,7 +149,7 @@ function tuneRow(s, midRun) {
   const adjusted = pidsAdjusted(s.pids, s.tune);
   return {
     label: str('ui.tune'),
-    value: adjusted ? `${tune.name}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tune.name,
+    value: adjusted ? `${tuneName(s.tune)}, ${pidsSummary(s.pids, s.tune).toLowerCase()}` : tuneName(s.tune),
     action: 'pids',
     note: str('ui.opens_where_the_tune_is_chosen', { note: tune.note, pids: SCREEN_TITLES.pids, v3: midRun ? MID_RUN_WARNING : '' }),
   };
@@ -504,7 +529,7 @@ function yawTipApplies(rates) {
 
 function pilotRows(ui, s) {
   return [
-    { label: 'You', section: true },
+    { label: str('ui.you_section'), section: true },
     choice(str('ui.language'), str('ui.language_note'), LOCALES, currentLocale(), (id) => LOCALE_NAMES[id] || id, (id) => {
       rememberLocale(id);
       window.location.reload();
@@ -770,7 +795,7 @@ function recordSentence(s, trackName) {
     ...(weight !== WEIGHT_STOCK ? [str('ui.weight_at_percent', { weight })] : []),
     str('ui.v_per_cell', { v1: s.packVoltage.toFixed(2) }),
     `${s.laps} lap${s.laps === 1 ? '' : 's'}`,
-    str('ui.the_tune', { name: tuneById(s.tune).name }),
+    str('ui.the_tune', { name: tuneName(s.tune) }),
   ];
   let standing;
   if (arcade) {
@@ -801,7 +826,7 @@ function pausedRows(ui, s) {
     feelRow(),
     { label: str('ui.elsewhere'), section: true },
     machineRow(s, str('ui.pids_camera_flight_mode_and_the', { MID_RUN_WARNING })),
-    { label: str('ui.settings'), value: ratesSummary(s.rates), action: 'pilot', note: str('ui.rates_your_radio_graphics_and_sound') },
+    { label: str('ui.settings'), value: ratesValue(s.rates), action: 'pilot', note: str('ui.rates_your_radio_graphics_and_sound') },
     graphicsRow(s),
     { label: str('ui.how_to_fly'), action: 'howto' },
     creditsRow(),
@@ -976,7 +1001,7 @@ function ratesRoomRows(ui, s) {
   return [
     ...ui.stickPathRow(),
     presetRow,
-    choice(str('ui.rates_type'), str('ui.which_rate_system_the_numbers_below'), RATE_TYPES, r.type, (t) => RATE_TYPE_LABEL[t], (t) => {
+    choice(str('ui.rates_type'), str('ui.which_rate_system_the_numbers_below'), RATE_TYPES, r.type, rateTypeName, (t) => {
       s.rates = profileForType(t, r);
     }),
     toggle(str('ui.separate_pitch'), split ? str('ui.on_pitch_has_its_own_three') : str('ui.off_roll_and_pitch_share_one'), split, (on) => {
@@ -1035,7 +1060,7 @@ function ratesRoomRows(ui, s) {
 /* ---- PIDs ---- */
 
 function pidsRows(ui, s) {
-  const tuneName = tuneById(s.tune).name;
+  const seatedName = tuneName(s.tune);
   /* The readback is only the seated tune's; another tune's is stale. */
   const live = ui.pidsLive && ui.pidsLive.tune === s.tune ? ui.pidsLive : null;
   const tail = [
@@ -1045,8 +1070,8 @@ function pidsRows(ui, s) {
       action: 'pids-default',
       disabled: !pidsAdjusted(s.pids, s.tune),
       note: pidsAdjusted(s.pids, s.tune)
-        ? str('ui.forgets_every_slider_and_hand_set', { tuneName })
-        : str('ui.is_already_flying_its_own_values', { tuneName }),
+        ? str('ui.forgets_every_slider_and_hand_set', { tuneName: seatedName })
+        : str('ui.is_already_flying_its_own_values', { tuneName: seatedName }),
     },
     backRow(),
   ];
@@ -1054,20 +1079,20 @@ function pidsRows(ui, s) {
     /* Until the tune's own values are read back, no row may edit them. */
     return [
       tunePickRow(s, ui.returnTo === 'paused'),
-      { label: str('ui.loading', { tuneName }), info: true, note: str('ui.the_tune_is_being_fetched_and') },
+      { label: str('ui.loading', { tuneName: seatedName }), info: true, note: str('ui.the_tune_is_being_fetched_and') },
       ...tail,
     ];
   }
   const entry = pidsEntry(s.pids, s.tune);
   const expert = Boolean(entry && entry.mode === 'expert' && entry.pids);
-  const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName }).trim() : '';
+  const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName: seatedName }).trim() : '';
   const sliderRow = (k) => {
     const spec = SLIDERS[k];
     const tuneVal = live.baseline[k];
     const moved = Boolean(entry && entry.sliders && k in entry.sliders);
     const notes = [spec.note];
     if (moved) {
-      notes.push(str('ui.ships_this_at_setting_it_back', { tuneName, tuneVal }));
+      notes.push(str('ui.ships_this_at_setting_it_back', { tuneName: seatedName, tuneVal }));
     }
     if (k === 'master' && rpNote) {
       notes.push(rpNote);
@@ -1109,7 +1134,7 @@ function tunePickRow(s, midRun) {
       str('ui.everything_below_belongs_to_this_one', { door, v2: midRun ? MID_RUN_WARNING : '' }),
       ids,
       s.tune,
-      (id) => tuneById(id).name,
+      tuneName,
       (id) => { s.tune = id; },
     ),
     pickOnly: true,
