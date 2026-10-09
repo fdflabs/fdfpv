@@ -25,10 +25,11 @@
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import {
-  BOT_CAP_MEASURE, BOT_MAP, Bots, CONTACT_M, CORRIDOR, DOWN_MS, LEVELS, SPAWN_M, SPAWN_MS, valleyAxis,
+  BOT_CAP_MEASURE, BOT_MAPS, Bots, CONTACT_M, CORRIDOR, DOWN_MS, LEVELS, SPAWN_M, SPAWN_MS, valleyAxis,
 } from '../edge/rooms/bots.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { buildSwissField } from '../src/maps/swiss2/field.js';
+import { buildHeightfield } from '../src/maps/alps/heights.js';
 import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING } from '../src/share/roomwire.js';
 import { BUBBLE_M } from '../src/share/roomtag.js';
 import { encodePose, decodePose } from '../src/share/roomwire.js';
@@ -260,7 +261,7 @@ function crashRows() {
   check("an AI pilot's spawn is a person's: src/main.js ROOM_SPAWN_MS and ROOM_SPAWN_M", ms === SPAWN_MS && m === SPAWN_M, `${ms} ms, ${m} m`);
 
   const field = buildSwissField().height;
-  const ground = groundOf(BOT_MAP);
+  const ground = groundOf('swiss2');
   let worst = 0;
   for (let z = CORRIDOR.zMin; z <= CORRIDOR.zMax; z += 37) {
     for (let dx = -CORRIDOR.half; dx <= CORRIDOR.half; dx += 23) {
@@ -340,12 +341,54 @@ function crashRows() {
   check('a save and restore mid fall falls, lies and is born again bit for bit', same(trace(run1), trace(run2)));
 }
 
+/* The alps: the same valley drawn cel shaded, on the alps' own field. */
+function alpsRows() {
+  const field = buildHeightfield().height;
+  const ground = groundOf('alps');
+  let worst = 0;
+  for (let z = CORRIDOR.zMin; z <= CORRIDOR.zMax; z += 37) {
+    for (let dx = -CORRIDOR.half; dx <= CORRIDOR.half; dx += 23) {
+      const x = valleyAxis(z) + dx;
+      worst = Math.max(worst, Math.abs(ground(x, z) - Math.max(field(x, z), -1.5)));
+    }
+  }
+  check("the alps' ground is the alps' field (alps/heights.js) over the lake's surface, across the corridor (the strip's grass apart)", worst <= 0.02 + 1e-9, `worst ${worst} m`);
+  const bots = new Bots(5, 'alps');
+  for (let s = 1; s <= 8; s += 1) {
+    bots.add(s, ['easy', 'normal', 'hard'][s % 3], 0);
+  }
+  let out = 0;
+  let lowest = Infinity;
+  for (const t of ticks(120000, true)) {
+    for (const { pose } of bots.step(t, tagOrders(bots))) {
+      if (Math.abs(pose.px - valleyAxis(pose.pz)) > CORRIDOR.half + 1e-9 || pose.py < CORRIDOR.yMin - 1e-9 || pose.py > CORRIDOR.yMax + 1e-9) {
+        out += 1;
+      }
+      lowest = Math.min(lowest, pose.py - ground(pose.px, pose.pz));
+    }
+  }
+  check('two minutes of 8 bots over the alps: inside the corridor, none crashed', out === 0 && bots.crashes.ground === 0,
+    `${out} outside, ${bots.crashes.ground} ground crashes, the lowest ${lowest.toFixed(1)} m over the ground`);
+  const saved = JSON.parse(JSON.stringify(bots.save()));
+  const back = new Bots(1);
+  back.restore(saved);
+  check('restored, they fly over the ground they were saved over', back.map === 'alps' && BOT_MAPS.includes('swiss2'), back.map);
+  let threw = false;
+  try {
+    new Bots(1, 'itaipu');
+  } catch (e) {
+    threw = true;
+  }
+  check('a world the room has no ground for gets no bots', threw);
+}
+
 console.log('bots-selftest: edge/rooms/bots.js');
 determinismRows();
 corridorRows();
 axisRow();
 behaviourRows();
 crashRows();
+alpsRows();
 wireRow();
 costRow();
 console.log(failed ? `bots-selftest: ${failed} FAILED` : 'bots-selftest: all pass');

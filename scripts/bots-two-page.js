@@ -14,8 +14,10 @@
  * over the corridor, and an AI pilot the room crashes is seen crashed,
  * lying on the ground, then flying again. A makes a private room: no AI
  * pilots until A, its host, clicks Normal on the AI pilots row; B joins it
- * and reads the host's choice; A clicks Off and they leave. Pictures in
- * outdir, which is not in the repository.
+ * and reads the host's choice; A clicks Off and they leave. C, on the
+ * alps, makes a public room there: AI pilots fill it over the alps' own
+ * ground, which the room has. Pictures in outdir, which is not in the
+ * repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -61,10 +63,10 @@ function check(name, ok, detail = '') {
   }
 }
 
-function seedFor(colour) {
+function seedFor(colour, map = 'swiss2') {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME);
-  s.map = 'swiss2';
-  s.freestyleMap = 'swiss2';
+  s.map = map;
+  s.freestyleMap = map;
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;
@@ -279,6 +281,41 @@ try {
     off && (await b.evaluate('window.__rooms().peers.length')) === 1 && bOff && bOff.value === 'Off', JSON.stringify(bOff));
   await b.close();
   b = null;
+
+  /* THE ALPS: C, on the alps, makes a public Catch the Ace room there:
+   * AI pilots fill it on the alps, drawn in its corridor, over the alps'
+   * own ground, which the room has to the page's. */
+  const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2fb46f', 'alps') });
+  try {
+    await c.until('window.__shellReady === true', 300000);
+    await c.until('window.__map && window.__map().ready', 400000);
+    await c.evaluate("window.__roomCreate({ map: 'alps', mode: 'tag', public: true })");
+    await c.until(`window.__rooms().phase === 'open' && window.__rooms().peers.length === ${FILL_TO - 1}`, 30000).catch(() => {});
+    await c.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    /* The room's world is where its pilots are seated: C flies the alps. */
+    await c.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().id === 'alps' && window.__map().ready", 400000);
+    await c.until(`window.__rooms().peers.filter((p) => p.drawn).length === ${FILL_TO - 1}`, 30000).catch(() => {});
+    const rc = await c.evaluate('window.__rooms()');
+    check(`on the alps, ${FILL_TO - 1} AI pilots join C's room, named as AI, on the alps, drawn in the corridor`, bots(rc).length === FILL_TO - 1
+      && rc.peers.every((p) => p.map === 'alps' && p.drawn && p.at && Math.abs(p.at[0] - valleyAxis(p.at[2])) <= CORRIDOR.half + 5 && p.at[1] >= CORRIDOR.yMin - 5),
+    rc.peers.map((p) => `${p.name} ${p.map} ${p.at ? p.at.map((x) => x.toFixed(0)).join('/') : '-'}`).join('  '));
+    const alpsPage = await c.evaluate(`${JSON.stringify(samples)}.map(([x, z]) => window.__heightAt(x, z))`);
+    const alpsRoom = groundOf('alps');
+    const alpsHigher = samples.map(([x, z], i) => alpsPage[i] - alpsRoom(x, z)).filter((d) => Math.abs(d) >= 1e-3);
+    check(`the room's alps ground is C's at ${samples.length} points over the corridor, but what is built on it`,
+      alpsHigher.length <= samples.length / 50 && alpsHigher.every((d) => d > 0), `${alpsHigher.length} differ: ${alpsHigher.map((d) => d.toFixed(2)).join(', ')} m`);
+    await c.evaluate("document.querySelector('.osd-air-hint-btn')?.click(); true");
+    await c.evaluate(`(() => {
+      const p = window.__rooms().peers.find((q) => q.at).at;
+      window.__setCam(p[0] + 7, p[1] + 2.5, p[2] + 9, p[0], p[1], p[2], 45);
+      return true;
+    })()`);
+    await c.sleep(200);
+    await shot(c, 'c-alps-ai-pilot');
+    a.errors.push(...c.errors);
+  } finally {
+    await c.close();
+  }
 
   const errs = a.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
