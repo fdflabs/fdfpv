@@ -46,6 +46,8 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { startRooms } from '../edge/rooms/node.js';
+import { startTracks } from '../tracks-api/node.js';
+import { GOOGLE_CLIENT_ID } from '../src/share/account.js';
 import { applyPolicies } from './csp.js';
 import { stampSite } from './stamp-version.js';
 
@@ -146,6 +148,27 @@ try {
   await meta.close();
   console.log(`  ${flew ? 'pass' : 'FAIL'}  the stamped page carries the meta and reaches a flight`);
   outcomes.push(['the deployed meta', flew ? 0 : 1]);
+
+  /* Google sign in, for real: with a tracks server that has sign in on,
+   * the page loads Google's own GSI script and draws its button in Google's
+   * frame, which no other check does (they mock GIS). Needs the network. */
+  console.log("\n== Google's sign in button, the real GSI script and frame");
+  const accounts = await startTracks({ db: join(scratch, 'tracks.db'), port: 0, googleClientId: GOOGLE_CLIENT_ID, accountsSecret: 'csp-sweep-secret' });
+  const gsi = await openPage({ root, url: `/index.html?tracks=${encodeURIComponent(`http://127.0.0.1:${accounts.port}`)}` });
+  let drawn = '';
+  try {
+    await gsi.until('!!(window.google && window.google.accounts && window.google.accounts.id)', 120000);
+    await gsi.until("!!document.querySelector('iframe[src^=\"https://accounts.google.com/gsi/\"]')", 60000);
+    drawn = await gsi.evaluate("document.querySelector('iframe[src^=\"https://accounts.google.com/gsi/\"]').src.split('?')[0]");
+    await gsi.sleep(3000);
+  } catch (e) {
+    console.log(`  ${e.message}`);
+  }
+  note('Google sign in', gsi.errors.map((e) => (e.includes('CSP violation: ') ? `csp-violation: ${e.slice(e.indexOf('CSP violation: ') + 15)}` : '')).join('\n'));
+  await gsi.close();
+  await accounts.stop();
+  console.log(`  ${drawn ? 'pass' : 'FAIL'}  GSI loaded and its button frame drawn  (${drawn || 'none'})`);
+  outcomes.push(["Google's sign in", drawn ? 0 : 1]);
 
   for (const url of ['/landing.html', '/privacy.html', '/terms.html', '/vids/index.html']) {
     console.log(`\n== ${url}`);
