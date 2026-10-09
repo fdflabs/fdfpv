@@ -186,6 +186,8 @@ jobs:
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
+      # The control recorder's rows and thumb numbers (src/share/controlrec.js).
+      - run: npm run controlrec:selftest
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
