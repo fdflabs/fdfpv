@@ -871,6 +871,34 @@ pinned hash with the call made and without; a Radian's glide sinking
 falling less far in rising air; it outliving a reset and a still wind,
 and 0 taking it away to the bit.
 
+## The jet's normal force in a hover
+
+Air that crosses the disc sideways leaves along the prop's axis, so the
+prop takes its sideways momentum: Selig, AIAA 2010-7938, eq. 13 to 16,
+N_j = k_j rho A w0 V_T against the disc's sideways air V_T, w0 the
+hover's induced speed sqrt(T / (2 rho A)); "for an airplane in hover the
+damping force makes hovering flight less demanding of the pilot". k_j:
+Selig gives about 80 percent behind a smooth cowling and "nearly 100%"
+for the cruciform nosed profile foamies; the Extra is cowled, 0.80. It
+acts at the disc, 0.302 m ahead of the CG (the drawn model), so it damps
+the nose's swing as well as the drift, and it is washed out away from
+the hover by 1 - m, Selig's jet parameter m = V_N / (V_N + w); his
+classic normal force (eq. 4), which he blends with it, is not in this
+plant. The Extra only so far; every other table leaves k_j at zero.
+
+Measured: a 2 m/s drift, the attitude held vertical at the hover's
+throttle, is 0.64 m/s a second later along the wing and 0.29 across it,
+against 0.94 and 0.54 without; hover:probe's person-limited pilots
+holding the Extra 10 s, Manual 11 to 59 of 648, AS3X 82 to 169.
+
+### Not known: AS3X's heading on this receiver
+
+The Extra's AS3X here is a rate damper. E-flite's manuals describe AS3X
+with a centred stick as "continue to fly at its present attitude", which
+a heading term would do, and Spektrum's receivers carry one ("Heading",
+off by default on the AS3000). Whether the Extra's factory set up (an
+AR636) has it on, and how much, is not published; it is left out until
+that set up is sourced.
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
