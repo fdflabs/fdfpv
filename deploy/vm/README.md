@@ -352,9 +352,9 @@ day after 09:00 local: the monitor is alive, what is failing, and how many
 commits the VM is behind main (information: the VM is deployed by hand).
 
 The ntfy topic and token are in `~/.config/fdfpv-monitor/ntfy.env` (mode
-600, never in the repo); since 2026-10-08 it is the same topic the
-BurnLedger monitor uses, titled "FDFPV". For a topic of its own, change
-`NTFY_URL` there and subscribe to it on the phone. Every curl is pinned to
+600, never in the repo). Since 2026-10-09 FDFPV has its own unguessable
+topic (the lead holds its name for the owner to subscribe to); to move it,
+change `NTFY_URL` there and subscribe to the new one on the phone. Every curl is pinned to
 IPv4 (ntfy's free quota is per source address; see the unit).
 
 Install or update it on the desktop:
