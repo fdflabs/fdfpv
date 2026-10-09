@@ -3407,6 +3407,7 @@ export default {
   "lobby.host": "ANFITRIÓN",
   "lobby.flag_ready": "LISTO",
   "lobby.flag_waiting": "NO LISTO",
+  "lobby.flag_ai": "PILOTO IA",
   "lobby.last_won": "Última misión ganada: {stars} de 3 estrellas, {kills} derribos.",
   "lobby.last_lost": "Última misión perdida, {kills} derribos. Listo otra vez para reintentar.",
   "lobby.last_ended": "Última misión detenida, {kills} derribos.",

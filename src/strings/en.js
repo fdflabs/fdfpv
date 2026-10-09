@@ -3402,6 +3402,7 @@ export default {
   "lobby.host": "HOST",
   "lobby.flag_ready": "READY",
   "lobby.flag_waiting": "NOT READY",
+  "lobby.flag_ai": "AI PILOT",
   "lobby.last_won": "Last mission won: {stars} of 3 stars, {kills} kills.",
   "lobby.last_lost": "Last mission lost, {kills} kills. Ready again to retry.",
   "lobby.last_ended": "Last mission stopped, {kills} kills.",
