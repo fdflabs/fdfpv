@@ -3273,6 +3273,52 @@
      }
     },
     {
+     "id": "freestyle:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3426,6 +3472,52 @@
       "flip()": {
        "settings": {
         "crashDamage": true
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
        }
       }
      }
@@ -26830,6 +26922,52 @@
      }
     },
     {
+     "id": "freestyle:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Volver",
      "action": "back",
@@ -26983,6 +27121,52 @@
       "flip()": {
        "settings": {
         "crashDamage": true
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
        }
       }
      }
