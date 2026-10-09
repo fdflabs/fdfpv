@@ -6946,11 +6946,11 @@
      }
     },
     {
-     "id": "quad:a-rates",
+     "id": "quad:a-planerates",
      "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
-     "action": "rates",
+     "value": "High, 18° 15° 15°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -17052,11 +17052,11 @@
      "drives": {}
     },
     {
-     "id": "paused:a-rates",
+     "id": "paused:a-planerates",
      "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-     "action": "rates",
+     "value": "High, 18° 15° 15°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -30503,11 +30503,11 @@
      }
     },
     {
-     "id": "quad:a-rates",
+     "id": "quad:a-planerates",
      "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
-     "action": "rates",
+     "value": "Alto, 18° 15° 15°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -40609,11 +40609,11 @@
      "drives": {}
     },
     {
-     "id": "paused:a-rates",
+     "id": "paused:a-planerates",
      "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
+     "value": "Alto, 18° 15° 15°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
      "drives": {}
     },
     {

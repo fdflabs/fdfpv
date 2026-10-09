@@ -4145,4 +4145,9 @@ export default {
   "stats.tracks_sub": "Every track with a lap closed",
   "stats.missions": "Missions won",
   "stats.stars": "{n} of {max} stars",
+  "ui.plane_rates_note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+  "ui.plane_rates_lede": "How far the surfaces move at full stick, as the manual sets the radio up. Changes fly at once.",
+  "ui.plane_rate_pick_note": "The {plane}'s throws at full stick, aileron, elevator and rudder, as its manual gives them. Low is the manual's low rate, or 70 percent of high where it gives none; Mid is halfway, a three position switch's middle.",
+  "ui.plane_expo": "{surface} expo",
+  "ui.plane_expo_note": "Softens the stick around centre without changing full stick's throw: 0 is straight, 100 all curve.",
 };

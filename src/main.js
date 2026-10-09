@@ -10457,7 +10457,7 @@ export async function boot({
    * the air needs a refit.
    */
   let runTuneKey = 'null';
-  function applyTuning(s) {
+  function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
@@ -10471,7 +10471,7 @@ export async function boot({
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
     runTuneKey = JSON.stringify(entry);
-    if (entry && entry.flapStart) {
+    if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
     }
   }
@@ -13305,6 +13305,7 @@ export async function boot({
       });
     }
     applyRatesSettings(s);
+    applyPlaneRates(s);
     applyPidSettings(s);
     applyDeviceSettings(s);
     syncAngleMode();
@@ -13430,6 +13431,27 @@ export async function boot({
     runGravityScale = scale;
     if (midLap) {
       race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
+    }
+  }
+
+  /*
+   * A plane's rates from the Rates screen (src/ui/items.js planeRatesRows)
+   * fly at once, as a quad's do: the setup is seated again without a
+   * reset, and only its throws and expo have moved, so the plane flies on
+   * from where it is. The flaps stay where the switch has them. At the
+   * title the next seat takes it (applyRunSettings).
+   */
+  function applyPlaneRates(s) {
+    if (mode === 'title') {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id)) {
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
+      applyTuning(s, true);
     }
   }
 

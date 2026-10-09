@@ -341,6 +341,9 @@ jobs:
       - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
+      # A plane's Rates row is its own throws, and a pick flies at once
+      # (docs/PLANE-RATES.md).
+      - run: npm run planerates:check
       # A rate change mid run keeps the run, tune loads are generation
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).
