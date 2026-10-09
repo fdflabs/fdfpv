@@ -84,7 +84,7 @@ Nelson's forms, as every derivation here uses them:
 | static margin | 0.16 | the kit's; Nelson's neutral point puts it at 0.21, the check |
 | Cm alpha, Cm q, Cm0 | -0.910, -15.83, 0.0687 | Cm0 trims 1.6 Vs elevator neutral |
 | CLmax | 1.10 | ESTIMATED: an 18 percent 64A section at 2.9e5 |
-| CD0, e | 0.045, 0.80 | ESTIMATED: the deep fuselage, four nacelles, fixed gear |
+| CD0, e | 0.0343, 0.782 | Raymer's component build up off the kit's geometry (below); Oswald, Raymer eq. 12.48 |
 | Cl beta | -0.141 | the dihedral -0.049, the high wing -0.044, the fin -0.048 |
 | Cl p, Cl delta a | -0.697, 0.300 | strip theory |
 | Cn beta, Cn r, Cn delta r | 0.088, -0.120, -0.107 | the tall fin less the deep fuselage |
@@ -132,18 +132,45 @@ Each band is the Kadet's in proportion about the derived figure.
 | Gate | Derived | Band |
 | --- | --- | --- |
 | H1 stall, power off | 9.67 m/s | 9.08 to 10.98 |
-| H2 cruise, level at 75 percent stick | 16.69 m/s | 14.35 to 19.45 |
-| H3 glide at 1.25 Vs | L/D 10.53, sink 1.15 m/s | 9.37 to 11.79, sink 1.02 to 1.29 |
-| H4 top speed, level | 22.57 m/s | 20.54 to 25.35 |
-| H5 take off run on grass | 7.12 to 16.13 m, 1.1 to 1.5 Vs | the same, no tail strike |
+| H2 cruise, level at 75 percent stick | 17.36 m/s | 14.93 to 20.22 |
+| H3 glide at 1.25 Vs | L/D 12.43, sink 0.97 m/s | 11.06 to 13.92, sink 0.86 to 1.09 |
+| H4 top speed, level | 23.46 m/s | 21.35 to 26.35 |
+| H5 take off run on grass | 7.06 to 15.80 m, 1.1 to 1.5 Vs | the same, no tail strike |
 | H6 rest | level, CG 0.2604 m, nose 10.75 percent | half a degree, 5 mm, a fifth of the share |
 | H7 every other aircraft unmoved | | every pinned hash |
 | H8 Node and Chrome agree | | identical |
 
-The flight time the hangar shows, 40 minutes at 15.5 m/s, is the plant's
-own (configs/power-estimates.js) on four 3S 5000s at this drag; Paschaloudis
-flies 18 minutes on four 5S 5000s on a bigger, heavier aircraft flown
-faster.
+## The drag and the flight time (lead decision 2026-10-09: physics decides)
+
+The parasite drag is built up from the kit's geometry (Raymer, Aircraft
+Design, sec. 12.5) at the cruise's Reynolds numbers, skin friction the
+mean of laminar and turbulent, its band all laminar to all turbulent:
+
+| Part | CD on 1.0486 m² |
+| --- | --- |
+| wing, 0.876 m² exposed, t/c 0.15 | 0.0083 |
+| fuselage, fineness 6.6 | 0.0053 |
+| upswept tail cone, 15 deg (eq. 12.36) | 0.0116 |
+| tailplane and fin, Q 1.04 | 0.0030 |
+| four nacelles, Q 1.3 | 0.0012 |
+| two sponsons, Q 1.3 | 0.0011 |
+| tyres and the nose leg | 0.0009 |
+| leaks and protuberances, 10 percent | |
+| **CD0** | **0.0343** (0.019 to 0.052) |
+
+It replaces the earlier 0.045 estimate; the upswept tail, the C-130's
+known drag, is a third of it. The Oswald factor is 0.782.
+
+**Flight time**: steady cruise at 1.6 Vs on four 3S 5000s (80 percent
+used), the prop 0.55, motor 0.80, ESC 0.95: **44 minutes**, band **26 to
+81** (the drag's band, a prop from 0.45 to 0.65). The plant's own figure
+the hangar shows (configs/power-estimates.js) is 48.6. **Cross check**:
+Paschaloudis's 11 ft C-130 flies 18 minutes on four 5S 5000s. The same
+aircraft at its 3.35 m span and an ESTIMATED 10 kg cruises in steady
+level flight for 44 minutes by this drag; his 18 minutes is 2.4 times
+that power on average, which a flight of climbs, full power take offs
+and faster passes draws. A pilot flying the Hercules the same way should
+expect about 18 to 20 minutes; a gentle scale cruise, the 40s.
 
 ## The drawn model, the crash parts, the gear
 

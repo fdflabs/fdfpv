@@ -395,8 +395,8 @@ export const ESTIMATES = {
   hercules3077: {
     stock: {
       '3s5000x4': {
-        topSpeed: 22.34,
-        minutes: 40
+        topSpeed: 23.24,
+        minutes: 48.6
       }
     }
   },
