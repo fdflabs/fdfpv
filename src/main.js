@@ -3571,6 +3571,20 @@ export async function boot({
     }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
+  /* Whether a peer is an AI pilot the room flies (shownName). */
+  function roomBot(peer) {
+    return Boolean(peer.name && peer.name.bot);
+  }
+  /* The people here, this pilot too, and the room's AI pilots apart:
+   * "n here" is people, the AI pilots a "+n" after it, since one leaves
+   * for every person who comes (edge/rooms/roombots.js). */
+  function roomHere() {
+    const bots = [...roomPeers.values()].filter(roomBot).length;
+    return { n: roomPeers.size + 1 - bots, bots };
+  }
+  function roomHereText(text, bots) {
+    return bots ? `${text}, ${plural('count.ai_pilots_extra', bots)}` : text;
+  }
   function roomProfile() {
     const status = roomStatus();
     /* Off the air in a war room (its lobby, its briefing) the aircraft the
@@ -4319,6 +4333,7 @@ export async function boot({
   /* In a room on its watch seat (edge/rooms/core.js watch,
    * docs/FLIGHTCLUB-PROGRESSION.md section 3): the war spectator's camera
    * on whoever flies, its own aircraft never shown or sent. */
+  ui.watching = () => roomWatching();
   function roomWatching() {
     const st = roomLinkState.state();
     return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
@@ -7171,10 +7186,11 @@ export async function boot({
     }
     const st = roomLinkState.state();
     if (st.phase === 'open') {
+      const here = roomHere();
       return {
-        value: st.welcome && st.welcome.public
-          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: roomPeers.size + 1 })
-          : str('friends.row_in', { code: st.code, n: roomPeers.size + 1 }),
+        value: roomHereText(st.welcome && st.welcome.public
+          ? str('friends.row_in_public', { name: roomBrowser.title(st.welcome), n: here.n })
+          : str('friends.row_in', { code: st.code, n: here.n }), here.bots),
         note: str('friends.row_in_note'),
         inRoom: true,
       };
@@ -7234,6 +7250,12 @@ export async function boot({
         const out = [];
         for (const peer of roomPeers.values()) {
           const craft = airframeById(peer.profile.airframe).name;
+          /* An AI pilot has no voice, says nothing, and cannot be kicked
+           * or handed the room: its row only says what it is. */
+          if (roomBot(peer)) {
+            out.push({ label: roomName(peer.name), value: craft, note: str('friends.bot_note'), info: true });
+            continue;
+          }
           const muted = roomSafety.isMuted(peer.seat);
           const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
           /* A report picked from this row asks here before it is sent. */
@@ -7341,7 +7363,7 @@ export async function boot({
           : { label: str('friends.code_row'), value: st.code, note: roomNote || str('friends.code_note'), action: 'friends-copy' },
         {
           label: str('friends.here'),
-          value: str('friends.here_value', { n: roomPeers.size + 1, cap: w ? w.cap : 8 }),
+          value: roomHereText(str('friends.here_value', { n: roomHere().n, cap: w ? w.cap : 8 }), roomHere().bots),
           note: str('friends.here_note'),
           info: true,
         },
@@ -14812,6 +14834,7 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      start: input.padStartButton(),
       flip: input.padLookClick(),
       look: input.padLookStick(),
     };
@@ -15134,8 +15157,11 @@ export async function boot({
       if (repeat) {
         return;
       }
+      /* Escape is the pause menu, as for a pilot: leaving is a row in it
+       * (lead 2026-10-09), not one stray key. */
       if (code === 'Escape') {
-        ui.onFriends('friends-leave');
+        ui.act('pause');
+        ui.show('paused');
       } else if (code !== 'KeyR' && code !== 'KeyX' && code !== 'Tab') {
         warWatch(code === 'BracketLeft' ? -1 : 1);
       }
@@ -16486,6 +16512,8 @@ export async function boot({
      * builder is building on the same screen, where Y carries a gate. */
     if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
+      /* The menus poll the pad only while one is up, so Start is read here. */
+      ui.pollStart(input.padStartButton());
     }
     if (worldHold && mode === 'title') {
       releaseWorldHold();
