@@ -34,7 +34,7 @@ import {
   roadSign, telegraphPole, cone, fence,
 } from './kit.js';
 import { ribbon } from './ribbon.js';
-import { standWalls } from './roofs.js';
+import { standWalls } from '../../render/library/roofs.js';
 import { setSolidSurface } from '../../game/crashworld.js';
 import { STRIP_L, STRIP_W, STRIP_Y } from './terrain.js';
 

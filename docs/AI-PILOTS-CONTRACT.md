@@ -14,10 +14,9 @@ half) is another lane's.
   pilot: `AI Brave Fox 3` in English, `IA Zorro Valiente 3` in Spanish
   (`bots.name` in src/strings). An AI pilot is never shown without the mark.
 - The game lobby shows the AI pilots in its seat list, marked the same way.
-  The host's row (AI pilots, Off / Easy / Normal / Hard) is PR 4's client
-  half; the room's half (`{ type: 'bots', level }` from the host, told to
-  everybody, `bots` in the welcome) ships in PR 3. A room made for tag
-  starts at Normal.
+  The host's row (AI pilots, Off / Easy / Normal / Hard) sends
+  `{ type: 'bots', level }`; the room tells everybody and the welcome
+  carries `bots`. A public room starts at Normal, a private one Off.
 - A real pilot joining a room takes a seat an AI pilot held: the AI pilot
   leaves (a normal leave on every screen) and the newcomer is never refused
   `full` because of AI pilots.
@@ -114,8 +113,10 @@ check, the tick's batch recipients). Those 17 go through one helper,
 
 ## Fill and leave
 
-- Until the host's lobby row exists (lead, 2026-10-07), only PUBLIC rooms
-  are filled; a private room gets none.
+- A public room starts at Normal, a private room Off (lead, 2026-10-08);
+  the host's AI pilots row on the room screen and in the lobby switches
+  them on or off and sets the level, in either. Everybody else reads the
+  host's choice on the same row.
 - A room made for tag fills up to FILL_TO pilots (people plus AI) while it
   has at least one person, at the host's difficulty; the default is Normal
   in a room made for the game and Off anywhere else.

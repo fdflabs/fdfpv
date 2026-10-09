@@ -133,7 +133,7 @@ const seed = [`try {
  * the world, and the drawn craft's points. */
 const HELPERS = `(async () => {
   const P = await import('/src/maps/itaipu/vegetation/plant.js');
-  const sp = await import('/src/maps/swiss2/vegetation/species.js');
+  const sp = await import('/src/render/library/vegetation/species.js');
   const THREE = window.__three;
   const veg = window.__mapScene().userData.itaipu.parts.vegetation;
   const f = veg.forest;

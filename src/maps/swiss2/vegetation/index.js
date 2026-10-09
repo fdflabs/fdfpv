@@ -28,12 +28,12 @@
  */
 
 import * as THREE from 'three';
-import { makeRng } from '../../alps/noise.js';
+import { makeRng } from '../../../render/library/noise.js';
 import { valleyLayout, lakeShore, jettyClear } from './zones.js';
-import { loadAtlases } from './atlas.js';
-import { VARIANTS, buildVariant, triangles } from './species.js';
-import { windUniforms, plantMaterial, plantDepthMaterial } from './plantmat.js';
-import { bakeImpostors, impostorMaterial, impostorDepthMaterial, impostorMesh } from './impostor.js';
+import { loadAtlases } from '../../../render/library/vegetation/atlas.js';
+import { VARIANTS, buildVariant, triangles } from '../../../render/library/vegetation/species.js';
+import { windUniforms, plantMaterial, plantDepthMaterial } from '../../../render/library/vegetation/plantmat.js';
+import { bakeImpostors, impostorMaterial, impostorDepthMaterial, impostorMesh } from '../../../render/library/vegetation/impostor.js';
 import { plantForest, forestLod } from './forest.js';
 import { buildRocks, waterStones } from './rocks.js';
 import { buildGrass } from './grass.js';

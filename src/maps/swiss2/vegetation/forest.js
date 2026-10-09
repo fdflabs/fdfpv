@@ -62,9 +62,9 @@
  */
 
 import * as THREE from 'three';
-import { noise2, smoothstep } from '../../alps/noise.js';
+import { noise2, smoothstep } from '../../../render/library/noise.js';
 import { FIELD, HALF, LAKE_Y, TREE_LINE, treeLine, forestDensity, valleyAxis } from '../../alps/terrain.js';
-import { CLUMP_REACH, VARIANTS, crownClumps } from './species.js';
+import { CLUMP_REACH, VARIANTS, crownClumps } from '../../../render/library/vegetation/species.js';
 import { meadowCuts } from './zones.js';
 
 const V = Object.fromEntries(VARIANTS.map((v, k) => [v.name, k]));

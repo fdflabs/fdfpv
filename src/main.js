@@ -496,9 +496,10 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 49 in
- * all. The Alps modules it builds through are counted under their own
- * prefix, so they are not in this number, and a pilot who flew the Alps
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 45 in
+ * all. The Alps modules it builds through, and the asset library's
+ * (src/render/library/, where its tree models went), are under their own
+ * prefixes, so they are not in this number, and a pilot who flew the Alps
  * first already has them. Check 16 asserts this count against what the
  * browser actually fetched on choosing the valley, because a bar weight
  * that is wrong cannot break a load and so nothing else would notice: 61
@@ -526,7 +527,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 34 };
+const MAP_MODULE_COUNT = { swiss2: 45, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -3433,10 +3434,10 @@ export async function boot({
     }
     const on = ui.settings.live === 'on';
     const state = liveLink.state();
-    let value = 'Off';
+    let value = str('main.live_off');
     if (on) {
       value = state === 'open'
-        ? (livePeers.size ? `${livePeers.size} here` : str('main.alone'))
+        ? (livePeers.size ? str('main.live_here', { n: livePeers.size }) : str('main.alone'))
         : (state === 'failed' ? str('main.no_room') : str('main.joining'));
     }
     ui.setLiveRow({
@@ -4479,7 +4480,7 @@ export async function boot({
         note: 'lobby.goal_note',
         value: (n) => plural('count.points', n),
       },
-      rows: () => [],
+      rows: (host) => roomBotRows(host),
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
     },
     jam: {
@@ -4620,6 +4621,8 @@ export async function boot({
          * only the war's aircraft may be. */
         aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
+        /* An AI pilot (src/share/rooms.js shownName). */
+        ai: seat !== w.seat && Boolean(roomPeers.get(seat).name.bot),
         host: seat === w.host,
         me: seat === w.seat,
       })),
@@ -7232,7 +7235,7 @@ export async function boot({
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
-        tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
+        tag: [...(game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host)), ...roomBotRows(host)],
         combat: combatRows(host, w, game === 'combat'),
         jam: jamRows(host, w, game === 'jam'),
         war: warRows(host, w),
@@ -8279,6 +8282,33 @@ export async function boot({
         ui.refreshFriends();
       },
     });
+  }
+
+  /* The host's say over the room's AI pilots (edge/rooms/roombots.js),
+   * where its game has them: off, or how well they fly. A public room
+   * starts with them on, a private one off. Everybody else is told what
+   * the host chose. */
+  const BOT_LEVELS = ['off', 'easy', 'normal', 'hard'];
+  function roomBotRows(host) {
+    const w = roomLinkState.state().welcome;
+    const mode = w ? modeOfRoom(w.mode) : null;
+    if (!w || !mode || !mode.allowAI || !BOT_LEVELS.includes(w.bots)) {
+      return [];
+    }
+    const value = str(`lobby.ai_level.${w.bots}`);
+    if (!host) {
+      return [{ label: str('lobby.ai_pilots'), value, note: str('lobby.ai_pilots_guest_note'), info: true }];
+    }
+    const set = (level) => roomLinkState.send({ type: 'bots', level });
+    return [{
+      label: str('lobby.ai_pilots'),
+      value,
+      note: str('lobby.ai_pilots_note'),
+      current: w.bots,
+      options: BOT_LEVELS.map((l) => ({ value: l, label: str(`lobby.ai_level.${l}`) })),
+      pick: set,
+      adjust: (d) => set(BOT_LEVELS[(BOT_LEVELS.indexOf(w.bots) + d + BOT_LEVELS.length) % BOT_LEVELS.length]),
+    }];
   }
 
   function roomTagAction(action) {
@@ -11284,7 +11314,7 @@ export async function boot({
   /* The solids near crashProbe for the free bodies. A roof the craft is
    * on stands over the walls under it, and the city's staircase stands up
    * into it: the parts meet the roof, which is the ground, not them. The
-   * same solids the sweep lets through (src/maps/alps/roofs.js cover),
+   * same solids the sweep lets through (src/render/library/roofs.js cover),
    * chosen from where the plant is, so the set stays a function of the
    * flight. */
   function declareCrashSolids(must = -1) {
@@ -11362,7 +11392,7 @@ export async function boot({
 
   /*
    * A ROOF IS A SOLID FOR THE BROKEN PARTS. The craft stands on a roof
-   * through the plant's ground plane (src/maps/alps/roofs.js), but a free
+   * through the plant's ground plane (src/render/library/roofs.js), but a free
    * part has no ground but that one plane under the craft, and the roof was
    * declared to the plant as nothing: a Cub's aileron that fell on a roof
    * beside the craft went through the tiles and came to rest on the walls'
@@ -11890,10 +11920,11 @@ export async function boot({
    * In a room the room's air (its welcome, set by the host) on the room's
    * clock, so every pilot meets a front where the others do; the clock is
    * read once per run, which keeps the run's own steps a function of its
-   * own clock. A war is calm (docs/WEATHER-CONTRACT.md). Solo, the pick
-   * window.__weather made, until the settings pick it.
+   * own clock (docs/WEATHER-CONTRACT.md). Solo, the
+   * pilot's setting with one fixed seed, so a solo flight meets the same
+   * air every time (window.__weather can name another seed).
    */
-  let weatherPick = { preset: 'calm', seed: 0 };
+  let soloSeed = 1;
   let weather = null;
   let windSet = false;
   const airPos = new THREE.Vector3();
@@ -11913,7 +11944,11 @@ export async function boot({
   let weatherFlown = null;
   function seatWeather() {
     const welcome = roomLinkState.state().welcome;
-    const pick = welcome ? (roomWar.on() ? null : welcome.weather) : weatherPick;
+    offerRoomWeather(ui.settings);
+    /* Free flight only: a race map's records, a war and a mission are
+     * flown in still air, the same for everyone who ever flew them. */
+    const free = view.mode === 'freestyle' && !roomWar.on() && !roomOps.on();
+    const pick = !free ? null : (welcome ? welcome.weather : { preset: ui.settings.weather, seed: soloSeed });
     /* A room's air is from the network, and may name what this build does
      * not know (a newer server) or a world without weather: still air. */
     const known = pick && WEATHER_PRESETS.includes(pick.preset) && Object.hasOwn(WEATHER_MAPS, view.id);
@@ -11937,15 +11972,20 @@ export async function boot({
   }
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
-  window.__roomWeather = (preset) => {
-    roomLinkState.sendWeather(preset);
-    return true;
-  };
   window.__weather = (preset, seed) => {
     makeWeather(view.id, preset, seed);
-    weatherPick = { preset, seed: seed >>> 0 };
+    ui.settings.weather = preset;
+    soloSeed = seed >>> 0;
     return true;
   };
+  /* A host's setting is the room's air: told to the room when they differ,
+   * which every pilot's next run then flies. */
+  function offerRoomWeather(s) {
+    const w = roomLinkState.state().welcome;
+    if (roomHost(w) && w.weather && w.weather.preset !== s.weather) {
+      roomLinkState.sendWeather(s.weather);
+    }
+  }
 
   /* The plant's calls here are in the order recorded flights and
    * contact:golden start from, so they stay in it. */
@@ -13290,6 +13330,7 @@ export async function boot({
       applyRunSettings(s);
     }
     applyAirSettings(s);
+    offerRoomWeather(s);
     race.setRecordKey(recordKey());
     paintBest();
     if (!worldMatchesSettings()) {
@@ -15107,12 +15148,12 @@ export async function boot({
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       /* A ball carried adds its picture as a fourth view (THE CAMERA BALL). */
-      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'ball'] : ['fpv', 'chase', 'los'];
+      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'pilot', 'ball'] : ['fpv', 'chase', 'los', 'pilot'];
       ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
       ui.persistSettings();
       chaseValid = false;
       const said = {
-        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), ball: str('main.view_ball'),
+        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), pilot: str('main.view_pilot'), ball: str('main.view_ball'),
       };
       notice = { text: said[ui.settings.wingView], untilMs: performance.now() + 1800 };
       return;
@@ -15641,7 +15682,7 @@ export async function boot({
     }
     /* A roof that is the craft's ground is its contact, not the walls
      * under it, which the swept hull would otherwise reach through the
-     * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
+     * shell (src/render/library/roofs.js). Same fromY as the ground plane. */
     if (view.cover) {
       view.cover(obsTo.x, obsTo.z, obsTo.y - SURFACE_BIAS);
     }
@@ -17476,6 +17517,9 @@ export async function boot({
    * (its heading while it drifts on the water, levelled for a wreck), the
    * line of sight stands behind the spawn and zooms to keep the span.
    */
+  /* deg: a monitor or a laptop at arm's length subtends about 40 to 55
+   * deg of a person's view, ESTIMATED; at 50 the picture is life size. */
+  const PILOT_FOV = 50;
   function outsideCamera(dt, nowWall) {
     shell.quad.visible = true;
     shell.camera.up.set(0, 1, 0);
@@ -17494,24 +17538,34 @@ export async function boot({
     losPos.y = view.height(losPos.x, losPos.z, Infinity) + 1.7;
     shell.camera.position.copy(losPos);
     shell.camera.lookAt(pCurr);
-    const d = Math.max(1, losPos.distanceTo(pCurr));
-    setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    /* The pilot's own view: the same spot, the picture as wide as a screen
+     * at arm's length is to the eye, so the aircraft is the size it would
+     * look from the strip and nothing zooms. Line of sight keeps it large. */
+    if (ui.settings.wingView === 'pilot') {
+      setFov(PILOT_FOV);
+    } else {
+      const d = Math.max(1, losPos.distanceTo(pCurr));
+      setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    }
     chaseValid = false;
   }
 
   /*
    * How far the chase camera turns toward the craft's travel this frame,
-   * and toward what. The pull is weighted by the speed: a hovering 3D
-   * plane travels nowhere, and the few millimetres it drifts a frame,
-   * taken as a direction, swung a travel led camera round it at random;
-   * slow, the camera stays where it was, a pilot standing still. And the
+   * and toward what. Slow, it does not turn: a hovering 3D plane travels
+   * nowhere, and the few millimetres it drifts a frame, taken as a
+   * direction, swung a travel led camera round it at random; under 4 m/s
+   * the camera holds its heading, a pilot standing still. And the
    * travel's climb is held under CHASE_STEEP of the direction, its own
    * bearing kept (or the camera's, straight up or down), or a vertical
    * line would put the camera under the plane looking up along world up,
    * where its yaw is undefined. Reads chaseStep, this frame's travel, and
    * chaseDir; returns the lerp's share, the target in chaseHead.
    */
-  const CHASE_SLOW = 4; /* m/s: at this speed the pull is half its full */
+  /* m/s: under CHASE_SLOW the camera holds its heading, a hovering or
+   * hanging plane's; it takes the travel back over the next CHASE_RAMP. */
+  const CHASE_SLOW = 4;
+  const CHASE_RAMP = 2;
   const CHASE_STEEP = 0.8;
   function chaseTurn(dt, k) {
     const travel = chaseStep.length();
@@ -17532,7 +17586,8 @@ export async function boot({
       chaseHead.normalize().multiplyScalar(Math.sqrt(1 - CHASE_STEEP * CHASE_STEEP));
       chaseHead.y = up * CHASE_STEEP;
     }
-    return Math.min(1, k) * speed * speed / (speed * speed + CHASE_SLOW * CHASE_SLOW);
+    const w = Math.min(1, Math.max(0, (speed - CHASE_SLOW) / CHASE_RAMP));
+    return Math.min(1, k) * w;
   }
 
   function chaseCamera(dt, nowWall, span) {
@@ -19609,7 +19664,7 @@ export async function boot({
    * otherwise load a second three.js whose classes this scene's objects are
    * not instances of. */
   window.__three = THREE;
-  /* The roofs (src/maps/alps/roofs.js): each one's frame, plate, wall
+  /* The roofs (src/render/library/roofs.js): each one's frame, plate, wall
    * rectangle, covering, what building it is and the collider indices of
    * the walls under it, so a capture can fly at a real roof. Empty where
    * a map has none. Harness only. */
