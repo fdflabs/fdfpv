@@ -15085,12 +15085,12 @@ export async function boot({
     }
     if (code === 'KeyC' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       /* A ball carried adds its picture as a fourth view (THE CAMERA BALL). */
-      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'ball'] : ['fpv', 'chase', 'los'];
+      const views = ballFor(runAirframe) ? ['fpv', 'chase', 'los', 'pilot', 'ball'] : ['fpv', 'chase', 'los', 'pilot'];
       ui.settings.wingView = views[(views.indexOf(ui.settings.wingView) + 1) % views.length];
       ui.persistSettings();
       chaseValid = false;
       const said = {
-        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), ball: str('main.view_ball'),
+        fpv: str('main.view_fpv'), chase: str('main.view_chase'), los: str('main.view_los'), pilot: str('main.view_pilot'), ball: str('main.view_ball'),
       };
       notice = { text: said[ui.settings.wingView], untilMs: performance.now() + 1800 };
       return;
@@ -17454,6 +17454,9 @@ export async function boot({
    * (its heading while it drifts on the water, levelled for a wreck), the
    * line of sight stands behind the spawn and zooms to keep the span.
    */
+  /* deg: a monitor or a laptop at arm's length subtends about 40 to 55
+   * deg of a person's view, ESTIMATED; at 50 the picture is life size. */
+  const PILOT_FOV = 50;
   function outsideCamera(dt, nowWall) {
     shell.quad.visible = true;
     shell.camera.up.set(0, 1, 0);
@@ -17472,24 +17475,34 @@ export async function boot({
     losPos.y = view.height(losPos.x, losPos.z, Infinity) + 1.7;
     shell.camera.position.copy(losPos);
     shell.camera.lookAt(pCurr);
-    const d = Math.max(1, losPos.distanceTo(pCurr));
-    setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    /* The pilot's own view: the same spot, the picture as wide as a screen
+     * at arm's length is to the eye, so the aircraft is the size it would
+     * look from the strip and nothing zooms. Line of sight keeps it large. */
+    if (ui.settings.wingView === 'pilot') {
+      setFov(PILOT_FOV);
+    } else {
+      const d = Math.max(1, losPos.distanceTo(pCurr));
+      setFov(Math.min(45, Math.max(12, 2 * Math.atan((span * 5) / d) * 180 / Math.PI)));
+    }
     chaseValid = false;
   }
 
   /*
    * How far the chase camera turns toward the craft's travel this frame,
-   * and toward what. The pull is weighted by the speed: a hovering 3D
-   * plane travels nowhere, and the few millimetres it drifts a frame,
-   * taken as a direction, swung a travel led camera round it at random;
-   * slow, the camera stays where it was, a pilot standing still. And the
+   * and toward what. Slow, it does not turn: a hovering 3D plane travels
+   * nowhere, and the few millimetres it drifts a frame, taken as a
+   * direction, swung a travel led camera round it at random; under 4 m/s
+   * the camera holds its heading, a pilot standing still. And the
    * travel's climb is held under CHASE_STEEP of the direction, its own
    * bearing kept (or the camera's, straight up or down), or a vertical
    * line would put the camera under the plane looking up along world up,
    * where its yaw is undefined. Reads chaseStep, this frame's travel, and
    * chaseDir; returns the lerp's share, the target in chaseHead.
    */
-  const CHASE_SLOW = 4; /* m/s: at this speed the pull is half its full */
+  /* m/s: under CHASE_SLOW the camera holds its heading, a hovering or
+   * hanging plane's; it takes the travel back over the next CHASE_RAMP. */
+  const CHASE_SLOW = 4;
+  const CHASE_RAMP = 2;
   const CHASE_STEEP = 0.8;
   function chaseTurn(dt, k) {
     const travel = chaseStep.length();
@@ -17510,7 +17523,8 @@ export async function boot({
       chaseHead.normalize().multiplyScalar(Math.sqrt(1 - CHASE_STEEP * CHASE_STEEP));
       chaseHead.y = up * CHASE_STEEP;
     }
-    return Math.min(1, k) * speed * speed / (speed * speed + CHASE_SLOW * CHASE_SLOW);
+    const w = Math.min(1, Math.max(0, (speed - CHASE_SLOW) / CHASE_RAMP));
+    return Math.min(1, k) * w;
   }
 
   function chaseCamera(dt, nowWall, span) {
