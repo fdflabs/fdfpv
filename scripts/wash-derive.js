@@ -1,14 +1,14 @@
 /*
- * wash-derive.js: every tractor's slipstream terms, FixedWingParams slip_*
+ * wash-derive.js: every slipstream's terms, FixedWingParams slip_*
  * in src/native/plant_wing.c (docs/FLIGHTMODEL.md), from its drawn
  * geometry through scripts/lib/wash.js. Each row's numbers are its own
  * derivation's (scripts/<name>-derive.js and docs/<NAME>-STAGE1.md); the
  * fin's heights over and under the thrust line are read off the render
  * models where no derivation gives them, marked so. Aircraft left out, and
  * why: the 1000 mm wing, the Bramor, the Zagi and the Striker push from
- * behind everything; the Skyhunter's pusher blows over the middle of its
- * stabiliser but past both its boom fins, which this form cannot split,
- * so it is left for a later pass; the F-16's fan exhausts past its tail;
+ * behind everything (the Skyhunter's is behind its wing but ahead of its
+ * tail, and blows the middle of its stabiliser, slip_pusher); the F-16's
+ * fan exhausts past its tail;
  * the NRJ has no motor. With --check it fails when a table differs from
  * what it derives past the printed rounding. Run with npm run wash:derive.
  *
@@ -45,6 +45,11 @@ const DEG = Math.PI / 180;
  * finite.
  */
 const GEO = {
+  /* The Skyhunter's pusher sits behind the wing and blows the middle of
+   * its stabiliser, 0.456 m of span between the booms, and past both boom
+   * fins, 0.232 m out (docs/SKYHUNTER-STAGE1.md, the 3D model): no fin in
+   * the wash, no root behind the prop. */
+  FW_SKY1800: { propR: 0.1397, S: 0.36, b: 1.80, Sh: 0.0593, bh: 0.456, Sv: 0.040, hv: [0, 0], ya: [0.45, 0.85], at: 4.00, av: 3.61, eta: 0.9, deda: 0.364, VH: 0.57, VV: 0.043, lv: 0.69, zv: 0.10, azl: -4.0, cl: 0.415, cla: 5.52, pusher: true },
   FW_CUB1400: { propR: 0.1397, S: 0.28, b: 1.40, Sh: 0.047, bh: 0.38, Sv: 0.020, hv: [0.158, 0.01], ya: [0.28, 0.66], at: 3.806, av: 2.693, eta: 0.9, deda: 0.444, VH: 0.434, VV: 0.0289, lv: 0.567, zv: 0.104, azl: -5.0, cl: 0.524, cla: 5.21 },
   FW_CUB1400F: { same: 'FW_CUB1400' },
   FW_RADIAN2000: { propR: 0.1238, S: 0.355, b: 2.0, Sh: 0.0476, bh: 0.477, Sv: 0.038, hv: [0.276, 0.01], ya: [0.9, 1.0], at: 4.43, av: 3.04, eta: 0.9, deda: 0.301, VH: 0.496, VV: 0.0343, lv: 0.64, zv: 0.13, azl: -5.0, cl: 0.75, cla: 5.709 },
@@ -68,6 +73,7 @@ export function derive(name) {
   const s = shares({ ...g, ClbFin, a0 });
   const out = {};
   for (const [k, v] of Object.entries(s)) out[k] = Array.isArray(v) ? v.map(r4) : r4(v);
+  if (g.pusher) out.slip_pusher = 1;
   return out;
 }
 
@@ -75,7 +81,7 @@ export function cLine(d) {
   const a = (v) => `{ ${v[0]}, ${v[1]} }`;
   return `  .slip_r = ${d.slip_r}, .slip_yh = ${d.slip_yh}, .slip_hv = ${a(d.slip_hv)}, .slip_ya = ${a(d.slip_ya)},\n` +
     `  .slip_a0 = ${d.slip_a0}, .slip_cl_a = ${d.slip_cl_a}, .slip_cm_a = ${d.slip_cm_a}, .slip_cn_b = ${d.slip_cn_b},\n` +
-    `  .slip_cn_r = ${d.slip_cn_r}, .slip_cy_b = ${d.slip_cy_b}, .slip_cl_b = ${d.slip_cl_b},`;
+    `  .slip_cn_r = ${d.slip_cn_r}, .slip_cy_b = ${d.slip_cy_b}, .slip_cl_b = ${d.slip_cl_b},${d.slip_pusher ? ' .slip_pusher = 1,' : ''}`;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
