@@ -85,15 +85,16 @@ family that uses them moves (their noise already has).
 
 ## Lit tree crowns (`src/render/library/crowns.js`)
 
-A crown is an ellipsoid, `r` across and `ry` up, drawn as a lumpy
-icosahedron (or, far off, one point) and shaded in the fragment as the
-ellipsoid it stands for: a pixel is kept only where the camera's ray meets
-the ellipsoid less a few decimetres where its lobes and clumps go in, and
-lit by that surface's normal, dark under, lit and warmer on top, broken
+A crown is sized by an ellipsoid, `r` across and `ry` up, and shaped by
+seven lobes inside it (`crownshape.js`, one of twelve layouts): a core, a
+top and five side heaps, with real gaps between them at the edge. It is
+drawn as a lumpy icosahedron round the ellipsoid (or, far off, one point)
+and cut in the fragment to the lobes, lit by the lobe's normal, dark under, lit and warmer on top, broken
 into big lobes and, close up, clumps of leaves, rimmed by the low sun.
 
 - **Inputs**: per crown its middle, `r`, `ry`, a colour (the map's palette)
-  and a seed in [0, 1); per tier the hand over distances.
+  a seed in [0, 1) and its lobe layout (`aLobe`); per tier the hand over
+  distances.
 - **Outputs**: `crownGeometry(THREE, detail, lump)` the ball,
   `fitOf(geometry)` the scale that has the ball straddle the ellipsoid,
   `crownMaterial(THREE, mode, uniforms)` the material for a tier: 0 near
@@ -101,9 +102,11 @@ into big lobes and, close up, clumps of leaves, rimmed by the low sun.
   3 one point a block of forest. Balls are instanced (instance matrix =
   middle and radii, instance colour), points carry `position`, `color`
   and `aShape` (r, ry, seed).
-- **Shape**: nothing is drawn outside the ellipsoid, and at most 0.58 m
-  inside it. `scripts/canopy-los.js` allows the drawn crowns 0.6 m from the
-  crowns the Interior's line of sight (`canopyBlocks`) tests.
+- **Shape**: the drawn crown is the lobes, and a map's line of sight
+  tests the same lobes (`lobesHit`, `lobesTop`), so a gap a pilot sees
+  through is open to the game. Only the clumps' hollows close up go deeper,
+  at most 0.58 m; `scripts/canopy-los.js --browser` draws the crowns and
+  asks every pixel.
 - **Perf**: one draw call a tier; 80 triangles a near crown, 20 a mid one,
   one point a far tree. The Interior's tiers fit its views' budget with the
   forest drawn (`npm run interior:views`, stats.json).
