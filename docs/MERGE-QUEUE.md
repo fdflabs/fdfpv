@@ -68,7 +68,9 @@ then `gh api -X DELETE repos/fdflabs/fdfpv/rulesets/<id>`.
 1. Merge this pull request the old way (it is the merge_group trigger and
    the selftest only). `node` keeps passing on push and pull_request.
 2. Apply the ruleset. Check `gh api repos/fdflabs/fdfpv/rules/branches/main`
-   lists `merge_queue` and `required_status_checks`.
+   lists `merge_queue` and `required_status_checks`, and that
+   Settings > Rules shows "Repository admin" under bypass (role id 5 is the
+   admin role by GitHub's convention; the REST docs do not list the ids).
 3. Queue one small pull request (docs only): `gh pr merge <n> --auto`. Expect
    a checks.yml run with event `merge_group` on a
    `gh-readonly-queue/main/pr-<n>-...` ref, then the merge on main, then
