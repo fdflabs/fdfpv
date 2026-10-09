@@ -24,6 +24,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { bindKey } from './controls.js';
+
 /* Keys by what they mean, the arrows and WASD alike. */
 const UP = new Set(['ArrowUp', 'KeyW']);
 const DOWN = new Set(['ArrowDown', 'KeyS']);
@@ -160,6 +162,8 @@ export const keyMethods = {
     this.noteInteraction();
     /* A text field is open: typing is for it. */
     if (this.nameDialog && !this.nameDialog.hidden) return true;
+    /* Settings > Controls is waiting for the key to bind. */
+    if (!repeat && bindKey(this, code)) return true;
 
     /* Held keys repeat only as navigation; a repeated Enter or Escape
      * would press twice. */
