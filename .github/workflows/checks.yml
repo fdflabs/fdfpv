@@ -8,6 +8,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # GitHub's merge queue tests each pull request merged onto the queue's
+  # head before it lands, so two green pull requests can no longer make a
+  # red main together (docs/MERGE-QUEUE.md). `node` is the required check
+  # in deploy/github/ruleset-main.json.
+  merge_group:
 
 jobs:
   node:
@@ -260,6 +265,9 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # The merge queue's required checks run on merge_group, or the queue
+      # would wait on them forever (docs/MERGE-QUEUE.md).
+      - run: npm run mergequeue:selftest
       # A guest's storage carried from fdflabs.github.io to the domain: the
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest

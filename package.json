@@ -405,6 +405,7 @@
     "test:tracks": "node tracks-api/selftest.js && node tracks-api/accounts-selftest.js",
     "cloud:selftest": "node scripts/cloud-selftest.js",
     "domain:selftest": "node scripts/domain-selftest.js",
+    "mergequeue:selftest": "node scripts/mergequeue-selftest.js",
     "base:check": "node scripts/base-path-check.js",
     "move:selftest": "node scripts/move-selftest.js",
     "windows:selftest": "node scripts/windows-selftest.js",
