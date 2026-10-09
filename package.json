@@ -278,6 +278,7 @@
     "strings:selftest": "node scripts/strings-selftest.js",
     "version:check": "node scripts/version-check.js",
     "version:reload": "node scripts/version-reload-check.js",
+    "xbrowser:check": "node scripts/xbrowser-check.js",
     "boot:loader": "node scripts/boot-loader-check.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "river:check": "node scripts/river-water-check.js",
@@ -321,7 +322,6 @@
     "extra:record": "node scripts/wing-record.js extra",
     "extra:derive": "node scripts/extra-derive.js",
     "extra:owner": "node scripts/extra-owner.js",
-    "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",
     "flightmodel:probe": "node scripts/flightmodel-probe.js",
@@ -515,5 +515,8 @@
   "dependencies": {
     "nodemailer": "10.0.14",
     "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
   }
 }
