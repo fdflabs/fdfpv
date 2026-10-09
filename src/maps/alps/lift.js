@@ -28,7 +28,7 @@
  */
 
 import * as THREE from 'three';
-import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
+import { makeParts, bakeParts, instanced, box, boxUp } from '../../render/library/vehicles/parts.js';
 import { makePath } from './path.js';
 import { standWalls, recordAt, gableTop, frameElements } from '../../render/library/roofs.js';
 

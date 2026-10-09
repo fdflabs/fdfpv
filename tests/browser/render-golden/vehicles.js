@@ -22,8 +22,8 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as vehicles from '../../../src/maps/alps/vehicles.js';
-import * as parts from '../../../src/maps/alps/parts.js';
+import * as vehicles from '../../../src/render/library/vehicles/vehicles.js';
+import * as parts from '../../../src/render/library/vehicles/parts.js';
 import { describeGeometry, describeMaterial, makeTable } from '../render-golden-lib.js';
 
 const sig = (v) => (typeof v === 'number' ? Number(v.toPrecision(12)) + 0 : v);
