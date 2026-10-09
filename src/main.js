@@ -130,6 +130,7 @@ import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
+import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
@@ -12016,6 +12017,34 @@ export async function boot({
     setWind(airSim.x, airSim.y, airOut.gust, airOut.up);
     windSet = true;
   }
+  /* The rain the air makes, at the camera, on the plant's clock: the
+   * picture only, so read once a frame and never handed to the plant. */
+  const rain = createRain();
+  const rainAt = { x: 0, z: 0, gust: 0, wet: 0 };
+  let wetShown = 0;
+  function rainFrame() {
+    const scene = shell.quad.parent;
+    if (scene && rain.object.parent !== scene) {
+      scene.add(rain.object);
+    }
+    /* Not in a replay: the air is this run's, not the recorded one's. */
+    const flying = weather && stateCurr && (mode === 'flight' || mode === 'paused');
+    if (!flying) {
+      rain.frame(shell.camera, 0, 0, 0, 0);
+      wetShown = 0;
+      view.setWet?.(0);
+      return;
+    }
+    const c = shell.camera.position;
+    const t = weatherT0 + stateCurr[0];
+    weather.at(c.x, c.y, c.z, t, rainAt);
+    rain.frame(shell.camera, t, rainAt.x, rainAt.z, rainAt.wet);
+    /* The map's own haze in the rain, if its look has one (the photoreal
+     * lane's): 0 must be the dry look exactly. */
+    wetShown = rainAt.wet;
+    view.setWet?.(wetShown);
+  }
+  window.__rain = () => ({ shown: rain.object.visible, parent: Boolean(rain.object.parent), thermal: Boolean(rain.object.material.userData.thermal), wet: wetShown });
   /* The air this run flies, { map, preset, seed }, or null for calm. */
   window.__weatherFlown = () => weatherFlown;
   window.__weather = (preset, seed) => {
@@ -17742,6 +17771,7 @@ export async function boot({
     }
     fr.drawThis = drawThis;
     if (fr.worldLive && drawThis && !ui.hangar.isOpen && !fr.walkOn) {
+      rainFrame();
       dynres.beginGpu();
       if (avionicsHud.on || ballOn) {
         sensors.render(view.post);
