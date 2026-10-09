@@ -305,6 +305,9 @@ jobs:
       # pad's R3 on one aircraft of every paint family
       # (docs/redesign/WORKSHOP-PAINT.md).
       - run: npm run paint:workshop
+      # The Escape menu in the real shell: a quad and a plane in en and es and
+      # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
+      - run: npm run pause:menus -- /tmp/pause-menus
       # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
       - run: npm run gallery:admin
       # The livery gallery against a local tracks server: list, like, sort,

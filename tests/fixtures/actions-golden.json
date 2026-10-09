@@ -1060,6 +1060,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -2894,6 +2905,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -4732,6 +4754,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -6891,6 +6924,22 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [],
+    "changed": {},
+    "parked": true,
+    "resumed": {
+     "calls": [
+      [
+       "show",
+       "quick"
+      ]
+     ],
+     "changed": {
+      "screen": "quick"
+     }
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -8891,6 +8940,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -10669,6 +10729,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -12438,6 +12509,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -14259,6 +14341,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -16122,6 +16215,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -18017,6 +18121,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -19832,6 +19947,17 @@
      ]
     ],
     "changed": {}
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
    },
    "pause": {
     "calls": [
@@ -21662,6 +21788,17 @@
     ],
     "changed": {}
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -22436,6 +22573,7426 @@
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
      "store.webfpv.settings.v3": "1582 chars, hash f9248fb2"
+    }
+   }
+  },
+  "paused-by-escape": {
+   "update-reload": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "reload"
+     ]
+    ]
+   },
+   "room-bar": {
+    "calls": [
+     [
+      "roomBarView.act"
+     ]
+    ],
+    "changed": {}
+   },
+   "hotswap": {
+    "calls": [
+     [
+      "openSwap",
+      "paused"
+     ]
+    ],
+    "changed": {}
+   },
+   "hangar-aircraft": {
+    "calls": [
+     [
+      "openCraftRow",
+      false
+     ]
+    ],
+    "changed": {}
+   },
+   "customise": {
+    "calls": [
+     [
+      "wornBuild",
+      "interceptor"
+     ],
+     [
+      "openHangar",
+      "interceptor",
+      "fn",
+      null
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "leaderboard": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "open",
+      "https://board.test/?craft=interceptor",
+      "fdfpv-board"
+     ],
+     [
+      "focus"
+     ]
+    ]
+   },
+   "reportbug": {
+    "calls": [
+     [
+      "onAction",
+      "reportbug",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "feel": {
+    "calls": [
+     [
+      "openFeelReport"
+     ]
+    ],
+    "changed": {}
+   },
+   "firstflight": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {
+     "guided": true
+    }
+   },
+   "card-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "renderCourseCards"
+     ],
+     [
+      "cardCursor"
+     ],
+     [
+      "setCursor",
+      3
+     ]
+    ],
+    "changed": {
+     "cursor": 3
+    }
+   },
+   "card-standings": {
+    "calls": [
+     [
+      "subjectCard"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-board": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-fly": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-edit": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-duplicate": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-rename": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-delete": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-editcopy": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings": {
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings-fly": {
+    "calls": [],
+    "changed": {}
+   },
+   "standings-ghost": {
+    "calls": [],
+    "changed": {}
+   },
+   "cloud-more": {
+    "calls": [
+     [
+      "loadCloudCourses",
+      true
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "newTrackOpen": true
+    }
+   },
+   "newtrack-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack:swiss2": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "casualtrack:alps": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+    }
+   },
+   "way-friends": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-combat": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-ace": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-war": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-campaign": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-interior": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   },
+   "friends-leave": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-leave"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends-join": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ],
+    "changed": {}
+   },
+   "lobby:rooms": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "lobby:roomnew": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "rooms": {
+    "calls": [
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms"
+    }
+   },
+   "roomnew": {
+    "calls": [
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew"
+    }
+   },
+   "howto": {
+    "calls": [
+     [
+      "show",
+      "howto"
+     ]
+    ],
+    "changed": {
+     "screen": "howto",
+     "returnTo": "paused"
+    }
+   },
+   "pilot": {
+    "calls": [
+     [
+      "show",
+      "pilot"
+     ]
+    ],
+    "changed": {
+     "screen": "pilot",
+     "returnTo": "paused"
+    }
+   },
+   "quad": {
+    "calls": [
+     [
+      "show",
+      "quad"
+     ]
+    ],
+    "changed": {
+     "screen": "quad",
+     "returnTo": "paused"
+    }
+   },
+   "courses": {
+    "calls": [
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "paused"
+    }
+   },
+   "freestyle": {
+    "calls": [
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "paused"
+    }
+   },
+   "credits": {
+    "calls": [
+     [
+      "show",
+      "credits"
+     ]
+    ],
+    "changed": {
+     "screen": "credits",
+     "returnTo": "paused"
+    }
+   },
+   "tricks": {
+    "calls": [
+     [
+      "onAction",
+      "tricks",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends": {
+    "calls": [
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "paused"
+    }
+   },
+   "fly": {
+    "calls": [
+     [
+      "seatCraftForCourse"
+     ],
+     [
+      "show",
+      "launch"
+     ]
+    ],
+    "changed": {
+     "screen": "launch",
+     "returnTo": "paused"
+    }
+   },
+   "launch-go": {
+    "calls": [
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates": {
+    "calls": [
+     [
+      "show",
+      "rates"
+     ]
+    ],
+    "changed": {
+     "screen": "rates",
+     "returnTo": "paused"
+    }
+   },
+   "pids": {
+    "calls": [
+     [
+      "show",
+      "pids"
+     ]
+    ],
+    "changed": {
+     "screen": "pids",
+     "returnTo": "paused"
+    }
+   },
+   "fc": {
+    "calls": [
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "show",
+      "fc"
+     ]
+    ],
+    "changed": {
+     "screen": "fc",
+     "fcFrom": "paused"
+    }
+   },
+   "fc-save": {
+    "calls": [
+     [
+      "fc.dirty"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-exit": {
+    "calls": [
+     [
+      "fc.dirty"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-restart": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "onFcSave",
+      "draft",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-wait": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-motors-stop": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-preset:bf": {
+    "calls": [
+     [
+      "fc.applyPreset",
+      "bf"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-keep-editing": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard-leave": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-export": {
+    "calls": [
+     [
+      "fc.exportText"
+     ]
+    ],
+    "changed": {},
+    "page": [
+     [
+      "blob",
+      "text/plain;charset=utf-8",
+      10
+     ],
+     [
+      "click",
+      "a",
+      "flight-controller.diff"
+     ]
+    ]
+   },
+   "fc-back": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "pids-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+    }
+   },
+   "rates-save": {
+    "calls": [
+     [
+      "askRatePresetName",
+      ""
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+    }
+   },
+   "rates-delete": {
+    "calls": [],
+    "changed": {}
+   },
+   "map:alps": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "settings.map": "alps",
+     "settings.freestyleMap": "alps",
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+    }
+   },
+   "map:track": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title"
+    }
+   },
+   "back": {
+    "calls": [
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "mode-gate": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": null,
+     "craftGate": true
+    }
+   },
+   "mytracks": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "screen": "courses"
+    }
+   },
+   "title": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title"
+    }
+   },
+   "paused": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "returnTo": "paused"
+    }
+   },
+   "pause": {
+    "calls": [
+     [
+      "onAction",
+      "pause",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "restart": {
+    "calls": [
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "resume": {
+    "calls": [
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "postrun": {
+    "calls": [
+     [
+      "onAction",
+      "postrun",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "posttime": {
+    "calls": [
+     [
+      "onAction",
+      "posttime",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "noop": {
+    "calls": [
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "setname": {
+    "calls": [
+     [
+      "onAction",
+      "setname",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "choosepad": {
+    "calls": [
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "downloadflightlog": {
+    "calls": [
+     [
+      "onAction",
+      "downloadflightlog",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "exportkey": {
+    "calls": [
+     [
+      "onAction",
+      "exportkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "importkey": {
+    "calls": [
+     [
+      "onAction",
+      "importkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "trackbuilder": {
+    "calls": [
+     [
+      "onAction",
+      "trackbuilder",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "remix": {
+    "calls": [
+     [
+      "onAction",
+      "remix",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "editown": {
+    "calls": [
+     [
+      "onAction",
+      "editown",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "race": {
+    "calls": [
+     [
+      "onAction",
+      "race",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-save": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-save",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-yes": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-yes",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-no": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-no",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-skip": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-skip",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignin": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignin",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignout": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignout",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-club": {
+    "calls": [
+     [
+      "onAction",
+      "hub-club",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-hangar": {
+    "calls": [
+     [
+      "onAction",
+      "hub-hangar",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "nosuchaction": {
+    "calls": [
+     [
+      "onAction",
+      "nosuchaction",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-race-5inch keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000 picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-freestyle-wing1000 keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-friends picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-friends keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-combat picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-combat keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-ace picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-ace keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-war picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-war keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-campaign picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-campaign keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-interior picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-interior keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   }
+  },
+  "quick": {
+   "update-reload": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "reload"
+     ]
+    ]
+   },
+   "room-bar": {
+    "calls": [
+     [
+      "roomBarView.act"
+     ]
+    ],
+    "changed": {}
+   },
+   "hotswap": {
+    "calls": [
+     [
+      "openSwap",
+      "paused"
+     ]
+    ],
+    "changed": {}
+   },
+   "hangar-aircraft": {
+    "calls": [
+     [
+      "openCraftRow",
+      false
+     ]
+    ],
+    "changed": {}
+   },
+   "customise": {
+    "calls": [
+     [
+      "wornBuild",
+      "interceptor"
+     ],
+     [
+      "openHangar",
+      "interceptor",
+      "fn",
+      null
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "leaderboard": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "open",
+      "https://board.test/?craft=interceptor",
+      "fdfpv-board"
+     ],
+     [
+      "focus"
+     ]
+    ]
+   },
+   "reportbug": {
+    "calls": [
+     [
+      "onAction",
+      "reportbug",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "feel": {
+    "calls": [
+     [
+      "openFeelReport"
+     ]
+    ],
+    "changed": {}
+   },
+   "firstflight": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {
+     "guided": true
+    }
+   },
+   "card-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "renderCourseCards"
+     ],
+     [
+      "cardCursor"
+     ],
+     [
+      "setCursor",
+      3
+     ]
+    ],
+    "changed": {
+     "cursor": 3
+    }
+   },
+   "card-standings": {
+    "calls": [
+     [
+      "subjectCard"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-board": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-fly": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-edit": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-duplicate": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-rename": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-delete": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-editcopy": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings": {
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings-fly": {
+    "calls": [],
+    "changed": {}
+   },
+   "standings-ghost": {
+    "calls": [],
+    "changed": {}
+   },
+   "cloud-more": {
+    "calls": [
+     [
+      "loadCloudCourses",
+      true
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "newTrackOpen": true
+    }
+   },
+   "newtrack-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack:swiss2": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "casualtrack:alps": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+    }
+   },
+   "way-friends": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-combat": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-ace": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-war": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-campaign": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-interior": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   },
+   "friends-leave": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-leave"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends-join": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ],
+    "changed": {}
+   },
+   "lobby:rooms": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "lobby:roomnew": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "rooms": {
+    "calls": [
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms"
+    }
+   },
+   "roomnew": {
+    "calls": [
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew"
+    }
+   },
+   "howto": {
+    "calls": [
+     [
+      "show",
+      "howto"
+     ]
+    ],
+    "changed": {
+     "screen": "howto"
+    }
+   },
+   "pilot": {
+    "calls": [
+     [
+      "show",
+      "pilot"
+     ]
+    ],
+    "changed": {
+     "screen": "pilot"
+    }
+   },
+   "quad": {
+    "calls": [
+     [
+      "show",
+      "quad"
+     ]
+    ],
+    "changed": {
+     "screen": "quad"
+    }
+   },
+   "courses": {
+    "calls": [
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses"
+    }
+   },
+   "freestyle": {
+    "calls": [
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle"
+    }
+   },
+   "credits": {
+    "calls": [
+     [
+      "show",
+      "credits"
+     ]
+    ],
+    "changed": {
+     "screen": "credits"
+    }
+   },
+   "tricks": {
+    "calls": [
+     [
+      "onAction",
+      "tricks",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends": {
+    "calls": [
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends"
+    }
+   },
+   "fly": {
+    "calls": [
+     [
+      "seatCraftForCourse"
+     ],
+     [
+      "show",
+      "launch"
+     ]
+    ],
+    "changed": {
+     "screen": "launch"
+    }
+   },
+   "launch-go": {
+    "calls": [
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates": {
+    "calls": [
+     [
+      "show",
+      "rates"
+     ]
+    ],
+    "changed": {
+     "screen": "rates",
+     "ratesFrom": "quick"
+    }
+   },
+   "pids": {
+    "calls": [
+     [
+      "show",
+      "pids"
+     ]
+    ],
+    "changed": {
+     "screen": "pids",
+     "pidsFrom": "quick"
+    }
+   },
+   "fc": {
+    "calls": [
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "show",
+      "fc"
+     ]
+    ],
+    "changed": {
+     "screen": "fc",
+     "fcFrom": "title"
+    }
+   },
+   "fc-save": {
+    "calls": [
+     [
+      "fc.dirty"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-exit": {
+    "calls": [
+     [
+      "fc.dirty"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-restart": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "onFcSave",
+      "draft",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-wait": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-motors-stop": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-preset:bf": {
+    "calls": [
+     [
+      "fc.applyPreset",
+      "bf"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-keep-editing": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard-leave": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-export": {
+    "calls": [
+     [
+      "fc.exportText"
+     ]
+    ],
+    "changed": {},
+    "page": [
+     [
+      "blob",
+      "text/plain;charset=utf-8",
+      10
+     ],
+     [
+      "click",
+      "a",
+      "flight-controller.diff"
+     ]
+    ]
+   },
+   "fc-back": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "pids-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+    }
+   },
+   "rates-save": {
+    "calls": [
+     [
+      "askRatePresetName",
+      ""
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+    }
+   },
+   "rates-delete": {
+    "calls": [],
+    "changed": {}
+   },
+   "map:alps": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused",
+     "settings.map": "alps",
+     "settings.freestyleMap": "alps",
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+    }
+   },
+   "map:track": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "back": {
+    "calls": [
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "mode-gate": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": null,
+     "craftGate": true
+    }
+   },
+   "mytracks": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "title": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title"
+    }
+   },
+   "paused": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {}
+   },
+   "pause": {
+    "calls": [
+     [
+      "onAction",
+      "pause",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "restart": {
+    "calls": [
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "resume": {
+    "calls": [
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "postrun": {
+    "calls": [
+     [
+      "onAction",
+      "postrun",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "posttime": {
+    "calls": [
+     [
+      "onAction",
+      "posttime",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "noop": {
+    "calls": [
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "setname": {
+    "calls": [
+     [
+      "onAction",
+      "setname",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "choosepad": {
+    "calls": [
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "downloadflightlog": {
+    "calls": [
+     [
+      "onAction",
+      "downloadflightlog",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "exportkey": {
+    "calls": [
+     [
+      "onAction",
+      "exportkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "importkey": {
+    "calls": [
+     [
+      "onAction",
+      "importkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "trackbuilder": {
+    "calls": [
+     [
+      "onAction",
+      "trackbuilder",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "remix": {
+    "calls": [
+     [
+      "onAction",
+      "remix",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "editown": {
+    "calls": [
+     [
+      "onAction",
+      "editown",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "race": {
+    "calls": [
+     [
+      "onAction",
+      "race",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-save": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-save",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-yes": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-yes",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-no": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-no",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-skip": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-skip",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignin": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignin",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignout": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignout",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-club": {
+    "calls": [
+     [
+      "onAction",
+      "hub-club",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-hangar": {
+    "calls": [
+     [
+      "onAction",
+      "hub-hangar",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "nosuchaction": {
+    "calls": [
+     [
+      "onAction",
+      "nosuchaction",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-race-5inch keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000 picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-freestyle-wing1000 keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-friends picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-friends keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-combat picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-combat keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-ace picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-ace keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-war picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-war keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-campaign picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-campaign keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-interior picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-interior keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   }
+  },
+  "rates-from-quick": {
+   "update-reload": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "reload"
+     ]
+    ]
+   },
+   "room-bar": {
+    "calls": [
+     [
+      "roomBarView.act"
+     ]
+    ],
+    "changed": {}
+   },
+   "hotswap": {
+    "calls": [
+     [
+      "openSwap",
+      "paused"
+     ]
+    ],
+    "changed": {}
+   },
+   "hangar-aircraft": {
+    "calls": [
+     [
+      "openCraftRow",
+      false
+     ]
+    ],
+    "changed": {}
+   },
+   "customise": {
+    "calls": [
+     [
+      "wornBuild",
+      "interceptor"
+     ],
+     [
+      "openHangar",
+      "interceptor",
+      "fn",
+      null
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "leaderboard": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "open",
+      "http://127.0.0.1:3180/?craft=interceptor",
+      "fdfpv-board"
+     ],
+     [
+      "focus"
+     ]
+    ]
+   },
+   "reportbug": {
+    "calls": [
+     [
+      "onAction",
+      "reportbug",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "feel": {
+    "calls": [
+     [
+      "openFeelReport"
+     ]
+    ],
+    "changed": {}
+   },
+   "firstflight": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {
+     "guided": true
+    }
+   },
+   "card-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "renderCourseCards"
+     ],
+     [
+      "cardCursor"
+     ],
+     [
+      "setCursor",
+      3
+     ]
+    ],
+    "changed": {
+     "cursor": 3
+    }
+   },
+   "card-standings": {
+    "calls": [
+     [
+      "subjectCard"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-board": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-fly": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-edit": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-duplicate": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-rename": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-delete": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-editcopy": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings": {
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings-fly": {
+    "calls": [],
+    "changed": {}
+   },
+   "standings-ghost": {
+    "calls": [],
+    "changed": {}
+   },
+   "cloud-more": {
+    "calls": [
+     [
+      "loadCloudCourses",
+      true
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "newTrackOpen": true
+    }
+   },
+   "newtrack-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack:swiss2": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "casualtrack:alps": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+    }
+   },
+   "way-friends": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-combat": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-ace": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-war": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-campaign": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-interior": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   },
+   "friends-leave": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-leave"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends-join": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ],
+    "changed": {}
+   },
+   "lobby:rooms": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "lobby:roomnew": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "rooms": {
+    "calls": [
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms"
+    }
+   },
+   "roomnew": {
+    "calls": [
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew"
+    }
+   },
+   "howto": {
+    "calls": [
+     [
+      "show",
+      "howto"
+     ]
+    ],
+    "changed": {
+     "screen": "howto",
+     "returnTo": "title"
+    }
+   },
+   "pilot": {
+    "calls": [
+     [
+      "show",
+      "pilot"
+     ]
+    ],
+    "changed": {
+     "screen": "pilot",
+     "returnTo": "title"
+    }
+   },
+   "quad": {
+    "calls": [
+     [
+      "show",
+      "quad"
+     ]
+    ],
+    "changed": {
+     "screen": "quad",
+     "returnTo": "title"
+    }
+   },
+   "courses": {
+    "calls": [
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "freestyle": {
+    "calls": [
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title"
+    }
+   },
+   "credits": {
+    "calls": [
+     [
+      "show",
+      "credits"
+     ]
+    ],
+    "changed": {
+     "screen": "credits",
+     "returnTo": "title"
+    }
+   },
+   "tricks": {
+    "calls": [
+     [
+      "onAction",
+      "tricks",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends": {
+    "calls": [
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "title"
+    }
+   },
+   "fly": {
+    "calls": [
+     [
+      "seatCraftForCourse"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "launch-go": {
+    "calls": [
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates": {
+    "calls": [
+     [
+      "show",
+      "rates"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "ratesFrom": null
+    }
+   },
+   "pids": {
+    "calls": [
+     [
+      "show",
+      "pids"
+     ]
+    ],
+    "changed": {
+     "screen": "pids",
+     "returnTo": "title"
+    }
+   },
+   "fc": {
+    "calls": [
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "show",
+      "fc"
+     ]
+    ],
+    "changed": {
+     "screen": "fc",
+     "fcFrom": "title"
+    }
+   },
+   "fc-save": {
+    "calls": [
+     [
+      "fc.dirty"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-exit": {
+    "calls": [
+     [
+      "fc.dirty"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-restart": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "onFcSave",
+      "draft",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-wait": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-motors-stop": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-preset:bf": {
+    "calls": [
+     [
+      "fc.applyPreset",
+      "bf"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-keep-editing": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard-leave": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-export": {
+    "calls": [
+     [
+      "fc.exportText"
+     ]
+    ],
+    "changed": {},
+    "page": [
+     [
+      "blob",
+      "text/plain;charset=utf-8",
+      10
+     ],
+     [
+      "click",
+      "a",
+      "flight-controller.diff"
+     ]
+    ]
+   },
+   "fc-back": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "pids-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+    }
+   },
+   "rates-save": {
+    "calls": [
+     [
+      "askRatePresetName",
+      ""
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+    }
+   },
+   "rates-delete": {
+    "calls": [],
+    "changed": {}
+   },
+   "map:alps": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused",
+     "settings.map": "alps",
+     "settings.freestyleMap": "alps",
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+    }
+   },
+   "map:track": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "back": {
+    "calls": [
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "ratesFrom": null
+    }
+   },
+   "mode-gate": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": null,
+     "craftGate": true
+    }
+   },
+   "mytracks": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "title": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title"
+    }
+   },
+   "paused": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "returnTo": "title"
+    }
+   },
+   "pause": {
+    "calls": [
+     [
+      "onAction",
+      "pause",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "restart": {
+    "calls": [
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "resume": {
+    "calls": [
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "postrun": {
+    "calls": [
+     [
+      "onAction",
+      "postrun",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "posttime": {
+    "calls": [
+     [
+      "onAction",
+      "posttime",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "noop": {
+    "calls": [
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "setname": {
+    "calls": [
+     [
+      "onAction",
+      "setname",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "choosepad": {
+    "calls": [
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "downloadflightlog": {
+    "calls": [
+     [
+      "onAction",
+      "downloadflightlog",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "exportkey": {
+    "calls": [
+     [
+      "onAction",
+      "exportkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "importkey": {
+    "calls": [
+     [
+      "onAction",
+      "importkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "trackbuilder": {
+    "calls": [
+     [
+      "onAction",
+      "trackbuilder",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "remix": {
+    "calls": [
+     [
+      "onAction",
+      "remix",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "editown": {
+    "calls": [
+     [
+      "onAction",
+      "editown",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "race": {
+    "calls": [
+     [
+      "onAction",
+      "race",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-save": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-save",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-yes": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-yes",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-no": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-no",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-skip": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-skip",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignin": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignin",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignout": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignout",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-club": {
+    "calls": [
+     [
+      "onAction",
+      "hub-club",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-hangar": {
+    "calls": [
+     [
+      "onAction",
+      "hub-hangar",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "nosuchaction": {
+    "calls": [
+     [
+      "onAction",
+      "nosuchaction",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-race-5inch keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000 picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-freestyle-wing1000 keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-friends picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-friends keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-combat picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-combat keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-ace picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-ace keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-war picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-war keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-campaign picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-campaign keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-interior picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-interior keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   }
+  },
+  "pids-from-quick": {
+   "update-reload": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "reload"
+     ]
+    ]
+   },
+   "room-bar": {
+    "calls": [
+     [
+      "roomBarView.act"
+     ]
+    ],
+    "changed": {}
+   },
+   "hotswap": {
+    "calls": [
+     [
+      "openSwap",
+      "paused"
+     ]
+    ],
+    "changed": {}
+   },
+   "hangar-aircraft": {
+    "calls": [
+     [
+      "openCraftRow",
+      false
+     ]
+    ],
+    "changed": {}
+   },
+   "customise": {
+    "calls": [
+     [
+      "wornBuild",
+      "interceptor"
+     ],
+     [
+      "openHangar",
+      "interceptor",
+      "fn",
+      null
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "leaderboard": {
+    "calls": [],
+    "changed": {},
+    "page": [
+     [
+      "open",
+      "http://127.0.0.1:3180/?craft=interceptor",
+      "fdfpv-board"
+     ],
+     [
+      "focus"
+     ]
+    ]
+   },
+   "reportbug": {
+    "calls": [
+     [
+      "onAction",
+      "reportbug",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "feel": {
+    "calls": [
+     [
+      "openFeelReport"
+     ]
+    ],
+    "changed": {}
+   },
+   "firstflight": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {
+     "guided": true
+    }
+   },
+   "card-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "renderCourseCards"
+     ],
+     [
+      "cardCursor"
+     ],
+     [
+      "setCursor",
+      3
+     ]
+    ],
+    "changed": {
+     "cursor": 3
+    }
+   },
+   "card-standings": {
+    "calls": [
+     [
+      "subjectCard"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-board": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-fly": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-edit": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-duplicate": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-rename": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-delete": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "card-editcopy": {
+    "calls": [
+     [
+      "subjectCard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings": {
+    "calls": [
+     [
+      "onAction",
+      "standings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "standings-fly": {
+    "calls": [],
+    "changed": {}
+   },
+   "standings-ghost": {
+    "calls": [],
+    "changed": {}
+   },
+   "cloud-more": {
+    "calls": [
+     [
+      "loadCloudCourses",
+      true
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "newTrackOpen": true
+    }
+   },
+   "newtrack-back": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {}
+   },
+   "newtrack:swiss2": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "casualtrack:alps": {
+    "calls": [
+     [
+      "onBuild",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+    }
+   },
+   "way-friends": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-combat": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-ace": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-jam": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+    }
+   },
+   "way-war": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-campaign": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+    }
+   },
+   "way-interior": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+    }
+   },
+   "friends-leave": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-leave"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends-join": {
+    "calls": [
+     [
+      "onFriends",
+      "friends-join"
+     ]
+    ],
+    "changed": {}
+   },
+   "lobby:rooms": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "lobby:roomnew": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ],
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "rooms": {
+    "calls": [
+     [
+      "show",
+      "rooms"
+     ]
+    ],
+    "changed": {
+     "screen": "rooms"
+    }
+   },
+   "roomnew": {
+    "calls": [
+     [
+      "show",
+      "roomnew"
+     ]
+    ],
+    "changed": {
+     "screen": "roomnew"
+    }
+   },
+   "howto": {
+    "calls": [
+     [
+      "show",
+      "howto"
+     ]
+    ],
+    "changed": {
+     "screen": "howto",
+     "returnTo": "title"
+    }
+   },
+   "pilot": {
+    "calls": [
+     [
+      "show",
+      "pilot"
+     ]
+    ],
+    "changed": {
+     "screen": "pilot",
+     "returnTo": "title"
+    }
+   },
+   "quad": {
+    "calls": [
+     [
+      "show",
+      "quad"
+     ]
+    ],
+    "changed": {
+     "screen": "quad",
+     "returnTo": "title"
+    }
+   },
+   "courses": {
+    "calls": [
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "freestyle": {
+    "calls": [
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "returnTo": "title"
+    }
+   },
+   "credits": {
+    "calls": [
+     [
+      "show",
+      "credits"
+     ]
+    ],
+    "changed": {
+     "screen": "credits",
+     "returnTo": "title"
+    }
+   },
+   "tricks": {
+    "calls": [
+     [
+      "onAction",
+      "tricks",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "friends": {
+    "calls": [
+     [
+      "show",
+      "friends"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "returnTo": "title"
+    }
+   },
+   "fly": {
+    "calls": [
+     [
+      "seatCraftForCourse"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "launch-go": {
+    "calls": [
+     [
+      "onAction",
+      "fly",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates": {
+    "calls": [
+     [
+      "show",
+      "rates"
+     ]
+    ],
+    "changed": {
+     "screen": "rates",
+     "returnTo": "title"
+    }
+   },
+   "pids": {
+    "calls": [
+     [
+      "show",
+      "pids"
+     ]
+    ],
+    "changed": {
+     "returnTo": "title",
+     "pidsFrom": null
+    }
+   },
+   "fc": {
+    "calls": [
+     [
+      "onFcOpen",
+      "pid"
+     ],
+     [
+      "show",
+      "fc"
+     ]
+    ],
+    "changed": {
+     "screen": "fc",
+     "fcFrom": "pids"
+    }
+   },
+   "fc-save": {
+    "calls": [
+     [
+      "fc.dirty"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-exit": {
+    "calls": [
+     [
+      "fc.dirty"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-save-restart": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "onFcSave",
+      "draft",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-wait": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-motors-stop": {
+    "calls": [
+     [
+      "fc.stopMotors"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-preset:bf": {
+    "calls": [
+     [
+      "fc.applyPreset",
+      "bf"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-keep-editing": {
+    "calls": [
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard-leave": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-discard": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {}
+   },
+   "fc-export": {
+    "calls": [
+     [
+      "fc.exportText"
+     ]
+    ],
+    "changed": {},
+    "page": [
+     [
+      "blob",
+      "text/plain;charset=utf-8",
+      10
+     ],
+     [
+      "click",
+      "a",
+      "flight-controller.diff"
+     ]
+    ]
+   },
+   "fc-back": {
+    "calls": [
+     [
+      "fc.discard"
+     ],
+     [
+      "leaveFc"
+     ]
+    ],
+    "changed": {}
+   },
+   "pids-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "rates-default": {
+    "calls": [
+     [
+      "renderMenu"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+    }
+   },
+   "rates-save": {
+    "calls": [
+     [
+      "askRatePresetName",
+      ""
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+    }
+   },
+   "rates-delete": {
+    "calls": [],
+    "changed": {}
+   },
+   "map:alps": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused",
+     "settings.map": "alps",
+     "settings.freestyleMap": "alps",
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+    }
+   },
+   "map:track": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "back": {
+    "calls": [
+     [
+      "onUiSound",
+      "back"
+     ],
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "pidsFrom": null
+    }
+   },
+   "mode-gate": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "renderMenu"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": null,
+     "craftGate": true
+    }
+   },
+   "mytracks": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ],
+     [
+      "setCursor",
+      0
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title"
+    }
+   },
+   "title": {
+    "calls": [
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onAction",
+      "title",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title"
+    }
+   },
+   "paused": {
+    "calls": [
+     [
+      "show",
+      "paused"
+     ],
+     [
+      "onAction",
+      "paused",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "returnTo": "title"
+    }
+   },
+   "pause": {
+    "calls": [
+     [
+      "onAction",
+      "pause",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "restart": {
+    "calls": [
+     [
+      "onAction",
+      "restart",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "resume": {
+    "calls": [
+     [
+      "onAction",
+      "resume",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "postrun": {
+    "calls": [
+     [
+      "onAction",
+      "postrun",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "posttime": {
+    "calls": [
+     [
+      "onAction",
+      "posttime",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "noop": {
+    "calls": [
+     [
+      "onAction",
+      "noop",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "setname": {
+    "calls": [
+     [
+      "onAction",
+      "setname",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "choosepad": {
+    "calls": [
+     [
+      "onAction",
+      "choosepad",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "downloadflightlog": {
+    "calls": [
+     [
+      "onAction",
+      "downloadflightlog",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "exportkey": {
+    "calls": [
+     [
+      "onAction",
+      "exportkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "importkey": {
+    "calls": [
+     [
+      "onAction",
+      "importkey",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "trackbuilder": {
+    "calls": [
+     [
+      "onAction",
+      "trackbuilder",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "remix": {
+    "calls": [
+     [
+      "onAction",
+      "remix",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "editown": {
+    "calls": [
+     [
+      "onAction",
+      "editown",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "race": {
+    "calls": [
+     [
+      "onAction",
+      "race",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "calibrate-save": {
+    "calls": [
+     [
+      "onAction",
+      "calibrate-save",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-yes": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-yes",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-no": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-no",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-cancel": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-cancel",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "padpick-skip": {
+    "calls": [
+     [
+      "onAction",
+      "padpick-skip",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignin": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignin",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "accountsignout": {
+    "calls": [
+     [
+      "onAction",
+      "accountsignout",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-club": {
+    "calls": [
+     [
+      "onAction",
+      "hub-club",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "hub-hangar": {
+    "calls": [
+     [
+      "onAction",
+      "hub-hangar",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "nosuchaction": {
+    "calls": [
+     [
+      "onAction",
+      "nosuchaction",
+      "object"
+     ]
+    ],
+    "changed": {}
+   },
+   "way-race-5inch picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-race-5inch keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "courses"
+     ]
+    ],
+    "changed": {
+     "screen": "courses",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-freestyle-wing1000 picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "title"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "title",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-freestyle-wing1000 keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-friends picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-friends keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-combat picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-combat keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "combat",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-ace picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-ace keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "tag",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-jam picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "settings.map": "swiss2",
+     "settings.freestyleMap": "swiss2",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+    }
+   },
+   "way-jam keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "jam",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-war picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-war keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-campaign picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "setCursor",
+      0
+     ],
+     [
+      "show",
+      "friends"
+     ],
+     [
+      "onSettings",
+      "object"
+     ]
+    ],
+    "changed": {
+     "screen": "friends",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "settings.map": "itaipu",
+     "settings.freestyleMap": "itaipu",
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+    }
+   },
+   "way-campaign keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "roomGame": "war",
+     "settings.airframeAsked": true,
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+    }
+   },
+   "way-interior picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-interior keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "bramor2300",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "wing-acro",
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+    }
+   },
+   "way-training picked:cub": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 95,
+     "settings.cameraAngle": 45,
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+    }
+   },
+   "way-training keepWorld": {
+    "calls": [
+     [
+      "onSettings",
+      "object"
+     ],
+     [
+      "show",
+      "freestyle"
+     ]
+    ],
+    "changed": {
+     "screen": "freestyle",
+     "mode": "freestyle",
+     "returnTo": "title",
+     "settings.airframe": "timber1500",
+     "settings.airframeAsked": true,
+     "settings.cameraFov": 100,
+     "settings.cameraAngle": 5,
+     "settings.tune": "timber-acro",
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    }
   },
@@ -23510,6 +31067,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -25407,6 +32975,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -27299,6 +34878,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -29145,6 +36735,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -31042,6 +38643,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -32925,6 +40537,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -34781,6 +42404,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -36661,6 +44295,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -38535,6 +46180,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -40344,6 +48000,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -42283,6 +49950,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -44143,6 +51821,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -45948,6 +53637,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -47766,6 +55466,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -49530,6 +57241,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -51299,6 +59021,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -53098,6 +60831,18 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick",
+     "returnTo": "title"
     }
    },
    "pause": {
@@ -54924,6 +62669,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -56735,6 +64491,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -58514,6 +66281,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -60310,6 +68088,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -62136,6 +69925,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -63953,6 +71753,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -65778,6 +73589,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -67609,6 +75431,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -69428,6 +77261,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -71253,6 +79097,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -73074,6 +80929,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -74880,6 +82746,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -76703,6 +84580,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -78516,6 +86404,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -80325,6 +88224,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -82138,6 +90048,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -83979,6 +91900,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -85805,6 +93737,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -87611,6 +95554,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -89430,6 +97384,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -91273,6 +99238,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -93112,6 +101088,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -94955,6 +102942,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -96770,6 +104768,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -98567,6 +106576,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -100376,6 +108396,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -102189,6 +110220,17 @@
     ],
     "changed": {
      "screen": "paused"
+    }
+   },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
     }
    },
    "pause": {
@@ -104011,6 +112053,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -105816,6 +113869,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -107612,6 +115676,17 @@
      "screen": "paused"
     }
    },
+   "quick": {
+    "calls": [
+     [
+      "show",
+      "quick"
+     ]
+    ],
+    "changed": {
+     "screen": "quick"
+    }
+   },
    "pause": {
     "calls": [
      [
@@ -108540,6 +116615,72 @@
     ]
    ],
    "changed": {}
+  },
+  "paused-by-escape": {
+   "calls": [
+    [
+     "onUiSound",
+     "back"
+    ],
+    [
+     "onAction",
+     "resume",
+     "object"
+    ]
+   ],
+   "changed": {}
+  },
+  "quick": {
+   "calls": [
+    [
+     "onUiSound",
+     "back"
+    ],
+    [
+     "show",
+     "paused"
+    ],
+    [
+     "onAction",
+     "paused",
+     "object"
+    ]
+   ],
+   "changed": {
+    "screen": "paused"
+   }
+  },
+  "rates-from-quick": {
+   "calls": [
+    [
+     "onUiSound",
+     "back"
+    ],
+    [
+     "show",
+     "quick"
+    ]
+   ],
+   "changed": {
+    "screen": "quick",
+    "ratesFrom": null
+   }
+  },
+  "pids-from-quick": {
+   "calls": [
+    [
+     "onUiSound",
+     "back"
+    ],
+    [
+     "show",
+     "quick"
+    ]
+   ],
+   "changed": {
+    "screen": "quick",
+    "pidsFrom": null
+   }
   },
   "courses": {
    "calls": [
