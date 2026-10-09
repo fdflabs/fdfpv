@@ -51,7 +51,7 @@ import { activeCourseSummary } from '../share/summary.js';
 import {
   fullStickDeg, hoverStickPercent, normaliseRates, ratesSummary, throttleSummary,
 } from '../../configs/rates.js';
-import { PRESET_NAME_MAX, RATES_STORAGE_WARNING, presetNamed } from '../../configs/ratepresets.js';
+import { PRESET_NAME_MAX, presetNamed } from '../../configs/ratepresets.js';
 import { pidsSummary } from '../../configs/pids.js';
 import { tuneById } from '../../configs/registry.js';
 import { cameraTiltRad } from '../render/lens.js';
@@ -399,7 +399,7 @@ export const dialogMethods = {
   async askRatePresetName(suggested = '') {
     const got = await this.askForm({
       title: str('ui.name_this_preset'),
-      detail: RATES_STORAGE_WARNING,
+      detail: str('ui.rates_storage_warning'),
       confirmLabel: presetNamed(suggested) ? str('app.replace') : str('ui.save'),
       fields: [{
         key: 'name',

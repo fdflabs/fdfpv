@@ -59,12 +59,16 @@ const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\
 /* The same word in Spanish, or a name nobody translates. */
 const SHARED = new Set([
   'Acro', 'Manual', 'AS3X', 'SAFE Select', 'KISS', 'Actual', 'Raceflight', 'Quick', 'Expo', 'PID', 'PIDs', 'FPV', 'HUD',
+  'GPU', 'Radio', 'Sticks', 'Feedforward', 'D max', 'Hangar', 'Arcade', 'Taranis', 'ELRS 250 Hz', 'ironbow', '60 fps',
   ...AIRFRAMES.flatMap((a) => [a.short, a.name]),
 ]);
 
 /* scripts/items-golden.js's own rows (friendsRowInRoom and the others). */
 const STAND_INS = new Set([
   'OWLS', 'Two pilots in the room.', 'No room', 'Make one or join one.', 'Off', 'Nobody is watching.', 'Best lap', 'Your best, beside you.', 'Room',
+  'Leave the room', 'Back to flying alone.', 'The code.', 'Start the race', 'Everybody is ready.', 'Rejoin', 'OWLS is still open.',
+  'Room results', 'rows of rooms', 'rows of roomnew', 'Rooms panel home=true', 'Rooms panel home=false', 'bench row',
+  'Storage refused the save.', 'Callsign', 'Ace Pilot', 'A fine card.', 'Stand-in GPU 9000', 'Bando', 'Saved before creative mode',
 ]);
 
 function dump(locale) {

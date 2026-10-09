@@ -27665,7 +27665,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -27687,29 +27687,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -27753,7 +27753,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -27779,8 +27779,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -27986,7 +27986,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28008,29 +28008,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28074,7 +28074,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28100,8 +28100,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28295,7 +28295,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28317,29 +28317,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28373,7 +28373,7 @@
     {
      "id": "quad:modo-de-vuelo",
      "label": "Modo de vuelo",
-     "value": "Angle",
+     "value": "Ángulo",
      "note": "Acro: los sticks son rates, sin manos mantiene la actitud. Angle: los sticks son inclinación, sin manos nivela. Las carreras con teclado siempre usan Angle. Freestyle usa este ajuste vueles con lo que vueles, porque Angle limita el quad a unos treinta grados de inclinación y ningún truco del libro se puede volar así.",
      "current": "angle",
      "options": [
@@ -28383,7 +28383,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28409,8 +28409,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "On",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28616,7 +28616,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28642,29 +28642,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -28708,7 +28708,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -28734,8 +28734,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -28941,7 +28941,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -28963,29 +28963,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29029,7 +29029,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29055,8 +29055,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29262,7 +29262,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29284,29 +29284,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29350,7 +29350,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29376,8 +29376,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29583,7 +29583,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "39 degrees",
+     "value": "39 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 39 grados, el 63 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29605,29 +29605,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29671,7 +29671,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -29697,8 +29697,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -29904,7 +29904,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "90 degrees",
+     "value": "90 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 90 grados, el 100 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -29926,29 +29926,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "120 degrees vertical",
+     "value": "120 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 120,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -29992,7 +29992,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30018,8 +30018,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30225,7 +30225,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30247,29 +30247,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30313,7 +30313,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30339,8 +30339,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30546,7 +30546,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30568,29 +30568,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30634,7 +30634,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30660,8 +30660,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -30867,7 +30867,7 @@
     {
      "id": "quad:ngulo-de-c-mara",
      "label": "Ángulo de cámara",
-     "value": "30 degrees",
+     "value": "30 grados",
      "note": "Cuánto se inclina la cámara hacia arriba respecto al chasis. 0 es plano, mirando a lo largo de la nariz. 30 es un crucero típico. De 45 a 55 es carrera. Por encima de unos 30, el yaw empieza a rolar el horizonte: a 30 grados, el 50 por ciento de un yaw aparece como roll en la imagen. Eso es lo que hace una cámara inclinada de verdad. Baja el rate máximo de yaw en la pantalla de Rates para domarlo.",
      "step": true,
      "fns": [
@@ -30889,29 +30889,29 @@
     {
      "id": "quad:campo-de-visi-n",
      "label": "Campo de visión",
-     "value": "85 degrees vertical",
+     "value": "85 grados verticales",
      "note": "Más ancho ve más, más angosto amplía. 75 iguala lo que un lente FPV hace con el centro del cuadro; 85 devuelve algo de eso a cambio de anchura; 115 es lo más ancho que esta proyección puede ofrecer honestamente, unos 145 grados de esquina a esquina, y las puertas se verán más chicas por eso.",
      "current": 85,
      "options": [
       {
        "value": 75,
-       "label": "75 degrees vertical"
+       "label": "75 grados verticales"
       },
       {
        "value": 85,
-       "label": "85 degrees vertical"
+       "label": "85 grados verticales"
       },
       {
        "value": 95,
-       "label": "95 degrees vertical"
+       "label": "95 grados verticales"
       },
       {
        "value": 105,
-       "label": "105 degrees vertical"
+       "label": "105 grados verticales"
       },
       {
        "value": 115,
-       "label": "115 degrees vertical"
+       "label": "115 grados verticales"
       }
      ],
      "fns": [
@@ -30955,7 +30955,7 @@
       },
       {
        "value": "angle",
-       "label": "Angle"
+       "label": "Ángulo"
       }
      ],
      "fns": [
@@ -30981,8 +30981,8 @@
      }
     },
     {
-     "id": "quad:launch-control",
-     "label": "Launch control",
+     "id": "quad:control-de-lanzamiento",
+     "label": "Control de lanzamiento",
      "value": "Off",
      "note": "Launch control, apagado por defecto. Cuando está encendida, pulsa L en la línea de salida, pitch adelante, centra el stick, y luego mete throttle. El quad mantiene el ángulo hasta que sales.",
      "sw": true,
@@ -42436,10 +42436,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -42647,8 +42647,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -42754,8 +42754,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -42892,15 +42892,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -42941,10 +42941,10 @@
      "drives": {}
     },
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -43048,8 +43048,8 @@
      }
     },
     {
-     "id": "rates:s-roll",
-     "label": "Roll",
+     "id": "rates:s-alabeo",
+     "label": "Alabeo",
      "section": true,
      "drives": {}
     },
@@ -43159,8 +43159,8 @@
      }
     },
     {
-     "id": "rates:s-pitch",
-     "label": "Pitch",
+     "id": "rates:s-cabeceo",
+     "label": "Cabeceo",
      "section": true,
      "drives": {}
     },
@@ -43266,8 +43266,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -43373,8 +43373,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -43515,8 +43515,8 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
@@ -43532,7 +43532,7 @@
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -43565,10 +43565,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Bando",
-     "note": "Un perfil guardado. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Un perfil guardado. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "pickOnly": true,
      "current": "rp-golden-0",
      "options": [
@@ -43791,8 +43791,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -43898,8 +43898,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -44036,15 +44036,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Guarda estos números otra vez bajo un nombre. Ya coinciden con Bando, así que guardarlos con ese nombre lo reemplaza y cualquier otro nombre crea un segundo perfil. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda estos números otra vez bajo un nombre. Ya coinciden con Bando, así que guardarlos con ese nombre lo reemplaza y cualquier otro nombre crea un segundo perfil. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -44076,10 +44076,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "De fábrica",
-     "note": "2 saved profiles. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "2 perfiles guardados. Cargar uno fija cada número de abajo, incluido el límite de throttle, y no te devuelve a la línea de salida. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "pickOnly": true,
      "current": "",
      "options": [
@@ -44322,8 +44322,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -44429,8 +44429,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -44567,15 +44567,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -44616,10 +44616,10 @@
      "drives": {}
     },
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -44827,8 +44827,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -44934,8 +44934,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -45072,15 +45072,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -45113,10 +45113,10 @@
    "screen": "rates",
    "items": [
     {
-     "id": "rates:preset",
-     "label": "Preset",
+     "id": "rates:preajuste",
+     "label": "Preajuste",
      "value": "Ninguno guardado",
-     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Guarda los números de abajo bajo un nombre y vuelven con una sola pulsación, que es lo que pide una segunda pista. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "info": true,
      "drives": {}
     },
@@ -45324,8 +45324,8 @@
      }
     },
     {
-     "id": "rates:s-yaw",
-     "label": "Yaw",
+     "id": "rates:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },
@@ -45431,8 +45431,8 @@
      }
     },
     {
-     "id": "rates:s-throttle",
-     "label": "Throttle",
+     "id": "rates:s-acelerador",
+     "label": "Acelerador",
      "section": true,
      "drives": {}
     },
@@ -45569,15 +45569,15 @@
      }
     },
     {
-     "id": "rates:s-presets",
-     "label": "Presets",
+     "id": "rates:s-preajustes",
+     "label": "Preajustes",
      "section": true,
      "drives": {}
     },
     {
      "id": "rates:a-rates-save",
      "label": "Guardar como preset",
-     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Presets are saved in this browser on this device only. Clearing site data, a private window, another browser or another device all start you from nothing, and there is no account and nothing is uploaded.",
+     "note": "Ponle nombre a estos números y vuelven con una sola pulsación. Los preajustes se guardan solo en este navegador de este dispositivo. Borrar los datos del sitio, una ventana privada, otro navegador u otro dispositivo te dejan sin nada, y no hay cuenta ni se sube nada.",
      "action": "rates-save",
      "drives": {}
     },
@@ -46775,8 +46775,8 @@
      }
     },
     {
-     "id": "pids:s-roll",
-     "label": "Roll",
+     "id": "pids:s-alabeo",
+     "label": "Alabeo",
      "section": true,
      "drives": {}
     },
@@ -46956,8 +46956,8 @@
      }
     },
     {
-     "id": "pids:s-pitch",
-     "label": "Pitch",
+     "id": "pids:s-cabeceo",
+     "label": "Cabeceo",
      "section": true,
      "drives": {}
     },
@@ -47137,8 +47137,8 @@
      }
     },
     {
-     "id": "pids:s-yaw",
-     "label": "Yaw",
+     "id": "pids:s-gui-ada",
+     "label": "Guiñada",
      "section": true,
      "drives": {}
     },

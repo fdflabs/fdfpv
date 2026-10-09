@@ -34,7 +34,7 @@ import {
   PID_AXES, PID_FIELDS, PID_FIELD_SPECS, SLIDER_KEYS, SLIDERS, pidsAdjusted, pidsEntry, pidsSummary, setPidSlider, setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  RATES_STORAGE_WARNING, listRatePresets, presetMatching, ratePresetById,
+  listRatePresets, presetMatching, ratePresetById,
 } from '../../configs/ratepresets.js';
 import {
   RATE_AXES, RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
@@ -501,7 +501,7 @@ function quadRows(ui, s) {
       str('ui.how_far_the_camera_tilts_up', {
         CAMERA_ANGLE_MIN, CAMERA_ANGLE_DEFAULT, CAMERA_ANGLE_MAX, cameraAngle: s.cameraAngle, v5: tilt,
       }),
-      `${s.cameraAngle} degrees`,
+      str('ui.n_degrees', { n: s.cameraAngle }),
       (d) => {
         const from = s.cameraAngle;
         s.cameraAngle = clampCameraAngle(from + d);
@@ -518,7 +518,7 @@ function quadRows(ui, s) {
       str('ui.wider_sees_more_narrower_magnifies_75'),
       CAMERA_FOVS,
       s.cameraFov,
-      (n) => `${n} degrees vertical`,
+      (n) => str('ui.n_degrees_vertical', { n }),
       (n) => { s.cameraFov = n; },
     ),
     { label: str('ui.flight'), section: true },
@@ -1034,11 +1034,11 @@ function ratesRoomRows(ui, s) {
    * remembered, so it cannot claim a preset the numbers have left. */
   const presetValue = loaded ? loaded.name : (changed ? str('ui.not_saved') : str('ui.stock'));
   const presetRow = presets.length === 0
-    ? { label: str('ui.preset'), value: str('ui.none_saved'), info: true, note: str('ui.save_the_numbers_below_under_a', { RATES_STORAGE_WARNING }) }
+    ? { label: str('ui.preset'), value: str('ui.none_saved'), info: true, note: str('ui.save_the_numbers_below_under_a', { RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }) }
     : {
       ...choice(
         str('ui.preset'),
-        str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : `${presets.length} saved profiles`, RATES_STORAGE_WARNING }),
+        str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : str('ui.n_saved_profiles', { n: presets.length }), RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }),
         presets.map((p) => p.id),
         loaded ? loaded.id : '',
         (id) => (ratePresetById(id) || { name: presetValue }).name,
@@ -1071,7 +1071,7 @@ function ratesRoomRows(ui, s) {
     { label: split ? str('ratespanel.roll') : str('ui.roll_and_pitch'), section: true },
     ...axis('roll'),
     ...(split ? [{ label: str('ui.pitch'), section: true }, ...axis('pitch')] : []),
-    { label: 'Yaw', section: true },
+    { label: str('ui.yaw_axis'), section: true },
     ...axis('yaw'),
     { label: str('ui.throttle'), section: true },
     choice(
@@ -1093,8 +1093,8 @@ function ratesRoomRows(ui, s) {
       label: str('ui.save_as_preset'),
       action: 'rates-save',
       note: loaded
-        ? str('ui.save_these_numbers_again_under_a', { name: loaded.name, RATES_STORAGE_WARNING })
-        : str('ui.name_these_numbers_and_they_come', { RATES_STORAGE_WARNING }),
+        ? str('ui.save_these_numbers_again_under_a', { name: loaded.name, RATES_STORAGE_WARNING: str('ui.rates_storage_warning') })
+        : str('ui.name_these_numbers_and_they_come', { RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }),
     },
     {
       label: str('ui.delete_preset'),
@@ -1164,7 +1164,7 @@ function pidsRows(ui, s) {
   const pidRow = (axis, f) => number(specText(`spec.pid.${f}`).label, specText(`spec.pid.${f}`).note, PID_FIELD_SPECS[f], entry.pids[axis][f], (v) => {
     entry.pids[axis][f] = v;
   });
-  const axisName = { roll: str('ratespanel.roll'), pitch: str('ui.pitch'), yaw: 'Yaw' };
+  const axisName = { roll: str('ratespanel.roll'), pitch: str('ui.pitch'), yaw: str('ui.yaw_axis') };
   const table = expert
     ? PID_AXES.flatMap((axis) => [{ label: axisName[axis], section: true }, ...PID_FIELDS.map((f) => pidRow(axis, f))])
     : [{ label: str('ui.betaflight_s_tuning_sliders'), section: true }, ...SLIDER_KEYS.map(sliderRow)];
