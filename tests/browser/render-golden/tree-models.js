@@ -28,10 +28,10 @@
  */
 
 import * as THREE from 'three';
-import * as species from '../../../src/maps/swiss2/vegetation/species.js';
-import * as plantmat from '../../../src/maps/swiss2/vegetation/plantmat.js';
-import * as impostor from '../../../src/maps/swiss2/vegetation/impostor.js';
-import * as atlas from '../../../src/maps/swiss2/vegetation/atlas.js';
+import * as species from '../../../src/render/library/vegetation/species.js';
+import * as plantmat from '../../../src/render/library/vegetation/plantmat.js';
+import * as impostor from '../../../src/render/library/vegetation/impostor.js';
+import * as atlas from '../../../src/render/library/vegetation/atlas.js';
 import {
   describeGeometry, describeMaterial, describeTexture, describeObject, makeTable, hashText,
 } from '../render-golden-lib.js';

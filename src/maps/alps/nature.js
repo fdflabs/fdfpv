@@ -33,7 +33,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { noise2, smoothstep } from './noise.js';
+import { noise2, smoothstep } from '../../render/library/noise.js';
 import { ribbon, ribbonCentre } from './ribbon.js';
 import {
   FIELD, HALF, STRIP_L, STRIP_W, LAKE_N, LAKE_Y, LAKE_END, SIDE_Z, LIP_DX, POOL,

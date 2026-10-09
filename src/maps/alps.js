@@ -61,7 +61,7 @@ import { attachComposer } from '../render/post.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
-import { makeRng } from './alps/noise.js';
+import { makeRng } from '../render/library/noise.js';
 import {
   HALF, CELL, STRIP_L, STRIP_W, STRIP_Y, LAKE_Y,
   valleyAxis, buildHeightfield, groundTexture, terrainMesh, farRange, groundZone,
