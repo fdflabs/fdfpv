@@ -104,7 +104,7 @@ globalThis.window = {
   location: {
     href: 'https://example.test/?map=track',
     search: '',
-    hostname: 'example.test',
+    hostname: 'paraguayandronecombatsimulator.com',
     origin: 'https://example.test',
     reload: () => { calls.push('reload'); },
   },
