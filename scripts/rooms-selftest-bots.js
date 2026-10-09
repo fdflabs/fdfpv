@@ -154,7 +154,23 @@ export function botsSection(check) {
     h.join(0);
     const q = tagRoom({ open: false });
     q.join(0);
-    check('none in a private tag room until its host can switch them off', q.bots().length === 0);
+    const qWelcome = q.socks[0].got.find((m) => m.type === 'welcome');
+    const before = q.bots().length;
+    q.say(0, { type: 'bots', level: 'easy' });
+    const on = q.bots().length;
+    const levels = q.bots().map((b) => q.r.bots.bots.list.get(b.seat).level);
+    q.say(0, { type: 'bots', level: 'off' });
+    check("a private tag room starts with them off, and its host switches them on at Easy and off again",
+      qWelcome.bots === 'off' && before === 0 && on === FILL_TO - 1 && levels.every((l) => l === 'easy') && q.bots().length === 0,
+      `welcome ${qWelcome.bots}, ${before} before, ${on} on at ${levels.join(',')}, ${q.bots().length} after off`);
+    const q2 = tagRoom({ open: false });
+    q2.join(0);
+    q2.say(0, { type: 'bots', level: 'normal' });
+    const saved = q2.stored.get('bots');
+    const r3 = new RoomCore({ ...q2.r.meta });
+    r3.bots.restore(saved);
+    check('a private room switched on stays on when restored, and one never stored starts off',
+      r3.bots.level === 'normal' && new RoomCore({ ...q2.r.meta }).bots.level === 'off', `${r3.bots.level}`);
     check('none in a combat room, on a world they cannot fly, or in free flight', f.bots().length + g.bots().length + h.bots().length === 0);
   }
   {

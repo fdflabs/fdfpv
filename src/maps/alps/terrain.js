@@ -24,7 +24,7 @@
 
 import * as THREE from 'three';
 import { celMaterial } from '../../render/celmat.js';
-import { fbm, noise2, smoothstep } from './noise.js';
+import { fbm, noise2, smoothstep } from '../../render/library/noise.js';
 import {
   CELLS, FIELD, HALF, LAKE_N, LAKE_Y, POOL, SIDE_Z, SNOW_LINE, SNOW_MAX_SLOPE, STRIP_L, TREE_LINE, forestDensity, lakeBasin, streamX, terrainHeight, valleyAxis,
 } from './heights.js';

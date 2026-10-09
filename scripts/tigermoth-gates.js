@@ -210,10 +210,17 @@ check: {
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     let o = { s: sim.readState().state };
+    /* With power the hold has an integral, as U11b's (uglystik-gates.js). */
+    let iBank = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = hold ? edgeRoll(o.s) : 0;
+      iBank = duty ? Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000)) : 0;
+      const roll = hold ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
       ailSum += Math.abs(roll);
-      o = step(sim, [roll, 1, 0, duty]);
+      /* Power on, the rudder against the engine's yaw, as Great Planes'
+       * manual tells the pilot ("always be ready to apply right rudder to
+       * counteract engine torque", p. 25): the yaw rate taken out on the
+       * rudder, no heading held. */
+      o = step(sim, [roll, 1, duty ? Math.max(-1, Math.min(1, 0.6 * o.s[13])) : 0, duty]);
       worstP = Math.max(worstP, Math.abs(o.s[11]) * DEG);
       const { pitch } = attitude(o.s);
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));
