@@ -865,7 +865,7 @@ function quickRows(ui, s) {
     ...(plane ? [] : [ratesRow(s, str('pause.rates_note'))]),
     { ...feelRow(), note: str('pause.feel_note') },
     { label: plane ? str('pause.plane_setup') : str('pause.quad_setup'), action: 'quad', note: str('pause.setup_note') },
-    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
+    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str(plane ? 'hangar.row_note' : 'hangar.row_note_quad') }] : []),
     { label: str('pause.view'), section: true },
     hudStyleRow(s),
     graphicsRow(s),

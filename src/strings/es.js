@@ -1992,6 +1992,7 @@ export default {
   "hangar.floats_save_first": "Guarda o descarta tus cambios primero y después cambia los flotadores.",
   "hangar.customise": "Personalizar",
   "hangar.row_note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+  "hangar.row_note_quad": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
   "hangar.tab_power": "Potencia",
   "hangar.tab_colours": "Colores",
   "hangar.reset": "Volver a serie",

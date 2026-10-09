@@ -1987,6 +1987,7 @@ export default {
   "hangar.floats_save_first": "Save or cancel your changes first, then switch the floats.",
   "hangar.customise": "Customise",
   "hangar.row_note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+  "hangar.row_note_quad": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
   "hangar.tab_power": "Power",
   "hangar.tab_colours": "Colours",
   "hangar.reset": "Reset to stock",

@@ -439,7 +439,7 @@
      "label": "Customise",
      "action": "customise",
      "card": "hangar-customise",
-     "blurb": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "blurb": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "facts": [],
      "svg": "<svg 1448 chars>",
      "drives": {}
@@ -16985,7 +16985,7 @@
     {
      "id": "quick:a-customise",
      "label": "Customise",
-     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "note": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
@@ -17132,7 +17132,7 @@
     {
      "id": "quick:a-customise",
      "label": "Customise",
-     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "note": "The power and the paint of the quad you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
@@ -24408,7 +24408,7 @@
      "label": "Personalizar",
      "action": "customise",
      "card": "hangar-customise",
-     "blurb": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "blurb": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "facts": [],
      "svg": "<svg 1448 chars>",
      "drives": {}
@@ -40954,7 +40954,7 @@
     {
      "id": "quick:a-customise",
      "label": "Personalizar",
-     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "note": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
@@ -41101,7 +41101,7 @@
     {
      "id": "quick:a-customise",
      "label": "Personalizar",
-     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "note": "La potencia y la pintura del dron que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },

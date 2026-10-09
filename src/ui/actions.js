@@ -776,7 +776,7 @@ export const actionMethods = {
     return [
       card('walk', str('walk.card'), null, str('walk.blurb'), 'hangar-walk'),
       card('aircraft', str('ui.aircraft'), plan, str('hub.aircraft_blurb'), 'hangar-aircraft'),
-      ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str('hangar.row_note'), 'customise')] : []),
+      ...(customisable(this.settings.airframe) ? [card('customise', str('hangar.customise'), plan, str(airframeById(this.settings.airframe).fixedWing ? 'hangar.row_note' : 'hangar.row_note_quad'), 'customise')] : []),
       card('sticks', str('ui.calibrate_sticks'), null, str('hub.sticks_blurb'), 'calibrate'),
       card('howto', str('ui.how_to_fly'), null, str('ui.the_sticks_live_and_what_the'), 'howto'),
     ];
