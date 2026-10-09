@@ -140,7 +140,7 @@ try {
   }
   const pageGround = await a.evaluate(`${JSON.stringify(samples)}.map(([x, z]) => window.__heightAt(x, z))`);
   const roomGround = groundOf('swiss2');
-    await mkdir(outDir, { recursive: true });
+  await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'ground-diff.json'), JSON.stringify(samples.map(([x, z], i) => [Math.round(x), Math.round(z), pageGround[i], roomGround(x, z)])
     .filter(([, , pg, rg]) => Math.abs(pg - rg) >= 1e-3)));
   /* Where they differ the page stands higher: a roof, a deck or a road
