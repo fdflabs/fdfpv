@@ -306,7 +306,7 @@ import {
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
 import { createParadrops } from './render/paradrops.js';
-import { fall as paradropFall, SOLO_CAP as PARADROP_SOLO_CAP, ROOM_CAP as PARADROP_ROOM_CAP } from './game/paradrop.js';
+import { dcos as dcosPerf, fall as paradropFall, SOLO_CAP as PARADROP_SOLO_CAP, ROOM_CAP as PARADROP_ROOM_CAP } from './game/paradrop.js';
 import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
@@ -3744,6 +3744,14 @@ export async function boot({
         roomRefused(m.why);
         return;
       }
+      if (m.type === 'drop') {
+        roomDropArrived(m);
+        return;
+      }
+      if (m.type === 'drops' && Array.isArray(m.list)) {
+        m.list.forEach(roomDropArrived);
+        return;
+      }
       if (m.type === 'combat') {
         roomCombat.onRound(m);
         ui.refreshFriends();
@@ -3781,6 +3789,10 @@ export async function boot({
       roomLinkHold(st);
       if (st.phase !== 'open') {
         roomSlot = -1;
+      }
+      /* The room's drops go with the room; a reconnect is sent them again. */
+      if (st.phase !== 'open' && st.phase !== 'connecting') {
+        roomDropsGone();
       }
       /* The room would not seat this session: one that ended elsewhere is
        * let go by asking the accounts server, and then the sign in is
@@ -11622,10 +11634,38 @@ export async function boot({
       },
     };
   }
-  function paradropSeat(rec, startS) {
+  function paradropSeat(rec, startS, room = false) {
     const f = paradropFall(rec, paradropWorld(rec));
-    paradrops.add({ id: rec.id, map: rec.map, f, startS });
+    /* A room's drop lies where its dropper saw it come down, which the
+     * room keeps, so a late joiner's terrain or water rounding never
+     * moves it. */
+    if (room && rec.rest) {
+      const n = f.path.length / 5 - 1;
+      f.path[n * 5 + 1] = rec.rest[0];
+      f.path[n * 5 + 2] = rec.rest[1];
+      f.path[n * 5 + 3] = rec.rest[2];
+      f.rest = [...rec.rest];
+    }
+    paradrops.add({ id: rec.id, map: rec.map, f, startS, room });
     return f;
+  }
+  /* In a room the room numbers the drops and sends them back to
+   * everybody, the dropper too, on the room's clock. */
+  const roomDropRecords = [];
+  function roomDropArrived(rec) {
+    if (roomDropRecords.some((r) => r.id === rec.id)) {
+      return;
+    }
+    roomDropRecords.push(rec);
+    paradropSeat(rec, rec.t, true);
+  }
+  function roomDropsGone() {
+    roomDropRecords.length = 0;
+    paradrops.remove((d) => !d.room);
+  }
+  function inRoom() {
+    const st = roomLinkState.state();
+    return st.phase === 'open' && Boolean(st.welcome);
   }
   function paradropNow() {
     return performance.now() / 1000;
@@ -11638,9 +11678,11 @@ export async function boot({
       notice = { text: str('main.drop_open_doors'), untilMs: performance.now() + 2200 };
       return false;
     }
-    const mine = paradropRecords.filter((r) => r.map === view.id).length;
-    if (mine >= PARADROP_SOLO_CAP) {
-      notice = { text: str('main.drop_field_full', { n: PARADROP_SOLO_CAP }), untilMs: performance.now() + 2600 };
+    const room = inRoom();
+    const mine = room ? roomDropRecords.length : paradropRecords.filter((r) => r.map === view.id).length;
+    const cap = room ? PARADROP_ROOM_CAP : PARADROP_SOLO_CAP;
+    if (mine >= cap) {
+      notice = { text: str('main.drop_field_full', { n: cap }), untilMs: performance.now() + 2600 };
       return false;
     }
     const st = readState();
@@ -11659,6 +11701,13 @@ export async function boot({
       v: [lipV.x, lipV.y, lipV.z],
       air: weatherFlown,
     };
+    if (room) {
+      const f = paradropFall(rec, paradropWorld(rec));
+      const { id, ...sent } = rec;
+      roomLinkState.send({ type: 'drop', ...sent, rest: f.rest, wet: f.wet });
+      notice = { text: str('main.drop_away', { n: mine + 1 }), untilMs: performance.now() + 1400 };
+      return true;
+    }
     const f = paradropSeat(rec, paradropNow());
     rec.rest = f.rest;
     rec.wet = f.wet;
@@ -11667,10 +11716,30 @@ export async function boot({
     return true;
   }
   /* The drops in this session, for a check. */
-  window.__paradrops = () => paradropRecords.map((r) => ({ ...r }));
+  window.__paradrops = () => (inRoom() ? roomDropRecords : paradropRecords).map((r) => ({ ...r }));
   /* Each drop fallen again from its record alone, and the doors' and the
    * chute's state, for scripts/hercules-keys.js. */
-  window.__paradropRefall = () => paradropRecords.map((r) => paradropFall(r, paradropWorld(r)).rest);
+  window.__paradropRefall = () => (inRoom() ? roomDropRecords : paradropRecords).map((r) => paradropFall(r, paradropWorld(r)).rest);
+  /* n loads laid in a ring about the craft, `falling` of them released
+   * now 60 m up, the rest long landed: scripts/hercules-perf.js's field at
+   * the cap. */
+  window.__paradropFill = (n, falling = 0) => {
+    for (let i = 0; i < n; i += 1) {
+      const a = i * 2.399963;
+      const r = 8 + 0.9 * Math.sqrt(i) * 6;
+      const x = pCurr.x + r * dcosPerf(a);
+      const z = pCurr.z + r * dcosPerf(a - 1.5707963267948966);
+      const y = view.height(x, z, Infinity) + 60;
+      const rec = { id: paradropRecords.length + 1, map: view.id, af: 'hercules3077', t: 0, tp: 0, p: [x, y, z], v: [15, 0, 0], air: weatherFlown };
+      const f = paradropSeat(rec, i < falling ? paradropNow() : paradropNow() - 1000);
+      rec.rest = f.rest;
+      rec.wet = f.wet;
+      paradropRecords.push(rec);
+    }
+    return paradrops.count();
+  };
+  /* Where each drawn load is now, by its id, for scripts/hercules-room.js. */
+  window.__paradropDrawn = () => paradrops.list.map((d) => ({ id: d.id, room: d.room, rest: d.f.rest }));
   window.__wingDoor = () => ({
     door: sim.e.sim_wing_door(),
     chute: typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0,
@@ -11680,7 +11749,8 @@ export async function boot({
     if (parent && paradrops.group.parent !== parent) {
       parent.add(paradrops.group);
     }
-    paradrops.update(paradropNow(), view.id);
+    const roomMs = inRoom() ? roomLinkState.roomNow() : null;
+    paradrops.update(paradropNow(), Number.isFinite(roomMs) ? roomMs / 1000 : null, view.id);
   }
 
   function crashFrame(nowWall, dt) {

@@ -58,6 +58,7 @@ import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/mo
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
+import { RoomDrops } from './drops.js';
 import { RoomOps } from './ops.js';
 import { RoomGameLobby } from './gamelobby.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
@@ -283,6 +284,7 @@ export class RoomCore {
     this.race = new RoomRace(); /* Phase 4, edge/rooms/race.js */
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.jam = new RoomJam(); /* Trick Battle, edge/rooms/jam.js */
+    this.drops = new RoomDrops(); /* the Hercules' paradrops, edge/rooms/drops.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     /* The accounts whose rooms start missions in development (devHost). */
@@ -958,6 +960,7 @@ export class RoomCore {
       type: 'join', seat, name: s.name, ...(callsign ? { callsign } : {}), profile, host: this.host(),
     })));
     actions.push(...wrecks.wrecksFor(this, conn));
+    actions.push(...this.drops.join(conn));
     actions.push(...this.race.join(this, seat));
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
@@ -1045,6 +1048,9 @@ export class RoomCore {
     }
     if (msg.type === 'weather') {
       return this.weather(conn, s, msg);
+    }
+    if (msg.type === 'drop') {
+      return this.drops.message(this, conn, s, msg);
     }
     /* A game room's lobby: ready from anybody, the round's setting from
      * the host (edge/rooms/gamelobby.js), with the clock its times need. */

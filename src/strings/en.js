@@ -1740,6 +1740,7 @@ export default {
   "main.drop_open_doors": "Open the ramp first (O)",
   "main.drop_field_full": "The field is full: {n} loads already down",
   "main.drop_away": "Load {n} away",
+  "rooms.refused_drops_full": "The field is full: the room keeps 300 loads",
   "ui.gear_moving": "Gear moving",
   "main.throttle_down_to_start": "Throttle down to start",
   "main.throttle_up_on_the_water": "Afloat on the lake. Throttle up with the stick back to get on the step, let it run, and pull back to fly. The rudder steers on the water; F sets the flaps, C changes the camera.",

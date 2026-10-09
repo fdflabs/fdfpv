@@ -74,16 +74,26 @@ export function createParadrops(capacity) {
     list.length = 0;
   }
 
-  /* nowS: the same clock add()'s startS is on; only the drops on mapId
+  /* Drops leave the field only with their room (docs/HERCULES-CONTRACT.md). */
+  function remove(keep) {
+    for (let i = list.length - 1; i >= 0; i -= 1) {
+      if (!keep(list[i])) {
+        list.splice(i, 1);
+      }
+    }
+  }
+  /* nowS: the clock a solo drop's startS is on, roomS a room drop's (the
+   * room's clock, null while it has not synced); only the drops on mapId
    * are drawn. */
-  function update(nowS, mapId) {
+  function update(nowS, roomS, mapId) {
     let nb = 0;
     let nd = 0;
     let nf = 0;
     let nr = 0;
     const pos = risers.geometry.attributes.position.array;
     for (const d of list) {
-      const tau = nowS - d.startS;
+      const clock = d.room ? roomS : nowS;
+      const tau = clock == null ? Infinity : clock - d.startS;
       if (tau < 0 || d.map !== mapId) {
         continue;
       }
@@ -137,5 +147,5 @@ export function createParadrops(capacity) {
     risers.geometry.attributes.position.needsUpdate = true;
   }
 
-  return { group, add, clear, update, count: () => list.length, list };
+  return { group, add, clear, remove, update, count: () => list.length, list };
 }
