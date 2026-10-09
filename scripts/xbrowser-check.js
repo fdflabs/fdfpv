@@ -116,7 +116,10 @@ async function run(engineName, origin, roomsOrigin) {
   }[engineName];
   let browser;
   try {
-    browser = await ENGINES[engineName].launch({ headless: true, ...options });
+    /* XBROWSER_HEADFUL=1 (CI, under xvfb-run): headless Firefox finds no
+     * GL driver on a runner with no GPU ("Exhausted GL driver options");
+     * a headful one on Xvfb draws through Mesa. */
+    browser = await ENGINES[engineName].launch({ headless: process.env.XBROWSER_HEADFUL !== '1', ...options });
   } catch (e) {
     check(engineName, 'launch', false, String(e.message).split('\n').find((l) => /apt-get|Executable|missing/i.test(l)) || e.message.slice(0, 160));
     return;

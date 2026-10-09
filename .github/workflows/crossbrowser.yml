@@ -47,4 +47,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.engine }}
-      - run: npm run xbrowser:check -- ${{ matrix.engine }}
+      # Headful on Xvfb: with no GPU, headless Firefox gets no WebGL at all.
+      - run: xvfb-run -a npm run xbrowser:check -- ${{ matrix.engine }}
+        env:
+          XBROWSER_HEADFUL: '1'
