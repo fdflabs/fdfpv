@@ -133,9 +133,13 @@ const PAD = `(() => {
   navigator.getGamepads = () => [pad];
 })();`;
 
+/* Held until the screen changes (up to 5 s) and then let go: a slow
+ * runner draws a few frames a second, and the shell reads the pad once a
+ * frame, so a fixed short press can fall between two reads. */
 async function pressStart(page) {
+  const from = await page.evaluate('window.__ui.screen');
   await page.evaluate('(window.__pad.buttons[9] = { pressed: true, value: 1 }, window.__pad.timestamp += 1, true)');
-  await page.sleep(250);
+  await page.until(`window.__ui.screen !== ${JSON.stringify(from)}`, 5000).catch(() => {});
   await page.evaluate('(window.__pad.buttons[9] = { pressed: false, value: 0 }, window.__pad.timestamp += 1, true)');
   await page.sleep(250);
 }
