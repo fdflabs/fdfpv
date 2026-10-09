@@ -41,7 +41,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeRng } from '../../alps/noise.js';
+import { makeRng } from '../../../render/library/noise.js';
 import { frame } from '../buildings/parts.js';
 import { stadel, farmhouse } from '../buildings/houses.js';
 
@@ -74,7 +74,7 @@ function farOnly(bake) {
 
 /* Bake the farm; returns its buildings' keep out boxes, [x0, y0, z0, x1,
  * y1, z1], each with the roofs and solid parts it put and the village
- * datum they are over (alps/roofs.js standWalls). */
+ * datum they are over (library/roofs.js standWalls). */
 export function farmstead(ctx) {
   const { bake, onGround, villageY } = ctx;
   const walls = [];

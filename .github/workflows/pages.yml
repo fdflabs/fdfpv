@@ -38,18 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Stage the site
         run: |
-          mkdir -p /tmp/site
-          rsync -a --exclude .git --exclude .github --exclude vendor --exclude node_modules \
-            --exclude build --exclude patches --exclude tracks --exclude edge --exclude scripts \
-            --exclude 'tests/browser' --exclude 'tests/fixtures' --exclude 'tests/gen' \
-            --exclude 'tests/inputs' --exclude 'tests/verify.js' --exclude 'tests/*.json' \
-            --exclude '*.md' --exclude LICENSE --exclude NOTICE --exclude package.json \
-            --exclude render.yaml --exclude gates.config.json \
-            ./ /tmp/site/
-          cp LICENSE NOTICE /tmp/site/
-          du -sh /tmp/site
-          test -f /tmp/site/dist/sim.wasm
-          test -f /tmp/site/tests/lib/simmod.js
+          scripts/stage-site.sh /tmp/site
           # The custom domain. A Pages site deployed by a workflow takes
           # its domain from Settings > Pages only and ignores this file; it
           # is published so the served tree says where it lives, and so a

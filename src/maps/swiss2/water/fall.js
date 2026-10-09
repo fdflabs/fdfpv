@@ -64,7 +64,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../../render/library/noise.js';
 import { valleyAxis } from '../../alps/terrain.js';
 import { BAY } from '../terrain.js';
 import { thermalKind, thermalShader } from '../../../render/thermal.js';
