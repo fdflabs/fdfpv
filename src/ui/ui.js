@@ -213,7 +213,7 @@ export { WAYS, formatRunClock, formatTime };
 export const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends', 'rooms', 'roomnew',
+  'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
 ]);
 
 /*
@@ -233,8 +233,10 @@ export const SCREEN_TITLES = {
   standings: 'Standings',
   rates: 'Rates',
   pids: 'PIDs',
+  controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
   paused: 'Paused',
+  quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
