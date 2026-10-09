@@ -74,12 +74,15 @@ const PINNED = {
   /* Re-pinned: the Skyhunter's wash (docs/FLIGHTMODEL.md). */
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
-  'trace.sky.60.10': '293ece906687ed1f24985bfad2a2e805167b63c3be2d1224bfd225301e886fcf',
+  /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
+  'trace.sky.60.10': 'e17f87b1c5485af4d6ff050aaaa8a83d0edf10a06f9947127a1c22e97c9ed705',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
   /* Re-pinned: CL max at the top of the curve (docs/FLIGHTMODEL.md). */
   /* Re-pinned: a prop spins up (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: no built in stall side on any aircraft (docs/FLIGHTMODEL.md). */
+  /* Re-pinned: no built in stall side, the P-51 excepted (docs/FLIGHTMODEL.md). */
   'trace.p51.72.25': '7f1b2d054bfdd0e91fbcf09baac86c8b620844ab807830f4be1e83e26b18a494',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
