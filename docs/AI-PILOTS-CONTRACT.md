@@ -105,7 +105,8 @@ check, the tick's batch recipients). Those 17 go through one helper,
   builds; what is built on the ground, roofs and decks, is not there). It
   falls from where it was, lies 5 s where it came to rest (FLAG_CRASHED,
   drawn intact: no wreck table), and is born again in the air, untouchable
-  for 5 s and until 30 m from its start, as a person's fresh flight is.
+  for 5 s, as a person's fresh flight is (5 s only, parked or not: lead,
+  2026-10-09).
   A softer touch moves a person and leaves the AI pilot flying, unmoved.
 - Where: AI pilots fly only where the server knows the ground
   (edge/rooms/grounds.js, the very field each page builds, from

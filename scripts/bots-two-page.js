@@ -46,7 +46,7 @@ import { airframeById } from '../configs/airframes.js';
 import { FILL_TO } from '../edge/rooms/roombots.js';
 import { CORRIDOR, DOWN_MS, valleyAxis } from '../edge/rooms/bots.js';
 import { groundOf } from '../edge/rooms/grounds.js';
-import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING } from '../src/share/roomwire.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'bots-two-page');
@@ -244,6 +244,13 @@ try {
   check('DOWN_MS after it came to rest it flies again, untouchable at first, inside the corridor', (back.flags & FLAG_AIRBORNE) !== 0 && (back.flags & FLAG_SPAWNING) !== 0
     && back.drawn && back.at[1] >= CORRIDOR.yMin - 5, `flags ${back.flags}, ${back.at && back.at[1].toFixed(1)} m`);
 
+  /* A has sat on the strip since its flight began, far longer than five
+   * seconds: no longer untouchable (lead, 2026-10-09), so if the draw makes
+   * it the Ace the AI pilots can catch it. */
+  const aSeat = (await a.evaluate('window.__rooms()')).seat;
+  const aPose = decodePose([...core.seats.values()].find((t) => t.seat === aSeat).pose);
+  check('A, parked on the strip past its five seconds, is touchable in the room', (aPose.flags & FLAG_SPAWNING) === 0 && (aPose.flags & FLAG_AIRBORNE) === 0,
+    `flags ${aPose.flags}`);
   await a.evaluate("window.__roomTagDo('tag-start', 120)");
   await a.until("window.__roomTag().view && window.__roomTag().view.state === 'live'", 30000);
   const seats = new Set(bots(await a.evaluate('window.__rooms()')).map((p) => p.seat));
@@ -252,7 +259,6 @@ try {
   const toBots = (tag.view.crowns || []).filter((c) => seats.has(c.seat));
   /* Why not, when not: how A's samples reach the room's match (a gap over
    * the rule's GAP_MS makes a pilot uncatchable) and its flags. */
-  const aSeat = (await a.evaluate('window.__rooms()')).seat;
   const aTrack = core.tag.seats.get(aSeat)?.track.s ?? [];
   const aGaps = aTrack.slice(1).map((q, i) => q.t - aTrack[i].t);
   const why = `A ${aTrack.length} samples, widest gap ${Math.max(0, ...aGaps)} ms, flags ${[...new Set(aTrack.map((q) => q.flags))].join('/')}`;
