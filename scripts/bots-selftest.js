@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import {
-  BOT_CAP_MEASURE, BOT_MAP, Bots, CONTACT_M, CORRIDOR, DOWN_MS, LEVELS, SPAWN_M, SPAWN_MS, valleyAxis,
+  BOT_CAP_MEASURE, BOT_MAP, Bots, CONTACT_M, CORRIDOR, DOWN_MS, LEVELS, SPAWN_MS, valleyAxis,
 } from '../edge/rooms/bots.js';
 import { groundOf } from '../edge/rooms/grounds.js';
 import { buildSwissField } from '../src/maps/swiss2/field.js';
@@ -256,8 +256,7 @@ function flyTo(bots, from, to, orders = () => null) {
 function crashRows() {
   const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
   const ms = Number((main.match(/const ROOM_SPAWN_MS = (\d+);/) || [])[1]);
-  const m = Number((main.match(/const ROOM_SPAWN_M = (\d+);/) || [])[1]);
-  check("an AI pilot's spawn is a person's: src/main.js ROOM_SPAWN_MS and ROOM_SPAWN_M", ms === SPAWN_MS && m === SPAWN_M, `${ms} ms, ${m} m`);
+  check("an AI pilot's spawn is a person's: src/main.js ROOM_SPAWN_MS, time alone", ms === SPAWN_MS && !/ROOM_SPAWN_M\b/.test(main), `${ms} ms`);
 
   const field = buildSwissField().height;
   const ground = groundOf(BOT_MAP);
@@ -271,7 +270,7 @@ function crashRows() {
   }
   check("the room's ground is the Swiss field (swiss2/field.js) over the lake's surface, across the corridor (the strip's 2 cm of grass apart; bots:twopage holds it to the page's own ground)", worst <= 0.02 + 1e-9, `worst ${worst} m`);
 
-  /* Born untouchable: SPAWN_MS and SPAWN_M. */
+  /* Born untouchable for SPAWN_MS. */
   const bots = new Bots(3);
   bots.add(1, 'normal', 0);
   const born = bots.step(0, () => null)[0].pose;

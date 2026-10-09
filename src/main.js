@@ -6784,14 +6784,15 @@ export async function boot({
    * was drawn until its crash event brings its shared wreck (Phase 2,
    * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
    *
-   * SPAWNING: for the five seconds after a flight starts, and until 30 m
-   * from where it started, this aircraft is flagged untouchable, and the
-   * room neither hits it nor lets it hit anyone (section 6.2, rule 5).
+   * SPAWNING: for the five seconds after a flight starts this aircraft is
+   * flagged untouchable, and the room neither hits it nor lets it hit
+   * anyone (section 6.2, rule 5). Five seconds only, parked or not (lead,
+   * 2026-10-09): it also lasted until 30 m from the start, so an Ace sat
+   * on the strip could never be caught.
    */
   const ROOM_SPAWN_MS = 5000;
-  const ROOM_SPAWN_M = 30;
   const ROOM_FREEZE_MS = 600;
-  const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
+  const roomSpawn = { at: -Infinity, simT: Infinity };
   let roomMidairSide = null;
   const roomHits = [];
   const roomFlashAt = new THREE.Vector3();
@@ -6801,13 +6802,10 @@ export async function boot({
     const simT = stateCurr[0];
     /* A new flight, or R: the sim clock starts again from zero. */
     if (simT < roomSpawn.simT) {
-      Object.assign(roomSpawn, { at: now, x: pCurr.x, y: pCurr.y, z: pCurr.z, clear: false });
+      roomSpawn.at = now;
     }
     roomSpawn.simT = simT;
-    if (!roomSpawn.clear && Math.hypot(pCurr.x - roomSpawn.x, pCurr.y - roomSpawn.y, pCurr.z - roomSpawn.z) >= ROOM_SPAWN_M) {
-      roomSpawn.clear = true;
-    }
-    return now - roomSpawn.at < ROOM_SPAWN_MS || !roomSpawn.clear;
+    return now - roomSpawn.at < ROOM_SPAWN_MS;
   }
 
   function roomHit(m) {

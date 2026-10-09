@@ -26,8 +26,7 @@
  * referee breaks a part of it (crash(), from roombots.js), and it falls
  * under gravity from where it was, lies DOWN_MS where it came to rest
  * (FLAG_CRASHED), and is born again as add() births one, untouchable
- * (FLAG_SPAWNING) as a person's fresh flight is: SPAWN_MS, and until
- * SPAWN_M from where it started.
+ * (FLAG_SPAWNING) for SPAWN_MS as a person's fresh flight is.
  *
  * DETERMINISM. warhunt.js's recipe: plain arithmetic, Math.sqrt, and
  * sinDet (src/share/war/routes.js), never Math.sin, in the flight. The
@@ -121,11 +120,9 @@ const FLEE_M = 300;
 const FLEE_EDGE_M = 25;
 /* The prop's speed in the pose, rad/s: for drawing only. */
 const PROP = 900;
-/* A person's fresh flight is untouchable this long and until this far
- * from where it started (src/main.js ROOM_SPAWN_MS, ROOM_SPAWN_M;
- * bots:selftest reads them there). */
+/* A person's fresh flight is untouchable this long, parked or not
+ * (src/main.js ROOM_SPAWN_MS; bots:selftest reads it there). */
 export const SPAWN_MS = 5000;
-export const SPAWN_M = 30;
 /* How long a crashed AI pilot lies before it is born again: about as long
  * as a person reads a crash before pressing R, well inside the crash
  * cam's 9 s REPLAY prompt (src/replay/crashcam.js PROMPT_MS). */
@@ -208,7 +205,7 @@ export class Bots {
     const f = this.random() < 0.5 ? [0, 0, -1] : [0, 0, 1];
     Object.assign(b, {
       p, f, r: [-f[2], 0, f[0]], bank: 0, boost: 1, low: CORRIDOR.yMin, aim: null, aimAt: -Infinity, wander: this.drawPoint(),
-      down: null, spawnAt: roomMs, spawnFrom: [...p],
+      down: null, spawnAt: roomMs,
     });
   }
 
@@ -230,8 +227,7 @@ export class Bots {
     if (b.spawnAt == null) {
       return false;
     }
-    const d = Math.sqrt((b.p[0] - b.spawnFrom[0]) ** 2 + (b.p[1] - b.spawnFrom[1]) ** 2 + (b.p[2] - b.spawnFrom[2]) ** 2);
-    if (roomMs - b.spawnAt >= SPAWN_MS && d >= SPAWN_M) {
+    if (roomMs - b.spawnAt >= SPAWN_MS) {
       b.spawnAt = null;
       return false;
     }
@@ -470,7 +466,7 @@ export class Bots {
       rand: this.rand,
       bots: [...this.list.values()].map((b) => ({
         seat: b.seat, level: b.level, p: b.p, f: b.f, r: b.r, bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim, aimAt: b.aimAt === -Infinity ? null : b.aimAt, wander: b.wander, ms: b.ms,
-        down: b.down, spawnAt: b.spawnAt, spawnFrom: b.spawnFrom,
+        down: b.down, spawnAt: b.spawnAt,
       })),
       crashes: { ...this.crashes },
     };
@@ -482,7 +478,7 @@ export class Bots {
     for (const b of value?.bots ?? []) {
       this.list.set(b.seat, {
         seat: b.seat, level: b.level, p: [...b.p], f: [...b.f], r: [...b.r], bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim ? [...b.aim] : null, aimAt: b.aimAt ?? -Infinity, wander: [...b.wander], ms: b.ms,
-        down: b.down ? { at: b.down.at, restAt: b.down.restAt ?? null, v: [...b.down.v] } : null, spawnAt: b.spawnAt ?? null, spawnFrom: b.spawnFrom ? [...b.spawnFrom] : [...b.p],
+        down: b.down ? { at: b.down.at, restAt: b.down.restAt ?? null, v: [...b.down.v] } : null, spawnAt: b.spawnAt ?? null,
       });
     }
     this.crashes = { ground: 0, hit: 0, ...(value?.crashes ?? {}) };
