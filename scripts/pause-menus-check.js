@@ -80,6 +80,10 @@ function seed(c) {
   } catch (e) { /* storage refused */ }`];
 }
 
+/* The rows the page shows for a screen, by their ids: a list nobody draws
+ * is an empty box to the pilot whatever items() says. */
+const drawn = (page, screen) => page.evaluate(`document.querySelectorAll('[data-row-id^="${screen}:"]').length`);
+
 /* Resume, Restart, Flight, Change aircraft, Room, Settings, My tracks, Quit. */
 const FIRST_SCREEN_MAX = 8;
 
@@ -152,6 +156,7 @@ async function runCase(c, record) {
     const cursor = await page.evaluate('window.__ui.cursor');
     record[c.id] = { lang: c.lang, airframe: c.airframe, rows };
     say(rows[0] && rows[0].action === 'resume' && cursor === 0, `Resume is first and has the cursor (cursor ${cursor})`);
+    say(await drawn(page, 'paused') === rows.length, 'every pause row is drawn on the page');
     say(rows.length <= FIRST_SCREEN_MAX && !rows.some((r) => r.section), `${rows.length} rows, no group header`);
     await shoot(page, c.id);
     await page.sleep(300);
@@ -165,6 +170,7 @@ async function runCase(c, record) {
     const quick = await page.evaluate(ROWS);
     record[`${c.id}-flight`] = { lang: c.lang, airframe: c.airframe, rows: quick };
     const plane = c.airframe !== 'interceptor';
+    say(await drawn(page, 'quick') === quick.filter((r) => !r.section).length, `every panel row is drawn on the page`);
     say(quick.some((r) => r.action === 'rates') === !plane, plane ? 'a plane has no Rates row' : 'a quad has its Rates row');
     await shoot(page, `${c.id}-flight`);
     await page.tap('Escape');

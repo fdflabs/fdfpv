@@ -87,6 +87,7 @@ const MENU_FIELD = {
   pids: 'pidsMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
+  quick: 'quickMenu',
   results: 'resultsMenu',
 };
 
