@@ -81,7 +81,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../../render/library/noise.js';
 import {
   HALF, LAKE_Y, LAKE_N, TREE_LINE, forestDensity, valleyAxis,
 } from '../../alps/terrain.js';
@@ -96,7 +96,7 @@ import {
 import { placeInto, placeBoathouse } from './lakeside.js';
 import { stadel } from '../buildings/houses.js';
 import { roadside } from './roadside.js';
-import { standWalls } from '../../alps/roofs.js';
+import { standWalls } from '../../../render/library/roofs.js';
 
 /* Huts note their footprints for the meadow and the forest to keep off
  * only this far from the strip, as they always have: noting more would

@@ -1,7 +1,7 @@
 /*
  * cars.js: the hatchbacks, the estate and the delivery van, near.
  *
- * The cel car's own table (alps/vehicles.js CARS) sets every dimension:
+ * The cel car's own table (library/vehicles/vehicles.js CARS) sets every dimension:
  * the length and width, the wheels, the sill, the beltline and the roof,
  * where the glasshouse meets the body and how far its roof sits back.
  * On those numbers a car is built as one is: a body swept from nose to
@@ -30,7 +30,7 @@
  */
 
 import * as THREE from 'three';
-import { CARS } from '../../alps/vehicles.js';
+import { CARS } from '../../../render/library/vehicles/vehicles.js';
 import { makeKit, FIN, round, sweep, poly, strut, box, cylZ, v3 } from './kit.js';
 
 /* The distance a car is drawn near within. */
