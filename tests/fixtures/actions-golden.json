@@ -24331,7 +24331,7 @@
     "changed": {
      "screen": "courses",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000": {
@@ -24363,7 +24363,15 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends": {
@@ -24391,7 +24399,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat": {
@@ -24420,7 +24430,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace": {
@@ -24449,7 +24461,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam": {
@@ -24478,7 +24492,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war": {
@@ -24507,7 +24523,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign": {
@@ -24536,7 +24554,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior": {
@@ -24558,7 +24578,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training": {
@@ -24580,7 +24606,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    },
    "friends-leave": {
@@ -24620,7 +24653,7 @@
      "screen": "rooms",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "lobby:roomnew": {
@@ -24642,7 +24675,7 @@
      "screen": "roomnew",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "rooms": {
@@ -24973,7 +25006,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d"
     }
    },
    "rates-save": {
@@ -24987,7 +25020,7 @@
      ]
     ],
     "changed": {
-     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+     "store.fdfpv.rates.library.v1.rp-7fffffff": "268 chars, hash a9aafd69"
     }
    },
    "rates-delete": {
@@ -25009,7 +25042,8 @@
      "screen": "title",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+     "store.webfpv.settings.v3.map": "\"alps\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"alps\""
     }
    },
    "map:track": {
@@ -25413,7 +25447,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-race-5inch keepWorld": {
@@ -25430,7 +25468,7 @@
     "changed": {
      "screen": "courses",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -25460,7 +25498,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -25482,7 +25526,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends picked:cub": {
@@ -25512,7 +25562,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-friends keepWorld": {
@@ -25530,7 +25586,7 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat picked:cub": {
@@ -25561,7 +25617,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-combat keepWorld": {
@@ -25580,7 +25642,7 @@
      "mode": "freestyle",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace picked:cub": {
@@ -25611,7 +25673,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-ace keepWorld": {
@@ -25630,7 +25698,7 @@
      "mode": "freestyle",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam picked:cub": {
@@ -25661,7 +25729,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-jam keepWorld": {
@@ -25680,7 +25754,7 @@
      "mode": "freestyle",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war picked:cub": {
@@ -25711,7 +25785,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-war keepWorld": {
@@ -25730,7 +25810,7 @@
      "mode": "freestyle",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign picked:cub": {
@@ -25761,7 +25841,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-campaign keepWorld": {
@@ -25780,7 +25866,7 @@
      "mode": "freestyle",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior picked:cub": {
@@ -25800,7 +25886,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-interior keepWorld": {
@@ -25822,7 +25912,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training picked:cub": {
@@ -25842,7 +25938,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-training keepWorld": {
@@ -25864,7 +25964,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    }
   },
@@ -26161,7 +26268,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000": {
@@ -26194,7 +26301,15 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends": {
@@ -26223,7 +26338,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat": {
@@ -26253,7 +26370,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace": {
@@ -26283,7 +26402,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam": {
@@ -26313,7 +26434,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war": {
@@ -26343,7 +26466,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign": {
@@ -26373,7 +26498,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior": {
@@ -26396,7 +26523,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training": {
@@ -26419,7 +26552,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    },
    "friends-leave": {
@@ -26460,7 +26600,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "lobby:roomnew": {
@@ -26483,7 +26623,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "rooms": {
@@ -26806,7 +26946,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d"
     }
    },
    "rates-save": {
@@ -26820,7 +26960,7 @@
      ]
     ],
     "changed": {
-     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+     "store.fdfpv.rates.library.v1.rp-7fffffff": "268 chars, hash a9aafd69"
     }
    },
    "rates-delete": {
@@ -26842,7 +26982,8 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+     "store.webfpv.settings.v3.map": "\"alps\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"alps\""
     }
    },
    "map:track": {
@@ -27253,7 +27394,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-race-5inch keepWorld": {
@@ -27271,7 +27416,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -27302,7 +27447,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -27325,7 +27476,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends picked:cub": {
@@ -27356,7 +27513,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-friends keepWorld": {
@@ -27375,7 +27538,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat picked:cub": {
@@ -27407,7 +27570,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-combat keepWorld": {
@@ -27427,7 +27596,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace picked:cub": {
@@ -27459,7 +27628,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-ace keepWorld": {
@@ -27479,7 +27654,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam picked:cub": {
@@ -27511,7 +27686,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-jam keepWorld": {
@@ -27531,7 +27712,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war picked:cub": {
@@ -27563,7 +27744,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-war keepWorld": {
@@ -27583,7 +27770,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign picked:cub": {
@@ -27615,7 +27802,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-campaign keepWorld": {
@@ -27635,7 +27828,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior picked:cub": {
@@ -27656,7 +27849,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-interior keepWorld": {
@@ -27679,7 +27876,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training picked:cub": {
@@ -27700,7 +27903,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-training keepWorld": {
@@ -27723,7 +27930,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    }
   },
@@ -28020,7 +28234,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000": {
@@ -28053,7 +28267,15 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends": {
@@ -28082,7 +28304,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat": {
@@ -28112,7 +28336,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace": {
@@ -28142,7 +28368,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam": {
@@ -28172,7 +28400,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war": {
@@ -28202,7 +28432,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign": {
@@ -28232,7 +28464,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior": {
@@ -28255,7 +28489,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training": {
@@ -28278,7 +28518,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    },
    "friends-leave": {
@@ -28319,7 +28566,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "lobby:roomnew": {
@@ -28342,7 +28589,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "rooms": {
@@ -28673,7 +28920,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d"
     }
    },
    "rates-save": {
@@ -28687,7 +28934,7 @@
      ]
     ],
     "changed": {
-     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+     "store.fdfpv.rates.library.v1.rp-7fffffff": "268 chars, hash a9aafd69"
     }
    },
    "rates-delete": {
@@ -28709,7 +28956,8 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+     "store.webfpv.settings.v3.map": "\"alps\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"alps\""
     }
    },
    "map:track": {
@@ -29119,7 +29367,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-race-5inch keepWorld": {
@@ -29137,7 +29389,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -29168,7 +29420,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -29191,7 +29449,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends picked:cub": {
@@ -29222,7 +29486,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-friends keepWorld": {
@@ -29241,7 +29511,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat picked:cub": {
@@ -29273,7 +29543,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-combat keepWorld": {
@@ -29293,7 +29569,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace picked:cub": {
@@ -29325,7 +29601,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-ace keepWorld": {
@@ -29345,7 +29627,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam picked:cub": {
@@ -29377,7 +29659,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-jam keepWorld": {
@@ -29397,7 +29685,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war picked:cub": {
@@ -29429,7 +29717,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-war keepWorld": {
@@ -29449,7 +29743,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign picked:cub": {
@@ -29481,7 +29775,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-campaign keepWorld": {
@@ -29501,7 +29801,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior picked:cub": {
@@ -29522,7 +29822,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-interior keepWorld": {
@@ -29545,7 +29849,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training picked:cub": {
@@ -29566,7 +29876,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-training keepWorld": {
@@ -29589,7 +29903,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    }
   },
@@ -29886,7 +30207,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000": {
@@ -29919,7 +30240,15 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends": {
@@ -29948,7 +30277,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat": {
@@ -29978,7 +30309,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace": {
@@ -30008,7 +30341,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam": {
@@ -30038,7 +30373,9 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war": {
@@ -30068,7 +30405,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign": {
@@ -30098,7 +30437,9 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior": {
@@ -30121,7 +30462,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training": {
@@ -30144,7 +30491,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    },
    "friends-leave": {
@@ -30185,7 +30539,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "lobby:roomnew": {
@@ -30208,7 +30562,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "rooms": {
@@ -30539,7 +30893,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d"
     }
    },
    "rates-save": {
@@ -30553,7 +30907,7 @@
      ]
     ],
     "changed": {
-     "store.fdfpv.rates.library.v1": "284 chars, hash 2259c1ab"
+     "store.fdfpv.rates.library.v1.rp-7fffffff": "268 chars, hash a9aafd69"
     }
    },
    "rates-delete": {
@@ -30575,7 +30929,8 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
+     "store.webfpv.settings.v3.map": "\"alps\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"alps\""
     }
    },
    "map:track": {
@@ -30985,7 +31340,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-race-5inch keepWorld": {
@@ -31003,7 +31362,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -31034,7 +31393,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -31057,7 +31422,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-friends picked:cub": {
@@ -31088,7 +31459,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-friends keepWorld": {
@@ -31107,7 +31484,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-combat picked:cub": {
@@ -31139,7 +31516,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-combat keepWorld": {
@@ -31159,7 +31542,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-ace picked:cub": {
@@ -31191,7 +31574,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-ace keepWorld": {
@@ -31211,7 +31600,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-jam picked:cub": {
@@ -31243,7 +31632,13 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
+     "store.webfpv.settings.v3.map": "\"swiss2\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"swiss2\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-jam keepWorld": {
@@ -31263,7 +31658,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-war picked:cub": {
@@ -31295,7 +31690,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-war keepWorld": {
@@ -31315,7 +31716,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-campaign picked:cub": {
@@ -31347,7 +31748,13 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
+     "store.webfpv.settings.v3.map": "\"itaipu\"",
+     "store.webfpv.settings.v3.freestyleMap": "\"itaipu\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-campaign keepWorld": {
@@ -31367,7 +31774,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
+     "store.webfpv.settings.v3.airframeAsked": "true"
     }
    },
    "way-interior picked:cub": {
@@ -31388,7 +31795,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-interior keepWorld": {
@@ -31411,7 +31822,13 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
+     "store.webfpv.settings.v3.tune": "\"wing-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"bramor2300\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100"
     }
    },
    "way-training picked:cub": {
@@ -31432,7 +31849,11 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "45",
+     "store.webfpv.settings.v3.cameraFov": "95"
     }
    },
    "way-training keepWorld": {
@@ -31455,7 +31876,14 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
+     "store.webfpv.settings.v3.tune": "\"timber-acro\"",
+     "store.webfpv.settings.v3.airframe": "\"timber1500\"",
+     "store.webfpv.settings.v3.airframeAsked": "true",
+     "store.webfpv.settings.v3.tuneFor": "{\"interceptor\":\"betaflight-interceptor\"}",
+     "store.webfpv.settings.v3.rates": "179 chars, hash 7c4efc5d",
+     "store.webfpv.settings.v3.cameraAngle": "5",
+     "store.webfpv.settings.v3.cameraFov": "100",
+     "store.webfpv.settings.v3.floats": "{\"timber1500\":false}"
     }
    }
   },
