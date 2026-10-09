@@ -217,8 +217,14 @@ check: {
     const t10 = th.e10_zero_speed;
     const kick = (sticks, throttle) => {
       hanging(sim);
-      /* The prop spun up and the wash formed: the plant's thrust follows
-       * the stick with no lag, so a step at the stick is the wash at once. */
+      /* The prop spun up and the wash formed: held still at the throttle
+       * for a second, ten of the motor's time constants (prop_spool,
+       * docs/FLIGHTMODEL.md), then the stick steps. */
+      for (let ms = 0; ms < 1000; ms += RC_STEP_MS) {
+        must(sim.e.sim_set_pose(0, 600, 60, H, 0, -H, 0), 'sim_set_pose');
+        must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+        step(sim, [0, 0, 0, throttle]);
+      }
       let s = sim.readState().state;
       for (let ms = 0; ms < 20; ms += RC_STEP_MS) s = step(sim, [...sticks, throttle]);
       return { q: -s[12] / 0.020, r: -s[13] / 0.020 };

@@ -498,7 +498,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * resource timing for them): a wrong count moves the bar at the wrong pace
  * and cannot break a load. A map with no entry weighs 4.
  *
- * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 45 in
+ * swiss2: swiss2.js and the files under src/maps/swiss2/ it imports, 46 in
  * all. The Alps modules it builds through, and the asset library's
  * (src/render/library/, where its tree models went), are under their own
  * prefixes, so they are not in this number, and a pilot who flew the Alps
@@ -529,7 +529,7 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 45, itaipu: 34 };
+const MAP_MODULE_COUNT = { swiss2: 46, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -6801,14 +6801,15 @@ export async function boot({
    * was drawn until its crash event brings its shared wreck (Phase 2,
    * roomEvent), or ROOM_FREEZE_MS if it broke nothing that makes one.
    *
-   * SPAWNING: for the five seconds after a flight starts, and until 30 m
-   * from where it started, this aircraft is flagged untouchable, and the
-   * room neither hits it nor lets it hit anyone (section 6.2, rule 5).
+   * SPAWNING: for the five seconds after a flight starts this aircraft is
+   * flagged untouchable, and the room neither hits it nor lets it hit
+   * anyone (section 6.2, rule 5). Five seconds only, parked or not (lead,
+   * 2026-10-09): it also lasted until 30 m from the start, so an Ace sat
+   * on the strip could never be caught.
    */
   const ROOM_SPAWN_MS = 5000;
-  const ROOM_SPAWN_M = 30;
   const ROOM_FREEZE_MS = 600;
-  const roomSpawn = { at: -Infinity, x: 0, y: 0, z: 0, clear: true, simT: Infinity };
+  const roomSpawn = { at: -Infinity, simT: Infinity };
   let roomMidairSide = null;
   const roomHits = [];
   const roomFlashAt = new THREE.Vector3();
@@ -6818,13 +6819,10 @@ export async function boot({
     const simT = stateCurr[0];
     /* A new flight, or R: the sim clock starts again from zero. */
     if (simT < roomSpawn.simT) {
-      Object.assign(roomSpawn, { at: now, x: pCurr.x, y: pCurr.y, z: pCurr.z, clear: false });
+      roomSpawn.at = now;
     }
     roomSpawn.simT = simT;
-    if (!roomSpawn.clear && Math.hypot(pCurr.x - roomSpawn.x, pCurr.y - roomSpawn.y, pCurr.z - roomSpawn.z) >= ROOM_SPAWN_M) {
-      roomSpawn.clear = true;
-    }
-    return now - roomSpawn.at < ROOM_SPAWN_MS || !roomSpawn.clear;
+    return now - roomSpawn.at < ROOM_SPAWN_MS;
   }
 
   function roomHit(m) {
@@ -6925,6 +6923,7 @@ export async function boot({
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
+        flags: p.last ? p.last.flags : null,
       })),
       /* The session (THE ROOM IS ONE SESSION): the room's world, this
        * pilot's own status, a summon still owed, the room bar's words. */
@@ -10557,7 +10556,7 @@ export async function boot({
    * the air needs a refit.
    */
   let runTuneKey = 'null';
-  function applyTuning(s) {
+  function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
@@ -10571,7 +10570,7 @@ export async function boot({
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
     runTuneKey = JSON.stringify(entry);
-    if (entry && entry.flapStart) {
+    if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
     }
   }
@@ -13489,6 +13488,7 @@ export async function boot({
       });
     }
     applyRatesSettings(s);
+    applyPlaneRates(s);
     applyPidSettings(s);
     applyDeviceSettings(s);
     syncAngleMode();
@@ -13614,6 +13614,27 @@ export async function boot({
     runGravityScale = scale;
     if (midLap) {
       race.voidLap(str('main.weight_changed_lap_voided'), performance.now());
+    }
+  }
+
+  /*
+   * A plane's rates from the Rates screen (src/ui/items.js planeRatesRows)
+   * fly at once, as a quad's do: the setup is seated again without a
+   * reset, and only its throws and expo have moved, so the plane flies on
+   * from where it is. The flaps stay where the switch has them. At the
+   * title the next seat takes it (applyRunSettings).
+   */
+  function applyPlaneRates(s) {
+    if (mode === 'title') {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id)) {
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
+      applyTuning(s, true);
     }
   }
 
@@ -18115,7 +18136,9 @@ export async function boot({
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
     ui.setStickOverlay({
-      show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+      /* window.__showSticks: a capture's own switch, so a recorded flight
+       * shows the sticks whatever flies it (scripts/hover-video.js). */
+      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,

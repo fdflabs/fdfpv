@@ -405,6 +405,15 @@ const PAGES = {
     seat: quadShowcase,
     hint: ESC_STORED,
   },
+  /* A plane's rates: the manual's throws and the expo, rows only. */
+  planerates: {
+    classes: 'screen-page screen-pilot',
+    title: 'ui.rates',
+    lede: ['rates-lede', 'ui.plane_rates_lede'],
+    menu: 'planerates',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   pilot: {
     classes: 'screen-page screen-pilot',
     title: 'ui.settings',
@@ -767,7 +776,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids', 'controls'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'planerates', 'pids', 'controls'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,

@@ -3,13 +3,15 @@
  * first drawn as the Interior's forest (src/maps/interior/trees.js, which
  * places them and says how its tiers hand trees over).
  *
- * A crown is an ellipsoid, r across and ry up. It is drawn as a lumpy
- * twenty sided ball (or, far off, one point) and shaded in the fragment
- * as the ellipsoid it stands for: a pixel is kept only where the camera's
- * ray meets the ellipsoid less a few decimetres where its lobes and
- * clumps go in, so no outline is a polygon's and nothing is drawn outside
- * the crown a map's line of sight tests, and it is lit by that surface's
- * normal: darker underneath, lit and yellower at the top, broken into a
+ * A crown is sized by an ellipsoid, r across and ry up, and shaped by
+ * its lobes inside it (crownshape.js): heaps of foliage round a core,
+ * with gaps between them at its edge. It is drawn as a lumpy twenty
+ * sided ball round the ellipsoid (or, far off, one point) and cut in the
+ * fragment to its lobes: a pixel is kept only where the camera's ray
+ * meets one, less a few decimetres where the clumps' hollows go in, so
+ * no outline is a polygon's, a gap is drawn where a map's line of sight
+ * (the same lobes) is open, and nothing where it is not. It is lit by
+ * the lobe's normal: darker underneath, lit and yellower at the top, broken into a
  * few big lobes and, close up, clumps of leaves, rimmed by the low sun
  * coming through its outer leaves.
  *
@@ -36,6 +38,7 @@
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { thermalKind } from '../thermal.js';
 import { hash01 } from './hash.js';
+import { LOBES, TEMPLATES, LOBE_DATA } from './crownshape.js';
 
 /* The share of the standard material's specular a crown keeps: the sky's
  * Fresnel sheen at a crown's grazing rim frosted the far forest, and
@@ -102,6 +105,10 @@ export function fitOf(geo) {
 const CROWN_VERT_PARS = /* glsl */ `
   varying vec3 vCrW;
   varying float vCrUp;
+  #if CROWN_MODE < 3
+    attribute float aLobe;
+    varying float vCrLobe;
+  #endif
   #if CROWN_MODE < 2
     uniform float uCrFit;
     varying vec3 vCrC;
@@ -127,6 +134,9 @@ const CROWN_VERT = /* glsl */ `
     #endif
     vCrW = (modelMatrix * crw).xyz;
     vCrUp = position.y;
+    #if CROWN_MODE < 3
+      vCrLobe = aLobe;
+    #endif
     #if CROWN_MODE < 2
       vCrC = (modelMatrix * vec4(instanceMatrix[3].xyz, 1.0)).xyz;
       vCrR = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz)) / uCrFit;
@@ -164,6 +174,10 @@ const CROWN_VERT = /* glsl */ `
 const CROWN_FRAG_PARS = /* glsl */ `
   varying vec3 vCrW;
   varying float vCrUp;
+  #if CROWN_MODE < 3
+    varying float vCrLobe;
+    uniform vec4 uCrLobes[CROWN_LOBES * CROWN_TEMPLATES];
+  #endif
   #if CROWN_MODE < 2
     varying vec3 vCrC;
     varying vec2 vCrR;
@@ -193,13 +207,12 @@ const CROWN_FRAG_PARS = /* glsl */ `
     float n = crN(x);
     return vec4(n, (vec3(crN(x + vec3(0.08, 0.0, 0.0)), crN(x + vec3(0.0, 0.08, 0.0)), crN(x + vec3(0.0, 0.0, 0.08))) - n) / 0.08);
   }
-  /* The camera's ray through p against the crown centred at c, radii
-   * (r, ry, r) less a few decimetres where its lobes go in: the normal
-   * (world) and the height on the unit crown where it comes in, or false
-   * where it misses. A ball straddles the true crown, so this trims its
-   * corners and lights it as the ellipsoid, and nothing is drawn outside
-   * the crown canopyBlocks tests; a tree's point is outlined and lit the
-   * same. The ray starts at p, a metre or so off the crown, not at the
+  /* The camera's ray through p against the lobes of the crown centred
+   * at c, radii (r, ry, r): the normal (world) and the height on the unit
+   * crown where it comes in, or false where it misses. A ball holds the
+   * lobes, so this cuts it to them and lights them, and nothing is drawn
+   * outside the crown canopyBlocks tests; a tree's point is outlined and
+   * lit the same. The ray starts at p, a metre or so off the crown, not at the
    * camera: from a kilometre away the quadratic's two terms are a
    * thousand times its answer, and float rounding loses it. The nearer
    * root, behind p when p is inside, is where the ray came in. */
@@ -221,14 +234,15 @@ const CROWN_FRAG_PARS = /* glsl */ `
   }
   float crHeapH = 1.0;
   vec3 crHeapT = vec3(0.0);
+  #if CROWN_MODE < 3
   bool crHit(vec3 p, vec3 c, vec2 rr, out vec3 nw, out float up) {
     vec3 rad = vec3(rr.x, rr.y, rr.x);
     vec3 u = (p - c) / rad;
     vec3 dir = normalize(u + vec3(0.0, 1e-4, 0.0));
-    /* The lobes a few decimetres in, and close up the clumps' hollows: in
-     * all at most 0.58 m inside the crown canopyBlocks tests
-     * (scripts/canopy-los.js allows its drawn crowns 0.6 m), never out. */
-    float crIn = 0.42 * (1.0 - crClumpK) * crN(dir * 2.3 + c * 0.37);
+    /* Close up, the clumps' hollows: at most 0.58 m inside the lobes
+     * canopyBlocks tests (scripts/canopy-los.js allows the drawn crowns
+     * 0.6 m), never out. */
+    float crIn = 0.0;
     if (crClumpK > 0.0) {
       float h = crHeap(dir, c, rr.x);
       /* The heap's slope across the skin, for the clumps' light. */
@@ -240,22 +254,40 @@ const CROWN_FRAG_PARS = /* glsl */ `
       crHeapT = (t1 * (h1 - h) + t2 * (h2 - h)) / 0.25;
       crHeapH = h;
       float hollow = 1.0 - smoothstep(0.25, 0.75, h);
-      crIn += crClumpK * 0.58 * hollow;
+      crIn = crClumpK * 0.58 * hollow;
     }
-    rad -= crIn;
-    vec3 o = (p - c) / rad;
+    /* The crown's lobes (crownshape.js), spheres in its unit space: the
+     * ray's first entry into any of them. A lobe's radius is cut by the
+     * hollows' depth over the larger radius, so it never goes deeper
+     * than that in metres. */
+    vec3 o = u;
     vec3 e = normalize(p - cameraPosition) / rad;
     float a = dot(e, e);
-    float b = dot(o, e);
-    float d = b * b - a * (dot(o, o) - 1.0);
-    if (d < 0.0) return false;
-    vec3 h = o + e * ((-b - sqrt(d)) / a);
-    nw = normalize(h / rad);
+    float best = 1e20;
+    vec4 hit = vec4(0.0);
+    int base = int(vCrLobe + 0.5) * CROWN_LOBES;
+    for (int k = 0; k < CROWN_LOBES; k++) {
+      vec4 lb = uCrLobes[base + k];
+      float rl = max(lb.w - crIn / max(rr.x, rr.y), 0.02);
+      vec3 q = o - lb.xyz;
+      float b = dot(q, e);
+      float d = b * b - a * (dot(q, q) - rl * rl);
+      if (d < 0.0) continue;
+      float t = (-b - sqrt(d)) / a;
+      if (t < best) {
+        best = t;
+        hit = vec4(lb.xyz, rl);
+      }
+    }
+    if (best > 1e19) return false;
+    vec3 h = o + e * best;
+    nw = normalize(((h - hit.xyz) / hit.w) / rad);
     /* A clump's normal leans down its heap's slope. */
     nw = normalize(nw - crHeapT * 0.6 * crClumpK);
     up = h.y;
     return true;
   }
+  #endif
 `;
 /* At the fragment's start: where the pixel's ray meets the crown and
  * the crown's normal there (a ball's or a tree's point), or a block's
@@ -384,7 +416,10 @@ export function crownMaterial(THREE, mode, uniforms) {
     CROWN_RADII: 'vec2(vCrHalf.x, vCrSeed.y)',
   };
   mat.defines = {
-    ...(mat.defines || {}), CROWN_MODE: mode, CROWN_SPEC: CROWN_SPEC.toFixed(2), ...(mode < 3 ? ray : {}),
+    ...(mat.defines || {}), CROWN_MODE: mode, CROWN_SPEC: CROWN_SPEC.toFixed(2), CROWN_LOBES: LOBES, CROWN_TEMPLATES: TEMPLATES, ...(mode < 3 ? ray : {}),
+  };
+  const lobes = {
+    uCrLobes: { value: Array.from({ length: TEMPLATES * LOBES }, (_, i) => new THREE.Vector4().fromArray(LOBE_DATA, i * 4)) },
   };
   const swap = (src, anchor, add, where) => {
     if (!src.includes(anchor)) {
@@ -393,7 +428,7 @@ export function crownMaterial(THREE, mode, uniforms) {
     return src.replace(anchor, add);
   };
   mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms);
+    Object.assign(shader.uniforms, uniforms, mode < 3 ? lobes : {});
     let v = shader.vertexShader;
     v = swap(v, '#include <common>', `#include <common>\n${CROWN_VERT_PARS}`, 'vertex');
     if (mode >= 2) {
@@ -412,3 +447,44 @@ export function crownMaterial(THREE, mode, uniforms) {
   mat.customProgramCacheKey = () => `interior-crown-${mode}`;
   return thermalKind(mat, 'vegetation');
 }
+/*
+ * A near crown's shadow: three's depth material cut to the crown's lobes
+ * the way crownMaterial cuts its colour, so a gap in a crown is a gap in
+ * its shadow. The shadow pass's camera is the sun's, far off along its
+ * direction, so the ray through each texel runs with the light. No
+ * clumps: a shadow map's texel is wider than their hollows.
+ */
+export function crownDepthMaterial(THREE, uniforms) {
+  const mat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+  mat.defines = {
+    ...(mat.defines || {}), CROWN_MODE: 0, CROWN_LOBES: LOBES, CROWN_TEMPLATES: TEMPLATES, CROWN_RAY_AT: 'vCrW', CROWN_CENTRE: 'vCrC', CROWN_RADII: 'vCrR',
+  };
+  const lobes = {
+    uCrLobes: { value: Array.from({ length: TEMPLATES * LOBES }, (_, i) => new THREE.Vector4().fromArray(LOBE_DATA, i * 4)) },
+  };
+  const swap = (src, anchor, add, where) => {
+    if (!src.includes(anchor)) {
+      throw new Error(`crowns: three's depth ${where} shader has no ${anchor} to patch`);
+    }
+    return src.replace(anchor, add);
+  };
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms, lobes);
+    let v = shader.vertexShader;
+    v = swap(v, '#include <common>', `#include <common>\n${CROWN_VERT_PARS}`, 'vertex');
+    v = swap(v, '#include <project_vertex>', `#include <project_vertex>\n${CROWN_VERT}`, 'vertex');
+    shader.vertexShader = v;
+    let f = shader.fragmentShader;
+    f = swap(f, '#include <common>', `#include <common>\n${CROWN_FRAG_PARS}`, 'fragment');
+    f = swap(f, '#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      {
+        vec3 crNW;
+        float crUpD;
+        if (!crHit(vCrW, vCrC, vCrR, crNW, crUpD)) discard;
+      }`, 'fragment');
+    shader.fragmentShader = f;
+  };
+  mat.customProgramCacheKey = () => 'interior-crown-depth';
+  return mat;
+}
+

@@ -4229,4 +4229,9 @@ export default {
   "stats.tracks_sub": "Cada pista con una vuelta cerrada",
   "stats.missions": "Misiones ganadas",
   "stats.stars": "{n} de {max} estrellas",
+  "ui.plane_rates_note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+  "ui.plane_rates_lede": "Cuánto se mueven las superficies con el stick a fondo, como el manual configura la radio. Los cambios vuelan al instante.",
+  "ui.plane_rate_pick_note": "Los recorridos del {plane} con el stick a fondo, alerones, profundidad y timón, como los da su manual. Bajo es el rate bajo del manual, o el 70 por ciento del alto si no lo da; Medio es el punto medio, el centro de un interruptor de tres posiciones.",
+  "ui.plane_expo": "Expo de {surface}",
+  "ui.plane_expo_note": "Suaviza el stick cerca del centro sin cambiar el recorrido a fondo: 0 es lineal, 100 todo curva.",
 };

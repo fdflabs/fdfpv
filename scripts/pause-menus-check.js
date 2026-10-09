@@ -133,9 +133,13 @@ const PAD = `(() => {
   navigator.getGamepads = () => [pad];
 })();`;
 
+/* Held until the screen changes (up to 5 s) and then let go: a slow
+ * runner draws a few frames a second, and the shell reads the pad once a
+ * frame, so a fixed short press can fall between two reads. */
 async function pressStart(page) {
+  const from = await page.evaluate('window.__ui.screen');
   await page.evaluate('(window.__pad.buttons[9] = { pressed: true, value: 1 }, window.__pad.timestamp += 1, true)');
-  await page.sleep(250);
+  await page.until(`window.__ui.screen !== ${JSON.stringify(from)}`, 5000).catch(() => {});
   await page.evaluate('(window.__pad.buttons[9] = { pressed: false, value: 0 }, window.__pad.timestamp += 1, true)');
   await page.sleep(250);
 }
@@ -197,7 +201,8 @@ async function runCase(c, record) {
     record[`${c.id}-flight`] = { lang: c.lang, airframe: c.airframe, rows: quick };
     const plane = c.airframe !== 'interceptor';
     say(await drawn(page, 'quick') === quick.filter((r) => !r.section).length, `every panel row is drawn on the page`);
-    say(quick.some((r) => r.action === 'rates') === !plane, plane ? 'a plane has no Rates row' : 'a quad has its Rates row');
+    say(plane ? quick.some((r) => r.action === 'planerates') && !quick.some((r) => r.action === 'rates') : quick.some((r) => r.action === 'rates'),
+      plane ? 'a plane\'s Rates row is its own throws, never the quad\'s Betaflight rates' : 'a quad has its Rates row');
     await shoot(page, `${c.id}-flight`);
     await page.tap('Escape');
     say(await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false), 'Escape on the panel is the pause menu again');

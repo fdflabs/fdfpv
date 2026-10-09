@@ -320,6 +320,7 @@ jobs:
       - run: npm run wash:derive -- --check
       - run: npm run stab:hold
       - run: npm run as3x:derive
+      - run: npm run spool:derive
       # The host's vertical air at the craft (sim_set_air_vertical).
       - run: npm run air:vertical
       - run: npm run stab:glide
@@ -352,6 +353,9 @@ jobs:
       - run: npm run hangar:room
       - run: npm run parts:check
       - run: npm run tuning:check
+      # A plane's Rates row is its own throws, and a pick flies at once
+      # (docs/PLANE-RATES.md).
+      - run: npm run planerates:check
       # A rate change mid run keeps the run, tune loads are generation
       # counted, and the RC grid follows the module's clock
       # (scripts/config-swap-check.js).

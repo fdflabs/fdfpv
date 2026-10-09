@@ -7038,11 +7038,11 @@
      }
     },
     {
-     "id": "quad:a-rates",
+     "id": "quad:a-planerates",
      "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Not the machine's. Rates are yours, so they live under Settings and stay put when you switch tunes. Changing the aircraft reseeds them only if you are still on stock rates. This row goes there, and changing them mid run leaves the quad where it is.",
-     "action": "rates",
+     "value": "High, 18° 15° 15°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -17396,6 +17396,14 @@
      "drives": {}
     },
     {
+     "id": "quick:a-planerates",
+     "label": "Rates",
+     "value": "High, 18° 15° 15°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
+     "drives": {}
+    },
+    {
      "id": "quick:a-feel",
      "label": "Flight feel",
      "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it.",
@@ -17532,6 +17540,14 @@
      "value": "AS3X",
      "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
      "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-planerates",
+     "label": "Rates",
+     "value": "High, 36.5° 39.7° 55°",
+     "note": "This plane's rates: how far each surface moves at full stick, from its manual, and the expo. The quad's rates do nothing on a plane.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -31097,11 +31113,11 @@
      }
     },
     {
-     "id": "quad:a-rates",
+     "id": "quad:a-planerates",
      "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
-     "action": "rates",
+     "value": "Alto, 18° 15° 15°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
      "drives": {}
     },
     {
@@ -41455,6 +41471,14 @@
      "drives": {}
     },
     {
+     "id": "quick:a-planerates",
+     "label": "Tasas",
+     "value": "Alto, 18° 15° 15°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
+     "drives": {}
+    },
+    {
      "id": "quick:a-feel",
      "label": "Sensación de vuelo",
      "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella.",
@@ -41591,6 +41615,14 @@
      "value": "AS3X",
      "note": "Abre donde se elige el modo de vuelo, con lo que cada modo hace con los sticks.",
      "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-planerates",
+     "label": "Tasas",
+     "value": "Alto, 36.5° 39.7° 55°",
+     "note": "Los rates de este avión: cuánto se mueve cada superficie con el stick a fondo, según su manual, y el expo. Los rates del cuadricóptero no hacen nada en un avión.",
+     "action": "planerates",
      "drives": {}
     },
     {
