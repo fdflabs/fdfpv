@@ -73,6 +73,7 @@ import {
 } from './settings.js';
 import { VIEW_LABEL } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
+import { controlsRows } from './controls.js';
 /* A cycle: ui.js installs this module. These are read only inside the
  * screen functions, after both modules have run, never at this module's
  * top level. */
@@ -666,6 +667,7 @@ function stickRows(ui, s) {
     { label: str('ui.choose_joystick'), value: using, action: 'choosepad', note: padChooseNote(info) },
     toggle(str('ui.mouse_flight'), str('ui.mouse_flight_note'), s.mouseFlight, (v) => { s.mouseFlight = Boolean(v); }),
     ...mouse,
+    { label: str('keybinds.title'), action: 'controls', note: str('keybinds.open_note') },
     { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
     {
       label: str('ui.check_sticks'),
@@ -1174,6 +1176,7 @@ const SCREENS = {
   results: resultsRows,
   rates: ratesRoomRows,
   pids: pidsRows,
+  controls: controlsRows,
   fc: (ui) => ui.fc.items(),
 };
 

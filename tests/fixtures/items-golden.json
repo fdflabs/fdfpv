@@ -7206,6 +7206,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -8205,6 +8212,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -9208,6 +9222,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -10209,6 +10230,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -11200,6 +11228,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -12371,6 +12406,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -13368,6 +13410,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -14343,6 +14392,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -30855,6 +30911,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -31854,6 +31917,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -32857,6 +32927,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -33858,6 +33935,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -34849,6 +34933,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -36020,6 +36111,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -37017,6 +37115,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -37992,6 +38097,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
