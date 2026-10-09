@@ -79,6 +79,24 @@ function flightKey(ui, code) {
   return false;
 }
 
+/* Start pauses a flight and resumes the pause menu, on its press. */
+function startPress(ui, down) {
+  const was = ui.padStartPrev;
+  ui.padStartPrev = down;
+  if (!down || was) return false;
+  if (ui.screen === 'flight') {
+    ui.lastInput = 'pad';
+    flightKey(ui, 'Escape');
+    return true;
+  }
+  if (ui.screen === 'paused') {
+    ui.lastInput = 'pad';
+    ui.act('resume');
+    return true;
+  }
+  return false;
+}
+
 function calibrationKey(ui, code) {
   if (LEAVE.has(code)) {
     ui.back();
@@ -195,6 +213,7 @@ export const keyMethods = {
   },
 
   pollPad(nav) {
+    if (startPress(this, Boolean(nav.start))) return;
     const anyHeld = PAD_KEYS.some((k) => nav[k]);
     /* The hangar and the picker read the pad themselves. Leaving them,
      * the next poll only learns what is still held, so the press that

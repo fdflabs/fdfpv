@@ -54,9 +54,7 @@ import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 import { PadRoster, connectedPads, shortPadName } from './padpick.js';
 import { CalibrationWizard } from './calibrate.js';
 import { GuessEvidence } from './guess.js';
-import {
-  PadMenus, swapButtons, altButton, floatsButton, lookClick, lookStick, padDirections,
-} from './menus.js';
+import { PadMenus, altButton, floatsButton, lookClick, lookStick, padDirections, startButton, swapButtons } from './menus.js';
 
 export { standardPadMap } from './padmap.js';
 export { CAL_STEPS, SELECT_STEP, calSteps } from './calibrate.js';
@@ -397,6 +395,10 @@ export class InputManager {
 
   padLookStick() {
     return lookStick(this.firstGamepad());
+  }
+
+  padStartButton() {
+    return startButton(this.firstGamepad());
   }
 
   padFloatsButton() {
