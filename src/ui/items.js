@@ -840,12 +840,22 @@ function recordSentence(s, trackName) {
  */
 function pausedRows(ui, s) {
   const af = airframeById(s.airframe);
+  const room = ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it));
+  /* Watching a room flies nothing: no run to restart, no aircraft to tune. */
+  if (ui.watching && ui.watching()) {
+    return [
+      { label: str('ui.resume'), action: 'resume', primary: true },
+      ...room,
+      { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
+      { label: str('ui.quit_to_title'), action: 'title' },
+    ];
+  }
   return [
     { label: str('ui.resume'), action: 'resume', primary: true },
     { label: str('ui.restart_run'), action: 'restart' },
     { label: str('pause.flight'), value: `${af.short}, ${tuneName(s.tune)}`, action: 'quick', note: str('pause.flight_note') },
     { label: str('carousel.change_aircraft'), value: af.short, action: 'hotswap', note: str('carousel.row_note') },
-    ...ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it)),
+    ...room,
     { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
     ...(s.map === 'track' ? [myTracksRow()] : []),
     { label: str('ui.quit_to_title'), action: 'title' },

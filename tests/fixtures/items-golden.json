@@ -16896,6 +16896,40 @@
    ],
    "litFromGiven": "|"
   },
+  "paused-watching": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Resume",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Room",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Leave the room",
+     "note": "Back to flying on your own.",
+     "action": "friends-leave",
+     "drives": {}
+    }
+   ]
+  },
   "paused-plane": {
    "screen": "paused",
    "items": [
@@ -40864,6 +40898,40 @@
     "|on"
    ],
    "litFromGiven": "|"
+  },
+  "paused-watching": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Reanudar",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Sala",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Salir de la sala",
+     "note": "De vuelta a volar solo.",
+     "action": "friends-leave",
+     "drives": {}
+    }
+   ]
   },
   "paused-plane": {
    "screen": "paused",
