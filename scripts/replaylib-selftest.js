@@ -73,7 +73,8 @@ const PINNED = {
   'trace.sky.60.10': '5800408161c4d08ea420f4babeeceaf2fe9e9e26f27e7022f65681da3a298d47',
   /* p51-air.rec, re-recorded with the slipstream (docs/FLIGHTMODEL.md). */
   /* Re-pinned: the fuselage's crossflow (docs/FLIGHTMODEL.md). */
-  'trace.p51.72.25': '9d249f340e38e54d833c9ca3788ebeb109e83bb56beeb787b083978450ca23ec',
+  /* Re-pinned: the swirl's share, Selig 2010 (docs/FLIGHTMODEL.md). */
+  'trace.p51.72.25': '4996cd1d34b4c9cee45f84eed7fb1df61cced965ad84fc802cb3348d5f3141aa',
   'sched.synth.7.3': '270520e4786599629a80707ecea1fc770ba7ab7b506ca9c7891cca558b6255c7',
   'sched.synth.2400.10': 'ad13aaf94ed8f5acb03d5bc84802b3443853414269abcb78feb1521001782948',
   'sched.synth.60.10.one': 'c7b0d1d856cfdc00c800f8192e144d73df5243b9610b43180cd93b45c97433ce',

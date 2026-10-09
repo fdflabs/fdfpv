@@ -78,28 +78,47 @@ PRESETS[id] = { speed, layers: [[h, mul], ...], gust, front }
   front   null, or { every, width, speed, boost, gust }: bands `every` m
           apart, `width` m wide, moving downwind at `speed` m/s; inside one
           the mean is multiplied by up to `boost` and `gust` m/s is added.
-MAPS[mapId] = { base, zones: [{ a: [x, z], b: [x, z], r, shelter, gust }] }
-  a zone is a capsule (segment a b, radius r, map frame); at its axis the
-  mean is multiplied by `shelter` and `gust` m/s is added, fading to nothing
-  at r (smoothstep).
+MAPS[mapId] = { base, toX, toZ, zones: [{ line: [[x, z], ...], r, shelter, gust, top }] }
+  a zone is the band of radius r round a polyline (map frame); on the line
+  the mean is multiplied by `shelter` and `gust` m/s is added, fading to
+  nothing at r (smoothstep), and with height from `top` m above base to
+  twice that. Overlapping segments of one line count once (nearest point).
 seed: unsigned 32 bit. It turns the wind's direction (within about 25
 degrees of the map's prevailing direction) and shifts the fronts' phase.
 ```
 
-Room state (PR 2): `{ weather: { preset, seed } }` in the room's settings,
-set by the host, sent in the welcome; room time for `t` so a front is where it
-is for everyone. Needs a VM deploy (edge/rooms).
+Room state (PR 2): the host sends `{ type: 'weather', preset }`; the room
+draws the seed (crypto, 0 for calm), keeps `meta.weather = { preset, seed }`,
+puts `weather` in every welcome (calm for a room from before it) and tells
+everybody `{ type: 'weather', preset, seed }`. A non host is refused
+(`why: 'host'`), an unknown preset is ignored. Each pilot's next run flies
+it, with `t` = the room's clock at the run's start plus the plant's clock, so
+a front is where it is for everyone. A war flies calm. Needs a VM deploy
+(edge/rooms).
 
 ## What it does NOT do
 
-- No vertical air: no thermals over sunlit ground, no ridge lift or sink, no
-  rain drag. The plant has no input for it. Asked of the flightmodel lane in
-  the plan file: a host setter for the vertical air at the craft (the way
-  `plant_air_lift` is read now, but from the host), or a list of thermals the
-  host declares. Until then thermals stay the Radian's fixed three.
-- No terrain sampling for shelter: zones are authored per map. Itaipu has the
-  main dam; Swiss2, Alps and the Interior have none yet (their base heights
-  are 0, a placeholder until authored).
+- Vertical air (`out.up`, fed through `sim_set_air_vertical` each step with
+  the wind, #849) is thermals and ridge lift only: no rain drag, no
+  downbursts. Thermals: at most one per 1.2 km square (60% of squares, by
+  the seed), a 90 m core rising up to the preset's rate (Breeze 2.2 m/s,
+  Gusty 1.2, Fronts none: overcast) with weak sink out to 180 m, forming
+  5 to 40 m above the base and gone 700 to 1000 m up, each waxing and
+  waning over 15 minutes and drifting with the wind (Stull, An
+  Introduction to Boundary Layer Meteorology 11.1; FAA Glider Flying
+  Handbook ch. 9: cores 1 to 3 m/s, 100 to 300 m across, about the
+  boundary layer's depth apart). They do not yet know water: Itaipu's
+  reservoir has them too, which real water does not (a follow up: a per
+  map dry ground test). Ridge lift: a zone with `lift` (about the face's
+  slope sine) lifts the air on its windward side by lift x the wind across
+  it, and lets it down in its lee at half that: the dam (0.6) and the
+  valley rims (0.65, little in practice: the valley's wind runs along
+  them). The Radian's own three thermals (plant_air_lift) stay as well.
+- No terrain sampling at run time: zones are authored per map from a
+  height probe (window.__heightAt on a 100 m grid). Itaipu: the dam crest.
+  Swiss2 and the Alps (one valley): wind along the valley, a sheltered
+  floor, rough rims. The Interior: wind from the north east, Rio Sereno's
+  lowland a little calmer and rougher. Sources and numbers in weather.js.
 - No random numbers at run time, no wall clock.
 - No weather in the war mode or campaign until their owners ask.
 - Known edge: the map to plant rotation (`qSpawn`) is built with JS trig once
@@ -134,3 +153,8 @@ is for everyone. Needs a VM deploy (edge/rooms).
 the slot script): a calm run makes no `sim_set_wind` call; after
 `__weather('gusty', 42)` a fresh run sets the wind every step and `sim_wind`
 reads it; calm again makes exactly one still call and reads still air.
+
+`npm run check:weather-room`: two pages in one room on a rooms server the
+check starts; the host's gusty reaches both with the same seed, a non host
+is refused, calm again is calm on both. The room's messages are also in
+`npm run rooms:selftest` (scripts/rooms-selftest-weather.js, CI).

@@ -32,6 +32,8 @@ import { airStartSpeed } from '../../../configs/airframes.js';
  * Small Unmanned Aircraft, 2012, ch. 9), so the circle is one the
  * aircraft could fly. tan(25 deg). */
 const TAN_BANK = 0.4663076581549986;
+/* The same bank in radians, for drawing a held aircraft only. */
+export const HOLD_BANK = 25 * Math.PI / 180;
 const G = 9.80665;
 
 /* sin and cos of a small angle a (|a| under 0.01 rad here) by Taylor
@@ -67,7 +69,8 @@ function turnBy(step, n) {
 
 /*
  * The hold an aircraft takes when left at room ms t: pose { p: [x, y, z],
- * v: [vx, vy, vz] } in the ops frame. A fixed wing turns left onto a
+ * v: [vx, vy, vz], airborne } in the ops frame. One left on the ground
+ * stays parked where it stands. A fixed wing turns left onto a
  * circle tangent to its track, at its own speed or its air start speed
  * (configs/airframes.js airStartSpeed, 1.3 times stall), whichever is
  * faster, so the first point of the circle is where it was and the
@@ -78,6 +81,9 @@ export function holdOf(pose, af, t) {
     throw new Error(`hold: room ms must be an integer, got ${t}`);
   }
   const p0 = [pose.p[0], pose.p[1], pose.p[2]];
+  if (!pose.airborne) {
+    return { kind: 'parked', t0: t, p0 };
+  }
   if (!af.fixedWing) {
     return { kind: 'hover', t0: t, p0 };
   }
@@ -85,9 +91,10 @@ export function holdOf(pose, af, t) {
   const vy = pose.v[1];
   const ground = Math.sqrt(vx * vx + vy * vy);
   const speed = Math.max(ground, airStartSpeed(af));
-  /* A plane held still (on the ground) has no track; it is not held. */
+  /* Airborne with no ground track is a plane hanging in a headwind as
+   * strong as its speed: there is no track to be tangent to. */
   if (!(ground > 0)) {
-    throw new Error('hold: a fixed wing needs a track to orbit on');
+    throw new Error('hold: a fixed wing in the air needs a track to orbit on');
   }
   const ux = vx / ground;
   const uy = vy / ground;
@@ -104,7 +111,7 @@ export function holdPose(h, t) {
   if (!Number.isInteger(t) || t < h.t0) {
     throw new Error(`hold: room ms ${t} before the hold began at ${h.t0}`);
   }
-  if (h.kind === 'hover') {
+  if (h.kind !== 'orbit') {
     return { p: [...h.p0], v: [0, 0, 0] };
   }
   const [cs, sn] = turnBy(h.step, t - h.t0);

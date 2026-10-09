@@ -366,8 +366,8 @@ The electric voice, `wing`, the other electric planes'.
 
 ## In the shell
 
-`configs/airframes.js` extra1308, simId 14; tunes extra-stab, extra-acro
-and extra-manual; the free flight card; the hangar's power (the stock 4S
+`configs/airframes.js` extra1308, simId 14; tunes extra-as3x (the default), extra-manual
+and extra-stab; the free flight card; the hangar's power (the stock 4S
 and E-flite's listed 3S, 2200 and 3200 mAh packs), props (APC 13 x 8E and
 12 x 6E), add-on anchors and tuning (the manual's CG range and throws). It
 opens **at level 8 on the unlock curve**, after the P-51 at 7 and before

@@ -233,7 +233,12 @@ export function setFigurePick(f) {
  * picker name's three indices or a callsign string, which roomName in
  * src/main.js tells apart.
  */
+/* An AI pilot (edge/rooms/roombots.js) as { bot: pick }, so whoever names
+ * it (src/main.js roomName) always says it is one. */
 function shownName(m) {
+  if (m.bot === true) {
+    return { bot: m.name };
+  }
   return typeof m.callsign === 'string' && m.callsign ? m.callsign : m.name;
 }
 
@@ -475,6 +480,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.map = m.map;
         }
         handlers.onWorld?.(m.map);
+      } else if (m.type === 'weather') {
+        /* The host set the room's air (edge/rooms/core.js weather). */
+        if (welcome && typeof m.preset === 'string' && Number.isInteger(m.seed)) {
+          welcome.weather = { preset: m.preset, seed: m.seed };
+        }
       } else if (m.type === 'lobby') {
         /* The war's lobby changed (edge/rooms/gamelobby.js). */
         if (welcome) {
@@ -670,6 +680,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     /* The host moves the room to another world (edge/rooms/core.js world). */
     sendWorld(map) {
       sendText({ type: 'world', map });
+    },
+    /* The host sets the room's air (edge/rooms/core.js weather). */
+    sendWeather(preset) {
+      sendText({ type: 'weather', preset });
     },
     kick(seat) {
       sendText({ type: 'kick', seat });

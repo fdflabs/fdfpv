@@ -99,26 +99,59 @@ velocity are continuous by construction. Attitude needs
 `sim_set_attitude` (or the reseat taking a quaternion) in the plant ABI;
 until then the reseat is level on the held heading, as the hot swap is.
 
-### 4.3 The wire and the room
+Built (PR 2): `src/main.js` PLATFORM HOLDS. The keys are `[` and `]`
+(and the pad's shoulders, which already call `ui.cycleSwap`): in a live
+ops match where the seat holds two roles or more, they ask the room for
+the next role (`op: 'active'`) instead of cycling aircraft; the role
+board's FLY THIS is the tap. The hand over happens when the room's view
+says the active role changed. A role not flown yet this match is
+launched where the pilot is, by the hot swap's rules. With no room clock
+(no link) no hold is taken. Holds are cleared when the match is not
+live.
 
-- POSE gains a craft index: a new message type `TYPE_POSE_CRAFT` (47
-  bytes: POSE plus a u8 craft slot), old POSE kept as slot 0, so older
-  clients and the VM keep working (no contract broken). BATCH entries
-  carry the slot. `PROTO` bumps.
-- The held aircraft's pose is sent by its owner as slot 1..n, from
-  `holdPose`, at a low rate (the room can also extrapolate a hold exactly
-  from `hold` itself: a `hold` op sending the record is smaller and
-  exact; preferred).
-- `edge/rooms/ops.js` `seats` becomes `seat -> { crafts: [{ role, track,
-  cams, hold }] }`; `pilotsAt` returns one entry per aircraft with its
-  role, and `seen`, `region`, captures read the aircraft holding the
-  role a trigger names. This is the bulk of the room change.
-- Peers draw each slot (`src/render/peers.js`).
+### 4.3 The wire and the room (built, PR 3)
 
-### 4.4 HUD and input
+The binary POSE is not touched: old clients and the VM's relay keep
+working. A held aircraft is one JSON ops message, sent once when it is
+left, and the room makes the hold itself:
 
-A strip in the ops HUD (`src/ui/`), one entry per aircraft; a key (the
-role cycle), a pad button, a tap. Every word in `src/strings` en and es.
+```
+{ type: 'ops', op: 'hold', key, t,            // role key, room ms (integer)
+  pose: { p: [x, y, z], v: [vx, vy, vz], airborne },   // ops frame
+  cam: { aim: [x, y, z], tanHalf, aspect } | null }    // the ball's lock
+```
+
+- Refused (`{ error: 'hold', why }`): `role` (a key the seat does not
+  hold, or the one it flies), `shape`, `pose` (more than `HOLD_NEAR` =
+  100 m from the seat's newest pose), `cam`, `track` (a fixed wing in
+  the air with no track). `t` within `HOLD_BACK_MS` = 5 s behind the
+  clock and `AHEAD_MS` ahead.
+- `m.holds: { seat: { key: { airframe, hold, cam } } }`, stored with the
+  match (a VM restart keeps it). A hold stands while the seat holds its
+  key and does not fly it (`liveHolds`): flown again or given up, it is
+  gone.
+- The view gains `holds` (the standing ones); every screen draws the
+  other seats' holds from it with `holdPose`. Old clients ignore it.
+- `pilotsAt` gives one entry per aircraft, each with its `role`; held
+  ones carry `held: true` and the camera from their `cam` aim. Triggers
+  with `roles` (`zone`, `above`, `landed`) count an aircraft for its own
+  role only (`withRoles`). Downs and the boundary are the flown
+  aircraft's only. Contacts, sites and `dwell` see held aircraft too.
+
+Mission data needs no new field: `roles[].platforms[0]` is the airframe
+a hold is made for.
+
+### 4.4 HUD and input (built, PR 4)
+
+The quiet HUD's aircraft strip (`src/ui/opshud.js` `.ops-fleet`), shown
+only when the seat holds two roles or more in a live match: one button
+per role, its name, its aircraft (hidden on a phone), its state
+(FLYING, ORBIT, HOVER, ON THE GROUND, NOT LAUNCHED) and its height over
+the ground. A tap on a row asks the room for that role. It sits under
+the read panel on the right, or on the left when the right is full (a
+landscape phone). Keys `[` `]` and the pad's shoulders (PR 2). Words in
+`src/strings` en and es (`ops.fleet.*`). Battery and fuel are not shown:
+holds do not drain (section 6).
 
 ## 5. Size and split
 
@@ -131,10 +164,11 @@ L, about five PRs, in order; each with its own check:
 2. Client: several aircraft per seat in an ops room, the switch through
    `seatSwap`, the held one drawn. Browser check through
    `run-check-slot.sh`: a real key switches, position delta under 0.1 m.
-3. Wire and room: `TYPE_POSE_CRAFT` or the `hold` op, `ops.js` per
-   aircraft, `pilotsAt` per role. `ops:selftest` extended: the room sees
+3. Wire and room: the `hold` op, `ops.js` per aircraft, `pilotsAt`
+   per role. `ops:selftest` extended: the room sees
    both. Needs a VM deploy.
-4. HUD strip and pad button, strings en and es. `interior:hud`.
+4. HUD strip with a tap per aircraft, strings en and es. `interior:hud`
+   and `platforms:hold-ui`.
 5. Plant attitude at seat time (ABI), if the level hand over is felt.
 
 Mission 2 depends on 1 to 4. Mission 1 needs none of it (one aircraft

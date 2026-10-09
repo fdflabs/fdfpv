@@ -26,6 +26,7 @@ import { KITS, KIT_VERSION, LED_PATTERNS, checkKit, kitParts, lightsFor, slotsFo
 import { LIVERIES, entryDrops, normaliseEntry, normaliseLiveries, normaliseSaves, readCode } from '../configs/liveries.js';
 import { encodeLivery } from '../configs/paint.js';
 import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
+import { ledLevel, navLevel } from '../src/render/kitlights.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -82,8 +83,21 @@ const code = encodeLivery('7inch', 'night', q);
 const back = readCode(code);
 check('a v1 code carries kit and lights', !back.error && same(back.entry.kit, q.kit) && same(back.entry.lights, q.lights), back.error ?? '');
 check('a code with a bad kit is refused', readCode(encodeLivery('7inch', 'x', { kit: { v: 1, parts: { spinner: 'bullet' } } })).error === 'bad_value');
+check('a code with a newer kit version is refused with the version sentence', readCode(encodeLivery('7inch', 'x', { kit: { v: 2, parts: { arms: 'x' } } })).error === 'version');
+check('a code with newer lights is refused too', readCode(encodeLivery('7inch', 'x', { lights: { v: 9, led: '#ffffff' } })).error === 'version');
 const plain = readCode(encodeLivery('sky1800', 'old', { regions: { wing: '#ff0000' } }));
 check('an old code reads the same', !plain.error && same(plain.entry, { regions: { wing: '#ff0000' } }));
+
+console.log('LED patterns');
+const o = { level: 0, red: 0 };
+const lv = (p, m, t, thr = 0, bat = 1) => ({ ...ledLevel(p, m, t, thr, bat, o) });
+check('solid is full', lv('solid', 2, 12345).level === 1);
+check('chase lights one arm a step, round the four', [0, 110, 220, 330, 440].map((t) => [0, 1, 2, 3].findIndex((m) => lv('chase', m, t).level === 1)).join() === '0,1,2,3,0');
+check('strobe double flashes once a second', lv('strobe', 0, 30).level === 1 && lv('strobe', 0, 90).level < 0.1 && lv('strobe', 0, 150).level === 1 && lv('strobe', 0, 500).level < 0.1 && lv('strobe', 0, 1030).level === 1);
+check('throttle follows the stick', lv('throttle', 0, 0, 0).level < lv('throttle', 0, 0, 0.5).level && lv('throttle', 0, 0, 1).level === 1);
+check('battery reddens as the pack runs down', lv('battery', 0, 0, 0, 1).red === 0 && lv('battery', 0, 0, 0, 0).red === 1);
+check('plane strobes double flash on the flight clock', navLevel(30) === 1 && navLevel(90) === 0 && navLevel(150) === 1 && navLevel(600) === 0);
+check('a pattern is the same at the same flight time', same(lv('chase', 1, 987654), lv('chase', 1, 987654)));
 
 /*
  * PHYSICS ZERO, static half: nothing the flight runs on may reach the
@@ -94,7 +108,7 @@ check('an old code reads the same', !plain.error && same(plain.entry, { regions:
  * peers' livery: they draw, they do not fly.
  */
 console.log('physics zero');
-const KIT_FILE = join(ROOT, 'configs/kits.js');
+const KIT_FILES = new Set([join(ROOT, 'configs/kits.js'), join(ROOT, 'src/render/kitlights.js'), join(ROOT, 'src/render/navlights.js'), join(ROOT, 'src/render/kitshapes.js')]);
 const seen = new Map();
 function reaches(file) {
   if (seen.has(file)) {
@@ -110,7 +124,7 @@ function reaches(file) {
   }
   for (const m of src.matchAll(/(?:import|export)[^'"]*?from\s*['"](\.[^'"]+)['"]|import\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
     const dep = resolve(dirname(file), m[1] ?? m[2]);
-    if (dep === KIT_FILE) {
+    if (KIT_FILES.has(dep)) {
       seen.set(file, [file, dep]);
       return seen.get(file);
     }
@@ -132,7 +146,7 @@ const roots = [...['src/sim', 'src/native', 'src/fc'].flatMap((d) => jsUnder(joi
   ...['configs/power.js', 'configs/motors.js', 'configs/hangar-parts.js', 'configs/wear.js', 'configs/hulls.js', 'src/game/midair.js', 'src/game/teststand.js', 'src/replay/journal.js']
     .map((f) => join(ROOT, f))];
 const hits = roots.map(reaches).filter(Boolean);
-check(`no physics module reaches configs/kits.js (${roots.length} roots)`, hits.length === 0,
+check(`no physics module reaches configs/kits.js or kitlights.js (${roots.length} roots)`, hits.length === 0,
   hits.length ? hits[0].map((f) => f.slice(ROOT.length + 1)).join(' -> ') : '');
 
 console.log(`${passed} passed, ${failed} failed`);
