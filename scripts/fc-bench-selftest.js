@@ -645,4 +645,4 @@ for (const q of [
   globalThis.URL = realURL;
 }
 
-t.finish('src/ui/fc.js', 'a76846eace4db1d1153b0e23a027d7571ea3f8c36ebf6b2ac75107b5b4005335');
+t.finish('src/ui/fc.js', 'ed5146295687707806283b1a0c6d4d845b1c4fda396c5a603e6204496449313e');
