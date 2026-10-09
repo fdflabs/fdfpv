@@ -33,7 +33,7 @@ import { transcript } from './lib/transcript.js';
 
 /* Re-pinned when a recording is re-recorded: the flight model lane's
  * tractors (docs/FLIGHTMODEL.md) moved only their own decode lines. */
-const PINNED = '9552a02ea9763b6c05170813b68ba9ad3a279788527d4fe8929a82acfaf25861';
+const PINNED = '833a94b6eb063f2120aa2fcd44c4b45fefe878bff00c64330dec4914d9fdb816';
 const t = transcript();
 const sha = (x) => createHash('sha256').update(x).digest('hex').slice(0, 24);
 const hex = (u8) => Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength).toString('hex');

@@ -432,6 +432,7 @@
     "lint:copy": "node scripts/copy-lint.js",
     "lint:header": "node scripts/header-lint.js",
     "weather:selftest": "node scripts/weather-selftest.js",
+    "weather:surface": "node scripts/weather-surface-build.js",
     "check:weather": "node scripts/weather-check.js",
     "check:weather-room": "node scripts/weather-room-check.js",
     "lint:bf": "node scripts/brand-lint.js",

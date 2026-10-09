@@ -29,12 +29,16 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
-import { makeWeather, PRESET_IDS, MAPS, WIND_MAX, GUST_MAX, UP_MAX } from '../src/game/weather.js';
+import {
+  makeWeather, groundClass, PRESET_IDS, MAPS, WIND_MAX, GUST_MAX, UP_MAX,
+} from '../src/game/weather.js';
+import { CLASS } from '../src/game/weather-surface-classes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -144,31 +148,38 @@ const plain = speed(inr, -4000, 300, 4000, 0);
 check('the Interior: Rio Sereno\'s lowland is calmer and rougher than the plain', river[0] < plain[0] && river[1] > plain[1],
   `river ${river[0].toFixed(2)} gust ${river[1].toFixed(2)}, plain ${plain[0].toFixed(2)} gust ${plain[1].toFixed(2)}`);
 console.log('3b. vertical air');
+const THERMAL_LIFE_S = 900;
 {
   const v = { x: 0, z: 0, gust: 0, up: 0 };
   let rise = 0;
   let sink = 0;
   let riseAt = null;
   const th = makeWeather('interior', 'breeze', 11);
-  for (let i = 0; i < 40000; i += 1) {
-    const x = ((i * 7919) % 8000) - 4000;
-    const z = ((i * 104729) % 8000) - 4000;
-    th.at(x, 240 + 300, z, 100, v);
-    if (v.up > rise) {
-      rise = v.up;
-      riseAt = [x, z];
+  /* Over a thermal's whole life: at any one moment the strongest core
+   * may be over the forest (0.8 of open ground's) or far from the top of
+   * its life. */
+  for (let t = 100; t < 100 + THERMAL_LIFE_S; t += 100) {
+    for (let i = 0; i < 40000; i += 1) {
+      const x = ((i * 7919) % 8000) - 4000;
+      const z = ((i * 104729) % 8000) - 4000;
+      th.at(x, 240 + 300, z, t, v);
+      if (v.up > rise) {
+        rise = v.up;
+        riseAt = [x, z, t];
+      }
+      sink = Math.min(sink, v.up);
     }
-    sink = Math.min(sink, v.up);
   }
   check('breeze over the Interior has thermals 1.5 to 3 m/s and sink beside them', rise > 1.5 && rise <= 3 && sink < 0 && sink > -1,
     `rise ${rise.toFixed(2)} at ${riseAt}, sink ${sink.toFixed(2)}`);
-  th.at(riseAt[0], 240 + 3, riseAt[1], 100, v);
+  const t0 = riseAt[2];
+  th.at(riseAt[0], 240 + 3, riseAt[1], t0, v);
   const low = v.up;
-  th.at(riseAt[0], 240 + 1500, riseAt[1], 100, v);
+  th.at(riseAt[0], 240 + 1500, riseAt[1], t0, v);
   check('a thermal forms off the ground and is gone above the cloud base', Math.abs(low) < 0.3 * rise && v.up === 0,
     `${low.toFixed(2)} at 3 m, ${v.up} at 1500 m`);
   const later = [];
-  for (let t = 100; t < 100 + 900; t += 60) {
+  for (let t = t0; t < t0 + 900; t += 60) {
     th.at(riseAt[0], 540, riseAt[1], t, v);
     later.push(v.up);
   }
@@ -185,8 +196,12 @@ console.log('3b. vertical air');
   const windward = v.up;
   dam.at(142, 240, -1680, 0, v);
   const lee = v.up;
-  check('the dam lifts the air on its windward side and lets it down in its lee', windward > 0.5 && lee < 0,
-    `windward ${windward.toFixed(2)}, lee ${lee.toFixed(2)} m/s`);
+  /* The windward side is over the reservoir, which sinks on a thermal
+   * day; the dam's own lift is what it adds to that. */
+  dam.at(142, 240, -3500, 0, v);
+  const lake = v.up;
+  check('the dam lifts the air on its windward side and lets it down in its lee', windward - lake > 0.5 && lee < 0,
+    `windward ${windward.toFixed(2)} over the lake's ${lake.toFixed(2)}, lee ${lee.toFixed(2)} m/s`);
 }
 const fr = makeWeather('itaipu', 'front', 9);
 let lo = Infinity;
@@ -197,6 +212,83 @@ for (let t = 0; t < 400; t += 0.5) {
   hi = Math.max(hi, s);
 }
 check('a front passes a fixed point within 400 s', hi > 1.8 * lo, `${lo.toFixed(2)} to ${hi.toFixed(2)} m/s`);
+
+console.log('3c. the ground under the air');
+{
+  const v = { x: 0, z: 0, gust: 0, up: 0 };
+  /* Fronts have no thermals, so the surface changes nothing in them: the
+   * air on every map is what it was before the surface existed (hashes
+   * recorded on main at 10fc77de, 20000 samples over 16 km and 600 m). */
+  const FRONT = {
+    itaipu: '62de2697fd1d88bb', swiss2: '1ef6c18e8a90d883', alps: '1ef6c18e8a90d883', interior: 'c2aa6ceba8e24836',
+  };
+  for (const [m, want] of Object.entries(FRONT)) {
+    const w = makeWeather(m, 'front', 12345);
+    const f = new Float64Array(20000 * 4);
+    for (let i = 0; i < 20000; i += 1) {
+      w.at(((i * 7919) % 16000) - 8000, 200 + ((i * 31) % 600), ((i * 104729) % 16000) - 8000, i * 0.37, v);
+      f.set([v.x, v.z, v.gust, v.up], 4 * i);
+    }
+    const got = createHash('sha256').update(Buffer.from(f.buffer)).digest('hex').slice(0, 16);
+    check(`${m}: a front's air is the bits it was before the surface`, got === want, got);
+  }
+  /* Itaipu's reservoir a kilometre above the dam, a kilometre from any
+   * shore: over a whole thermal life, at every height, no rise, and weak
+   * sink on a thermal day. */
+  check('the reservoir above the dam is water on the grid', groundClass('itaipu', 720, -2800) === CLASS.water);
+  for (const preset of ['breeze', 'gusty']) {
+    const w = makeWeather('itaipu', preset, 5);
+    let most = -Infinity;
+    let least = Infinity;
+    for (let t = 0; t < 900; t += 7) {
+      for (let y = 230; y < 1200; y += 50) {
+        w.at(720, y, -2800, t, v);
+        most = Math.max(most, v.up);
+        least = Math.min(least, v.up);
+      }
+    }
+    check(`itaipu ${preset}: over the reservoir no thermal, weak sink (0 to -0.5 m/s)`, most <= 0 && least < 0 && least > -0.5,
+      `${least.toFixed(2)} to ${most.toFixed(2)} m/s`);
+  }
+  check('the Interior\'s river and the Swiss lake are water on their grids',
+    [[0, 2400, 'swiss2'], [0, 2400, 'alps']].every(([x, z, m]) => groundClass(m, x, z) === CLASS.water)
+    && MAPS.interior.zones[0].line.some(([x, z]) => groundClass('interior', x, z) === CLASS.water));
+  /* The same air over ground of one class everywhere (a map made here,
+   * the Interior's with a uniform grid): every thermal's rise and sink is
+   * open ground's times the class's share, and water's is sink only. */
+  const uniform = (c) => {
+    MAPS.uniform = { ...MAPS.interior, surface: { x0: -8000, cell: 1000, n: 16, cls: new Uint8Array(256).fill(c) } };
+    const w = makeWeather('uniform', 'breeze', 11);
+    const out = new Float64Array(20000);
+    for (let i = 0; i < 20000; i += 1) {
+      w.at(((i * 7919) % 8000) - 4000, 540, ((i * 104729) % 8000) - 4000, 100 + (i % 9) * 100, v);
+      out[i] = v.up;
+    }
+    delete MAPS.uniform;
+    return out;
+  };
+  const open = uniform(CLASS.open);
+  const ratio = (c) => {
+    const u = uniform(c);
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < u.length; i += 1) {
+      if (Math.abs(open[i]) > 0.05) {
+        lo = Math.min(lo, u[i] / open[i]);
+        hi = Math.max(hi, u[i] / open[i]);
+      }
+    }
+    return [lo, hi, u];
+  };
+  const near = (r, want) => Math.abs(r[0] - want) < 1e-9 && Math.abs(r[1] - want) < 1e-9;
+  const fo = ratio(CLASS.forest);
+  const ba = ratio(CLASS.bare);
+  const sn = ratio(CLASS.snow);
+  check('over forest every thermal is 0.8 of open ground\'s, over bare ground 1.15, over snow none', near(fo, 0.8) && near(ba, 1.15) && sn[2].every((u) => u === 0),
+    `forest ${fo[0].toFixed(4)} to ${fo[1].toFixed(4)}, bare ${ba[0].toFixed(4)} to ${ba[1].toFixed(4)}`);
+  const wa = ratio(CLASS.water)[2];
+  check('over water it only sinks, 0.15 of a strong core', wa.every((u) => Math.abs(u + 0.15 * 2.2) < 1e-12), `${Math.min(...wa)} to ${Math.max(...wa)}`);
+}
 
 console.log('4. a flight in the field, twice');
 /* The plant's frame as the map's with no spawn offset or yaw, the path
