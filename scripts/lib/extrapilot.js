@@ -145,11 +145,14 @@ window.__T = { log: [], done: false };
       /* The height is judged from where the person has caught it, not
        * from the hand over mid climb. */
       if (t >= SETTLE && T.hJudge === undefined) { T.hJudge = c.worldY; hT = c.worldY; }
-      if (t >= SETTLE && T.heldS >= t - 0.05 && off < 20 && Math.abs(c.worldY - T.hJudge) < 10) {
+      /* Held so far: every frame since the judging began inside the bounds,
+       * however far apart the page's frames come. */
+      if (t >= SETTLE && T.heldS === T.lastT && off < 20 && Math.abs(c.worldY - T.hJudge) < 10) {
         T.heldS = t;
         T.worst = Math.max(T.worst, off);
         T.bearing.push(Math.atan2(c.camera.z - c.worldZ, c.camera.x - c.worldX));
       }
+      T.lastT = t >= SETTLE ? t : SETTLE;
       if (t - lastAct >= EVERY) {
         lastAct = t;
         const d = [...seen].reverse().find((x) => x.t <= now - LAG);
