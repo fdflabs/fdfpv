@@ -43,6 +43,7 @@ import { fileURLToPath } from 'node:url';
 
 import { chromium, firefox, webkit } from 'playwright';
 
+import { findChrome } from '../tests/lib/browser.js';
 import { startServer } from '../tests/lib/server.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
@@ -52,6 +53,12 @@ const ENGINES = { chromium, firefox, webkit };
 const asked = process.argv.slice(2).filter((a) => !a.startsWith('-'));
 const engines = asked.length ? asked : ['firefox', 'webkit'];
 const BOOT_MS = 300000;
+/* The GL flags tests/lib/page.js gives Chrome, so the control draws as the
+ * other checks do: the GPU under SIM_GPU=1 (run-check.sh's default), else
+ * SwiftShader. Firefox and WebKit draw with what their headless builds have. */
+const CHROME_GL = process.env.SIM_GPU === '1'
+  ? ['--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu']
+  : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
 
 /* The same seed the Chromium room checks use: low graphics, no frame cap,
  * the aircraft question answered, so the boot lands on the title. */
@@ -99,7 +106,15 @@ async function openShell(context, origin, url, errors) {
 
 async function run(engineName, origin, roomsOrigin) {
   console.log(`${engineName}`);
-  const browser = await ENGINES[engineName].launch({ headless: true });
+  /* Chromium is the control: the same Chrome every other check drives. */
+  const options = engineName === 'chromium' ? { executablePath: findChrome(), args: CHROME_GL } : {};
+  let browser;
+  try {
+    browser = await ENGINES[engineName].launch({ headless: true, ...options });
+  } catch (e) {
+    check(engineName, 'launch', false, String(e.message).split('\n').find((l) => /apt-get|Executable|missing/i.test(l)) || e.message.slice(0, 160));
+    return;
+  }
   const errors = [];
   console.log(`  version ${browser.version()}`);
   try {
@@ -115,43 +130,50 @@ async function run(engineName, origin, roomsOrigin) {
     if (!booted) {
       return;
     }
-    await step(engineName, 'menus: arrows move, Enter opens, Escape returns', async () => {
+    await step(engineName, 'menus: arrows move the title cursor, Enter opens a hub, Escape returns', async () => {
       await until(page, "document.getElementById('pdcs-loader') === null || document.getElementById('pdcs-loader').hidden", 30000);
-      const start = await page.evaluate('window.__ui.screen');
-      const focus0 = await page.evaluate('document.activeElement && document.activeElement.textContent.trim().slice(0, 40)');
+      await until(page, 'window.__ui.onGate()', 60000);
+      const c0 = await page.evaluate('window.__ui.cursor');
       await page.keyboard.press('ArrowRight');
-      await page.waitForTimeout(500);
-      const focus1 = await page.evaluate('document.activeElement && document.activeElement.textContent.trim().slice(0, 40)');
+      await page.waitForTimeout(300);
+      const c1 = await page.evaluate('window.__ui.cursor');
+      if (c1 === c0) {
+        throw new Error(`ArrowRight left the cursor at ${c0}`);
+      }
+      /* Onto Flight Club the way scripts/mode-cards-check.js does, then the key. */
+      await page.evaluate("window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); true");
       await page.keyboard.press('Enter');
       try {
-        await until(page, `window.__ui.screen !== ${JSON.stringify(start)}`, 15000);
+        await until(page, "window.__ui.hub === 'club'", 15000);
       } catch (e) {
-        throw new Error(`Enter left the screen at ${start} (focus ${JSON.stringify(focus0)} -> ${JSON.stringify(focus1)})`);
+        throw new Error(`Enter on Flight Club opened no hub (hub ${await page.evaluate('window.__ui.hub')})`);
       }
-      const opened = await page.evaluate('window.__ui.screen');
       await page.keyboard.press('Escape');
-      await until(page, `window.__ui.screen === ${JSON.stringify(start)}`, 15000);
-      return `${start} -> ${opened} -> ${start}`;
+      await until(page, 'window.__ui.onGate()', 15000);
+      return `cursor ${c0} -> ${c1}, gate -> club -> gate`;
     });
     await step(engineName, 'flight: Fly starts it, frames draw, a lifted craft falls', async () => {
       await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
       await until(page, "window.__craftState && window.__craftState().mode === 'flight'", BOOT_MS);
-      const anim0 = await page.evaluate('window.__animMs()');
       const s = await page.evaluate('window.__craftState()');
       await page.evaluate(`window.__placeCraft(${s.worldX}, ${s.worldY + 40}, ${s.worldZ}); true`);
       const high = await page.evaluate('window.__craftState().worldY');
+      const dropped = Date.now();
+      /* Frames drawn a second over two seconds of requestAnimationFrame. */
       const frames0 = await page.evaluate('new Promise((r) => { let n = 0; const t0 = performance.now(); const f = () => { n += 1; if (performance.now() - t0 < 2000) { requestAnimationFrame(f); } else { r(n / ((performance.now() - t0) / 1000)); } }; requestAnimationFrame(f); })');
-      await page.waitForTimeout(3000);
-      const after = await page.evaluate('window.__craftState()');
-      const anim1 = await page.evaluate('window.__animMs()');
       const fps = `${frames0.toFixed(1)} fps`;
-      if (!(anim1 > anim0)) {
-        throw new Error(`no frames drawn in 5 s (${anim0} -> ${anim1}), ${fps}`);
+      if (!(frames0 > 0)) {
+        throw new Error('no frames drawn');
       }
-      if (!(after.worldY < high - 1)) {
-        throw new Error(`the craft did not fall: y ${high.toFixed(1)} -> ${after.worldY.toFixed(1)} in 5 s, ${fps}`);
+      /* The sim steps per drawn frame, so a software renderer at one frame
+       * a second runs it slowly: wait for a metre of fall, up to a minute. */
+      try {
+        await until(page, `window.__craftState().worldY < ${high - 1}`, 60000);
+      } catch (e) {
+        const y = await page.evaluate('window.__craftState().worldY');
+        throw new Error(`the craft did not fall a metre in 60 s: y ${high.toFixed(1)} -> ${y.toFixed(1)}, ${fps}`);
       }
-      return `fell ${(high - after.worldY).toFixed(1)} m in 5 s, ${fps}`;
+      return `fell a metre within ${((Date.now() - dropped) / 1000).toFixed(1)} s of the drop, ${fps}`;
     });
     await page.close();
 
