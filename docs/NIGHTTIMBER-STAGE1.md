@@ -101,7 +101,7 @@ What it gives, derived, and what the plant flies (npm run nighttimber:gates):
 |---|---|---|
 | Level at 75 percent | 12.34 m/s | 10.86 to 13.82 |
 | Stall, flaps up | 9.08 m/s | 8.54 to 10.35 |
-| Stall, full flaps | 8.08 m/s (the video's pilot: 15 to 18 mph, 6.7 to 8.0) | 7.60 to 9.21 |
+| Stall, full flaps | 8.08 m/s formula; the plant 7.29 since #854 | 6.7 to 8.0, the video pilot's own figure (see below) |
 | Top speed | 17.10 m/s | 15.39 to 18.81 |
 | Roll, full span ailerons | pb/2V 0.301, 373 deg/s at 13 m/s | 0.226 to 0.376 |
 | Hover stick | 0.8015 | 0.761 to 0.842 |
@@ -146,6 +146,18 @@ Two different mixes, kept apart:
   that mix lands, this aircraft takes it with a gate of its own: the rock
   must shrink with the mix in.
 
+### The full flap stall (N2b), re-derived to the real aircraft
+
+The formula's 8.08 m/s (Raymer's plain flap increment) leaves out the
+flap mix's down elevator and the tail's share, which the plant flies.
+After #854 put CL max at the top of the curve, the plant reads 7.29 m/s
+at the linear crossing (wingpilot.js stallSpeed from 11 m/s, as the
+Timber's T4). The band is now the real aircraft's own figure, the video
+pilot's 15 to 18 mph with full flaps, 6.7 to 8.0 m/s; the formula sits at
+its top. The flight lanes may want to check that the flaps' lift is not
+counted twice at the top of the curve: the Turbo Timber's T4 is 1.03 of
+its formula, this one 0.90.
+
 ### The person paced hover (N17)
 
 `scripts/hover-probe.js`'s pilot (0.2 s late, ten moves a second in fiftieths
@@ -156,7 +168,7 @@ flying the video's technique, a slow 75 deg/s torque roll rather than none
 | Mode | Stop the roll | The video's way |
 |---|---|---|
 | Manual | 0 of 648 | 0 of 648 |
-| AS3X | 100 of 648 | 171 of 648, at 80 deg/s, throttle 0.87 |
+| AS3X | 145 of 648 | 132 of 648, at 76 deg/s, throttle 0.87 |
 
 The Extra 300 3D on the same module: Manual 11 and 31, AS3X 82 and 128. The
 gate holds the AS3X video cell at one pilot or more, the claim the video

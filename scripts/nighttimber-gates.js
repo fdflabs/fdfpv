@@ -48,7 +48,7 @@ import { decodeRec } from '../tests/lib/recfile.js';
 import { findChrome, runBrowserHarness } from '../tests/lib/browser.js';
 import { startServer } from '../tests/lib/server.js';
 import {
-  NIGHTTIMBER_AIRFRAME, nighttimberGroundPrelude, extraGroundPrelude, extraTakeoffSticks, hangSticks, fly, wingDebug, wheelLoads, attitude, must,
+  NIGHTTIMBER_AIRFRAME, nighttimberGroundPrelude, extraGroundPrelude, extraTakeoffSticks, hangSticks, fly, stallSpeed, wingDebug, wheelLoads, attitude, must,
   bombshellGroundPrelude, kadetGroundPrelude, slowstickGroundPrelude, skyPrelude, wingPrelude, cubGroundPrelude, p51RecPrelude, p51AirPrelude, f16GroundPrelude,
   zagiPrelude, uglystikGroundPrelude, dlgRecPrelude, tigermothGroundPrelude,
   gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude, timberFloatRecPrelude, RC_STEP_MS,
@@ -130,15 +130,11 @@ check: {
   });
   gate('N2', 'stall speed, power off, flaps up', stallV != null && within(stallV, th.n2_stall), stallV == null ? 'no stall reached' : `${stallV.toFixed(2)} m/s`, band(th.n2_stall));
 
-  /* N2b: the same with the flaps down to the full notch first. */
+  /* N2b: the same with full flaps, wingpilot.js's stall entry as the
+   * Timber's T4 flies it. */
   {
     must(sim.e.sim_wing_set_flaps(2), 'sim_wing_set_flaps');
-    let stallF = null;
-    fly(sim, {
-      duty: 0, speed0: 12, seconds: 14, pitchMax: 0.7, pitchMin: -0.3, ...slow,
-      pitchTargetFn: (ms) => Math.min(0.6, 0.06 * ms / 1000),
-      onStep: (o) => { if (stallF == null && o.ms > 2500 && wingDebug(sim)[0] > th.n2b_stall_flaps.alphaStall) stallF = o.v; },
-    });
+    const stallF = stallSpeed(sim, th.n2b_stall_flaps.alphaStall, { speed0: 11 });
     must(sim.e.sim_wing_set_flaps(0), 'sim_wing_set_flaps');
     gate('N2b', 'stall speed, power off, full flaps', stallF != null && within(stallF, th.n2b_stall_flaps), stallF == null ? 'no stall reached' : `${stallF.toFixed(2)} m/s`, band(th.n2b_stall_flaps));
   }

@@ -140,7 +140,7 @@ globalThis.localStorage = {
 globalThis.document = { createElement: (tag) => new FakeElement(tag) };
 const windowListeners = [];
 globalThis.window = {
-  location: { href: 'https://example.test/', search: '', hash: '', hostname: 'example.test', origin: 'https://example.test' },
+  location: { href: 'https://example.test/', search: '', hash: '', hostname: 'paraguayandronecombatsimulator.com', origin: 'https://example.test' },
   innerWidth: 1600,
   innerHeight: 900,
   devicePixelRatio: 2,
