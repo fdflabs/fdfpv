@@ -7,8 +7,15 @@
  * touch, it flies, presses Escape as a key (the touch case presses the
  * on screen pause button with a real tap), and writes what the pilot sees:
  * a picture and the rows, to <outdir>/<case>.png and <outdir>/rows.json.
+ * Then it opens the Flight panel the way the pilot would (arrows and Enter,
+ * or a tap on the row on the phone), pictures it, and backs out with
+ * Escape twice: once to the pause menu, once into flight.
+ *
  * It fails when Escape does not open the menu, when Resume is not the
- * first row with the cursor on it, or on any console error.
+ * first row with the cursor on it, when the first screen is longer than
+ * docs/redesign/PAUSE-MENUS.md allows or has a group header, when a plane's
+ * panel offers Betaflight rates, when Escape does not walk back, or on any
+ * console error.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -73,6 +80,24 @@ function seed(c) {
   } catch (e) { /* storage refused */ }`];
 }
 
+/* Resume, Restart, Flight, Change aircraft, Room, Settings, My tracks, Quit. */
+const FIRST_SCREEN_MAX = 8;
+
+/* Down to the Flight row and Enter, as keys; on the phone, a tap on it. */
+async function openPanel(page, c, rows) {
+  const at = rows.findIndex((r) => r.action === 'quick');
+  if (c.touch) {
+    const id = await page.evaluate("window.__ui.items().find((it) => it.action === 'quick').id");
+    await page.click(`[data-row-id="${id}"]`);
+    return;
+  }
+  for (let i = 0; i < at; i += 1) {
+    await page.tap('ArrowDown');
+    await page.sleep(60);
+  }
+  await page.tap('Enter');
+}
+
 const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
   label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
@@ -108,7 +133,24 @@ async function runCase(c, record) {
     const cursor = await page.evaluate('window.__ui.cursor');
     record[c.id] = { lang: c.lang, airframe: c.airframe, rows };
     say(rows[0] && rows[0].action === 'resume' && cursor === 0, `Resume is first and has the cursor (cursor ${cursor})`);
+    say(rows.length <= FIRST_SCREEN_MAX && !rows.some((r) => r.section), `${rows.length} rows, no group header`);
     await shoot(page, c.id);
+    await openPanel(page, c, rows);
+    const panel = await page.until("window.__ui.screen === 'quick'", 5000).then(() => true, () => false);
+    say(panel, 'the Flight row opens the Flight panel');
+    if (!panel) {
+      return;
+    }
+    await page.sleep(300);
+    const quick = await page.evaluate(ROWS);
+    record[`${c.id}-flight`] = { lang: c.lang, airframe: c.airframe, rows: quick };
+    const plane = c.airframe !== 'interceptor';
+    say(quick.some((r) => r.action === 'rates') === !plane, plane ? 'a plane has no Rates row' : 'a quad has its Rates row');
+    await shoot(page, `${c.id}-flight`);
+    await page.tap('Escape');
+    say(await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false), 'Escape on the panel is the pause menu again');
+    await page.tap('Escape');
+    say(await page.until("window.__ui.screen === 'flight'", 5000).then(() => true, () => false), 'Escape on the pause menu resumes');
     const faults = page.errors.filter((e) => !e.startsWith('network:'));
     say(faults.length === 0, `no console error${faults.length ? `: ${faults[0]}` : ''}`);
   } finally {

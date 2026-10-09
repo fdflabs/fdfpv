@@ -7955,6 +7955,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Back",
      "action": "back",
@@ -8953,6 +8972,25 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -9957,6 +9995,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Back",
      "action": "back",
@@ -10958,6 +11015,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Back",
      "action": "back",
@@ -11948,6 +12024,25 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -13116,6 +13211,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Back",
      "action": "back",
@@ -14082,6 +14196,25 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -15091,6 +15224,25 @@
      "label": "Download flight log",
      "note": "Writes what was recorded as blackbox_decode CSV, which scripts/replay-log.js reads.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-help",
+     "label": "Help",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "How to fly",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Credits",
+     "note": "Who made this, who flew it, and whose work it stands on.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -16469,6 +16621,14 @@
      "drives": {}
     },
     {
+     "id": "paused:a-quick",
+     "label": "Flight",
+     "value": "Interceptor, Factory default",
+     "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
      "id": "paused:a-hotswap",
      "label": "Change aircraft",
      "value": "Interceptor",
@@ -16477,65 +16637,316 @@
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-mytracks",
+     "label": "My tracks",
+     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
+     "action": "mytracks",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Quit to title",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "paused-rows": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Resume",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Restart run",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Flight",
+     "value": "Interceptor, Factory default",
+     "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Change aircraft",
+     "value": "Interceptor",
+     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Fly with friends",
+     "value": "No room",
+     "note": "Make one or join one.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Quit to title",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "paused-in-room": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Resume",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Restart run",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Flight",
+     "value": "Interceptor, Factory default",
+     "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Change aircraft",
+     "value": "Interceptor",
+     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Room",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-mytracks",
+     "label": "My tracks",
+     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
+     "action": "mytracks",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Leave the room",
+     "note": "Back to flying on your own.",
+     "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-room-bar",
+     "label": "Room",
+     "note": "OWLS",
+     "action": "room-bar",
+     "bar": "room",
+     "drives": {}
+    }
+   ],
+   "bars": [
+    {
+     "label": "Room",
+     "note": "OWLS",
+     "action": "room-bar",
+     "bar": "room"
+    }
+   ],
+   "lit": [
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|on"
+   ],
+   "litFromGiven": "|"
+  },
+  "paused-plane": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Resume",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Restart run",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Flight",
+     "value": "Cub, Stabilised",
+     "note": "What you change between attempts: tune, rates, mode, view and graphics, for the aircraft in the air.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Change aircraft",
+     "value": "Cub",
+     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Quit to title",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "quick": {
+   "screen": "quick",
+   "items": [
+    {
+     "id": "quick:s-aircraft",
+     "label": "Aircraft",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "quick:a-pids",
+     "label": "Tune",
+     "value": "Factory default",
+     "note": "Opens where the tune is chosen and its sliders adjust it. Changing the tune puts the quad back on the start line.",
+     "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's: changing them leaves the quad where it is.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-feel",
+     "label": "Flight feel",
+     "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Quad setup",
+     "note": "Camera, flight mode and the firmware bench. Back returns to the pause menu.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Customise",
      "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:s-does-it-feel-wrong",
-     "label": "Does it feel wrong?",
+     "id": "quick:s-view",
+     "label": "View",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:hud-style",
+     "label": "HUD style",
+     "value": "Avionics",
+     "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+     "current": "avionics",
+     "options": [
+      {
+       "value": "osd",
+       "label": "FPV OSD"
+      },
+      {
+       "value": "game",
+       "label": "Game"
+      },
+      {
+       "value": "avionics",
+       "label": "Avionics"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "game"
+       }
+      },
+      "pick(\"osd\")": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-elsewhere",
-     "label": "Elsewhere",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Settings",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Rates, your radio, graphics and sound.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:graphics",
+     "id": "quick:graphics",
      "label": "Graphics",
      "value": "High",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
@@ -16580,167 +16991,109 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "How to fly",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-title",
-     "label": "Quit to title",
-     "action": "title",
+     "id": "quick:a-back",
+     "label": "Back",
+     "action": "back",
      "drives": {}
     }
    ]
   },
-  "paused-rows": {
-   "screen": "paused",
+  "quick-rows": {
+   "screen": "quick",
    "items": [
     {
-     "id": "paused:a-resume",
-     "label": "Resume",
-     "action": "resume",
-     "primary": true,
+     "id": "quick:s-aircraft",
+     "label": "Aircraft",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-restart",
-     "label": "Restart run",
-     "action": "restart",
+     "id": "quick:a-pids",
+     "label": "Tune",
+     "value": "Factory default",
+     "note": "Opens where the tune is chosen and its sliders adjust it. Changing the tune puts the quad back on the start line.",
+     "action": "pids",
      "drives": {}
     },
     {
-     "id": "paused:a-hotswap",
-     "label": "Change aircraft",
-     "value": "Interceptor",
-     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
-     "action": "hotswap",
+     "id": "quick:a-rates",
+     "label": "Rates",
+     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's: changing them leaves the quad where it is.",
+     "action": "rates",
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "quick:a-feel",
+     "label": "Flight feel",
+     "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Quad setup",
+     "note": "Camera, flight mode and the firmware bench. Back returns to the pause menu.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Customise",
      "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:ghost",
-     "label": "Ghost",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "paused:live",
-     "label": "Live",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "paused:a-friends",
-     "label": "Fly with friends",
-     "value": "No room",
-     "note": "Make one or join one.",
-     "action": "friends",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-does-it-feel-wrong",
-     "label": "Does it feel wrong?",
+     "id": "quick:s-view",
+     "label": "View",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:hud-style",
+     "label": "HUD style",
+     "value": "Avionics",
+     "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+     "current": "avionics",
+     "options": [
+      {
+       "value": "osd",
+       "label": "FPV OSD"
+      },
+      {
+       "value": "game",
+       "label": "Game"
+      },
+      {
+       "value": "avionics",
+       "label": "Avionics"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "game"
+       }
+      },
+      "pick(\"osd\")": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-elsewhere",
-     "label": "Elsewhere",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Settings",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Rates, your radio, graphics and sound.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:graphics",
+     "id": "quick:graphics",
      "label": "Graphics",
      "value": "Medium",
      "note": "A 2020-era laptop with integrated graphics. Shadows at lower resolution and no bloom. Changing this rebuilds the world.",
@@ -16785,118 +17138,291 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "How to fly",
-     "action": "howto",
+     "id": "quick:s-this-run",
+     "label": "This run",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
+     "id": "quick:ghost",
+     "label": "Ghost",
+     "value": "Best lap",
+     "note": "Your best, beside you.",
+     "fns": [
+      "adjust"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "calls": [
+        "ghost.cycle:1"
+       ]
+      },
+      "adjust(-1)": {
+       "calls": [
+        "ghost.cycle:-1"
+       ]
+      }
+     }
+    },
+    {
+     "id": "quick:live",
+     "label": "Live",
+     "value": "Off",
+     "note": "Nobody is watching.",
+     "fns": [
+      "adjust"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "calls": [
+        "live.cycle:1"
+       ]
+      },
+      "adjust(-1)": {
+       "calls": [
+        "live.cycle:-1"
+       ]
+      }
+     }
+    },
+    {
+     "id": "quick:a-back",
+     "label": "Back",
+     "action": "back",
+     "drives": {}
+    }
+   ],
+   "buildCalls": [
+    "live.cycle:-1"
+   ]
+  },
+  "quick-plane": {
+   "screen": "quick",
+   "items": [
+    {
+     "id": "quick:s-aircraft",
+     "label": "Aircraft",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-title",
-     "label": "Quit to title",
-     "action": "title",
+     "id": "quick:a-pids",
+     "label": "Flight mode",
+     "value": "Stabilised",
+     "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
+     "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-feel",
+     "label": "Flight feel",
+     "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Plane setup",
+     "note": "Camera, flight mode and the firmware bench. Back returns to the pause menu.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
+     "label": "Customise",
+     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
+     "action": "customise",
+     "drives": {}
+    },
+    {
+     "id": "quick:s-view",
+     "label": "View",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "quick:hud-style",
+     "label": "HUD style",
+     "value": "FPV OSD",
+     "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+     "current": "osd",
+     "options": [
+      {
+       "value": "osd",
+       "label": "FPV OSD"
+      },
+      {
+       "value": "game",
+       "label": "Game"
+      },
+      {
+       "value": "avionics",
+       "label": "Avionics"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.cub1400": "game"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.cub1400": "avionics"
+       }
+      },
+      "pick(\"game\")": {
+       "settings": {
+        "hudStyleBy.cub1400": "game"
+       }
+      }
+     }
+    },
+    {
+     "id": "quick:graphics",
+     "label": "Graphics",
+     "value": "High",
+     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "current": "high",
+     "options": [
+      {
+       "value": "low",
+       "label": "Low"
+      },
+      {
+       "value": "medium",
+       "label": "Medium"
+      },
+      {
+       "value": "high",
+       "label": "High"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "graphics": "low",
+        "graphicsAuto": false
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "graphics": "medium",
+        "graphicsAuto": false
+       }
+      },
+      "pick(\"low\")": {
+       "settings": {
+        "graphics": "low",
+        "graphicsAuto": false
+       }
+      }
+     }
+    },
+    {
+     "id": "quick:a-back",
+     "label": "Back",
+     "action": "back",
      "drives": {}
     }
    ]
   },
-  "paused-in-room": {
-   "screen": "paused",
+  "quick-extra": {
+   "screen": "quick",
    "items": [
     {
-     "id": "paused:a-resume",
-     "label": "Resume",
-     "action": "resume",
-     "primary": true,
+     "id": "quick:s-aircraft",
+     "label": "Aircraft",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-restart",
-     "label": "Restart run",
-     "action": "restart",
+     "id": "quick:a-pids",
+     "label": "Flight mode",
+     "value": "AS3X",
+     "note": "Opens where the flight mode is chosen, with what each mode does to the sticks.",
+     "action": "pids",
      "drives": {}
     },
     {
-     "id": "paused:a-hotswap",
-     "label": "Change aircraft",
-     "value": "Interceptor",
-     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
-     "action": "hotswap",
+     "id": "quick:a-feel",
+     "label": "Flight feel",
+     "note": "Tell the people tuning it how it flies. One word is enough; your aircraft, mode and rates go with it.",
+     "action": "feel",
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "quick:a-quad",
+     "label": "Plane setup",
+     "note": "Camera, flight mode and the firmware bench. Back returns to the pause menu.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Customise",
      "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:a-friends",
-     "label": "Fly with friends",
-     "value": "OWLS",
-     "note": "Two pilots in the room.",
-     "action": "friends",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-does-it-feel-wrong",
-     "label": "Does it feel wrong?",
+     "id": "quick:s-view",
+     "label": "View",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:hud-style",
+     "label": "HUD style",
+     "value": "FPV OSD",
+     "note": "What the first person view draws over the picture. FPV OSD is the flight controller's own on screen display, the white characters it puts in the pilot's goggles: pack, current, timers, horizon, and the lap clock in the same type. Game is this game's own readout. Avionics is a sensor and tracking display: heading, speed and height tapes, the link, navigation and energy panels, the camera and the AI's tracks; H switches AI tracking, J the camera mode, K the zoom, I puts the camera full screen (J then picks thermal) and back, U sizes the camera inset, Y draws more or less (full, standard, minimal), . (period) changes the thermal palette. Each aircraft keeps its own choice, and the combat drones start on Avionics. Chase and line of sight always use the game's.",
+     "current": "osd",
+     "options": [
+      {
+       "value": "osd",
+       "label": "FPV OSD"
+      },
+      {
+       "value": "game",
+       "label": "Game"
+      },
+      {
+       "value": "avionics",
+       "label": "Avionics"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "game"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "avionics"
+       }
+      },
+      "pick(\"game\")": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "game"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-elsewhere",
-     "label": "Elsewhere",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
-     "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Settings",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Rates, your radio, graphics and sound.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:graphics",
+     "id": "quick:graphics",
      "label": "Graphics",
      "value": "High",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
@@ -16941,215 +17467,9 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "How to fly",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "My tracks",
-     "note": "Back to the list of tracks: play another, edit this one, or build a new one.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-friends-leave",
-     "label": "Leave the room",
-     "note": "Back to flying on your own.",
-     "action": "friends-leave",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-room-bar",
-     "label": "Room",
-     "note": "OWLS",
-     "action": "room-bar",
-     "bar": "room",
-     "drives": {}
-    }
-   ],
-   "bars": [
-    {
-     "label": "Room",
-     "note": "OWLS",
-     "action": "room-bar",
-     "bar": "room"
-    }
-   ],
-   "lit": [
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|on"
-   ],
-   "litFromGiven": "|"
-  },
-  "paused-plane": {
-   "screen": "paused",
-   "items": [
-    {
-     "id": "paused:a-resume",
-     "label": "Resume",
-     "action": "resume",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-restart",
-     "label": "Restart run",
-     "action": "restart",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-hotswap",
-     "label": "Change aircraft",
-     "value": "Cub",
-     "note": "Swap it where it is and fly on. In flight Tab opens this, and [ and ] step through the aircraft.",
-     "action": "hotswap",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-customise",
-     "label": "Customise",
-     "note": "The power and the paint of the plane you are flying. Save puts them on it where it is.",
-     "action": "customise",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-does-it-feel-wrong",
-     "label": "Does it feel wrong?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Stabilised",
-     "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Opens PIDs, where the tune is chosen and the firmware's own sliders adjust it. Your rates are kept. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "How far the sticks go, and the throttle limit. Yours, not the tune's. Changing them here leaves the quad where it is and the clock running.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Flight feel",
-     "note": "Tell the tune work how the quad flies. One word is enough; your tune, PID adjustment and rates go with it.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-elsewhere",
-     "label": "Elsewhere",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Plane",
-     "value": "Cub, Stabilised",
-     "note": "PIDs, camera, flight mode and the firmware bench. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Settings",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
-     "note": "Rates, your radio, graphics and sound.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:graphics",
-     "label": "Graphics",
-     "value": "High",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
-     "current": "high",
-     "options": [
-      {
-       "value": "low",
-       "label": "Low"
-      },
-      {
-       "value": "medium",
-       "label": "Medium"
-      },
-      {
-       "value": "high",
-       "label": "High"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "graphics": "low",
-        "graphicsAuto": false
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "graphics": "medium",
-        "graphicsAuto": false
-       }
-      },
-      "pick(\"low\")": {
-       "settings": {
-        "graphics": "low",
-        "graphicsAuto": false
-       }
-      }
-     }
-    },
-    {
-     "id": "paused:a-howto",
-     "label": "How to fly",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Credits",
-     "note": "Who made this, who flew it, and whose work it stands on.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-title",
-     "label": "Quit to title",
-     "action": "title",
+     "id": "quick:a-back",
+     "label": "Back",
+     "action": "back",
      "drives": {}
     }
    ]
@@ -31512,6 +31832,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Volver",
      "action": "back",
@@ -32510,6 +32849,25 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -33514,6 +33872,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Volver",
      "action": "back",
@@ -34515,6 +34892,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Volver",
      "action": "back",
@@ -35505,6 +35901,25 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -36673,6 +37088,25 @@
      "drives": {}
     },
     {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-back",
      "label": "Volver",
      "action": "back",
@@ -37639,6 +38073,25 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -38648,6 +39101,25 @@
      "label": "Descargar registro de vuelo",
      "note": "Escribe lo grabado como CSV de blackbox_decode, que scripts/replay-log.js lee.",
      "action": "downloadflightlog",
+     "drives": {}
+    },
+    {
+     "id": "pilot:s-ayuda",
+     "label": "Ayuda",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-howto",
+     "label": "Cómo volar",
+     "action": "howto",
+     "drives": {}
+    },
+    {
+     "id": "pilot:a-credits",
+     "label": "Créditos",
+     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
+     "action": "credits",
      "drives": {}
     },
     {
@@ -40026,6 +40498,14 @@
      "drives": {}
     },
     {
+     "id": "paused:a-quick",
+     "label": "Vuelo",
+     "value": "Interceptor, De fábrica",
+     "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
      "id": "paused:a-hotswap",
      "label": "Cambiar de aeronave",
      "value": "Interceptor",
@@ -40034,65 +40514,316 @@
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-mytracks",
+     "label": "Mis pistas",
+     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
+     "action": "mytracks",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Salir al título",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "paused-rows": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Reanudar",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Reiniciar vuelo",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Vuelo",
+     "value": "Interceptor, De fábrica",
+     "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Cambiar de aeronave",
+     "value": "Interceptor",
+     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Volar con amigos",
+     "value": "No room",
+     "note": "Make one or join one.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Salir al título",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "paused-in-room": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Reanudar",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Reiniciar vuelo",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Vuelo",
+     "value": "Interceptor, De fábrica",
+     "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Cambiar de aeronave",
+     "value": "Interceptor",
+     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Sala",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-mytracks",
+     "label": "Mis pistas",
+     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
+     "action": "mytracks",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Salir de la sala",
+     "note": "De vuelta a volar solo.",
+     "action": "friends-leave",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-room-bar",
+     "label": "Room",
+     "note": "OWLS",
+     "action": "room-bar",
+     "bar": "room",
+     "drives": {}
+    }
+   ],
+   "bars": [
+    {
+     "label": "Room",
+     "note": "OWLS",
+     "action": "room-bar",
+     "bar": "room"
+    }
+   ],
+   "lit": [
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|",
+    "|on"
+   ],
+   "litFromGiven": "|"
+  },
+  "paused-plane": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Reanudar",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-restart",
+     "label": "Reiniciar vuelo",
+     "action": "restart",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-quick",
+     "label": "Vuelo",
+     "value": "Cub, Estabilizado",
+     "note": "Lo que cambias entre intentos: ajuste, tasas, modo, vista y gráficos, para la aeronave en el aire.",
+     "action": "quick",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-hotswap",
+     "label": "Cambiar de aeronave",
+     "value": "Cub",
+     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
+     "action": "hotswap",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-title",
+     "label": "Salir al título",
+     "action": "title",
+     "drives": {}
+    }
+   ]
+  },
+  "quick": {
+   "screen": "quick",
+   "items": [
+    {
+     "id": "quick:s-aeronave",
+     "label": "Aeronave",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "quick:a-pids",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
+     "note": "Abre donde se elige el ajuste y sus deslizadores lo afinan. Cambiar el ajuste pone el dron de vuelta en la línea de salida.",
+     "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+     "action": "rates",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-feel",
+     "label": "Sensación de vuelo",
+     "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Configurar dron",
+     "note": "Cámara, modo de vuelo y el banco de firmware. Volver regresa al menú de pausa.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Personalizar",
      "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:s-se-siente-mal",
-     "label": "¿Se siente mal?",
+     "id": "quick:s-vista",
+     "label": "Vista",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Ajuste PID",
-     "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:estilo-del-hud",
+     "label": "Estilo del HUD",
+     "value": "Aviónica",
+     "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
+     "current": "avionics",
+     "options": [
+      {
+       "value": "osd",
+       "label": "OSD FPV"
+      },
+      {
+       "value": "game",
+       "label": "Juego"
+      },
+      {
+       "value": "avionics",
+       "label": "Aviónica"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "game"
+       }
+      },
+      "pick(\"osd\")": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-en-otro-lugar",
-     "label": "En otro lugar",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Ajustes",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Rates, tu radio, gráficos y sonido.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:gr-ficos",
+     "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
@@ -40137,167 +40868,109 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "Cómo volar",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-title",
-     "label": "Salir al título",
-     "action": "title",
+     "id": "quick:a-back",
+     "label": "Volver",
+     "action": "back",
      "drives": {}
     }
    ]
   },
-  "paused-rows": {
-   "screen": "paused",
+  "quick-rows": {
+   "screen": "quick",
    "items": [
     {
-     "id": "paused:a-resume",
-     "label": "Reanudar",
-     "action": "resume",
-     "primary": true,
+     "id": "quick:s-aeronave",
+     "label": "Aeronave",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-restart",
-     "label": "Reiniciar vuelo",
-     "action": "restart",
+     "id": "quick:a-pids",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
+     "note": "Abre donde se elige el ajuste y sus deslizadores lo afinan. Cambiar el ajuste pone el dron de vuelta en la línea de salida.",
+     "action": "pids",
      "drives": {}
     },
     {
-     "id": "paused:a-hotswap",
-     "label": "Cambiar de aeronave",
-     "value": "Interceptor",
-     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
-     "action": "hotswap",
+     "id": "quick:a-rates",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
+     "note": "Hasta dónde llegan los sticks, y el límite de acelerador. Son tuyas, no del ajuste: cambiarlas deja el dron donde está.",
+     "action": "rates",
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "quick:a-feel",
+     "label": "Sensación de vuelo",
+     "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Configurar dron",
+     "note": "Cámara, modo de vuelo y el banco de firmware. Volver regresa al menú de pausa.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Personalizar",
      "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:fantasma",
-     "label": "Fantasma",
-     "value": "Best lap",
-     "note": "Your best, beside you.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "ghost.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "ghost.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "paused:en-vivo",
-     "label": "En vivo",
-     "value": "Off",
-     "note": "Nobody is watching.",
-     "fns": [
-      "adjust"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "calls": [
-        "live.cycle:1"
-       ]
-      },
-      "adjust(-1)": {
-       "calls": [
-        "live.cycle:-1"
-       ]
-      }
-     }
-    },
-    {
-     "id": "paused:a-friends",
-     "label": "Volar con amigos",
-     "value": "No room",
-     "note": "Make one or join one.",
-     "action": "friends",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-se-siente-mal",
-     "label": "¿Se siente mal?",
+     "id": "quick:s-vista",
+     "label": "Vista",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Ajuste PID",
-     "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:estilo-del-hud",
+     "label": "Estilo del HUD",
+     "value": "Aviónica",
+     "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
+     "current": "avionics",
+     "options": [
+      {
+       "value": "osd",
+       "label": "OSD FPV"
+      },
+      {
+       "value": "game",
+       "label": "Juego"
+      },
+      {
+       "value": "avionics",
+       "label": "Aviónica"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.interceptor": "game"
+       }
+      },
+      "pick(\"osd\")": {
+       "settings": {
+        "hudStyleBy.interceptor": "osd"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-en-otro-lugar",
-     "label": "En otro lugar",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Ajustes",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Rates, tu radio, gráficos y sonido.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:gr-ficos",
+     "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Medio",
      "note": "A 2020-era laptop with integrated graphics. Shadows at lower resolution and no bloom. Changing this rebuilds the world.",
@@ -40342,118 +41015,291 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "Cómo volar",
-     "action": "howto",
+     "id": "quick:s-este-vuelo",
+     "label": "Este vuelo",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
+     "id": "quick:fantasma",
+     "label": "Fantasma",
+     "value": "Best lap",
+     "note": "Your best, beside you.",
+     "fns": [
+      "adjust"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "calls": [
+        "ghost.cycle:1"
+       ]
+      },
+      "adjust(-1)": {
+       "calls": [
+        "ghost.cycle:-1"
+       ]
+      }
+     }
+    },
+    {
+     "id": "quick:en-vivo",
+     "label": "En vivo",
+     "value": "Off",
+     "note": "Nobody is watching.",
+     "fns": [
+      "adjust"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "calls": [
+        "live.cycle:1"
+       ]
+      },
+      "adjust(-1)": {
+       "calls": [
+        "live.cycle:-1"
+       ]
+      }
+     }
+    },
+    {
+     "id": "quick:a-back",
+     "label": "Volver",
+     "action": "back",
+     "drives": {}
+    }
+   ],
+   "buildCalls": [
+    "live.cycle:-1"
+   ]
+  },
+  "quick-plane": {
+   "screen": "quick",
+   "items": [
+    {
+     "id": "quick:s-aeronave",
+     "label": "Aeronave",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-title",
-     "label": "Salir al título",
-     "action": "title",
+     "id": "quick:a-pids",
+     "label": "Modo de vuelo",
+     "value": "Estabilizado",
+     "note": "Abre donde se elige el modo de vuelo, con lo que cada modo hace con los sticks.",
+     "action": "pids",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-feel",
+     "label": "Sensación de vuelo",
+     "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella.",
+     "action": "feel",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-quad",
+     "label": "Configurar avión",
+     "note": "Cámara, modo de vuelo y el banco de firmware. Volver regresa al menú de pausa.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
+     "label": "Personalizar",
+     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
+     "action": "customise",
+     "drives": {}
+    },
+    {
+     "id": "quick:s-vista",
+     "label": "Vista",
+     "section": true,
+     "drives": {}
+    },
+    {
+     "id": "quick:estilo-del-hud",
+     "label": "Estilo del HUD",
+     "value": "OSD FPV",
+     "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
+     "current": "osd",
+     "options": [
+      {
+       "value": "osd",
+       "label": "OSD FPV"
+      },
+      {
+       "value": "game",
+       "label": "Juego"
+      },
+      {
+       "value": "avionics",
+       "label": "Aviónica"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.cub1400": "game"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.cub1400": "avionics"
+       }
+      },
+      "pick(\"game\")": {
+       "settings": {
+        "hudStyleBy.cub1400": "game"
+       }
+      }
+     }
+    },
+    {
+     "id": "quick:gr-ficos",
+     "label": "Gráficos",
+     "value": "Alto",
+     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
+     "current": "high",
+     "options": [
+      {
+       "value": "low",
+       "label": "Bajo"
+      },
+      {
+       "value": "medium",
+       "label": "Medio"
+      },
+      {
+       "value": "high",
+       "label": "Alto"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "graphics": "low",
+        "graphicsAuto": false
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "graphics": "medium",
+        "graphicsAuto": false
+       }
+      },
+      "pick(\"low\")": {
+       "settings": {
+        "graphics": "low",
+        "graphicsAuto": false
+       }
+      }
+     }
+    },
+    {
+     "id": "quick:a-back",
+     "label": "Volver",
+     "action": "back",
      "drives": {}
     }
    ]
   },
-  "paused-in-room": {
-   "screen": "paused",
+  "quick-extra": {
+   "screen": "quick",
    "items": [
     {
-     "id": "paused:a-resume",
-     "label": "Reanudar",
-     "action": "resume",
-     "primary": true,
+     "id": "quick:s-aeronave",
+     "label": "Aeronave",
+     "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-restart",
-     "label": "Reiniciar vuelo",
-     "action": "restart",
+     "id": "quick:a-pids",
+     "label": "Modo de vuelo",
+     "value": "AS3X",
+     "note": "Abre donde se elige el modo de vuelo, con lo que cada modo hace con los sticks.",
+     "action": "pids",
      "drives": {}
     },
     {
-     "id": "paused:a-hotswap",
-     "label": "Cambiar de aeronave",
-     "value": "Interceptor",
-     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
-     "action": "hotswap",
+     "id": "quick:a-feel",
+     "label": "Sensación de vuelo",
+     "note": "Cuéntale a quienes lo ajustan cómo vuela. Con una palabra basta; tu aeronave, modo y tasas van con ella.",
+     "action": "feel",
      "drives": {}
     },
     {
-     "id": "paused:a-customise",
+     "id": "quick:a-quad",
+     "label": "Configurar avión",
+     "note": "Cámara, modo de vuelo y el banco de firmware. Volver regresa al menú de pausa.",
+     "action": "quad",
+     "drives": {}
+    },
+    {
+     "id": "quick:a-customise",
      "label": "Personalizar",
      "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
      "action": "customise",
      "drives": {}
     },
     {
-     "id": "paused:a-friends",
-     "label": "Volar con amigos",
-     "value": "OWLS",
-     "note": "Two pilots in the room.",
-     "action": "friends",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-se-siente-mal",
-     "label": "¿Se siente mal?",
+     "id": "quick:s-vista",
+     "label": "Vista",
      "section": true,
      "drives": {}
     },
     {
-     "id": "paused:a-pids",
-     "label": "Ajuste PID",
-     "value": "De fábrica",
-     "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
+     "id": "quick:estilo-del-hud",
+     "label": "Estilo del HUD",
+     "value": "OSD FPV",
+     "note": "Lo que la vista en primera persona dibuja sobre la imagen. OSD FPV es la pantalla del propio controlador de vuelo, los caracteres blancos que pone en las gafas del piloto: batería, corriente, tiempos, horizonte y el reloj de vuelta con la misma letra. Juego es la lectura propia de este juego. Aviónica es una pantalla de sensores y seguimiento: cintas de rumbo, velocidad y altura, los paneles de enlace, navegación y energía, la cámara y las pistas de la IA; H activa el seguimiento IA, J cambia el modo de cámara, K el zoom, I pone la cámara a pantalla completa (y J elige la térmica) y la devuelve, U cambia el tamaño del recuadro de cámara, Y dibuja más o menos (completo, estándar, mínimo), . (punto) cambia la paleta térmica. Cada aeronave guarda su propia elección, y los drones de combate empiezan en Aviónica. La cámara de persecución y la vista desde tierra usan siempre la del juego.",
+     "current": "osd",
+     "options": [
+      {
+       "value": "osd",
+       "label": "OSD FPV"
+      },
+      {
+       "value": "game",
+       "label": "Juego"
+      },
+      {
+       "value": "avionics",
+       "label": "Aviónica"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "game"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "avionics"
+       }
+      },
+      "pick(\"game\")": {
+       "settings": {
+        "hudStyleBy.extra3d1308": "game"
+       }
+      }
+     }
     },
     {
-     "id": "paused:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-en-otro-lugar",
-     "label": "En otro lugar",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Dron",
-     "value": "De fábrica",
-     "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Ajustes",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Rates, tu radio, gráficos y sonido.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:gr-ficos",
+     "id": "quick:gr-ficos",
      "label": "Gráficos",
      "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
@@ -40498,215 +41344,9 @@
      }
     },
     {
-     "id": "paused:a-howto",
-     "label": "Cómo volar",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-mytracks",
-     "label": "Mis pistas",
-     "note": "Vuelve a la lista de pistas: juega otra, edita esta o construye una nueva.",
-     "action": "mytracks",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-friends-leave",
-     "label": "Salir de la sala",
-     "note": "De vuelta a volar solo.",
-     "action": "friends-leave",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-room-bar",
-     "label": "Room",
-     "note": "OWLS",
-     "action": "room-bar",
-     "bar": "room",
-     "drives": {}
-    }
-   ],
-   "bars": [
-    {
-     "label": "Room",
-     "note": "OWLS",
-     "action": "room-bar",
-     "bar": "room"
-    }
-   ],
-   "lit": [
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|",
-    "|on"
-   ],
-   "litFromGiven": "|"
-  },
-  "paused-plane": {
-   "screen": "paused",
-   "items": [
-    {
-     "id": "paused:a-resume",
-     "label": "Reanudar",
-     "action": "resume",
-     "primary": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-restart",
-     "label": "Reiniciar vuelo",
-     "action": "restart",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-hotswap",
-     "label": "Cambiar de aeronave",
-     "value": "Cub",
-     "note": "Cámbiala donde está y sigue volando. En vuelo, Tab abre esto, y [ y ] pasan de una aeronave a otra.",
-     "action": "hotswap",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-customise",
-     "label": "Personalizar",
-     "note": "La potencia y la pintura del avión que vuelas. Guardar se las pone donde está.",
-     "action": "customise",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-se-siente-mal",
-     "label": "¿Se siente mal?",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pids",
-     "label": "Ajuste PID",
-     "value": "Estabilizado",
-     "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
-     "action": "pids",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-rates",
-     "label": "Tasas",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
-     "action": "rates",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-feel",
-     "label": "Sensación de vuelo",
-     "note": "Cuéntale al trabajo de tune cómo vuela el quad. Con una palabra basta; tu tune, el ajuste de PID y los rates van con ella.",
-     "action": "feel",
-     "drives": {}
-    },
-    {
-     "id": "paused:s-en-otro-lugar",
-     "label": "En otro lugar",
-     "section": true,
-     "drives": {}
-    },
-    {
-     "id": "paused:a-quad",
-     "label": "Avión",
-     "value": "Cub, Estabilizado",
-     "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
-     "action": "quad",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-pilot",
-     "label": "Ajustes",
-     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
-     "note": "Rates, tu radio, gráficos y sonido.",
-     "action": "pilot",
-     "drives": {}
-    },
-    {
-     "id": "paused:gr-ficos",
-     "label": "Gráficos",
-     "value": "Alto",
-     "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
-     "current": "high",
-     "options": [
-      {
-       "value": "low",
-       "label": "Bajo"
-      },
-      {
-       "value": "medium",
-       "label": "Medio"
-      },
-      {
-       "value": "high",
-       "label": "Alto"
-      }
-     ],
-     "fns": [
-      "adjust",
-      "pick"
-     ],
-     "drives": {
-      "adjust(+1)": {
-       "settings": {
-        "graphics": "low",
-        "graphicsAuto": false
-       }
-      },
-      "adjust(-1)": {
-       "settings": {
-        "graphics": "medium",
-        "graphicsAuto": false
-       }
-      },
-      "pick(\"low\")": {
-       "settings": {
-        "graphics": "low",
-        "graphicsAuto": false
-       }
-      }
-     }
-    },
-    {
-     "id": "paused:a-howto",
-     "label": "Cómo volar",
-     "action": "howto",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-credits",
-     "label": "Créditos",
-     "note": "Quién hizo esto, quién lo voló y sobre qué trabajo se apoya.",
-     "action": "credits",
-     "drives": {}
-    },
-    {
-     "id": "paused:a-title",
-     "label": "Salir al título",
-     "action": "title",
+     "id": "quick:a-back",
+     "label": "Volver",
+     "action": "back",
      "drives": {}
     }
    ]

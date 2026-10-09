@@ -550,6 +550,9 @@ function pilotRows(ui, s) {
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
+    { label: str('pause.help'), section: true },
+    { label: str('ui.how_to_fly'), action: 'howto' },
+    creditsRow(),
     backRow(),
   ];
 }
@@ -687,13 +690,17 @@ function screenRows(ui, s) {
     choice(str('ui.frame_cap'), str('ui.caps_how_often_the_world_is'), FPS_CAPS, s.fpsCap, (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`), (n) => { s.fpsCap = n; }),
     toggle(str('ui.frame_readout'), str('ui.frame_readout_note'), s.perfOverlay, (v) => { s.perfOverlay = v; }),
     toggle(str('ui.mission_guidance'), str('ui.mission_guidance_note'), s.missionGuidance, (v) => { s.missionGuidance = Boolean(v); }),
-    /* Per aircraft: a combat aircraft defaults to its avionics. */
-    choice(str('ui.hud_style'), str('ui.hud_style_note'), HUD_STYLES, hudStyleFor(s, s.airframe), (id) => str(`ui.hud_${id}`), (id) => {
-      s.hudStyleBy = { ...s.hudStyleBy, [s.airframe]: id };
-    }),
+    hudStyleRow(s),
     choice(str('ui.peer_marks'), str('ui.peer_marks_note'), MARK_STYLES, s.peerMarks, (id) => str(`ui.peer_marks_${id}`), (id) => { s.peerMarks = id; }),
     choice(str('ui.thermal_palette'), str('ui.thermal_palette_note'), AVX_PALETTES, s.avxPalette, (id) => str(`avionics.hud.palette.${id}`), (id) => { s.avxPalette = id; }),
   ];
+}
+
+/* Per aircraft: a combat aircraft defaults to its avionics. */
+function hudStyleRow(s) {
+  return choice(str('ui.hud_style'), str('ui.hud_style_note'), HUD_STYLES, hudStyleFor(s, s.airframe), (id) => str(`ui.hud_${id}`), (id) => {
+    s.hudStyleBy = { ...s.hudStyleBy, [s.airframe]: id };
+  });
 }
 
 function soundRows(s) {
@@ -811,28 +818,58 @@ function recordSentence(s, trackName) {
 
 /* ---- the pause menu ---- */
 
+/*
+ * The first screen (docs/redesign/PAUSE-MENUS.md): Resume, the run, the
+ * Flight panel, the aircraft, the room when there is one, Settings, out.
+ * Everything a pilot tweaks between attempts is one row down, in the
+ * Flight panel; deep settings and help are in Settings. In a room the
+ * friends row is the room's, by name.
+ */
 function pausedRows(ui, s) {
+  const af = airframeById(s.airframe);
   return [
     { label: str('ui.resume'), action: 'resume', primary: true },
     { label: str('ui.restart_run'), action: 'restart' },
-    { label: str('carousel.change_aircraft'), value: airframeById(s.airframe).short, action: 'hotswap', note: str('carousel.row_note') },
-    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
-    ...ui.ghostItems(),
-    ...ui.liveItems(),
-    ...ui.friendsItems(),
-    { label: str('ui.does_it_feel_wrong'), section: true },
-    tuneRow(s, true),
-    ratesRow(s, str('ui.how_far_the_sticks_go_and_2')),
-    feelRow(),
-    { label: str('ui.elsewhere'), section: true },
-    machineRow(s, str('ui.pids_camera_flight_mode_and_the', { MID_RUN_WARNING })),
-    { label: str('ui.settings'), value: ratesValue(s.rates), action: 'pilot', note: str('ui.rates_your_radio_graphics_and_sound') },
-    graphicsRow(s),
-    { label: str('ui.how_to_fly'), action: 'howto' },
-    creditsRow(),
+    { label: str('pause.flight'), value: `${af.short}, ${tuneName(s.tune)}`, action: 'quick', note: str('pause.flight_note') },
+    { label: str('carousel.change_aircraft'), value: af.short, action: 'hotswap', note: str('carousel.row_note') },
+    ...ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it)),
+    { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
     ...(s.map === 'track' ? [myTracksRow()] : []),
     { label: str('ui.quit_to_title'), action: 'title' },
   ];
+}
+
+/*
+ * The Flight panel: what a pilot changes between attempts, for the
+ * aircraft in the air. A plane's tune is its flight mode, and Betaflight
+ * rates do not reach a wing, so a plane has no Rates row.
+ */
+function quickRows(ui, s) {
+  const plane = Boolean(airframeById(s.airframe).fixedWing);
+  return [
+    { label: str('pause.aircraft'), section: true },
+    plane ? planeModeRow(s) : quadTuneRow(s),
+    ...(plane ? [] : [ratesRow(s, str('pause.rates_note'))]),
+    { ...feelRow(), note: str('pause.feel_note') },
+    { label: plane ? str('pause.plane_setup') : str('pause.quad_setup'), action: 'quad', note: str('pause.setup_note') },
+    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
+    { label: str('pause.view'), section: true },
+    hudStyleRow(s),
+    graphicsRow(s),
+    ...(ui.ghostItems().length || ui.liveItems().length ? [{ label: str('pause.this_run'), section: true }] : []),
+    ...ui.ghostItems(),
+    ...ui.liveItems(),
+    backRow(),
+  ];
+}
+
+/* tuneRow without the registry's English description of the tune. */
+function quadTuneRow(s) {
+  return { ...tuneRow(s, true), note: str('pause.tune_note') };
+}
+
+function planeModeRow(s) {
+  return { label: str('ui.flight_mode'), value: tuneName(s.tune), action: 'pids', note: str('pause.mode_note') };
 }
 
 /* ---- results ---- */
@@ -1158,6 +1195,7 @@ const SCREENS = {
   standings: standingsRows,
   launch: launchRows,
   paused: pausedRows,
+  quick: quickRows,
   results: resultsRows,
   rates: ratesRoomRows,
   pids: pidsRows,
