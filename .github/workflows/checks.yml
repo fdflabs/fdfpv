@@ -47,6 +47,7 @@ jobs:
       - run: npm run session:golden
       - run: npm run actions:golden
       - run: npm run items:golden
+      - run: npm run lint:es-leaks
       # The link preview a crawler reads: index.html's social tags, their
       # copy, and og.png's size and hash (scripts/og-check.js).
       - run: npm run og:check

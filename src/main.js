@@ -3433,10 +3433,10 @@ export async function boot({
     }
     const on = ui.settings.live === 'on';
     const state = liveLink.state();
-    let value = 'Off';
+    let value = str('main.live_off');
     if (on) {
       value = state === 'open'
-        ? (livePeers.size ? `${livePeers.size} here` : str('main.alone'))
+        ? (livePeers.size ? str('main.live_here', { n: livePeers.size }) : str('main.alone'))
         : (state === 'failed' ? str('main.no_room') : str('main.joining'));
     }
     ui.setLiveRow({
