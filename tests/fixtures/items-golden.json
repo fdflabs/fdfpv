@@ -3273,6 +3273,52 @@
      }
     },
     {
+     "id": "freestyle:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
+       }
+      }
+     }
+    },
+    {
      "id": "freestyle:a-back",
      "label": "Back",
      "action": "back",
@@ -3426,6 +3472,52 @@
       "flip()": {
        "settings": {
         "crashDamage": true
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:weather",
+     "label": "Weather",
+     "value": "Calm",
+     "note": "Still air, the same flight as always. In a room, the host's choice is everyone's.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calm"
+      },
+      {
+       "value": "breeze",
+       "label": "Breeze"
+      },
+      {
+       "value": "gusty",
+       "label": "Gusty"
+      },
+      {
+       "value": "front",
+       "label": "Fronts"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
        }
       }
      }
@@ -7114,6 +7206,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -8113,6 +8212,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -9116,6 +9222,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -10117,6 +10230,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -11108,6 +11228,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -12279,6 +12406,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -13276,6 +13410,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -14251,6 +14392,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -24148,8 +24296,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24220,8 +24368,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24285,8 +24433,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24349,8 +24497,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24421,8 +24569,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24485,8 +24633,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24549,8 +24697,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24677,8 +24825,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24769,8 +24917,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -24876,8 +25024,8 @@
     },
     {
      "id": "title:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Tune, PIDs, ángulo de cámara, campo de visión, modo de vuelo y el banco de firmware, que es cada clave del firmware que compila el módulo.",
      "action": "quad",
      "drives": {}
@@ -26759,8 +26907,8 @@
     },
     {
      "id": "freestyle:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Su fila Tune abre PIDs, donde se elige el tune y los propios sliders del firmware lo ajustan, y ahí también están la cámara, el modo de vuelo y el banco de firmware.",
      "action": "quad",
      "drives": {}
@@ -26825,6 +26973,52 @@
       "flip()": {
        "settings": {
         "crashDamage": false
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
        }
       }
      }
@@ -26917,8 +27111,8 @@
     },
     {
      "id": "freestyle:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "La máquina. Su fila Tune abre PIDs, donde se elige el tune y los propios sliders del firmware lo ajustan, y ahí también están la cámara, el modo de vuelo y el banco de firmware.",
      "action": "quad",
      "drives": {}
@@ -26983,6 +27177,52 @@
       "flip()": {
        "settings": {
         "crashDamage": true
+       }
+      }
+     }
+    },
+    {
+     "id": "freestyle:clima",
+     "label": "Clima",
+     "value": "Calma",
+     "note": "Aire quieto, el mismo vuelo de siempre. En una sala, lo que elige el anfitrión vale para todos.",
+     "current": "calm",
+     "options": [
+      {
+       "value": "calm",
+       "label": "Calma"
+      },
+      {
+       "value": "breeze",
+       "label": "Brisa"
+      },
+      {
+       "value": "gusty",
+       "label": "Ráfagas"
+      },
+      {
+       "value": "front",
+       "label": "Frentes"
+      }
+     ],
+     "fns": [
+      "adjust",
+      "pick"
+     ],
+     "drives": {
+      "adjust(+1)": {
+       "settings": {
+        "weather": "breeze"
+       }
+      },
+      "adjust(-1)": {
+       "settings": {
+        "weather": "front"
+       }
+      },
+      "pick(\"breeze\")": {
+       "settings": {
+        "weather": "breeze"
        }
       }
      }
@@ -27139,8 +27379,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -27302,8 +27542,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -27460,8 +27700,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
@@ -27623,8 +27863,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -27769,8 +28009,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
@@ -27932,8 +28172,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -28090,8 +28330,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -28257,8 +28497,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -28415,8 +28655,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -28578,8 +28818,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -28736,8 +28976,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -28899,8 +29139,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 400 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 400 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -29057,8 +29297,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -29220,8 +29460,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Classic, 42 roll and pitch, 42 yaw deg/s",
+     "label": "Tasas",
+     "value": "Clásico, 42 alabeo y cabeceo, 42 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -29378,8 +29618,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -29541,8 +29781,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -29699,8 +29939,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Factory default, master 120%",
+     "label": "Ajuste PID",
+     "value": "De fábrica, master 120%",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -29862,8 +30102,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -30020,8 +30260,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Your edits",
+     "label": "Ajuste PID",
+     "value": "Tus cambios",
      "note": "The dump you saved on the Flight controller screen, every field of it. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -30183,8 +30423,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -30341,8 +30581,8 @@
     },
     {
      "id": "quad:a-pids",
-     "label": "Tune",
-     "value": "Stabilised",
+     "label": "Ajuste PID",
+     "value": "Estabilizado",
      "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan.",
      "action": "pids",
      "drives": {}
@@ -30504,8 +30744,8 @@
     },
     {
      "id": "quad:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "No de la máquina. Los rates son tuyos, así que viven bajo Settings y se quedan quietos cuando cambias de tune. Cambiar la aeronave los resiembra solo si sigues con los rates de fábrica. Esta fila va allí, y cambiarlos a mitad de sesión deja el quad donde está.",
      "action": "rates",
      "drives": {}
@@ -30522,8 +30762,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -30671,6 +30911,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -30732,8 +30979,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -30842,21 +31089,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -31523,8 +31770,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -31672,6 +31919,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -31733,8 +31987,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -31843,21 +32097,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -32524,8 +32778,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -32673,6 +32927,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -32734,8 +32995,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -32844,21 +33105,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -33525,8 +33786,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -33674,6 +33935,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -33735,8 +34003,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -33845,21 +34113,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -34526,8 +34794,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -34667,6 +34935,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -34728,8 +35003,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -34838,21 +35113,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -35519,8 +35794,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -35836,6 +36111,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -35897,8 +36179,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -36007,21 +36289,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "Low",
+     "value": "Bajo",
      "note": "Steam Deck and similar handhelds. Lower internal resolution, no shadow maps and cheaper post. Still uses a GPU if the machine has one. Changing this rebuilds the world.",
      "current": "low",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -36684,8 +36966,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -36833,6 +37115,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -36894,8 +37183,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -37004,21 +37293,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -37653,8 +37942,8 @@
    "screen": "pilot",
    "items": [
     {
-     "id": "pilot:s-you",
-     "label": "You",
+     "id": "pilot:s-t",
+     "label": "Tú",
      "section": true,
      "drives": {}
     },
@@ -37810,6 +38099,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -37871,8 +38167,8 @@
     },
     {
      "id": "pilot:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y con qué brusquedad. Tuyos, no del tune. Una radio en Acro vuela esta curva; el vuelo con teclado es Angle. Cambiarlos a mitad de sesión deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -37981,21 +38277,21 @@
     {
      "id": "pilot:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -38782,8 +39078,8 @@
     },
     {
      "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
@@ -38995,7 +39291,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en Track está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Factory default. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+     "note": "Tu mejor en Track está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -39021,8 +39317,8 @@
     },
     {
      "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
@@ -39276,7 +39572,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Factory default. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -39305,8 +39601,8 @@
     },
     {
      "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
@@ -39518,7 +39814,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Arcade physics, peso al 120 por ciento, 3.70 V por celda, 1 lap, el tune Factory default. Cambia cualquier parte y estás en otro tablero. Los tiempos en arcade quedan fuera del tablero público, así que esta sesión no contará ahí.",
+     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Arcade physics, peso al 120 por ciento, 3.70 V por celda, 1 lap, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Los tiempos en arcade quedan fuera del tablero público, así que esta sesión no contará ahí.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -39544,8 +39840,8 @@
     },
     {
      "id": "launch:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
@@ -39757,7 +40053,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, peso al 80 por ciento, 4.20 V por celda, 5 laps, el tune Factory default. Cambia cualquier parte y estás en otro tablero. Los tiempos volados con un peso distinto de 100 por ciento quedan fuera del tablero público, así que esta sesión no contará ahí.",
+     "note": "Tu mejor en Saved before creative mode está archivado exactamente bajo esto: Experto physics, peso al 80 por ciento, 4.20 V por celda, 5 laps, el tune De fábrica. Cambia cualquier parte y estás en otro tablero. Los tiempos volados con un peso distinto de 100 por ciento quedan fuera del tablero público, así que esta sesión no contará ahí.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -39784,7 +40080,7 @@
     {
      "id": "launch:a-quad",
      "label": "Avión",
-     "value": "Cub, Stabilised",
+     "value": "Cub, Estabilizado",
      "note": "El tune, los PIDs, la cámara y el firmware. Abre Quad. Lo que esté cargado ahí es lo que vuela esta sesión, y va al tablero junto con el tiempo.",
      "action": "quad",
      "drives": {}
@@ -39996,7 +40292,7 @@
     {
      "id": "launch:a-launch-go",
      "label": "Volar",
-     "note": "Tu mejor en The Alps está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Stabilised. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
+     "note": "Tu mejor en The Alps está archivado exactamente bajo esto: Experto physics, 4.20 V por celda, 3 laps, el tune Estabilizado. Cambia cualquier parte y estás en otro tablero. Esta sesión está en un enlace perfecto.",
      "action": "launch-go",
      "primary": true,
      "drives": {}
@@ -40021,7 +40317,7 @@
     },
     {
      "id": "paused:a-restart",
-     "label": "Reiniciar sesión",
+     "label": "Reiniciar vuelo",
      "action": "restart",
      "drives": {}
     },
@@ -40048,16 +40344,16 @@
     },
     {
      "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
     },
     {
      "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -40077,8 +40373,8 @@
     },
     {
      "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
      "action": "quad",
      "drives": {}
@@ -40086,7 +40382,7 @@
     {
      "id": "paused:a-pilot",
      "label": "Ajustes",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Rates, tu radio, gráficos y sonido.",
      "action": "pilot",
      "drives": {}
@@ -40094,21 +40390,21 @@
     {
      "id": "paused:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -40176,7 +40472,7 @@
     },
     {
      "id": "paused:a-restart",
-     "label": "Reiniciar sesión",
+     "label": "Reiniciar vuelo",
      "action": "restart",
      "drives": {}
     },
@@ -40253,16 +40549,16 @@
     },
     {
      "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
     },
     {
      "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -40282,8 +40578,8 @@
     },
     {
      "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
      "action": "quad",
      "drives": {}
@@ -40291,7 +40587,7 @@
     {
      "id": "paused:a-pilot",
      "label": "Ajustes",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Rates, tu radio, gráficos y sonido.",
      "action": "pilot",
      "drives": {}
@@ -40299,21 +40595,21 @@
     {
      "id": "paused:gr-ficos",
      "label": "Gráficos",
-     "value": "Medium",
+     "value": "Medio",
      "note": "A 2020-era laptop with integrated graphics. Shadows at lower resolution and no bloom. Changing this rebuilds the world.",
      "current": "medium",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -40374,7 +40670,7 @@
     },
     {
      "id": "paused:a-restart",
-     "label": "Reiniciar sesión",
+     "label": "Reiniciar vuelo",
      "action": "restart",
      "drives": {}
     },
@@ -40409,16 +40705,16 @@
     },
     {
      "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Factory default",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
     },
     {
      "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -40438,8 +40734,8 @@
     },
     {
      "id": "paused:a-quad",
-     "label": "Quad",
-     "value": "Factory default",
+     "label": "Dron",
+     "value": "De fábrica",
      "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
      "action": "quad",
      "drives": {}
@@ -40447,7 +40743,7 @@
     {
      "id": "paused:a-pilot",
      "label": "Ajustes",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Rates, tu radio, gráficos y sonido.",
      "action": "pilot",
      "drives": {}
@@ -40455,21 +40751,21 @@
     {
      "id": "paused:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -40575,7 +40871,7 @@
     },
     {
      "id": "paused:a-restart",
-     "label": "Reiniciar sesión",
+     "label": "Reiniciar vuelo",
      "action": "restart",
      "drives": {}
     },
@@ -40602,16 +40898,16 @@
     },
     {
      "id": "paused:a-pids",
-     "label": "Tune",
-     "value": "Stabilised",
+     "label": "Ajuste PID",
+     "value": "Estabilizado",
      "note": "A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Abre PIDs, donde se elige el tune y los propios deslizadores del firmware lo ajustan. Tus rates se conservan. Changing it during a run puts the quad back on the start line.",
      "action": "pids",
      "drives": {}
     },
     {
      "id": "paused:a-rates",
-     "label": "Rates",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "label": "Tasas",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Hasta dónde llegan los sticks, y el límite de throttle. Tuyos, no del tune. Cambiarlos aquí deja el quad donde está y el reloj corriendo.",
      "action": "rates",
      "drives": {}
@@ -40632,7 +40928,7 @@
     {
      "id": "paused:a-quad",
      "label": "Avión",
-     "value": "Cub, Stabilised",
+     "value": "Cub, Estabilizado",
      "note": "PIDs, cámara, modo de vuelo y el banco de firmware. Changing it during a run puts the quad back on the start line.",
      "action": "quad",
      "drives": {}
@@ -40640,7 +40936,7 @@
     {
      "id": "paused:a-pilot",
      "label": "Ajustes",
-     "value": "Actual, 670 roll and pitch, 670 yaw deg/s",
+     "value": "Actual, 670 alabeo y cabeceo, 670 guiñada °/s",
      "note": "Rates, tu radio, gráficos y sonido.",
      "action": "pilot",
      "drives": {}
@@ -40648,21 +40944,21 @@
     {
      "id": "paused:gr-ficos",
      "label": "Gráficos",
-     "value": "High",
+     "value": "Alto",
      "note": "A 2021-era PC or a strong laptop. The authored look: full resolution, soft shadows and bloom. Changing this rebuilds the world.",
      "current": "high",
      "options": [
       {
        "value": "low",
-       "label": "Low"
+       "label": "Bajo"
       },
       {
        "value": "medium",
-       "label": "Medium"
+       "label": "Medio"
       },
       {
        "value": "high",
-       "label": "High"
+       "label": "Alto"
       }
      ],
      "fns": [
@@ -41628,7 +41924,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -42133,7 +42429,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -42772,7 +43068,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -43303,7 +43599,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -43808,7 +44104,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -44305,7 +44601,7 @@
      "options": [
       {
        "value": "BETAFLIGHT",
-       "label": "Classic"
+       "label": "Clásico"
       },
       {
        "value": "RACEFLIGHT",
@@ -44786,16 +45082,16 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Factory default",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       }
      ],
      "fns": [
@@ -44809,8 +45105,8 @@
      }
     },
     {
-     "id": "pids:cargando-factory-default",
-     "label": "Cargando Factory default",
+     "id": "pids:cargando-de-f-brica",
+     "label": "Cargando De fábrica",
      "note": "El tune se está descargando y aplicando. Sus sliders aparecen en cuanto el módulo lo devuelve.",
      "info": true,
      "drives": {}
@@ -44825,7 +45121,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Factory default ya está volando sus propios valores.",
+     "note": "De fábrica ya está volando sus propios valores.",
      "action": "pids-default",
      "disabled": true,
      "drives": {}
@@ -44842,16 +45138,16 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Factory default",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       }
      ],
      "fns": [
@@ -44865,8 +45161,8 @@
      }
     },
     {
-     "id": "pids:cargando-factory-default",
-     "label": "Cargando Factory default",
+     "id": "pids:cargando-de-f-brica",
+     "label": "Cargando De fábrica",
      "note": "El tune se está descargando y aplicando. Sus sliders aparecen en cuanto el módulo lo devuelve.",
      "info": true,
      "drives": {}
@@ -44881,7 +45177,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Factory default ya está volando sus propios valores.",
+     "note": "De fábrica ya está volando sus propios valores.",
      "action": "pids-default",
      "disabled": true,
      "drives": {}
@@ -44898,16 +45194,16 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Factory default",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       }
      ],
      "fns": [
@@ -45446,7 +45742,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Factory default ya está volando sus propios valores.",
+     "note": "De fábrica ya está volando sus propios valores.",
      "action": "pids-default",
      "disabled": true,
      "drives": {}
@@ -45463,16 +45759,16 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Factory default",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits. Changing it during a run puts the quad back on the start line.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       }
      ],
      "fns": [
@@ -45566,7 +45862,7 @@
     {
      "id": "pids:master-multiplier",
      "label": "Master multiplier",
-     "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for. Factory default trae esto en 100; volver a ponerlo ahí olvida el cambio. Factory default ejecuta los deslizadores en modo RP, así que alcanzan roll y pitch y dejan yaw en sus valores de fábrica, exactamente como lo haría una app de configuración.",
+     "note": "Everything at once: P, I, D and feedforward all scale together, ratios kept. This is the \"make it stiffer\" knob, and the one the flight feel feedback asked for. Stock sits at 100; the stiff preset that used to ship here sat at 185, which is about the size of step that feedback was asking for. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio. De fábrica ejecuta los deslizadores en modo RP, así que alcanzan roll y pitch y dejan yaw en sus valores de fábrica, exactamente como lo haría una app de configuración.",
      "range": {
       "min": 30,
       "max": 200
@@ -45683,7 +45979,7 @@
     {
      "id": "pids:damping-d",
      "label": "Damping, D",
-     "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high. Factory default trae esto en 100; volver a ponerlo ahí olvida el cambio.",
+     "note": "Resists rotation, smooths stops, calms propwash. On a real quad D is paid for in motor heat and gyro noise; this model’s gyro is clean, so damping is nearly free and the stiff tunes run it high. De fábrica trae esto en 100; volver a ponerlo ahí olvida el cambio.",
      "range": {
       "min": 30,
       "max": 200
@@ -45885,7 +46181,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Olvida cada slider y cada PID puesto a mano para Factory default y vuela el tune tal como viene. Los ajustes de los otros tunes se conservan.",
+     "note": "Olvida cada slider y cada PID puesto a mano para De fábrica y vuela el tune tal como viene. Los ajustes de los otros tunes se conservan.",
      "action": "pids-default",
      "disabled": false,
      "drives": {}
@@ -45902,16 +46198,16 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Factory default",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "De fábrica",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste. Stock es el único tune incluido. Edita uno en Firmware bench y guárdalo, y se suma a esta fila como Your edits.",
      "pickOnly": true,
      "current": "betaflight-interceptor",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       }
      ],
      "fns": [
@@ -46503,7 +46799,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Olvida cada slider y cada PID puesto a mano para Factory default y vuela el tune tal como viene. Los ajustes de los otros tunes se conservan.",
+     "note": "Olvida cada slider y cada PID puesto a mano para De fábrica y vuela el tune tal como viene. Los ajustes de los otros tunes se conservan.",
      "action": "pids-default",
      "disabled": false,
      "drives": {}
@@ -46520,20 +46816,20 @@
    "screen": "pids",
    "items": [
     {
-     "id": "pids:tune",
-     "label": "Tune",
-     "value": "Your edits",
+     "id": "pids:ajuste-pid",
+     "label": "Ajuste PID",
+     "value": "Tus cambios",
      "note": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste.",
      "pickOnly": true,
      "current": "custom",
      "options": [
       {
        "value": "betaflight-interceptor",
-       "label": "Factory default"
+       "label": "De fábrica"
       },
       {
        "value": "custom",
-       "label": "Your edits"
+       "label": "Tus cambios"
       }
      ],
      "fns": [
@@ -47084,7 +47380,7 @@
     {
      "id": "pids:a-pids-default",
      "label": "Volver a los valores propios del tune",
-     "note": "Your edits ya está volando sus propios valores.",
+     "note": "Tus cambios ya está volando sus propios valores.",
      "action": "pids-default",
      "disabled": true,
      "drives": {}

@@ -32,7 +32,7 @@
  */
 
 import { celMaterial } from '../../render/celmat.js';
-import { partsMaterial } from './parts.js';
+import { partsMaterial } from '../../render/library/vehicles/parts.js';
 
 export const CEL_LOOK = {
   style: 'cel',

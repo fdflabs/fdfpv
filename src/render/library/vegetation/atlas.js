@@ -38,7 +38,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng } from '../../alps/noise.js';
+import { makeRng } from '../noise.js';
 
 const BASE = new URL('../../../../assets/swiss2/vegetation/', import.meta.url);
 export const assetUrl = (name) => new URL(name, BASE).href;
