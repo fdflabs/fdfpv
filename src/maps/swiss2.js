@@ -660,6 +660,8 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks, as
        * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */
       map.scene.userData.post = post;

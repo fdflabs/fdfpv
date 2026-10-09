@@ -521,6 +521,8 @@ export async function makeLook({
       const sceneDispose = map.dispose;
       map.post = post;
       map.scene.userData.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       shell.setCraftLook(photoCraftLook(lit));
       map.dispose = () => {
         shell.setCraftLook(null);

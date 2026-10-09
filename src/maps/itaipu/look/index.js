@@ -335,6 +335,8 @@ export async function makeLook({
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks,
        * which route a frame through the SensorManager with it
        * (scripts/sensor-check.js). */
