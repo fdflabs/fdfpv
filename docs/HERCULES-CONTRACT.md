@@ -57,9 +57,11 @@ and their sources.
    together; O again closes them. They take 4 s each way (the scale of
    the full size's ramp and door, which take about 15 to 20 s, would be
    too slow to read at model scale; 4 s is a model's slow servo). While
-   open, the ramp's drag and its nose down moment act on the plant. A
-   radio switch and a gamepad button do the same, mapped as the flaps
-   and the retracts are.
+   open, the ramp's drag and its nose down moment act on the plant. The
+   brief asked for a radio switch and a gamepad button "in the same
+   pattern as flaps and retracts (F/G)": checked against the tree, F and G
+   are keyboard only (main.js), with no pad or radio mapping, so O and P
+   follow that same pattern and are keyboard only too.
 3. **The paradrop (P).** Each press with the doors fully open drops one
    load off the ramp: it falls, its canopy opens, it comes down drifting
    with the wind, lands, the canopy collapses beside it and it stays. With

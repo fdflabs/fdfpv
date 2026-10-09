@@ -177,6 +177,10 @@ static double g_flap = 0.0;
  */
 static int g_gear_up = 0;
 static double g_gear = 0.0;
+/* THE CARGO DOORS, as the retracts: selected open (1) or shut (0), and
+ * where they are, 0 shut to 1 open, at 1/door_time a second. */
+static int g_door_open = 0;
+static double g_door = 0.0;
 
 /* THE STALL TAKES TIME. Each wing strip's shortfall past the stall, lift
  * and drag, left half and right, as the flow has so far let it develop:
@@ -735,6 +739,8 @@ void plant_wing_reset(void) {
   g_flap = flap_target();
   g_gear_up = 0;
   g_gear = 0.0;
+  g_door_open = 0;
+  g_door = 0.0;
   for (int i = 0; i < 4; i += 1) {
     for (int j = 0; j < 2; j += 1) {
       g_sep[i][j][0] = 0.0;
@@ -813,6 +819,27 @@ int plant_wing_gear_down(void) {
 void plant_wing_gear_reset(void) {
   g_gear_up = 0;
   g_gear = 0.0;
+}
+
+int plant_wing_set_door(int open) {
+  if (open && (PLANT.kind != PLANT_KIND_WING || !(PLANT.fw->door_time > 0.0))) {
+    return -1;
+  }
+  g_door_open = open ? 1 : 0;
+  return 0;
+}
+
+double plant_wing_door(void) {
+  return g_door;
+}
+
+int plant_wing_door_selected(void) {
+  return g_door_open;
+}
+
+void plant_wing_door_reset(void) {
+  g_door_open = 0;
+  g_door = 0.0;
 }
 
 int plant_wing_set_flaps(int notch) {
@@ -1454,6 +1481,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
       g_gear = g_gear - dg > 0.0 ? g_gear - dg : 0.0;
     }
   }
+  /* The cargo doors travel toward what is selected at their own rate. */
+  if (fw->door_time > 0.0) {
+    const double dd = WING_DT / fw->door_time;
+    if (g_door_open) {
+      g_door = g_door + dd < 1.0 ? g_door + dd : 1.0;
+    } else {
+      g_door = g_door - dd > 0.0 ? g_door - dd : 0.0;
+    }
+  }
 
   /*
    * Surfaces. Roll right needs the right surface up and the left one down.
@@ -1568,6 +1604,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* Retracts: the gear's drag goes as it folds away. */
   if (fw->gear_time > 0.0) {
     cd0 -= fw->cd_gear * g_gear;
+  }
+  /* The cargo doors: the open ramp's drag goes as they open. */
+  if (fw->door_time > 0.0) {
+    cd0 += fw->cd_door * g_door;
   }
   /* The drag across the Reynolds numbers (FixedWingParams.cd0_re). */
   if (fw->cd0_re > 0.0) {
@@ -1900,6 +1940,11 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * table leaves them out, and add_term keeps its arithmetic as it was. */
   M[1] = add_term(-m_aero, fw->thrust_z * thrust);
   M[2] = -n_aero;
+  /* The open ramp's moment, nose up positive as cm_0's, so the body's
+   * pitch takes it negated as m_aero is. */
+  if (fw->door_time > 0.0) {
+    M[1] -= qbar * fw->area * fw->chord * fw->cm_door * g_door;
+  }
   if (fw->slip_r > 0.0) {
     M[0] += l_slip;
     M[1] -= m_slip;
@@ -4326,4 +4371,10 @@ const FixedWingParams FW_HERCULES3077 = {
   .washout = 3.0 * WING_PI / 180.0, /* the full size's 3 deg root, 0 tip */
   .j_prop = 0.000687,     /* four 26 g 12 x 8Es, spinners and cans, ESTIMATED */
   .side_cda = 0.5225,     /* 0.78 of the 0.67 m^2 side view, scripts/hercules-derive.js */
+  /* The rear ramp and door, ESTIMATED (scripts/hercules-derive.js): open
+   * in 4 s, a model's slow servo; the open hold's base drag and the hanging
+   * ramp's, 0.0259 on the wing's area, under the CG, so nose down. */
+  .door_time = 4.0,
+  .cd_door = 0.0259,
+  .cm_door = -0.0091,
 };

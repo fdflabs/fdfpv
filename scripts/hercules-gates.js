@@ -116,6 +116,28 @@ check: {
   const h4 = fly(sim, { duty: th.h4_top.duty, vzTarget: 0, seconds: 90, ...slow, speed0: 21 });
   gate('H4', 'top speed, level', within(h4.v, th.h4_top) && Math.abs(h4.vz) < 0.2, `${h4.v.toFixed(2)} m/s, climb ${h4.vz.toFixed(2)}`, band(th.h4_top));
 
+  /* H9: the cargo doors in level cruise. */
+  {
+    const t9 = th.h9_doors;
+    const closed = fly(sim, { duty: t9.duty, vzTarget: 0, seconds: 40, ...slow });
+    let openAt = null;
+    const open = fly(sim, {
+      duty: t9.duty, vzTarget: 0, seconds: 60, ...slow,
+      onStep: (o) => {
+        if (o.ms === 0) must(sim.e.sim_wing_set_door(1), 'sim_wing_set_door');
+        if (openAt === null && sim.e.sim_wing_door() >= 1) openAt = o.ms / 1000;
+      },
+    });
+    must(sim.e.sim_wing_set_door(0), 'sim_wing_set_door');
+    const drop = closed.v - open.v;
+    const probe = await herculesSim();
+    must(probe.e.sim_set_airframe(15), 'sim_set_airframe');
+    const refused = probe.e.sim_wing_set_door(1) !== SIM_OK;
+    gate('H9', 'O opens the ramp: its drag slows the cruise', openAt !== null && Math.abs(openAt - t9.travelS) <= 0.01 && within(open.v, t9) && drop >= t9.dropMin && drop <= t9.dropMax && refused,
+      `open in ${openAt === null ? 'never' : openAt.toFixed(3)} s, level ${open.v.toFixed(2)} m/s against ${closed.v.toFixed(2)} shut, ${drop.toFixed(2)} slower, the P-51 ${refused ? 'refuses' : 'ACCEPTS'} doors`,
+      `${t9.travelS} s, ${band(t9)}, ${t9.dropMin} to ${t9.dropMax} slower`);
+  }
+
   const onStrip = () => {
     must(sim.reset(), 'sim_reset');
     herculesGroundPrelude(sim, { mu: GROUND_MU, e: GROUND_E });

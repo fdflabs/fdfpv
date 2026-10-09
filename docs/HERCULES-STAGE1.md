@@ -106,6 +106,17 @@ Nelson's forms, as every derivation here uses them:
   cannot express. A prop broken in a crash is a part lost, not a quarter
   of the thrust.
 
+## The cargo doors (sim_wing_set_door, O)
+
+`door_time` 4 s each way (a model's slow servo), `cd_door` 0.0259 and
+`cm_door` -0.0091, ESTIMATED (scripts/hercules-derive.js): the open
+hold, the full size's 3.02 by 2.77 m ramp opening at 1:13.13, a blunt base
+at Hoerner's 0.25; the ramp hanging 28 deg into the tail cone's sheltered
+flow, a plate's 1.17 times sin 28 deg, halved; both acting 0.125 m under
+the CG, so nose down. Level at 75 percent stick the open ramp costs 1.32
+m/s, derived; H9 measures 1.31. Zero `door_time` on every other table,
+which then reads none of it (H7: every recorded flight's hash unchanged).
+
 ## The controllers
 
 A kit ships with no electronics: **Manual** is the default. Owner rule
