@@ -36,7 +36,6 @@ import { raceGatesOf } from '../builder/course.js';
 import { formatScore } from '../game/score.js';
 import { medalTimes } from '../game/medals.js';
 import { planesFor } from '../game/verify.js';
-import { trickLevel } from '../game/tricks-sheet.js';
 import {
   boardConfigured, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
@@ -58,7 +57,7 @@ import {
 } from '../trackbuilder/storage.js';
 import { formatDay, formatTime } from './format.js';
 import { paintPilotStats, pilotStats } from './pilotstats.js';
-import { filmFor, VIEW_LABEL } from './trickfilm.js';
+import { filmFor, trickLevel, VIEW_LABEL } from './trickfilm.js';
 import { scoreableTricks, trickStatus } from './trickslist.js';
 /* A cycle: ui.js installs this module. These are read only inside methods,
  * after both modules have run, never at this module's top level. */

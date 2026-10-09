@@ -42,7 +42,6 @@ import {
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
-import { trickLevel } from '../game/tricks-sheet.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { LINK_PRESETS } from '../input/link.js';
@@ -72,7 +71,7 @@ import {
   AVX_PALETTES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, tuneChoices,
 } from './settings.js';
-import { VIEW_LABEL } from './trickfilm.js';
+import { VIEW_LABEL, trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 /* A cycle: ui.js installs this module. These are read only inside the

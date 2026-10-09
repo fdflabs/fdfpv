@@ -65,6 +65,9 @@ const MS_PER_TURN = 1500;
 const END_PAUSE_MS = 700;
 
 /* Read once, at load, in whatever language is current then. */
+/* A trick's level, in the pilot's language: the sheet keeps its English. */
+export const trickLevel = (level) => (level ? str(`tricks.level.${level.toLowerCase()}`) : '');
+
 export const VIEW_LABEL = {
   side: str('trickfilm.seen_from_the_side'),
   above: str('trickfilm.seen_from_above'),
