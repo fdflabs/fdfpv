@@ -301,6 +301,38 @@ devAccount), so a changed list needs only the restart above. The accounts server
 be from this change on (its `GET /api/account` answers the account's
 `id`), so deploy both units.
 
+## Check it
+
+```sh
+ADMIN_SECRET="$(head -n1 /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.txt)" \
+  node tracks-api/smoke.js https://129.151.39.48
+npm run rooms:server -- https://129.151.39.48
+node scripts/rooms-soak.js https://129.151.39.48 600 2
+SIM_GPU=1 node scripts/rooms-two-page.js https://129.151.39.48
+SIM_GPU=1 node scripts/rooms-restart-check.js https://129.151.39.48 \
+  "ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo systemctl restart fdfpv-rooms"
+```
+
+and `rooms:safety`, `rooms:wrecks`, `rooms:racetwopage` the same way.
+Logs: `sudo journalctl -u fdfpv-rooms -u fdfpv-tracks -u fdfpv-board -u caddy`.
+
+The board, every feature from the page (scripts/board-live-check.js says
+what it files and what it takes back):
+
+```sh
+BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt npm run board:live
+```
+
+After a board deploy that touched the bug form, `-- --only=paste` runs just
+the screenshot path: a paste into F8, the chip, the send, the admin's
+read of it and the inbox's thumbnail, then closes its ticket. It publishes
+no track and posts no lap.
+
+Nothing in front of the board limits a request body: Caddy passes the
+5.6 MB a report with four screenshots at the board's cap can be, and a
+body past it gets the board's own 413 (checked through Caddy on
+2026-09-29).
+
 ## Monitoring
 
 The owner's desktop watches the game and the VM from outside every five
@@ -349,38 +381,6 @@ T=$(mktemp -d); export CURL_HOME=~/.config/fdfpv-monitor/curl-ipv4
 FDFPV_MONITOR_STATE=$T FDFPV_BACKUP_DIR=/nonexistent deploy/vm/monitor.sh   # twice
 FDFPV_MONITOR_STATE=$T deploy/vm/monitor.sh                                 # twice
 ```
-
-## Check it
-
-```sh
-ADMIN_SECRET="$(head -n1 /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.txt)" \
-  node tracks-api/smoke.js https://129.151.39.48
-npm run rooms:server -- https://129.151.39.48
-node scripts/rooms-soak.js https://129.151.39.48 600 2
-SIM_GPU=1 node scripts/rooms-two-page.js https://129.151.39.48
-SIM_GPU=1 node scripts/rooms-restart-check.js https://129.151.39.48 \
-  "ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo systemctl restart fdfpv-rooms"
-```
-
-and `rooms:safety`, `rooms:wrecks`, `rooms:racetwopage` the same way.
-Logs: `sudo journalctl -u fdfpv-rooms -u fdfpv-tracks -u fdfpv-board -u caddy`.
-
-The board, every feature from the page (scripts/board-live-check.js says
-what it files and what it takes back):
-
-```sh
-BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt npm run board:live
-```
-
-After a board deploy that touched the bug form, `-- --only=paste` runs just
-the screenshot path: a paste into F8, the chip, the send, the admin's
-read of it and the inbox's thumbnail, then closes its ticket. It publishes
-no track and posts no lap.
-
-Nothing in front of the board limits a request body: Caddy passes the
-5.6 MB a report with four screenshots at the board's cap can be, and a
-body past it gets the board's own 413 (checked through Caddy on
-2026-09-29).
 
 ## What the rooms cost, and the valve
 
