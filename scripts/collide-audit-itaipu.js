@@ -140,7 +140,7 @@ import {
   cleanRing, rectOf, styleOf, rectRing, wallBoxes, landuseAreas,
 } from '../src/maps/itaipu/town/plan.js';
 import { FINE_R, MOVE, planTown } from '../src/maps/itaipu/town/model.js';
-import { roofSlabs, roofTop } from '../src/maps/alps/roofs.js';
+import { roofSlabs, roofTop } from '../src/render/library/roofs.js';
 import { CREST_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';
 import { slotSpawn, SLOT_RIGHT_M } from '../src/game/slots.js';
 
@@ -1825,7 +1825,7 @@ async function damRays(page) {
  * counted apart from what a collider does (a wall column past its
  * drawn wall is the footprints sweep's). */
 async function townRays(page) {
-  await page.evaluate("import('/src/maps/alps/roofs.js').then((m) => { window.__roofSlabsOf = m.roofSlabs; return 1; })");
+  await page.evaluate("import('/src/render/library/roofs.js').then((m) => { window.__roofSlabsOf = m.roofSlabs; return 1; })");
   await page.evaluate(DAM_RAYS);
   const out = {};
   for (const [name, x, z] of TOWN) {

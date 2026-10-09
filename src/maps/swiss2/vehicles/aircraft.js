@@ -1,7 +1,7 @@
 /*
  * aircraft.js: the Cub on the apron, near.
  *
- * The cel Cub's shape (alps/vehicles.js), finished as a Cub is: doped
+ * The cel Cub's shape (library/vehicles/vehicles.js), finished as a Cub is: doped
  * fabric in Cub yellow with the black flash down the fuselage, a Swiss
  * registration on the sides, glass you see the two tandem seats and the
  * stick through, the tyres black rubber.
@@ -22,7 +22,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { buildAircraft as celAircraft } from '../../alps/vehicles.js';
+import { buildAircraft as celAircraft } from '../../../render/library/vehicles/vehicles.js';
 import { makeKit, FIN, fin, refinish, box } from './kit.js';
 
 const NEAR = 60;

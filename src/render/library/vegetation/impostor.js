@@ -34,7 +34,7 @@
 
 import * as THREE from 'three';
 import { DITHER_GLSL, LEAF_SPEC_GLSL, PLANT_TINT_GLSL } from './plantmat.js';
-import { thermalKind } from '../../../render/thermal.js';
+import { thermalKind } from '../../thermal.js';
 
 export const AZIMUTHS = 8;
 export const ELEVATIONS = [0, 40, 75].map((d) => (d * Math.PI) / 180);

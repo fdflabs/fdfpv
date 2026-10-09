@@ -49,11 +49,13 @@ Also in this lane, before the four: the hangar's trophy wall and TV
 
 ## 2. Turntable GIF or video
 
-- In photo mode, Turntable records the aircraft turning once on its stand
-  (6 s) and saves a WebM (MediaRecorder off the canvas, the export path
-  src/replay/export.js already uses when WebCodecs is missing), 1280 by
-  720, downloaded. GIF is not built: a 6 s GIF at 720p is tens of MB; a
-  WebM plays everywhere a GIF is shared today.
+- In photo mode, T or Turntable turns the camera once round the aircraft
+  on its stand in 6 s (by the wall clock, so a slow machine records fewer
+  frames, never a shorter turn) while a MediaRecorder takes the canvas at
+  up to 30 fps, then downloads a WebM (VP9 where the browser has it, VP8
+  otherwise) at the canvas's size. GIF is not built: a 6 s GIF at that
+  size is tens of MB, and a WebM plays wherever a GIF is shared today.
+  Photo mode cannot be left mid recording.
 
 ## 3. Lineup before launch
 
