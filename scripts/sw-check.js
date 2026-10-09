@@ -209,7 +209,12 @@ try {
   const s = await pagesServer(site);
   servers.push(s.server);
   const cached = [];
+  const cachedKeys = "caches.open('fdfpv-assets').then((c) => c.keys()).then((k) => k.map((r) => new URL(r.url).pathname))";
+  let heldBefore = [];
   for (let i = 1; i <= 3; i += 1) {
+    if (i === 3) {
+      heldBefore = await page.evaluate(cachedKeys);
+    }
     cached.push(await visit(page, site, s.origin));
     console.log(`  ${row(`worker, visit ${i}`, cached[i - 1])}`);
     if (i === 1) {
@@ -219,25 +224,21 @@ try {
   check('the worker controls the page', await page.evaluate('!!navigator.serviceWorker.controller'));
   const third = cached[2];
   const strayRows = third.log.filter((r) => !/^\/(\?|$|index\.html|sw\.js|version\.json)/.test(r.url));
-  const strays = strayRows.map((r) => r.url);
   if (strayRows.length) {
     /* The worker's own fill asks with sec-fetch-dest empty; a page's
      * request that never reached the worker carries its destination. */
     console.log(`  note  stray destinations: ${strayRows.map((r) => `${r.url}=${r.dest}`).join(' ')}`);
   }
-  if (strays.length) {
-    const why = await page.evaluate(`(async () => {
-      const keys = (await (await caches.open('fdfpv-assets')).keys()).map((r) => new URL(r.url).pathname);
-      return ${JSON.stringify(strays)}.map((u) => {
-        const t = performance.getEntriesByName(new URL(u, location.href).href)[0];
-        return u + ' cached=' + keys.includes(u) + ' viaWorker=' + (t ? t.workerStart > 0 : 'no entry') + ' initiator=' + (t ? t.initiatorType : '');
-      });
-    })()`);
-    console.log(`  note  ${why.join(' | ')}`);
-  }
+  /* A request the visit makes for a file the cache did not hold yet is a
+   * first fill (the credits' faces load lazily, late in a visit), not a
+   * miss; one for a file it held is a miss. */
   const leftover = third.log.filter((r) => !/^\/(\?|$|index\.html|sw\.js|version\.json)/.test(r.url));
-  check('a returning visit asks the server for nothing but the page, sw.js and version.json',
-    leftover.length === 0, leftover.slice(0, 5).map((r) => r.url).join(' '));
+  const missed = leftover.filter((r) => heldBefore.includes(r.url.split('?')[0]));
+  check(`a returning visit fetches none of the ${heldBefore.length} assets it holds`,
+    heldBefore.length > 50 && missed.length === 0, missed.slice(0, 5).map((r) => r.url).join(' '));
+  check('and nothing but the page, sw.js, version.json and first fills',
+    leftover.every((r) => !heldBefore.includes(r.url.split('?')[0]) && r.dest === 'empty'),
+    leftover.map((r) => `${r.url} (${heldBefore.includes(r.url.split('?')[0]) ? 'held' : 'first fill'})`).join(' '));
   check('a returning visit makes fewer requests than without the worker',
     third.requests * 10 < plain[2].requests, `${third.requests} against ${plain[2].requests}`);
   check('and is faster', third.ms < plain[2].ms, `${third.ms} ms against ${plain[2].ms} ms`);

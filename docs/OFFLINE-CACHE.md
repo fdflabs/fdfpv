@@ -86,4 +86,25 @@ and Pages sends an ETag).
 does, stamps it as deploy A and deploy B (B changes the bytes of one asset
 the boot fetches), serves it as Pages after its ten minutes (max-age=0,
 ETags) with a fixed delay per request, and measures; then proves the update
-and offline paths. Results: see the PR.
+and offline paths.
+
+Measured 2026-10-08 (run 4, 15 of 15 pass; the machine was shared with
+other lanes' checks, so the milliseconds wander by a few seconds between
+runs, the request counts do not):
+
+| Visit (max-age=0, 40 ms a request) | No worker | Worker |
+| --- | --- | --- |
+| 1, cold | 506 requests, 21.8 MB, 19.4 s | 507 requests, 21.9 MB, 16.5 s |
+| 2 | 508 requests (504 revalidated), 15.2 s | 364 requests, 16.4 s (the first visit the worker controls fills its caches) |
+| 3, returning | 508 requests, 17.4 s | 6 requests (the page, sw.js, version.json, three late first fills), 12.1 s |
+
+Real pilots' round trips to Pages are longer than 40 ms and Pages speaks
+HTTP/2, so the saving there is the 500 revalidations, not these exact
+seconds. Within Pages' first ten minutes the HTTP cache already answered
+without asking; the worker's gain is every visit after that, and offline.
+
+The update: deploy B changed one asset's bytes. The bar showed, Reload
+(pressed with the pointer) loaded all 426 modules from B, the changed
+asset came back with B's bytes, of the 78 assets cached only that one was
+fetched again, and A's modules left the cache. With the server stopped, the
+shell booted from the caches.
