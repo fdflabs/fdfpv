@@ -4620,6 +4620,8 @@ export async function boot({
          * only the war's aircraft may be. */
         aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
+        /* An AI pilot (src/share/rooms.js shownName). */
+        ai: seat !== w.seat && Boolean(roomPeers.get(seat).name.bot),
         host: seat === w.host,
         me: seat === w.seat,
       })),

@@ -267,6 +267,9 @@ try {
   check(`A clicks Normal: ${FILL_TO - 1} AI pilots join the private room`, clicked
     && bots(await a.evaluate('window.__rooms()')).length === FILL_TO - 1 && ai.value === 'Normal', JSON.stringify(ai));
   await shot(a, 'a-private-room-ai-on');
+  const flagsShown = await a.evaluate("[...document.querySelectorAll('.war-lobby-flag')].map((e) => e.textContent)");
+  check(`the lobby's pilot list marks the ${FILL_TO - 1} AI pilots as AI, never NOT READY`,
+    flagsShown.filter((f) => f === 'AI PILOT').length === FILL_TO - 1 && flagsShown.filter((f) => f === 'NOT READY').length === 1, flagsShown.join(', '));
   b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6') });
   await b.until('window.__shellReady === true', 300000);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(priv)}); true`);
