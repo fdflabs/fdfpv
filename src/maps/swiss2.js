@@ -78,7 +78,7 @@ import {
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
 import { standWalls } from '../render/library/roofs.js';
-import { PAINT } from './alps/vehicles.js';
+import { PAINT } from '../render/library/vehicles/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';

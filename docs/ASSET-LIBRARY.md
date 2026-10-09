@@ -73,7 +73,8 @@ after pictures.
 | Roofs as ground (records, solids under them) | `roofs.js` | used by `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | all four |
 | Building models | not yet | `alps/kit.js`, `interior/built.js`, `itaipu/town/`, `swiss2/buildings/` | one each (Swiss on the Alps kit) |
 | Fences | not yet | `alps/kit.js`, `swiss2/village/pieces.js`, `interior/yards.js` | one each |
-| Vehicles | not yet | `alps/vehicles.js` (shared with the Swiss valley), `src/render/interior/vehicles.js` | three |
+| Cel vehicles and the parts kit | `vehicles/vehicles.js`, `vehicles/parts.js` | the Alps' life, the Swiss valley's vehicles (which refinish them) | Alps, Swiss valley |
+| Interior vehicles (motorcycles, pickup) | not yet | `src/render/interior/vehicles.js` | Interior |
 | Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `alps/kit.js` | one each |
 | Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
 | Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
