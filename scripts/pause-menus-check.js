@@ -1,14 +1,21 @@
 /*
  * pause-menus-check.js: the Escape menu in the real shell, headless.
  *
- *     node scripts/pause-menus-check.js <outdir>
+ *     node scripts/pause-menus-check.js <outdir> [case ...]
  *
  * For a quad and a plane, in English and Spanish, and on a phone with
  * touch, it flies, presses Escape as a key (the touch case presses the
  * on screen pause button with a real tap), and writes what the pilot sees:
  * a picture and the rows, to <outdir>/<case>.png and <outdir>/rows.json.
+ * Then it opens the Flight panel the way the pilot would (arrows and Enter,
+ * or a tap on the row on the phone), pictures it, and backs out with
+ * Escape twice: once to the pause menu, once into flight.
+ *
  * It fails when Escape does not open the menu, when Resume is not the
- * first row with the cursor on it, or on any console error.
+ * first row with the cursor on it, when the first screen is longer than
+ * docs/redesign/PAUSE-MENUS.md allows or has a group header, when a plane's
+ * panel offers Betaflight rates, when Escape does not walk back, or on any
+ * console error.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -45,6 +52,7 @@ const CASES = [
   { id: 'quad-es', airframe: 'interceptor', lang: 'es' },
   { id: 'plane-en', airframe: 'extra3d1308', lang: 'en' },
   { id: 'plane-es', airframe: 'extra3d1308', lang: 'es' },
+  { id: 'pad-en', airframe: 'interceptor', lang: 'en', pad: true },
   { id: 'phone-es', airframe: 'extra3d1308', lang: 'es', touch: true, width: 390, height: 844 },
 ];
 
@@ -70,11 +78,70 @@ function seed(c) {
     Object.assign(s, ${JSON.stringify(s)});
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
     localStorage.setItem('fdfpv.lang', ${JSON.stringify(c.lang)});
-  } catch (e) { /* storage refused */ }`];
+  } catch (e) { /* storage refused */ }`, ...(c.pad ? [PAD] : [])];
+}
+
+/* The rows the page shows for a screen, by their ids: a list nobody draws
+ * is an empty box to the pilot whatever items() says. */
+const drawn = (page, screen) => page.evaluate(`document.querySelectorAll('[data-row-id^="${screen}:"]').length`);
+
+/* Resume, Restart, Flight, Change aircraft, Room, Settings, My tracks, Quit. */
+const FIRST_SCREEN_MAX = 8;
+
+/* A finger, not a mouse: touchStart and touchEnd, and the page makes the
+ * click from them as a phone does. tests/lib/page.js click() is a mouse,
+ * whose move repaints the menu's hover between press and release. */
+async function fingerTap(page, selector) {
+  const at = await page.evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) { return null; }
+    el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    const b = el.getBoundingClientRect();
+    return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+  })()`);
+  if (!at) {
+    return false;
+  }
+  await page.cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] }, page.sessionId);
+  await page.sleep(80);
+  await page.cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, page.sessionId);
+  return true;
+}
+
+/* Down to the Flight row and Enter, as keys; on the phone, a tap on it. */
+async function openPanel(page, c, rows) {
+  const at = rows.findIndex((r) => r.action === 'quick');
+  if (c.touch) {
+    say(await fingerTap(page, `[data-row-id="${rows[at].id}"]`), 'tapped the Flight row with a finger');
+    return;
+  }
+  for (let i = 0; i < at; i += 1) {
+    await page.tap('ArrowDown');
+    await page.sleep(60);
+  }
+  await page.tap('Enter');
+}
+
+/* A standard gamepad the page reads through getGamepads; the check
+ * presses its Start (button 9) by flipping the button. */
+const PAD = `(() => {
+  const pad = {
+    id: 'pause check pad (STANDARD GAMEPAD)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+    axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+  };
+  window.__pad = pad;
+  navigator.getGamepads = () => [pad];
+})();`;
+
+async function pressStart(page) {
+  await page.evaluate('(window.__pad.buttons[9] = { pressed: true, value: 1 }, window.__pad.timestamp += 1, true)');
+  await page.sleep(250);
+  await page.evaluate('(window.__pad.buttons[9] = { pressed: false, value: 0 }, window.__pad.timestamp += 1, true)');
+  await page.sleep(250);
 }
 
 const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
-  label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
+  id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
 
 async function shoot(page, name) {
@@ -95,11 +162,13 @@ async function runCase(c, record) {
     await page.sleep(800);
     if (c.touch) {
       await page.click('.touch-pause');
+    } else if (c.pad) {
+      await pressStart(page);
     } else {
       await page.tap('Escape');
     }
     const open = await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false);
-    say(open, `${c.touch ? 'the pause button' : 'Escape'} opens the pause menu`);
+    say(open, `${c.touch ? 'the pause button' : c.pad ? 'the pad\'s Start' : 'Escape'} opens the pause menu`);
     if (!open) {
       return;
     }
@@ -108,7 +177,33 @@ async function runCase(c, record) {
     const cursor = await page.evaluate('window.__ui.cursor');
     record[c.id] = { lang: c.lang, airframe: c.airframe, rows };
     say(rows[0] && rows[0].action === 'resume' && cursor === 0, `Resume is first and has the cursor (cursor ${cursor})`);
+    say(await drawn(page, 'paused') === rows.length, 'every pause row is drawn on the page');
+    say(rows.length <= FIRST_SCREEN_MAX && !rows.some((r) => r.section), `${rows.length} rows, no group header`);
     await shoot(page, c.id);
+    if (c.pad) {
+      await pressStart(page);
+      say(await page.until("window.__ui.screen === 'flight'", 5000).then(() => true, () => false), 'Start again resumes');
+      return;
+    }
+    await page.sleep(300);
+    await openPanel(page, c, rows);
+    const panel = await page.until("window.__ui.screen === 'quick'", 5000).then(() => true, () => false);
+    say(panel, 'the Flight row opens the Flight panel');
+    if (!panel) {
+      return;
+    }
+    await page.sleep(300);
+    const quick = await page.evaluate(ROWS);
+    record[`${c.id}-flight`] = { lang: c.lang, airframe: c.airframe, rows: quick };
+    const plane = c.airframe !== 'interceptor';
+    say(await drawn(page, 'quick') === quick.filter((r) => !r.section).length, `every panel row is drawn on the page`);
+    say(plane ? quick.some((r) => r.action === 'planerates') && !quick.some((r) => r.action === 'rates') : quick.some((r) => r.action === 'rates'),
+      plane ? 'a plane\'s Rates row is its own throws, never the quad\'s Betaflight rates' : 'a quad has its Rates row');
+    await shoot(page, `${c.id}-flight`);
+    await page.tap('Escape');
+    say(await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false), 'Escape on the panel is the pause menu again');
+    await page.tap('Escape');
+    say(await page.until("window.__ui.screen === 'flight'", 5000).then(() => true, () => false), 'Escape on the pause menu resumes');
     const faults = page.errors.filter((e) => !e.startsWith('network:'));
     say(faults.length === 0, `no console error${faults.length ? `: ${faults[0]}` : ''}`);
   } finally {
@@ -118,7 +213,8 @@ async function runCase(c, record) {
 
 await mkdir(outDir, { recursive: true });
 const record = {};
-for (const c of CASES) {
+const only = process.argv.slice(3);
+for (const c of CASES.filter((k) => !only.length || only.includes(k.id))) {
   await runCase(c, record);
 }
 await writeFile(join(outDir, 'rows.json'), `${JSON.stringify(record, null, 1)}\n`);

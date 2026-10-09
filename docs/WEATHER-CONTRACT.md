@@ -75,9 +75,11 @@ PRESETS[id] = { speed, layers: [[h, mul], ...], gust, front }
   speed   mean wind at h = 0 above the map's base height, m/s
   layers  piecewise linear multiplier of the mean by height above base, m
   gust    gust RMS everywhere, m/s
-  front   null, or { every, width, speed, boost, gust }: bands `every` m
-          apart, `width` m wide, moving downwind at `speed` m/s; inside one
-          the mean is multiplied by up to `boost` and `gust` m/s is added.
+  front   null, or { every, width, speed, boost, gust, rain }: bands
+          `every` m apart, `width` m wide, moving downwind at `speed` m/s;
+          inside one the mean is multiplied by up to `boost`, `gust` m/s is
+          added, and it rains up to `rain` (0 to 1, `out.wet`, the picture
+          only: src/render/rain.js).
 MAPS[mapId] = { base, toX, toZ, zones: [{ line: [[x, z], ...], r, shelter, gust, top }] }
   a zone is the band of radius r round a polyline (map frame); on the line
   the mean is multiplied by `shelter` and `gust` m/s is added, fading to
@@ -205,10 +207,63 @@ ground and rock, by its Bowen ratio.
    is the run's air with one fixed seed; a room host's setting is sent to
    the room. Weather is free flight only: a race map (records), a war and an
    operations mission fly still air whatever is picked (lead decision).
-4. Visuals: rain and haze from the preset, coordinated with the clouds lane
-   through the plan file (sky.js is theirs).
+4. Visuals: rain streaks round the camera while a front passes
+   (src/render/rain.js: one draw call, moved in the vertex shader, hidden and
+   free while dry, so calm costs nothing). Haze and reduced visibility are
+   NOT built here: every map's fog and aerial perspective live in its look
+   modules (itaipu/look, the clouds and photoreal lanes' lines); asked of
+   those lanes in the plan file. The hook for them: once a drawn frame the
+   shell calls `view.setWet?.(wet)`, `out.wet` at the camera, 0 to 1, and
+   0 whenever it is dry, calm or not flying, so a map's 0 must be its dry
+   look exactly.
+5. Rain haze (lane weather 2): every map's look implements setWet; see
+   "Rain haze".
+
+## Rain haze (lane weather 2, 2026-10-08)
+
+What the player sees: inside a front's rain the distance closes in, far
+ridges and the far shore fade into the air, and the sun's glow in the air
+goes; out of it the look is exactly the dry one.
+
+Physics (src/render/rainair.js): visibility in rain falls as a power of
+the rate, MOR = 13.0 R^-0.58 km, R in mm/h (Montero-Martinez and
+Garcia-Garcia 2025, "The influence of rainfall on the extinction
+coefficient and the meteorological optical range", Atmosfera 39:247,
+doi 10.20937/ATM.53491, the power law of Atlas 1953; their other site's
+fit is 19.5 R^-0.77). MOR is the 5% distance (WMO No. 8), so the
+extinction is about 3 / MOR, grey (drops are far larger than light's
+wavelength). `wet` 1 is 25 mm/h, heavy convective rain under a gust
+front: MOR 2.0 km; 0.5 is 3.0 km; 0.1 is 7.6 km. The dry air is 40 to
+70 km.
+
+Where it goes:
+- Itaipu, the Interior, Swiss2 (the photo looks): `map.setWet` is the
+  post chain's (swiss2/post.js buildPhotoComposer): rain's extinction is
+  added to `uBeta` in the aerial pass, the meter's taps and the clouds'
+  march, scaled by the camera's height against the air's scale height so
+  a level look reads the rain's figure, and `uMie` (the sun's forward
+  glow) fades out with the rain. Uniform values only: no shader changes,
+  so no cost. The dry numbers are kept on the first wet frame and put
+  back at 0. The Interior's hour (setLocalTime) also writes its mie, but
+  only a mission sets the hour and missions fly still air, so the two
+  never meet.
+- The Alps (cel): its linear fog's far drawn in to 3 / (3 / far +
+  rain's extinction), near in proportion; 0 puts the stage's numbers back
+  once, and a dry frame touches nothing.
+
+Not built: the sky dome and the clouds themselves are not veiled by the
+rain in front of them (each look's sky is its own module); the cel fog's
+colour is the Alps' bright horizon, so its rain reads pale, not grey.
+
 
 ## The checks
+
+`npm run check:weather-haze` (browser, local through the slot script):
+per map, frames drawn in one task through `window.__wetFrame`: dry
+twice is one frame, wet 0.3 and wet 1 are further from it in turn, and
+dry after wet is the first dry frame to the pixel (Low; High's grain and
+meter change every frame). `--graphics=high --perf` adds a paired A/B of
+the chain's draw, dry against wet, under 0.3 ms.
 
 `npm run weather:selftest`, Node against the committed dist/sim.wasm:
 1. Same map, preset and seed: two fields give the same output to the bit at
