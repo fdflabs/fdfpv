@@ -39,8 +39,9 @@ workflow. A red run names the engine and the step.
 | WebKit (Playwright build) | not run here | | | | this machine lacks libavif16 and libmanette-0.2-0 (a sudo install); see the CI run in the pull request |
 
 Nothing found broken in Firefox's behaviour. The frame rate is the
-headless software renderer, not the game: the same machine's Chromium on
-SwiftShader is in the same range. Whether a real Firefox with a GPU is
+headless software renderer, not the game: an earlier run of the same
+machine's Chromium with Playwright's default (software) flags measured 0.2
+fps under the same load. Whether a real Firefox with a GPU is
 smooth is a "fly it" question for a person.
 
 Errors seen in every engine, environment only: the page asks for a board
