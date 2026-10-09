@@ -79,12 +79,13 @@ export const PRESET_IDS = Object.keys(PRESETS);
  * The ground under the thermals, docs/WEATHER-CONTRACT.md "The surface".
  * A thermal's core rises at w* = (g / T * zi * H / (rho cp))^(1/3), the
  * convective velocity scale (Deardorff 1970; Stull, An Introduction to
- * Boundary Layer Meteorology, 1988, 4.1 and 11.1), so with one sun and
+ * Boundary Layer Meteorology, 1988, ch. 11), so with one sun and
  * one boundary layer it goes as the cube root of the ground's sensible
  * heat H. Of the sun's net energy H takes B / (1 + B), B the Bowen ratio:
  * about 0.25 over moist forest and wetland, 0.6 over pasture and crops,
  * 1.5 over bare soil, rock and built ground (Oke, Boundary Layer
- * Climates, 1987, chapter 4's typical values), so relative to open
+ * Climates, 1987: typical ranges by surface, not
+ * figures measured here), so relative to open
  * ground ((0.2 / 0.375)^(1/3) and (0.6 / 0.375)^(1/3)): forest 0.8, bare
  * 1.15. The presets' rates are open ground's. Water and lying snow make
  * none: the lake is cooler than the air over it and snow holds at 0 C,
