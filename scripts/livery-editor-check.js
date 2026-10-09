@@ -327,6 +327,16 @@ async function gizmo(page) {
   d = (await entry(page)).decals[at];
   say(d.a > was.a * 1.25, `the edge handle stretches it: ${was.a} to ${d.a}`);
   was = d;
+  const lean = await handle(page, 'gizmo-skew');
+  const side = await handle(page, 'gizmo-stretch');
+  const centre = await handle(page, 'gizmo-move');
+  const ux = (side.x - centre.x) / Math.hypot(side.x - centre.x, side.y - centre.y);
+  const uy = (side.y - centre.y) / Math.hypot(side.x - centre.x, side.y - centre.y);
+  await drag(page, lean, { x: lean.x + ux * 40, y: lean.y + uy * 40 });
+  d = (await entry(page)).decals[at];
+  say((d.x ?? 0) >= 10, `the lean handle dragged along the layer's right leans it ${d.x ?? 0} degrees`);
+  await shot(page, 'gizmo-leaned');
+  was = d;
   const mid = await handle(page, 'gizmo-move');
   /* Out onto the wing's top skin: let go off the model, a move is undone. */
   await drag(page, mid, { x: mid.x + 70, y: mid.y - 30 }, 10);
@@ -334,6 +344,19 @@ async function gizmo(page) {
   const moved = Math.hypot(d.p[0] - was.p[0], d.p[1] - was.p[1], d.p[2] - was.p[2]);
   say(moved > 0.02 && d.s === was.s, `its body dragged onto the wing moves it over the skin ${(moved * 1000).toFixed(0)} mm and keeps its size`);
   await shot(page, 'gizmo-moved');
+  /* A thin layer: the stripe, a sixth as tall as it is long, whose edge
+   * handle stands clear of its corners. */
+  await press(page, 'decal-0');
+  await page.sleep(1500);
+  const thin = (await entry(page)).decals[0];
+  const sc = await handle(page, 'gizmo-move');
+  const st = await handle(page, 'gizmo-stretch');
+  if (st && sc) {
+    await drag(page, st, { x: sc.x + (st.x - sc.x) * 1.4, y: sc.y + (st.y - sc.y) * 1.4 });
+  }
+  const thinAfter = (await entry(page)).decals[0];
+  say(Boolean(st) && thinAfter.a > thin.a * 1.15 && thinAfter.s === thin.s, `the thin stripe's edge handle stretches it: ${thin.a} to ${thinAfter.a}, size kept`);
+  await shot(page, 'gizmo-thin');
   await press(page, 'decal-1');
   await page.sleep(800);
   const lockedHandles = await page.evaluate("getComputedStyle(document.querySelector('.hangar [data-key=\"gizmo-scale-0\"]')).display");
@@ -350,12 +373,12 @@ async function padPress(page, index) {
 }
 
 async function pad(page) {
-  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place');
+  console.log('8. a pad: A on the focused control chooses a layer, its finish, its place; the d-pad and stick move right');
   await openHangar(page, 'timber1500');
   await page.evaluate(`(() => {
     window.__padHeld = [];
     const pad = () => ({ id: 'check pad', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
-      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
+      axes: [window.__padX || 0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: window.__padHeld.includes(i), touched: false, value: window.__padHeld.includes(i) ? 1 : 0 })) });
     navigator.getGamepads = () => [pad()];
     return true;
   })()`);
@@ -368,6 +391,19 @@ async function pad(page) {
   await padPress(page, 0);
   const d = (await entry(page)).decals[0];
   say(d.fi === 'matte', `A on Matte gives it a matte finish (${d.fi})`);
+  const focus = () => page.evaluate('document.activeElement && document.activeElement.dataset.key');
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-matte'); true");
+  await padPress(page, 15);
+  const byDpad = await focus();
+  /* Chrome wraps onto the next line, so the stick starts from Gloss. */
+  await page.evaluate("window.__ui.hangar.focusKey('lfinish-gloss'); true");
+  await page.sleep(300);
+  await page.evaluate('(() => { window.__padX = 1; return true; })()');
+  await page.sleep(350);
+  await page.evaluate('(() => { window.__padX = 0; return true; })()');
+  await page.sleep(450);
+  const byStick = await focus();
+  say(byDpad === 'lfinish-metallic' && byStick === 'lfinish-matte', `the d-pad's right (Matte to Metallic) and the left stick's (Gloss to Matte) move right: ${byDpad}, ${byStick}`);
   await page.evaluate("window.__ui.hangar.focusKey('layer-up'); true");
   await padPress(page, 0);
   const e = await entry(page);

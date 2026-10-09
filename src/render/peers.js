@@ -45,7 +45,7 @@ import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
-import { dressDecalsLater, readDecals } from './decals.js';
+import { cancelDecals, dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
@@ -304,6 +304,7 @@ export function buildPeerCraft(profile, look = null) {
      * a check. */
     decals: () => readDecals(craft),
     dispose() {
+      cancelDecals(craft);
       if (undoLook) {
         undoLook();
       }

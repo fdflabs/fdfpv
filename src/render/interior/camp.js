@@ -396,8 +396,8 @@ function shelterFrame(s, ground) {
 
 /* The routes' stretches near the camp, for keeping the dressing off them. */
 const NEAR_CAMP = 70;
-function routeStretches() {
-  const [mx, mz] = CAMP_PROPS.middle;
+function routeStretches(props) {
+  const [mx, mz] = props.middle;
   const out = [];
   for (const r of Object.values(ROUTES)) {
     for (let k = 0; k + 1 < r.pts.length; k += 1) {
@@ -454,7 +454,7 @@ const LITTER = [[0.2, 0.2, 0.2], [0.26, 0.24, 0.2], [0.16, 0.05, 0.04], [0.06, 0
  * glows that draw them onto `lamps` and `glows`.
  */
 function dress({
-  solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
+  props, solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
 }) {
   const D = DRESSING;
   const turn = (yaw) => [Math.cos(yaw), Math.sin(yaw)];
@@ -614,7 +614,7 @@ function dress({
       box(solid, x, z, d[0], d[1], 0.68, 0.5, g, g + 0.06, STEEL);
       box(solid, x - d[0] * 0.1, z - d[1] * 0.1, d[0], d[1], 0.3, 0.3, g + 0.46, g + 0.55, [0.04, 0.04, 0.04]);
       solidBox(colliders, 'obstacle', x, z, d[0], d[1], 0.68, 0.5, g, g + 0.55);
-      const [mx, mz] = CAMP_PROPS.mast.at;
+      const [mx, mz] = props.mast.at;
       rope([x, g + 0.1, z], [mx, ground(mx, mz) + 0.04, mz]);
     }
   }
@@ -708,7 +708,7 @@ function dress({
 
   /* Litter lying flat: cans, a sheet of sacking, a bottle, offcuts,
    * thinner toward the clearing's edge, none in the fires. */
-  const [fx, fz] = CAMP_PROPS.fire.at;
+  const [fx, fz] = props.fire.at;
   for (let k = 0; k < D.litter; k += 1) {
     const r = 19 * Math.sqrt(hash01(k, 0, 78)) * (0.4 + 0.6 * hash01(k, 1, 78));
     const a = hash01(k, 2, 78) * Math.PI * 2;
@@ -726,20 +726,22 @@ function dress({
 }
 
 /*
- * The camp: { group, setCamp({ mark, tarp, mast }), update(seconds),
- * stats(), dispose() }. Adds its colliders and roof records.
+ * A camp: { group, setCamp({ mark, tarp, mast, cold }), update(seconds),
+ * stats(), dispose() }. Adds its colliders and roof records. `props` is
+ * its layout (places.js CAMP_PROPS, Claro Viejo, by default; NUEVO_PROPS
+ * for Claro Nuevo): the dressing and the wear are offsets from its middle.
  */
 export function buildCamp({
-  THREE, world, colliders, roofs,
+  THREE, world, colliders, roofs, props = CAMP_PROPS, name = 'interior-camp',
 }) {
   const ground = world.groundAt;
   const group = new THREE.Group();
-  group.name = 'interior-camp';
-  const campAt = ([ox, oz]) => [CAMP_PROPS.middle[0] + ox, CAMP_PROPS.middle[1] + oz];
+  group.name = name;
+  const campAt = ([ox, oz]) => [props.middle[0] + ox, props.middle[1] + oz];
   const solid = sink();
   const cloth = sink();
   const ropes = [];
-  const stretches = routeStretches();
+  const stretches = routeStretches(props);
   /* The mark is under the roof: its pane faces down and is drawn only
    * from below. */
   const markMat = thermalKind(new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }), 'vegetation');
@@ -775,7 +777,7 @@ export function buildCamp({
   const markPanes = {};
   const flaps = {};
   const plainMats = {};
-  CAMP_PROPS.shelters.forEach((s, k) => {
+  props.shelters.forEach((s, k) => {
     const f = shelterFrame(s, ground);
     frames[s.id] = f;
     const hu = s.w / 2;
@@ -910,7 +912,7 @@ export function buildCamp({
   /* THE SOLAR PANEL on its stand: a framed panel of cells tilted to the
    * sky on a post and two back legs, a battery box at its foot. */
   {
-    const p = CAMP_PROPS.solar;
+    const p = props.solar;
     const [x, z] = p.at;
     const g = ground(x, z);
     box(solid, x, z, 1, 0, 0.12, 0.12, g - 0.1, g + 0.9, STEEL);
@@ -940,7 +942,7 @@ export function buildCamp({
   }
   /* CRATES, stacked where places.js sets them; DRUMS, round, ribbed, a
    * blue, a rust red, a green, and jerrycans beside them. */
-  CAMP_PROPS.crates.forEach(([x, z], k) => {
+  props.crates.forEach(([x, z], k) => {
     const g = ground(x, z);
     const t = (hash01(k, 0, 51) - 0.5) * 0.5;
     const [dx, dz] = [Math.cos(t), Math.sin(t)];
@@ -950,7 +952,7 @@ export function buildCamp({
       prop(x, z, Math.cos(t2), Math.sin(t2), 0.62, 0.36, g + 0.55, g + 0.87, OLIVE_BOX, PLANKS);
     }
   });
-  CAMP_PROPS.drums.forEach(([x, z], k) => {
+  props.drums.forEach(([x, z], k) => {
     const g = ground(x, z);
     const colour = DRUMS[k % DRUMS.length];
     cylinder(solid, x, z, 0.28, g - 0.05, g + 0.9, colour, RIBS, 12, colour.map((v) => v * 0.7));
@@ -958,7 +960,7 @@ export function buildCamp({
     count += 1;
   });
   {
-    const [x0, z0] = CAMP_PROPS.drums[0];
+    const [x0, z0] = props.drums[0];
     for (let k = 0; k < 3; k += 1) {
       const x = x0 - 0.9 + k * 0.42;
       const z = z0 - 0.7;
@@ -970,7 +972,7 @@ export function buildCamp({
   }
   /* STORES round the clearing's edge: crates in twos and threes, a box on
    * top, a jerrycan; one pile of sacks under a tarp tied down over it. */
-  const [cmx, cmz] = CAMP_PROPS.middle;
+  const [cmx, cmz] = props.middle;
   STORES.forEach(([ox, oz], k) => {
     const x0 = cmx + ox;
     const z0 = cmz + oz;
@@ -1011,14 +1013,15 @@ export function buildCamp({
   const lamps = [];
   const glows = [];
   const dressed = dress({
-    solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
+    props, solid, cloth, colliders, ground, stretches, crate, prop, post, rope, campAt, lamps, glows, frames,
   });
   /* THE FIRE: the embers (the fire kind, src/render/thermal.js, far over
    * anything else in the camp) in a ring of stones, half burnt logs, a
    * blackened pot on the stones, logs round it to sit on. */
   const fireMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0x1a1410, emissive: 0x5a2208, roughness: 1 }), 'fire');
-  const [fx, fz] = CAMP_PROPS.fire.at;
+  const [fx, fz] = props.fire.at;
   const fg = ground(fx, fz);
+  let embersMesh = null;
   {
     /* Both fires' embers, this one and the cooking place's (dress), one
      * mesh. */
@@ -1030,6 +1033,7 @@ export function buildCamp({
     const disc = new THREE.Mesh(mergeGeometries(discs), fireMat);
     disc.name = 'interior-camp-fire';
     group.add(disc);
+    embersMesh = disc;
     for (let k = 0; k < 11; k += 1) {
       const a = (k / 11) * Math.PI * 2 + hash01(k, 0, 52) * 0.3;
       const r = 0.82;
@@ -1062,13 +1066,13 @@ export function buildCamp({
     });
   }
   const campLight = makeCampLight(THREE, {
-    at: CAMP_PROPS.middle, inner: FILL_INNER, outer: FILL_OUTER, lamps, glows,
+    at: props.middle, inner: FILL_INNER, outer: FILL_OUTER, lamps, glows,
   });
   group.add(campLight.mesh);
 
   /* HAMMOCKS, slung between two poles: a woven strip sagging between
    * its ropes, in faded stripes. */
-  CAMP_PROPS.hammocks.forEach((h, k) => {
+  props.hammocks.forEach((h, k) => {
     const [ax, az] = h.from;
     const [bx, bz] = h.to;
     for (const [x, z] of [h.from, h.to]) {
@@ -1098,7 +1102,7 @@ export function buildCamp({
   /* THE LOOKOUT: a deck on four poles at the clearing's north edge, in a
    * tree's crown, and a ladder up to it. */
   {
-    const L = CAMP_PROPS.lookout;
+    const L = props.lookout;
     const [x, z] = L.at;
     const g = ground(x, z);
     const top = g + L.deckY;
@@ -1129,7 +1133,7 @@ export function buildCamp({
    * its foot; three guy wires to stakes, slack when it is down. */
   const mastMat = new THREE.MeshStandardMaterial({ color: 0x6a6d70, roughness: 0.55, metalness: 0.6 });
   const dishMat = new THREE.MeshStandardMaterial({ color: 0xb8b8b2, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide });
-  const M = CAMP_PROPS.mast;
+  const M = props.mast;
   const [mx, mz] = M.at;
   const mg = ground(mx, mz);
   const mast = new THREE.Group();
@@ -1402,12 +1406,14 @@ export function buildCamp({
   const clothMesh = meshOf(THREE, cloth, clothMat, 'interior-camp-cloth');
   group.add(solidMesh, clothMesh);
 
-  let state = { mark: 'shelter-1', tarp: 0, mast: 0 };
+  let state = {
+    mark: 'shelter-1', tarp: 0, mast: 0, cold: false,
+  };
   let mastRetired = false;
   function setCamp(next) {
     state = { ...state, ...next };
     for (const [id, pane] of Object.entries(markPanes)) {
-      const s = CAMP_PROPS.shelters.find((x) => x.id === id);
+      const s = props.shelters.find((x) => x.id === id);
       if (s.markable) {
         pane.material = id === state.mark ? markMat : plainMats[id];
       }
@@ -1418,6 +1424,12 @@ export function buildCamp({
       fm.visible = id === state.mark;
       fm.rotation.x = id === state.mark ? -state.tarp * 2.6 : 0;
     }
+    /* A cold camp: the fire out, no smoke, the lamps dark. */
+    embersMesh.visible = !state.cold;
+    puffs.forEach((m) => {
+      m.visible = !state.cold;
+    });
+    campLight.setLit(!state.cold);
     const t = Math.max(0, Math.min(1, state.mast));
     mast.rotation.x = t * (Math.PI / 2);
     guyLines.visible = t <= 0.02;

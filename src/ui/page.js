@@ -198,7 +198,7 @@ export function buildFrame(shell) {
 
 /*
  * THE TITLE. A copy column: the brand and the gate's rooms panel on one
- * row, the gate's cards, and a foot with the key hint and the menu. The
+ * row, Flight Club's pilot stats, the gate's cards, and a foot with the key hint and the menu. The
  * cards and the panel are hidden outside the gate, which leaves the column
  * its two children spaced apart. The craft canvas is made here and shown
  * in the quad's showcase.
@@ -229,7 +229,10 @@ function titleScreen(shell) {
   foot.append(shell.titleHint, block.stage);
 
   const column = el('div', 'title-copy');
-  column.append(top, keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
+  /* Flight Club's pilot stats (src/ui/pilotstats.js) sit in the room
+   * between the brand and the cards. Not a menu item: the arrows, a pad
+   * and Tab walk past it to the cards exactly as before. */
+  column.append(top, keep(shell, 'gateStats', 'div', 'gate-stats'), keep(shell, 'gateCards', 'div', 'gate-cards'), foot);
   shell.craftCanvas = el('canvas', 'craft-view');
   shell.craftCanvas.setAttribute('aria-hidden', 'true');
   const screen = el('div', 'screen screen-title');
@@ -739,6 +742,10 @@ function walkScreen(shell) {
       from = e.clientX;
     }
   });
+  screen.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    shell.walkWheel(e.deltaY);
+  }, { passive: false });
   const up = () => { from = null; };
   screen.addEventListener('pointerup', up);
   screen.addEventListener('pointercancel', up);

@@ -207,7 +207,9 @@ import { isMapTrack } from './trackbuilder/model.js';
 import { loadMapTrack } from './trackbuilder/storage.js';
 import { createShowcase } from './render/showcase.js';
 import { createCarouselStage } from './render/carousel3d.js';
-import { createRoomView } from './render/hangarroomview.js';
+import { createRoomView, PHOTO_FRAMES } from './render/hangarroomview.js';
+import { listClips, downloadBlob, stampedName } from './replay/store.js';
+import { listPhotos, putPhoto } from './ui/photostore.js';
 import { qualityFor } from './render/quality.js';
 import { dressLivery } from './render/livery.js';
 import { dressParts } from './render/partsfit.js';
@@ -1000,6 +1002,8 @@ export async function boot({
    * last told. */
   let opsDrawn = false;
   let opsCampMark = null;
+  /* Which mission's camps the map shows (mission.camp.world), told once. */
+  let opsCampWorld = null;
   /* What the map was last told, for the checks: the hour, the looks. */
   let opsHourTold = null;
   let opsLooksTold = [];
@@ -1461,6 +1465,14 @@ export async function boot({
       }
       return;
     }
+    if (opsCampWorld !== mission.id && typeof view.setCamp === 'function') {
+      /* A mission's camps as its story has them (Mission 2: Claro Viejo
+       * stripped, Claro Nuevo standing); Mission 1's are the default. */
+      opsCampWorld = mission.id;
+      view.setCamp({
+        nuevo: false, mast: 0, parked: Infinity, cold: false, ...(mission.camp && mission.camp.world),
+      });
+    }
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];
     for (const c of v.contacts || []) {
@@ -1530,6 +1542,8 @@ export async function boot({
       audio,
       ground: (x, z) => view.height(x, z, Infinity),
       seen: seenFilm(opsFilmStore.load(), id, film.version),
+      /* The story flags a film's callback lines read (film.js `or`). */
+      flags: opsFilmStore.load().flags,
       onSeen: () => {
         opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version));
         opsSeenTell();
@@ -2304,6 +2318,8 @@ export async function boot({
    * stand is built again when the seated one changes or the hangar's
    * editor shuts, since a save there may have repainted it.
    */
+  /* Where a replay the hangar's TV opened goes back to: { mode, which }. */
+  let tvReturn = null;
   const walkRoom = { view: null, graphics: null, craftKey: null, hangarWasOpen: false, ms: 0 };
   /* dtMs is the frame's, in milliseconds as everywhere in the frame loop;
    * the walk and the room's springs take seconds. */
@@ -2320,6 +2336,7 @@ export async function boot({
       walkRoom.view.setRoom(ui.walk.tier, ui.walk.layout);
       walkRoom.graphics = graphics;
       walkRoom.craftKey = null;
+      loadPhotoWall(walkRoom.view);
     }
     const id = ui.settings.airframe;
     const shut = walkRoom.hangarWasOpen && !ui.hangar.isOpen;
@@ -2328,9 +2345,47 @@ export async function boot({
       walkRoom.view.setCraft(dressParts(dressLivery(craftBuilderFor(id)({ name: 'room-craft', fog: false }), id), id));
       walkRoom.craftKey = id;
     }
+    /* The trophy wall: every first paid, in key order so a wall reads the
+     * same each visit (src/game/progress.js firsts). */
+    const firsts = ui.progress && ui.progress.state.firsts ? ui.progress.state.firsts : {};
+    walkRoom.view.setTrophies(Object.keys(firsts).filter((k) => firsts[k]).sort());
     walkRoom.ms += dt * 1000;
-    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit);
+    const photo = ui.walk.photo;
+    walkRoom.view.update(dt, pose, walkRoom.ms, ui.walk.orbit, photo);
+    if (photo && photo.shoot) {
+      photo.shoot = false;
+      const view = walkRoom.view;
+      view.capture((blob) => {
+        if (!blob) {
+          ui.walkFlash(str('walk.photo_none'));
+          return;
+        }
+        downloadBlob(stampedName('hangar', '.jpg'), blob);
+        putPhoto(blob, ui.settings.airframe).then(() => {
+          ui.walkFlash(str('walk.photo_saved'));
+          return loadPhotoWall(view);
+        }).catch((err) => ui.walkFlash(str('walk.photo_failed', { why: err.message })));
+      });
+    }
     return walkRoom.view;
+  }
+  /* The newest photos onto the room's photo wall, each made small first:
+   * the wall's atlas cell is a few hundred pixels wide. */
+  async function loadPhotoWall(view) {
+    try {
+      const rows = (await listPhotos()).slice(0, PHOTO_FRAMES);
+      const bitmaps = await Promise.all(rows.map((r) => createImageBitmap(r.blob, { resizeWidth: 512, resizeQuality: 'medium' })));
+      if (walkRoom.view === view) {
+        view.setPhotos(bitmaps);
+      }
+    } catch (err) {
+      /* No IndexedDB, or a picture that will not decode: the wall stays
+       * bare, and the console says why. */
+      console.warn('hangar photo wall:', err);
+      if (walkRoom.view === view) {
+        view.setPhotos([]);
+      }
+    }
   }
   function walkRoomShut() {
     if (walkRoom.view) {
@@ -14501,6 +14556,23 @@ export async function boot({
     if (s) {
       applySettings(s);
     }
+    /* The hangar's TV: the newest of My clips in the replay viewer, whose
+     * own My clips lists the rest; leaving it is the hangar again. */
+    if (action === 'hangar-tv' && ui.walk) {
+      const which = ui.walk.tier === 'field' ? 'field' : 'main';
+      listClips().then((rows) => {
+        if (!rows.length) {
+          return undefined;
+        }
+        const newest = rows.reduce((a, b) => (b.created > a.created ? b : a));
+        tvReturn = { mode, which };
+        return crashCam.playSaved(newest.id);
+      }).catch((err) => {
+        tvReturn = null;
+        notice = { text: str('walk.tv_refused', { why: err.message }), untilMs: performance.now() + 2400 };
+      });
+      return;
+    }
     if (accountUi.handle(action)) {
       return;
     }
@@ -14591,9 +14663,23 @@ export async function boot({
       intent.right = roll > NAV_DEFLECT;
       intent.left = roll < -NAV_DEFLECT;
     } else {
-      const raw = input.navRaw();
+      /* With no mapping to trust, a standard pad's left stick steers the
+       * four ways; anything else moves up and down off whichever axis
+       * moves, the radio's rule. */
+      const pad = input.padDirections();
+      const raw = pad ? pad.stick : input.navRaw();
       intent.up = raw.up;
       intent.down = raw.down;
+      intent.left = Boolean(raw.left);
+      intent.right = Boolean(raw.right);
+    }
+    /* A standard pad's d-pad steers whatever the flight mapping says: it
+     * flies nothing. */
+    const ways = input.padDirections();
+    if (ways) {
+      for (const k of ['up', 'down', 'left', 'right']) {
+        intent[k] = intent[k] || ways.dpad[k];
+      }
     }
     return intent;
   }
@@ -15118,6 +15204,7 @@ export async function boot({
     const chaseLast = new THREE.Vector3();
     const chaseAim = new THREE.Vector3();
     const chaseStep = new THREE.Vector3();
+    const chaseHead = new THREE.Vector3();
     /* The point the chase camera follows and looks at: the plane itself,
      * except that on water its height is slowed to the swell's mean. A
      * floatplane rides every wave up and down, and a camera tied to it
@@ -17040,7 +17127,8 @@ export async function boot({
     const freezeWorld = Boolean(ui.reelFreezeWorld);
     fr.attractOn = !freezeWorld && mode === 'title' && (ui.screen === 'title' || ui.screen === 'launch');
     fr.pickerOn = ui.carousel.isOpen || ui.hangar.isOpen;
-    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk);
+    /* A replay the TV opened draws the world in the room's place. */
+    fr.walkOn = ui.screen === 'walk' && Boolean(ui.walk) && !crashCam.live;
     fr.studioOn = ui.screen === 'quad' && !fr.pickerOn;
     fr.worldLive = !freezeWorld && (
       Boolean(finishLoadingOnFrame)
@@ -17432,6 +17520,42 @@ export async function boot({
     chaseValid = false;
   }
 
+  /*
+   * How far the chase camera turns toward the craft's travel this frame,
+   * and toward what. The pull is weighted by the speed: a hovering 3D
+   * plane travels nowhere, and the few millimetres it drifts a frame,
+   * taken as a direction, swung a travel led camera round it at random;
+   * slow, the camera stays where it was, a pilot standing still. And the
+   * travel's climb is held under CHASE_STEEP of the direction, its own
+   * bearing kept (or the camera's, straight up or down), or a vertical
+   * line would put the camera under the plane looking up along world up,
+   * where its yaw is undefined. Reads chaseStep, this frame's travel, and
+   * chaseDir; returns the lerp's share, the target in chaseHead.
+   */
+  const CHASE_SLOW = 4; /* m/s: at this speed the pull is half its full */
+  const CHASE_STEEP = 0.8;
+  function chaseTurn(dt, k) {
+    const travel = chaseStep.length();
+    if (!(travel > 0) || !(dt > 0)) {
+      return 0;
+    }
+    const speed = travel / simLenToWorld(1) / (dt / 1000);
+    chaseHead.copy(chaseStep).multiplyScalar(1 / travel);
+    if (Math.abs(chaseHead.y) > CHASE_STEEP) {
+      const up = Math.sign(chaseHead.y);
+      chaseHead.y = 0;
+      if (chaseHead.lengthSq() < 1e-4) {
+        chaseHead.set(chaseDir.x, 0, chaseDir.z);
+      }
+      if (chaseHead.lengthSq() < 1e-9) {
+        chaseHead.set(0, 0, -1);
+      }
+      chaseHead.normalize().multiplyScalar(Math.sqrt(1 - CHASE_STEEP * CHASE_STEEP));
+      chaseHead.y = up * CHASE_STEEP;
+    }
+    return Math.min(1, k) * speed * speed / (speed * speed + CHASE_SLOW * CHASE_SLOW);
+  }
+
   function chaseCamera(dt, nowWall, span) {
     const k = 1 - Math.exp(-dt / 120);
     const water = craftOnWater();
@@ -17454,8 +17578,11 @@ export async function boot({
       if (introLook.lengthSq() > 1e-6) {
         chaseDir.lerp(introLook.normalize(), 1 - Math.exp(-dt / 600)).normalize();
       }
-    } else if (chaseStep.lengthSq() > 1e-6) {
-      chaseDir.lerp(chaseStep.normalize(), Math.min(1, k)).normalize();
+    } else {
+      const share = chaseTurn(dt, k);
+      if (share > 0) {
+        chaseDir.lerp(chaseHead, share).normalize();
+      }
     }
     chaseLast.copy(chaseAnchor);
     if (wreckWantsChase(nowWall)) {
@@ -17870,7 +17997,7 @@ export async function boot({
     const gearNow = af.retracts && typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : null;
     let flightMode;
     if (af.fixedWing) {
-      flightMode = ['manual', 'stab', 'acro'][tuneById(configId).wingStab || 0];
+      flightMode = ['manual', 'stab', 'acro', 'as3x'][tuneById(configId).wingStab || 0];
     } else if (turtleWait || turtleFlip.active) {
       flightMode = 'turtle';
     } else {
@@ -18721,6 +18848,9 @@ export async function boot({
       worldX: at.x,
       worldY: at.y,
       worldZ: at.z,
+      /* Where the shell's camera stands, world space, for a check on how a
+       * view frames the craft (extra-owner.js's hover). */
+      camera: { x: shell.camera.position.x, y: shell.camera.position.y, z: shell.camera.position.z },
       /* Null mid world swap, when `view` is the world being disposed. */
       groundClearance: mapReady ? at.y - view.height(at.x, at.z, at.y - SURFACE_BIAS) : null,
       pitchDeg: st ? pitchNoseDownDeg(st) : 0,
@@ -19729,6 +19859,14 @@ export async function boot({
       mode = 'replay';
     },
     exit: () => {
+      /* A replay the hangar's TV opened goes back to the hangar. */
+      if (tvReturn) {
+        const back = tvReturn;
+        tvReturn = null;
+        mode = back.mode;
+        ui.openWalk(back.which);
+        return;
+      }
       acc = 0;
       /* The map as the war has it now, whatever the replay drew. */
       warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));
