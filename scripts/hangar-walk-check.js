@@ -218,6 +218,13 @@ try {
   check('the Take button, clicked', await page.click('.frame-legend .legend-act[data-action="walk-photo-take"]'), 'clicked');
   await page.until(`import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length === ${before + 2})`, 15000).then(() => true, () => false);
   check('and so does the Take button', (await photos()) === before + 2, `${await photos()}`);
+  /* The turntable: T records once round the stand and downloads a WebM. */
+  await page.tap('KeyT');
+  await page.until('window.__walkStats().turntable', 20000).then(() => true, () => false);
+  const tt = (await stats()).turntable;
+  check('T records a turntable movie once round, about six seconds', Boolean(tt) && tt.bytes > 20000 && /webm/.test(tt.type) && tt.s > 5.5 && tt.s < 8,
+    JSON.stringify(tt));
+  await page.until('!window.__ui.walk.photo.turntable', 5000);
   await page.tap('KeyP');
   await page.until('!window.__ui.walk.photo', 5000);
   await page.until(`window.__walkStats().view.photos === ${Math.min(6, before + 2)}`, 10000).then(() => true, () => false);

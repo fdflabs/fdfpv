@@ -53,7 +53,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CAMP_PROPS } from '../../share/interior/places.js';
 import { ROUTES } from '../../share/interior/routes.js';
 import { hash01 } from '../../share/interior/canopy.js';
-import { recordAt, shedTop, flatTop } from '../../maps/alps/roofs.js';
+import { recordAt, shedTop, flatTop } from '../library/roofs.js';
 import { thermalKind, thermalHide } from '../thermal.js';
 import { markPixels, MARK_PX } from './mark.js';
 import { makeCampLight } from './camplight.js';

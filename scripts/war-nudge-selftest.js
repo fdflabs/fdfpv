@@ -83,7 +83,7 @@ n.nudged(60000);
 check('the gap grows after a nudge', !n.due(60000 + NUDGE_IDLE_MS) && n.state().gap > NUDGE_IDLE_MS);
 
 const asking = Object.values(MISSIONS).filter((m) => m.nudge).map((m) => m.id);
-check('only First Light asks for the nudge', asking.join() === 'itaipu-1', asking.join());
+check('only First Light and The Spillway ask for the nudge', asking.join() === 'itaipu-1,itaipu-2', asking.join());
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

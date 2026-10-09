@@ -160,7 +160,9 @@ export const TUNING = {
     flaps: null,
   },
   radian2000: {
-    chord: 0.1866, area: 0.355, margin: 0.234,
+    /* -cm_alpha / cl_alpha, 1.304 / 5.709: 0.234 was read off the plant
+     * past the linear lift, where its curve now rounds onto CL max. */
+    chord: 0.1866, area: 0.355, margin: 0.228,
     cg: { mm: 63, datum: 'tuning.datum.root_le', range: null, source: `E-flite Radian manual, "2 1/2 inches (63mm) back from leading edge at the root", no range; ${RADIAN_MANUAL}` },
     packKg: 0.11, nose: 0.26, tail: -0.70,
     throws: { high: [15, 24.4, 30], low: [10.5, 18.0, 18.2], source: `E-flite Radian manual p. 3: elevator 12 and 9 mm, rudder 40 and 25 mm, dual rates 100/70 percent; the ailerons ESTIMATED (the Radian has none; the Radian Pro's are 15/12 mm high, 11/8 low, ${RADIAN_PRO_MANUAL}), their low at 70 percent; ${RADIAN_MANUAL}` },

@@ -51,11 +51,11 @@
 
 import * as THREE from 'three';
 import { updateCelTime } from '../../render/celmat.js';
-import { makeParts, bakeParts, placeParts, instanced } from './parts.js';
+import { makeParts, bakeParts, placeParts, instanced } from '../../render/library/vehicles/parts.js';
 import {
   wheelGeometry, buildCar, buildPostbus, buildTractor, buildTrailer, buildMotorbike, buildAircraft,
   CAR_COLOURS, PAINT, TRAILER_HITCH,
-} from './vehicles.js';
+} from '../../render/library/vehicles/vehicles.js';
 import { makePath, makeSchedule } from './path.js';
 import { makeSurface, laneAt, postbusDetour, STREET_Z } from './routes.js';
 import { buildFauna } from './fauna.js';
