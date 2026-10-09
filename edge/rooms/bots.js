@@ -13,16 +13,28 @@
  * long. Speed, turn rate, lead and reaction are the level's (LEVELS).
  *
  * WHERE. Only where the room knows the ground: swiss2's valley floor
- * (src/maps/alps/terrain.js, which this cannot import: it draws with
- * three.js). The floor is flat within FLOOR_HALF of the valley's axis, so
- * an AI pilot keeps within CORRIDOR.half of the axis and between
- * CORRIDOR.yMin and CORRIDOR.yMax (lower only on the last TERMINAL_M to a
- * target, below): its aim is put inside first, and a
- * position its turn could not keep inside is held at the edge (counted in
- * `clamps`, the largest such move in `clampMax`: numbers for the checks).
+ * (grounds.js, the field the page builds). The floor rolls between about
+ * -2 and 8 m within CORRIDOR.half of the valley's axis, so an AI pilot
+ * keeps within that and between CORRIDOR.yMin and CORRIDOR.yMax (lower
+ * only on the last TERMINAL_M to a target, below): its aim is put inside
+ * first, and a position its turn could not keep inside is held at the
+ * edge (counted in `clamps`, the largest such move in `clampMax`: numbers
+ * for the checks).
+ *
+ * CRASHING. An AI pilot is a person's equal in a crash: it touches the
+ * ground (a terminal run over rising pasture), or the room's mid air
+ * referee breaks a part of it (crash(), from roombots.js), and it falls
+ * under gravity from where it was, lies DOWN_MS where it came to rest
+ * (FLAG_CRASHED), and is born again as add() births one, untouchable
+ * (FLAG_SPAWNING) as a person's fresh flight is: SPAWN_MS, and until
+ * SPAWN_M from where it started.
  *
  * DETERMINISM. warhunt.js's recipe: plain arithmetic, Math.sqrt, and
- * sinDet (src/share/war/routes.js), never Math.sin; elapsed room time in
+ * sinDet (src/share/war/routes.js), never Math.sin, in the flight. The
+ * ground is the page's own field, Math.sin and all: only the room reads it
+ * here, one process on one Node, so a restored room still reads the same
+ * heights, and matching the page matters more than matching a replay on
+ * another engine. Elapsed room time in
  * equal substeps of at most SUB_MS; a gap over GAP_MS flies only GAP_MS.
  * Every random draw is from the generator below, whose state is saved, so
  * a room restored mid match flies on exactly as it would have.
@@ -51,7 +63,9 @@
  */
 
 import { attitude, cosSin, unit, GAP_MS, SUB_MS } from './warhunt.js';
+import { groundOf } from './grounds.js';
 import { sinDet } from '../../src/share/war/routes.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING } from '../../src/share/roomwire.js';
 
 /* A flying wing: nothing on it to animate but its prop. */
 export const BOT_AIRFRAME = 'zagi1219';
@@ -107,6 +121,18 @@ const FLEE_M = 300;
 const FLEE_EDGE_M = 25;
 /* The prop's speed in the pose, rad/s: for drawing only. */
 const PROP = 900;
+/* A person's fresh flight is untouchable this long and until this far
+ * from where it started (src/main.js ROOM_SPAWN_MS, ROOM_SPAWN_M;
+ * bots:selftest reads them there). */
+export const SPAWN_MS = 5000;
+export const SPAWN_M = 30;
+/* How long a crashed AI pilot lies before it is born again: about as long
+ * as a person reads a crash before pressing R, well inside the crash
+ * cam's 9 s REPLAY prompt (src/replay/crashcam.js PROMPT_MS). */
+export const DOWN_MS = 5000;
+/* The Zagi's centre this close over the ground is its belly on it. */
+export const CONTACT_M = 0.15;
+const GRAVITY = 9.81;
 
 /* The valley's axis, x at z: alps/terrain.js valleyAxis, its numbers
  * exactly (bots:selftest reads that file to be sure), on sinDet. */
@@ -136,7 +162,8 @@ function inside(a, inset = 0, low = CORRIDOR.yMin) {
 const AIM_INSET = 20;
 
 export class Bots {
-  constructor(seed = 1) {
+  constructor(seed = 1, ground = groundOf(BOT_MAP)) {
+    this.ground = ground;
     /* seat -> { seat, level, p, f (unit heading), r (right, banked), bank,
      * aim, aimAt (room ms the aim was read), wander, ms (room ms flown
      * to) }, in the order they were added. */
@@ -144,6 +171,8 @@ export class Bots {
     this.rand = seed >>> 0;
     this.clamps = 0;
     this.clampMax = 0;
+    /* Crashes, for the checks: on the ground, and from the referee. */
+    this.crashes = { ground: 0, hit: 0 };
   }
 
   random() {
@@ -166,12 +195,67 @@ export class Bots {
     if (!LEVELS[level]) {
       throw new Error(`bots: no level ${level}`);
     }
+    const b = { seat, level, ms: roomMs };
+    this.born(b, roomMs);
+    this.list.set(seat, b);
+  }
+
+  /* b in the air again within 300 m of the strip at the origin, heading
+   * down the valley, untouchable as a fresh flight is. */
+  born(b, roomMs) {
     const z = (this.random() * 2 - 1) * 300;
     const p = inside([valleyAxis(z) + (this.random() * 2 - 1) * 60, 40 + this.random() * 30, z]);
     const f = this.random() < 0.5 ? [0, 0, -1] : [0, 0, 1];
-    this.list.set(seat, {
-      seat, level, p, f, r: [-f[2], 0, f[0]], bank: 0, aim: null, aimAt: -Infinity, wander: this.drawPoint(), ms: roomMs,
+    Object.assign(b, {
+      p, f, r: [-f[2], 0, f[0]], bank: 0, boost: 1, low: CORRIDOR.yMin, aim: null, aimAt: -Infinity, wander: this.drawPoint(),
+      down: null, spawnAt: roomMs, spawnFrom: [...p],
     });
+  }
+
+  /* AI pilot `seat` crashed at roomMs (the referee broke a part of it):
+   * it falls from where it is with the velocity it had. Nothing if it is
+   * down already or untouchable. */
+  crash(seat, roomMs, why = 'hit') {
+    const b = this.list.get(seat);
+    if (!b || b.down || this.spawning(b, roomMs)) {
+      return false;
+    }
+    const v = LEVELS[b.level].speed * (b.boost || 1);
+    b.down = { at: roomMs, restAt: null, v: [b.f[0] * v, b.f[1] * v, b.f[2] * v] };
+    this.crashes[why] += 1;
+    return true;
+  }
+
+  spawning(b, roomMs) {
+    if (b.spawnAt == null) {
+      return false;
+    }
+    const d = Math.sqrt((b.p[0] - b.spawnFrom[0]) ** 2 + (b.p[1] - b.spawnFrom[1]) ** 2 + (b.p[2] - b.spawnFrom[2]) ** 2);
+    if (roomMs - b.spawnAt >= SPAWN_MS && d >= SPAWN_M) {
+      b.spawnAt = null;
+      return false;
+    }
+    return true;
+  }
+
+  /* One substep of a crashed b: a fall, stopped by the ground, where it
+   * comes to rest at roomMs. */
+  fall(b, dt, roomMs) {
+    const v = b.down.v;
+    const p = b.p;
+    const floor = this.ground ? this.ground(p[0], p[2]) + CONTACT_M : -Infinity;
+    if (p[1] <= floor) {
+      p[1] = floor;
+      v[0] = 0;
+      v[1] = 0;
+      v[2] = 0;
+      b.down.restAt ??= roomMs;
+      return;
+    }
+    v[1] -= GRAVITY * dt;
+    p[0] += v[0] * dt;
+    p[1] = Math.max(floor, p[1] + v[1] * dt);
+    p[2] += v[2] * dt;
   }
 
   remove(seat) {
@@ -198,6 +282,19 @@ export class Bots {
     const out = [];
     for (const b of this.list.values()) {
       const lv = LEVELS[b.level];
+      if (b.down && b.down.restAt != null && roomMs - b.down.restAt >= DOWN_MS) {
+        this.born(b, roomMs);
+      }
+      if (b.down) {
+        const gap = Math.min(GAP_MS, roomMs - b.ms);
+        const n = gap > 0 ? Math.ceil(gap / SUB_MS) : 0;
+        for (let k = 0; k < n; k += 1) {
+          this.fall(b, gap / n / 1000, b.ms + (k + 1) * gap / n);
+        }
+        b.ms = Math.max(b.ms, roomMs);
+        out.push({ seat: b.seat, pose: this.poseOf(b, lv, 0, roomMs) });
+        continue;
+      }
       if (roomMs - b.aimAt >= lv.react) {
         const order = orders(b.seat);
         b.aim = this.aimFor(b, lv, order);
@@ -208,8 +305,11 @@ export class Bots {
       let rate = 0;
       if (gap > 0) {
         const n = Math.ceil(gap / SUB_MS);
-        for (let k = 0; k < n; k += 1) {
+        for (let k = 0; k < n && !b.down; k += 1) {
           rate = this.fly(b, lv, gap / n / 1000);
+          if (this.ground && b.p[1] <= this.ground(b.p[0], b.p[2]) + CONTACT_M && !this.spawning(b, b.ms + (k + 1) * gap / n)) {
+            this.crash(b.seat, b.ms + (k + 1) * gap / n, 'ground');
+          }
         }
       }
       b.ms = Math.max(b.ms, roomMs);
@@ -350,16 +450,17 @@ export class Bots {
     const uz = lr[0] * -f[1] - lr[1] * -f[0];
     b.r = unit(lr[0] * cb - ux * sb, lr[1] * cb - uy * sb, lr[2] * cb - uz * sb);
     const q = attitude(f, b.r);
+    const v = b.down ? b.down.v : [f[0] * lv.speed * (b.boost || 1), f[1] * lv.speed * (b.boost || 1), f[2] * lv.speed * (b.boost || 1)];
     return {
-      flags: 1, /* FLAG_AIRBORNE */
+      flags: (b.down ? FLAG_CRASHED : FLAG_AIRBORNE) | (this.spawning(b, roomMs) ? FLAG_SPAWNING : 0),
       seq: 0,
       t: roomMs,
       px: b.p[0], py: b.p[1], pz: b.p[2],
       qx: q[0], qy: q[1], qz: q[2], qw: q[3],
-      vx: f[0] * lv.speed * (b.boost || 1), vy: f[1] * lv.speed * (b.boost || 1), vz: f[2] * lv.speed * (b.boost || 1),
+      vx: v[0], vy: v[1], vz: v[2],
       wx: 0, wy: rate, wz: 0,
       c0: 0, c1: 0, c2: 0, c3: 0,
-      motor: PROP,
+      motor: b.down ? 0 : PROP,
       flaps: 0,
     };
   }
@@ -369,7 +470,9 @@ export class Bots {
       rand: this.rand,
       bots: [...this.list.values()].map((b) => ({
         seat: b.seat, level: b.level, p: b.p, f: b.f, r: b.r, bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim, aimAt: b.aimAt === -Infinity ? null : b.aimAt, wander: b.wander, ms: b.ms,
+        down: b.down, spawnAt: b.spawnAt, spawnFrom: b.spawnFrom,
       })),
+      crashes: { ...this.crashes },
     };
   }
 
@@ -379,7 +482,9 @@ export class Bots {
     for (const b of value?.bots ?? []) {
       this.list.set(b.seat, {
         seat: b.seat, level: b.level, p: [...b.p], f: [...b.f], r: [...b.r], bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim ? [...b.aim] : null, aimAt: b.aimAt ?? -Infinity, wander: [...b.wander], ms: b.ms,
+        down: b.down ? { at: b.down.at, restAt: b.down.restAt ?? null, v: [...b.down.v] } : null, spawnAt: b.spawnAt ?? null, spawnFrom: b.spawnFrom ? [...b.spawnFrom] : [...b.p],
       });
     }
+    this.crashes = { ground: 0, hit: 0, ...(value?.crashes ?? {}) };
   }
 }

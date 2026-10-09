@@ -307,6 +307,20 @@ export class RoomBots {
     };
   }
 
+  /* The referee's hits (src/game/midair.js hitMessage): an AI pilot one
+   * broke a part of crashes, as a person whose plant the same side breaks
+   * does. A softer touch moves a person a little and leaves it flying;
+   * the AI pilot flies on unmoved. */
+  hits(decided, roomMs) {
+    for (const h of decided) {
+      for (const side of [h.A, h.B]) {
+        if (side.brk > 0 && this.names.has(side.seat)) {
+          this.bots.crash(side.seat, Math.floor(roomMs));
+        }
+      }
+    }
+  }
+
   /* The room tick: every AI seat flown to now, its pose handed to the
    * room's judges as a person's relayed one is (core.js judge). */
   tick(core, now) {

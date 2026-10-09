@@ -6859,6 +6859,7 @@ export async function boot({
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
         status: p.profile.status ?? null,
+        flags: p.last ? p.last.flags : null,
       })),
       /* The session (THE ROOM IS ONE SESSION): the room's world, this
        * pilot's own status, a summon still owed, the room bar's words. */
