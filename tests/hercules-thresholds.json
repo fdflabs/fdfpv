@@ -6,6 +6,6 @@
   "h4_top": { "duty": 1.0, "min": 20.54, "max": 25.35, "unit": "m/s", "source": "level speed at full throttle, derived 22.57" },
   "h5_takeoff": { "distMin": 7.12, "distMax": 16.13, "vMin": 10.63, "vMax": 14.50, "source": "full throttle on grass from standing, the wings held on the ailerons and the heading on the rudder, the elevator eased up from 1.1 Vs: it lifts off between 1.1 and 1.5 Vs, and between the rolls to those speeds at the rest attitude, 7.12 and 16.13 m (hercules:derive)" },
   "h6_rest": { "pitchMin": -0.5, "pitchMax": 0.5, "zMin": 0.2554, "zMax": 0.2654, "noseMin": 0.086, "noseMax": 0.129, "source": "the drawn model at rest, level, the CG 0.2604 m up and 10.75 percent of the weight on the nose wheel (hercules:derive), within half a degree, 5 mm and a fifth of the share, the Kadet's" },
-  "h7_unmoved": { "extra": "022bd00d1b0ddec2", "source": "every other aircraft's recorded flight hash, as tests/kadet-thresholds.json s17_unmoved and tests/extra-thresholds.json hold them: adding airframe 31 moves none. The Extra's own pinned from main's module at 3483e2c2, before the Hercules" },
+  "h7_unmoved": { "extra": "7903e04d4ea9b4e5", "source": "every other aircraft's recorded flight hash, as tests/kadet-thresholds.json s17_unmoved and tests/extra-thresholds.json hold them: adding airframe 31 moves none. The Extra's own pinned from main's module at 175289eb, before the Hercules" },
   "h8_cross_host": { "source": "the Hercules' recorded take off and flight, state trace hash, Node against headless Chrome" }
 }
