@@ -28,7 +28,7 @@
  */
 
 import * as THREE from 'three';
-import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
+import { cyl, roofShell, gableProfile } from '../../../render/library/kit.js';
 import { shedTop } from '../../../render/library/roofs.js';
 import {
   box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade, casement, dressRoof,
@@ -386,7 +386,7 @@ export function busShelter(f) {
     f.put(near('larchDark'), box(run - 0.1, 0.1, 0.07), 0, 2.52, z, 0, 0, -slope);
   }
   /* The roof is ground; under it, the three walls and the open front,
-   * exactly the cel shelter's (alps/kit.js). */
+   * exactly the cel shelter's (library/kit.js). */
   frame(f, 0, 2.4, 0.1).roofFaces({
     top: shedTop(-w / 2 - 0.3, 0.35, w / 2 + 0.3, 0.15, -d / 2 - 0.4, d / 2 + 0.4), dy: 0.15, hw: w / 2, hd: d / 2, open: true, kind: 'shelter',
   }, 'shingleDark');
