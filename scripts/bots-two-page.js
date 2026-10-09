@@ -250,7 +250,13 @@ try {
   await a.until(`(() => { const v = window.__roomTag().view; return v.crowns && v.crowns.filter((c) => ${JSON.stringify([...seats])}.includes(c.seat)).length >= 2; })()`, 120000).catch(() => {});
   const tag = await a.evaluate('window.__roomTag()');
   const toBots = (tag.view.crowns || []).filter((c) => seats.has(c.seat));
-  check('the crown moves to and between AI pilots on A\'s screen', toBots.length >= 2, (tag.view.crowns || []).map((c) => `${c.seat}:${c.why}`).join(' '));
+  /* Why not, when not: how A's samples reach the room's match (a gap over
+   * the rule's GAP_MS makes a pilot uncatchable) and its flags. */
+  const aSeat = (await a.evaluate('window.__rooms()')).seat;
+  const aTrack = core.tag.seats.get(aSeat)?.track.s ?? [];
+  const aGaps = aTrack.slice(1).map((q, i) => q.t - aTrack[i].t);
+  const why = `A ${aTrack.length} samples, widest gap ${Math.max(0, ...aGaps)} ms, flags ${[...new Set(aTrack.map((q) => q.flags))].join('/')}`;
+  check('the crown moves to and between AI pilots on A\'s screen', toBots.length >= 2, `${(tag.view.crowns || []).map((c) => `${c.seat}:${c.why}`).join(' ')}; ${why}`);
   const rows = tag.hud ? JSON.stringify(tag.hud) : '';
   check("A's scoreboard names the AI pilots as AI", (rows.match(/AI /g) || []).length >= FILL_TO - 1, rows.slice(0, 240));
   await a.evaluate("document.querySelector('.osd-air-hint-btn')?.click(); true");
