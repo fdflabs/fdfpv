@@ -167,9 +167,12 @@ Where it goes:
   a level look reads the rain's figure, and `uMie` (the sun's forward
   glow) fades out with the rain. Uniform values only: no shader changes,
   so no cost. The dry numbers are kept on the first wet frame and put
-  back at 0.
+  back at 0. The Interior's hour (setLocalTime) also writes its mie, but
+  only a mission sets the hour and missions fly still air, so the two
+  never meet.
 - The Alps (cel): its linear fog's far drawn in to 3 / (3 / far +
-  rain's extinction), near in proportion; 0 puts the stage's numbers back.
+  rain's extinction), near in proportion; 0 puts the stage's numbers back
+  once, and a dry frame touches nothing.
 
 Not built: the sky dome and the clouds themselves are not veiled by the
 rain in front of them (each look's sky is its own module); the cel fog's

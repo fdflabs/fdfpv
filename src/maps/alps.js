@@ -178,6 +178,7 @@ export async function buildValley(shell, progress, q, style) {
   const stage = await style.stage(shell, q);
   const { scene } = stage;
   const dryFog = scene.fog ? { near: scene.fog.near, far: scene.fog.far } : null;
+  let fogWet = false;
   progress(0.1, 'terrain');
   await yieldToPaint();
 
@@ -386,12 +387,13 @@ export async function buildValley(shell, progress, q, style) {
      * proportion. 0 puts the stage's own numbers back. A photo look's
      * compose replaces this with its post chain's. */
     setWet(wet) {
-      if (!dryFog) {
+      if (!dryFog || (!(wet > 0) && !fogWet)) {
         return;
       }
-      const far = wet > 0 ? 3 / (3 / dryFog.far + rainBeta(wet < 1 ? wet : 1)) : dryFog.far;
+      fogWet = wet > 0;
+      const far = fogWet ? 3 / (3 / dryFog.far + rainBeta(wet < 1 ? wet : 1)) : dryFog.far;
       scene.fog.far = far;
-      scene.fog.near = wet > 0 ? dryFog.near * (far / dryFog.far) : dryFog.near;
+      scene.fog.near = fogWet ? dryFog.near * (far / dryFog.far) : dryFog.near;
     },
     setWaves(bodies) {
       if (nature.setWaves) {
