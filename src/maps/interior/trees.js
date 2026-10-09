@@ -76,7 +76,7 @@ import {
 import { LAND } from '../../share/interior/world.js';
 import { opened } from '../../share/interior/places.js';
 import { thermalKind } from '../../render/thermal.js';
-import { makeLit } from '../itaipu/look/light.js';
+import { makeLit } from '../../render/library/lit.js';
 import { crownGeometry, crownMaterial, fitOf } from '../../render/library/crowns.js';
 
 export const CHUNK = 256;

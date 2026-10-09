@@ -75,7 +75,8 @@ after pictures.
 | Fences | not yet | `alps/kit.js`, `swiss2/village/pieces.js`, `interior/yards.js` | one each |
 | Vehicles | not yet | `alps/vehicles.js` (shared with the Swiss valley), `src/render/interior/vehicles.js` | three |
 | Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `alps/kit.js` | one each |
-| Lit materials (the sun and cloud shadow patch) | not yet | `itaipu/look/light.js` `makeLit`, `swiss2/light.js` | Itaipu, Interior; Swiss valley |
+| Lit materials (one sun from the shadow cascades) | `lit.js` `makeLit` | Itaipu's look, the Interior's look and crowns | Itaipu, Interior |
+| Lit materials with the Alps terrain shadow and cloud deck | not yet | `swiss2/light.js` `makeLit` | Swiss valley |
 
 The Alps keep their cel look by decision (2026-10-07): their kit and roofs
 are the base the Swiss valley is built on and stay where they are until a
