@@ -22868,7 +22868,7 @@
     "changed": {
      "screen": "courses",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000": {
@@ -22900,7 +22900,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
     }
    },
    "way-friends": {
@@ -22928,7 +22928,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-combat": {
@@ -22957,7 +22957,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-ace": {
@@ -22986,7 +22986,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-jam": {
@@ -23015,7 +23015,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-war": {
@@ -23044,7 +23044,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-campaign": {
@@ -23073,7 +23073,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-interior": {
@@ -23095,7 +23095,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training": {
@@ -23117,7 +23117,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    },
    "friends-leave": {
@@ -23157,7 +23157,7 @@
      "screen": "rooms",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "lobby:roomnew": {
@@ -23179,7 +23179,7 @@
      "screen": "roomnew",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "rooms": {
@@ -23510,7 +23510,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1515 chars, hash 54b5a5fb"
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
     }
    },
    "rates-save": {
@@ -23546,7 +23546,7 @@
      "screen": "title",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1518 chars, hash a4700134"
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
     }
    },
    "map:track": {
@@ -23950,7 +23950,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-race-5inch keepWorld": {
@@ -23967,7 +23967,7 @@
     "changed": {
      "screen": "courses",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -23997,7 +23997,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -24019,7 +24019,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-friends picked:cub": {
@@ -24049,7 +24049,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-friends keepWorld": {
@@ -24067,7 +24067,7 @@
      "screen": "freestyle",
      "mode": "freestyle",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-combat picked:cub": {
@@ -24098,7 +24098,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-combat keepWorld": {
@@ -24117,7 +24117,7 @@
      "mode": "freestyle",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-ace picked:cub": {
@@ -24148,7 +24148,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-ace keepWorld": {
@@ -24167,7 +24167,7 @@
      "mode": "freestyle",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-jam picked:cub": {
@@ -24198,7 +24198,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-jam keepWorld": {
@@ -24217,7 +24217,7 @@
      "mode": "freestyle",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-war picked:cub": {
@@ -24248,7 +24248,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-war keepWorld": {
@@ -24267,7 +24267,7 @@
      "mode": "freestyle",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-campaign picked:cub": {
@@ -24298,7 +24298,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-campaign keepWorld": {
@@ -24317,7 +24317,7 @@
      "mode": "freestyle",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-interior picked:cub": {
@@ -24337,7 +24337,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-interior keepWorld": {
@@ -24359,7 +24359,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training picked:cub": {
@@ -24379,7 +24379,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-training keepWorld": {
@@ -24401,7 +24401,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    }
   },
@@ -24698,7 +24698,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000": {
@@ -24731,7 +24731,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
     }
    },
    "way-friends": {
@@ -24760,7 +24760,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-combat": {
@@ -24790,7 +24790,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-ace": {
@@ -24820,7 +24820,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-jam": {
@@ -24850,7 +24850,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-war": {
@@ -24880,7 +24880,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-campaign": {
@@ -24910,7 +24910,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-interior": {
@@ -24933,7 +24933,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training": {
@@ -24956,7 +24956,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    },
    "friends-leave": {
@@ -24997,7 +24997,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "lobby:roomnew": {
@@ -25020,7 +25020,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "rooms": {
@@ -25343,7 +25343,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1515 chars, hash 54b5a5fb"
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
     }
    },
    "rates-save": {
@@ -25379,7 +25379,7 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1518 chars, hash a4700134"
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
     }
    },
    "map:track": {
@@ -25790,7 +25790,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-race-5inch keepWorld": {
@@ -25808,7 +25808,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -25839,7 +25839,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -25862,7 +25862,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-friends picked:cub": {
@@ -25893,7 +25893,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-friends keepWorld": {
@@ -25912,7 +25912,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-combat picked:cub": {
@@ -25944,7 +25944,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-combat keepWorld": {
@@ -25964,7 +25964,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-ace picked:cub": {
@@ -25996,7 +25996,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-ace keepWorld": {
@@ -26016,7 +26016,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-jam picked:cub": {
@@ -26048,7 +26048,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-jam keepWorld": {
@@ -26068,7 +26068,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-war picked:cub": {
@@ -26100,7 +26100,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-war keepWorld": {
@@ -26120,7 +26120,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-campaign picked:cub": {
@@ -26152,7 +26152,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-campaign keepWorld": {
@@ -26172,7 +26172,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-interior picked:cub": {
@@ -26193,7 +26193,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-interior keepWorld": {
@@ -26216,7 +26216,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training picked:cub": {
@@ -26237,7 +26237,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-training keepWorld": {
@@ -26260,7 +26260,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    }
   },
@@ -26557,7 +26557,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000": {
@@ -26590,7 +26590,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
     }
    },
    "way-friends": {
@@ -26619,7 +26619,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-combat": {
@@ -26649,7 +26649,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-ace": {
@@ -26679,7 +26679,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-jam": {
@@ -26709,7 +26709,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-war": {
@@ -26739,7 +26739,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-campaign": {
@@ -26769,7 +26769,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-interior": {
@@ -26792,7 +26792,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training": {
@@ -26815,7 +26815,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    },
    "friends-leave": {
@@ -26856,7 +26856,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "lobby:roomnew": {
@@ -26879,7 +26879,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "rooms": {
@@ -27210,7 +27210,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1515 chars, hash 54b5a5fb"
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
     }
    },
    "rates-save": {
@@ -27246,7 +27246,7 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1518 chars, hash a4700134"
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
     }
    },
    "map:track": {
@@ -27656,7 +27656,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-race-5inch keepWorld": {
@@ -27674,7 +27674,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -27705,7 +27705,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -27728,7 +27728,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-friends picked:cub": {
@@ -27759,7 +27759,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-friends keepWorld": {
@@ -27778,7 +27778,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-combat picked:cub": {
@@ -27810,7 +27810,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-combat keepWorld": {
@@ -27830,7 +27830,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-ace picked:cub": {
@@ -27862,7 +27862,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-ace keepWorld": {
@@ -27882,7 +27882,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-jam picked:cub": {
@@ -27914,7 +27914,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-jam keepWorld": {
@@ -27934,7 +27934,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-war picked:cub": {
@@ -27966,7 +27966,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-war keepWorld": {
@@ -27986,7 +27986,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-campaign picked:cub": {
@@ -28018,7 +28018,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-campaign keepWorld": {
@@ -28038,7 +28038,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-interior picked:cub": {
@@ -28059,7 +28059,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-interior keepWorld": {
@@ -28082,7 +28082,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training picked:cub": {
@@ -28103,7 +28103,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-training keepWorld": {
@@ -28126,7 +28126,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    }
   },
@@ -28423,7 +28423,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000": {
@@ -28456,7 +28456,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1545 chars, hash e0651e4a"
+     "store.webfpv.settings.v3": "1562 chars, hash a51bfb87"
     }
    },
    "way-friends": {
@@ -28485,7 +28485,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-combat": {
@@ -28515,7 +28515,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-ace": {
@@ -28545,7 +28545,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-jam": {
@@ -28575,7 +28575,7 @@
      "settings.airframeAsked": true,
      "settings.map": "swiss2",
      "settings.freestyleMap": "swiss2",
-     "store.webfpv.settings.v3": "1521 chars, hash 94757d3f"
+     "store.webfpv.settings.v3": "1538 chars, hash 771b6952"
     }
    },
    "way-war": {
@@ -28605,7 +28605,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-campaign": {
@@ -28635,7 +28635,7 @@
      "settings.airframeAsked": true,
      "settings.map": "itaipu",
      "settings.freestyleMap": "itaipu",
-     "store.webfpv.settings.v3": "1521 chars, hash 2acfd47f"
+     "store.webfpv.settings.v3": "1538 chars, hash 5f80db12"
     }
    },
    "way-interior": {
@@ -28658,7 +28658,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training": {
@@ -28681,7 +28681,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    },
    "friends-leave": {
@@ -28722,7 +28722,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "lobby:roomnew": {
@@ -28745,7 +28745,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "rooms": {
@@ -29076,7 +29076,7 @@
      ]
     ],
     "changed": {
-     "store.webfpv.settings.v3": "1515 chars, hash 54b5a5fb"
+     "store.webfpv.settings.v3": "1532 chars, hash 79e54116"
     }
    },
    "rates-save": {
@@ -29112,7 +29112,7 @@
      "screen": "paused",
      "settings.map": "alps",
      "settings.freestyleMap": "alps",
-     "store.webfpv.settings.v3": "1518 chars, hash a4700134"
+     "store.webfpv.settings.v3": "1535 chars, hash e875bef9"
     }
    },
    "map:track": {
@@ -29522,7 +29522,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-race-5inch keepWorld": {
@@ -29540,7 +29540,7 @@
      "screen": "courses",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-freestyle-wing1000 picked:cub": {
@@ -29571,7 +29571,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-freestyle-wing1000 keepWorld": {
@@ -29594,7 +29594,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-friends picked:cub": {
@@ -29625,7 +29625,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-friends keepWorld": {
@@ -29644,7 +29644,7 @@
      "mode": "freestyle",
      "returnTo": "title",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-combat picked:cub": {
@@ -29676,7 +29676,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-combat keepWorld": {
@@ -29696,7 +29696,7 @@
      "returnTo": "title",
      "roomGame": "combat",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-ace picked:cub": {
@@ -29728,7 +29728,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-ace keepWorld": {
@@ -29748,7 +29748,7 @@
      "returnTo": "title",
      "roomGame": "tag",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-jam picked:cub": {
@@ -29780,7 +29780,7 @@
      "settings.freestyleMap": "swiss2",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash 151a0221"
+     "store.webfpv.settings.v3": "1576 chars, hash 17f22cac"
     }
    },
    "way-jam keepWorld": {
@@ -29800,7 +29800,7 @@
      "returnTo": "title",
      "roomGame": "jam",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-war picked:cub": {
@@ -29832,7 +29832,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-war keepWorld": {
@@ -29852,7 +29852,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-campaign picked:cub": {
@@ -29884,7 +29884,7 @@
      "settings.freestyleMap": "itaipu",
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1559 chars, hash fb894861"
+     "store.webfpv.settings.v3": "1576 chars, hash d087d6c"
     }
    },
    "way-campaign keepWorld": {
@@ -29904,7 +29904,7 @@
      "returnTo": "title",
      "roomGame": "war",
      "settings.airframeAsked": true,
-     "store.webfpv.settings.v3": "1514 chars, hash a1e9cdd0"
+     "store.webfpv.settings.v3": "1531 chars, hash 4908c5d"
     }
    },
    "way-interior picked:cub": {
@@ -29925,7 +29925,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-interior keepWorld": {
@@ -29948,7 +29948,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "wing-acro",
-     "store.webfpv.settings.v3": "1538 chars, hash 402762e5"
+     "store.webfpv.settings.v3": "1555 chars, hash 94ef1ec8"
     }
    },
    "way-training picked:cub": {
@@ -29969,7 +29969,7 @@
      "settings.airframeAsked": true,
      "settings.cameraFov": 95,
      "settings.cameraAngle": 45,
-     "store.webfpv.settings.v3": "1552 chars, hash 663fa84e"
+     "store.webfpv.settings.v3": "1569 chars, hash 6479fd63"
     }
    },
    "way-training keepWorld": {
@@ -29992,7 +29992,7 @@
      "settings.cameraFov": 100,
      "settings.cameraAngle": 5,
      "settings.tune": "timber-acro",
-     "store.webfpv.settings.v3": "1558 chars, hash bf482830"
+     "store.webfpv.settings.v3": "1575 chars, hash 72c32f3d"
     }
    }
   },
