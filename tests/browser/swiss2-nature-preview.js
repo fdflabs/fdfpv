@@ -30,7 +30,7 @@
 import * as THREE from 'three';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { FIELD, CELLS, buildHeightfield, groundTexture, farRange } from '../../src/maps/alps/terrain.js';
-import { makeRng } from '../../src/maps/alps/noise.js';
+import { makeRng } from '../../src/render/library/noise.js';
 import { buildVegetation } from '../../src/maps/swiss2/vegetation/index.js';
 
 const params = new URLSearchParams(location.search);

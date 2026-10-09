@@ -64,7 +64,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2 } from '../../alps/noise.js';
+import { makeRng, noise2 } from '../../../render/library/noise.js';
 import { LAKE_Y, valleyAxis } from '../../alps/terrain.js';
 import {
   lakeShore, jettyClear, ROAD_END, ROAD_DX,

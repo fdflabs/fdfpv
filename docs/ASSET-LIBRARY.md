@@ -57,13 +57,14 @@ after pictures.
 
 ## Catalogue
 
-| Family | In the library | Built today in | Used by |
+| Family | In the library (`src/render/library/`) | Built or placed in | Used by |
 | --- | --- | --- | --- |
-| Lit tree crowns (analytic ellipsoid crowns, lobes, clumps) | `crowns.js` | `src/maps/interior/trees.js` | Interior |
-| Broadleaf and conifer models, leaf cards | not yet | `src/maps/swiss2/vegetation/species.js`, `plantmat.js` | Swiss valley, Itaipu |
-| Tree impostors (far trees) | not yet | `src/maps/swiss2/vegetation/impostor.js` | Swiss valley, Itaipu |
+| Lit tree crowns (analytic ellipsoid crowns, lobes, clumps) | `crowns.js` | placed by `src/maps/interior/trees.js` | Interior |
+| Seeded random and value noise | `noise.js` (was `alps/noise.js`), `hash.js` | everywhere | all four |
+| Broadleaf and conifer models, leaf cards | `vegetation/species.js`, `vegetation/plantmat.js` | placed by `swiss2/vegetation/forest.js`, `itaipu/vegetation/draw.js` | Swiss valley, Itaipu |
+| Tree impostors (far trees) | `vegetation/impostor.js` | baked and placed by the same two | Swiss valley, Itaipu |
 | Far forest canopy surface | not yet | `src/maps/itaipu/vegetation/draw.js` `canopyShell` | Itaipu |
-| Grass and leaf atlas | not yet | `src/maps/swiss2/vegetation/atlas.js` | Swiss valley, Itaipu, Interior |
+| Grass and leaf atlas | `vegetation/atlas.js` | loaded by each map's vegetation | Swiss valley, Itaipu, Interior |
 | Turf and near grass | not yet | `swiss2/vegetation/grass.js`, `itaipu/look/ground.js` `makeTurf`, `interior/nearfield.js` | one each |
 | Ground cover materials | not yet | each map's `ground.js` / `look/ground.js` | one each |
 | Water edges, streams, silt | not yet | `interior/ribbons.js`, `swiss2/water/`, `itaipu/water/`, `alps/nature.js` | one each |
@@ -75,9 +76,9 @@ after pictures.
 | Camp and props | not yet | `src/render/interior/camp.js`, `swiss2/props/`, `alps/kit.js` | one each |
 | Lit materials (the sun and cloud shadow patch) | not yet | `itaipu/look/light.js` `makeLit`, `swiss2/light.js` | Itaipu, Interior; Swiss valley |
 
-The Alps keep their cel look by decision (2026-10-07): their kit, roofs and
-noise are the base the Swiss valley is built on and stay where they are
-until a family that uses them moves.
+The Alps keep their cel look by decision (2026-10-07): their kit and roofs
+are the base the Swiss valley is built on and stay where they are until a
+family that uses them moves (their noise already has).
 
 ## Lit tree crowns (`src/render/library/crowns.js`)
 
@@ -104,6 +105,32 @@ into big lobes and, close up, clumps of leaves, rimmed by the low sun.
   one point a far tree. The Interior's tiers fit its views' budget with the
   forest drawn (`npm run interior:views`, stats.json).
 - **Golden**: `tests/browser/render-golden/interior-trees.js`.
+
+## Leaf card trees (`src/render/library/vegetation/`)
+
+The Swiss valley's trees, which Itaipu grows too: a tree is a variant
+(`species.js` VARIANTS: spruce, fir, larch, beech, maple and a snag, in
+eleven variants), built as leaf cards from the atlas round a bark trunk.
+
+- **Inputs**: a variant (its kind, height, crown radii and seed) and a
+  level of detail, 'near' or 'mid'; the materials take the atlas's maps, a
+  distance band and the shared wind uniforms.
+- **Outputs**: `buildVariant(variant, lod)` the foliage and bark
+  geometries and the numbers a placer needs (height, crown radius, the
+  crown's middle, the radius that holds it all); `plantMaterial` and
+  `plantDepthMaterial` (alpha tested, dithered across the band, swaying);
+  `bakeImpostors`, `impostorMaterial` and `impostorMesh` for the far trees,
+  one camera facing quad a tree from 24 photographs of each variant;
+  `loadAtlases` the leaf, twig and grass cards and the bark.
+- **Determinism**: a variant's shape comes from its own seed
+  (`noise.js` makeRng), never the clock.
+- **Shape**: `crownClumps(variant)` are the spheres a crown is made of, and
+  `CLUMP_REACH` how far a collider sphere reaches past them; the Swiss
+  valley's colliders (`check:colliders`, `check:trees`) and Itaipu's
+  (`itaipu:collide`, `check:itaipu-canopy`) are built from these.
+- **Perf**: `triangles(geometry)`; the Swiss valley and Itaipu views'
+  budget (300 calls, 2.5 M triangles at High).
+- **Golden**: `tests/browser/render-golden/tree-models.js`.
 
 ## Placing an asset on a map
 

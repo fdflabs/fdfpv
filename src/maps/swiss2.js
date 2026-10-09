@@ -66,7 +66,7 @@ import { qualityFor } from '../render/quality.js';
 import { thermalShader } from '../render/thermal.js';
 import { shareInstancedDepth } from '../render/shell.js';
 import { str } from '../strings/index.js';
-import { makeRng } from './alps/noise.js';
+import { makeRng } from '../render/library/noise.js';
 import {
   HALF, CELL, CELLS, groundPaths, buildHeightfield,
 } from './alps/terrain.js';

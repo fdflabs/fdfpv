@@ -41,7 +41,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeRng } from '../../alps/noise.js';
+import { makeRng } from '../../../render/library/noise.js';
 import { frame } from '../buildings/parts.js';
 import { stadel, farmhouse } from '../buildings/houses.js';
 

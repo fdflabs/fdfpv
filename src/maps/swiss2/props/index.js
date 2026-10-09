@@ -81,7 +81,7 @@
  */
 
 import * as THREE from 'three';
-import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
+import { makeRng, noise2, smoothstep } from '../../../render/library/noise.js';
 import {
   HALF, LAKE_Y, LAKE_N, TREE_LINE, forestDensity, valleyAxis,
 } from '../../alps/terrain.js';

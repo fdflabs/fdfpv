@@ -53,7 +53,7 @@ import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
-import { loadAtlases } from './swiss2/vegetation/atlas.js';
+import { loadAtlases } from '../render/library/vegetation/atlas.js';
 import { HALF, PLAY_HALF } from '../share/interior/frame.js';
 import { makeWorld, fetchWorldBytes } from '../share/interior/world.js';
 import { landEdit, PLACES, dirOf } from '../share/interior/places.js';
