@@ -4333,6 +4333,7 @@ export async function boot({
   /* In a room on its watch seat (edge/rooms/core.js watch,
    * docs/FLIGHTCLUB-PROGRESSION.md section 3): the war spectator's camera
    * on whoever flies, its own aircraft never shown or sent. */
+  ui.watching = () => roomWatching();
   function roomWatching() {
     const st = roomLinkState.state();
     return st.phase === 'open' && Boolean(st.welcome && st.welcome.watch) && (mode === 'flight' || mode === 'paused');
@@ -14805,6 +14806,7 @@ export async function boot({
       back: buttons.back,
       alt: input.padAltButton(),
       floats: input.padFloatsButton(),
+      start: input.padStartButton(),
       flip: input.padLookClick(),
       look: input.padLookStick(),
     };
@@ -15127,8 +15129,11 @@ export async function boot({
       if (repeat) {
         return;
       }
+      /* Escape is the pause menu, as for a pilot: leaving is a row in it
+       * (lead 2026-10-09), not one stray key. */
       if (code === 'Escape') {
-        ui.onFriends('friends-leave');
+        ui.act('pause');
+        ui.show('paused');
       } else if (code !== 'KeyR' && code !== 'KeyX' && code !== 'Tab') {
         warWatch(code === 'BracketLeft' ? -1 : 1);
       }
@@ -16479,6 +16484,8 @@ export async function boot({
      * builder is building on the same screen, where Y carries a gate. */
     if (ui.screen === 'flight' && mode !== 'replay' && !(build && build.cameraLive)) {
       ui.pollFlightPad(input.padSwapButtons());
+      /* The menus poll the pad only while one is up, so Start is read here. */
+      ui.pollStart(input.padStartButton());
     }
     if (worldHold && mode === 'title') {
       releaseWorldHold();

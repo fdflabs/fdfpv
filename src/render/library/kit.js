@@ -37,10 +37,10 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { celMaterial } from '../../render/celmat.js';
+import { celMaterial } from '../celmat.js';
 import {
   roofRecord, shedTop, flatTop, pyramidTop, spireCore,
-} from '../../render/library/roofs.js';
+} from './roofs.js';
 
 /* The village's palette: one material per surface colour, shared by every
  * building, so a baked village is one mesh per entry. The boarding runs

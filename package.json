@@ -17,6 +17,7 @@
     "build:flood": "node scripts/run-bash.js scripts/build-flood.sh",
     "gen:baseline": "node tests/gen/gen-baseline.js",
     "serve": "node scripts/serve.js",
+    "sw:check": "node scripts/sw-check.js",
     "rates:selftest": "node scripts/rates-selftest.js",
     "combat:derive": "node scripts/combat-derive.js",
     "combat:gates": "node scripts/combat-gates.js",
@@ -280,6 +281,10 @@
     "strings:selftest": "node scripts/strings-selftest.js",
     "version:check": "node scripts/version-check.js",
     "version:reload": "node scripts/version-reload-check.js",
+    "csp:selftest": "node scripts/csp-selftest.js",
+    "csp:report": "SIM_CSP=report node scripts/csp-sweep.js",
+    "csp:enforce": "SIM_CSP=enforce node scripts/csp-sweep.js",
+    "caddy:headers": "node scripts/caddy-headers-check.js",
     "preview:check": "node scripts/preview-check.js",
     "boot:loader": "node scripts/boot-loader-check.js",
     "waves:selftest": "node scripts/waves-selftest.js",
@@ -324,9 +329,13 @@
     "extra:record": "node scripts/wing-record.js extra",
     "extra:derive": "node scripts/extra-derive.js",
     "extra:owner": "node scripts/extra-owner.js",
+    "nighttimber:gates": "node scripts/nighttimber-gates.js",
+    "nighttimber:record": "node scripts/wing-record.js nighttimber",
+    "nighttimber:derive": "node scripts/nighttimber-derive.js",
     "stab:hold": "node scripts/stab-hold-derive.js --check",
     "as3x:derive": "node scripts/as3x-derive.js --check",
     "hover:probe": "node scripts/hover-probe.js",
+    "spool:derive": "node scripts/spool-derive.js",
     "flightmodel:probe": "node scripts/flightmodel-probe.js",
     "stall:crossing": "node scripts/stall-crossing.js",
     "timber:gates": "node scripts/timber-gates.js",
@@ -522,7 +531,7 @@
     "kits:planes": "node scripts/kits-planes-check.js"
   },
   "dependencies": {
-    "nodemailer": "10.0.14",
-    "ws": "8.21.3"
+    "nodemailer": "10.0.15",
+    "ws": "8.22.0"
   }
 }
