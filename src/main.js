@@ -18114,7 +18114,9 @@ export async function boot({
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
     ui.setStickOverlay({
-      show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+      /* window.__showSticks: a capture's own switch, so a recorded flight
+       * shows the sticks whatever flies it (scripts/hover-video.js). */
+      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
