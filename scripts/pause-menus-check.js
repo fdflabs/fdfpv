@@ -52,6 +52,7 @@ const CASES = [
   { id: 'quad-es', airframe: 'interceptor', lang: 'es' },
   { id: 'plane-en', airframe: 'extra3d1308', lang: 'en' },
   { id: 'plane-es', airframe: 'extra3d1308', lang: 'es' },
+  { id: 'pad-en', airframe: 'interceptor', lang: 'en', pad: true },
   { id: 'phone-es', airframe: 'extra3d1308', lang: 'es', touch: true, width: 390, height: 844 },
 ];
 
@@ -77,7 +78,7 @@ function seed(c) {
     Object.assign(s, ${JSON.stringify(s)});
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s));
     localStorage.setItem('fdfpv.lang', ${JSON.stringify(c.lang)});
-  } catch (e) { /* storage refused */ }`];
+  } catch (e) { /* storage refused */ }`, ...(c.pad ? [PAD] : [])];
 }
 
 /* The rows the page shows for a screen, by their ids: a list nobody draws
@@ -121,6 +122,24 @@ async function openPanel(page, c, rows) {
   await page.tap('Enter');
 }
 
+/* A standard gamepad the page reads through getGamepads; the check
+ * presses its Start (button 9) by flipping the button. */
+const PAD = `(() => {
+  const pad = {
+    id: 'pause check pad (STANDARD GAMEPAD)', index: 0, connected: true, mapping: 'standard', timestamp: 0,
+    axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+  };
+  window.__pad = pad;
+  navigator.getGamepads = () => [pad];
+})();`;
+
+async function pressStart(page) {
+  await page.evaluate('(window.__pad.buttons[9] = { pressed: true, value: 1 }, window.__pad.timestamp += 1, true)');
+  await page.sleep(250);
+  await page.evaluate('(window.__pad.buttons[9] = { pressed: false, value: 0 }, window.__pad.timestamp += 1, true)');
+  await page.sleep(250);
+}
+
 const ROWS = `window.__ui.items().filter((it) => !it.bar).map((it) => ({
   id: it.id, label: it.label, value: it.value ?? null, section: Boolean(it.section), action: it.action ?? null,
 }))`;
@@ -143,11 +162,13 @@ async function runCase(c, record) {
     await page.sleep(800);
     if (c.touch) {
       await page.click('.touch-pause');
+    } else if (c.pad) {
+      await pressStart(page);
     } else {
       await page.tap('Escape');
     }
     const open = await page.until("window.__ui.screen === 'paused'", 5000).then(() => true, () => false);
-    say(open, `${c.touch ? 'the pause button' : 'Escape'} opens the pause menu`);
+    say(open, `${c.touch ? 'the pause button' : c.pad ? 'the pad\'s Start' : 'Escape'} opens the pause menu`);
     if (!open) {
       return;
     }
@@ -159,6 +180,11 @@ async function runCase(c, record) {
     say(await drawn(page, 'paused') === rows.length, 'every pause row is drawn on the page');
     say(rows.length <= FIRST_SCREEN_MAX && !rows.some((r) => r.section), `${rows.length} rows, no group header`);
     await shoot(page, c.id);
+    if (c.pad) {
+      await pressStart(page);
+      say(await page.until("window.__ui.screen === 'flight'", 5000).then(() => true, () => false), 'Start again resumes');
+      return;
+    }
     await page.sleep(300);
     await openPanel(page, c, rows);
     const panel = await page.until("window.__ui.screen === 'quick'", 5000).then(() => true, () => false);

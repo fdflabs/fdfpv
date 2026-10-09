@@ -7206,6 +7206,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -8224,6 +8231,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -9246,6 +9260,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -10266,6 +10287,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -11276,6 +11304,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -12466,6 +12501,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -13482,6 +13524,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrate sticks",
      "note": "Centre, full range, then one named move per stick. Saved after you check it.",
@@ -14476,6 +14525,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controls",
+     "note": "Move the flight keys: reset, unstick, flip, launch, chute, flaps, gear, smoke and the view.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -16895,6 +16951,40 @@
     "|on"
    ],
    "litFromGiven": "|"
+  },
+  "paused-watching": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Resume",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Room",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Settings",
+     "note": "Your radio and keys, screen, sound, language, and help.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Leave the room",
+     "note": "Back to flying on your own.",
+     "action": "friends-leave",
+     "drives": {}
+    }
+   ]
   },
   "paused-plane": {
    "screen": "paused",
@@ -31175,6 +31265,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -32193,6 +32290,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -33215,6 +33319,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -34235,6 +34346,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -35245,6 +35363,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -36435,6 +36560,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -37451,6 +37583,13 @@
      }
     },
     {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
+    },
+    {
      "id": "pilot:a-calibrate",
      "label": "Calibrar sticks",
      "note": "Centro, rango completo, y luego un movimiento indicado por stick. Se guarda después de que lo compruebes.",
@@ -38445,6 +38584,13 @@
        }
       }
      }
+    },
+    {
+     "id": "pilot:a-controls",
+     "label": "Controles",
+     "note": "Cambia las teclas de vuelo: reiniciar, desatascar, voltear, lanzar, paracaídas, flaps, tren, humo y la vista.",
+     "action": "controls",
+     "drives": {}
     },
     {
      "id": "pilot:a-calibrate",
@@ -40864,6 +41010,40 @@
     "|on"
    ],
    "litFromGiven": "|"
+  },
+  "paused-watching": {
+   "screen": "paused",
+   "items": [
+    {
+     "id": "paused:a-resume",
+     "label": "Reanudar",
+     "action": "resume",
+     "primary": true,
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends",
+     "label": "Sala",
+     "value": "OWLS",
+     "note": "Two pilots in the room.",
+     "action": "friends",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-pilot",
+     "label": "Ajustes",
+     "note": "Tu radio y teclas, pantalla, sonido, idioma y ayuda.",
+     "action": "pilot",
+     "drives": {}
+    },
+    {
+     "id": "paused:a-friends-leave",
+     "label": "Salir de la sala",
+     "note": "De vuelta a volar solo.",
+     "action": "friends-leave",
+     "drives": {}
+    }
+   ]
   },
   "paused-plane": {
    "screen": "paused",

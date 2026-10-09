@@ -74,6 +74,7 @@ import {
 } from './settings.js';
 import { VIEW_LABEL } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
+import { controlsRows } from './controls.js';
 /* A cycle: ui.js installs this module. These are read only inside the
  * screen functions, after both modules have run, never at this module's
  * top level. */
@@ -675,6 +676,7 @@ function stickRows(ui, s) {
     { label: str('ui.choose_joystick'), value: using, action: 'choosepad', note: padChooseNote(info) },
     toggle(str('ui.mouse_flight'), str('ui.mouse_flight_note'), s.mouseFlight, (v) => { s.mouseFlight = Boolean(v); }),
     ...mouse,
+    { label: str('keybinds.title'), action: 'controls', note: str('keybinds.open_note') },
     { label: str('ui.calibrate_sticks'), action: 'calibrate', note: str('ui.centre_full_range_then_one_named') },
     {
       label: str('ui.check_sticks'),
@@ -846,12 +848,22 @@ function recordSentence(s, trackName) {
  */
 function pausedRows(ui, s) {
   const af = airframeById(s.airframe);
+  const room = ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it));
+  /* Watching a room flies nothing: no run to restart, no aircraft to tune. */
+  if (ui.watching && ui.watching()) {
+    return [
+      { label: str('ui.resume'), action: 'resume', primary: true },
+      ...room,
+      { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
+      { label: str('ui.quit_to_title'), action: 'title' },
+    ];
+  }
   return [
     { label: str('ui.resume'), action: 'resume', primary: true },
     { label: str('ui.restart_run'), action: 'restart' },
     { label: str('pause.flight'), value: `${af.short}, ${tuneName(s.tune)}`, action: 'quick', note: str('pause.flight_note') },
     { label: str('carousel.change_aircraft'), value: af.short, action: 'hotswap', note: str('carousel.row_note') },
-    ...ui.friendsItems().map((it) => (ui.inRoom && ui.inRoom() ? { ...it, label: str('pause.room') } : it)),
+    ...room,
     { label: str('ui.settings'), action: 'pilot', note: str('pause.settings_note') },
     ...(s.map === 'track' ? [myTracksRow()] : []),
     { label: str('ui.quit_to_title'), action: 'title' },
@@ -1220,6 +1232,7 @@ const SCREENS = {
   results: resultsRows,
   rates: ratesRoomRows,
   pids: pidsRows,
+  controls: controlsRows,
   fc: (ui) => ui.fc.items(),
 };
 

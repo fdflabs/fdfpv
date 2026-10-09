@@ -2,7 +2,7 @@
  * hangar.js: the hangar by the strip and its apron, as a steel portal
  * frame shed is built.
  *
- * alps/kit.js's hangar again, on its plan (24 by 30 m, 5 m to the eaves,
+ * library/kit.js's hangar again, on its plan (24 by 30 m, 5 m to the eaves,
  * the door opening 17 m wide at the +z end), returning its extents, so
  * its collider is the cel one. What it is made of: portal frames of I
  * section steel every five metres, a concrete upstand round the foot of
@@ -34,7 +34,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { roofShell } from '../../alps/kit.js';
+import { roofShell } from '../../../render/library/kit.js';
 import { worldUv } from '../look.js';
 import { frame, box, boxUp, cached, prism, near, detail, plate } from './parts.js';
 

@@ -58,6 +58,7 @@ import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { skyDome } from '../render/scene.js';
 import { attachComposer } from '../render/post.js';
+import { rainBeta } from '../render/rainair.js';
 import { yieldToPaint } from '../ui/loading.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
@@ -176,6 +177,8 @@ export async function buildValley(shell, progress, q, style) {
   progress(0, 'look');
   const stage = await style.stage(shell, q);
   const { scene } = stage;
+  const dryFog = scene.fog ? { near: scene.fog.near, far: scene.fog.far } : null;
+  let fogWet = false;
   progress(0.1, 'terrain');
   await yieldToPaint();
 
@@ -378,6 +381,20 @@ export async function buildValley(shell, progress, q, style) {
      * reset in the map's frame, and the sim clock every drawn frame
      * (src/render/lakewaves.js). probeWater is the drawn surface's height
      * at a point, for the check that it is the plant's. */
+    /* Rain thickens a linear fog by the photo looks' rain extinction
+     * (render/rainair.js): the dry fog's far read as the 5% distance of
+     * an extinction 3 / far, the rain's added to it, near kept in
+     * proportion. 0 puts the stage's own numbers back. A photo look's
+     * compose replaces this with its post chain's. */
+    setWet(wet) {
+      if (!dryFog || (!(wet > 0) && !fogWet)) {
+        return;
+      }
+      fogWet = wet > 0;
+      const far = fogWet ? 3 / (3 / dryFog.far + rainBeta(wet < 1 ? wet : 1)) : dryFog.far;
+      scene.fog.far = far;
+      scene.fog.near = fogWet ? dryFog.near * (far / dryFog.far) : dryFog.near;
+    },
     setWaves(bodies) {
       if (nature.setWaves) {
         nature.setWaves(bodies);

@@ -413,6 +413,14 @@ const PAGES = {
     scroll: true,
     hint: ESC_STORED,
   },
+  controls: {
+    classes: 'screen-page screen-pilot screen-controls',
+    title: 'keybinds.title',
+    lede: ['rates-lede', 'keybinds.lede'],
+    menu: 'controls',
+    scroll: true,
+    hint: ESC_STORED,
+  },
   /* The room's rows are main.js's (friendsRows); the war's lobby sits over
    * them between matches (setWarLobby). */
   friends: {
@@ -759,7 +767,7 @@ function walkScreen(shell) {
  * shows them. */
 const SCREENS = [
   titleScreen,
-  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids'].map(menuPage),
+  ...['howto', 'tricks', 'credits', 'courses', 'freestyle', 'quad', 'pilot', 'friends', 'rooms', 'roomnew', 'standings', 'launch', 'rates', 'pids', 'controls'].map(menuPage),
   fcScreen,
   calibrateScreen,
   padpickScreen,
