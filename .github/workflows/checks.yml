@@ -39,6 +39,7 @@ jobs:
       - run: npm run widgets:golden
       - run: npm run trickslist:golden
       - run: npm run keys:golden
+      - run: npm run keybinds:selftest
       - run: npm run menucontrols:golden
       - run: npm run nav:golden
       - run: npm run uirest:golden
