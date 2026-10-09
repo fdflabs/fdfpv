@@ -202,7 +202,7 @@ static double g_debug[20];
 static double g_fan_n = 0.0;
 static double g_fan_v = 0.0;
 static double g_esc_ramp = 0.0;
-/* An electric prop's speed over its full (prop_spool), and whether the
+/* A prop's speed over its full (prop_spool), and whether the
  * next step takes it at the duty's as a launch does. */
 static double g_prop_n = 0.0;
 static int g_prop_hot = 0;
@@ -751,7 +751,8 @@ void plant_wing_reset(void) {
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
   g_prop_n = 0.0;
-  g_prop_hot = 0;
+  /* A motor is stopped at a reset; an engine is already idling. */
+  g_prop_hot = PLANT.fw->current_full > 0.0 ? 0 : 1;
   g_discus = 0;
   g_discus_t = 0.0;
 }
@@ -797,27 +798,48 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
 }
 
 /*
- * AN ELECTRIC PROP'S SPEED, one step. The rotor, J = j_prop, turns at w
- * under the motor's torque less the prop's: J w' = Kt (d V - Ke w) / R -
- * Q. The table has every figure that takes, at full: the speed, w_f, 0.85
- * of the no load speed (the plant's rule), so the windings drop 0.15 of the
- * pack's V at the full current I_f, R = 0.15 V / I_f; Kt = V / w_nl, so
- * the motor's torque at full is Kt I_f, which is the prop's at full, Q_f =
- * torque_arm thrust_static (the Extra's 0.68 against 0.65 N m); and the
- * prop's torque goes with its speed squared. Over its full speed, n:
+ * A PROP'S SPEED, one step, docs/FLIGHTMODEL.md "A prop spins up". The
+ * rotor, J = j_prop, turns at w under the drive's torque less the prop's,
+ * J w' = Q_drive - Q, and the prop's torque goes with its speed squared,
+ * Q = Q_f n^2, Q_f = torque_arm thrust_static at full. Over the full
+ * speed w_f, n = w / w_f, J w_f n' = Q_drive - Q_f n^2.
+ *
+ * An electric motor (Drela, "First-Order DC Electric Motor Model", MIT
+ * 16.50, 2007: Q = (I - I0) / Kv, I = (V - w / Kv) / R): its torque falls
+ * straight with its speed. The table has every figure that takes: w_f is
+ * 0.85 of the no load speed (the plant's rule), so the circuit (pack, ESC,
+ * windings) drops 0.15 of the pack's V at the full current I_f, R = 0.15 V
+ * / I_f, and the motor's torque at full is Kt I_f, which is the prop's
+ * (the Extra's 0.68 against 0.65 N m). So
  *
  *   J w_f n' = Q_f (K_M (d - n) + d^2 - n^2),   K_M = 0.85 / 0.15
  *
- * which is still n = d at rest, the plant's speed at a duty, and answers
- * a small step with the time constant J w_f / (Q_f (K_M + 2 n)): the
- * Extra's 66 ms at its hover. With the drive off (a flat pack, a cut
- * motor, the chute) only the prop's drag slows it. A launch starts it at
- * the duty. Taken explicitly at the 1 ms step, under a tenth of the least
- * time constant here (scripts/spool-derive.js).
+ * still n = d at rest, the plant's speed at a duty, answering a small step
+ * with J w_f / (Q_f (K_M + 2 n)): the Extra's 66 ms at its hover. The
+ * current a step draws is that R's, up to V / R at a stall; no ESC here
+ * clamps it (none of their listings names a limiter in running).
+ *
+ * A glow or petrol engine (current_full 0): at a fixed throttle its torque
+ * changes slowly with its speed (Heywood, Internal Combustion Engine
+ * Fundamentals, 1988, ch. 2: brake torque against speed), taken as flat, so
+ * the drive is the torque that holds n = d, Q_f d^2, and
+ *
+ *   J w_f n' = Q_f (d^2 - n^2)
+ *
+ * answers a small step with J w_f / (2 Q_f n): with no back EMF to stiffen
+ * it, an engine is several times slower than a motor of its power. The
+ * carburettor's own delay (a few revolutions of mixture) has no source we
+ * found for these engines and is left out. An engine idles from the reset:
+ * it is running when the aircraft is seated.
+ *
+ * With the drive off (a flat pack, a cut motor, the chute, a dead engine)
+ * only the prop's drag slows it. A launch starts it at the duty. Taken
+ * explicitly at the 1 ms step, under a tenth of the least time constant
+ * here (scripts/spool-derive.js).
  */
 #define PROP_K_M (0.85 / 0.15)
 static int prop_spools(const FixedWingParams *fw) {
-  return fw->j_prop > 0.0 && fw->current_full > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
+  return fw->j_prop > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
 }
 
 static double prop_spool(const FixedWingParams *fw, double de, int off) {
@@ -828,7 +850,8 @@ static double prop_spool(const FixedWingParams *fw, double de, int off) {
   const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
   const double q_f = fw->torque_arm * fw->thrust_static;
   const double n = g_prop_n;
-  const double drive = off ? 0.0 : PROP_K_M * (de - n) + de * de;
+  const double electric = fw->current_full > 0.0 ? PROP_K_M * (de - n) : 0.0;
+  const double drive = off ? 0.0 : electric + de * de;
   g_prop_n = n + SIM_DT * q_f * (drive - n * n) / (fw->j_prop * w_f);
   if (g_prop_n < 0.0) {
     g_prop_n = 0.0;
