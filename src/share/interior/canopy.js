@@ -55,6 +55,9 @@ import { LAND } from './world.js';
 import { PLACES, opened } from './places.js';
 import { RIVER, STREAMS } from './hydro.js';
 import { ROUTES } from './routes.js';
+import { hash01 } from '../../render/library/hash.js';
+
+export { hash01 };
 
 /* One tree a square this size at most, metres: a semi deciduous forest's
  * crowns are 5 to 11 m across. */
@@ -165,15 +168,6 @@ DENSITY[LAND.wetland] = 0.05;
 DENSITY[LAND.bare] = 0.004;
 DENSITY[LAND.built] = 0.05;
 DENSITY[LAND.burned] = 0;
-
-/* An integer hash of a square and a salt, as a number in [0, 1). */
-export function hash01(i, j, salt) {
-  let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1) ^ Math.imul(salt | 0, 0x9e3779b1);
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
 
 /* Value noise in [0, 1) on a lattice `cell` metres apart, smoothstepped.
  * Exported for the drawing's stands of one tone (trees.js). */
