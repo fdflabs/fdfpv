@@ -1188,7 +1188,7 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
       bad.push(`${label}: ended ${end.state} ${end.why}`);
     }
     const said = g.cues.filter((c) => c.radio).map((c) => c.radio);
-    const want = ['itaipu-2-s1-eyes', 'itaipu-2-s1-high', 'itaipu-2-s2-wakes', 'itaipu-2-s2-fast', 'itaipu-2-s3-open', ...TWIST[twist] ?? [], 'itaipu-2-s4-all', 'itaipu-2-s4-order'];
+    const want = ['itaipu-2-g-gates', 'itaipu-2-s1-eyes', 'itaipu-2-s1-high', 'itaipu-2-g-channel', 'itaipu-2-s2-wakes', 'itaipu-2-s2-fast', 'itaipu-2-s3-open', 'itaipu-2-g-spill', ...TWIST[twist] ?? [], 'itaipu-2-s4-all', 'itaipu-2-s4-order', 'itaipu-2-g-working'];
     const missing = want.filter((id) => !said.includes(id));
     if (missing.length) {
       bad.push(`${label}: never said ${missing.join(',')}`);
@@ -1224,7 +1224,7 @@ console.log('the Spillway (itaipu-2), flown on the room by bot squads');
   console.log(`    ${order.join('\n    ')}`);
   check('ten games, 1 and 4 good pilots: High Water, The Channel, one twist of Open the Gates, Hold the River, and won', bad.filter((x) => /stages|ended/.test(x)).length === 0,
     bad.filter((x) => /stages|ended/.test(x)).join(' | '));
-  check('every stage\'s story said: the scout, the Loiterers, the wakes, the Strikers, the gates opening, the twist\'s two lines and no other twist\'s, the convergence and its order',
+  check('every stage\'s story and guide said: each objective\'s guide line, the scout, the Loiterers, the wakes, the Strikers, the gates opening, the twist\'s two lines and no other twist\'s, the convergence and its order',
     bad.filter((x) => /said/.test(x)).length === 0, bad.filter((x) => /said/.test(x)).join(' | '));
   check('the hold hoists every working gate from its start toward its opening, and settles held (its half said) or failed',
     bad.filter((x) => /hold/.test(x)).length === 0, bad.filter((x) => /hold/.test(x)).join(' | '));
