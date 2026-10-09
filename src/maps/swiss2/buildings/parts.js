@@ -1,7 +1,7 @@
 /*
  * parts.js: what a Bernese Oberland house is made of, piece by piece.
  *
- * Each piece writes into a frame (alps/kit.js's frame: x across, y up,
+ * Each piece writes into a frame (library/kit.js's frame: x across, y up,
  * z out of a wall) under the house's own keys. Anything that casts a
  * shadow worth having at twenty metres is geometry: the roof's thick
  * edges, the purlin ends and their brackets, the rafter tails, the log
@@ -33,7 +33,7 @@
 import * as THREE from 'three';
 import {
   frame, box, boxUp, cached, polySolid, prism, roofShell, gableProfile, SOCLE,
-} from '../../alps/kit.js';
+} from '../../../render/library/kit.js';
 import { gableTop } from '../../../render/library/roofs.js';
 
 export { frame, box, boxUp, cached, prism, SOCLE };
@@ -555,7 +555,7 @@ export function frieze(wall, len, y, key = 'frieze') {
 }
 
 /*
- * A roof, dressed. The shell is alps/kit.js's roofShell, so the eaves,
+ * A roof, dressed. The shell is library/kit.js's roofShell, so the eaves,
  * the ridge and the house's height are what the cel village has; on it
  * go thick fascia and verge boards in the house's timber, a lip where the
  * first course overhangs the eave, the ridge cap, rafter tails under the
@@ -735,7 +735,7 @@ function cutAt(t, c) {
 
 /*
  * The upper storeys of a timber house: the log walls as one solid whose
- * profile closes the gable under the roof (alps/kit.js's shape, so the
+ * profile closes the gable under the roof (library/kit.js's shape, so the
  * house is as tall as the cel one), vertical boarding over the gable, the
  * roof and its dressing, and the chimney.
  */

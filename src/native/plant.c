@@ -1589,6 +1589,60 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.302, 0.0, -0.1651 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * E-flite's Night Timber X 1.2m, docs/NIGHTTIMBER-STAGE1.md: 1698 g on the
+ * suggested 4S 2200 (the manual's 57 to 60 oz, the 3S and the 4S), a
+ * 13 x 4 0.308 m ahead of the CG on a thrust line through it. The hull is
+ * only what a crash lands on: the belly 0.10 m under the CG, the wing's
+ * top 0.10 m over it, the half span wide. The camera sits on the cabin's
+ * roof at the windscreen.
+ */
+[SIM_AIRFRAME_NIGHTTIMBER1200] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 1.698,
+  .inertia = { 0.0714, 0.0845, 0.1372 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  .r_cell = 0.008,
+  /* The suggested Spektrum 4S 2200; the Avian 60 A cuts at 3.0 V a cell. */
+  .pack_c = 2200.0 * 3.6,
+  .lvc = 3.0,
+  .rho = 1.225,
+  .prop_r = 0.1651,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.308, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.34,
+  .hull_hy = 0.600,
+  .hull_hz_down = 0.10,
+  .hull_hz_up = 0.10,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.72,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.10,
+  .camera_y = 0.0,
+  .camera_z = 0.06,
+  .fw = &FW_NIGHTTIMBER1200,
+  /*
+   * The gear off E-flite's side and front photographs
+   * (scripts/nighttimber-derive.js): the main axles 0.146 m ahead of the
+   * CG and 0.213 m under it on a 0.285 m track with 113 mm tundra tyres,
+   * the tailwheel's axle 0.630 m behind and 0.192 m under with a 29 mm
+   * wheel. Each axle is lowered by its 5 mm of static deflection, so the
+   * plant settles onto the photographed pose: 4.5 deg nose up, the CG
+   * 0.256 m over the grass, 21.5 percent of the weight on the tail.
+   * Stiffness for that, damping at 0.6 of critical. The tailwheel steers
+   * off the rudder through its springs as the Extra's does.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.1464, 0.1425, -0.2180 }, .r = 0.0565, .k = 1308.0, .c = 39.99, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.1464, -0.1425, -0.2180 }, .r = 0.0565, .k = 1308.0, .c = 39.99, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.6296, 0.0, -0.1970 }, .r = 0.0145, .k = 715.0, .c = 14.97, .mu_roll = 0.08, .mu_side = 0.60, .steer = 0.45, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1651 m under the hub on the thrust
+     * line through the CG. */
+    { .pos = { 0.308, 0.0, -0.1651 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 
 };
 

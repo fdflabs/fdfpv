@@ -40,7 +40,7 @@
  */
 
 import * as THREE from 'three';
-import { roofShell } from '../../alps/kit.js';
+import { roofShell } from '../../../render/library/kit.js';
 import { liftLine, STATION_H } from '../../alps/lift.js';
 import {
   frame, box, boxUp, cached, prism, plate, dressRoof,
