@@ -107,7 +107,13 @@ async function openShell(context, origin, url, errors) {
 async function run(engineName, origin, roomsOrigin) {
   console.log(`${engineName}`);
   /* Chromium is the control: the same Chrome every other check drives. */
-  const options = engineName === 'chromium' ? { executablePath: findChrome(), args: CHROME_GL } : {};
+  const options = {
+    chromium: { executablePath: findChrome(), args: CHROME_GL },
+    /* A CI runner has no GPU, and Firefox refuses software WebGL unless told
+     * (the first CI run: "WebGL creation failed"); Mesa's llvmpipe draws. */
+    firefox: { firefoxUserPrefs: { 'webgl.force-enabled': true } },
+    webkit: {},
+  }[engineName];
   let browser;
   try {
     browser = await ENGINES[engineName].launch({ headless: true, ...options });
