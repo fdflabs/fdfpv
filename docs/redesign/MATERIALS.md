@@ -55,9 +55,11 @@ two ids to FINISHES and SHOP_FINISHES and two ITEMS. So:
   entry with every pre-existing finish, a new entry with the new ids
   through encodeLivery/readCode) and checks that a finish a client does
   not know is counted as dropped, which is what an older client does.
-- **The shop:** `finish:flake` 800 tokens (above candy, the dearest paint),
-  `finish:brushed` 400. Lead decision, reversible; the owner may move the
-  prices. The server's wallet reads ITEMS, so buying them **needs a VM
+- **The shop:** `finish:flake` 500 tokens, `finish:brushed` 400. Lead
+  decision 2026-10-09, reversible; the owner may move the prices. They are
+  set so the whole shop (4120) stays under what a pilot who flies
+  everything once is paid (4140, economy-selftest); the next priced item
+  needs earnings raised or prices rebalanced. The server's wallet reads ITEMS, so buying them **needs a VM
   deploy** of tracks-api.
 
 ## 4. Rooms and replays
