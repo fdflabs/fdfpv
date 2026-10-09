@@ -41,7 +41,7 @@
  */
 
 import * as THREE from 'three';
-import { noise2 } from '../../alps/noise.js';
+import { noise2 } from '../../../render/library/noise.js';
 import { valleyAxis } from '../../alps/terrain.js';
 import { ROAD_DX, ROAD_END, STREET_Z } from '../vegetation/zones.js';
 import { UP, box, shade } from './mesh.js';

@@ -29,7 +29,7 @@
 
 import * as THREE from 'three';
 import { cyl, roofShell, gableProfile } from '../../alps/kit.js';
-import { shedTop } from '../../alps/roofs.js';
+import { shedTop } from '../../../render/library/roofs.js';
 import {
   box, boxUp, cached, near, detail, blob, plate, own, frame, prism, bloomShade, leafShade, casement, dressRoof,
 } from '../buildings/parts.js';
@@ -596,7 +596,7 @@ export function outbuilding(f, { kind, w, d, h, wall, roofKey }) {
     const slope = Math.atan2(back - h, d);
     const len = Math.hypot(d, back - h) + 0.7;
     f.put(roofKey, box(w + 0.5, 0.08, len), 0, (back + h) / 2 + 0.05, 0.1, 0, slope);
-    /* The tin is ground over its walls and its wood (alps/roofs.js), in
+    /* The tin is ground over its walls and its wood (library/roofs.js), in
      * a frame at the slab's middle turned so +x runs down to the front. */
     const run = (len / 2) * Math.cos(slope);
     const mid = (back - h) / 2 + 0.05 + 0.04 / Math.cos(slope);

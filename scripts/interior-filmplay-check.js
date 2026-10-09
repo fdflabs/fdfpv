@@ -154,6 +154,8 @@ try {
   await page.sleep(2500);
   const cut = await page.evaluate(`(() => { const f = ${FILM}; return f ? { for: f.for, map: f.map, ms: f.ms } : null; })()`);
   check('spotted: the screen cuts to the end scene over the Interior', cut && cut.for === 'ops:spotted' && cut.map === 'interior', JSON.stringify(cut));
+  const looks = (await page.evaluate('window.__ops.drawn()')).looks;
+  check('the people are drawn in the world the cut looks at', looks.includes('pair-a:person') && looks.includes('pair-b:person'), JSON.stringify(looks));
   await shot('spotted-cut.png');
   await page.until(`!${FILM}`, 15000).catch(() => {});
   check('the end scene ends on its own after the scene\'s seconds', !(await page.evaluate(FILM)));

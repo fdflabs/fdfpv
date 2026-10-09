@@ -96,8 +96,9 @@ export function qualityFor(id) {
   return PRESETS[normalizeGraphics(id)];
 }
 
+/* The table's name is the id in English; the row shows the pilot's language. */
 export function graphicsLabel(id) {
-  return qualityFor(id).name;
+  return str(`quality.name_${normalizeGraphics(id)}`);
 }
 
 export function graphicsNote(id) {
