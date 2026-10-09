@@ -175,6 +175,7 @@ jobs:
       - run: npm run tigermoth:stab
       - run: npm run extra:gates
       - run: npm run extra:stab
+      - run: npm run nighttimber:gates
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run touchsticks:selftest
