@@ -33,9 +33,10 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { openPage, keyInfo } from '../tests/lib/page.js';
 import {
-  ROOMS, LAYOUTS, WALK_SPEED, occupancy, blocked, cellAt, cellCentre,
+  ROOMS, LAYOUTS, CELL, WALK_SPEED, TIER_LEVELS, tierFor, occupancy, blocked, cellAt, cellCentre,
 } from '../src/game/hangarroom.js';
 import en from '../src/strings/en.js';
+import { levelOf, LEVEL_XP } from '../src/game/progress.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const out = process.argv[2] || join(tmpdir(), 'hangar-walk-check');
@@ -132,8 +133,9 @@ async function walkTo(room, occ, target) {
 
 /* Every steering step, written to OUT_DIR for when a walk falls short. */
 const trace = [];
-const room = ROOMS.garage;
-const occ = occupancy(room, LAYOUTS.garage);
+/* The main room is as big as the pilot's level: read off the shell. */
+let room = null;
+let occ = null;
 const fieldRoom = ROOMS.field;
 const fieldOcc = occupancy(fieldRoom, LAYOUTS.field);
 
@@ -151,7 +153,14 @@ try {
   await page.sleep(800);
   await shot('01-door');
   let s = await stats();
-  check('in the garage corner at the door', s.tier === 'garage' && s.pose.z > 0.9, JSON.stringify(s.pose));
+  const xp = await page.evaluate('window.__ui.progress.state.xp');
+  const unlockAll = await page.evaluate('Boolean(window.__ui.progress.state.unlockAll)');
+  const want = tierFor(levelOf(xp), unlockAll);
+  check('the main room is the size the pilot\'s level opened', s.tier === want, `${s.tier} at ${xp} XP, unlock all ${unlockAll}, want ${want}`);
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  check('at the door', s.pose.z > (room.d * CELL) / 2 - 1.5, JSON.stringify(s.pose));
+  check('at the door the camera stands well back, out of the open door', s.view.camBack > 2.5, `${s.view.camBack.toFixed(2)} m behind`);
   const legend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
   check('the command bar names the walk keys', legend.includes(en['walk.walk']) && legend.includes(en['walk.use']), JSON.stringify(legend));
 
@@ -186,6 +195,35 @@ try {
   await page.sleep(500);
   await shot('02-orbit');
 
+  /* Photo mode: P, a drag and the wheel aim, Space and the command bar's
+   * Take keep a picture for the photo wall. */
+  const photos = () => page.evaluate("import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length)");
+  const before = await photos();
+  await page.tap('KeyP');
+  await page.until('Boolean(window.__ui.walk.photo)', 5000);
+  const photoLegend = await page.evaluate("document.querySelector('.frame-legend')?.textContent || ''");
+  check('P turns photo mode on and the command bar says Take', photoLegend.includes(en['walk.photo_take']), JSON.stringify(photoLegend));
+  const p0 = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.walk.photo))');
+  for (const [type, x] of [['mouseMoved', 700], ['mousePressed', 700], ['mouseMoved', 760], ['mouseReleased', 760]]) {
+    await page.cdp.send('Input.dispatchMouseEvent', { type, x, y: 400, button: 'left', clickCount: 1 }, page.sessionId);
+  }
+  await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 800, y: 400, deltaX: 0, deltaY: -200 }, page.sessionId);
+  const p1 = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.walk.photo))');
+  check('a drag turns round the stand and the wheel zooms', p1.yaw !== p0.yaw && p1.zoom < p0.zoom, `yaw ${p0.yaw.toFixed(2)} -> ${p1.yaw.toFixed(2)}, zoom ${p0.zoom} -> ${p1.zoom.toFixed(2)}`);
+  await page.sleep(400);
+  await shot('02b-photo-mode');
+  await page.tap('Space');
+  await page.until(`import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length === ${before + 1})`, 15000).then(() => true, () => false);
+  check('Space keeps a picture', (await photos()) === before + 1, `${before} -> ${await photos()}`);
+  check('the Take button, clicked', await page.click('.frame-legend .legend-act[data-action="walk-photo-take"]'), 'clicked');
+  await page.until(`import('/src/ui/photostore.js').then((m) => m.listPhotos()).then((r) => r.length === ${before + 2})`, 15000).then(() => true, () => false);
+  check('and so does the Take button', (await photos()) === before + 2, `${await photos()}`);
+  await page.tap('KeyP');
+  await page.until('!window.__ui.walk.photo', 5000);
+  await page.until(`window.__walkStats().view.photos === ${Math.min(6, before + 2)}`, 10000).then(() => true, () => false);
+  const wall = (await stats()).view.photos;
+  check('P again leaves photo mode, and the photo wall shows the pictures', wall === Math.min(6, before + 2), `${wall} on the wall`);
+
   const view = (await stats()).view;
   console.log(`room in the real shell: ${view.calls} draw calls, ${view.triangles} triangles`);
   check('the room draws within the High budget\'s calls in the shell', view.calls <= 70, `${view.calls} calls`);
@@ -195,6 +233,8 @@ try {
     stand: { label: en['walk.stand'], open: 'window.__ui.carousel.isOpen' },
     bench: { label: en['walk.bench'], open: 'window.__ui.hangar.isOpen' },
     shelf: { label: en['walk.shelf'], open: 'window.__ui.hangar.isOpen' },
+    shop: { label: en['walk.shop'], open: "window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'shop'" },
+    trophies: { label: en['walk.trophies'], open: "window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'challenges'" },
   };
   for (const st of s.stations.filter((x) => opens[x.id])) {
     const want = opens[st.id];
@@ -230,6 +270,8 @@ try {
   await page.sleep(800);
   s = await stats();
   check('in the field hangar, not the main one', s.tier === 'field', s.tier);
+  const crumb = await page.evaluate("document.querySelector('.frame-crumb, .crumb')?.textContent || ''");
+  check('the breadcrumb says Operations / Field hangar', crumb.includes(en['hub.ops']) && crumb.includes(en['walk.field']) && !crumb.includes(en['walk.card']), JSON.stringify(crumb));
   await shot('06-field-door');
   const fieldDoor = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
   check('field: its door goes to the front, not to free flight', fieldDoor === null || (fieldDoor.includes(en['walk.door_war']) && !fieldDoor.includes(en['walk.door'])), JSON.stringify(fieldDoor));
@@ -247,11 +289,20 @@ try {
 
   await page.evaluate('window.__ui.hub = null; window.__ui.renderMenu(); true');
   await page.sleep(300);
+  /* A pilot who has flown to the workshop's level walks into the
+   * workshop: progress as flying leaves it, set in place. */
+  await page.evaluate(`(() => { const p = window.__ui.progress.state; p.unlockAll = false; p.xp = ${LEVEL_XP[TIER_LEVELS.workshop - 1]};
+    p.firsts = { 'mission:m1:win': true, 'mission:m1:star1': true, 'aircraft:timber1500:flight': true, 'lesson:hover': true, 'aircraft:cub1400:ten': false }; return true; })()`);
   check('the Hangar hub card clicked again', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
   await page.until("window.__ui.hub === 'hangar'", 10000);
   check('Walk in again', await page.click(walkCard), 'clicked');
   await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
   s = await stats();
+  check('at the workshop\'s level the room is the workshop', s.tier === 'workshop', s.tier);
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  await shot('05-workshop');
+  check('the trophy wall holds one trophy per first paid, none for one unpaid', s.view.trophies === 4, `${s.view.trophies} trophies`);
   const door = s.stations.find((x) => x.id === 'door');
   s = await walkTo(room, occ, door);
   await page.sleep(200);
@@ -262,6 +313,52 @@ try {
   await page.until("window.__ui.screen !== 'walk'", 15000).then(() => true, () => false);
   const after = await page.evaluate('window.__ui.screen');
   check('door: E flies (the launch card or the flight)', after === 'launch' || after === 'flight', after);
+
+  /* The TV: a clip of this flight saved to My clips (as Save does, from
+   * the replay's own clip), then the TV plays it and leaving the replay
+   * is the hangar again. */
+  if (after === 'launch') {
+    await page.tap('Enter');
+  }
+  await page.until("window.__ui.screen === 'flight'", 60000);
+  await page.sleep(3000);
+  await page.tap('KeyV');
+  await page.until('window.__crashCam.live()', 15000);
+  const saved = await page.evaluate(`(async () => {
+    const { encodeReplay } = await import('/src/replay/file.js');
+    const store = await import('/src/replay/store.js');
+    const clip = window.__crashCam.h().clip();
+    const id = store.newId();
+    await store.putClip({ id, name: 'tv', created: Date.now(), thumb: null, bytes: encodeReplay(clip), airframe: clip.meta.airframe, map: clip.meta.map, duration: clip.time[clip.n - 1] });
+    return id;
+  })()`);
+  await page.tap('Escape');
+  await page.until('!window.__crashCam.live()', 15000);
+  await page.evaluate("window.__ui.act('pause'); window.__ui.show('paused'); window.__ui.act('title'); window.__ui.hub = null; window.__ui.renderMenu(); true");
+  await page.until("window.__ui.screen === 'title'", 20000);
+  await page.sleep(500);
+  check('back on the hub, the Hangar hub card clicked', await page.click('.gate-card.gate-card-hub-hangar'), 'clicked');
+  await page.until("window.__ui.hub === 'hangar'", 10000);
+  check('Walk in, with a clip saved', await page.click(walkCard), 'clicked');
+  await need("window.__ui.screen === 'walk' && window.__walkStats() && window.__walkStats().view", 20000);
+  s = await stats();
+  room = ROOMS[s.tier];
+  occ = occupancy(room, LAYOUTS[s.tier]);
+  const tv = s.stations.find((x) => x.id === 'tv');
+  s = await walkTo(room, occ, tv);
+  await page.sleep(300);
+  const tvPrompt = await page.evaluate("document.querySelector('.walk-prompt').hidden ? null : document.querySelector('.walk-prompt').textContent");
+  check('tv: its prompt says Replays once there is a clip', Boolean(tvPrompt) && tvPrompt.includes(en['walk.tv']), `${JSON.stringify(tvPrompt)} (clip ${saved})`);
+  await shot('08-tv');
+  await page.tap('KeyE');
+  const played = await page.until('window.__crashCam.live()', 30000).then(() => true, () => false);
+  check('tv: E plays the newest clip in the replay viewer', played, String(played));
+  await page.sleep(1500);
+  await shot('09-tv-replay');
+  check('tv: the replay draws the world, not the room over it', (await page.evaluate('window.__walkStats().view')) === null, 'room view let go');
+  await page.tap('Escape');
+  await page.until("!window.__crashCam.live() && window.__ui.screen === 'walk'", 20000).then(() => true, () => false);
+  check('tv: leaving the replay is the hangar again', await page.evaluate("window.__ui.screen === 'walk' && Boolean(window.__walkStats())"), await page.evaluate('window.__ui.screen'));
   /* A refused connection is a rooms or board server this check does not
    * start; anything else is the page's. */
   const errors = page.errors.filter((e) => !e.startsWith('network:'));

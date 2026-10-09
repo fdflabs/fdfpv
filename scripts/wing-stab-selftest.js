@@ -155,7 +155,7 @@ function throwHigh() {
   must(sim.e.sim_wing_launch(16), 'launch');
 }
 
-check('a mode past acro is refused', sim.e.sim_wing_set_stab(3) !== SIM_OK && sim.e.sim_wing_stab() === 1);
+check('a mode past the rate damper, 3, is refused', sim.e.sim_wing_set_stab(4) !== SIM_OK && sim.e.sim_wing_stab() === 1);
 must(sim.e.sim_wing_set_stab(2), 'set acro');
 check('acro is mode 2', sim.e.sim_wing_stab() === 2);
 

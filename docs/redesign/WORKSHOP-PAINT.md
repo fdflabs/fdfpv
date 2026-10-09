@@ -60,9 +60,15 @@ Most of item 23 is built and live. The plan listed it as new; it is not.
    pass as 3, in the aircraft's own coordinates so every machine, peer and
    replay draws the same. Kept in the livery entry, so codes, saved
    liveries and the sync carry it with no new section.
-8. **Swatch library**: the pilot's own colours, up to 16, kept in settings
-   and synced as a new keyed section. Changes stored player data, so it
-   comes with a versioned migration and a check that seeds old data.
+8. **Swatch library**: the pilot's own colours, up to 16, newest first,
+   under "My colours" on the Colours tab with Keep / Forget for the colour
+   on show. Kept in settings as `swatches: { list }`, written at once, and
+   synced as a `whole` section (the newer library wins). Older settings
+   have no key and read as the empty library; anything malformed does too
+   (paint:selftest). There is no save envelope with a version number yet
+   (COMPLETENESS phase 19, src/share/save.js, is planned), so the
+   migration is the load time normalisation every settings key has.
+   Needs a VM deploy for the account server to keep the new section.
 
 ## 3. Data shapes
 

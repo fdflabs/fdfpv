@@ -63,6 +63,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial, outlineHull } from './celmat.js';
 import { WORLD_SCALE } from './frame.js';
 import { paintRegions } from './livery.js';
+import { profileBands } from './kitshapes.js';
 
 /*
  * The side view's scale: 1,755 pixels at 300 dpi from the spinner's tip
@@ -747,7 +748,13 @@ export function buildP51Craft(opts = {}) {
   const black = coat.base('stripe', cel({ color: 0x17191b, rim: 0.30, spec: 0.35, specWidth: 0.016, specColor: 0xd8e0e8 }));
   const tyre = cel({ color: 0x1b1c1e, rim: 0.26, spec: 0.20, specWidth: 0.012 });
   const strut = cel({ color: 0xd4d7da, rim: 0.30, spec: 0.90, specWidth: 0.024 });
-  const glass = cel({ color: 0x7f97a6, rim: 0.42, spec: 0.70, specWidth: 0.020, specColor: 0xf3ead4 });
+  /* The visual kit (configs/kits.js kitParts): pixels only, drawn inside
+   * the stock model's box, which is what configs/hulls.js is made from.
+   * The glass is not a paint region, so a smoked tint is its own colour. */
+  const kit = opts.kit ?? {};
+  const glass = kit.canopy === 'smoke'
+    ? cel({ color: 0x3a4650, rim: 0.42, spec: 0.80, specWidth: 0.020, specColor: 0xf3ead4 })
+    : cel({ color: 0x7f97a6, rim: 0.42, spec: 0.70, specWidth: 0.020, specColor: 0xf3ead4 });
   const frame = cel({ color: 0x3c4146, rim: 0.26, spec: 0.40 });
   const stator = cel({ color: 0x2a2c2e, rim: 0.24, spec: 0.20 });
   const camBody = cel({ color: 0x141c16, rim: 0.26, spec: 0.35 });
@@ -867,6 +874,14 @@ export function buildP51Craft(opts = {}) {
   {
     const parts = [];
     for (const sign of [-1, 1]) {
+      /* A kit's flame dampers: one shroud along each row in place of the
+       * six stacks, the night fighters' fit, no further out than they. */
+      if (kit.exhausts === 'dampers') {
+        const a = fusePoint(PS(300) - 0.004, sign * Math.PI * 0.40, 0.005);
+        const b = fusePoint(PS(300) + 5 * 0.022 + 0.012, sign * Math.PI * 0.40, 0.005);
+        parts.push(rod(a, b, 0.0050, 8));
+        continue;
+      }
       for (let i = 0; i < 6; i += 1) {
         const s0 = PS(300) + i * 0.022;
         const p = fusePoint(s0, sign * Math.PI * 0.40, 0.002);
@@ -934,6 +949,16 @@ export function buildP51Craft(opts = {}) {
     wheel.name = `tyre-main-${sign < 0 ? 'left' : 'right'}`;
     wheel.castShadow = shade;
     pivot.add(wheel);
+    /* A kit's covered wheels: a polished disc over each face of the hub,
+     * inside the tyre's width. */
+    if (kit.wheels === 'covered') {
+      const cover = new THREE.CylinderGeometry(MAIN_R - 0.011, MAIN_R - 0.011, MAIN_W * 0.96, lite ? 12 : 20);
+      cover.rotateZ(Math.PI / 2);
+      cover.translate(axle.x, axle.y, axle.z);
+      const coverMesh = new THREE.Mesh(cover, strut);
+      coverMesh.castShadow = shade;
+      pivot.add(coverMesh);
+    }
     return { pivot, axis: new THREE.Vector3(0, 0, 1), sign };
   };
   const leftGear = mainLeg(-1);
@@ -1049,7 +1074,22 @@ export function buildP51Craft(opts = {}) {
       const r = Math.max(0.0012, SPINNER_R * Math.sqrt(1 - u * u));
       prof.push(new THREE.Vector2(r, back + (len - back) * (0.15 + 0.85 * u * u) * 0.999));
     }
-    const spinner = new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 12 : 20), red);
+    /* A kit's spinner: the stock shape cut into bands, the front half
+     * black for two tone, a yellow ring round the red for striped. */
+    const y = (f) => back + (len - back) * f;
+    const bands = {
+      twotone: [[y(0.55)], [red, black]],
+      striped: [[y(0.30), y(0.42)], [red, tipYellow, red]],
+    }[kit.spinner];
+    const spinner = bands ? new THREE.Group() : new THREE.Mesh(new THREE.LatheGeometry(prof, lite ? 12 : 20), red);
+    if (bands) {
+      profileBands(prof, bands[0]).forEach((band, i) => {
+        const piece = new THREE.Mesh(new THREE.LatheGeometry(band, lite ? 12 : 20), bands[1][i]);
+        piece.name = 'spinner';
+        piece.castShadow = shade;
+        spinner.add(piece);
+      });
+    }
     spinner.name = 'spinner';
     spinner.castShadow = shade;
     propMount.add(spinner);

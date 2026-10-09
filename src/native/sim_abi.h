@@ -584,7 +584,9 @@ double sim_boost(void);
  * sim_wing_set_stab(mode), sim_wing_stab(): the stabiliser, 0 Manual (the
  * sticks are the surfaces), 1 Stabilised (roll and pitch stick ask for a
  * bank and a pitch, centred flies level), 2 Acro (sticks ask for a roll
- * and pitch rate, centred holds the attitude). With a rudder, the yaw
+ * and pitch rate, centred holds the attitude), 3 Rate damped (the sticks
+ * are the surfaces, less a damper on the body's rates, as E-flite's AS3X;
+ * Manual on an aircraft without one). With a rudder, the yaw
  * stick is the rudder in every mode, and in 1 and 2 a turn coordinator
  * adds the rudder that keeps a banked turn from slipping. A mode, kept
  * across resets.
@@ -673,6 +675,22 @@ double sim_air_lift(double x, double y, double z);
  */
 int sim_set_wind(double vx, double vy, double gust);
 int sim_wind(double *out);
+
+/*
+ * VERTICAL AIR. sim_set_air_vertical(w): the air's vertical velocity at the
+ * craft, m/s, up positive, -10 to 10: a thermal's rise, a ridge's or a
+ * dam face's lift, the sink beside them. The host reads it off its weather
+ * at the craft's position and sets it each step it changes; the plant has
+ * no position of its own for it. Every airframe flies through it as it
+ * flies through sim_set_wind's, a plane's aerodynamics, a quad's rotors and
+ * drag, the free parts; on top of the Radian's own three thermals
+ * (sim_air_lift). A world property like the wind, kept across sim_reset
+ * and sim_init. 0, the default, is still air and no step reads it, so
+ * every flight that never sets it is bit identical to one from before it
+ * existed. SIM_ERR_BAD_ARG for a non finite value or one out of range.
+ * Additive, version unchanged.
+ */
+int sim_set_air_vertical(double w);
 
 /*
  * BRAKE. sim_set_brake(b): the wheel brake, 0 off to 1 full, on the main

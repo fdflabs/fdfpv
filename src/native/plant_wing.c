@@ -234,11 +234,13 @@ void plant_wing_biplane(double out[4]) {
 
 /* The share of a prop's swirl that reaches the fin past the wing's root,
  * the rest turned straight by the root (plant_wing_step, the slipstream).
- * FITTED: no published figure gives it for a model; the literature says
- * only that the wing recovers a significant part (Veldhuis 2005). Half,
- * the middle of what is unknown, and docs/FLIGHTMODEL.md has what the
- * take off roll does at a quarter and at all of it. */
-#define SWIRL_KEEP 0.5
+ * Selig (AIAA 2010-7938, sec. B): on "a typical aerobatic RC/UAV
+ * configuration capable of hover, the net right rolling moment" of the
+ * swirl "is near 40% of the propeller torque". On the Extra 300 3D at its
+ * hover the root's (1 - K) Q and the fin's roll make 0.40 Q at K = 0.743
+ * (scripts/extra-derive.js); the fuselage's coil, which Selig counts, is in
+ * the root's share. docs/FLIGHTMODEL.md. */
+#define SWIRL_KEEP 0.74
 
 /* The slipstream as the last step took it (FixedWingParams.slip_r): its
  * roll, pitch and yaw moments in the body frame as they were added, the
@@ -280,6 +282,13 @@ static void wquat_rotate(const double q[4], const double v[3], double out[3]) {
 static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]) {
   const double qc[4] = { q[0], -q[1], -q[2], -q[3] };
   wquat_rotate(qc, v, out);
+}
+
+/* AS3X's share of its gain at a stick, Spektrum's priority 160. */
+#define AS3X_PRIORITY 1.6
+static double as3x_priority(double stick) {
+  const double g = 1.0 - AS3X_PRIORITY * sim_fabs(stick);
+  return g > 0.0 ? g : 0.0;
 }
 
 /* Stick to surface: full travel at full stick, with expo, clipped. */
@@ -630,11 +639,15 @@ static const double GUST_PY[GUST_N] = { 2.9106, 0.5106, 4.3939, 1.9939, 5.8771, 
 int SIM_WIND_ON = 0;
 double SIM_WIND[2] = { 0.0, 0.0 };
 double SIM_GUST = 0.0;
+/* The air's vertical velocity at the craft, m/s up, the host's
+ * (sim_set_air_vertical): a thermal, a ridge's lift, a dam's sink, which
+ * the host reads off its weather at the craft each step. */
+double SIM_AIR_W = 0.0;
 
 void plant_wind(long long step, double out[3]) {
   out[0] = SIM_WIND[0];
   out[1] = SIM_WIND[1];
-  out[2] = 0.0;
+  out[2] = SIM_AIR_W;
   if (!(SIM_GUST > 0.0)) {
     return;
   }
@@ -673,7 +686,8 @@ static void wing_attitude(const double q[4], double *pitch, double *bank) {
   *bank = sim_atan2(byz, bzz);
 }
 
-/* 0 off, 1 stabilised, 2 acro. The caller has range checked it. */
+/* 0 off, 1 stabilised, 2 acro, 3 rate damped. The caller has range
+ * checked it. */
 void plant_wing_set_stab(int mode) {
   if (mode != g_stab) {
     g_acro_held = 0;
@@ -1354,7 +1368,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
 
   /* Relative wind in the body frame: still air, or for an airframe that
    * flies in it, the thermals' rise, which is a wind from below, and the
-   * horizontal wind when a host has set one. Everything aerodynamic below,
+   * wind when a host has set one, horizontal and vertical. Everything aerodynamic below,
    * the chute's drag with it, reads this. */
   double vb[3];
   double vg[3] = { s->vel[0], s->vel[1], s->vel[2] };
@@ -1363,6 +1377,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     plant_wind(s->step_index, wa);
     vg[0] -= wa[0];
     vg[1] -= wa[1];
+    vg[2] -= wa[2];
   }
   if (fw->air_lift) {
     const double va[3] = { vg[0], vg[1], vg[2] - plant_air_lift(s->pos) };
@@ -1464,9 +1479,23 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   if (preset) {
     de = clip(de + fw->discus_de, fw->throw_e);
   }
-  const double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
+  double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
   double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->tune ? fw->tune_expo[2] : fw->expo);
+  /* Mode 3's damper, after the radio's expo, as the receiver adds it to
+   * the servo's command, and off on the wheels with the other modes. Each
+   * surface opposes its own rate. Spektrum's stick priority takes the
+   * damper out as the stick leaves centre, per axis: at its default, 160,
+   * "the gain goes to 0 at 40% stick input" (the AS3000 manual, p. 10),
+   * taken as falling straight from full at centre, which the manual's
+   * three points (0, 100, 200) fit; so a full stick is the full throw, as
+   * in Manual. No heading term: Spektrum's default is off. Taken only in
+   * mode 3, so every other mode's arithmetic is what it was. */
+  if (g_stab == 3 && !g_on_wheels && !g_chute) {
+    da = clip(da - as3x_priority(roll) * fw->as3x_k[0] * s->omega[0], fw->throw_a);
+    de = clip(de + as3x_priority(pitch) * fw->as3x_k[1] * s->omega[1], fw->throw_e);
+    delta_r = clip(delta_r - as3x_priority(rudder_stick) * fw->as3x_k[2] * s->omega[2], fw->throw_r);
+  }
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
     g_surf[0] = clip(de - da, fw->surface_max);
@@ -2739,8 +2768,8 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .stab_pitch_max = 25.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
   .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.8,
+  .stab_roll_kp = 1.53,   /* 2.0 over the rudder's 1.309 gain in the wash at the trim, scripts/stab-hold-derive.js */
+  .stab_roll_kd = 0.61,   /* 0.8 over the same gain */
   .stab_pitch_kp = 5.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 6.52 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
@@ -3154,8 +3183,8 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .stab_pitch_max = 12.0 * WING_PI / 180.0,
   .stab_trim_pitch = 2.0 * WING_PI / 180.0,
   .stab_deadband = 0.04,
-  .stab_roll_kp = 1.6,
-  .stab_roll_kd = 0.6,
+  .stab_roll_kp = 1.11,   /* 1.6 over the rudder's 1.446 gain in the wash at the trim, scripts/stab-hold-derive.js */
+  .stab_roll_kd = 0.42,   /* 0.6 over the same gain */
   .stab_pitch_kp = 3.0,
   .stab_pitch_kd = 0.5,
   .stab_pitch_down = 6.08 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
@@ -4165,6 +4194,7 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_roll_ki = 2.0,
   .acro_pitch_ki = 3.0,
   .acro_i_max = 0.30,
+  .as3x_k = { 0.028, 0.1224, 0.1842 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
