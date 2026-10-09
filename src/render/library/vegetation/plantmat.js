@@ -55,7 +55,7 @@
 
 import * as THREE from 'three';
 import { ALPHA_CUT } from './atlas.js';
-import { thermalKind } from '../../../render/thermal.js';
+import { thermalKind } from '../../thermal.js';
 
 /* One set of wind uniforms shared by every plant material, so a gust
  * moves the forest and the meadow together. uWindDir is the direction

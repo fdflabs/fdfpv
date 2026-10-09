@@ -30,6 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { KEYBIND_PREFIX, keybindAction } from './controls.js';
 import { MAPS } from '../maps/registry.js';
 import { airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
@@ -104,7 +105,7 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
@@ -260,6 +261,7 @@ const ACTIONS = {
   'field-walk'(ui) { ui.openWalk('field'); },
   'walk-photo'(ui) { ui.togglePhoto(); },
   'walk-photo-take'(ui) { ui.takePhoto(); },
+  'walk-turntable'(ui) { ui.takeTurntable(); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
   /* The trophy wall: the hangar on its Challenges tab, which lists the
@@ -506,6 +508,7 @@ const PREFIXES = [
     ui.fc.applyPreset(id).then(() => ui.renderMenu()).catch((err) => console.error(err));
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
+  [KEYBIND_PREFIX, keybindAction],
 ];
 
 /* Without an account the menus are for looking at: anything behind a card

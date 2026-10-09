@@ -34,7 +34,7 @@ import * as THREE from 'three';
 import {
   frame, box, boxUp, cached, polySolid, prism, roofShell, gableProfile, SOCLE,
 } from '../../alps/kit.js';
-import { gableTop } from '../../alps/roofs.js';
+import { gableTop } from '../../../render/library/roofs.js';
 
 export { frame, box, boxUp, cached, prism, SOCLE };
 

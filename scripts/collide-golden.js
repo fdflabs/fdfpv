@@ -22,7 +22,7 @@
  * was handed. Internal fields are never read. Inputs are the worlds the
  * node checks build (crash-rules-selftest, build-selftest, grid-check,
  * turned-box-check, buildWorld from wall-check, orbit-check and
- * path-check), the walls src/maps/alps/roofs.js stands under roofs and the
+ * path-check), the walls src/render/library/roofs.js stands under roofs and the
  * turned boxes src/maps/interior/sink.js makes, seeded worlds of every
  * primitive and kind, every airframe in configs/airframes.js, and every
  * fixed wing's part hull as the plant reports it.
@@ -62,7 +62,7 @@ import { AIRFRAMES } from '../configs/airframes.js';
 import { CRAFT } from '../tests/crash/scenarios.js';
 import {
   flatTop, gableTop, pyramidTop, recordAt, shedTop, standWalls,
-} from '../src/maps/alps/roofs.js';
+} from '../src/render/library/roofs.js';
 import { solidBox } from '../src/maps/interior/sink.js';
 
 const { Colliders, KINDS } = m;
@@ -2387,7 +2387,7 @@ function realCases() {
       },
     });
   }
-  /* src/maps/alps/roofs.js standing a building's walls under its roofs,
+  /* src/render/library/roofs.js standing a building's walls under its roofs,
    * as the village, the lift and swiss2's props do, into a Colliders that
    * carries swiss2's noteFootprint expando. */
   cases.push({

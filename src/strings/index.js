@@ -47,6 +47,13 @@ export function currentLocale() {
   return locale;
 }
 
+/* Whether the English table has the key: for names that come from data
+ * (a tune's mode word) and are shown as they are when nothing translates
+ * them. */
+export function hasStr(key) {
+  return en[key] !== undefined;
+}
+
 export function str(key, vars) {
   let text = tables[locale] ? tables[locale][key] : undefined;
   if (text === undefined) {

@@ -29,7 +29,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { celMaterial } from '../../render/celmat.js';
+import { celMaterial } from '../../celmat.js';
 
 /* The one material a parts bake is drawn with: white, so the vertex colour
  * is the colour. Options are celMaterial's; the caller picks the finish. */
