@@ -340,7 +340,7 @@ No band was widened. Each change is one of three kinds.
 
 ### An acro tune
 
-- The P-51's Acro roll damping, \`acro_roll_kd\`, 0.70 to 0.80: with the fin
+- The P-51's Acro roll damping, `acro_roll_kd`, 0.70 to 0.80: with the fin
   in the wash the roll a partial roll stops from carried 10.4 deg/s a
   quarter second after centring, against p51:stab's 10, and 9.9 on
   origin/main. 0.80 leaves 9.7. A flight controller's gain, retuned for a
@@ -363,7 +363,7 @@ No band was widened. Each change is one of three kinds.
 
 Gyroscopic precession was set on four tables only (the P-51, the Zagi,
 the Ugly Stik and the Tiger Moth, and the Strikers). Every other powered
-table now carries its prop's and rotor's polar inertia, \`j_prop\`, so a
+table now carries its prop's and rotor's polar inertia, `j_prop`, so a
 pitch rate yaws it and a yaw rate pitches it at J Omega times the rate:
 the 1000 mm wing, Skyhunter, Cub and Cub floats, Radian, Bramor, Slow
 Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
@@ -378,7 +378,7 @@ Stick, Timber and Timber floats, Bombshell, Kadet and the F-16's fan.
 - The Slow Stick's EPS-300C turns its rotor the other way through a 6.6:1
   gearbox, which takes a little off the prop's.
 - Torque reaction and P factor were already on every prop table and are
-  unchanged (\`torque_arm\`, \`pfactor\`); the slipstream's swirl is PR 2's.
+  unchanged (`torque_arm`, `pfactor`); the slipstream's swirl is PR 2's.
 
 ### The probe, PR 2 to PR 3
 
@@ -409,30 +409,30 @@ gate.
 
 ### Re-recorded, re-pinned, and what did not move
 
-Re-recorded (\`node scripts/wing-record.js\`), every take off flown on a
-prop with a new gyroscope: \`cub-baseline.rec\`, \`glider-baseline.rec\`,
-\`slowstick-baseline.rec\`, \`timber-baseline.rec\`,
-\`timberf-baseline.rec\`, \`bombshell-baseline.rec\`,
-\`kadet-baseline.rec\`, \`f16-baseline.rec\`. The 1000 mm wing's, the
+Re-recorded (`node scripts/wing-record.js`), every take off flown on a
+prop with a new gyroscope: `cub-baseline.rec`, `glider-baseline.rec`,
+`slowstick-baseline.rec`, `timber-baseline.rec`,
+`timberf-baseline.rec`, `bombshell-baseline.rec`,
+`kadet-baseline.rec`, `f16-baseline.rec`. The 1000 mm wing's, the
 Skyhunter's and the Bramor's committed streams are kept (their recorders
 no longer write the committed bytes even on origin/main) and only their
 hashes are re-pinned. Unmoved, to the bit: the five inch
 (9fdc42323baad668), the Bramor's chute flight (motor cut), the P-51 and
 its air flight, the Ugly Stik, the Tiger Moth, the Zagi and the NRJ,
-whose props already had their inertia; \`war:legacy\` and \`crash:core\`'s
-digests. Regenerated: \`configs/power-estimates.js\`,
-\`tools/audio/flights.json\`.
+whose props already had their inertia; `war:legacy` and `crash:core`'s
+digests. Regenerated: `configs/power-estimates.js`,
+`tools/audio/flights.json`.
 
 ### Checks
 
-- \`timber:gates\` T13 measured the taxi turn's heading change as the
+- `timber:gates` T13 measured the taxi turn's heading change as the
   difference of its two end headings, which wraps past half a circle: at
   1.57 rad/s for 2 s the turn reached 179.6 deg and read as a left turn.
   It now sums the change step by step; on origin/main it reads the same.
-- \`rudderHold\`, the take off pilot's feet, aims the nose back at the
+- `rudderHold`, the take off pilot's feet, aims the nose back at the
   centreline, 0.3 rad per metre off it: the gyroscope's kick as the tail
   comes up put the Cub 0.55 m off the line with the heading held.
-- Left loud, as in PR 2: \`slowstick:stab\` "yaw stick wins over the
+- Left loud, as in PR 2: `slowstick:stab` "yaw stick wins over the
   level hold, right of a quarter of its throw", -7.5 against a -7.5
   limit (passing on origin/main by hundredths): the same rudder only
   aircraft check as the Bombshell's in PR 2.
@@ -442,8 +442,8 @@ digests. Regenerated: \`configs/power-estimates.js\`,
 A knife edge is held by the fuselage's side force and the thrust's share
 at a sideslip. The table's side force is CY beta, linear and the fin's;
 the body's own crossflow, which grows with the sideways speed squared,
-was missing (the removed Extra had it as \`side_cda\`). Now every aircraft
-with a fuselage carries it: \`side_cda\`, eta Cdc S_side, a force against
+was missing (the removed Extra had it as `side_cda`). Now every aircraft
+with a fuselage carries it: `side_cda`, eta Cdc S_side, a force against
 v |v| at the CG. Allen and Perkins' viscous crossflow (NACA TR 1048), with
 the removed Extra's eta Cdc of 0.84 (Cdc 1.2, eta 0.7, Jorgensen, NASA TR
 R-474) on each fuselage's side area from its derivation or render model.
@@ -483,12 +483,12 @@ aircraft holds one level, which is what their reviews say of them. The
 
 ### Re-recorded and unmoved
 
-Re-recorded: \`cub\`, \`glider\`, \`timber\`, \`timberf\`, \`bombshell\`,
-\`kadet\`, \`f16\`, \`uglystik\`, \`tigermoth\`, \`p51\` and \`p51-air\`; the
+Re-recorded: `cub`, `glider`, `timber`, `timberf`, `bombshell`,
+`kadet`, `f16`, `uglystik`, `tigermoth`, `p51` and `p51-air`; the
 Skyhunter's, the Bramor's and its chute's hashes re-pinned on their
 committed streams. Unmoved: the five inch, the 1000 mm wing, the Slow
-Stick, the Zagi, the NRJ, \`war:legacy\` and \`crash:core\`'s digests.
-Regenerated: \`configs/power-estimates.js\`, \`tools/audio/flights.json\`.
+Stick, the Zagi, the NRJ, `war:legacy` and `crash:core`'s digests.
+Regenerated: `configs/power-estimates.js`, `tools/audio/flights.json`.
 No gate changed.
 
 ## The spin measure, made honest (no plant change)
@@ -535,15 +535,15 @@ out of it. That is the plant to build next; this is its before.
 
 E-flite's Extra 300 3D 1.3m (EFL115500), the aircraft docs/EXTRA-STAGE1.md
 derives from E-flite's published figures, its manual's throws and APC's
-data for its prop, is back in the hangar as airframe 29, \`extra3d1308\`.
+data for its prop, is back in the hangar as airframe 29, `extra3d1308`.
 
-- **A new id, not 14.** 14 and \`extra1308\` stay reserved: a recording,
+- **A new id, not 14.** 14 and `extra1308` stay reserved: a recording,
   ghost, clip or room peer that names 14 still names the removed aircraft
-  and is refused, and a stored \`extra1308\` still reseats on the Ugly Stik
+  and is refused, and a stored `extra1308` still reseats on the Ugly Stik
   (configs/airframes.js retiredAirframe). Nothing old replays as this one.
 - **Revived, not redone.** The plant code only it used (the high angles,
-  \`hi_alpha\` and \`tail_*\`; the slow air's damping, \`rot_k\`; the
-  surface knee, \`surf_knee\`), removed in aa21a64a, is back, zero gated:
+  `hi_alpha` and `tail_*`; the slow air's damping, `rot_k`; the
+  surface knee, `surf_knee`), removed in aa21a64a, is back, zero gated:
   with every existing table leaving it zero, every recorded hash replays
   as before (checked before the table went in). Its table, gear, crash
   parts, render model, paint, power, props, tunes and strings are its
@@ -633,3 +633,213 @@ shallow, the next step's subject.
   fifth of a turn, inside 14 CFR 23.221's one turn. A delay (the rudder
   blanketed by the stalled tail, Bowman p. 16) is measurable only on a
   developed spin, which the plant does not reach, so it is not built.
+## The rudder only aircraft's level hold, retuned for the wash
+
+PR 2's wash made the Bombshell's and the Slow Stick's rudder stronger
+under power, and Stabilised rolls those two on the rudder. The level
+hold's roll gains were tuned on a rudder in the free stream, so its loop
+gain rose with the wash's ratio and it took back more of the pilot's own
+yaw stick: bombshell:stab's "full right yaw stick ... wins over the level
+hold, right of a quarter of its throw" read -2.7 deg against its -5, and
+slowstick:stab's -7.5 sat on its -7.5 limit. Each gain is now its old
+value over the rudder's authority ratio in the wash at the trim, 1 + dp fv
+/ q (scripts/stab-hold-derive.js, `npm run stab:hold`, in CI): the loop
+as it was tuned, on the aircraft as it now flies. No check changed.
+
+| | trim | rudder gain in the wash | kp | kd | yaw stick's rudder |
+| --- | --- | --- | --- | --- | --- |
+| Bombshell | stick 0.732, 7.93 m/s | 1.446 | 1.6 to 1.11 | 0.6 to 0.42 | -2.7 to -5.4 deg (-5.4 before the wash) |
+| Slow Stick | stick 0.739, 5.44 m/s | 1.309 | 2.0 to 1.53 | 0.8 to 0.61 | -7.5 to -9.6 deg (-7.5 before) |
+
+Stabilised only: Manual and Acro, and every recorded flight, replay to
+the same hashes as on main.
+
+## SWIRL_KEEP from a source: Selig 2010
+
+PR 2 fitted SWIRL_KEEP, the share of a tractor's swirl that reaches the
+fin past the wing's root, at 0.5, the middle of what was unknown. It now
+comes from Selig, "Modeling Propeller Aerodynamics and Slipstream Effects
+on Small UAVs in Realtime" (AIAA 2010-7938), section B, Swirl Effects:
+"For a typical aerobatic RC/UAV configuration capable of hover, the net
+right rolling moment is near 40% of the propeller torque", the swirl's
+roll on the wing root, the fin and the fuselage taken together. The
+Extra 300 3D is that aircraft. At its hover the root's (1 - K) Q and the
+fin's roll in the swirl make 0.40 Q at K = 0.743 (scripts/extra-derive.js
+solves it; the fin's roll is linear in K); taken 0.74. Selig's fuselage
+coil is in the root's share here. Searched and found no number: Veldhuis
+(Propeller Wing Aerodynamic Interference, TU Delft 2005) and Witkowski,
+Lee and Sullivan (J. Aircraft 26(9), 1989) describe the wing's recovery
+of the swirl without a share a plant can take.
+
+More of the swirl at the fin swings a tractor harder on its take off roll
+(the Cub, Timber and Bombshell 20 deg by liftoff with the rudder left
+alone; the P-51 45), and the root takes less of the torque back: the
+Extra's hanging torque roll, E8, re-derived to 178 deg/s (146 at 0.5),
+the plant 218; E9, full aileron against it, 209 (232), the plant 212.
+
+### The probe, main to this
+
+ Aircraft | HOVER held of 8 s | HANG roll rate deg/s 
+ --- | --- | --- 
+ 1000 mm wing | 0.71 | -6.1 
+ Skyhunter | 0.82 | 0.1 
+ Cub | 1.12 → 0.92 | 2.0 → 1.7 
+ Slow Stick | 0.41 | -0.5 → -0.6 
+ Radian | 1.27 → 1.20 | 2.6 
+ Turbo Timber | 7.05 → 5.60 | 0.4 → 0.2 
+ Bramor | 0.32 | 3.7 
+ Bombshell | 0.46 → 0.45 | -3.2 → -3.9 
+ Kadet Senior | 1.01 | 0.8 
+ P-51D | 1.70 → 1.32 | 4.0 → 3.9 
+ F-16 | 0.57 | 1.3 
+ Zagi HP | 0.17 | 3.3 
+ Ugly Stik | 3.10 → 3.06 | 1.2 → 1.1 
+ Tiger Moth | 1.20 → 1.19 | 0.1 
+ Striker | 2.27 | 17.0 
+ Extra 300 3D | 8.00 | -0.7 
+
+### Changed, and why
+
+- The Ugly Stik's take off pilot and the river check's landing and taxi
+  pilot hold the line on the rudder as every other take off pilot does
+  (rudderHold, heading and centreline): their own gains no longer held
+  the stronger swing (the Stik 0.73 m off the line against 0.5; the
+  floatplane 2.8 m off its channel's line and out of the water taxiing).
+- The Extra's stab self test takes the Cub's form: sticks centred it
+  swings left, the heading held on the rudder it tracks.
+- Re-recorded: every tractor's recording and the Extra's; re-pinned their
+  hashes, recfile, replaylib's P-51 trace and simmod's transcript.
+  Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
+  its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
+
+## A hover a person can fly, and the Extra's AS3X
+
+The owner flew the Extra 300 3D and could not hover it. HOVER above is
+flown by a pilot that reads the state the instant it changes, which no
+person does, so the hover was asked again of a pilot with a person's
+limits: scripts/hover-probe.js. It sees the aircraft 0.2 s late (the
+effective delay of a trained operator in compensatory tracking, McRuer
+and Jex, "A Review of Quasi-Linear Pilot Models", IEEE Trans. HFE 8(3),
+1967), moves the sticks ten times a second in fiftieths of their travel,
+and flies by what is visible from the ground: the nose off vertical and
+its rate, the roll rate (trimmed out slowly on the ailerons, as a pilot
+learns the torque), the drift, leaned against with the nose, and the
+climb, on a held throttle. Pilots differ, so it flies a grid of 648 gain
+sets and counts the ones that hold 10 s, the nose within 20 deg of
+vertical and the height within 10 m, from nose up at no airspeed.
+
+The drift term is what a person has that the instant pilot did not
+need. A hanging aircraft that tilts slides, and the slide's crossflow on
+the stabiliser in the wash weathervanes the nose further into it (the
+`slip_cm_a` term): the Extra's hover, the sticks frozen at its trim,
+departs at about 2.9 /s, doubling in 0.24 s, the same term that gives the
+elevator its hover authority. On attitude alone no gain holds that with
+a 0.2 s delay; leaning against the drift, as a pilot watching the plane
+slide against the trees does, it holds.
+
+### Which aircraft a person can hover, Manual and the default tune
+
+ Aircraft | T/W | Manual | Default | Why
+ --- | --- | --- | --- | ---
+ Extra 300 3D | 2.55 | 11 of 648 | AS3X: 82 of 648 | holds: thrust to spare, every surface in the wash
+ Turbo Timber | 1.50 | 0 | Acro: 0 | full aileron cannot hold the torque at hover throttle (0.93): the ailerons are outboard of the wash
+ Ugly Stik | 1.36 | 0 (best 1.6 s) | Acro: 0 (best 9.4 s, torque rolling) | elevator and rudder run out at hover throttle
+ P-51D | 1.33 | 0 | Acro: 0 | hover takes full throttle, nothing left to correct with
+ Skyhunter | 1.31 | 0 | Acro: 0 | a pusher: no wash on the tail, no authority at no airspeed
+ Striker | 2.09 | 0 (best 2.3 s) | Acro: 0 | a pusher: the same, and the torque rolls it 6 turns
+ F-16 | 1.13 | 0 | Acro: 0 | a ducted fan exhausting behind the tail
+ Cub, Kadet, Zagi | 1.03 to 1.04 | 0 | 0 | hover takes all the thrust there is
+ Radian, Tiger Moth, Bramor, Slow Stick, Bombshell | 0.51 to 0.97 | 0 | 0 | thrust under weight
+
+So the Extra is the one aircraft here that hovers, by skill, in every
+mode but SAFE Select; the rest fail the way their real ones would, by
+running out of thrust, of control in the wash, or of aileron against the
+torque. The trim a stationary Extra hover takes: throttle 0.61, right
+aileron stick 0.58 against the torque (Selig's net roll, 0.40 of the
+prop's torque, against ailerons only 2 percent of whose span the
+contracted wake covers), right rudder 0.23. At that throttle full stick
+gives 38 rad/s^2 in pitch, 35 in yaw and 7.7 in roll, the torque alone
+3.3 (98, 90, 20 and 8.5 at full).
+
+### The modes, the real aircraft's
+
+E-flite's Extra ships with AS3X: "When the normal bind process is
+followed, the SAFE Select system is disabled, leaving specially tuned
+AS3X technology in place to deliver a pure, unrestricted flight
+experience" (EFL115500 manual, p. 4). SAFE Select is the optional bind
+with "bank and pitch limitations" and "automatic self-leveling". Its tunes
+here are now AS3X (the default), Manual and SAFE Select; Acro, an
+attitude hold capped at 100 deg/s of pitch that no Extra has, is gone
+from it (plant mode 2 stays for the others).
+
+AS3X is mode 3 in the plant: each surface is the stick's at the full
+throw and expo, less `as3x_k` of surface per rad/s of the body's own
+rate on that axis, clipped at the throw. Spektrum documents the rest:
+"Stick priority reduces the amount of gyro gain as you move the control
+stick away from center ... The default setting is 160, which means the
+gain goes to 0 at 40% stick input" (AS3000 manual, p. 10), taken as a
+straight fall from centre, which its three stated points fit; and
+"Heading is Off by default", so no attitude hold. Full stick is
+therefore Manual's full throw and rate (extra:stab checks both within 2
+percent). Horizon publishes no gains, only that too much shows as
+oscillation at speed, so scripts/as3x-derive.js takes the most a rate
+loop with the servo frame's delay (22 ms, "22ms is the default setting")
+carries at the top speed, 24.1 m/s, halved for MIL-F-9490D's 6 dB gain
+margin: k = pi / (4 M tau), M the plant's control power there. The
+Extra's: 0.028, 0.1224 and 0.1842 rad per rad/s in roll, pitch and yaw.
+It makes the hover far easier to fly, 82 pilots of the 648 against
+Manual's 11, which is what AS3X is sold for.
+
+The swirl (SWIRL_KEEP above) makes the Manual hover harder, not easier:
+on the Extra before it, 48 of the 648 held Manual and 20 Acro, and the
+stationary hover took 0.43 of right aileron against the torque, where
+Selig's net roll now asks 0.58. That is the source's torque, not a fit.
+
+### In the shell, and how it looks
+
+extra:owner (its airframe id had been left at the retired `extra1308`
+since the Extra came back as 29, so it seated the Timber; fixed) now
+flies the same person in the page, once the Extra hangs on the prop: in
+AS3X it holds 10 s, the nose within 11 deg. The chase camera followed
+the craft's travel, and a hovering plane's few millimetres of drift a
+frame, taken as a direction, turned it 342 deg round the plane in 10 s;
+its pull toward the travel is now weighted by the speed (half at 4 m/s),
+and a vertical travel is held under 0.8 of the direction so the camera
+never sits under the plane looking up world up: 81 deg over the same
+hover, the drift's own parallax. The surfaces already drew at the full
+3D throws; the prop's blur disc, a fixed faint tan whatever the motor,
+now shows with the motor's rate and not at rest.
+
+### Not changed, found
+
+- The motor's thrust follows the throttle in the step it is asked: a
+  prop's speed is the duty's (plant_wing.c, `n = duty_e`); only a ducted
+  fan lags (`fan_tau`). An outrunner and a 13 in prop take some tenths of
+  a second to spool, but no source here gives the Extra's, so no lag was
+  invented. A throttle blip in a hover is therefore sharper than a real
+  one.
+- Flown on the keyboard alone, the throttle is a collective that springs
+  back to 0.22, the five inch quad's hover, when the key is let go
+  (src/input/keyboard.js); a plane's hover throttle is about 0.6, so no
+  plane can be hovered on the keys alone. A radio or a gamepad's throttle
+  is unaffected.
+
+## Vertical air at the craft, for the weather
+
+The weather lane asked for vertical air the host can set at the craft:
+thermals over sunlit ground, a ridge's or the dam face's lift, the sink
+beside them (docs/WEATHER-CONTRACT.md). `sim_set_air_vertical(w)`
+(sim_abi.h, additive) sets the air's vertical velocity, -10 to 10 m/s up,
+which the host reads off its weather at the craft's position and sets as
+it changes. It rides on the wind's own path (plant_wind's z, which was
+always 0): every airframe flies through it as through the horizontal
+wind, a plane's aerodynamics, a quad's rotors and drag, the free parts,
+on top of the Radian's own three thermals. A world property kept across
+resets, like the wind. 0 is the default, and a flight that never sets it
+replays to the same hashes as on main.
+
+`npm run air:vertical` (in CI): the refusals; the Cub's recording to its
+pinned hash with the call made and without; a Radian's glide sinking
+0.500 m/s less in 0.5 m/s of rise; a seven inch with its motors off
+falling less far in rising air; it outliving a reset and a still wind,
+and 0 taking it away to the bit.

@@ -148,19 +148,19 @@ export const ESTIMATES = {
     stock: {
       '3s1300': {
         topSpeed: 21.08,
-        minutes: 68.1
+        minutes: 68.8
       },
       '3s1500': {
         topSpeed: 21.14,
-        minutes: 77.1
+        minutes: 77.9
       },
       '3s1800': {
         topSpeed: 21.17,
-        minutes: 86.7
+        minutes: 87.6
       },
       '3s2200': {
         topSpeed: 21.22,
-        minutes: 104.1
+        minutes: 105
       }
     }
   },
@@ -208,7 +208,7 @@ export const ESTIMATES = {
     '2215-1060-3s': {
       '3s1300': {
         topSpeed: 12.89,
-        minutes: 75
+        minutes: 75.8
       },
       '3s2200': {
         topSpeed: 12.82,

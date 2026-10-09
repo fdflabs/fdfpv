@@ -10,8 +10,13 @@
  *     Bramor was, no jump, and the Bramor goes on an orbit, drawn
  *   - five seconds on, the Bramor's hold is on its circle and its model
  *     where the hold has it
+ *   - the HUD's strip lists both with their states and heights, inside
+ *     the window and clear of the other panels at three sizes, and a tap
+ *     on a row (a real pointer) asks the room for that aircraft
  *   - [ pressed: back to the Bramor at the point of its orbit, no jump,
  *     and the 7 inch hovers where it was left
+ *   - the room is told of each hold (op hold, its pose); another seat's
+ *     hold in the room's view is drawn where it says
  *   - the role board's FLY THIS (a real pointer) asks the room the same
  *   - no page errors
  *
@@ -151,6 +156,8 @@ try {
   check('] asks the room for the other role', asked && asked.op === 'active' && asked.key === 'recon', JSON.stringify(asked));
   await inject('recon');
   await page.until("window.__ops.flown() === '7inch'", 20000);
+  const told = await page.evaluate("window.__ops.sent().filter((m) => m.op === 'hold').slice(-1)[0] || null");
+  check('the room told of the Bramor left on its hold', told && told.key === 'isr' && Number.isInteger(told.t) && told.pose.airborne === true && told.pose.p.length === 3, JSON.stringify(told));
   const s1 = await page.evaluate('window.__lastSwap()');
   check('the 7 inch seated where the Bramor was, no jump', swapJump(s1) < 0.1 && s1.rule === 'air', `${swapJump(s1).toFixed(3)} m, ${s1.rule}`);
   let h = await page.evaluate('window.__ops.holds()');
@@ -184,6 +191,64 @@ try {
   check('the 7 inch hovers where it was left', q && q.kind === 'hover' && dist(q.p, [s2.before.x, s2.before.y, s2.before.z]) > 1 && dist(q.p, q2.p) < 0.5, JSON.stringify(q));
   await shot('hold-hover.png');
 
+  /* The HUD's aircraft strip: both, their states, and a tap flies one. */
+  /* The first flight's card dismissed as its button says, with Enter. */
+  await page.tap('Enter');
+  await page.sleep(400);
+  const hud = await page.evaluate('window.__opsHud()');
+  const rows = hud.fleet;
+  check('the HUD lists both aircraft, the Bramor flying and the 7 inch hovering with its height', rows.length === 2
+    && rows.find((r) => r.key === 'isr')?.flown && /HOVER \d+ m/.test(rows.find((r) => r.key === 'recon')?.text ?? ''), JSON.stringify(rows));
+  for (const [w, hh] of [[1280, 720], [390, 844], [844, 390]]) {
+    await page.cdp.send('Emulation.setDeviceMetricsOverride', {
+      width: w, height: hh, deviceScaleFactor: 1, mobile: w < 900,
+    }, page.sessionId);
+    await page.sleep(900);
+    const rr = (await page.evaluate('window.__opsHud()')).rects;
+    const f = rr.fleet;
+    const clash = Object.entries(rr).filter(([k, b]) => k !== 'fleet' && b && f && b.x < f.x + f.w && f.x < b.x + b.w && b.y < f.y + f.h && f.y < b.y + b.h).map(([k]) => k);
+    check(`${w}x${hh}: the strip inside the window and clear of the other panels`, f && f.x >= -1 && f.y >= -1 && f.x + f.w <= w + 1 && f.y + f.h <= hh + 1 && !clash.length, JSON.stringify({ f, clash }));
+    await shot(`hold-strip-${w}x${hh}.png`);
+  }
+  await page.cdp.send('Emulation.setDeviceMetricsOverride', {
+    width: 1280, height: 720, deviceScaleFactor: 1, mobile: false,
+  }, page.sessionId);
+  await page.sleep(900);
+  const rowAt = await page.evaluate(`(() => {
+    const b = document.querySelector('.ops-fleet button[data-act="fly:recon"]');
+    if (!b) { return null; }
+    const r = b.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  })()`);
+  if (rowAt) {
+    for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
+      await page.cdp.send('Input.dispatchMouseEvent', { type, ...rowAt, button: 'left', clickCount: 1 }, page.sessionId);
+    }
+    await page.sleep(200);
+  }
+  const tapped = await lastSent();
+  check('a tap on the 7 inch\'s row asks the room for it', Boolean(rowAt) && tapped && tapped.op === 'active' && tapped.key === 'recon', JSON.stringify(tapped));
+
+  /* Another seat's hold in the room's view: drawn where it says. */
+  {
+    const v = view('isr');
+    v.roles.held[2] = [];
+    v.holds = {
+      2: {
+        'isr:2': {
+          airframe: 'bramor2300', cam: null, hold: { kind: 'hover', t0: 0, p0: [b2.c[0], b2.c[1], b2.c[2] + 40] },
+        },
+      },
+    };
+    await page.evaluate(`(window.__ops.inject({ type: 'ops', ops: ${JSON.stringify(v)} }), true)`);
+    await page.sleep(500);
+    const peers = (await page.evaluate('window.__ops.holds()')).peers;
+    const pp = peers[0];
+    check('another seat\'s hold from the view is drawn where it says', peers.length === 1 && pp.shown && dist(pp.drawn, [b2.c[0], b2.c[2] + 40, -b2.c[1]]) < 0.01, JSON.stringify(peers));
+    await shot('hold-peer.png');
+    await inject('isr');
+  }
+
   /* The role board's FLY THIS, by pointer. */
   const at = (sel) => page.evaluate(`(() => {
     const b = document.querySelector(${JSON.stringify(sel)});
@@ -196,6 +261,7 @@ try {
       await page.cdp.send('Input.dispatchMouseEvent', { type, ...p, button: 'left', clickCount: 1 }, page.sessionId);
     }
   };
+  const sentBefore = (await page.evaluate('window.__ops.sent()')).length;
   const opener = await at('.roles-open');
   if (opener) {
     await press(opener);
@@ -215,7 +281,7 @@ try {
   }
   const asked3 = await lastSent();
   console.log(`  (board: opener ${JSON.stringify(opener)}, button ${JSON.stringify(btn)}, ${JSON.stringify(await page.evaluate('window.__rolesBoard ? window.__rolesBoard() : null'))})`);
-  check('the role board\'s FLY THIS asks the room the same', Boolean(btn) && asked3 && asked3.op === 'active' && asked3.key === 'recon', JSON.stringify(asked3));
+  check('the role board\'s FLY THIS asks the room the same', Boolean(btn) && (await page.evaluate('window.__ops.sent()')).length === sentBefore + 1 && asked3 && asked3.op === 'active' && asked3.key === 'recon', JSON.stringify(asked3));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

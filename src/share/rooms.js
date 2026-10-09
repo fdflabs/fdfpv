@@ -233,7 +233,12 @@ export function setFigurePick(f) {
  * picker name's three indices or a callsign string, which roomName in
  * src/main.js tells apart.
  */
+/* An AI pilot (edge/rooms/roombots.js) as { bot: pick }, so whoever names
+ * it (src/main.js roomName) always says it is one. */
 function shownName(m) {
+  if (m.bot === true) {
+    return { bot: m.name };
+  }
   return typeof m.callsign === 'string' && m.callsign ? m.callsign : m.name;
 }
 
