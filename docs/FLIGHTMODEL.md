@@ -610,6 +610,27 @@ the plant 218; E9, full aileron against it, 209 (232), the plant 212.
   Unmoved: the five inch, the 1000 mm wing, the Skyhunter, the Bramor and
   its chute, the F-16, the Zagi, the NRJ, war:legacy and crash:core.
 
+## The Skyhunter's wash: a pusher between its booms
+
+The Skyhunter's prop is behind its wing and ahead of its H tail: its wash
+blows the middle of the stabiliser, 0.456 m of span between the booms,
+and passes both boom fins 0.232 m out (docs/SKYHUNTER-STAGE1.md, the 3D
+model), and no wing root stands behind the prop to turn its swirl back.
+Two table fields say so: `slip_pusher` (no root: the swirl's share at
+the tail is all of it, and nothing recovers it) and `slip_hv` both zero
+(no fin in the wash: its share is 0). Every other table's arithmetic is
+as it was. From scripts/wash-derive.js on its derivation's tail numbers.
+
+| Skyhunter | main | this |
+| --- | --- | --- |
+| AUTH pitch, yaw rad/s² at zero airspeed | 0, 0 | 31.3, 0 |
+| HOVER held of 8 s | 0.82 | 4.31 |
+| HARR pitch | 11.3 deg | 17.2 deg |
+
+Re-recorded nothing: the Skyhunter's committed recording is kept (its
+recorder does not reproduce it on main either) and its hash, replaylib's
+trace and simmod's transcript are re-pinned. Every other hash is the
+previous pull request's.
 ## A hover a person can fly, and the Extra's AS3X
 
 The owner flew the Extra 300 3D and could not hover it. HOVER above is
