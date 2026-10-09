@@ -3,12 +3,12 @@
  * driven through the real shell with a real pointer and keys:
  *   npm run planerates:check -- [outdir]   (build/plane-rates-check)
  * The Timber flies on the Swiss valley; Escape pauses it. The pause
- * menu's Rates row reads the Timber's high rate throws (configs/tuning.js),
+ * menu's Flight panel's Rates row reads the Timber's high rate throws (configs/tuning.js),
  * not the quad's Actual 670, and opens the plane's Rates screen. Two
  * presses left on its Rate row pick the manual's low rate, and the plant
  * flies those throws at once, in the paused run (sim_wing_tune). One press
  * left on the aileron expo takes 30 percent to 20, which the plant flies
- * too. Back returns to the pause menu. No page error. Pictures in outdir.
+ * too. Escape returns to the Flight panel. No page error. Pictures in outdir.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -88,9 +88,13 @@ try {
   await page.sleep(1000);
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});
+  /* The pause menu's Flight panel carries the Rates row. */
+  const flight = await page.evaluate("(() => { const it = window.__ui.items().find((i) => i.action === 'quick'); return it ? it.id : null; })()");
+  await click(page, `[data-row-id="${flight}"] .row-label`);
+  await page.until("window.__ui.screen === 'quick'", 10000).catch(() => {});
   const row = await page.evaluate("(() => { const it = window.__ui.items().find((i) => i.label === 'Rates'); return it ? { action: it.action, value: it.value, id: it.id } : null; })()");
   const high = round(throwsFor(AF, 'high'));
-  check('the pause menu\'s Rates row is the Timber\'s high rate, not the quad\'s Actual 670',
+  check('the pause menu\'s Flight panel Rates row is the Timber\'s high rate, not the quad\'s Actual 670',
     row && row.action === 'planerates' && row.value === `High, ${high.map((d) => `${d}°`).join(' ')}` && !/670/.test(row.value), JSON.stringify(row));
   await shot(page, 'paused');
   const before = await plant(page);
@@ -118,8 +122,8 @@ try {
   check('one press left on the aileron expo takes it from 30 to 20 percent in the plant', expo && Math.abs(expo.expoA - 0.2) < 1e-9, `${expoRow}: ${JSON.stringify(expo)}`);
   await shot(page, 'low');
   await page.tap('Escape');
-  await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});
-  check('Escape goes back to the pause menu', (await page.evaluate('window.__ui.screen')) === 'paused');
+  await page.until("window.__ui.screen === 'quick'", 10000).catch(() => {});
+  check('Escape goes back to the Flight panel it came from', (await page.evaluate('window.__ui.screen')) === 'quick');
 } catch (e) {
   check('the run finished', false, e.stack || String(e));
 }

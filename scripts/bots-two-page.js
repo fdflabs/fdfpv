@@ -10,9 +10,12 @@
  * valley. A flies and starts a match: the crown moves on A's screen to and
  * between AI pilots, and A's scoreboard names them as AI. B joins: an AI
  * pilot leaves for it, and B sees the rest named as AI too. B leaves: an
- * AI pilot comes back. A makes a private room: no AI pilots until A, its
- * host, clicks Normal on the AI pilots row; B joins it and reads the
- * host's choice; A clicks Off and they leave. Pictures in outdir, which is not in the repository.
+ * AI pilot comes back. Before the match: the room's ground is the page's
+ * over the corridor, and an AI pilot the room crashes is seen crashed,
+ * lying on the ground, then flying again. A makes a private room: no AI
+ * pilots until A, its host, clicks Normal on the AI pilots row; B joins it
+ * and reads the host's choice; A clicks Off and they leave. Pictures in
+ * outdir, which is not in the repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -39,7 +42,9 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { FILL_TO } from '../edge/rooms/roombots.js';
-import { CORRIDOR, valleyAxis } from '../edge/rooms/bots.js';
+import { CORRIDOR, DOWN_MS, valleyAxis } from '../edge/rooms/bots.js';
+import { groundOf } from '../edge/rooms/grounds.js';
+import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'bots-two-page');
@@ -85,6 +90,23 @@ async function shot(page, name) {
 }
 
 const bots = (r) => r.peers.filter((p) => /^AI /.test(p.name));
+
+/* The room screen's rows as the page has them: the "Pilots here" row's
+ * value, and every row naming an AI pilot, with what it offers. */
+const ROWS = `(() => {
+  const rows = window.__ui.friendsRows();
+  const here = rows.find((r) => r.label === ${JSON.stringify('Pilots here')});
+  /* AI pilots' names, never the host's AI pilots row (#866). */
+  const ai = rows.filter((r) => /^AI .* \\d+$/.test(String(r.label)));
+  return { lobby: rows.some((r) => r.action === 'friends-lobby-ready'), here: here ? here.value : null, top: window.__ui.friendsRow().value, ai: ai.map((r) => ({ label: r.label, info: Boolean(r.info), options: (r.options || []).length, pick: Boolean(r.pick) })) };
+})()`;
+function rowsSay(rows, people, ai) {
+  /* A game's lobby has no "Pilots here" row: its panel lists them. */
+  return (rows.here === null || new RegExp(`^${people} of \\d+, \\+${ai} AI pilots?$`).test(rows.here))
+    && (rows.here !== null || rows.lobby)
+    && rows.top.endsWith(`, ${people} here, +${ai} AI pilot${ai === 1 ? '' : 's'}`)
+    && rows.ai.length === ai && rows.ai.every((r) => r.info && !r.options && !r.pick);
+}
 
 /* The AI pilots row on the page's room screen: its value, whether it is
  * the host's (it has choices) or an info row. */
@@ -132,6 +154,9 @@ try {
   check(`alone, A is joined by ${FILL_TO - 1} AI pilots, every one named as one`, bots(ra).length === FILL_TO - 1 && ra.peers.length === FILL_TO - 1,
     ra.peers.map((p) => p.name).join(', '));
   check('A hosts its room', ra.host === ra.seat, `host ${ra.host}, seat ${ra.seat}`);
+  let screen = await a.evaluate(ROWS);
+  check(`A's room screen counts 1 person here, +${FILL_TO - 1} AI pilots apart, and the AI rows offer no mute, report, kick or host`,
+    rowsSay(screen, 1, FILL_TO - 1), JSON.stringify(screen));
 
   await a.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
@@ -156,6 +181,74 @@ try {
   }
   await shot(a, 'a-an-ai-pilot-close');
 
+  /* THE GROUND. The room's (edge/rooms/grounds.js) against what this
+   * page's pilot hits (view.height), over the corridor. */
+  const samples = [];
+  for (let z = CORRIDOR.zMin; z <= CORRIDOR.zMax; z += 97) {
+    for (let dx = -CORRIDOR.half; dx <= CORRIDOR.half; dx += 31) {
+      samples.push([valleyAxis(z) + dx, z]);
+    }
+  }
+  const pageGround = await a.evaluate(`${JSON.stringify(samples)}.map(([x, z]) => window.__heightAt(x, z))`);
+  const roomGround = groundOf('swiss2');
+  await mkdir(outDir, { recursive: true });
+  await writeFile(join(outDir, 'ground-diff.json'), JSON.stringify(samples.map(([x, z], i) => [Math.round(x), Math.round(z), pageGround[i], roomGround(x, z)])
+    .filter(([, , pg, rg]) => Math.abs(pg - rg) >= 1e-3)));
+  /* Where they differ the page stands higher: a roof, a deck or a road
+   * on the ground (alps/roofs.js), which the room does not have. */
+  const higher = samples.map(([x, z], i) => pageGround[i] - roomGround(x, z)).filter((d) => Math.abs(d) >= 1e-3);
+  check(`the room's ground is the page's at ${samples.length} points over the corridor, but what is built on it`,
+    higher.length <= samples.length / 50 && higher.every((d) => d > 0), `${higher.length} differ, all higher on the page: ${higher.map((d) => d.toFixed(2)).join(', ')} m`);
+
+  /* A CRASH. The room crashes an AI pilot as the referee would (the hit
+   * itself is rooms:selftest's): A sees it fall, lie on the ground, and
+   * come back in the air, untouchable at first. */
+  const core = [...local.env.ROOMS.objects.values()].map((r) => r.host.core).find((c) => c && c.meta.code === code);
+  const victim = [...core.seats.values()].find((s) => s.bot).seat;
+  core.bots.bots.list.get(victim).spawnAt = null;
+  const crashedOk = core.bots.bots.crash(victim, Math.floor(core.roomMs(Date.now())));
+  const peerOf = `window.__rooms().peers.find((p) => p.seat === ${victim})`;
+  await a.until(`(${peerOf}).flags !== null && ((${peerOf}).flags & ${FLAG_CRASHED}) !== 0`, 10000).catch(() => {});
+  const falling = await a.evaluate(peerOf);
+  /* What the room has and what A draws, every quarter second until A
+   * draws it on the ground, for the record (crash-trace.json in outdir). */
+  const traced = [];
+  for (let k = 0; k < 60; k += 1) {
+    const roomB = core.bots.bots.list.get(victim);
+    const drawnB = await a.evaluate(peerOf);
+    traced.push({ room: roomB.p.map((x) => +x.toFixed(2)), roomGround: +roomGround(roomB.p[0], roomB.p[2]).toFixed(2), rest: roomB.down ? roomB.down.restAt : null, flags: drawnB.flags, drawn: drawnB.at && drawnB.at.map((x) => +x.toFixed(2)) });
+    if (roomB.down && roomB.down.restAt != null && drawnB.at && Math.abs(drawnB.at[1] - roomB.p[1]) < 0.05) {
+      break;
+    }
+    await a.sleep(250);
+  }
+  await writeFile(join(outDir, 'crash-trace.json'), JSON.stringify(traced, null, 1));
+  const lying = await a.evaluate(peerOf);
+  const under = lying.at ? await a.evaluate(`window.__heightAt(${lying.at[0]}, ${lying.at[2]})`) : NaN;
+  check('an AI pilot crashes: A sees it crashed, fallen, lying on the ground where it came down', crashedOk && (falling.flags & FLAG_CRASHED) !== 0
+    && (lying.flags & FLAG_CRASHED) !== 0 && lying.at && Math.abs(lying.at[1] - under) < 1,
+    `flags ${falling.flags}, lying at ${lying.at && lying.at[1].toFixed(2)} m over ground ${Number(under).toFixed(2)} m`);
+  await a.evaluate(`(() => {
+    const p = ${peerOf}.at;
+    window.__setCam(p[0] + 8, p[1] + 3, p[2] + 8, p[0], p[1], p[2], 45);
+    return true;
+  })()`);
+  await a.sleep(200);
+  await shot(a, 'a-ai-pilot-crashed');
+  await a.until(`((${peerOf}).flags & ${FLAG_AIRBORNE}) !== 0`, DOWN_MS + 5000).catch(() => {});
+  /* Its drawing catches up with the new flight. */
+  await a.sleep(1000);
+  const back = await a.evaluate(peerOf);
+  check('DOWN_MS after it came to rest it flies again, untouchable at first, inside the corridor', (back.flags & FLAG_AIRBORNE) !== 0 && (back.flags & FLAG_SPAWNING) !== 0
+    && back.drawn && back.at[1] >= CORRIDOR.yMin - 5, `flags ${back.flags}, ${back.at && back.at[1].toFixed(1)} m`);
+
+  /* A has sat on the strip since its flight began, far longer than five
+   * seconds: no longer untouchable (lead, 2026-10-09), so if the draw makes
+   * it the Ace the AI pilots can catch it. */
+  const aSeat = (await a.evaluate('window.__rooms()')).seat;
+  const aPose = decodePose([...core.seats.values()].find((t) => t.seat === aSeat).pose);
+  check('A, parked on the strip past its five seconds, is touchable in the room', (aPose.flags & FLAG_SPAWNING) === 0 && (aPose.flags & FLAG_AIRBORNE) === 0,
+    `flags ${aPose.flags}`);
   await a.evaluate("window.__roomTagDo('tag-start', 120)");
   await a.until("window.__roomTag().view && window.__roomTag().view.state === 'live'", 30000);
   const seats = new Set(bots(await a.evaluate('window.__rooms()')).map((p) => p.seat));
@@ -179,6 +272,20 @@ try {
   check('B joins: an AI pilot leaves for it, on A\'s screen', bots(ra).length === FILL_TO - 2 && ra.peers.length === FILL_TO - 1, ra.peers.map((p) => p.name).join(', '));
   check('and B sees the rest named as AI, and A as a person', bots(rb).length === FILL_TO - 2 && rb.peers.filter((p) => !/^AI /.test(p.name)).length === 1,
     rb.peers.map((p) => p.name).join(', '));
+  screen = await a.evaluate(ROWS);
+  const rowsB = await b.evaluate(ROWS);
+  await b.evaluate(`(() => {
+    window.__ui.show('friends');
+    const row = [...document.querySelectorAll('.menu-row, [class*=row]')].find((e) => e.textContent.includes('Pilots here'));
+    row?.scrollIntoView({ block: 'start' });
+    return true;
+  })()`);
+  await b.sleep(400);
+  await shot(b, 'b-room-screen-people-and-ai');
+  check(`A and B count 2 people here, +${FILL_TO - 2} AI pilots, no options on the AI rows`, rowsSay(screen, 2, FILL_TO - 2) && rowsSay(rowsB, 2, FILL_TO - 2),
+    `${JSON.stringify(screen)} ${JSON.stringify(rowsB)}`);
+  const human = await a.evaluate(`window.__ui.friendsRows().some((r) => !/^AI /.test(String(r.label)) && (r.options || []).some((o) => o.value === 'mute'))`);
+  check("B's row on A's screen still offers mute and report", human);
   await b.close();
   b = null;
   await a.until(`window.__rooms().peers.length === ${FILL_TO - 1} && window.__rooms().peers.filter((p) => /^AI /.test(p.name)).length === ${FILL_TO - 1}`, 30000).catch(() => {});

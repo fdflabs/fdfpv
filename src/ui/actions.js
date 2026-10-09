@@ -30,6 +30,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { KEYBIND_PREFIX, keybindAction } from './controls.js';
 import { MAPS } from '../maps/registry.js';
 import { airframeById } from '../../configs/airframes.js';
 import { clearPidsFor } from '../../configs/pids.js';
@@ -59,7 +60,7 @@ const sound = (ui, name) => { if (ui.onUiSound) ui.onUiSound(name); };
 const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 
 /* Where Back goes after this press: a run paused behind the menus is kept. */
-const pauseOrTitle = (ui) => (ui.screen === 'paused' ? 'paused' : 'title');
+const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
 
 const noteOn = (node, text) => { node.textContent = text; };
 
@@ -104,7 +105,7 @@ function fcLeave(ui) {
 
 /* Screens a plain row opens. Opened from a room, Back returns to that
  * room; opened over a paused run, Back returns to the pause menu. */
-const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends'];
+const SCREEN_ROWS = ['howto', 'pilot', 'quad', 'courses', 'freestyle', 'credits', 'friends', 'controls'];
 
 function openScreen(ui, screen) {
   ui.roomFrom = ROOM_PARENTS.has(ui.screen) && ui.screen !== screen ? ui.screen : null;
@@ -255,11 +256,18 @@ const ACTIONS = {
   'update-reload'() { window.location.reload(); },
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
+  /* The pause menu's Flight panel. Escape into the pause menu leaves
+   * returnTo where the run found it, so the panel names its way back. */
+  quick(ui) {
+    ui.returnTo = pauseOrTitle(ui);
+    ui.show('quick');
+  },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
   'hangar-walk'(ui) { ui.openWalk('main'); },
   'field-walk'(ui) { ui.openWalk('field'); },
   'walk-photo'(ui) { ui.togglePhoto(); },
   'walk-photo-take'(ui) { ui.takePhoto(); },
+  'walk-turntable'(ui) { ui.takeTurntable(); },
   /* The walkable hangar's shop counter: the hangar opened on its Shop tab
    * (src/ui/hangar-shop.js), for the seated aircraft. */
   /* The trophy wall: the hangar on its Challenges tab, which lists the
@@ -352,7 +360,7 @@ const ACTIONS = {
   rates(ui) {
     /* Reached from Settings or Quad, Back returns there; from the bench,
      * returnTo is left to the pause chain it may be carrying. */
-    if (ui.screen === 'pilot' || ui.screen === 'quad') {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -362,7 +370,7 @@ const ACTIONS = {
   },
   /* A plane's rates, from the same rows: Back as the quad's Rates. */
   planerates(ui) {
-    if (ui.screen === 'pilot' || ui.screen === 'quad') {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -371,8 +379,8 @@ const ACTIONS = {
     ui.show('planerates');
   },
   pids(ui) {
-    if (ui.screen === 'quad') {
-      ui.pidsFrom = 'quad';
+    if (ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.pidsFrom = ui.screen;
     } else {
       ui.pidsFrom = null;
       ui.returnTo = pauseOrTitle(ui);
@@ -516,6 +524,7 @@ const PREFIXES = [
     ui.fc.applyPreset(id).then(() => ui.renderMenu()).catch((err) => console.error(err));
   }],
   ['map:', (ui, action, id) => ui.seatMap(id)],
+  [KEYBIND_PREFIX, keybindAction],
 ];
 
 /* Without an account the menus are for looking at: anything behind a card

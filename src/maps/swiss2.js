@@ -78,7 +78,7 @@ import {
 } from './alps/nature.js';
 import { ribbon } from './alps/ribbon.js';
 import { standWalls } from '../render/library/roofs.js';
-import { PAINT } from './alps/vehicles.js';
+import { PAINT } from '../render/library/vehicles/vehicles.js';
 import {
   loadTerrainArrays, loadSurface, loadSky, loadMark, SURFACES, SKY_K, SKY_SPAN_DEG,
 } from './swiss2/assets.js';
@@ -97,7 +97,7 @@ import { swissBuildings } from './swiss2/buildings/index.js';
 import { swissVehicles } from './swiss2/vehicles/index.js';
 import { buildProps } from './swiss2/props/index.js';
 import { buildLakeside } from './swiss2/props/lakeside.js';
-import { makeBake } from './alps/kit.js';
+import { makeBake } from '../render/library/kit.js';
 import { photoCraftLook } from './swiss2/craftlook.js';
 import { buildPeople } from './swiss2/village/people.js';
 import { buildCliffs, occupiedCells, trimGround } from './swiss2/rock/index.js';
@@ -660,6 +660,8 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* Rain thickens the air (src/main.js rainFrame, swiss2/post.js setWet). */
+      map.setWet = post.setWet;
       /* The post chain that draws this scene, for the sensor checks, as
        * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */
       map.scene.userData.post = post;
