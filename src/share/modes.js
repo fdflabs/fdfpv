@@ -58,8 +58,9 @@ export const ROUND_MINUTES = [3, 5];
  *   minElsewhere  the same in a room made for something else, where the
  *                 game is a host's start in passing
  *   allowSolo     Ready alone starts a round
- *   allowAI       AI pilots fill seats: none exist (the owner, 2026-10-02:
- *                 not before a later phase)
+ *   allowAI       AI pilots fill seats (edge/rooms/roombots.js, docs/
+ *                 AI-PILOTS-CONTRACT.md): Catch the Ace first; combat and
+ *                 races when the room can fly them there
  *   allowDropIn   a pilot arriving mid round flies in; a race went off a
  *                 grid, so its newcomer waits in the lobby
  *   openEnded     the round has no end: on until the room is empty
@@ -107,7 +108,7 @@ export const MODES = [
     minPlayers: 1,
     minElsewhere: 2,
     allowSolo: true,
-    allowAI: false,
+    allowAI: true,
     allowDropIn: true,
     openEnded: false,
     setting: { key: 'goal', choices: GOALS.map((g) => g.goal) },

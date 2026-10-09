@@ -43,8 +43,9 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { addNavLights } from './navlights.js';
 import { dressLivery } from './livery.js';
-import { readDecals } from './decals.js';
+import { cancelDecals, dressDecalsLater, readDecals } from './decals.js';
 import { dressParts } from './partsfit.js';
 import { celMaterial } from './celmat.js';
 import { createSmoke } from './smoke.js';
@@ -147,9 +148,15 @@ export function buildPeerCraft(profile, look = null) {
    * so it is read before the build; profileKey already rebuilds on a new
    * livery, which carries it. */
   const paint = paintable(id) ? lookFor(id, normaliseEntry(liveryKey(id), unpackEntry(profile.livery).entry)) : null;
-  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined });
+  const craft = craftBuilderFor(id)({ name: 'peer-craft', fog: true, worldScale: true, kit: paint ? paint.kit : undefined, lights: paint ? paint.lights : undefined });
   if (paint) {
-    dressLivery(craft, id, paint);
+    /* The colours at once, the layers over the next frames
+     * (dressDecalsLater), so a full livery joining is no long frame. */
+    dressLivery(craft, id, { ...paint, decals: [] });
+    addNavLights(craft, paint.lights);
+    if (paint.decals.length) {
+      dressDecalsLater(craft, paint.decals);
+    }
   }
   let smoke = null;
   if (PROPS[id]) {
@@ -236,6 +243,14 @@ export function buildPeerCraft(profile, look = null) {
       gear += Math.max(-dt * 0.5, Math.min(dt * 0.5, want - gear));
     }
     drive(p, 1, gear);
+    /* The kit's LEDs and strobes, run on this page's sim clock (the wire
+     * carries no clock of the pilot's, so a peer's chase is not in step
+     * with their own screen). The wire has no stick or pack either, so
+     * a peer's throttle pattern sits at half and its battery one solid
+     * (docs/KITS.md section 4). */
+    if (craft.group.userData.setLights) {
+      craft.group.userData.setLights(simT * 1000, 0.5, 1);
+    }
     smokeOn = false;
     if (smoke) {
       const at = craft.group.userData.smokeNozzle;
@@ -289,6 +304,7 @@ export function buildPeerCraft(profile, look = null) {
      * a check. */
     decals: () => readDecals(craft),
     dispose() {
+      cancelDecals(craft);
       if (undoLook) {
         undoLook();
       }

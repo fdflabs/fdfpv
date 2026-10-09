@@ -104,6 +104,12 @@ export const DECAL_KINDS = {
   arrow: { aspect: 2.2, size: 0.06, free: true },
   hexagon: { aspect: 1.15, size: 0.08, free: true },
   swoosh: { aspect: 4, size: 0.06, free: true },
+  /* Its stamps: drawn marks, curated here, never a picture from outside. */
+  crosshair: { aspect: 1, size: 0.08, free: true },
+  propeller: { aspect: 1, size: 0.08, free: true },
+  drone: { aspect: 1, size: 0.09, free: true },
+  tally: { aspect: 2.5, size: 0.05, free: true },
+  sun: { aspect: 1, size: 0.09, free: true },
 };
 export const DECAL_KIND_IDS = Object.keys(DECAL_KINDS);
 
@@ -404,7 +410,7 @@ function toBase64Url(text) {
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(s) {
+export function fromBase64Url(s) {
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
   const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));

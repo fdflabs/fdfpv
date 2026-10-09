@@ -1306,7 +1306,7 @@ export class Ui {
    * in the slots as it always was unless its family wears a build, when
    * it waits beside them. Either can be saved as a new build too.
    */
-  openHangar(card, after = null, build = null) {
+  openHangar(card, after = null, build = null, tab = null) {
     const s = this.settings;
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
@@ -1384,13 +1384,17 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: firstTab,
+      tab: tab ?? firstTab,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
         name: build ? build.name : null,
         suggest: this.buildName(id),
         full: this.myBuilds.length >= MAX_BUILDS,
+      },
+      onSwatches: (lib) => {
+        s.swatches = lib;
+        this.persistSettings();
       },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
@@ -1509,6 +1513,11 @@ export class Ui {
 
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
+    /* In an ops match with several roles held, they step the role flown
+     * (src/main.js PLATFORM HOLDS) and not the aircraft. */
+    if (this.screen === 'flight' && this.cycleHold && this.cycleHold(dir)) {
+      return;
+    }
     if (this.onHotSwap && this.screen === 'flight') {
       this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }

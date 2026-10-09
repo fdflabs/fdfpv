@@ -59,6 +59,7 @@ import { PROP_SPIN } from './craftpose.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
 import { thermalKind } from './thermal.js';
+import { ledLevel } from './kitlights.js';
 
 /*
  * THE FRAMES, as docs/COMBAT-DRONES.md and scripts/combat-derive.js give
@@ -630,6 +631,40 @@ function kitAntennaKit(k, f, which) {
   return k;
 }
 
+/*
+ * The arm LEDs (configs/kits.js lights): a small unlit bar under each
+ * motor in the pilot's colour, and setLights(tMs, throttle, battery) that
+ * runs the pattern (src/render/kitlights.js). Null without LEDs, so a
+ * stock quad draws and costs exactly what it did.
+ */
+const LED_RED = new THREE.Color(0xff1a00);
+function armLeds(group, f, lights, fog) {
+  if (!lights || !lights.led) {
+    return null;
+  }
+  const base = new THREE.Color(lights.led);
+  const pattern = lights.pattern ?? 'solid';
+  const mats = [];
+  MOTOR_SIGNS.forEach(([sx, sz], m) => {
+    /* In the fog as the rest of the craft is, so a far LED fades with
+     * its quad instead of floating bright in the haze. */
+    const mat = new THREE.MeshBasicMaterial({ color: base.clone(), fog });
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(f.armW * 0.9, 0.003, f.motorR * 1.6), mat);
+    bar.name = `led-${m}`;
+    bar.position.set(sx * f.motorX * 0.86, f.armTop - f.armT - 0.002, sz * f.motorZ * 0.86);
+    bar.rotation.y = Math.atan2(sx * f.motorX, sz * f.motorZ);
+    group.add(bar);
+    mats.push(mat);
+  });
+  const out = { level: 1, red: 0 };
+  return function setLights(tMs, throttle = 0, battery = 1) {
+    mats.forEach((mat, m) => {
+      ledLevel(pattern, m, tMs, throttle, battery, out);
+      mat.color.copy(base).lerp(LED_RED, out.red).multiplyScalar(out.level);
+    });
+  };
+}
+
 /* The interceptor's two antennas, angled up and out at the back: a tall
  * video stalk on the right with its cap, a shorter receiver one on the
  * left, from SMA nuts on the top plate. */
@@ -1150,6 +1185,13 @@ export function buildCombatDrone(opts = {}) {
   }
   blade.dispose();
 
+  /* On the group's userData, not the craft: a craft's and the shell's
+   * handles are a pinned shape (render:golden), and only a kitted craft
+   * has lights. */
+  const setLights = armLeds(group, f, opts.lights, fog);
+  if (setLights) {
+    group.userData.setLights = setLights;
+  }
   const craft = {
     group,
     discs,

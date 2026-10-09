@@ -48,12 +48,13 @@ mkdirSync(out, { recursive: true });
  * box's RTX 3060 Ti, so the GPU column is held to a small share of the
  * frame here. Draw calls are what a weak CPU pays for: the aircraft's
  * parts are most of them. Textures are the room's target and the shadow
- * map, nothing else: the room has no image in it.
+ * map, and one more since item 28: the photo wall, one 1536 by 576 atlas
+ * (3.5 MB) whatever the number of pictures, made only when there is one.
  */
 const BUDGET = {
-  low: { calls: 40, tris: 150000, textures: 2, gpuMs: 2.0 },
-  medium: { calls: 60, tris: 150000, textures: 3, gpuMs: 3.0 },
-  high: { calls: 70, tris: 150000, textures: 3, gpuMs: 4.0 },
+  low: { calls: 40, tris: 150000, textures: 3, gpuMs: 2.0 },
+  medium: { calls: 60, tris: 150000, textures: 4, gpuMs: 3.0 },
+  high: { calls: 70, tris: 150000, textures: 4, gpuMs: 4.0 },
 };
 const PRESETS = ['low', 'medium', 'high'];
 const TIERS = ['garage', 'workshop', 'airfield', 'field'];

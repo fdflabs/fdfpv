@@ -1573,10 +1573,10 @@ export function uglystikTakeoffSticks(s, { vRotate = 11.4 } = {}) {
   const { pitch } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
   const qAero = -s[12];
-  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
   const pitchStick = v < vRotate ? 0 : Math.max(-1, Math.min(1, 5.0 * (8 * Math.PI / 180 - pitch) - 0.25 * qAero));
-  const yaw = Math.max(-1, Math.min(1, 2.0 * heading + 0.3 * s[13]));
-  return [edgeRoll(s), pitchStick, yaw];
+  /* The heading on the rudder, the take off pilot's (rudderHold): the
+   * swirl swings the Stik on its roll as it swings every tractor. */
+  return [edgeRoll(s), pitchStick, rudderHold(s)];
 }
 
 /*

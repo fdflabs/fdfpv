@@ -440,7 +440,10 @@ export async function openPage({
     const centre = await evaluate(`(() => {
       const el = document.querySelector(${JSON.stringify(selector)});
       if (!el) { return null; }
-      el.scrollIntoView({ block: 'center' });
+      /* Instant: the hangar's panel scrolls smoothly (index.html
+       * .hangar-side), and a smooth scroll leaves the box read below where
+       * the element was, so the press landed on a neighbour. */
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
       const box = el.getBoundingClientRect();
       return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
     })()`);

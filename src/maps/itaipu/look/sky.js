@@ -71,7 +71,7 @@
 
 import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
-import { thermalShader } from '../../../render/thermal.js';
+import { thermalShader, T_SCALE } from '../../../render/thermal.js';
 import {
   EXPOSURE, METER_KEY, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
 } from './light.js';
@@ -251,7 +251,7 @@ const STAR_CHANCE = 0.9935;
  *   (SKY_CUBE_AT) as seen from the point the cube was drawn from, so the
  *   clouds slide with the camera every frame, and what one flat height
  *   gets wrong about a 800 m deep deck over the few metres flown is
- *   faded, not stepped. The third cube costs 20 MB of video memory.
+ *   faded, not stepped. The three cubes cost 150 MB of video memory.
  */
 const CLOUD_BASE = 1600;
 const CLOUD_SIZE = 850;
@@ -273,6 +273,14 @@ const CLOUD_LIFT = 350;
 const CLOUD_LIFT_SIZE = 3200;
 const CLOUD_RAG = 30;
 const CLOUD_TOP = CLOUD_BASE + CLOUD_LIFT + CLOUD_DEPTH;
+/* The deck's drift, m/s in x and z: a fair weather trade wind's few
+ * metres a second from the east north east. A sky that never moved read
+ * as painted. */
+const CLOUD_WIND = new THREE.Vector2(-4.3, 2.5);
+/* How far under the air at the ground a cumulus base reads in the
+ * thermal picture, kelvin: about 1.5 km over the plateau at the dry
+ * adiabat's lower half, 6.5 K a kilometre. */
+const CLOUD_COLD_K = 10;
 const CLOUD_STEPS = 64;
 const CLOUD_SPAN = 4000;
 const CLOUD_SIGMA = 0.032;
@@ -298,8 +306,8 @@ const ENV_PX = 256;
 /* The sky cube's side, the bands each face is drawn in, one band a
  * frame, and the jump in one frame, metres, past which all six faces are
  * drawn at once (THE SKY IS A CUBE, in the module doc). */
-const SKY_CUBE_PX = 640;
-const SKY_CUBE_BANDS = 4;
+const SKY_CUBE_PX = 1024;
+const SKY_CUBE_BANDS = 8;
 const SKY_CUBE_CUT = 40;
 /* The height the backdrop takes a cloud to stand at when it reads the
  * cube from where the cube was drawn: the deck's lower middle, where most
@@ -324,6 +332,7 @@ const SKY_GLSL = /* glsl */ `
   uniform float uDisc;
   uniform float uDirect;
   uniform samplerCube uCube;
+  uniform vec2 uWindAt;
   uniform vec3 uCubeFrom;
   uniform samplerCube uCubeOld;
   uniform vec3 uCubeOldFrom;
@@ -428,6 +437,7 @@ const SKY_GLSL = /* glsl */ `
     return (q.y - cloudBase(q.xz)) / ${CLOUD_DEPTH.toFixed(1)};
   }
   float cloudDensity(vec3 q, int octaves) {
+    q.xz -= uWindAt;
     float h = cloudH(q);
     if (h < 0.0 || h > 1.0) {
       return 0.0;
@@ -452,7 +462,11 @@ const SKY_GLSL = /* glsl */ `
     return smoothstep(edge, edge + ${CLOUD_SOFT.toFixed(3)}, n) * smoothstep(0.0, 0.06, h);
   }
 
+  /* The share of skyAt's last ray the cloud stopped, veiled as its
+   * colour is: the cube keeps it in alpha for the thermal picture. */
+  float skyCover = 0.0;
   vec3 skyAt(vec3 d) {
+    skyCover = 0.0;
     /* post.js airT's light at the end of an endless ray. */
     const float g = 0.72;
     float mu = dot(d, uSun);
@@ -488,11 +502,23 @@ const SKY_GLSL = /* glsl */ `
         if (dens < 0.002) {
           continue;
         }
-        float h = clamp(cloudH(q), 0.0, 1.0);
-        float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3);
-        float sunT = exp(-${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens)) * mix(0.45, 1.0, h);
-        vec3 lq = uSunCol * (sunT * (${CLOUD_LIT.toFixed(3)} + 0.5 * hg * (1.0 - dens)))
-          + sky * mix(0.55, 1.0, h);
+        float h = clamp(cloudH(q - vec3(uWindAt.x, 0.0, uWindAt.y)), 0.0, 1.0);
+        /* Two taps toward the sun, the second three times as far: one
+         * tap saw only a cell's skin, so a base under 800 m of cloud was
+         * lit nearly as its top. Beer's law over both, with a slower
+         * second order so the shade is grey, not black (the powder
+         * term then darkens the creases a thin skin of cloud leaves
+         * facing away from the sun). */
+        float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3)
+          + 1.5 * cloudDensity(q + uSun * ${(CLOUD_PROBE * 3).toFixed(1)}, 2);
+        float od = ${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens);
+        float sunT = (exp(-od) + 0.3 * exp(-0.25 * od)) / 1.3;
+        float powder = 1.0 - 0.6 * exp(-4.0 * dens) * (0.5 - 0.5 * mu);
+        /* The silver lining: toward the sun a thin edge scatters forward
+         * far more than it reflects, a narrow lobe on the thin parts. */
+        float silver = 2.2 * hg * (1.0 - dens) * exp(-0.5 * od);
+        vec3 lq = uSunCol * (sunT * ${CLOUD_LIT.toFixed(3)} * powder * mix(0.35, 1.0, h) + silver)
+          + sky * mix(0.32, 1.0, h * h);
         if (uCityOn > 0.0) {
           lq += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(q.xz) * (1.0 - h));
         }
@@ -505,6 +531,7 @@ const SKY_GLSL = /* glsl */ `
         vec3 cloud = light / cover;
         float air = 1.0 - exp(-t0 / ${CLOUD_FADE.toFixed(1)});
         c = mix(c, mix(cloud, c, air), cover * horizon);
+        skyCover = cover * horizon * (1.0 - air);
         starsSeen *= 1.0 - cover * horizon;
       }
     }
@@ -545,12 +572,15 @@ export function skyBackdrop(sunDir, time) {
       /* Where the cube read was drawn from (THE CUBE IS SEEN FROM WHERE
        * IT WAS DRAWN). */
       uCubeFrom: { value: new THREE.Vector3() },
+      /* How far the deck has drifted (CLOUD_WIND) when the cube being
+       * drawn was started; 0 for the environment. */
+      uWindAt: { value: new THREE.Vector2() },
       /* The cube read before it, and how much of the new one to take:
        * over a refresh the old one is faded out. */
       uCubeOld: { value: null },
       uCubeOldFrom: { value: new THREE.Vector3() },
       uCubeMix: { value: 1 },
-      uCubeTexel: { value: 1.5 / SKY_CUBE_PX },
+      uCubeTexel: { value: 1 / SKY_CUBE_PX },
       /* 1 but while the environment is drawn (skyEnvironment). */
       uGain: { value: 1 },
       uStars: { value: night ? 1 : 0 },
@@ -575,7 +605,7 @@ export function skyBackdrop(sunDir, time) {
     fragmentShader: /* glsl */ `
       #include <common>
       ${SKY_GLSL}
-      vec3 cubeAt(samplerCube cube, vec3 from, vec3 d) {
+      vec4 cubeAt(samplerCube cube, vec3 from, vec3 d) {
         if (d.y > 0.0 && uCam.y < ${SKY_CUBE_AT.toFixed(1)}) {
           vec3 hit = uCam + d * ((${SKY_CUBE_AT.toFixed(1)} - uCam.y) / d.y);
           d = normalize(hit - from);
@@ -583,9 +613,9 @@ export function skyBackdrop(sunDir, time) {
         vec3 tu = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
         vec3 tv = cross(d, tu);
         float k = uCubeTexel;
-        return 0.4 * textureCube(cube, d).rgb
-          + 0.15 * (textureCube(cube, d + (tu + tv) * k).rgb + textureCube(cube, d + (tu - tv) * k).rgb
-            + textureCube(cube, d - (tu + tv) * k).rgb + textureCube(cube, d - (tu - tv) * k).rgb);
+        return 0.4 * textureCube(cube, d)
+          + 0.15 * (textureCube(cube, d + (tu + tv) * k) + textureCube(cube, d + (tu - tv) * k)
+            + textureCube(cube, d - (tu + tv) * k) + textureCube(cube, d - (tu - tv) * k));
       }
       void main() {
         vec3 d = normalize(vDir);
@@ -599,19 +629,32 @@ export function skyBackdrop(sunDir, time) {
            * seen from there. Under the horizon and over the deck there are
            * no clouds to slide, and toward the horizon the deck is so far
            * off that both rays agree, so the two ways meet smoothly. */
-          c = cubeAt(uCube, uCubeFrom, d);
+          vec4 cc = cubeAt(uCube, uCubeFrom, d);
           if (uCubeMix < 1.0) {
-            c = mix(cubeAt(uCubeOld, uCubeOldFrom, d), c, uCubeMix);
+            cc = mix(cubeAt(uCubeOld, uCubeOldFrom, d), cc, uCubeMix);
           }
+          c = cc.rgb;
+          skyCover = cc.a;
         }
         float disc = smoothstep(0.99998, 0.999992, dot(d, uSun));
-        gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, 1.0);
+        /* Into a cube the cover goes with the colour (skyCover); on the
+         * screen the sky is opaque. */
+        gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, uDirect > 0.5 ? skyCover : 1.0);
       }
     `,
   });
-  /* The clear sky's own temperature along the look (thermal.js thSky):
-   * the coldest thing in a thermal picture. */
-  thermalShader(mat, 'float thT = thSky(normalize(vDir).y);', 'itaipu-sky');
+  /* The clear sky's own temperature along the look (thermal.js thSky),
+   * the coldest thing in a thermal picture, and the cloud over it as a
+   * long wave camera sees one: a thick cumulus is near a black body at
+   * the temperature of its base, the air's less the lapse to it
+   * (CLOUD_COLD_K), so it reads warmer than the clear sky and colder
+   * than the ground; a thin edge lets the cold sky through. Never colder
+   * than the clear sky the same way: toward the horizon the slant of
+   * humid air is itself near the air's temperature, and a cloud there
+   * only hides more of the same (taken as the cloud's own, the low
+   * deck drew as dark holes in a warm horizon). */
+  thermalShader(mat, `float thClear = thSky(normalize(vDir).y);
+    float thT = mix(thClear, max(thClear, thEnv.y - ${(CLOUD_COLD_K / T_SCALE).toFixed(4)}), skyCover);`, 'itaipu-sky');
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), mat);
   /* Last of the opaque things, depth tested on the far plane (the vertex
    * shader puts it there), so it reads the sky cube only on the pixels
@@ -632,7 +675,7 @@ export function skyBackdrop(sunDir, time) {
     const target = new THREE.WebGLCubeRenderTarget(SKY_CUBE_PX, { type: THREE.HalfFloatType });
     target.texture.generateMipmaps = false;
     target.texture.minFilter = THREE.LinearFilter;
-    return { target, from: new THREE.Vector3() };
+    return { target, from: new THREE.Vector3(), at: 0 };
   };
   let front = makeCube();
   let back = makeCube();
@@ -651,6 +694,10 @@ export function skyBackdrop(sunDir, time) {
   const last = new THREE.Vector3();
   let drawn = false;
   let next = 0;
+  /* The wind's clock, seconds since the sky was made. */
+  const born = performance.now() / 1000;
+  const shift = new THREE.Vector3();
+  const drift = (c, now) => shift.set(CLOUD_WIND.x * (now - c.at), 0, CLOUD_WIND.y * (now - c.at));
   /* The new front cube's share, faded in over a refresh so a swap is not
    * a step either. */
   let fade = 1;
@@ -658,6 +705,7 @@ export function skyBackdrop(sunDir, time) {
    * it, from `into.from`. */
   function drawFaces(renderer, into, faces, band = -1) {
     const cube = into.target;
+    mat.uniforms.uWindAt.value.copy(CLOUD_WIND).multiplyScalar(into.at);
     eye.position.copy(into.from);
     eye.updateMatrixWorld();
     const prevTarget = renderer.getRenderTarget();
@@ -698,7 +746,7 @@ export function skyBackdrop(sunDir, time) {
    * where the camera now is when there is no cube yet or the camera has
    * jumped since the last frame, and the back one started over. (The
    * jump is measured against the last frame, not against when a cube was
-   * drawn: against the cube, a camera moving 40 m in the 24 frames a
+   * drawn: against the cube, a camera moving 40 m in the 48 frames a
    * refresh takes, a plane's cruise, redrew all six faces every frame,
    * 26 ms of GPU each.) */
   sky.updateCube = (renderer, camera) => {
@@ -707,17 +755,20 @@ export function skyBackdrop(sunDir, time) {
       eye.updateCoordinateSystem();
     }
     at.setFromMatrixPosition(camera.matrixWorld);
+    const now = performance.now() / 1000 - born;
     const cut = !drawn || last.distanceTo(at) > SKY_CUBE_CUT;
     last.copy(at);
     drawn = true;
     if (cut) {
       front.from.copy(at);
+      front.at = now;
       drawFaces(renderer, front, [0, 1, 2, 3, 4, 5]);
       next = 0;
       fade = 1;
     } else {
       if (next === 0) {
         back.from.copy(at);
+        back.at = now;
       }
       drawFaces(renderer, back, [Math.floor(next / SKY_CUBE_BANDS)], next % SKY_CUBE_BANDS);
       next = (next + 1) % (6 * SKY_CUBE_BANDS);
@@ -729,9 +780,11 @@ export function skyBackdrop(sunDir, time) {
     }
     const u = mat.uniforms;
     u.uCube.value = front.target.texture;
-    u.uCubeFrom.value.copy(front.from);
+    /* A cube is read from where it was drawn, moved on by the drift
+     * since: the same as moving its clouds on with the wind. */
+    u.uCubeFrom.value.copy(front.from).add(drift(front, now));
     u.uCubeOld.value = fade < 1 ? old.target.texture : null;
-    u.uCubeOldFrom.value.copy(old.from);
+    u.uCubeOldFrom.value.copy(old.from).add(drift(old, now));
     u.uCubeMix.value = fade;
   };
   sky.disposeCube = () => {
