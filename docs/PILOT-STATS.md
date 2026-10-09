@@ -58,9 +58,13 @@ The record is `settings.pilotCounts`, its own synced section (kind
 
 - A FLIGHT is a run that logged at least one whole second airborne, by the
   clock that counts the hours (src/main.js commitFlightTime). Counted once
-  per run; parking at the spawn commits the run before and starts the
-  next. A pause, a landing and a take off again in one run are one
-  flight; a run left on the stand or crashed in the first second is none.
+  per run. A run ends wherever the craft is put back on a spot
+  (src/main.js resetCraft, through parkAtSpawn): a restart, the respawn
+  after a crash, each Trick Battle turn and Catch the Ace! respawn, and an
+  aircraft swap. So a three turn Trick Battle the pilot flies in is
+  three flights, as three launches are. A pause, a landing and a take off
+  again in one run are one flight; a run left on the stand or crashed in
+  the first second is none.
 - A MATCH is counted when the room ends it (edge/rooms is the authority):
   the client records from the room's final standings in the same place it
   opens the results (roomTag/roomJam takeResults), whatever screen is up,
