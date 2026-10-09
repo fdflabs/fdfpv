@@ -103,7 +103,7 @@ export const KITS = {
   sky1800: SKY, cub1400: CUB, kadet1981: KADET, slowstick1180: SLOWSTICK,
   uglystik1567: UGLYSTIK, timber1500: TIMBER,
   extra3d1308: EXTRA,
-  nighttimber1200: [],
+  nighttimber1200: TIMBER,
   p51d1450: P51, tigermoth1803: TIGERMOTH, bombshell1118: BOMBSHELL,
   f16878: JET,
   radian2000: RADIAN, nrj1490: NRJ,
@@ -117,7 +117,7 @@ export const KITS = {
 export const DRAWN = new Set(['7inch', '10inch', 'interceptor', 'striker2500', 'f16878',
   'radian2000', 'nrj1490', 'zagi1219', 'bramor2300',
   'p51d1450', 'tigermoth1803', 'bombshell1118',
-  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500', 'extra3d1308']);
+  'sky1800', 'cub1400', 'kadet1981', 'slowstick1180', 'uglystik1567', 'timber1500', 'extra3d1308', 'nighttimber1200']);
 
 const QUADS = new Set(['7inch', '10inch', 'interceptor']);
 export const LED_PATTERNS = ['solid', 'chase', 'strobe', 'throttle', 'battery'];
