@@ -244,11 +244,6 @@ try {
   check('DOWN_MS after it came to rest it flies again, untouchable at first, inside the corridor', (back.flags & FLAG_AIRBORNE) !== 0 && (back.flags & FLAG_SPAWNING) !== 0
     && back.drawn && back.at[1] >= CORRIDOR.yMin - 5, `flags ${back.flags}, ${back.at && back.at[1].toFixed(1)} m`);
 
-  /* A parked on the strip is untouchable for good: a fresh flight is until
-   * it is 30 m from its start (src/main.js roomSpawning), so an Ace sat
-   * there is never caught, and the match never moves when the draw makes
-   * A the Ace. A is put 60 m up instead, to fall clear of its start. */
-  await a.evaluate('window.__placeCraft(0, 60, 0); true');
   await a.evaluate("window.__roomTagDo('tag-start', 120)");
   await a.until("window.__roomTag().view && window.__roomTag().view.state === 'live'", 30000);
   const seats = new Set(bots(await a.evaluate('window.__rooms()')).map((p) => p.seat));
