@@ -15,7 +15,8 @@
  * import in every module lands on the versioned URL, and a module's own
  * imports resolve against that URL and are mapped again. The entry script's
  * src gets the same query, the page gets a <meta name="fdfpv-version">, and
- * the site root gets version.json, which src/ui/update.js polls.
+ * the site root gets version.json, which src/ui/update.js polls, and sw.js
+ * gets the version and a content hash of every other file (see sw.js).
  *
  * The walk is also the check. A local import the walk cannot follow, a bare
  * specifier the page's import map does not name, or a module missing from
@@ -40,6 +41,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -194,6 +196,37 @@ export function stampPage(siteDir, page, version) {
   return { html: stamped, modules };
 }
 
+/* Every file a page fetches at a bare path, by its content: the shell
+ * pages are left out because sw.js asks the network for them first, and
+ * version.json and sw.js because the worker never answers for them. */
+function assetHashes(siteDir, dir = '', out = {}) {
+  for (const ent of readdirSync(join(siteDir, dir), { withFileTypes: true })) {
+    const rel = dir ? `${dir}/${ent.name}` : ent.name;
+    if (ent.isDirectory()) {
+      assetHashes(siteDir, rel, out);
+    } else if (ent.isFile() && !rel.endsWith('.html') && rel !== 'version.json' && rel !== 'sw.js') {
+      out[rel] = createHash('sha256').update(readFileSync(join(siteDir, rel))).digest('hex').slice(0, 16);
+    }
+  }
+  return out;
+}
+
+/* sw.js with VERSION and ASSETS filled in. Returns { js, assets }. */
+export function stampWorker(siteDir, version) {
+  const src = readFileSync(join(siteDir, 'sw.js'), 'utf8');
+  const assets = assetHashes(siteDir);
+  const sorted = Object.fromEntries(Object.entries(assets).sort(([a], [b]) => (a < b ? -1 : 1)));
+  let js = src;
+  for (const [line, value] of [["const VERSION = 'dev';", `const VERSION = ${JSON.stringify(version)};`],
+    ['const ASSETS = {};', `const ASSETS = ${JSON.stringify(sorted)};`]]) {
+    if (js.split(line).length !== 2) {
+      throw new Error(`sw.js: wants exactly one "${line}" to stamp`);
+    }
+    js = js.replace(line, () => value);
+  }
+  return { js, assets: Object.keys(sorted).length };
+}
+
 export function stampSite(siteDir, version) {
   const out = {};
   for (const page of SHELL_PAGES) {
@@ -201,6 +234,9 @@ export function stampSite(siteDir, version) {
     writeFileSync(join(siteDir, page), html);
     out[page] = modules.length;
   }
+  const worker = stampWorker(siteDir, version);
+  writeFileSync(join(siteDir, 'sw.js'), worker.js);
+  out['sw.js'] = worker.assets;
   writeFileSync(join(siteDir, 'version.json'), `${JSON.stringify({ version })}\n`);
   return out;
 }
@@ -213,6 +249,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const counts = stampSite(siteDir, version);
   for (const [page, n] of Object.entries(counts)) {
-    console.log(`${page}: ${n} modules at ?v=${version}`);
+    console.log(page === 'sw.js' ? `sw.js: ${n} assets by content hash` : `${page}: ${n} modules at ?v=${version}`);
   }
 }

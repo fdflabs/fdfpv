@@ -15,7 +15,7 @@
  *
  * So a roof is now what the drawn roof is: its upper faces, each a plane
  * over a convex plan, in the frame the builder put it in. Most are the
- * shell alps/kit.js roofShell builds; the rest (a lean-to, a hut's two
+ * shell library/kit.js roofShell builds; the rest (a lean-to, a hut's two
  * slabs, a spire, the city's drawn roof triangles) are made from the same
  * numbers their drawing is made from (gableTop, shedTop, flatTop,
  * pyramidTop, recordAt). The map's height(x, z, fromY) offers the highest

@@ -142,7 +142,7 @@ const footprintOf = (corners) => ({
 });
 
 /*
- * Stand a kit builder into `bake` at (x, z), turned `ry` (alps/kit.js's
+ * Stand a kit builder into `bake` at (x, z), turned `ry` (library/kit.js's
  * frame turn), as alps/village.js stands a house: level on the highest
  * of `ground` (points under it) or at `y` where it is given, its
  * foundation cut down to the lowest. Its new roofs are recorded as

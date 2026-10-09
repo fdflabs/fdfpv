@@ -509,6 +509,12 @@ const PAGES = {
     menu: 'paused',
     hint: [['Esc'], 'ui.resumes_resume_is_also_the_first'],
   },
+  quick: {
+    classes: 'screen-modal',
+    title: 'pause.flight',
+    menu: 'quick',
+    hint: [['Esc'], 'pause.quick_hint'],
+  },
 };
 
 function menuPage(id) {
@@ -767,6 +773,7 @@ const SCREENS = [
   calibrateScreen,
   padpickScreen,
   menuPage('paused'),
+  menuPage('quick'),
   resultsScreen,
   walkScreen,
 ];
