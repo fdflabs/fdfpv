@@ -144,7 +144,7 @@ function lapClause(step) {
   const extras = Object.entries(step.rot || {})
     .filter(([, n]) => n !== 0)
     .map(([axis, n]) => str('trickfilm.of', { turnWords: countWords(n), v2: AXIS_NAME[axis] }));
-  const carrying = extras.length ? str('trickfilm.carrying', { v1: extras.join(' and ') }) : '';
+  const carrying = extras.length ? str('trickfilm.carrying', { v1: extras.join(str('trickfilm.and')) }) : '';
   return size + qualify(step, LAP_QUALIFIERS) + carrying;
 }
 

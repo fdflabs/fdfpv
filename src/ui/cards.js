@@ -36,6 +36,7 @@ import { raceGatesOf } from '../builder/course.js';
 import { formatScore } from '../game/score.js';
 import { medalTimes } from '../game/medals.js';
 import { planesFor } from '../game/verify.js';
+import { trickLevel } from '../game/tricks-sheet.js';
 import {
   boardConfigured, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
@@ -476,7 +477,7 @@ export const cardMethods = {
     const say = this.constructor.text;
     say(this.trickName, trick.name);
     const points = plural('count.points', trick.points, { n: formatScore(trick.points) });
-    say(this.trickMeta, [str('ui.points', { points, difficulty: trick.difficulty }), trick.category, trick.status.tag].join(SEP));
+    say(this.trickMeta, [str('ui.points', { points, difficulty: trickLevel(trick.difficulty) }), trick.category, trick.status.tag].join(SEP));
     say(this.trickHow, `${trick.how} ${trick.status.line}`);
     /* The camera's side, said: a roll seen side on looks like a craft not
      * moving at all, so the reader must know which angle they are shown. */

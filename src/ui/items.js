@@ -42,6 +42,7 @@ import {
 } from '../../configs/rates.js';
 import { CUSTOM_TUNE, tuneById } from '../../configs/registry.js';
 import { formatScore } from '../game/score.js';
+import { trickLevel } from '../game/tricks-sheet.js';
 import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { LINK_PRESETS } from '../input/link.js';
@@ -447,7 +448,7 @@ function trickRows(ui) {
   return ui.trickRows().map((t) => ({
     label: t.name,
     value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${t.difficulty}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
+    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
     action: 'noop',
   }));
 }
