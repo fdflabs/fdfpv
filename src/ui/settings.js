@@ -47,7 +47,9 @@ import { normaliseCombat } from '../../configs/combat.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { normaliseLiveries, normaliseSaves, normaliseSwatches } from '../../configs/liveries.js';
 import { FC_DUMP_AIRFRAME_KEY, FC_DUMP_KEY } from '../fc/dump.js';
+import { PRESET_IDS as WEATHER_PRESETS } from '../game/weather.js';
 import { DEFAULT_STICK_MODE, normaliseStickMode } from '../input/stickmode.js';
+import { hasKeybinds, normaliseKeybinds } from '../input/keybinds.js';
 import { LINK_PRESETS } from '../input/link.js';
 import { MOUSE_CENTRES, MOUSE_EXPOS, MOUSE_SENS } from '../input/input.js';
 import { touchWanted } from '../input/touchsticks.js';
@@ -215,6 +217,8 @@ export const DEFAULTS = {
   launchControl: false,
   missionGuidance: true,
   crashDamage: true,
+  /* The air a solo run flies; in a room the host's is the room's. */
+  weather: 'calm',
   ghost: 'best',
   live: 'off',
   cameraAngle: CAMERA_ANGLE_DEFAULT,
@@ -480,6 +484,7 @@ const ONE_OF = {
   ghost: () => ['off', 'best', 'previous'],
   live: () => ['off', 'on'],
   freestyleScoring: () => FREESTYLE_SCORING,
+  weather: () => WEATHER_PRESETS,
   mouseSens: () => MOUSE_SENS,
   mouseExpo: () => MOUSE_EXPOS,
   mouseCentre: () => MOUSE_CENTRES,
@@ -489,7 +494,7 @@ const ONE_OF = {
  * profile still on one moves to the aircraft's current default once. */
 const OLD_WING_STOCK = { bramor2300: 'wing-stab', sky1800: 'sky-stab' };
 
-const WING_VIEWS = ['fpv', 'chase', 'los', 'ball'];
+const WING_VIEWS = ['fpv', 'chase', 'los', 'pilot', 'ball'];
 
 /*
  * The stored profile, every field present and valid. Reading it also
@@ -515,6 +520,10 @@ export function loadSettings() {
   if (s.flightMode !== 'angle') s.flightMode = 'acro';
   if (!WING_VIEWS.includes(s.wingView)) s.wingView = 'fpv';
   s.stickMode = normaliseStickMode(s.stickMode);
+  /* Flight keys the pilot moved (src/input/keybinds.js), synced. Absent
+   * until one is, so a profile that moved none is stored as before. */
+  const keybinds = normaliseKeybinds(raw.keybinds);
+  if (hasKeybinds(keybinds)) s.keybinds = keybinds;
 
   s.airframe = currentAirframeId(s.airframe);
   try {

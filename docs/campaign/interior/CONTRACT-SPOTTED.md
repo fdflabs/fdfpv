@@ -13,8 +13,8 @@ last checkpoint.
 3. Stay and the group SPOTS you: radio "They've seen you." then one advice
    line chosen from what happened (below); the people run their scatter
    routes for SCENE seconds (the end scene, the match still live so every
-   screen draws them going) while every screen cuts to a wide, slow orbit
-   high over them (src/share/ops/spotfilm.js, played by the films' player
+   screen draws them going) while every screen cuts to a slow, wide-lens orbit
+   at head height among them, under the crowns (src/share/ops/spotfilm.js, played by the films' player
    on the room's clock from the spotted moment), then the match is lost
    with why `spotted`. With two groups on alert the HUD shows the higher.
 4. The fail card / debrief shows the same advice, with the height you came in

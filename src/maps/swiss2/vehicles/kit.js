@@ -3,7 +3,7 @@
  *
  * A vehicle is a list of parts, each carrying its colour and its finish
  * on every vertex, baked into one geometry and drawn with one material
- * (materials.js), as the cel vehicles are (alps/parts.js). A finish is
+ * (materials.js), as the cel vehicles are (library/vehicles/parts.js). A finish is
  * how the surface meets the light: car paint under a clear coat, black
  * plastic, rubber, chrome, a lamp's lens, the grey inside a cabin where
  * the sky does not reach. Glass is the other list: it is drawn apart, see
@@ -33,7 +33,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { PAINT, wheelGeometry } from '../../alps/vehicles.js';
+import { PAINT, wheelGeometry } from '../../../render/library/vehicles/vehicles.js';
 
 /*
  * A finish: c the colour (sRGB, as the cel PAINT table gives it), r the

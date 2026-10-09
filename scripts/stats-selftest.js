@@ -147,7 +147,7 @@ function addressBar(href, { history = 'ok' } = {}) {
   }
   return { loc, hist, log };
 }
-globalThis.window = { location: { href: 'https://paraguayandronecombatsimulator.com/?utm_source=window-default&map=alps', search: '' }, history: { replaceState: () => {} } };
+globalThis.window = { location: { href: 'https://paraguayandronecombatsimulator.com/?utm_source=window-default&map=alps', search: '', hostname: 'paraguayandronecombatsimulator.com' }, history: { replaceState: () => {} } };
 
 const stats = await import('../src/share/stats.js');
 const t = transcript();
