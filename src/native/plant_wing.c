@@ -4630,6 +4630,6 @@ const FixedWingParams FW_HERCULES3077 = {
    * in 4 s, a model's slow servo; the open hold's base drag and the hanging
    * ramp's, 0.0259 on the wing's area, under the CG, so nose down. */
   .door_time = 4.0,
-  .cd_door = 0.0259,
-  .cm_door = -0.0091,
+  .cd_door = 0.0259,      /* npm run hercules:derive */
+  .cm_door = -0.0091,     /* npm run hercules:derive */
 };
