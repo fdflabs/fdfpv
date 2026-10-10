@@ -629,6 +629,7 @@ function pilotRows(ui, s) {
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
+    { label: str('ui.download_control_recording'), action: 'downloadcontrolrec', note: str('ui.download_control_recording_note') },
     { label: str('pause.help'), section: true },
     { label: str('ui.how_to_fly'), action: 'howto' },
     creditsRow(),

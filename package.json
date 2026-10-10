@@ -111,6 +111,8 @@
     "gen:hangarcard": "node scripts/hangarcard.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "flightlog:selftest": "node scripts/flightlog-selftest.js",
+    "controlrec:selftest": "node scripts/controlrec-selftest.js",
+    "controlrec:check": "node scripts/controlrec-check.js",
     "ghostdata:selftest": "node scripts/ghostdata-selftest.js",
     "harness:selftest": "node scripts/harness-selftest.js",
     "browser:selftest": "node scripts/browser-selftest.js",
