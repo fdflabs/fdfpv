@@ -92,6 +92,7 @@ jobs:
           tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
           npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
+      - run: npm run figures:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
       - run: npm run voicechat:selftest
@@ -198,6 +199,7 @@ jobs:
       - run: npm run extra:gates
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
+      - run: npm run figures:plant
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
