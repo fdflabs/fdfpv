@@ -520,6 +520,7 @@
     "planerates:check": "node scripts/plane-rates-check.js",
     "flighttime:selftest": "node scripts/flighttime-selftest.js",
     "stats:selftest": "node scripts/stats-selftest.js",
+    "clientreport:selftest": "node scripts/clientreport-selftest.js",
     "sharedkeys:selftest": "node scripts/sharedkeys-selftest.js",
     "flighttime:check": "node scripts/flighttime-check.js",
     "retired:selftest": "node scripts/retired-maps-selftest.js",

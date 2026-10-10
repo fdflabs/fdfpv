@@ -372,6 +372,10 @@ jobs:
       # What this browser tells the board's statistics page, and when it
       # refuses (src/share/stats.js), against a pinned transcript.
       - run: npm run stats:selftest
+      # What a page error or a minute of frame times may say when it
+      # leaves the browser: a fuzz for planted personal data, the opt out
+      # (src/share/clientreport.js).
+      - run: npm run clientreport:selftest
       # The language and statistics keys shared with the board, through
       # their move to fdfpv.* names (src/share/sharedkeys.js).
       - run: npm run sharedkeys:selftest
