@@ -447,3 +447,44 @@ export function crownMaterial(THREE, mode, uniforms) {
   mat.customProgramCacheKey = () => `interior-crown-${mode}`;
   return thermalKind(mat, 'vegetation');
 }
+/*
+ * A near crown's shadow: three's depth material cut to the crown's lobes
+ * the way crownMaterial cuts its colour, so a gap in a crown is a gap in
+ * its shadow. The shadow pass's camera is the sun's, far off along its
+ * direction, so the ray through each texel runs with the light. No
+ * clumps: a shadow map's texel is wider than their hollows.
+ */
+export function crownDepthMaterial(THREE, uniforms) {
+  const mat = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+  mat.defines = {
+    ...(mat.defines || {}), CROWN_MODE: 0, CROWN_LOBES: LOBES, CROWN_TEMPLATES: TEMPLATES, CROWN_RAY_AT: 'vCrW', CROWN_CENTRE: 'vCrC', CROWN_RADII: 'vCrR',
+  };
+  const lobes = {
+    uCrLobes: { value: Array.from({ length: TEMPLATES * LOBES }, (_, i) => new THREE.Vector4().fromArray(LOBE_DATA, i * 4)) },
+  };
+  const swap = (src, anchor, add, where) => {
+    if (!src.includes(anchor)) {
+      throw new Error(`crowns: three's depth ${where} shader has no ${anchor} to patch`);
+    }
+    return src.replace(anchor, add);
+  };
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms, lobes);
+    let v = shader.vertexShader;
+    v = swap(v, '#include <common>', `#include <common>\n${CROWN_VERT_PARS}`, 'vertex');
+    v = swap(v, '#include <project_vertex>', `#include <project_vertex>\n${CROWN_VERT}`, 'vertex');
+    shader.vertexShader = v;
+    let f = shader.fragmentShader;
+    f = swap(f, '#include <common>', `#include <common>\n${CROWN_FRAG_PARS}`, 'fragment');
+    f = swap(f, '#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      {
+        vec3 crNW;
+        float crUpD;
+        if (!crHit(vCrW, vCrC, vCrR, crNW, crUpD)) discard;
+      }`, 'fragment');
+    shader.fragmentShader = f;
+  };
+  mat.customProgramCacheKey = () => 'interior-crown-depth';
+  return mat;
+}
+
