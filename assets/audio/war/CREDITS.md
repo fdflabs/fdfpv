@@ -139,6 +139,9 @@ the text they are spoken from.
 | film-itaipu-1-5 | `voice/en/film-itaipu-1-5.webm`, `voice/en/film-itaipu-1-5.mp3`, `voice/es/film-itaipu-1-5.webm`, `voice/es/film-itaipu-1-5.mp3` |
 | film-itaipu-1-6 | `voice/en/film-itaipu-1-6.webm`, `voice/en/film-itaipu-1-6.mp3`, `voice/es/film-itaipu-1-6.webm`, `voice/es/film-itaipu-1-6.mp3` |
 | film-itaipu-1-7 | `voice/en/film-itaipu-1-7.webm`, `voice/en/film-itaipu-1-7.mp3`, `voice/es/film-itaipu-1-7.webm`, `voice/es/film-itaipu-1-7.mp3` |
+| film-itaipu-1-o2 | `voice/en/film-itaipu-1-o2.webm`, `voice/en/film-itaipu-1-o2.mp3`, `voice/es/film-itaipu-1-o2.webm`, `voice/es/film-itaipu-1-o2.mp3` |
+| film-itaipu-1-o3 | `voice/en/film-itaipu-1-o3.webm`, `voice/en/film-itaipu-1-o3.mp3`, `voice/es/film-itaipu-1-o3.webm`, `voice/es/film-itaipu-1-o3.mp3` |
+| film-itaipu-1-o4 | `voice/en/film-itaipu-1-o4.webm`, `voice/en/film-itaipu-1-o4.mp3`, `voice/es/film-itaipu-1-o4.webm`, `voice/es/film-itaipu-1-o4.mp3` |
 | itaipu-1-s0-brief | `voice/en/itaipu-1-s0-brief.webm`, `voice/en/itaipu-1-s0-brief.mp3`, `voice/es/itaipu-1-s0-brief.webm`, `voice/es/itaipu-1-s0-brief.mp3` |
 | itaipu-1-s0-rules | `voice/en/itaipu-1-s0-rules.webm`, `voice/en/itaipu-1-s0-rules.mp3`, `voice/es/itaipu-1-s0-rules.webm`, `voice/es/itaipu-1-s0-rules.mp3` |
 | itaipu-1-s1-eyes | `voice/en/itaipu-1-s1-eyes.webm`, `voice/en/itaipu-1-s1-eyes.mp3`, `voice/es/itaipu-1-s1-eyes.webm`, `voice/es/itaipu-1-s1-eyes.mp3` |

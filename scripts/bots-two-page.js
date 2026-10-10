@@ -14,8 +14,10 @@
  * over the corridor, and an AI pilot the room crashes is seen crashed,
  * lying on the ground, then flying again. A makes a private room: no AI
  * pilots until A, its host, clicks Normal on the AI pilots row; B joins it
- * and reads the host's choice; A clicks Off and they leave. Pictures in
- * outdir, which is not in the repository.
+ * and reads the host's choice; A clicks Off and they leave. C, on the
+ * alps, makes a public room there: AI pilots fill it over the alps' own
+ * ground, which the room has. Pictures in outdir, which is not in the
+ * repository.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -61,10 +63,10 @@ function check(name, ok, detail = '') {
   }
 }
 
-function seedFor(colour) {
+function seedFor(colour, map = 'swiss2') {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME);
-  s.map = 'swiss2';
-  s.freestyleMap = 'swiss2';
+  s.map = map;
+  s.freestyleMap = map;
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;
@@ -90,23 +92,6 @@ async function shot(page, name) {
 }
 
 const bots = (r) => r.peers.filter((p) => /^AI /.test(p.name));
-
-/* The room screen's rows as the page has them: the "Pilots here" row's
- * value, and every row naming an AI pilot, with what it offers. */
-const ROWS = `(() => {
-  const rows = window.__ui.friendsRows();
-  const here = rows.find((r) => r.label === ${JSON.stringify('Pilots here')});
-  /* AI pilots' names, never the host's AI pilots row (#866). */
-  const ai = rows.filter((r) => /^AI .* \\d+$/.test(String(r.label)));
-  return { lobby: rows.some((r) => r.action === 'friends-lobby-ready'), here: here ? here.value : null, top: window.__ui.friendsRow().value, ai: ai.map((r) => ({ label: r.label, info: Boolean(r.info), options: (r.options || []).length, pick: Boolean(r.pick) })) };
-})()`;
-function rowsSay(rows, people, ai) {
-  /* A game's lobby has no "Pilots here" row: its panel lists them. */
-  return (rows.here === null || new RegExp(`^${people} of \\d+, \\+${ai} AI pilots?$`).test(rows.here))
-    && (rows.here !== null || rows.lobby)
-    && rows.top.endsWith(`, ${people} here, +${ai} AI pilot${ai === 1 ? '' : 's'}`)
-    && rows.ai.length === ai && rows.ai.every((r) => r.info && !r.options && !r.pick);
-}
 
 /* The AI pilots row on the page's room screen: its value, whether it is
  * the host's (it has choices) or an info row. */
@@ -134,6 +119,23 @@ async function chooseAi(page, choice) {
     return Boolean(b);
   })()`);
   return marked && page.click('[data-check="ai"]');
+}
+
+/* The room screen's rows as the page has them: the "Pilots here" row's
+ * value, and every row naming an AI pilot, with what it offers. */
+const ROWS = `(() => {
+  const rows = window.__ui.friendsRows();
+  const here = rows.find((r) => r.label === ${JSON.stringify('Pilots here')});
+  /* AI pilots' names, never the host's AI pilots row (#866). */
+  const ai = rows.filter((r) => /^AI .* \\d+$/.test(String(r.label)));
+  return { lobby: rows.some((r) => r.action === 'friends-lobby-ready'), here: here ? here.value : null, top: window.__ui.friendsRow().value, ai: ai.map((r) => ({ label: r.label, info: Boolean(r.info), options: (r.options || []).length, pick: Boolean(r.pick) })) };
+})()`;
+function rowsSay(rows, people, ai) {
+  /* A game's lobby has no "Pilots here" row: its panel lists them. */
+  return (rows.here === null || new RegExp(`^${people} of \\d+, \\+${ai} AI pilots?$`).test(rows.here))
+    && (rows.here !== null || rows.lobby)
+    && rows.top.endsWith(`, ${people} here, +${ai} AI pilot${ai === 1 ? '' : 's'}`)
+    && rows.ai.length === ai && rows.ai.every((r) => r.info && !r.options && !r.pick);
 }
 
 const { startRooms } = await import('../edge/rooms/node.js');
@@ -255,7 +257,12 @@ try {
   await a.until(`(() => { const v = window.__roomTag().view; return v.crowns && v.crowns.filter((c) => ${JSON.stringify([...seats])}.includes(c.seat)).length >= 2; })()`, 120000).catch(() => {});
   const tag = await a.evaluate('window.__roomTag()');
   const toBots = (tag.view.crowns || []).filter((c) => seats.has(c.seat));
-  check('the crown moves to and between AI pilots on A\'s screen', toBots.length >= 2, (tag.view.crowns || []).map((c) => `${c.seat}:${c.why}`).join(' '));
+  /* Why not, when not: how A's samples reach the room's match (a gap over
+   * the rule's GAP_MS makes a pilot uncatchable) and its flags. */
+  const aTrack = core.tag.seats.get(aSeat)?.track.s ?? [];
+  const aGaps = aTrack.slice(1).map((q, i) => q.t - aTrack[i].t);
+  const why = `A ${aTrack.length} samples, widest gap ${Math.max(0, ...aGaps)} ms, flags ${[...new Set(aTrack.map((q) => q.flags))].join('/')}`;
+  check('the crown moves to and between AI pilots on A\'s screen', toBots.length >= 2, `${(tag.view.crowns || []).map((c) => `${c.seat}:${c.why}`).join(' ')}; ${why}`);
   const rows = tag.hud ? JSON.stringify(tag.hud) : '';
   check("A's scoreboard names the AI pilots as AI", (rows.match(/AI /g) || []).length >= FILL_TO - 1, rows.slice(0, 240));
   await a.evaluate("document.querySelector('.osd-air-hint-btn')?.click(); true");
@@ -323,6 +330,41 @@ try {
     off && (await b.evaluate('window.__rooms().peers.length')) === 1 && bOff && bOff.value === 'Off', JSON.stringify(bOff));
   await b.close();
   b = null;
+
+  /* THE ALPS: C, on the alps, makes a public Catch the Ace room there:
+   * AI pilots fill it on the alps, drawn in its corridor, over the alps'
+   * own ground, which the room has to the page's. */
+  const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2fb46f', 'alps') });
+  try {
+    await c.until('window.__shellReady === true', 300000);
+    await c.until('window.__map && window.__map().ready', 400000);
+    await c.evaluate("window.__roomCreate({ map: 'alps', mode: 'tag', public: true })");
+    await c.until(`window.__rooms().phase === 'open' && window.__rooms().peers.length === ${FILL_TO - 1}`, 30000).catch(() => {});
+    await c.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    /* The room's world is where its pilots are seated: C flies the alps. */
+    await c.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().id === 'alps' && window.__map().ready", 400000);
+    await c.until(`window.__rooms().peers.filter((p) => p.drawn).length === ${FILL_TO - 1}`, 30000).catch(() => {});
+    const rc = await c.evaluate('window.__rooms()');
+    check(`on the alps, ${FILL_TO - 1} AI pilots join C's room, named as AI, on the alps, drawn in the corridor`, bots(rc).length === FILL_TO - 1
+      && rc.peers.every((p) => p.map === 'alps' && p.drawn && p.at && Math.abs(p.at[0] - valleyAxis(p.at[2])) <= CORRIDOR.half + 5 && p.at[1] >= CORRIDOR.yMin - 5),
+    rc.peers.map((p) => `${p.name} ${p.map} ${p.at ? p.at.map((x) => x.toFixed(0)).join('/') : '-'}`).join('  '));
+    const alpsPage = await c.evaluate(`${JSON.stringify(samples)}.map(([x, z]) => window.__heightAt(x, z))`);
+    const alpsRoom = groundOf('alps');
+    const alpsHigher = samples.map(([x, z], i) => alpsPage[i] - alpsRoom(x, z)).filter((d) => Math.abs(d) >= 1e-3);
+    check(`the room's alps ground is C's at ${samples.length} points over the corridor, but what is built on it`,
+      alpsHigher.length <= samples.length / 50 && alpsHigher.every((d) => d > 0), `${alpsHigher.length} differ: ${alpsHigher.map((d) => d.toFixed(2)).join(', ')} m`);
+    await c.evaluate("document.querySelector('.osd-air-hint-btn')?.click(); true");
+    await c.evaluate(`(() => {
+      const p = window.__rooms().peers.find((q) => q.at).at;
+      window.__setCam(p[0] + 7, p[1] + 2.5, p[2] + 9, p[0], p[1], p[2], 45);
+      return true;
+    })()`);
+    await c.sleep(200);
+    await shot(c, 'c-alps-ai-pilot');
+    a.errors.push(...c.errors);
+  } finally {
+    await c.close();
+  }
 
   const errs = a.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
