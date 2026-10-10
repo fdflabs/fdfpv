@@ -164,6 +164,10 @@ export default withWaves({
   time: 'morning',
   radio: { brief: ['itaipu-1-s0-brief', 'itaipu-1-s0-rules'], win: 'debrief-itaipu-1-win', lose: 'debrief-itaipu-1-lose' },
   film: 'first-light',
+  /* On a win only, after the end, on the room's clock (src/main.js
+   * warOutroFrame); its first line is the win debrief, so the radio does
+   * not say it (warradio.js OUTROS). */
+  outro: 'first-light-outro',
   /* CREST's nudge to the attacker nearest the targets after no progress
    * (src/share/war/nudge.js, docs/campaign/WAR-NUDGE.md). */
   nudge: true,

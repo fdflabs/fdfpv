@@ -368,6 +368,16 @@ const ACTIONS = {
     }
     ui.show('rates');
   },
+  /* A plane's rates, from the same rows: Back as the quad's Rates. */
+  planerates(ui) {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.ratesFrom = ui.screen;
+    } else {
+      ui.ratesFrom = null;
+      ui.returnTo = pauseOrTitle(ui);
+    }
+    ui.show('planerates');
+  },
   pids(ui) {
     if (ui.screen === 'quad' || ui.screen === 'quick') {
       ui.pidsFrom = ui.screen;
@@ -595,6 +605,7 @@ const BACK_FROM = {
   /* Rates and PIDs are pages: back to the room that opened them, by
    * show() so a paused run's returnTo survives. */
   rates(ui) { return backToOrigin(ui, 'ratesFrom'); },
+  planerates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   pids(ui) { return backToOrigin(ui, 'pidsFrom'); },
 };
 

@@ -37,7 +37,7 @@
 
 const INTAKE_W = [-202.2, -1794.2];
 const INTAKE_E = [430.8, -1655.0];
-const CREST_Y = 225;
+export const CREST_Y = 225;
 const ALONG = (() => {
   const dx = INTAKE_E[0] - INTAKE_W[0];
   const dz = INTAKE_E[1] - INTAKE_W[1];
@@ -58,7 +58,7 @@ export function crest(i, off, y, along = 0) {
 
 /* The yaw that turns a body's nose (-z) onto the horizontal (hx, hz). */
 const yawTo = (hx, hz) => Math.atan2(-hx, -hz);
-const FACE_UP = yawTo(UP[0], UP[1]);
+export const FACE_UP = yawTo(UP[0], UP[1]);
 /* The player floats a cast member whose p[1] is this on the water. */
 export const WATER = 'water';
 
@@ -67,7 +67,7 @@ export const WATER = 'water';
  * October: "only the war ones should be shown"; configs/airframes.js
  * WAR_AIRFRAMES, which films:lint holds every film to): the Striker, the
  * seven and ten inch warhead quads, the interceptor. */
-const CAST = {
+export const CAST = {
   strk: { airframe: 'striker2500' },
   strks: { airframe: 'striker2500', spins: true },
   ten: { airframe: '10inch' },
@@ -89,13 +89,13 @@ const CAST = {
 /* The line of aircraft on the crest deck, side by side 3.2 m apart round
  * intake 10.5, noses to the reservoir. */
 const LINE = ['ten', 'q1', 'q2', 'q3', 'strk', 'int', 'ten2', 'int2'];
-const LINE_AT = 10.5;
-const LINE_OFF = 16;
+export const LINE_AT = 10.5;
+export const LINE_OFF = 16;
 const LINE_GAP = 3.2;
-const along = (name) => (LINE.indexOf(name) - (LINE.length - 1) / 2) * LINE_GAP;
-const linePlace = (name) => crest(LINE_AT, LINE_OFF, null, along(name));
-const standing = (name) => ({ keys: [{ t: 0, p: linePlace(name), yaw: FACE_UP }] });
-const lineCast = (except = []) => Object.fromEntries(LINE.filter((n) => !except.includes(n)).map((n) => [n, standing(n)]));
+export const along = (name) => (LINE.indexOf(name) - (LINE.length - 1) / 2) * LINE_GAP;
+export const linePlace = (name) => crest(LINE_AT, LINE_OFF, null, along(name));
+export const standing = (name) => ({ keys: [{ t: 0, p: linePlace(name), yaw: FACE_UP }] });
+export const lineCast = (except = []) => Object.fromEntries(LINE.filter((n) => !except.includes(n)).map((n) => [n, standing(n)]));
 
 /*
  * THE LAST SHOT'S AXIS: its lens on the crest and the wave it looks at.

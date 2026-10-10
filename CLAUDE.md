@@ -2,6 +2,17 @@
 
 Project conventions. Read fully before any turn. These are decisions already made, not options.
 
+<!-- OWNER RULE: BEGIN. Do not edit or remove. `npm run lint:owner-rules` (a CI step) fails if one byte of this block changes. Only the owner may change it. -->
+## OWNER RULE: physics realism is non-negotiable
+
+The owner, 2026-10-09, verbatim: "i never want you to loosen a test in expense of physics...physics realism and a real 3d flying experience 100% like realflight has been able to achieve is what I want, anything less than that is a BIG FAILURE".
+
+1. **Never loosen a test to make physics pass.** No widened band, raised tolerance, skipped case, re-recorded golden or deleted gate to hide a flight model that disagrees with reality. When a physics test fails, the model is wrong until real data proves the test wrong, and then the test is re-derived from that data, with the source cited in the commit.
+2. **Reality decides how aircraft fly.** Every flight constant comes from measured data (manuals, wind tunnel and flight tests, published papers) or a derivation from it, cited where it is defined. A fitted value is marked fitted, with its reason. Flight behaviour is never put to the owner as a choice.
+3. **The bar is RealFlight.** The target is a real 3D flying experience as complete as RealFlight achieves: hover, torque roll, harrier, knife edge, waterfall, blender, snaps, spins, stalls, flown by skill on every aircraft whose real physics allows it. No special modes and no assists that a real aircraft and its real electronics do not have.
+4. **Anything less is a big failure.** Report it as one, plainly, with the numbers. Never present a partial flight model as done.
+<!-- OWNER RULE: END -->
+
 ## What this is
 
 A browser FPV racing simulator whose only current goal is flight feel indistinguishable from a real quad. Stage 1 is physics only. There is no game here yet.

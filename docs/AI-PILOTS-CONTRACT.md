@@ -108,12 +108,32 @@ check, the tick's batch recipients). Those 17 go through one helper,
   for 5 s, as a person's fresh flight is (5 s only, parked or not: lead,
   2026-10-09).
   A softer touch moves a person and leaves the AI pilot flying, unmoved.
-- Where: AI pilots fly only where the server knows the ground. v1 is
-  swiss2 (tag's home world): the valley floor corridor, within 150 m of the
-  valley axis (src/maps/alps/heights.js valleyAxis, copied with a selftest
-  that it matches) and between 20 m and 120 m, over a floor that rolls
-  between about -2 and 8 m. A room on
-  another world gets no AI pilots until that world has a server floor.
+- Where: AI pilots fly only where the server knows the ground
+  (edge/rooms/grounds.js, the very field each page builds, from
+  src/maps/alps/heights.js and src/maps/swiss2/field.js). That is the
+  valley, in both its drawings: swiss2 (tag's home world) and the alps,
+  one shape, so one corridor: within 150 m of the valley axis
+  (src/maps/alps/heights.js valleyAxis, copied with a selftest that it
+  matches) and between 20 m and 120 m, over a floor that rolls between
+  about -2 and 8 m. A host moving a private room between the two sees the
+  AI pilots leave and fill again on the new one; to any other world they
+  leave.
+  - Itaipu: not yet. Its ground is streamed tiles (height.bin) that the
+    town and the water then conform (itaipu/terrain/conform.js) as the
+    page builds; the room would need the tiles and the conform on Node,
+    and a flight region over the lake and town.
+  - The Interior: next. The room already reads its ground and its tree
+    canopy (src/share/ops/missions.js worldFor: groundAt, canopyBlocks,
+    in the ops frame, z up), so ground and tree collision are there; what
+    is missing is where to fly (no valley axis) and the frame mapping.
+- Other games: none built. Streamer Combat: a pilot can cut paper with
+  none of its own (combat.js), so an AI pilot without a streamer would cut
+  and never be cut; its paper is simulated on the owner's client at the
+  physics rate (src/game/streamer.js), which the room would have to run
+  per AI pilot. Trick Battle: the runner's own client scores tricks from
+  every physics step (jam.js); a constant speed wing flies none. Races are
+  the cleanest next game: the room holds the host's track (race.js), and
+  an AI pilot needs only to fly its gates in order.
 - Difficulty: speed, turn rate, lead and a reaction delay, three steps.
   Easy is beatable by a first-week pilot, Hard is not a sure thing for the
   owner. The numbers are in edge/rooms/bots.js with the reason for each.
