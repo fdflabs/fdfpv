@@ -394,6 +394,7 @@ jobs:
       # No em or en dash in any text the repository holds (CLAUDE.md),
       # outside vendor/.
       - run: npm run lint:dashes
+      - run: npm run lint:owner-rules
       # Operations' briefing whole for every campaign mission, in every
       # language (src/ui/briefing.js).
       - run: npm run briefing:selftest
