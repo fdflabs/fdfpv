@@ -4290,9 +4290,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * 12.4), its peak further on by the induced angle CL / (pi A e); the
    * wing's own slope extra-derive's a_w, 2 pi A / (A + 2). */
   .cl_alpha_wing = 4.390,
-  .stall_re = { 1.5e5, 3.0e5 },
-  .stall_clmax = { 0.8892, 0.9504 },
-  .stall_peak = { 0.2839, 0.3506 },
+  .stall_re = { 1.5e5, 3.0e5 },        /* Timmer 2008 measured at these, docs/EXTRA-STAGE1.md */
+  .stall_clmax = { 0.8892, 0.9504 },   /* 0.9 of 0.988 and 1.056, docs/EXTRA-STAGE1.md */
+  .stall_peak = { 0.2839, 0.3506 },    /* 11.6 and 15.1 deg plus CL / (pi A e), docs/EXTRA-STAGE1.md */
   /* A symmetric section at no incidence: zero lift on the body axis. */
   .alpha_zl = 0.0,
   .sin_zl = 0.0,
