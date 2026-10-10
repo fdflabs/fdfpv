@@ -394,10 +394,12 @@ export const overlayMethods = {
     if (!this.scoreHud) {
       return;
     }
-    /* Scoring off has no overlay at all: a zero that can never move reads
-     * as a fault. */
+    /* Scoring off shows the callouts alone when they are on, never the
+     * total: a zero that can never move reads as a fault. */
     const flying = this.screen === 'flight' || this.screen === 'paused';
-    this.scoreHud.setVisible(this.osdMode === 'freestyle' && this.settings.freestyleScoring !== 'off' && flying);
+    const scored = this.settings.freestyleScoring !== 'off';
+    this.scoreHud.setCalloutsOnly(!scored);
+    this.scoreHud.setVisible(this.osdMode === 'freestyle' && (scored || this.settings.trickCallouts) && flying);
   },
 
   setScore(view) {

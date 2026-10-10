@@ -210,6 +210,9 @@ export const DEFAULTS = {
   mouseInvert: false,
   mouseCentre: 'auto',
   freestyleScoring: 'off',
+  /* The landed trick and figure callouts (docs/TRICKS-CATALOG.md), on
+   * whether or not the score is shown. */
+  trickCallouts: true,
   /* Set once every profile's scoring has been put back to off, after
    * scoring had defaulted on. */
   scoringReset: false,
