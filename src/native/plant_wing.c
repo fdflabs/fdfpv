@@ -4329,7 +4329,9 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * Extra's is nobody knows, and a fixed left made every power off pull
    * drop the left wing (the owner, 2026-10-09). What drops a wing is what
    * drops it on the field: the pilot's own rudder and aileron, the gusts,
-   * and under power the prop's torque and swirl. */
+   * and under power the prop's torque and swirl. npm run extra:stab
+   * holds a power off pull level without them and drops the wing a touch
+   * of rudder yaws toward. */
   .stall_asym = 0.0,
   .stall_k = 0.70,
   .stall_top = 2.0 * WING_PI / 180.0,
