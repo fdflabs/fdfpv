@@ -95,8 +95,9 @@ try {
   for (const p of [a, b]) {
     await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1 && window.__rooms().roomNow != null", 30000);
   }
-  await a.evaluate("window.__roomWeather('gusty')");
-  await a.sleep(800);
+  /* The host's Weather setting is offered to the room at their next run
+   * (src/ui/items.js weatherRow, main's 7ea30cc6 removed __roomWeather). */
+  await a.evaluate("window.__ui.settings.weather = 'gusty'; true");
   for (const p of [a, b]) {
     await p.evaluate("window.__ui.settings.wingView = 'chase'; window.__ui.onAction('fly', window.__ui.settings); true");
     await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
