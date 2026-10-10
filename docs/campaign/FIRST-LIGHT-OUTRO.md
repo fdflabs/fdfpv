@@ -1,8 +1,9 @@
 # First Light's outro: storyboard
 
 Written 2026-10-08 (wave 34, lane firstlight), the outro item of
-docs/campaign/FIRST-LIGHT-AUDIT.md. A storyboard only: no film code, no
-voice lines yet. It follows the language of INTROS.md section 1 (lenses,
+docs/campaign/FIRST-LIGHT-AUDIT.md. Built as src/share/war/films/
+first-light-outro.js after the owner's answers (section 5); the
+departures from this board are in section 6. It follows the language of INTROS.md section 1 (lenses,
 camera types, eases, transitions, the voice timing the film) and the rules
 of BIBLE.md (the enemy never named, no real figure spoken, no person in
 the water's way, ustedes to the squad). Open questions for the owner are
@@ -85,3 +86,18 @@ is dropped (section 5).
 3. **Show the next mission's card** while The Spillway is still held in
    development? Recommended: show it only when Mission 2 is released;
    until then shot 5 ends on the gates without a card.
+
+**The owner, 2026-10-08:** win only; the win debrief folded into the film
+as its first line; no Spillway card while Mission 2 is held.
+
+## 6. As built
+
+- Shot 1's line is `debrief-itaipu-1-win` itself (already voiced), so
+  `film-itaipu-1-o1` was not written; the radio no longer says the win
+  debrief for a mission with an outro (warradio.js OUTROS).
+- Shot 2 needs no branch: the film plays in the match's own world, so a
+  yard the squad let through smokes in it as it did in play.
+- Shot 4 keeps the reservoir at its level (no raised water in the film
+  engine); the rising water is the voice's.
+- Shot 5 has no title card. The music is every war film's, the war bed's
+  intro track from the first shot (warintro:check holds every film to it).
