@@ -85,10 +85,12 @@ const MENU_FIELD = {
   launch: 'launchMenu',
   standings: 'standingsMenu',
   rates: 'ratesMenu',
+  planerates: 'planeratesMenu',
   pids: 'pidsMenu',
   controls: 'controlsMenu',
   fc: 'fcMenu',
   paused: 'pausedMenu',
+  quick: 'quickMenu',
   results: 'resultsMenu',
 };
 
@@ -180,9 +182,21 @@ function paintRow(ui, it, i) {
   if (control) {
     row.append(control);
   }
-  /* mousemove, not mouseenter: a rebuilt row under a still pointer, or
-   * the scroll after scrollIntoView, must not snap the cursor back. */
-  row.addEventListener('mousemove', (e) => ui.hoverCursor(e, i));
+  /* A move, not an enter: a rebuilt row under a still pointer, or the
+   * scroll after scrollIntoView, must not snap the cursor back. A finger
+   * does not hover: the mousemove a phone makes from a tap would move the
+   * cursor under it the way the press below would. */
+  row.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'touch') ui.hoverCursor(e, i);
+  });
+  /* A press does not focus the row: focus moves the cursor, the new note
+   * resizes a short centred menu, and the release lands on another node,
+   * so the browser sends the click to the menu instead of the row. The
+   * click handler moves the cursor once the press is over. A control's
+   * own press (a typed field) keeps its focus. */
+  row.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.row-control')) e.preventDefault();
+  });
   row.addEventListener('click', (e) => {
     if (e.target.closest('.row-control')) {
       return;
@@ -256,7 +270,7 @@ function leaveFor(ui, screen) {
   if (ui.roomFrom && (screen === 'title' || screen === ui.roomFrom)) {
     ui.roomFrom = null;
   }
-  if (leaving('rates')) {
+  if (leaving('rates') || leaving('planerates')) {
     ui.ratesFrom = null;
   }
   if (leaving('walk')) {

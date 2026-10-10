@@ -50,7 +50,8 @@ import {
   P51_AIRFRAME, p51GroundPrelude, p51RecPrelude, p51AirPrelude, p51TakeoffSticks, fly, wingDebug, wheelLoads, attitude, must, bombshellGroundPrelude,
   slowstickGroundPrelude, skyPrelude, kadetGroundPrelude,
   wingPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude, timberRecPrelude,
-  timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderHold
+  timberFloatRecPrelude, RC_STEP_MS, wingSlip, rudderHold,
+  fullThrottleHeld,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -283,13 +284,10 @@ check: {
     gate('P9', 'phugoid period', period != null && within(period, th.p9_phugoid), period == null ? `no oscillation, swing ${swing.toFixed(2)} m/s` : `${period.toFixed(2)} s over ${ups.length - 1} cycles, swing ${swing.toFixed(2)} m/s about ${mean.toFixed(2)}`, band(th.p9_phugoid));
   }
 
-  /* P10: one step from rest at full throttle; the roll moment is the
-   * motor's alone. */
+  /* P10: at rest at full throttle, the prop spun up; the roll moment is
+   * the motor's alone. */
   {
-    must(sim.reset(), 'sim_reset');
-    must(sim.e.sim_set_pose(0, 0, 50, 1, 0, 0, 0), 'sim_set_pose');
-    must(sim.input(0, 0, 0, 0, 1), 'sim_input');
-    must(sim.step(1), 'sim_step');
+    fullThrottleHeld(sim, [0, 0, 50, 1, 0, 0, 0]);
     const d = wingDebug(sim);
     /* The slipstream's own roll (sim_wing_slip, docs/FLIGHTMODEL.md) is
      * taken out: this gate is the motor's term alone. */
@@ -297,17 +295,13 @@ check: {
     gate('P10', 'prop torque, static full throttle', d[12] < 0 && within(-d[12], th.p10_prop_torque), `${(-d[12]).toFixed(4)} N m ${d[12] < 0 ? 'rolling left' : 'WRONG WAY'} at ${d[8].toFixed(2)} N`, `${band(th.p10_prop_torque)} N m, rolling left`);
   }
 
-  /* P11: P factor. Flying level at 8 m/s with the nose 10 deg up, one step
-   * at full throttle: the yaw moment less the airframe's own aero is
-   * kappa T (-w) / Omega, nose left. */
+  /* P11: P factor. Flying level at 8 m/s with the nose 10 deg up, held
+   * there at full throttle while the prop spins up: the yaw moment less the
+   * airframe's own aero is kappa T (-w) / Omega, nose left. */
   {
     const t11 = th.p11_pfactor;
-    must(sim.reset(), 'sim_reset');
     const h = t11.pitchDeg / DEG / 2;
-    must(sim.e.sim_set_pose(0, 600, 50, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
-    must(sim.e.sim_set_velocity(t11.speed, 0, 0, 0, 0, 0), 'sim_set_velocity');
-    must(sim.input(0, 0, 0, 0, 1), 'sim_input');
-    must(sim.step(1), 'sim_step');
+    fullThrottleHeld(sim, [0, 600, 50, Math.cos(h), 0, -Math.sin(h), 0], [t11.speed, 0, 0, 0, 0, 0]);
     const d = wingDebug(sim);
     const s = sim.readState().state;
     const omega = s[14] * 2 * Math.PI / 60;

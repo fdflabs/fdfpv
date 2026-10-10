@@ -150,9 +150,21 @@ function drive(sim, sticks) {
 }
 
 /* TW and AUTH: one 4 ms step from rest, nose up, full throttle. */
+/* Held still at full throttle for a second, ten of the slowest electric's
+ * time constants, so the prop is up to speed (prop_spool, docs/FLIGHTMODEL.md)
+ * before a one step measure: from rest it would be the spin up's first step. */
+function spunUp(sim, pose) {
+  start(sim, pose);
+  for (let ms = 0; ms < 1000; ms += MS) {
+    must(sim.e.sim_set_pose(0, 0, 300, ...pose), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    drive(sim, [0, 0, 0, 1]);
+  }
+}
+
 function authority(sim) {
   const one = (sticks) => {
-    start(sim, NOSE_UP);
+    spunUp(sim, NOSE_UP);
     drive(sim, sticks);
     const o = read(sim);
     return { om: [o.p, o.q, o.r] };
@@ -309,7 +321,7 @@ function stallSpeed(sim, p, flaps = 0) {
 }
 
 function torque(sim, p) {
-  start(sim, [1, 0, 0, 0]);
+  spunUp(sim, [1, 0, 0, 0]);
   drive(sim, [0, 0, 0, 1]);
   const q = wingDebug(sim)[12];
   if (!p.ail) {

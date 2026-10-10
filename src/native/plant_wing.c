@@ -202,6 +202,10 @@ static double g_debug[20];
 static double g_fan_n = 0.0;
 static double g_fan_v = 0.0;
 static double g_esc_ramp = 0.0;
+/* A prop's speed over its full (prop_spool), and whether the
+ * next step takes it at the duty's as a launch does. */
+static double g_prop_n = 0.0;
+static int g_prop_hot = 0;
 
 /* A fan that idles is a turbine: a ducted fan's table with an idle. No
  * table had both before the Striker's, so this is false on every other. */
@@ -746,6 +750,9 @@ void plant_wing_reset(void) {
   g_fan_n = fan_idles(PLANT.fw) ? PLANT.fw->throttle_idle : 0.0;
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
+  g_prop_n = 0.0;
+  /* A motor is stopped at a reset; an engine is already idling. */
+  g_prop_hot = PLANT.fw->current_full > 0.0 ? 0 : 1;
   g_discus = 0;
   g_discus_t = 0.0;
 }
@@ -788,6 +795,68 @@ static double fan_spool(const FixedWingParams *fw, double throttle, double de, i
     g_fan_v = 0.0;
   }
   return g_fan_n;
+}
+
+/*
+ * A PROP'S SPEED, one step, docs/FLIGHTMODEL.md "A prop spins up". The
+ * rotor, J = j_prop, turns at w under the drive's torque less the prop's,
+ * J w' = Q_drive - Q, and the prop's torque goes with its speed squared,
+ * Q = Q_f n^2, Q_f = torque_arm thrust_static at full. Over the full
+ * speed w_f, n = w / w_f, J w_f n' = Q_drive - Q_f n^2.
+ *
+ * An electric motor (Drela, "First-Order DC Electric Motor Model", MIT
+ * 16.50, 2007: Q = (I - I0) / Kv, I = (V - w / Kv) / R): its torque falls
+ * straight with its speed. The table has every figure that takes: w_f is
+ * 0.85 of the no load speed (the plant's rule), so the circuit (pack, ESC,
+ * windings) drops 0.15 of the pack's V at the full current I_f, R = 0.15 V
+ * / I_f, and the motor's torque at full is Kt I_f, which is the prop's
+ * (the Extra's 0.68 against 0.65 N m). So
+ *
+ *   J w_f n' = Q_f (K_M (d - n) + d^2 - n^2),   K_M = 0.85 / 0.15
+ *
+ * still n = d at rest, the plant's speed at a duty, answering a small step
+ * with J w_f / (Q_f (K_M + 2 n)): the Extra's 66 ms at its hover. The
+ * current a step draws is that R's, up to V / R at a stall; no ESC here
+ * clamps it (none of their listings names a limiter in running).
+ *
+ * A glow or petrol engine (current_full 0): at a fixed throttle its torque
+ * changes slowly with its speed (Heywood, Internal Combustion Engine
+ * Fundamentals, 1988, ch. 2: brake torque against speed), taken as flat, so
+ * the drive is the torque that holds n = d, Q_f d^2, and
+ *
+ *   J w_f n' = Q_f (d^2 - n^2)
+ *
+ * answers a small step with J w_f / (2 Q_f n): with no back EMF to stiffen
+ * it, an engine is several times slower than a motor of its power. The
+ * carburettor's own delay (a few revolutions of mixture) has no source we
+ * found for these engines and is left out. An engine idles from the reset:
+ * it is running when the aircraft is seated.
+ *
+ * With the drive off (a flat pack, a cut motor, the chute, a dead engine)
+ * only the prop's drag slows it. A launch starts it at the duty. Taken
+ * explicitly at the 1 ms step, under a tenth of the least time constant
+ * here (scripts/spool-derive.js).
+ */
+#define PROP_K_M (0.85 / 0.15)
+static int prop_spools(const FixedWingParams *fw) {
+  return fw->j_prop > 0.0 && !(fw->fan_tau > 0.0) && fw->thrust_static > 0.0;
+}
+
+static double prop_spool(const FixedWingParams *fw, double de, int off) {
+  if (g_prop_hot) {
+    g_prop_hot = 0;
+    g_prop_n = de;
+  }
+  const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
+  const double q_f = fw->torque_arm * fw->thrust_static;
+  const double n = g_prop_n;
+  const double electric = fw->current_full > 0.0 ? PROP_K_M * (de - n) : 0.0;
+  const double drive = off ? 0.0 : electric + de * de;
+  g_prop_n = n + SIM_DT * q_f * (drive - n * n) / (fw->j_prop * w_f);
+  if (g_prop_n < 0.0) {
+    g_prop_n = 0.0;
+  }
+  return g_prop_n;
 }
 
 int plant_wing_set_gear(int up) {
@@ -997,6 +1066,8 @@ void plant_wing_launch(SimState *s, double speed) {
     g_fan_n = 1.0;
     g_fan_v = 0.0;
   }
+  /* A plane thrown or launched has its motor already running. */
+  g_prop_hot = 1;
   const double fwd[3] = { speed, 0.0, 0.0 };
   double v[3];
   wquat_rotate(s->quat, fwd, v);
@@ -1697,7 +1768,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The propulsor's speed as a fraction of full: a prop's is the duty's
    * this step; a ducted fan's lags it, fan_spool above. */
   const int fan = fw->fan_tau > 0.0;
-  const double n = fan ? fan_spool(fw, throttle, duty_e, dead || g_chute) : duty_e;
+  double n = duty_e;
+  if (fan) {
+    n = fan_spool(fw, throttle, duty_e, dead || g_chute);
+  } else if (prop_spools(fw)) {
+    n = prop_spool(fw, duty_e, dead || g_chute);
+  }
   const double u_pos = u > 0.0 ? u : 0.0;
   /* A fan at rest makes nothing, where 0 / 0 would be a NaN. */
   /* The chase boost's faster prop has the faster pitch speed; exact at
@@ -1809,6 +1885,37 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_slip[4] = vi;
     g_slip[5] = xs;
   }
+  /*
+   * THE JET NORMAL FORCE (FixedWingParams.jet_kj), Selig, "Modeling
+   * Propeller Aerodynamics and Slipstream Effects on Small UAVs in
+   * Realtime", AIAA 2010-7938, eq. 13 to 16: air crossing the disc
+   * sideways at V_T leaves in the slipstream along the axis, so the prop
+   * takes its sideways momentum, N_j = k_j rho A w0 V_T, against V_T, w0
+   * the hover's induced speed sqrt(T / (2 rho A)). Selig: k_j about 80
+   * percent behind a smooth cowling and "nearly 100% for cruciform-nose
+   * profile aerobatic foam aircraft in hover", and "for an airplane in
+   * hover the damping force makes hovering flight less demanding of the
+   * pilot". Washed out away from the hover through his jet parameter m =
+   * V_N / (V_N + w), taken here as the weight 1 - m: the classic normal
+   * force his eq. 4 blends with it is not in this plant. V_T is the
+   * disc's own sideways air, the body's and what the rates add at prop_x
+   * ahead of the CG, where the force acts, so it damps the drift and the
+   * nose's swing alike.
+   */
+  double jet_m[3] = { 0.0, 0.0, 0.0 };
+  if (fw->jet_kj > 0.0 && thrust > 0.0) {
+    const double a_disc = WING_PI * fw->slip_r * fw->slip_r;
+    const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * a_disc));
+    const double wi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * thrust / (PLANT.rho * a_disc)) - u_pos);
+    const double k = fw->jet_kj * PLANT.rho * a_disc * w0 * wi / (u_pos + wi);
+    const double vy = v + s->omega[2] * fw->prop_x;
+    const double vz = w - s->omega[1] * fw->prop_x;
+    const double fy = -k * vy, fz = -k * vz;
+    F[1] += fy;
+    F[2] += fz;
+    jet_m[1] = -fw->prop_x * fz;
+    jet_m[2] = fw->prop_x * fy;
+  }
   /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
    * against the sideways speed squared. */
   if (fw->side_cda > 0.0) {
@@ -1909,6 +2016,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[0] += l_slip;
     M[1] -= m_slip;
     M[2] -= n_slip;
+  }
+  if (fw->jet_kj > 0.0) {
+    M[1] += jet_m[1];
+    M[2] += jet_m[2];
   }
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
@@ -4203,6 +4314,11 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_roll_ki = 2.0,
   .acro_pitch_ki = 3.0,
   .acro_i_max = 0.30,
+  /* A cowled nose: Selig's 80 percent for a cowling, not the profile
+   * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
+   * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
+  .jet_kj = 0.80,
+  .prop_x = 0.302,
   .as3x_k = { 0.028, 0.1224, 0.1842 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */

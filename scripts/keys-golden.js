@@ -139,6 +139,8 @@ const SEQUENCES = {
   hold: [press('up'), press('up'), press('up'), press()],
   chord: [press('up', 'select'), press('select'), press('back', 'left'), press()],
   truthy: [{ up: 1, select: 'x' }, {}, { down: 2 }],
+  /* Start: a press pauses a flight or resumes the pause menu, once a hold. */
+  start: [{ ...press(), start: true }, { ...press(), start: true }, press(), { ...press(), start: true }],
 };
 const pads = {};
 for (const screen of SCREENS) {

@@ -97,6 +97,14 @@
         "type": "Float32Array",
         "hash": "82dff1de",
         "inst": false
+       },
+       "aLobe": {
+        "n": 24000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "13fb26b8",
+        "inst": true
        }
       },
       "morph": [],
@@ -146,6 +154,8 @@
        "STANDARD": "",
        "CROWN_MODE": 0,
        "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
        "CROWN_RAY_AT": "vCrW",
        "CROWN_CENTRE": "vCrC",
        "CROWN_RADII": "vCrR",
@@ -212,6 +222,14 @@
         "type": "Float32Array",
         "hash": "cb7ba97a",
         "inst": true
+       },
+       "aLobe": {
+        "n": 90000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "483f9ec8",
+        "inst": true
        }
       },
       "morph": [],
@@ -261,6 +279,8 @@
        "STANDARD": "",
        "CROWN_MODE": 1,
        "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
        "CROWN_RAY_AT": "vCrW",
        "CROWN_CENTRE": "vCrC",
        "CROWN_RADII": "vCrR",
@@ -443,6 +463,14 @@
         "type": "Float32Array",
         "hash": "ce6de8e4",
         "inst": false
+       },
+       "aLobe": {
+        "n": 480000,
+        "size": 1,
+        "norm": false,
+        "type": "Float32Array",
+        "hash": "4ca9a295",
+        "inst": false
        }
       },
       "morph": [],
@@ -488,6 +516,8 @@
        "STANDARD": "",
        "CROWN_MODE": 2,
        "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
        "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
        "CROWN_CENTRE": "vCrW",
        "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
@@ -596,6 +626,8 @@
        "STANDARD": "",
        "CROWN_MODE": 3,
        "CROWN_SPEC": "0.30",
+       "CROWN_LOBES": 7,
+       "CROWN_TEMPLATES": 12,
        "THERMAL_KIND": 1
       },
       "onBeforeCompile": true,
@@ -615,15 +647,18 @@
     "MeshStandardMaterial",
     "interior-crown-0",
     {
-     "vertex": "c802d35a",
-     "fragment": "29b0f2dc",
+     "vertex": "cfe37e58",
+     "fragment": "68ee622e",
      "added": [
-      "uCrFit"
+      "uCrFit",
+      "uCrLobes"
      ],
      "defines": {
       "STANDARD": "",
       "CROWN_MODE": 0,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "vCrW",
       "CROWN_CENTRE": "vCrC",
       "CROWN_RADII": "vCrR",
@@ -636,16 +671,19 @@
     "MeshStandardMaterial",
     "interior-crown-1",
     {
-     "vertex": "c802d35a",
-     "fragment": "29b0f2dc",
+     "vertex": "cfe37e58",
+     "fragment": "68ee622e",
      "added": [
       "uCrFit",
-      "uCrHand"
+      "uCrHand",
+      "uCrLobes"
      ],
      "defines": {
       "STANDARD": "",
       "CROWN_MODE": 1,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "vCrW",
       "CROWN_CENTRE": "vCrC",
       "CROWN_RADII": "vCrR",
@@ -664,16 +702,19 @@
     "MeshStandardMaterial",
     "itlit|interior-crown-2",
     {
-     "vertex": "d0d894bc",
-     "fragment": "57a9a057",
+     "vertex": "ba13f026",
+     "fragment": "ed2366bd",
      "added": [
       "uCrBand",
+      "uCrLobes",
       "uCrPx"
      ],
      "defines": {
       "STANDARD": "",
       "CROWN_MODE": 2,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
       "CROWN_CENTRE": "vCrW",
       "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
@@ -686,8 +727,8 @@
     "MeshStandardMaterial",
     "itlit|interior-crown-3",
     {
-     "vertex": "d0d894bc",
-     "fragment": "57a9a057",
+     "vertex": "ba13f026",
+     "fragment": "ed2366bd",
      "added": [
       "uCrBand",
       "uCrPx"
@@ -696,6 +737,8 @@
       "STANDARD": "",
       "CROWN_MODE": 3,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "THERMAL_KIND": 1
      }
     }
@@ -709,7 +752,68 @@
    "far": 9911,
    "built": 378,
    "pending": 0
-  }
+  },
+  "depth": [
+   [
+    "interior-crowns-near",
+    "MeshDepthMaterial",
+    "interior-crown-depth",
+    {
+     "vertex": "fcc8354c",
+     "fragment": "ab947b93",
+     "added": [
+      "uCrFit",
+      "uCrLobes"
+     ],
+     "defines": {
+      "CROWN_MODE": 0,
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
+      "CROWN_RAY_AT": "vCrW",
+      "CROWN_CENTRE": "vCrC",
+      "CROWN_RADII": "vCrR"
+     }
+    }
+   ]
+  ]
+ },
+ "lobes": {
+  "exports": [
+   "LOBES",
+   "LOBE_DATA",
+   "TEMPLATES",
+   "lobesHit",
+   "lobesTop",
+   "templateOf"
+  ],
+  "LOBES": 7,
+  "TEMPLATES": 12,
+  "data": "b7b7b6b0",
+  "templates": [
+   0,
+   3,
+   6,
+   11
+  ]
+ },
+ "lobes": {
+  "exports": [
+   "LOBES",
+   "LOBE_DATA",
+   "TEMPLATES",
+   "lobesHit",
+   "lobesTop",
+   "templateOf"
+  ],
+  "LOBES": 7,
+  "TEMPLATES": 12,
+  "data": "b7b7b6b0",
+  "templates": [
+   0,
+   3,
+   6,
+   11
+  ]
  },
  "low": {
   "type": "Group",
@@ -773,6 +877,14 @@
        "type": "Float32Array",
        "hash": "82dff1de",
        "inst": false
+      },
+      "aLobe": {
+       "n": 24000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "13fb26b8",
+       "inst": true
       }
      },
      "morph": [],
@@ -822,6 +934,8 @@
       "STANDARD": "",
       "CROWN_MODE": 0,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "vCrW",
       "CROWN_CENTRE": "vCrC",
       "CROWN_RADII": "vCrR",
@@ -888,6 +1002,14 @@
        "type": "Float32Array",
        "hash": "cb7ba97a",
        "inst": true
+      },
+      "aLobe": {
+       "n": 90000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "483f9ec8",
+       "inst": true
       }
      },
      "morph": [],
@@ -937,6 +1059,8 @@
       "STANDARD": "",
       "CROWN_MODE": 1,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "vCrW",
       "CROWN_CENTRE": "vCrC",
       "CROWN_RADII": "vCrR",
@@ -1118,6 +1242,14 @@
        "type": "Float32Array",
        "hash": "ce6de8e4",
        "inst": false
+      },
+      "aLobe": {
+       "n": 480000,
+       "size": 1,
+       "norm": false,
+       "type": "Float32Array",
+       "hash": "4ca9a295",
+       "inst": false
       }
      },
      "morph": [],
@@ -1163,6 +1295,8 @@
       "STANDARD": "",
       "CROWN_MODE": 2,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "CROWN_RAY_AT": "(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)",
       "CROWN_CENTRE": "vCrW",
       "CROWN_RADII": "vec2(vCrHalf.x, vCrSeed.y)",
@@ -1271,6 +1405,8 @@
       "STANDARD": "",
       "CROWN_MODE": 3,
       "CROWN_SPEC": "0.30",
+      "CROWN_LOBES": 7,
+      "CROWN_TEMPLATES": 12,
       "THERMAL_KIND": 1
      },
      "onBeforeCompile": true,
