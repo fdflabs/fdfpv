@@ -12,8 +12,8 @@
  * reaction time before it is read again, so a pilot who jinks gains that
  * long. Speed, turn rate, lead and reaction are the level's (LEVELS).
  *
- * WHERE. Only where the room knows the ground: swiss2's valley floor
- * (grounds.js, the field the page builds). The floor rolls between about
+ * WHERE. Only where the room knows the ground: the valley floor of
+ * swiss2 and the alps (BOT_MAPS; grounds.js, the field each page builds). The floor rolls between about
  * -2 and 8 m within CORRIDOR.half of the valley's axis, so an AI pilot
  * keeps within that and between CORRIDOR.yMin and CORRIDOR.yMax (lower
  * only on the last TERMINAL_M to a target, below): its aim is put inside
@@ -68,8 +68,12 @@ import { FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING } from '../../src/share/room
 
 /* A flying wing: nothing on it to animate but its prop. */
 export const BOT_AIRFRAME = 'zagi1219';
-/* The world AI pilots fly in: the only one whose ground the room knows. */
-export const BOT_MAP = 'swiss2';
+/* The worlds AI pilots fly in: the valley's two drawings, one shape (the
+ * alps cel shaded, swiss2 photographed, src/maps/swiss2/field.js on the
+ * alps' heights), so one corridor; the room has each one's ground
+ * (grounds.js). Itaipu's and the Interior's are not here: see
+ * docs/AI-PILOTS-CONTRACT.md. */
+export const BOT_MAPS = Object.freeze(['swiss2', 'alps']);
 /* How many AI pilots bots:selftest's cost row flies at once: a public
  * room's cap less the person who keeps it open. */
 export const BOT_CAP_MEASURE = 7;
@@ -159,8 +163,12 @@ function inside(a, inset = 0, low = CORRIDOR.yMin) {
 const AIM_INSET = 20;
 
 export class Bots {
-  constructor(seed = 1, ground = groundOf(BOT_MAP)) {
-    this.ground = ground;
+  constructor(seed = 1, map = BOT_MAPS[0]) {
+    if (!BOT_MAPS.includes(map)) {
+      throw new Error(`bots: no ground for ${map}`);
+    }
+    /* Whose ground they fly over; built on the first look (grounds.js). */
+    this.map = map;
     /* seat -> { seat, level, p, f (unit heading), r (right, banked), bank,
      * aim, aimAt (room ms the aim was read), wander, ms (room ms flown
      * to) }, in the order they were added. */
@@ -170,6 +178,10 @@ export class Bots {
     this.clampMax = 0;
     /* Crashes, for the checks: on the ground, and from the referee. */
     this.crashes = { ground: 0, hit: 0 };
+  }
+
+  groundAt(x, z) {
+    return groundOf(this.map)(x, z);
   }
 
   random() {
@@ -239,7 +251,7 @@ export class Bots {
   fall(b, dt, roomMs) {
     const v = b.down.v;
     const p = b.p;
-    const floor = this.ground ? this.ground(p[0], p[2]) + CONTACT_M : -Infinity;
+    const floor = this.groundAt(p[0], p[2]) + CONTACT_M;
     if (p[1] <= floor) {
       p[1] = floor;
       v[0] = 0;
@@ -303,7 +315,7 @@ export class Bots {
         const n = Math.ceil(gap / SUB_MS);
         for (let k = 0; k < n && !b.down; k += 1) {
           rate = this.fly(b, lv, gap / n / 1000);
-          if (this.ground && b.p[1] <= this.ground(b.p[0], b.p[2]) + CONTACT_M && !this.spawning(b, b.ms + (k + 1) * gap / n)) {
+          if (b.p[1] <= this.groundAt(b.p[0], b.p[2]) + CONTACT_M && !this.spawning(b, b.ms + (k + 1) * gap / n)) {
             this.crash(b.seat, b.ms + (k + 1) * gap / n, 'ground');
           }
         }
@@ -463,6 +475,7 @@ export class Bots {
 
   save() {
     return {
+      map: this.map,
       rand: this.rand,
       bots: [...this.list.values()].map((b) => ({
         seat: b.seat, level: b.level, p: b.p, f: b.f, r: b.r, bank: b.bank, boost: b.boost ?? 1, low: b.low ?? CORRIDOR.yMin, aim: b.aim, aimAt: b.aimAt === -Infinity ? null : b.aimAt, wander: b.wander, ms: b.ms,
@@ -474,6 +487,9 @@ export class Bots {
 
   restore(value) {
     this.list = new Map();
+    if (BOT_MAPS.includes(value?.map)) {
+      this.map = value.map;
+    }
     this.rand = (value?.rand ?? 1) >>> 0;
     for (const b of value?.bots ?? []) {
       this.list.set(b.seat, {

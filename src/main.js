@@ -71,6 +71,7 @@ import { mountTouchSticks, touchWanted } from './input/touchsticks.js';
 import { RcLink, LINK_DEFAULT, LINK_PRESETS } from './input/link.js';
 import { translate as translateKey } from './input/keybinds.js';
 import { FlightRecorder, downloadText, flightLogName } from './share/flightlog.js';
+import { ControlRecorder, controlRecName, keepLast } from './share/controlrec.js';
 import { PLANE_REACH, Race } from './game/race.js';
 import { planesFor } from './game/verify.js';
 import { floatStart } from './builder/course.js';
@@ -78,6 +79,7 @@ import { TrickDetector } from './game/trickdetect.js';
 import { FigureDetector } from './game/figuredetect.js';
 import { deriveObstacles, OB_BAR, OB_POLE } from './game/obstacles.js';
 import { FreestyleScore, formatScore } from './game/score.js';
+import { createRoute, fromRace, replayState } from './game/debrief.js';
 import { GhostBook, GhostLap, GhostRecorder, LiveGhost, LiveSender } from './game/ghost.js';
 import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
@@ -97,7 +99,7 @@ import {
 import { findBoardTwin, inspectCourse, layoutFingerprint, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
 import {
-  addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
+  addFlight, createFlightClock, deviceId, flightTotals, mergeFlightTime, stepsAreFlight,
 } from './share/flighttime.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
@@ -181,7 +183,7 @@ import {
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
-import { filmFor } from './share/war/films/index.js';
+import { FILMS as WAR_FILMS, filmFor } from './share/war/films/index.js';
 import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
@@ -2212,6 +2214,10 @@ export async function boot({
     }
   })());
   let flightClockFlew = false;
+  /* This run's own share of that clock and its route, for the debrief
+   * (src/game/debrief.js, docs/DEBRIEF.md); reset() clears both. */
+  let runAirMs = 0;
+  const runRoute = createRoute();
   function commitFlightTime() {
     const got = flightClock.take();
     if (!got.length) {
@@ -2238,6 +2244,12 @@ export async function boot({
    * the room's game in a room, else Track Day on a race map and Free
    * Flight anywhere else. Every game but those two is played in a room,
    * alone or not (LOBBY_GAMES). */
+  /* The seated aircraft's flight time over every device, this run's
+   * unsent seconds included: what the debrief's record line shows. */
+  function aircraftSecondsNow() {
+    commitFlightTime();
+    return flightTotals(ui.settings.flightTime).byAirframe[runAirframe] ?? 0;
+  }
   function flightActivity() {
     const st = roomLinkState.state();
     if (st.phase === 'open' && st.welcome) {
@@ -5315,6 +5327,8 @@ export async function boot({
   /* The war whose briefing this shell has shown (roomWar.match()): once,
    * however long the room stays in it after a skip. */
   let warIntroShown = null;
+  /* The match whose outro has started (warOutroFrame). */
+  let warOutroShown = null;
   let warIntroFov = 0;
   /* The host's Watch intro, pressed while the room's world was still
    * being built: played once it stands (warIntroFrame). */
@@ -5439,9 +5453,32 @@ export async function boot({
           }
         },
       });
-    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !briefing) {
+    } else if (warIntro && warIntroFor !== 'watch' && !String(warIntroFor).startsWith('ops:') && !warOutroOn(v) && !briefing) {
       warIntroStop();
     }
+    warOutroFrame(v);
+  }
+
+  /* A mission's outro (its `outro`, First Light's) on a win, once per
+   * match, on the room's clock from the end, so every pilot sees the same
+   * frame; in the mission's own world as it stands, its damage and all.
+   * A new match, a restart or the lobby ends it. */
+  const warOutroOn = (v) => warIntro !== null && String(warIntroFor).startsWith('outro:') && v.state === 'won';
+  function warOutroFrame(v) {
+    const outro = WAR_MISSIONS[v.mission]?.outro;
+    if (!outro || v.state !== 'won' || v.endAt == null || warOutroShown === roomWar.match() || mode === 'replay' || !warFilmWorldUp(v.mission)) {
+      return;
+    }
+    warOutroShown = roomWar.match();
+    /* The HUD redraws every 250 ms; without this the win's banner stays
+     * over the film's first frames until the next redraw. */
+    warHudAt = 0;
+    const endAt = v.endAt;
+    warIntroPlay(`outro:${v.id}`, {
+      mission: v.mission,
+      film: WAR_FILMS[outro],
+      clock: () => roomLinkState.roomNow() - endAt,
+    });
   }
 
   /* A mission's film plays only in the mission's own world, built and
@@ -5866,8 +5903,10 @@ export async function boot({
     }
     warHudAt = wallMs + 250;
     const m = roomWar.mission();
-    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
-    warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
+    /* Under the outro the film has the screen; the end card comes after. */
+    const hudOn = mode === 'flight' && ui.screen === 'flight' && !warOutroOn(v);
+    warHud.update(hudOn ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
+    warRoundCard.update(hudOn ? v : null, now);
   }
 
   /* The war's guide nudge (src/share/war/nudge.js), for a mission that
@@ -8952,6 +8991,10 @@ export async function boot({
   const rcLink = new RcLink(LINK_DEFAULT);
   /* Off until the pilot turns it on: it keeps every frame of the run. */
   const flightLog = new FlightRecorder();
+  /* Per step sticks, surfaces, state and frame timing, on with the flight
+   * log (docs/CONTROL-RECORDER.md). */
+  const controlRec = new ControlRecorder();
+  let controlSurf = null;
   /* Stick samples, each stamped with the wall time it was read at, waiting
    * for the RC slot they belong to; rcHeld is the one the receiver holds
    * between slots. */
@@ -10588,7 +10631,7 @@ export async function boot({
    * the air needs a refit.
    */
   let runTuneKey = 'null';
-  function applyTuning(s) {
+  function applyTuning(s, midRun = false) {
     const af = airframeById(runAirframe);
     if (!af.fixedWing || !tuningFor(af.id) || typeof sim.e.sim_wing_set_tune !== 'function') {
       runTuneKey = 'null';
@@ -10602,7 +10645,7 @@ export async function boot({
       throw new Error(`sim_wing_set_tune refused ${JSON.stringify(entry)} on ${af.id}: ${simErrorName(code)}`);
     }
     runTuneKey = JSON.stringify(entry);
-    if (entry && entry.flapStart) {
+    if (!midRun && entry && entry.flapStart) {
       setFlapNotch(fullEntry(af.id, entry).flapStart);
     }
   }
@@ -12483,6 +12526,7 @@ export async function boot({
 
   /* R: a new run from the map's own spawn. */
   function reset() {
+    keepControlRec();
     frameFault = null;
     /* The pack a run flies on is fixed at its start, or a pack changed from
      * the pause menu would compare a lap against another pack's record. */
@@ -12492,6 +12536,8 @@ export async function boot({
      * or a stale stamp keeps a fresh run inside an expired cooldown. */
     simTimeMs = 0;
     trickTouchAtSimMs = -1e9;
+    runAirMs = 0;
+    runRoute.reset();
     resetCraft(null);
     race.reset();
     /* Scored or free flight is re-read every run: the pilot switches it on
@@ -13524,6 +13570,7 @@ export async function boot({
       });
     }
     applyRatesSettings(s);
+    applyPlaneRates(s);
     applyPidSettings(s);
     applyDeviceSettings(s);
     syncAngleMode();
@@ -13653,6 +13700,27 @@ export async function boot({
   }
 
   /*
+   * A plane's rates from the Rates screen (src/ui/items.js planeRatesRows)
+   * fly at once, as a quad's do: the setup is seated again without a
+   * reset, and only its throws and expo have moved, so the plane flies on
+   * from where it is. The flaps stay where the switch has them. At the
+   * title the next seat takes it (applyRunSettings).
+   */
+  function applyPlaneRates(s) {
+    if (mode === 'title') {
+      return;
+    }
+    const af = airframeById(runAirframe);
+    if (!af.fixedWing || !tuningFor(af.id)) {
+      return;
+    }
+    const set = setupFor(af.id, powerChoice(af.id, s.power));
+    if (JSON.stringify(normalizeEntry(af.id, s.tuning && s.tuning[af.id], set.limits)) !== runTuneKey) {
+      applyTuning(s, true);
+    }
+  }
+
+  /*
    * Rates are part of the config text, so a change re-inits the module,
    * but without resetting the run: rates are the pilot's stick feel, which
    * is tuned against a corner mid run, not the machine. The craft is put
@@ -13725,6 +13793,7 @@ export async function boot({
     }
     if (flightLog.on !== s.flightLog) {
       flightLog.setEnabled(s.flightLog);
+      controlRec.setEnabled(s.flightLog);
     }
     audio.setLevel(s.volume / 10);
     audio.setEnabled(s.sound);
@@ -14653,6 +14722,26 @@ export async function boot({
     flashNotice(str('main.flight_log_saved_rows_over_s', { rows, secs }), 3600);
   }
 
+  /* The run that just ended becomes the last flight kept in this browser,
+   * and the recorder starts on the next. */
+  function keepControlRec() {
+    keepLast(controlRec, { map: ui.settings.map, airframe: ui.settings.airframe })
+      .catch((e) => console.warn('control recorder: last flight not kept', e));
+    if (controlRec.on) {
+      controlRec.clear();
+    }
+  }
+
+  function saveControlRec() {
+    if (controlRec.count < 2) {
+      flashNotice(str('main.nothing_recorded_yet_turn_the_flight'), 3600);
+      return;
+    }
+    const secs = controlRec.seconds.toFixed(1);
+    downloadText(controlRecName(ui.settings.map), controlRec.csv());
+    flashNotice(str('main.control_recording_saved_s', { secs }), 3600);
+  }
+
   async function renamePilot() {
     const name = await ui.askName({
       title: str('ui.your_name'),
@@ -14728,6 +14817,7 @@ export async function boot({
     ...CALIBRATE_ACTIONS,
     ...PAD_PICK_ACTIONS,
     ['downloadflightlog', saveFlightLog],
+    ['downloadcontrolrec', saveControlRec],
     ['setname', () => {
       renamePilot();
     }],
@@ -14739,7 +14829,24 @@ export async function boot({
     }],
     ['posttime', () => submitBoardTime()],
     ['postrun', () => submitFreestyleRun()],
+    ['watchreplay', watchReplayFromResults],
   ]);
+
+  /* Watch the replay from a flight's end screen (docs/DEBRIEF.md): the
+   * crash cam opens over the flight and closing it comes back to the
+   * results, not to a flight that has ended. */
+  let replayFromResults = false;
+  function watchReplayFromResults() {
+    if (!crashCam || mode !== 'results') {
+      return;
+    }
+    replayFromResults = true;
+    ui.show('flight');
+    if (!crashCam.open()) {
+      replayFromResults = false;
+      ui.show('results');
+    }
+  }
 
   ui.onAction = (action, s) => {
     if (s) {
@@ -16694,6 +16801,9 @@ export async function boot({
     fr.groundSpeed = 0;
     fr.groundHit = false;
     const steps = takeSteps();
+    if (controlRec.on) {
+      controlRec.beginFrame(nowWall, fr.dt, steps);
+    }
     stampSticks((simStepIdx + steps) * MS_PER_STEP, nowWall);
     if (steps >= 1) {
       if (launchStaging) {
@@ -16712,6 +16822,9 @@ export async function boot({
       flightClock.note(steps * MS_PER_STEP, {
         airborne: flightClockFlew, airframe: runAirframe, activity: flightActivity(),
       });
+      if (flightClockFlew) {
+        runAirMs += steps * MS_PER_STEP;
+      }
       flightLog.push(stateCurr, rcHeld, FULL_THROTTLE_RPM);
     }
     judgeGround(nowWall);
@@ -16773,6 +16886,7 @@ export async function boot({
       if (sortie) {
         sortieSticks(ts, rc.throttle);
       }
+      controlRec.noteSlot(tMs, rc.wallT ?? NaN, ax[0], ax[1], rc.yaw, rc.throttle);
       return sim.input(ts, ax[0], ax[1], rc.yaw, rc.throttle) === SIM_OK;
     };
     if (rcLink.isPerfect()) {
@@ -16836,6 +16950,17 @@ export async function boot({
    * it, so by the step's end the hull has bounced and vz points up, and a
    * real hit read at the end never announced.
    */
+  function recordControlStep(st) {
+    let surf = null;
+    if (wingSurfPtr && sim.e.sim_plane_surfaces(wingSurfPtr) === SIM_OK) {
+      if (!controlSurf || controlSurf.buffer !== sim.e.memory.buffer) {
+        controlSurf = new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4);
+      }
+      surf = controlSurf;
+    }
+    controlRec.step(st, surf);
+  }
+
   function stepInAir(steps, nowWall) {
     let st = stateCurr;
     roomPoseFrame(nowWall, lastWallDt, fr.dt);
@@ -16862,6 +16987,9 @@ export async function boot({
         st = stateCurr;
         fr.faulted = true;
         break;
+      }
+      if (controlRec.on) {
+        recordControlStep(st);
       }
       roomPoseStep(st, (steps - 1 - i) * MS_PER_STEP);
       if (roomCombat.out()) {
@@ -17220,6 +17348,7 @@ export async function boot({
       }
       racePrev.copy(pCurr);
       raceHasPrev = true;
+      runRoute.add(simNow, pCurr.x, pCurr.y, pCurr.z);
       ghostPrev.valid = true;
       ghostPrev.simMs = simNow;
       ghostPrev.x = pCurr.x;
@@ -17296,7 +17425,16 @@ export async function boot({
     poseLock = false;
     paintBest();
     if (!roomRun()) {
-      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote());
+      ui.showResults(race.log, race.bestMs, race.recordAtStart, ghostResultNote(), fromRace({
+        aircraft: runAirframe,
+        fixedWing: Boolean(airframeById(runAirframe).fixedWing),
+        log: race.log,
+        recordAtStart: race.recordAtStart,
+        flightMs: runAirMs,
+        totalS: aircraftSecondsNow(),
+        route: runRoute.snapshot(),
+        replay: replayState(crashCam ? crashCam.span() : null, mode === 'replay'),
+      }));
       return;
     }
     roomShowResults();
@@ -18156,7 +18294,9 @@ export async function boot({
     const ch = input.channels;
     const vis = turtleAxes(ch.roll, ch.pitch);
     ui.setStickOverlay({
-      show: input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
+      /* window.__showSticks: a capture's own switch, so a recorded flight
+       * shows the sticks whatever flies it (scripts/hover-video.js). */
+      show: window.__showSticks === true || input.isMousePrimary() || (input.isKeyboardPrimary() && !input.isTouchPrimary()),
       roll: vis[0],
       pitch: vis[1],
       yaw: ch.yaw,
@@ -18962,6 +19102,7 @@ export async function boot({
 
   /* The flight recorder: whether it runs, what it holds, and the length of
    * the CSV the download button would save. */
+  window.__controlRec = () => ({ on: controlRec.on, rows: controlRec.count, csv: () => controlRec.csv() });
   window.__flightLog = () => ({
     on: flightLog.on,
     rows: flightLog.count,
@@ -20083,11 +20224,17 @@ export async function boot({
         ui.openWalk(back.which);
         return;
       }
-      mode = 'flight';
       acc = 0;
       /* The map as the war has it now, whatever the replay drew. */
       warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));
       warBreakageLive(roomLinkState.roomNow());
+      if (replayFromResults) {
+        replayFromResults = false;
+        mode = 'results';
+        ui.show('results');
+        return;
+      }
+      mode = 'flight';
       ui.show('flight');
     },
     drawWar: warMapDraw,

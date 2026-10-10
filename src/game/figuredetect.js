@@ -202,9 +202,10 @@ class Prim {
     }
     if (!prev) return;
     this.swept += s.pathRad / TURN;
-    /* Only where the path is really curving: the corners into and out of
-     * the arc are the lines' business, and their huge radii are not the
-     * loop's shape. */
+    /* The radius only where the path curves as an arc opens (ARC_ON): the
+     * arc keeps its hysteresis tail so a loop stays one piece, but a judge
+     * grades the loop's roundness, not the pull-out where it straightens
+     * (F3A Annex 5B, IMAC), and one tail sample there is tens of metres. */
     if (s.pathRate >= ARC_ON) {
       const r = s.speed / s.pathRate;
       this.rN += 1;

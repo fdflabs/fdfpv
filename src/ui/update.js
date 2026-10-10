@@ -79,8 +79,13 @@ export function watchVersion(onChange) {
   registerWorker();
   let deployed = own;
   let asking = false;
+  let askAgain = false;
   const check = async () => {
     if (asking) {
+      /* A focus or a room join while an answer is still on its way asks
+       * once more after it lands: dropping it would leave the pilot on the
+       * old version until the next poll, three minutes out. */
+      askAgain = true;
       return;
     }
     asking = true;
@@ -98,6 +103,10 @@ export function watchVersion(onChange) {
        * out, and the next check asks again. */
     } finally {
       asking = false;
+    }
+    if (askAgain) {
+      askAgain = false;
+      check();
     }
   };
   setInterval(check, CHECK_MS);
