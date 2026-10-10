@@ -68,6 +68,9 @@ jobs:
       - run: npm run pids:selftest
       - run: npm run version:check
       - run: npm run csp:selftest
+      # The shared time of day agrees with the maps and missions that ship
+      # (src/share/daytime.js, docs/DAYTIME-CONTRACT.md).
+      - run: npm run daytime:selftest
       - run: npm run lap:selftest
       - run: npm run ratepresets:selftest
       - run: npm run identity:selftest
