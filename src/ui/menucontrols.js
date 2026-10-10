@@ -63,6 +63,7 @@ const HELP_FIELD = {
   launch: 'launchHelp',
   standings: 'standingsHelp',
   rates: 'ratesHelp',
+  planerates: 'planeratesHelp',
   pids: 'pidsHelp',
   fc: 'fcHelp',
   paused: 'pausedHelp',
