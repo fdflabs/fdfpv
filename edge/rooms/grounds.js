@@ -7,7 +7,7 @@
  * places it as it draws, and the room has no copy.
  *
  * Built on first use and kept for the process: the Swiss valley's field
- * takes about a second in Node (measured 980 ms), once.
+ * takes about a second in Node (measured 980 ms), the alps' 34 ms, once.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *
@@ -25,14 +25,16 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LAKE_Y, STRIP_L, STRIP_W, STRIP_Y } from '../../src/maps/alps/heights.js';
+import {
+  LAKE_Y, STRIP_L, STRIP_W, STRIP_Y, buildHeightfield,
+} from '../../src/maps/alps/heights.js';
 import { buildSwissField } from '../../src/maps/swiss2/field.js';
 
 /* src/maps/alps.js ground, inside the valley's floor, where the far range
- * and the headwall stand under the field: the field, the strip on it, and
- * water no lower than the lake's surface. */
-function swissGround() {
-  const field = buildSwissField();
+ * and the headwall stand under the field: the field (the Swiss valley's
+ * or the alps' own, as alps.js takes style.heightfield), the strip on it,
+ * and water no lower than the lake's surface. */
+function valleyGround(field) {
   return (x, z) => {
     const h = field.height(x, z);
     if (Math.abs(x) <= STRIP_W / 2 && Math.abs(z) <= STRIP_L / 2) {
@@ -42,7 +44,10 @@ function swissGround() {
   };
 }
 
-const MAKERS = Object.freeze({ swiss2: swissGround });
+const MAKERS = Object.freeze({
+  swiss2: () => valleyGround(buildSwissField()),
+  alps: () => valleyGround(buildHeightfield()),
+});
 const BUILT = new Map();
 
 /* The map's ground, (x, z) to y in scene metres, or null for a map the
