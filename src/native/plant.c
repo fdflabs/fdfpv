@@ -1657,28 +1657,28 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  */
 [SIM_AIRFRAME_HERCULES3077] = {
   .kind = PLANT_KIND_WING,
-  .mass_kg = 6.728,
-  .inertia = { 1.1016, 1.3133, 2.2417 },
-  .gravity = 9.81,
-  .cells = 3.0,
-  .r_cell = 0.0015,
-  .pack_c = 4.0 * 5000.0 * 3.6,
-  .lvc = 3.0,
-  .rho = 1.225,
-  .prop_r = 0.1524,
-  .spin = { -1.0, 0.0, 0.0, 0.0 },
-  .pos_x = { 0.315, 0.0, 0.0, 0.0 },
-  .hull_hx = 0.92,
-  .hull_hy = 1.5385,
-  .hull_hz_down = 0.1954,
-  .hull_hz_up = 0.1549,
-  .contact_patch_r = 0.15,
-  .contact_arm_max = 1.6,
-  .vib_ref_w = 1000.0,
-  .camera_x = 0.80,
-  .camera_y = 0.0,
-  .camera_z = 0.10,
-  .fw = &FW_HERCULES3077,
+  .mass_kg = 6.728, /* npm run hercules:derive */
+  .inertia = { 1.1016, 1.3133, 2.2417 }, /* npm run hercules:derive */
+  .gravity = 9.81, /* standard gravity, https://physics.nist.gov/cgi-bin/cuu/Value?gn */
+  .cells = 3.0, /* docs/HERCULES-STAGE1.md */
+  .r_cell = 0.0015, /* FITTED: a 5000 mAh cell's, docs/POWER-STAGE1.md */
+  .pack_c = 4.0 * 5000.0 * 3.6, /* docs/HERCULES-STAGE1.md */
+  .lvc = 3.0, /* FITTED: an ESC's usual cutoff, docs/HERCULES-STAGE1.md */
+  .rho = 1.225, /* ISA sea level, https://en.wikipedia.org/wiki/International_Standard_Atmosphere */
+  .prop_r = 0.1524, /* docs/HERCULES-STAGE1.md */
+  .spin = { -1.0, 0.0, 0.0, 0.0 }, /* docs/HERCULES-STAGE1.md */
+  .pos_x = { 0.315, 0.0, 0.0, 0.0 }, /* scripts/hercules-derive.js */
+  .hull_hx = 0.92, /* FITTED: the nose, drawn */
+  .hull_hy = 1.5385, /* npm run hercules:derive */
+  .hull_hz_down = 0.1954, /* npm run hercules:derive */
+  .hull_hz_up = 0.1549, /* FITTED: the fuselage's top, drawn */
+  .contact_patch_r = 0.15, /* FITTED: a resting friction lever, the fleet's */
+  .contact_arm_max = 1.6, /* FITTED: the largest impulse arm, the half fuselage */
+  .vib_ref_w = 1000.0, /* FITTED: the fleet's gyro reference */
+  .camera_x = 0.80, /* FITTED: the flight deck, drawn */
+  .camera_y = 0.0, /* FITTED: the flight deck, drawn */
+  .camera_z = 0.10, /* FITTED: the flight deck, drawn */
+  .fw = &FW_HERCULES3077, /* docs/HERCULES-STAGE1.md */
   /*
    * The fixed tricycle gear, the full size's sponsons scaled: the main
    * axles 0.08 m behind the CG on a 0.331 m track, the nose wheel's 0.744 m
@@ -1691,7 +1691,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    * lowest point under the ramp, which the grass meets at 9 deg of nose up
    * on the mains: a tail strike, as on the full size.
    */
-  .wheel_count = 4,
+  .wheel_count = 4, /* docs/HERCULES-STAGE1.md */
   .wheel = {
     { .pos = { -0.08, 0.1656, -0.2379 }, .r = 0.0275, .k = 5890.0, .c = 168.92, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
     { .pos = { -0.08, -0.1656, -0.2379 }, .r = 0.0275, .k = 5890.0, .c = 168.92, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
