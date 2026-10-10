@@ -56,7 +56,7 @@ up when the physics lands); **unproven** = no plant check has flown it yet.
 | Knife-Edge Pass | Pasada a cuchillo | lines | 6 | 1.1.1.1 + 9.1.3.1 + 9.1.3.1 | unproven |
 | Rolling Circle | Círculo con tonel | turns | 46 | 2.4.2.1 | unproven |
 | Hammerhead | Martillo | stall turns | 17 | 5.2.1.1 | unproven |
-| Tailslide | Campana | tail slides | 15 | 6.2.1.1 | unproven |
+| Tailslide | Campana | tail slides | 15 | 6.2.1.1 | flown |
 | Loop | Rizo | loops | 10 | 7.4.1.1 | flown |
 | Outside Loop | Rizo exterior | loops | 15 | 7.4.1.2 | unproven |
 | Immelmann | Immelmann | loops | 10 | 7.2.1.1 + 9.1.3.2 | unproven |
@@ -241,6 +241,8 @@ Each of the 26 figures no plant check had flown, flown once by the person
 paced pilot (0.2 s late, 10 Hz, fiftieths) on the Extra 330 in Manual from
 level at 22 m/s, as a program of phases a pilot calls to themselves. It
 measures, it gates nothing. 7 of 26 are named; those are now `flown`.
+Re-run 2026-10-10 on main with the Extra's jet normal force (Selig, AIAA
+2010-7938): the Tailslide is named too (9), so 8 of 26 are `flown`.
 
 | Figure | Result | Grade | What it says needs tuning |
 |---|---|---|---|
@@ -254,8 +256,9 @@ measures, it gates nothing. 7 of 26 are named; those are now `flown`.
 | Slow Roll | half roll | | **detector**: the Extra's roll rate at a slow roll's stick sinks below the roll threshold (1.2 rad/s) through the knife edges, so the roll breaks in two. Lowering it to 0.6 rad/s was tried and broke the point rolls; needs a roll measure about the flight path, not a threshold |
 | Cuban Eight, Half Cuban | half roll | | pilot: the 5/8 pull overshoots past the 45 line (0.77 of a turn), so the roll is not on a 45 |
 | Reverse Cuban Eight, Reverse Half Cuban | half rolls | | pilot: the pull from the 45 into the 5/8 loop does not finish before the settle |
-| Humpty Bump, Hammerhead, Tailslide, Waterfall | nothing | | pilot: the vertical line held with 0.2 s lag weaves 20 to 40 deg, and the detector cuts it into roll, yawover and pitchover pieces; a person holding a cleaner vertical is the next step, then retest |
-| Knife-Edge Pass, Knife-Edge Loop | nothing | | pilot: the early let go stops the quarter roll at 40 deg, never on the knife edge |
+| Tailslide | named (2026-10-10) | 9 | named on the plant with the jet normal force; the 2026-10-09 run cut it like the row below (why it now holds is not yet measured) |
+| Humpty Bump, Hammerhead, Waterfall | nothing | | pilot: the vertical line held with 0.2 s lag weaves 20 to 40 deg, and the detector cuts it into roll, yawover and pitchover pieces; a person holding a cleaner vertical is the next step, then retest |
+| Knife-Edge Pass, Knife-Edge Loop | nothing | | pilot: the early let go stops the quarter roll at 40 deg, never on the knife edge. Re-run 2026-10-10: the Knife-Edge Loop's program now departs into a negative snap and an inverted spin |
 | Rolling Circle | nothing | | pilot: the coordinated rudder and elevator through the roll is not modelled; open |
 | 8-Point Roll | nothing | | pilot: the eighths overshoot and the nose falls 80 m |
 | Hover, Torque Roll, Wall | nothing | | physics and pilot: the 3D lane measures 24 % of person paced pilots holding a 10 s hover on the Extra; this one does not hold it |
