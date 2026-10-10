@@ -85,6 +85,7 @@ const MENU_FIELD = {
   launch: 'launchMenu',
   standings: 'standingsMenu',
   rates: 'ratesMenu',
+  planerates: 'planeratesMenu',
   pids: 'pidsMenu',
   controls: 'controlsMenu',
   fc: 'fcMenu',
@@ -269,7 +270,7 @@ function leaveFor(ui, screen) {
   if (ui.roomFrom && (screen === 'title' || screen === ui.roomFrom)) {
     ui.roomFrom = null;
   }
-  if (leaving('rates')) {
+  if (leaving('rates') || leaving('planerates')) {
     ui.ratesFrom = null;
   }
   if (leaving('walk')) {

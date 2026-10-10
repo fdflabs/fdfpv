@@ -92,11 +92,10 @@ function madeWorld() {
 
 /* A material's shaders as its onBeforeCompile leaves three's standard
  * ones, and the uniforms it adds. */
-function patched(m) {
+function patched(m, lib = THREE.ShaderLib.standard) {
   if (m.onBeforeCompile === THREE.Material.prototype.onBeforeCompile) {
     return null;
   }
-  const lib = THREE.ShaderLib.standard;
   const shader = {
     vertexShader: lib.vertexShader,
     fragmentShader: lib.fragmentShader,
@@ -150,6 +149,7 @@ export function cases() {
         group: describeObject(t.group),
         shaders: mats.map((m) => [m.name, m.type, m.customProgramCacheKey(), patched(m)]),
         stats: (({ lastMs, ...rest }) => rest)(t.stats()),
+        depth: t.group.children.filter((o) => o.customDepthMaterial).map((o) => [o.name, o.customDepthMaterial.type, o.customDepthMaterial.customProgramCacheKey(), patched(o.customDepthMaterial, THREE.ShaderLib.depth)]),
       };
       t.dispose();
       return out;
