@@ -38,6 +38,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
+import { COMBO_WINDOW_MS } from '../src/game/score.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { LANG_KEY } from '../src/strings/index.js';
 import { airframeById } from '../configs/airframes.js';
@@ -83,6 +84,29 @@ async function until(page, expr, ms = 60000) {
     await new Promise((r) => setTimeout(r, 200));
   }
   throw new Error(`timed out waiting for ${expr}`);
+}
+
+/* Until expr holds within simMs of sim time: the score's combo banks on
+ * the sim clock, which a loaded runner advances slower than the wall, so a
+ * wall clock bound fails there for nothing. A clock that stops moving for
+ * stallMs of wall time is a hang and fails. */
+async function untilSim(page, expr, simMs, stallMs = 30000) {
+  const lap = () => page.evaluate('window.__traffic().lap');
+  const start = await lap();
+  let last = start;
+  let movedAt = Date.now();
+  for (;;) {
+    if (await page.evaluate(`Boolean(${expr})`).catch(() => false)) return true;
+    const now = await lap();
+    if (now - start > simMs) throw new Error(`not within ${simMs} ms of sim time: ${expr}`);
+    if (now !== last) {
+      last = now;
+      movedAt = Date.now();
+    } else if (Date.now() - movedAt > stallMs) {
+      throw new Error(`the sim clock stopped at ${now} ms waiting for ${expr}`);
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
 }
 
 async function shot(page, name) {
@@ -144,7 +168,7 @@ for (const lang of ['en', 'es']) {
       /* One call, so the chain cannot bank between them however slowly
        * the machine runs the page. */
       /* The loop's combo banks first, so the chain below is exactly three. */
-      await until(page, "getComputedStyle(document.querySelector('.score-combo')).display === 'none'", 20000);
+      await untilSim(page, "getComputedStyle(document.querySelector('.score-combo')).display === 'none'", COMBO_WINDOW_MS + 1000);
       await page.evaluate(`${land('half_roll', 9)}; ${land('aileron_roll', 10)}; ${land('hammerhead', 5.5)}; true`);
       await new Promise((r) => setTimeout(r, 400));
       const three = await page.evaluate(HUD);
