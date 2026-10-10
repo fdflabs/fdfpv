@@ -629,6 +629,7 @@ function pilotRows(ui, s) {
     { label: str('ui.diagnostics'), section: true },
     toggle(str('ui.flight_log'), str('ui.record_the_run_for_download_as'), s.flightLog, (v) => { s.flightLog = v; }),
     { label: str('ui.download_flight_log'), action: 'downloadflightlog', note: str('ui.writes_what_was_recorded_as_blackbox') },
+    { label: str('ui.download_control_recording'), action: 'downloadcontrolrec', note: str('ui.download_control_recording_note') },
     { label: str('pause.help'), section: true },
     { label: str('ui.how_to_fly'), action: 'howto' },
     creditsRow(),
@@ -981,11 +982,13 @@ function resultsRows(ui, s) {
   }
   /* A free world has no listing; its track rows would all be grey. */
   const listing = s.map === 'track' ? liveListing() : null;
+  const replay = replayRow(ui.resultsDebrief);
   if (!listing) {
-    return [again, feelRow(), titleRow()];
+    return [again, replay, feelRow(), titleRow()].filter(Boolean);
   }
   return [
     again,
+    replay,
     uploadRow(listing, ui.resultsFastest, ui.timePosted, s.airframe),
     {
       label: str('ui.open_tracks_and_statistics'),
@@ -996,7 +999,22 @@ function resultsRows(ui, s) {
     feelRow(),
     myTracksRow(),
     titleRow(),
-  ];
+  ].filter(Boolean);
+}
+
+/* Watch the replay, from the debrief's record (docs/DEBRIEF.md): greyed
+ * with the reason when there is no clip to open, never a dead row; none
+ * on a screen without a record. */
+function replayRow(d) {
+  if (!d || !d.replay) {
+    return null;
+  }
+  return {
+    label: str('debrief.watch_replay'),
+    action: 'watchreplay',
+    disabled: !d.replay.ok,
+    note: str(d.replay.ok ? 'debrief.watch_replay_note' : d.replay.why),
+  };
 }
 
 /* Post a freestyle run, or why it cannot be: greyed with the reason on
