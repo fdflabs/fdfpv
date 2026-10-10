@@ -17,9 +17,10 @@
  *      the model from the Top view names the region and side beside it
  *      and a click puts the colour on that region's top; from the Bottom
  *      view the label says underside and a click paints the underside.
- *   6. Undo on the Timber: a top colour, then an underside; the Undo
+ *   6. Undo and Redo on the Timber: a top colour, then an underside; the Undo
  *      button takes the underside off, Z the top colour, and Undo is then
- *      off with the paint as it opened.
+ *      off with the paint as it opened; Redo and Y bring both back, and a
+ *      new change after an Undo ends what Redo could bring back.
  *   7. A/B on the Timber (its saved underside on): Stock pressed shows the
  *      kit's colours and no underside, pressed again the pilot's paint
  *      back; H the same; a swatch picked while on stock ends it.
@@ -27,6 +28,9 @@
  *      in the list) on the first region that is not film, a swatch then
  *      its second colour; the model's material draws both, and a picture
  *      of each from above.
+ *   9. The swatch library: a colour kept on the Timber is stored at once,
+ *      offered on the Cub after a reload and paints it, and Forget takes
+ *      it out of the library.
  *   3. Flipped and closed, the hangar opens again upright, and the picker
  *      behind it draws the model upright.
  *
@@ -84,7 +88,23 @@ const seed = [`try {
     progress: { v: 1, xp: 0, courses: {}, challenges: {}, seen: {}, unlockAll: true },
   });
   localStorage.setItem(k, JSON.stringify(s));
-} catch (e) { /* storage refused; the checks below will say so */ }`];
+} catch (e) { /* storage refused; the checks below will say so */ }
+/* A record of the pointer's presses and the side panel being drawn
+ * again, read back when a click lands somewhere it should not have. */
+window.__clickLog = [];
+for (const type of ['pointerdown', 'pointerup', 'click']) {
+  document.addEventListener(type, (e) => {
+    const k = e.target && e.target.closest && e.target.closest('[data-key]');
+    window.__clickLog.push(type + ':' + (k ? k.dataset.key : e.target.className) + '@' + Math.round(performance.now()));
+  }, true);
+}
+new MutationObserver((list) => {
+  for (const m of list) {
+    if (m.target.classList && m.target.classList.contains('hangar-side') && m.addedNodes.length) {
+      window.__clickLog.push('repaint@' + Math.round(performance.now()));
+    }
+  }
+}).observe(document, { childList: true, subtree: true });`];
 
 async function shot(page, name) {
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
@@ -176,9 +196,17 @@ async function flipAndViews(page) {
   })()`);
   /* Each step waits on the hangar's own state, not a clock: a slow
    * software renderer polls the pad once a frame, a few times a second.
-   * The pad is first seen released (the first poll only learns what is
-   * held), then held in until the hangar has flipped, then let go. */
-  await page.until('Boolean(window.__ui.hangar.padPrev)', 60000);
+   * The pad is first chosen as the device in use (the roster takes a pad
+   * that turns up on some later poll) and seen released, since the first
+   * poll only learns what is held; then held in until the hangar has
+   * flipped, then let go. */
+  await page.until("(() => { const gp = window.__input.firstGamepad(); return Boolean(gp) && gp.id === 'check pad'; })()", 60000);
+  /* Two more of the hangar's polls (each makes a new padPrev) with the pad
+   * chosen and R3 out, so the press is an edge and not learnt as held. */
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate('window.__padPrevSeen = window.__ui.hangar.padPrev; true');
+    await page.until('window.__ui.hangar.padPrev !== window.__padPrevSeen', 60000);
+  }
   await page.evaluate('window.__r3 = true');
   await page.until('window.__ui.hangar.flip === true', 60000).catch(() => {});
   await page.evaluate('window.__r3 = false');
@@ -254,7 +282,20 @@ async function steady(page, selector) {
 /* A real pointer click on a button once it stands still. */
 async function press(page, selector) {
   await steady(page, selector);
-  return page.click(selector);
+  const before = await page.evaluate('window.__clickLog.length');
+  const done = await page.click(selector);
+  /* The click must reach the control aimed at; say so plainly if it went
+   * to another, with what the page saw, rather than fail later on state. */
+  const key = (selector.match(/data-key="([^"]+)"/) || [])[1];
+  if (key) {
+    await page.until(`window.__clickLog.slice(${before}).some((l) => l.startsWith('click:'))`, 10000).catch(() => {});
+    const log = await page.evaluate(`window.__clickLog.slice(${before})`);
+    const hit = log.find((l) => l.startsWith('click:'));
+    if (!hit || !hit.startsWith(`click:${key}@`)) {
+      throw new Error(`the click on ${key} landed on ${hit || 'nothing'}: ${log.join(' ')}`);
+    }
+  }
+  return done;
 }
 
 async function paintUnder(page, id) {
@@ -274,8 +315,20 @@ async function paintUnder(page, id) {
   /* A colour the top is not in: the top's own is no underside of its own. */
   const top = (await paintOf(page, id))[region];
   const key = keys.filter((k) => k !== `colour-${top}`)[2];
+  /* The press is checked where it lands: the entry must hold the swatch
+   * pressed. A press that took another (a pointer one swatch over on a
+   * slow software renderer, seen once on CI on the Timber, #825; the class
+   * #776 fixed for R3) is pressed once more, said, and then must hold. */
+  const want = key.slice('colour-'.length);
+  const holds = `(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(want)}`;
   await press(page, `.hangar [data-key="${key}"]`);
-  await page.until(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] === ${JSON.stringify(key.slice('colour-'.length))}`, 5000).catch(() => {});
+  const landed = await page.until(holds, 5000).then(() => true).catch(() => false);
+  if (!landed) {
+    const got = await page.evaluate(`(window.__ui.hangar.entry.under || {})[${JSON.stringify(region)}] || null`);
+    console.log(`  note  ${id}: pressed ${key} (top ${top}, palette ${keys.slice(0, 5).join(' ')}...) and the entry took ${got}; pressed again`);
+    await press(page, `.hangar [data-key="${key}"]`);
+    await page.until(holds, 5000).catch(() => {});
+  }
   /* The pointer off the panel, so no swatch under it is being tried on. */
   await page.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 400, y: 450 }, page.sessionId);
   return { region, hex: key.slice('colour-'.length) };
@@ -303,7 +356,7 @@ async function underEach(page) {
     const u = l && l.uniforms[got.region];
     const entry = await page.evaluate('window.__ui.hangar.entry');
     say(Boolean(u) && u.under === got.hex && after[got.region] === before[got.region] && entry.under && entry.under[got.region] === got.hex,
-      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}`);
+      `${id}: Underside rolls it over and paints the ${got.region}'s underside ${got.hex}, its top still ${after[got.region]}: ${JSON.stringify(u)}, entry ${JSON.stringify(entry)}${entry.under && entry.under[got.region] === got.hex ? '' : ` log ${await page.evaluate('window.__clickLog.slice(-24).join(" ")')}`}`);
     if (id === 'timber1500') {
       await press(page, '.hangar [data-key="save"]');
       await page.until('!window.__ui.hangar.isOpen', 10000);
@@ -406,6 +459,19 @@ async function undoSteps(page) {
   await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(start)}`, 5000).catch(() => {});
   const two = await page.evaluate("({ entry: JSON.stringify(window.__ui.hangar.entry), off: document.querySelector('.hangar [data-key=\"undo\"]').disabled })");
   say(two.entry === start && two.off, `Z takes the top colour off, back to how it opened, and Undo is off: ${JSON.stringify(two)}`);
+  await press(page, '.hangar [data-key="redo"]');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(topOnly)}`, 5000).catch(() => {});
+  say(await page.evaluate('JSON.stringify(window.__ui.hangar.entry)') === topOnly, 'the Redo button puts the top colour back');
+  await page.tap('KeyY');
+  await page.until(`JSON.stringify(window.__ui.hangar.entry) === ${JSON.stringify(JSON.stringify(both))}`, 5000).catch(() => {});
+  const again = await page.evaluate("({ entry: window.__ui.hangar.entry, off: document.querySelector('.hangar [data-key=\"redo\"]').disabled })");
+  say(JSON.stringify(again.entry) === JSON.stringify(both) && again.off, `Y puts the underside back, and Redo is off: ${JSON.stringify(again)}`);
+  await page.tap('KeyZ');
+  await press(page, '.hangar [data-key="side-top"]');
+  await pick(7);
+  await page.sleep(400);
+  const cut = await page.evaluate("document.querySelector('.hangar [data-key=\"redo\"]').disabled");
+  say(cut, `a new change after Undo ends what Redo could bring back (${cut})`);
   await closeHangar(page);
   await page.evaluate('window.__ui.carousel.close(); true');
 }
@@ -480,19 +546,72 @@ async function patternsEach(page) {
   }
 }
 
+async function swatchLibrary(page) {
+  console.log('9. the swatch library');
+  const stored = () => page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).swatches || {}).list || []`);
+  const colours = async (id) => {
+    await openHangar(page, id);
+    await press(page, '.hangar [data-key="tab-colours"]');
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+  };
+  await colours('timber1500');
+  await press(page, '.hangar [data-key="side-top"]');
+  const keys = await page.evaluate("[...document.querySelectorAll('.hangar .hangar-palette [data-key^=\"colour-\"]')].map((b) => b.dataset.key)");
+  const hex = keys[12].slice('colour-'.length);
+  await press(page, `.hangar [data-key="${keys[12]}"]`);
+  await mouse(page, 'mouseMoved', 400, 450);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const kept = await stored();
+  say(kept[0] === hex, `Keep stores ${hex} at once: ${JSON.stringify(kept)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('!!window.__shellReady', 300000);
+  await page.until('window.__map && window.__map().ready', 400000);
+  await colours('cub1400');
+  const region = await page.evaluate('window.__ui.hangar.region');
+  await press(page, '.hangar [data-key="side-top"]');
+  const offered = await page.evaluate(`Boolean(document.querySelector('.hangar [data-key="mine-colour-${hex}"]'))`);
+  if (offered) {
+    await press(page, `.hangar [data-key="mine-colour-${hex}"]`);
+    await mouse(page, 'mouseMoved', 400, 450);
+  }
+  await page.until(`(window.__ui.hangar.entry.regions || {})[${JSON.stringify(region)}] === ${JSON.stringify(hex)}`, 5000).catch(() => {});
+  const cub = await page.evaluate('window.__ui.hangar.entry');
+  say(offered && (cub.regions || {})[region] === hex, `after a reload the Cub offers it and it paints the ${region}: ${JSON.stringify(cub)}`);
+  await steady(page, '.hangar [data-key="keep-colour"]');
+  const label = await page.evaluate(`document.querySelector('.hangar [data-key="keep-colour"]').textContent`);
+  await press(page, '.hangar [data-key="keep-colour"]');
+  await page.until(`!document.querySelector('.hangar [data-key="mine-colour-${hex}"]')`, 5000).catch(() => {});
+  const left = await stored();
+  say(label === 'Forget this colour' && !left.includes(hex), `Forget takes it out: "${label}", ${JSON.stringify(left)}`);
+  await closeHangar(page);
+  await page.evaluate('window.__ui.carousel.close(); true');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
+    /* The hangar's own reduced motion (index.html): no entrance slides, no
+     * staggered swatches, no smooth scroll. Motion is not what this check
+     * is about, and on CI's starved software page a control still moving
+     * when the pointer pressed took the click for its neighbour, or lost
+     * it, whatever the check waited on first. */
+    await page.cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, page.sessionId);
     await page.until('!!window.__shellReady', 300000);
     await page.until('window.__map && window.__map().ready', 400000);
-    await viewsEach(page);
-    await flipAndViews(page);
-    await closedFlipped(page);
-    await underEach(page);
-    await clickToPaint(page);
-    await undoSteps(page);
-    await abStock(page);
-    await patternsEach(page);
+    /* WORKSHOP_STEPS (names of the steps below) and WORKSHOP_REPEAT run a
+     * part of the check again and again, to hunt a race on a slow page. */
+    const steps = {
+      viewsEach, flipAndViews, closedFlipped, underEach, clickToPaint, undoSteps, abStock, patternsEach, swatchLibrary,
+    };
+    const chosen = process.env.WORKSHOP_STEPS ? process.env.WORKSHOP_STEPS.split(',') : Object.keys(steps);
+    for (let i = 0; i < Number(process.env.WORKSHOP_REPEAT || 1); i++) {
+      for (const name of chosen) {
+        await steps[name](page);
+      }
+    }
     const f = page.errors.filter((e) => !e.startsWith('network:'));
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

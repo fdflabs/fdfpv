@@ -201,14 +201,16 @@ function lintFilm(film, rules) {
     /* Each line and its pads inside its shot, or its span. */
     let need = 0;
     for (const [j, l] of (def.lines ?? []).entries()) {
-      if (!lines.has(l.line)) {
-        fail(`${film.id} ${s.id}: no line ${l.line} in lines.json`);
-      }
-      for (const lang of LANGS) {
-        try {
-          lineMs(l.line, lang);
-        } catch (e) {
-          fail(`${film.id} ${s.id}: ${e.message}`);
+      for (const id of l.or ? [l.line, l.or.line] : [l.line]) {
+        if (!lines.has(id)) {
+          fail(`${film.id} ${s.id}: no line ${id} in lines.json`);
+        }
+        for (const lang of LANGS) {
+          try {
+            lineMs(id, lang);
+          } catch (e) {
+            fail(`${film.id} ${s.id}: ${e.message}`);
+          }
         }
       }
       /* Where the timeline put it, so an overlapping line is measured

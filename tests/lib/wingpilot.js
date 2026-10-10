@@ -318,11 +318,25 @@ export function rudderStep(sim, { wingsLevel }) {
 /* The prop's reaction at a standstill and full throttle: one step from
  * rest, where the air has nothing to say yet, so the roll moment is the
  * motor's alone. Returns the torque about body x, negative rolling left. */
-export function propTorque(sim) {
+/*
+ * Full throttle held where it is: from a reset, `pose` and `vel` (the
+ * velocity and rates as sim_set_velocity takes them, still by default)
+ * written back every 1 ms step for `ms`, so an electric prop has spun up to the full
+ * throttle's speed (plant_wing.c, prop_spool) while the aircraft goes
+ * nowhere. The last step is the one the caller reads.
+ */
+export function fullThrottleHeld(sim, pose, vel = [0, 0, 0, 0, 0, 0], ms = 2000) {
   must(sim.reset(), 'sim_reset');
-  must(sim.e.sim_set_pose(0, 0, 50, 1, 0, 0, 0), 'sim_set_pose');
-  must(sim.input(0, 0, 0, 0, 1), 'sim_input');
-  must(sim.step(1), 'sim_step');
+  for (let t = 0; t < ms; t += 1) {
+    must(sim.e.sim_set_pose(...pose), 'sim_set_pose');
+    must(sim.e.sim_set_velocity(...vel), 'sim_set_velocity');
+    must(sim.input(t / 1000, 0, 0, 0, 1), 'sim_input');
+    must(sim.step(1), 'sim_step');
+  }
+}
+
+export function propTorque(sim) {
+  fullThrottleHeld(sim, [0, 0, 50, 1, 0, 0, 0]);
   const d = wingDebug(sim);
   /* The motor's roll alone: the slipstream's (sim_wing_slip,
    * docs/FLIGHTMODEL.md) is taken out. */
@@ -603,6 +617,16 @@ export function recordScriptedFlight(sim, { prelude = wingPrelude, rudder = fals
  * gyroscope kicks it as the tail comes up. */
 export function rudderHold(s) {
   return Math.max(-1, Math.min(1, 6.0 * (runwayHeading(s) + 0.3 * s[2]) + 0.6 * s[13]));
+}
+
+/* A powered stall's wings held level on the rudder, the ailerons neutral,
+ * as the handbook flies one (FAA-H-8083-3C ch. 5, power on stalls: right
+ * rudder against the tractor's left turning tendencies, a wing picked up
+ * with the rudder and not the ailerons, which near the stall take the
+ * down going wing deeper into it). The rudder only aircraft's wings level
+ * law, -1.2 bank - 0.12 p, on the yaw stick. */
+export function rudderLevel(s) {
+  return Math.max(-1, Math.min(1, -1.2 * fullBank(s) - 0.12 * s[11]));
 }
 
 export function takeoffSticks(s, { vRotate = 8.9 } = {}) {
@@ -1573,10 +1597,10 @@ export function uglystikTakeoffSticks(s, { vRotate = 11.4 } = {}) {
   const { pitch } = attitude(s);
   const v = Math.hypot(s[4], s[5], s[6]);
   const qAero = -s[12];
-  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
   const pitchStick = v < vRotate ? 0 : Math.max(-1, Math.min(1, 5.0 * (8 * Math.PI / 180 - pitch) - 0.25 * qAero));
-  const yaw = Math.max(-1, Math.min(1, 2.0 * heading + 0.3 * s[13]));
-  return [edgeRoll(s), pitchStick, yaw];
+  /* The heading on the rudder, the take off pilot's (rudderHold): the
+   * swirl swings the Stik on its roll as it swings every tractor. */
+  return [edgeRoll(s), pitchStick, rudderHold(s)];
 }
 
 /*
@@ -1976,6 +2000,77 @@ export function recordExtraFlight(sim) {
       iT = Math.max(0.3, Math.min(1, iT));
       const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
       sticks = [...hangSticks(s, { rollRate: ms < 14000 ? 0 : null }), ms < 11000 ? 0.75 : thr];
+    } else if (ms < 20000) {
+      sticks = [hold(0), nose(0.1), 0, 1];
+    } else {
+      sticks = [hold(0), nose(0.1), ms < 21000 ? 1 : 0, 0.6];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
+ * E-flite's Night Timber X 1.2m, airframe 30, docs/NIGHTTIMBER-STAGE1.md:
+ * a taildragger standing 4.5 deg nose up on its tundra tyres, the CG
+ * 0.2562 m up, as E-flite's side photograph has it, or thrown at its
+ * cruise. The flaps' notch as given, up unless asked.
+ */
+export const NIGHTTIMBER_AIRFRAME = 30;
+export const NIGHTTIMBER_REST = { z: 0.2562, pitchDeg: 4.5 };
+export function nighttimberPrelude(sim, { flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(NIGHTTIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_wing_launch(13), 'sim_wing_launch');
+}
+export function nighttimberGroundPrelude(sim, { mu = 1.4, e = 0, flaps = 0 } = {}) {
+  must(sim.e.sim_set_airframe(NIGHTTIMBER_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_flaps(flaps), 'sim_wing_set_flaps');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = NIGHTTIMBER_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, NIGHTTIMBER_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * The Night Timber's recording for the cross-host check: from standing on
+ * the strip with half flaps (left there: a replay carries the sticks, not
+ * the flap switch), a second at idle, the take off at full throttle, a
+ * pull to the vertical, hanging on
+ * the prop with the throttle holding height and the ailerons holding the
+ * torque, then two seconds with them let go, full throttle out of it and
+ * back to level, a second of full rudder: twenty two seconds, the flaps,
+ * the slipstream and the high angle terms in the hashed trace.
+ */
+export function recordNightTimberFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  nighttimberGroundPrelude(sim, { flaps: 1 });
+  const samples = [];
+  let iT = 0.8;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.6 * (bank - b) - 0.06 * p));
+    const nose = (t) => Math.max(-1, Math.min(1, 1.5 * (t - pitch) - 0.12 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...extraTakeoffSticks(s), 1];
+    } else if (ms < 9000) {
+      sticks = [hold(0), nose(0.45), 0, 1];
+    } else if (ms < 16000) {
+      iT += 0.0008 * (0 - vz);
+      iT = Math.max(0.3, Math.min(1, iT));
+      const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
+      sticks = [...hangSticks(s, { rollRate: ms < 14000 ? 0 : null }), ms < 11000 ? 0.9 : thr];
     } else if (ms < 20000) {
       sticks = [hold(0), nose(0.1), 0, 1];
     } else {

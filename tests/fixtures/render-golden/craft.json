@@ -470,6 +470,7 @@
     "leds",
     "livery",
     "propSpin",
+    "setProp",
     "setSurfaces",
     "stator"
    ],

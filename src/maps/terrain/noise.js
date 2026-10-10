@@ -1,8 +1,8 @@
 /*
  * noise.js: value noise for the country the apron invents (apron.js).
  *
- * A copy of the idea in src/maps/alps/noise.js rather than an import of
- * it, so the engine does not reach into another world's directory.
+ * A copy of the idea in src/render/library/noise.js, written when that
+ * was the Alps' own file, rather than an import of it.
  *
  * This file is part of the Paraguayan Drone Combat Simulator.
  *

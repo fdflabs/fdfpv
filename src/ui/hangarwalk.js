@@ -27,22 +27,27 @@
  */
 
 import {
-  ROOMS, LAYOUTS, occupancy, stations, startPose, walk, stationNear,
+  ROOMS, LAYOUTS, tierFor, occupancy, stations, startPose, walk, stationNear,
 } from '../game/hangarroom.js';
+import { levelOf } from '../game/progress.js';
 import { str } from '../strings/index.js';
 import { customisable } from './builds.js';
+import { listClips } from '../replay/store.js';
 import { hubWays } from './ways.js';
 
 /*
  * What each station opens, and its prompt's words. A station whose screen
- * does not exist yet has no action here and gives no prompt (the shop,
- * the trophy wall and the TV until their lanes land); the bench and the
- * shelf need an aircraft that can be customised.
+ * does not exist yet has no action here and gives no prompt; the bench, the shelf and the
+ * shop need an aircraft that can be customised, as the hangar does.
  */
 const STATIONS = {
   stand: { action: () => 'hangar-aircraft', label: 'walk.stand' },
   bench: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.bench' },
   shelf: { action: (ui) => (customisable(ui.settings.airframe) ? 'customise' : null), label: 'walk.shelf' },
+  trophies: { action: (ui) => (customisable(ui.settings.airframe) ? 'hangar-trophies' : null), label: 'walk.trophies' },
+  /* The TV plays My clips (src/replay/store.js), when there are any. */
+  tv: { action: (ui) => (ui.walk.clips > 0 ? 'hangar-tv' : null), label: 'walk.tv' },
+  shop: { action: (ui) => (customisable(ui.settings.airframe) ? 'hangar-shop' : null), label: 'walk.shop' },
   door: { action: (ui) => (ui.walk.tier === 'field' ? warWay(ui) : 'fly'), label: 'walk.door' },
 };
 
@@ -60,6 +65,11 @@ const BACKWARD = new Set(['KeyS', 'ArrowDown']);
 const LEFT = new Set(['KeyA', 'ArrowLeft']);
 const RIGHT = new Set(['KeyD', 'ArrowRight']);
 const USE = new Set(['KeyE', 'Enter', 'Space']);
+const PHOTO = 'KeyP';
+/* Photo mode's zoom: how far a wheel notch moves it, and its range. */
+const ZOOM_STEP = 0.0012;
+const ZOOM_MIN = 0.45;
+const ZOOM_MAX = 2.2;
 const LEAVE = new Set(['Escape', 'Backspace']);
 /* A drag's turn of the camera, radians a pixel, and how fast it swings
  * back behind the pilot once they walk. */
@@ -91,10 +101,12 @@ function renderPrompt(ui) {
 }
 
 export const walkMethods = {
-  /* Into a room, at the door: the main hangar, whose tier is the garage
-   * corner until the progression lane says otherwise (docs/HANGAR-ROOM.md),
-   * or the war's field hangar. Back returns to the hub it came from. */
-  openWalk(tier = 'garage') {
+  /* Into a room, at the door: the main hangar, as big as the pilot's
+   * level has opened (docs/HANGAR-ROOM.md), or the war's field hangar.
+   * Back returns to the hub it came from. */
+  openWalk(which = 'main') {
+    const p = this.progress && this.progress.state;
+    const tier = which === 'field' ? 'field' : tierFor(levelOf(p ? p.xp : 0), Boolean(p && p.unlockAll));
     const room = ROOMS[tier];
     const layout = LAYOUTS[tier];
     this.walk = {
@@ -109,7 +121,13 @@ export const walkMethods = {
       held: new Set(),
       pad: null,
       promptKey: null,
+      clips: 0,
+      /* Photo mode: null, or { yaw, zoom, shoot } while it is on. */
+      photo: null,
     };
+    /* How many clips the TV has to play; read once a visit. */
+    const w = this.walk;
+    listClips().then((rows) => { w.clips = rows.length; w.promptKey = null; }, () => { w.clips = 0; });
     this.show('walk');
     renderPrompt(this);
   },
@@ -121,7 +139,17 @@ export const walkMethods = {
   /* A key press on the walk screen: use, leave; the walking keys are read
    * held, by walkHeld. */
   walkKey(code) {
-    if (USE.has(code)) {
+    if (code === PHOTO) {
+      this.togglePhoto();
+    } else if (this.walk && this.walk.photo) {
+      if (code === 'Space' || code === 'Enter') {
+        this.takePhoto();
+      } else if (code === 'KeyT') {
+        this.takeTurntable();
+      } else if (code === 'Escape' || code === 'Backspace') {
+        this.togglePhoto();
+      }
+    } else if (USE.has(code)) {
       this.useStation();
     } else if (LEAVE.has(code)) {
       this.back();
@@ -143,8 +171,70 @@ export const walkMethods = {
   },
 
   walkDrag(dx) {
-    if (this.walk) {
+    if (this.walk && this.walk.photo) {
+      if (!this.walk.photo.turntable) {
+        this.walk.photo.yaw -= dx * DRAG_TURN;
+      }
+    } else if (this.walk) {
       this.walk.orbit -= dx * DRAG_TURN;
+    }
+  },
+
+  walkWheel(dy) {
+    const p = this.walk && this.walk.photo;
+    if (p && !p.turntable) {
+      p.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, p.zoom * (1 + dy * ZOOM_STEP)));
+    }
+  },
+
+  /* Photo mode on or off: the pilot steps out of the picture, the prompt
+   * and the walk stop, and the command bar says the photo keys. */
+  togglePhoto() {
+    const w = this.walk;
+    /* A turntable recording is seen through to its end. */
+    if (!w || (w.photo && w.photo.turntable)) {
+      return;
+    }
+    w.photo = w.photo ? null : { yaw: w.pose.heading + Math.PI, zoom: 1, shoot: false };
+    this.walkPrompt.hidden = true;
+    w.promptKey = null;
+    this.screens.walk.classList.toggle('is-photo', Boolean(w.photo));
+    this.syncFrame();
+  },
+
+  /* The turntable: main.js turns the camera once round the stand over
+   * TURNTABLE_S while it records the canvas, then downloads the movie. */
+  takeTurntable() {
+    const p = this.walk && this.walk.photo;
+    if (p && !p.turntable) {
+      p.turntable = { want: true };
+      this.onUiSound?.('select');
+    }
+  },
+
+  /* A line in the prompt's place for a moment: a photo kept, or why not. */
+  walkFlash(text) {
+    if (!this.walkPrompt) {
+      return;
+    }
+    this.walkPrompt.hidden = false;
+    this.walkPrompt.dataset.station = 'flash';
+    this.walkPromptLabel.textContent = text;
+    clearTimeout(this.walkFlashTimer);
+    this.walkFlashTimer = setTimeout(() => {
+      if (this.walk) {
+        this.walk.promptKey = null;
+        this.walkPrompt.hidden = true;
+      }
+    }, 1600);
+  },
+
+  /* main.js takes the picture on the next frame it draws, keeps it for the
+   * photo wall and downloads it. */
+  takePhoto() {
+    if (this.walk && this.walk.photo) {
+      this.walk.photo.shoot = true;
+      this.onUiSound?.('select');
     }
   },
 
@@ -172,7 +262,7 @@ export const walkMethods = {
     const overlay = this.carousel.isOpen || this.hangar.isOpen;
     const has = (set) => [...w.held].some((c) => set.has(c));
     const pad = w.pad || {};
-    const input = overlay ? { forward: 0, turn: 0 } : {
+    const input = overlay || w.photo ? { forward: 0, turn: 0 } : {
       forward: (has(FORWARD) || pad.up ? 1 : 0) - (has(BACKWARD) || pad.down ? 1 : 0),
       turn: (has(RIGHT) || pad.right ? 1 : 0) - (has(LEFT) || pad.left ? 1 : 0),
     };
@@ -180,7 +270,9 @@ export const walkMethods = {
     if (w.pose.moving) {
       w.orbit -= w.orbit * Math.min(1, ORBIT_RETURN * dt);
     }
-    renderPrompt(this);
+    if (!w.photo) {
+      renderPrompt(this);
+    }
     return w.pose;
   },
 };

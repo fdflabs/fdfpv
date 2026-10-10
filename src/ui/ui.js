@@ -211,9 +211,9 @@ export { WAYS, formatRunClock, formatTime };
  * draws as a plain action, which promises less, so forgetting one is safe.
  */
 export const SCREEN_ACTIONS = new Set([
-  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
+  'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'planerates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
-  'calibrate', 'friends', 'rooms', 'roomnew',
+  'calibrate', 'friends', 'rooms', 'roomnew', 'controls',
 ]);
 
 /*
@@ -232,9 +232,12 @@ export const SCREEN_TITLES = {
   launch: str('ui.before_you_fly'),
   standings: 'Standings',
   rates: 'Rates',
+  planerates: 'Rates',
   pids: 'PIDs',
+  controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
   paused: 'Paused',
+  quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
@@ -748,6 +751,8 @@ export class Ui {
     this.freestyleRun = null;
     this.runPosted = null;
     this.resultsFastest = null;
+    /* The flight's debrief record (src/game/debrief.js), or null. */
+    this.resultsDebrief = null;
     this.padPrev = { up: false, down: false, left: false, right: false, select: false, back: false };
     /* Seed the pad's edges on the next poll rather than acting on them;
      * every screen change sets it (show). */
@@ -1306,7 +1311,7 @@ export class Ui {
    * in the slots as it always was unless its family wears a build, when
    * it waits beside them. Either can be saved as a new build too.
    */
-  openHangar(card, after = null, build = null) {
+  openHangar(card, after = null, build = null, tab = null) {
     const s = this.settings;
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
@@ -1384,13 +1389,17 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: firstTab,
+      tab: tab ?? firstTab,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
         name: build ? build.name : null,
         suggest: this.buildName(id),
         full: this.myBuilds.length >= MAX_BUILDS,
+      },
+      onSwatches: (lib) => {
+        s.swatches = lib;
+        this.persistSettings();
       },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
@@ -1509,6 +1518,11 @@ export class Ui {
 
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
+    /* In an ops match with several roles held, they step the role flown
+     * (src/main.js PLATFORM HOLDS) and not the aircraft. */
+    if (this.screen === 'flight' && this.cycleHold && this.cycleHold(dir)) {
+      return;
+    }
     if (this.onHotSwap && this.screen === 'flight') {
       this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }

@@ -334,27 +334,33 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
   },  {
-    /* The Extra's three, the Cub's: on its wheels every mode flies as
-     * Manual. Manual is where a 3D aircraft is flown: hanging on the
-     * prop, a harrier and a knife edge are the pilot's hands. */
-    id: 'extra-stab',
+    /* The Extra's three are the real aircraft's: E-flite's receiver flies
+     * AS3X out of the box, a rate damper with no self levelling and no
+     * caps ("When the normal bind process is followed, the SAFE Select
+     * system is disabled, leaving specially tuned AS3X technology in place
+     * to deliver a pure, unrestricted flight experience", the manual p. 4),
+     * which is its default here; Manual is the receiver without the gyro;
+     * SAFE Select is the optional bind with "bank and pitch limitations"
+     * and "automatic self-leveling", which cannot hover by design. On its
+     * wheels every mode flies as Manual. */
+    id: 'extra-as3x',
     airframe: 'extra3d1308',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'extra-acro',
-    airframe: 'extra3d1308',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
+    name: 'AS3X',
+    note: 'E-flite\'s gyro, as the Extra ships. The sticks are the surfaces at the 3D throws, and the gyro damps the bumps and the torque\'s kicks against the rate the plane is turning at; it fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate: hover, harrier and waterfall are yours to fly.',
+    wingStab: 3,
   },
   {
     id: 'extra-manual',
     airframe: 'extra3d1308',
     name: 'Manual',
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
+  },
+  {
+    id: 'extra-stab',
+    airframe: 'extra3d1308',
+    name: 'SAFE Select',
+    note: 'E-flite\'s beginner bind. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It cannot hover or tumble: switch to AS3X for 3D.',
+    wingStab: 1,
   },
   {
     /* The P-51's three, the Timber's: ailerons, elevator and rudder, the

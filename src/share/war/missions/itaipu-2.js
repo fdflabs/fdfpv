@@ -142,6 +142,7 @@ function openTheGates(id, twist, objective, cues) {
     }],
     cues: [
       { at: 1, radio: 'itaipu-2-s3-open' },
+      { at: 2, radio: 'itaipu-2-g-spill' },
       { when: { held: 'spill', f: 0.5 }, radio: 'itaipu-2-s3-half' },
       { when: { objective: 'spill', is: 'done' }, radio: 'itaipu-2-s3-held' },
       { when: { objective: 'spill', is: 'failed' }, radio: 'itaipu-2-s3-failed' },
@@ -160,8 +161,10 @@ export default withWaves({
   title: 'war.mission.itaipu_2',
   map: 'itaipu',
   /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
-   * Operations' briefing shows it (src/ui/briefing.js). */
-  estimatedMinutes: [10, 14],
+   * Operations' briefing shows it (src/ui/briefing.js). From the room:
+   * war:stages' ten good bot games end 12.2 to 14.6 minutes after the go
+   * (2026-10-08), past MISSIONS.md's first guess of 10 to 14. */
+  estimatedMinutes: [12, 15],
   targets,
   output: 14000,
   floorMw: 11200,
@@ -173,6 +176,8 @@ export default withWaves({
   film: 'spillway',
   /* The film a win ends on (films/spillway-outro.js). */
   outro: 'spillway-outro',
+  /* CREST's nudge, as First Light's (docs/campaign/WAR-NUDGE.md). */
+  nudge: true,
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
   adapt: true,
   sets: { working: { from: GATES, n: { 1: 3, 4: 4 } } },
@@ -199,6 +204,7 @@ export default withWaves({
       ],
       objectives: [{ id: 'gates', text: 'war.obj.protect_gates', kind: 'protect' }],
       cues: [
+        { at: 0, radio: 'itaipu-2-g-gates' },
         { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-2-s1-eyes' },
         { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-2-s1-high' },
         { when: { cleared: true }, radio: 'itaipu-2-s1-clear' },
@@ -220,6 +226,7 @@ export default withWaves({
       ],
       objectives: [{ id: 'gates', text: 'war.obj.protect_gates', kind: 'protect' }],
       cues: [
+        { at: 0, radio: 'itaipu-2-g-channel' },
         { when: { born: { group: 'boats' } }, at: 2, radio: 'itaipu-2-s2-wakes' },
         { when: { born: { group: 'fast' } }, radio: 'itaipu-2-s2-fast' },
         { when: { cleared: true }, radio: 'itaipu-2-s2-clear' },
@@ -232,18 +239,21 @@ export default withWaves({
     }, { text: 'war.obj.itaipu_2.spray', fail: { leaked: 1, group: 'twist' } }, [
       { when: { born: { group: 'twist' } }, at: 3, radio: 'itaipu-2-ta-turn' },
       { when: { born: { group: 'twist' } }, at: 7, radio: 'itaipu-2-ta-why' },
+      { when: { born: { group: 'twist' } }, at: 11, radio: 'itaipu-2-g-spray', skip: { down: { group: 'twist' } } },
     ]),
     openTheGates('open-west-arm', {
       at: [15, 30], kind: 'boat', n: 2, per: 1, route: 'west-arm-mid', target: WORKING, spread: 10,
     }, { text: 'war.obj.itaipu_2.west_arm', fail: { leaked: 1, group: 'twist' } }, [
       { when: { born: { group: 'twist' } }, at: 3, radio: 'itaipu-2-tb-turn' },
       { when: { born: { group: 'twist' } }, at: 7, radio: 'itaipu-2-tb-why' },
+      { when: { born: { group: 'twist' } }, at: 11, radio: 'itaipu-2-g-west-arm', skip: { down: { group: 'twist' } } },
     ]),
     openTheGates('open-chute', {
       kind: 'hunter', n: 1, per: 0.5, route: 'chute-hunt',
     }, { text: 'war.obj.itaipu_2.chute' }, [
       { when: { born: { group: 'twist' } }, radio: 'itaipu-2-tc-turn' },
       { when: { born: { group: 'twist' } }, at: 5, radio: 'itaipu-2-tc-why' },
+      { when: { born: { group: 'twist' } }, at: 9, radio: 'itaipu-2-g-chute', skip: { down: { group: 'twist' } } },
     ]),
     {
       id: 'hold-river',
@@ -265,6 +275,7 @@ export default withWaves({
       cues: [
         { when: { born: {} }, radio: 'itaipu-2-s4-all' },
         { when: { born: {} }, at: 4, radio: 'itaipu-2-s4-order' },
+        { when: { born: {} }, at: 8, radio: 'itaipu-2-g-working' },
         { when: { killed: 1 }, radio: 'itaipu-2-s4-hold' },
       ],
       exits: exits({ cleared: true }, 'won', 0, 'waves'),

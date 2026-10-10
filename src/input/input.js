@@ -54,9 +54,7 @@ import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
 import { PadRoster, connectedPads, shortPadName } from './padpick.js';
 import { CalibrationWizard } from './calibrate.js';
 import { GuessEvidence } from './guess.js';
-import {
-  PadMenus, swapButtons, altButton, floatsButton, lookClick, lookStick,
-} from './menus.js';
+import { PadMenus, altButton, floatsButton, lookClick, lookStick, padDirections, startButton, swapButtons } from './menus.js';
 
 export { standardPadMap } from './padmap.js';
 export { CAL_STEPS, SELECT_STEP, calSteps } from './calibrate.js';
@@ -90,6 +88,13 @@ export class InputManager {
     this.keys = new Set();
     /* main.js hooks non-stick keys here as (code, repeat). */
     this.onKey = null;
+    /* main.js sets this in flight: a physical key to the code it stands
+     * for under the pilot's bindings, or null for none (keybinds.js).
+     * Unset, every key is itself. */
+    this.translateKey = null;
+    /* The code each held physical key went down as, so its release lets
+     * go of that same code. */
+    this.downAs = new Map();
     this.stickMode = DEFAULT_STICK_MODE;
     this.keyboard = new KeyboardSticks(this.stickMode);
     this.mouseStick = new MouseStick();
@@ -132,8 +137,11 @@ export class InputManager {
     this.isHeld = (code) => this.held(code);
     this.isKeyDown = (code) => this.keys.has(code);
     window.addEventListener('keydown', (e) => this.keyDown(e));
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('keyup', (e) => this.keyUp(e));
+    window.addEventListener('blur', () => {
+      this.keys.clear();
+      this.downAs.clear();
+    });
     this.roster.seed();
   }
 
@@ -144,8 +152,15 @@ export class InputManager {
    * or a held arrow scrolls the page under the menu cursor.
    */
   keyDown(e) {
-    const { code, repeat } = e;
+    const { repeat } = e;
     const typing = isTyping(e.target);
+    const code = typing ? e.code : this.keyAs(e.code, repeat);
+    if (!typing && SWALLOWED.has(e.code)) {
+      e.preventDefault();
+    }
+    if (code === null) {
+      return;
+    }
     if (!typing && !repeat) {
       this.keys.add(code);
     }
@@ -153,8 +168,24 @@ export class InputManager {
     if (heard && this.onKey) {
       this.onKey(code, typing ? false : repeat);
     }
-    if (!typing && SWALLOWED.has(code)) {
-      e.preventDefault();
+  }
+
+  /* A repeat keeps the code its first press went down as, even if the
+   * translation changed under it (the screen left flight). */
+  keyAs(physical, repeat) {
+    if (repeat && this.downAs.has(physical)) {
+      return this.downAs.get(physical);
+    }
+    const code = this.translateKey ? this.translateKey(physical) : physical;
+    this.downAs.set(physical, code);
+    return code;
+  }
+
+  keyUp(e) {
+    const code = this.downAs.has(e.code) ? this.downAs.get(e.code) : e.code;
+    this.downAs.delete(e.code);
+    if (code !== null) {
+      this.keys.delete(code);
     }
   }
 
@@ -399,12 +430,20 @@ export class InputManager {
     return lookStick(this.firstGamepad());
   }
 
+  padStartButton() {
+    return startButton(this.firstGamepad());
+  }
+
   padFloatsButton() {
     return floatsButton(this.firstGamepad());
   }
 
   padLookClick() {
     return lookClick(this.firstGamepad());
+  }
+
+  padDirections() {
+    return padDirections(this.firstGamepad());
   }
 
   /* ------------------------------------------------ the calibration */

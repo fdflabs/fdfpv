@@ -206,14 +206,26 @@ check: {
    * recorded: held there, both wings deep in their stall, it rolls off
    * slowly (docs/TIGERMOTH-STAGE1.md). */
   for (const [id, t8, duty, hold] of [['T8a', th.t8_stall_power_off, 0, true], ['T8b', th.t8_stall_power_on, th.t8_stall_power_on.duty, true], ['T8c', th.t8_stall_power_off, 0, false]]) {
-    clockMs = fly(sim, { duty: 0, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
+    /* The power is set during the entry, as the FAA's power-on stall is
+     * flown (Airplane Flying Handbook ch. 5: set the power, then raise the
+     * nose): the engine is up to speed before the pull, which since the
+     * prop spins up on its inertia (prop_spool) it was not when the
+     * throttle opened at the pull. */
+    clockMs = fly(sim, { duty, vTarget: t8.entry, seconds: 25, guard: false, speed0: t8.entry, start: [0, 0, 300, 1, 0, 0, 0] }).endMs;
     const z0 = sim.readState().state[3];
     let worstBank = 0, minPitch = 90, maxPitch = -90, worstR = 0, alphaMax = 0, worstP = 0, ailSum = 0;
     let o = { s: sim.readState().state };
+    /* With power the hold has an integral, as U11b's (uglystik-gates.js). */
+    let iBank = 0;
     for (let ms = 0; ms < t8.seconds * 1000; ms += RC_STEP_MS) {
-      const roll = hold ? edgeRoll(o.s) : 0;
+      iBank = duty ? Math.max(-0.5, Math.min(0.5, iBank - 0.2 * fullBank(o.s) * RC_STEP_MS / 1000)) : 0;
+      const roll = hold ? Math.max(-1, Math.min(1, edgeRoll(o.s) + iBank)) : 0;
       ailSum += Math.abs(roll);
-      o = step(sim, [roll, 1, 0, duty]);
+      /* Power on, the rudder against the engine's yaw, as Great Planes'
+       * manual tells the pilot ("always be ready to apply right rudder to
+       * counteract engine torque", p. 25): the yaw rate taken out on the
+       * rudder, no heading held. */
+      o = step(sim, [roll, 1, duty ? Math.max(-1, Math.min(1, 0.6 * o.s[13])) : 0, duty]);
       worstP = Math.max(worstP, Math.abs(o.s[11]) * DEG);
       const { pitch } = attitude(o.s);
       worstBank = Math.max(worstBank, Math.abs(fullBank(o.s) * DEG));

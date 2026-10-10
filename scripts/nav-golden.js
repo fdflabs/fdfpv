@@ -307,7 +307,9 @@ const scenarios = {
     rows[0].fire('focus');
     rows[4].fire('focus');
     rows[4].fire('focus');
-    rows[1].fire('mousemove', { clientX: 3, clientY: 4 });
+    /* A finger's move is no hover; the mouse's is. */
+    rows[3].fire('pointermove', { pointerType: 'touch', clientX: 1, clientY: 2 });
+    rows[1].fire('pointermove', { pointerType: 'mouse', clientX: 3, clientY: 4 });
     for (const r of rows) r.fire('click');
     const control = ui.quadMenu.querySelector('row-control');
     control.fire('click');

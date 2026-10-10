@@ -267,15 +267,25 @@ const hov = wash(W, 0);
  * turning wing sweeps through; steady at sqrt(Q / k_roll). The full
  * aileron in the wash, dp fa S b Clda throwA, against it. */
 const Qprop = torqueArm * W;
-/* The swirl (plant_wing.c, docs/FLIGHTMODEL.md): half of the wash's
- * angular momentum, SWIRL_KEEP, reaches the fin, whose side force rolls
+/* The swirl (plant_wing.c, docs/FLIGHTMODEL.md): SWIRL_KEEP of the
+ * wash's angular momentum reaches the fin, whose side force rolls
  * the airframe against the torque by the fin's Clb at the swirl's sideways
  * speed, Omega (up - dn) / 2 with Q = mdot Omega rw^2 / 2; the wing's root
- * takes the other half straight back against it. What turns the hanging
+ * takes the rest straight back against it. What turns the hanging
  * aircraft is the torque less both. */
-const SWIRL_KEEP = 0.5;
-const swirlXs = SWIRL_KEEP * Qprop * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw);
-const finSwirlRoll = S * b * rho * hov.vi * hov.fv * slipClb * -swirlXs;
+/* SWIRL_KEEP, the plant's: the share for which the swirl's whole roll on
+ * this aircraft at the hover, the root's (1 - K) Q and the fin's, is 0.40
+ * of the prop's torque: Selig, Modeling Propeller Aerodynamics and
+ * Slipstream Effects on Small UAVs in Realtime, AIAA 2010-7938, sec. B,
+ * "for a typical aerobatic RC/UAV configuration capable of hover, the net
+ * right rolling moment is near 40% of the propeller torque". The fin's
+ * roll is linear in K, so K solves it directly; the fuselage's coil, which
+ * Selig counts, is in the root's share here. */
+const swirlFinPerK = (Qp) => S * b * rho * hov.vi * hov.fv * slipClb * -(Qp * (Math.min(hov.rw, hvUp) - Math.min(hov.rw, hvDn)) / (rho * Math.PI * propR * propR * hov.vi * hov.rw * hov.rw));
+const SELIG_SHARE = 0.40;
+const SWIRL_KEEP_DERIVED = (1 - SELIG_SHARE) / (1 - swirlFinPerK(1));
+const SWIRL_KEEP = Number(SWIRL_KEEP_DERIVED.toFixed(2));
+const finSwirlRoll = SWIRL_KEEP * swirlFinPerK(Qprop);
 const Qhover = Qprop - (1 - SWIRL_KEEP) * Qprop - finSwirlRoll;
 const torqueRoll = Math.sqrt(Qhover / rotK[0]);
 const aileronHover = hov.dp * hov.fa * S * b * Clda * throwA;
@@ -488,6 +498,7 @@ const rows = [
   ['E5 roll pb/2V, deg/s at 15 m/s, at 20 m/s', `${f(pb2v, 4)} ${f(rollAt(15) * DEG, 0)} ${f(rollAt(20) * DEG, 0)}`],
   ['E6 hover duty; wash dp, v_i, rw, fh fv fa', `${f(hoverDuty, 4)}; ${f(hov.dp, 1)} ${f(hov.vi, 2)} ${f(hov.rw, 4)} ${f(hov.fh)} ${f(hov.fv)} ${f(hov.fa, 4)}`],
   ['E7 vertical climb speed, full throttle', f(vClimb, 2)],
+  ['SWIRL_KEEP: the swirl\'s roll 0.40 of the torque at the hover (Selig 2010)', `${f(SWIRL_KEEP_DERIVED, 4)}, taken ${SWIRL_KEEP}`],
   ['E8 torque at hover N m, less the swirl\'s root and fin, torque roll deg/s', `${f(Qprop, 4)} ${f(Qhover, 4)} ${f(torqueRoll * DEG, 0)}`],
   ['E9 full aileron in the wash N m, net roll deg/s', `${f(aileronHover, 4)} ${f(aileronRollNet * DEG, 0)}`],
   ['E10 full elevator hanging, rad/s2; rudder', `${f(pitchAccHover, 2)} ${f(yawAccHover, 2)}`],

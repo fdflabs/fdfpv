@@ -16,6 +16,19 @@
  *   knife    from level at 15 m/s rolled right to 90 deg, the height held
  *            on the rudder through the sideslip, the speed on the throttle:
  *            the mean of the last 5 of 15 s inside e12_knife_edge.
+ *   human-as3x, human-manual
+ *            pulled to the vertical as hang is, then hovered 10 s by a
+ *            pilot with a person's limits, scripts/hover-probe.js's (one of
+ *            its grid that holds in both modes): what it sees is 0.2 s of
+ *            the plant's time old, it moves the sticks every 0.1 s in
+ *            fiftieths of their travel, and it flies by the nose off
+ *            vertical, the roll rate, the drift and the climb. In the
+ *            Extra's default tune (AS3X) and in Manual, given 3 s to catch
+ *            the hand over: the nose within 20 deg of vertical and the
+ *            height within 10 m for the 10 s after, judged in AS3X and
+ *            printed for Manual; and how far the chase camera turns round
+ *            the hovering plane in all, which must not wander (under 120
+ *            deg) while it hangs.
  *
  * The pilots are extra-gates.js E6, E8, E11 and E12's, closed once a
  * frame on __craftState() rather than once a plant step, so their gains
@@ -51,163 +64,14 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import { PILOT } from './lib/extrapilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const th = JSON.parse(await readFile(join(root, 'tests/extra-thresholds.json'), 'utf8'));
-const AF = 'extra1308';
-const MODES = (process.argv[2] ?? 'hang,harrier,knife').split(',');
+const AF = 'extra3d1308';
+const MODES = (process.argv[2] ?? 'hang,harrier,knife,human-as3x,human-manual').split(',');
 const MAP = process.argv[3] ?? 'swiss2';
 
-/*
- * The pilot, in the page, once a frame. Three.js space: y is up. The body
- * axes are fwd (plant x), up (plant z) and left = up x fwd (plant y); the
- * rates are the plant's body rates, p right wing down, q nose down and r
- * nose left positive. Nose up stick is a negative q, right rudder a
- * negative r, right aileron a positive p.
- */
-const PILOT = (mode) => `
-window.__T = { log: [], done: false };
-(() => {
-  const T = window.__T;
-  const clamp = (v, lo = -1, hi = 1) => Math.max(lo, Math.min(hi, v));
-  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
-  const cross = (a, b) => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
-  const axes = (c) => ({ fwd: c.fwd, up: c.up, left: cross(c.up, c.fwd) });
-  const pitchOf = (c) => Math.asin(clamp(c.fwd.y));
-  const bankOf = (c) => { const a = axes(c); return Math.atan2(a.left.y, a.up.y); };
-  const psiOf = (c) => Math.atan2(-c.fwd.z, c.fwd.x);
-  const wrap = (x) => { while (x > Math.PI) x -= 2 * Math.PI; while (x < -Math.PI) x += 2 * Math.PI; return x; };
-  const alphaOf = (c) => { const a = axes(c); return Math.atan2(-dot(c.vel, a.up), dot(c.vel, a.fwd)); };
-  const betaOf = (c) => { const a = axes(c); const v = Math.max(0.1, Math.hypot(c.vel.x, c.vel.y, c.vel.z)); return -dot(c.vel, a.left) / v; };
-  const c0 = window.__craftState();
-  const psi0 = psiOf(c0), y0 = c0.worldY;
-  let phase = 'roll', tPhase = c0.simS, prevS = c0.simS, airS = 0;
-  let iT = 0.6, iP = 0, iB = 0, iA = 0, iH = 0, hT = 0, psiT = 0;
-  let sum = {};
-  const acc = (k, v) => { sum[k] = (sum[k] || 0) + v; };
-  const enter = (p, now) => { phase = p; tPhase = now; sum = {}; };
-  /* Level at a height and a speed: the pitch from the height, the
-   * throttle from the speed, the wings level, the heading held. */
-  const level = (c, dt, vT) => {
-    const pitchT = clamp(0.03 * (hT - c.worldY) - 0.05 * c.vel.y, -0.3, 0.3);
-    const pitch = clamp(1.5 * (pitchT - pitchOf(c)) + 0.15 * c.rates.q);
-    const roll = clamp(-0.6 * bankOf(c) - 0.06 * c.rates.p);
-    const yaw = clamp(1.0 * wrap(psiOf(c) - psiT) + 0.2 * c.rates.r);
-    iT = clamp(iT + 0.05 * (vT - c.speed) * dt, 0, 1);
-    return [roll, pitch, yaw, clamp(iT + 0.1 * (vT - c.speed), 0, 1)];
-  };
-  /* The throttle that holds the height, extra-gates.js heightHold per second. */
-  const hold = (c, dt) => {
-    const vz = clamp(0.5 * (hT - c.worldY), -2, 2) - c.vel.y;
-    iT = clamp(iT + 0.2 * vz * dt, 0, 1);
-    return clamp(iT + 0.08 * vz, 0, 1);
-  };
-  /* extra-gates.js hangSticks: the nose onto world up on the elevator and
-   * the rudder, the error taken into the body's axes. Its gains, 10 and
-   * 0.8, close at the plant's 250 Hz; once a frame, 17 to 50 ms of the
-   * plant's time, they ring, so the page's are lower, with an integral
-   * as a pilot's hands find the stick that holds it. The integral is kept
-   * in the world's axes and read into the body's each frame, so it turns
-   * with the airframe through a torque roll rather than trimming the
-   * elevator for where the rudder was a quarter turn ago. */
-  const KP = 5, KR = 0.3, KI = 1.5;
-  const iW = { x: 0, y: 0, z: 0 };
-  const hang = (c, rollStick, rollRate, dt) => {
-    const a = axes(c);
-    const cw = cross(c.fwd, { x: 0, y: 1, z: 0 });
-    const e1 = dot(cw, a.left), e2 = dot(cw, a.up);
-    for (const k of ['x', 'y', 'z']) iW[k] = clamp(iW[k] - KI * cw[k] * dt, -0.8, 0.8);
-    const pitch = clamp(-KR * (KP * e1 - c.rates.q) + dot(iW, a.left));
-    const yaw = clamp(-KR * (KP * e2 - c.rates.r) + dot(iW, a.up));
-    const roll = rollRate == null ? rollStick : clamp(0.5 * (rollRate - c.rates.p));
-    return [roll, pitch, yaw];
-  };
-  const tick = () => {
-    const c = window.__craftState();
-    if (!c || c.mode !== 'flight' || !c.fwd || !c.vel || !c.rates) { requestAnimationFrame(tick); return; }
-    const now = c.simS, dt = Math.max(1e-3, now - prevS); prevS = now;
-    const t = now - tPhase;
-    let s = [0, 0, 0, 1];
-    if (phase === 'roll') {
-      /* extra-gates.js extraTakeoffSticks: the tail up and off at 10 m/s. */
-      const pitchT = (c.speed < 5 ? 6 : (c.speed < 10 ? 2 : 8)) * Math.PI / 180;
-      s = [clamp(-0.6 * bankOf(c) - 0.06 * c.rates.p), clamp(1.5 * (pitchT - pitchOf(c)) + 0.12 * c.rates.q), clamp(1.5 * wrap(psiOf(c) - psi0) + 0.2 * c.rates.r), 1];
-      airS = c.groundClearance < 0.5 ? 0 : airS + dt;
-      if (airS > 1) { T.lift = { speed: +c.speed.toFixed(2) }; hT = y0 + 80; psiT = psi0; iT = 0.8; enter('climb', now); }
-      if (t > 30) phase = 'end';
-    } else if (phase === 'climb') {
-      s = level(c, dt, 16);
-      if (Math.abs(c.worldY - hT) < 3 && t > 8) enter('${mode}' === 'hang' ? 'pull' : 'settle', now);
-      if (t > 60) phase = 'end';
-    } else if (phase === 'settle') {
-      const vT = '${mode}' === 'harrier' ? 12 : ${th.e12_knife_edge.speed};
-      s = level(c, dt, vT);
-      if (t > 8) { iT = '${mode}' === 'harrier' ? 0.55 : iT; iP = 0; iB = 0; iA = 0; iH = 0; hT = c.worldY; psiT = psiOf(c); enter('${mode}', now); }
-    } else if (phase === 'pull') {
-      /* Up to the vertical at full throttle, then hanging. */
-      s = [...hang(c, 0, 0, dt), 1];
-      if (pitchOf(c) > 1.3) { hT = c.worldY; iT = 0.62; enter('hover', now); }
-      if (t > 10) phase = 'end';
-    } else if (phase === 'hover') {
-      const thr = hold(c, dt);
-      s = [...hang(c, 0, 0, dt), thr];
-      if (t > 8) { acc('thr', thr); acc('n', 1); T.yMin = Math.min(T.yMin ?? 1e9, c.worldY); T.yMax = Math.max(T.yMax ?? -1e9, c.worldY); }
-      if (t > 12) { T.hover = { thr: sum.thr / sum.n, drift: T.yMax - T.yMin, nose: pitchOf(c) * 180 / Math.PI }; enter('torque', now); }
-    } else if (phase === 'torque') {
-      s = [...hang(c, 0, null, dt), hold(c, dt)];
-      if (t > 3) { acc('p', c.rates.p); acc('n', 1); }
-      if (t > 6) { T.torque = { p: sum.p / sum.n * 180 / Math.PI, nose: pitchOf(c) * 180 / Math.PI }; phase = 'end'; }
-    } else if (phase === 'harrier') {
-      const target = ${th.e11_harrier.alphaDeg} * Math.PI / 180;
-      const alpha = alphaOf(c), bank = bankOf(c);
-      const at = Math.min(target, 0.1 + target * t / 5);
-      iP = clamp(iP + 1.5 * (at - alpha) * dt);
-      iB = clamp(iB - 1.0 * bank * dt, -0.5, 0.5);
-      const pitch = clamp(1.5 * (at - alpha) + 0.15 * c.rates.q + iP);
-      const thr = hold(c, dt);
-      s = [clamp(-0.6 * bank - 0.06 * c.rates.p + iB), pitch, clamp(1.0 * wrap(psiOf(c) - psiT) + 0.2 * c.rates.r), thr];
-      if (t > 15) {
-        acc('v', c.speed); acc('thr', thr); acc('e', pitch); acc('a', alpha); acc('n', 1);
-        T.bank = Math.max(T.bank ?? 0, Math.abs(bank) * 180 / Math.PI);
-        T.yMin = Math.min(T.yMin ?? 1e9, c.worldY); T.yMax = Math.max(T.yMax ?? -1e9, c.worldY);
-      }
-      if (t > 20) { T.harrier = { v: sum.v / sum.n, thr: sum.thr / sum.n, e: sum.e / sum.n, alpha: sum.a / sum.n * 180 / Math.PI, bank: T.bank, drift: T.yMax - T.yMin }; phase = 'end'; }
-    } else if (phase === 'knife') {
-      const vT = ${th.e12_knife_edge.speed};
-      const bank = bankOf(c), bankT = Math.min(Math.PI / 2, t * 3);
-      iA = clamp(iA - 1.0 * (bank - bankT) * dt, -0.5, 0.5);
-      const roll = clamp(-0.8 * (bank - bankT) - 0.05 * c.rates.p + iA);
-      const vz = clamp(0.3 * (hT - c.worldY), -2, 2) - c.vel.y;
-      iH = clamp(iH + 0.2 * vz * dt, -0.3, 0.9);
-      const betaT = 0.3 + 0.2 * vz + iH;
-      const beta = betaOf(c);
-      iB = clamp(iB + 3 * (betaT - beta) * dt);
-      const yaw = t < 0.3 ? 0 : clamp(-3 * (betaT - beta) - iB + 0.3 * c.rates.r);
-      const pitch = clamp(0.8 * wrap(psiOf(c) - psiT) + 0.15 * c.rates.q);
-      iT = clamp(iT + 0.125 * (vT - c.speed) * dt, 0, 1);
-      const thr = clamp(iT + 0.1 * (vT - c.speed), 0, 1);
-      s = [roll, pitch, yaw, thr];
-      if (t > 10) {
-        acc('b', beta); acc('thr', thr); acc('r', yaw); acc('n', 1);
-        T.yMin = Math.min(T.yMin ?? 1e9, c.worldY); T.yMax = Math.max(T.yMax ?? -1e9, c.worldY);
-        T.bankOff = Math.max(T.bankOff ?? 0, Math.abs(bank * 180 / Math.PI - 90));
-      }
-      if (t > 15) { T.knife = { beta: sum.b / sum.n * 180 / Math.PI, thr: sum.thr / sum.n, r: sum.r / sum.n, bankOff: T.bankOff, drift: T.yMax - T.yMin }; phase = 'end'; }
-    }
-    if (c.crashed) phase = 'end';
-    if (phase === 'end') {
-      T.done = true;
-      T.res = { lift: T.lift, crashed: c.crashed, hover: T.hover, torque: T.torque, harrier: T.harrier, knife: T.knife, at: T.at };
-      window.__stick(0, 0, 0, 0);
-      return;
-    }
-    T.at = phase;
-    if (now - (T.lastLog ?? -1) > 0.5) { T.lastLog = now; T.log.push([phase, +t.toFixed(2), +dt.toFixed(4), +(c.worldY - y0).toFixed(1), +c.vel.y.toFixed(2), +c.speed.toFixed(1), +(pitchOf(c) * 57.3).toFixed(0), +(c.rates.p * 57.3).toFixed(0), ...s.map((x) => +x.toFixed(2))]); }
-    window.__stick(...s);
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-})();`;
 
 let failed = 0;
 const say = (ok, what) => {
@@ -225,14 +89,17 @@ try {
     await page.evaluate(`window.__ui.seatMap('${MAP}'); true`);
     await page.until(`window.__ui.settings.map === '${MAP}' && window.__map && window.__map().ready`, 400000);
   }
-  const seated = await page.evaluate(`(() => { const ui = window.__ui; ui.show('quad'); const i = ui.items().findIndex((it) => it.options && it.options.some((o) => o.value === '${AF}')); ui.cursor = i; ui.pick('${AF}'); ui.settings.tune = 'extra-manual'; ui.persistSettings(); ui.show('title'); return ui.settings.airframe + ' ' + ui.settings.tune; })()`);
+  const seated = await page.evaluate(`(() => { const ui = window.__ui; ui.show('quad'); const i = ui.items().findIndex((it) => it.options && it.options.some((o) => o.value === '${AF}')); ui.cursor = i; ui.pick('${AF}'); window.__pickedTune = ui.settings.tune; ui.settings.tune = 'extra-manual'; ui.persistSettings(); ui.show('title'); return ui.settings.airframe + ' ' + ui.settings.tune; })()`);
   console.log(`extra owner test on ${MAP}: ${seated}`);
+  const picked = await page.evaluate('window.__pickedTune');
+  say(picked === 'extra-as3x', `picking the Extra seats the tune it ships in, AS3X: ${picked}`);
   for (const mode of MODES) {
-    await page.evaluate("window.__ui.settings.wingView = 'chase'; window.__ui.onAction('fly', window.__ui.settings); true");
+    const tune = mode === 'human-as3x' ? 'extra-as3x' : 'extra-manual';
+    await page.evaluate(`window.__ui.settings.tune = '${tune}'; window.__ui.persistSettings(); window.__ui.settings.wingView = 'chase'; window.__ui.onAction('fly', window.__ui.settings); true`);
     await page.until("window.__craftState && window.__craftState().mode === 'flight'", 180000);
     await page.sleep(2000);
     const st = await page.evaluate('({ tune: window.__craftState().tune, stab: window.__craftState().wingStab })');
-    await page.evaluate(PILOT(mode));
+    await page.evaluate(PILOT(mode, th));
     const t0 = Date.now();
     while (Date.now() - t0 < 900000 && !(await page.evaluate('window.__T.done'))) {
       await page.sleep(1000);
@@ -249,6 +116,21 @@ try {
       const q = r.torque;
       say(Boolean(q) && !r.crashed && q.p < 0 && -q.p >= t8.min && -q.p <= t8.max,
         `torque roll, the ailerons let go: ${q ? `${f(-q.p, 0)} deg/s ${q.p < 0 ? 'left' : 'RIGHT'}, nose ${f(q.nose, 1)} deg` : 'never reached'} (${t8.min} to ${t8.max} left)`);
+    } else if (mode.startsWith('human')) {
+      /* Gated in the tune the Extra ships in. Manual is harder for a
+       * person (hover-probe.js: 11 of its 648 pilots hold Manual, 82
+       * AS3X) and this pilot is one of the 11 only from rest, so Manual's
+       * row is printed, not judged. */
+      const h = r.human;
+      const what = h ? `${st.tune}: a person's hover held ${f(h.held, 1)} s of 10, nose within ${f(h.worst, 0)} deg of vertical, throttle ${f(h.thr)}` : `${st.tune}: never hovered, stopped in ${r.at}`;
+      if (mode === 'human-as3x') {
+        say(Boolean(h) && !r.crashed && h.held >= 10, what);
+        /* The travel led camera this replaced turned 342 deg round the
+         * same hover, back and forth after the drift. */
+        say(Boolean(h) && h.path < 120, h ? `the chase camera turned ${f(h.path, 0)} deg in all round the hovering plane (under 120)` : 'no camera reading');
+      } else {
+        console.log(`  info  ${what}`);
+      }
     } else if (mode === 'harrier') {
       const t11 = th.e11_harrier;
       const h = r.harrier;

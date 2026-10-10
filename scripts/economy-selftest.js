@@ -20,8 +20,9 @@
  */
 
 import {
-  CHALLENGE_TOKENS, EVENT_TIERS, FIRST_TOKENS, ITEMS, earnedFrom, eventGrants, grantCeiling, grantsFrom, itemById,
+  CHALLENGE_TOKENS, EVENT_TIERS, FIRST_TOKENS, ITEMS, KIT_PRICE, earnedFrom, kitItem, eventGrants, grantCeiling, grantsFrom, itemById,
 } from '../src/game/economy.js';
+import { KITS, slotsFor } from '../configs/kits.js';
 import { CHALLENGES, everyFirst, unlockables } from '../src/game/progress.js';
 import {
   DECAL_KINDS, FINISHES, SHOP_DECALS, SHOP_FINISHES, newDecal,
@@ -76,16 +77,28 @@ const rich = JSON.parse(JSON.stringify(everything));
 rich.data.campaign.earned = 1e6;
 check('a million war credits pay no token', sum(grantsFrom(rich)) === sum(all));
 check('no shop item is a war upgrade', !ITEMS.some((it) => UPGRADES.some((u) => it.id.endsWith(u.id))));
-check('every item is a finish or a decal: nothing changes flight', ITEMS.every((it) => ['finish', 'decal'].includes(it.kind) && it.id === `${it.kind}:${it.paint}`));
+const PAINTED = ITEMS.filter((it) => it.kind !== 'kit');
+check('every item is a finish, a decal or a visual kit option: nothing changes flight', PAINTED.every((it) => ['finish', 'decal'].includes(it.kind) && it.id === `${it.kind}:${it.paint}`)
+  && ITEMS.filter((it) => it.kind === 'kit').every((it) => slotsFor(it.family).some((sl) => sl.id === it.slot && sl.options.includes(it.option) && it.option !== 'stock')));
+check('every kit family sells at most two and earns one (lead decision 2026-10-08); one with no kit yet has none', Object.keys(KITS).every((f) => {
+  const mine = ITEMS.filter((it) => it.kind === 'kit' && it.family === f);
+  if (!slotsFor(f).length) {
+    return mine.length === 0;
+  }
+  return mine.filter((it) => it.price).length <= 2 && mine.filter((it) => it.earn).length === 1 && mine.find((it) => it.earn).earn === `hour:${f}`;
+}));
+check('a kit option is earned by an hour on that aircraft and not before', earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3600 } } } } } }).join() === 'kit:sky1800:wingtips:winglet'
+  && earnedFrom({ data: { flightTime: { device01: { first: '2026-10-01', by: { sky1800: { free: 3599 } } } } } }).length === 0);
+check('kitItem finds a sold option and nothing for a free one', kitItem('7inch', 'arms', 'tapered').price === KIT_PRICE && kitItem('7inch', 'arms', 'blade') === null);
 
 console.log('the shop');
 check('every item is sold or earned, never both', ITEMS.every((it) => Number.isInteger(it.price) !== Boolean(it.earn)));
 check('flying everything once buys the whole shop', ITEMS.filter((it) => it.price).reduce((n, it) => n + it.price, 0) <= grantCeiling());
-check('the gold finish is earned with all seven challenges, the ribbon with three stars', earnedFrom(everything).sort().join() === 'decal:ribbon,finish:gold'
+check('the gold finish is earned with all seven challenges, the ribbon with three stars', earnedFrom(everything).filter((id) => !id.startsWith('kit:')).sort().join() === 'decal:ribbon,finish:gold'
   && earnedFrom({ data: { campaign: { missions: { 'itaipu-1': { stars: 2, won: true } } } } }).length === 0);
 check('itemById knows each and nothing else', ITEMS.every((it) => itemById(it.id) === it) && itemById('finish:chrome') === null);
 
-check('every item\'s paint exists, and the shop lists are exactly the items', ITEMS.every((it) => (it.kind === 'finish' ? FINISHES.includes(it.paint) : Boolean(DECAL_KINDS[it.paint])))
+check('every item\'s paint exists, and the shop lists are exactly the items', PAINTED.every((it) => (it.kind === 'finish' ? FINISHES.includes(it.paint) : Boolean(DECAL_KINDS[it.paint])))
   && ITEMS.filter((it) => it.kind === 'finish').map((it) => it.paint).sort().join() === [...SHOP_FINISHES].sort().join()
   && ITEMS.filter((it) => it.kind === 'decal').map((it) => it.paint).sort().join() === [...SHOP_DECALS].sort().join());
 check('a shop decal is a valid decal', SHOP_DECALS.every((k) => newDecal(k, [0, 0, 0], [0, 1, 0]).k === k));

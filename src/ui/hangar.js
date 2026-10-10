@@ -51,7 +51,8 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import {
-  coloursFor, liveryKey, lookFor, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
+  coloursFor, liveryKey, lookFor, normaliseEntry, normaliseSwatches, paletteColour, paletteFor, regionsFor, schemesFor,
+  toggleSwatch,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
 import { flightTimeText, sizeText, weightText } from './carousel.js';
@@ -405,7 +406,12 @@ export class Hangar {
     this.undoBtn.dataset.key = 'undo';
     this.undoBtn.disabled = true;
     this.undoBtn.addEventListener('click', () => this.undo());
+    this.redoBtn = button('hangar-reset hangar-undo', str('hangar.redo'));
+    this.redoBtn.dataset.key = 'redo';
+    this.redoBtn.disabled = true;
+    this.redoBtn.addEventListener('click', () => this.redo());
     this.undoStack = [];
+    this.redoStack = [];
     this.paintNow = '{}';
     this.backBtn.addEventListener('click', () => this.cancel());
     this.saveBtn.addEventListener('click', () => this.save());
@@ -418,7 +424,7 @@ export class Hangar {
     const right = el('div', 'hangar-buttons-end');
     right.append(this.mineBtn, this.backBtn, this.saveBtn);
     const left = el('div', 'hangar-buttons-left');
-    left.append(this.resetBtn, this.undoBtn);
+    left.append(this.resetBtn, this.undoBtn, this.redoBtn);
     buttons.append(left, right);
     this.buttonsEl = buttons;
     this.mineForm = el('div', 'hangar-mine-form');
@@ -561,7 +567,7 @@ export class Hangar {
    * `suggest` the name a new build is offered, `full` when there is no
    * room for one; a save as a new build hands onSave `asNew: { name }`.
    */
-  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onSwatches = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.closeMine(false);
     this.mine = mine;
@@ -590,8 +596,10 @@ export class Hangar {
     this.paintClick = false;
     this.brush = null;
     this.undoStack = [];
+    this.redoStack = [];
     this.paintNow = JSON.stringify(this.entry);
     this.undoBtn.disabled = true;
+    this.redoBtn.disabled = true;
     this.stockView = false;
     this.stockBtn.classList.remove('on');
     this.stockBtn.setAttribute('aria-pressed', 'false');
@@ -602,6 +610,10 @@ export class Hangar {
     this.counts = {};
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
+    /* The pilot's own colours, every plane's, written at once like the
+     * saved liveries, since they are a library and not this plane's paint. */
+    this.swatchLib = normaliseSwatches(settings.swatches);
+    this.onSwatches = onSwatches;
     this.revealSeq += 1;
     this.focus = tabFocus(this.tab, this.quad());
     this.isOpen = true;
@@ -960,6 +972,9 @@ export class Hangar {
     }
     this.paintNow = now;
     this.undoBtn.disabled = false;
+    /* A new change starts a new line: what was undone cannot be redone. */
+    this.redoStack = [];
+    this.redoBtn.disabled = true;
   }
 
   /* The paint back as it was before the last change. Power, parts and
@@ -969,13 +984,62 @@ export class Hangar {
     if (prev === undefined) {
       return;
     }
-    this.entry = JSON.parse(prev);
-    this.paintNow = prev;
+    this.redoStack.push(this.paintNow);
+    this.showPaint(prev, 'undo');
+  }
+
+  /* The change Undo last took back, made again. */
+  redo() {
+    const next = this.redoStack.pop();
+    if (next === undefined) {
+      return;
+    }
+    this.undoStack.push(this.paintNow);
+    this.showPaint(next, 'redo');
+  }
+
+  /* Undo's and Redo's step: the paint put on as recorded, not recorded
+   * again. */
+  showPaint(json, key) {
+    this.entry = JSON.parse(json);
+    this.paintNow = json;
     this.undoBtn.disabled = this.undoStack.length === 0;
+    this.redoBtn.disabled = this.redoStack.length === 0;
     this.shop.stopPlacing();
     this.shop.sel = -1;
     this.pulseSeq += 1;
-    this.changed('undo', 'back');
+    this.changed(key, 'back');
+  }
+
+  /* THE PILOT'S OWN COLOURS: the library's swatches, tried on and
+   * picked like the palette's, and Keep (or Forget) for the colour on show. */
+  swatchRow(region, hex, side) {
+    const row = el('div', 'hangar-palette hangar-mine-colours');
+    this.swatchLib.list.forEach((c, i) => {
+      const b = button(`hangar-swatch${c === hex ? ' on' : ''}`);
+      b.dataset.key = `mine-colour-${c}`;
+      b.style.setProperty('--swatch', c);
+      b.style.setProperty('--i', String(i));
+      b.title = c;
+      b.setAttribute('aria-label', c);
+      this.trial(b, { region: region.id, hex: c, side }, region.id);
+      b.addEventListener('click', () => this.pickColour(c));
+      row.append(b);
+    });
+    const kept = this.swatchLib.list.includes(hex);
+    const keep = button('hangar-side-btn hangar-keep-colour', str(kept ? 'hangar.forget_colour' : 'hangar.keep_colour'));
+    keep.dataset.key = 'keep-colour';
+    keep.dataset.focus = region.id;
+    keep.addEventListener('click', () => {
+      this.swatchLib = toggleSwatch(this.swatchLib, hex);
+      if (this.onSwatches) {
+        this.onSwatches(this.swatchLib);
+      }
+      this.changed('keep-colour');
+    });
+    const box = el('div', 'hangar-mine-box');
+    box.append(el('h3', 'hangar-h', str('hangar.my_colours')), row, keep);
+    return box;
   }
 
   /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
@@ -1520,6 +1584,7 @@ export class Hangar {
       });
       pal.append(custom);
       box.append(pal);
+      box.append(this.swatchRow(region, hex, side));
       if (region.film) {
         box.append(el('p', 'hangar-source', str('hangar.film_note')));
       }
@@ -1711,6 +1776,10 @@ export class Hangar {
     }
     if (code === 'KeyZ' && !this.naming) {
       this.undo();
+      return true;
+    }
+    if (code === 'KeyY' && !this.naming) {
+      this.redo();
       return true;
     }
     const preset = VIEW_PRESETS[['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(code)];

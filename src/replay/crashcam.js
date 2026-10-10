@@ -2362,6 +2362,11 @@ export function createCrashCam(host) {
     warHeard,
     stats,
     open: () => open(),
+    /* The ring's [first, n, t0, t1]: whether there is a clip worth
+     * opening, for a row that offers one (src/game/debrief.js). */
+    span: () => rec.span(),
+    /* A saved clip from My clips, by id (the hangar's TV). */
+    playSaved: (id) => playSaved(id),
     /* Back to the flight, as the replay's own way out does: a room that
      * starts a game takes a pilot out of the crash cam (src/main.js). */
     close: () => close(),

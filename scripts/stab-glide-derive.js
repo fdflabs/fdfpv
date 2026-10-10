@@ -46,6 +46,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wingLift } from './lib/liftcurve.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -139,8 +140,12 @@ function coeffs(fw, alpha) {
   const clLin = fw.cl_alpha * alpha;
   const clFlat = 2 * Math.sin(alpha) * Math.cos(alpha);
   const cd0 = fw.cd0 + fw.slat_cd0;
+  /* The lift is the plant's curve, CL max at its top (scripts/lib/liftcurve.js);
+   * the glides and cruises solved here are short of the stall, where the
+   * stalled section's own terms are not reached. */
+  const lc = wingLift({ cla: fw.cl_alpha, clmax, blend: fw.stall_blend, top: fw.stall_top, k: fw.stall_k }, alpha);
   return {
-    CL: (1 - sigma) * clLin + sigma * clFlat,
+    CL: lc.CL,
     CD: (1 - sigma) * (cd0 + fw.k_induced * clLin * clLin) + sigma * (cd0 + 2 * Math.sin(alpha) ** 2),
     Cm: fw.cm_0 + fw.cm_alpha * alpha - sigma * (fw.stall_arm_ac * clLin + fw.stall_arm_cp * clFlat),
     aStall,

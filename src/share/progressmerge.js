@@ -41,7 +41,8 @@
  *              that syncs a month late would bring the build back.
  *              combat is a combat aircraft's stock loadout by airframe id;
  *              builds is My Hangar by build id.
- *   whole      the section as one value, the newer stamp wins.
+ *   whole      the section as one value, the newer stamp wins: the tune,
+ *              the rates, and the pilot's swatch library ({ list }).
  *   flag       a yes the pilot gave, true once either side is: the
  *              replay notice for voice chat (voiceReplayAck,
  *              src/ui/voiceui.js), read and accepted on one computer,
@@ -99,6 +100,7 @@ import {
 export const SYNCED_SECTIONS = {
   progress: 'progress',
   liverySaves: 'union',
+  swatches: 'whole',
   livery: 'keyed',
   parts: 'keyed',
   power: 'keyed',
@@ -108,6 +110,7 @@ export const SYNCED_SECTIONS = {
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
+  keybinds: 'whole',
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
