@@ -14,6 +14,14 @@ on:
   # in deploy/github/ruleset-main.json.
   merge_group:
 
+# A new push to a pull request cancels that PR's older run: with a dozen
+# lanes pushing, superseded runs held the org's 20 concurrent jobs and
+# queued fresh ones for over an hour (2026-10-09). Main is never
+# cancelled, so every main commit keeps its own result for the merge gate.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   node:
     runs-on: ubuntu-latest
@@ -76,6 +84,13 @@ jobs:
       - run: npm run panels:golden
       - run: npm run rooms:selftest
       - run: npm run bots:selftest
+      # The valley's shared world data against the page's own terrain
+      # modules, which import three: the page loads three from its CDN
+      # import map (index.html), so the same version is unpacked here.
+      - run: |
+          npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
+          npm run world:layer -- --three="$RUNNER_TEMP/package"
       - run: npm run jam:selftest
       # Voice chat's signalling relay and TURN credentials; the audio itself
       # is npm run voicechat:twopage, local, two browsers.
@@ -195,6 +210,8 @@ jobs:
       # The in-browser flight recorder and its blackbox CSV
       # (src/share/flightlog.js), against a pinned transcript.
       - run: npm run flightlog:selftest
+      # The control recorder's rows and thumb numbers (src/share/controlrec.js).
+      - run: npm run controlrec:selftest
       # The ghost and live frame wire formats (src/share/ghostdata.js), bit
       # for bit against a pinned transcript.
       - run: npm run ghostdata:selftest
