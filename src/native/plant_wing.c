@@ -300,12 +300,12 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
 /* AS3X's share of its gain at a stick, Spektrum's priority 160. */
 /* Gone at 40 percent stick: Spektrum's priority 160, "the gain goes to 0
  * at 40% stick input" (the AS3000 manual, p. 10). */
-#define AS3X_ZERO 0.4
+#define AS3X_ZERO 0.4 /* docs/FLIGHTMODEL.md, the AS3000 manual p. 10 */
 /* The receiver writes the servos once a frame, FixedWingParams.as3x_frame.
  * Spektrum's frames are 22, 11 and 5.5 ms, "22ms is the default setting",
  * "Only use 11ms and 5.5 ms with digital servos" (AS3000): a table that
  * gives none is on the default. */
-#define AS3X_FRAME_DEFAULT 0.022
+#define AS3X_FRAME_DEFAULT 0.022 /* docs/FLIGHTMODEL.md, the AS3000 manual */
 static double as3x_priority(double stick) {
   const double g = 1.0 - sim_fabs(stick) / AS3X_ZERO;
   return g > 0.0 ? g : 0.0;
@@ -4384,11 +4384,11 @@ const FixedWingParams FW_EXTRA3D1308 = {
   /* E-flite publishes no speed for the Extra's 23 g digital servo
    * (EFL11598); Hitec's D89MW, a 25 g digital servo of its class, is
    * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
-  .servo_rate = 9.52,
-  .as3x_frame = 0.011,  /* the servos are digital */
-  .as3x_k = { 0.0508, 0.2369, 0.3611 },
-  .as3x_kh = { 0.9068, 4.2287, 6.4456 },
-  .as3x_rate = { 7.171, -4.445, -5.207 },
+  .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
+  .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
+  .as3x_k = { 0.0508, 0.2369, 0.3611 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.9068, 4.2287, 6.4456 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.171, -4.445, -5.207 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -4506,8 +4506,8 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
   .as3x_k = { 0.0902, 0.233, 0.6616 }, /* npm run as3x:derive */
-  .as3x_kh = { 0.805, 2.0795, 5.9048 },
-  .as3x_rate = { 7.363, -6.344, -2.546 },
+  .as3x_kh = { 0.805, 2.0795, 5.9048 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.363, -6.344, -2.546 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's
