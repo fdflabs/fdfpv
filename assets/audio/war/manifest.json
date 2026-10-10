@@ -4320,6 +4320,162 @@
     }
    }
   },
+  "film-itaipu-1-o2.en": {
+   "text": "Whatever comes back, I rearm. Whatever doesn't, I build again.",
+   "speaker": "taller",
+   "seconds": 5.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 7683725,
+     "heard": "Whatever comes back, I rearm. Whatever doesn't, I build again.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23492,
+     "sha256": "a446daa8794f4dbab811d1d39c00db2c83a0fa7f52bc19612678c0fd507053ff"
+    },
+    "mp3": {
+     "bytes": 24116,
+     "sha256": "32a5dfb7038a5cb2e2f96793553968522fb9a6651b6248cabfe93dfafba27b8b"
+    }
+   }
+  },
+  "film-itaipu-1-o2.es": {
+   "text": "Lo que vuelve, lo rearmo. Lo que no vuelve, lo armo de nuevo.",
+   "speaker": "taller",
+   "seconds": 4.545,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3060382823,
+     "heard": "Lo que vuelve, lo rearmo. Lo que no vuelve, lo armo de nuevo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20565,
+     "sha256": "fa990c4c139db4bfdbe1dd787abb23f20e49b8529bf9fe6cdd6f80d71cfa8c26"
+    },
+    "mp3": {
+     "bytes": 20540,
+     "sha256": "a10a67cb93d7e2f8b4036ac55feeebd7a1d2361d2492b523430fc03ee2aa4418"
+    }
+   }
+  },
+  "film-itaipu-1-o3.en": {
+   "text": "Rain upstream all night. The water's still rising.",
+   "speaker": "mirador",
+   "seconds": 3.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2314630540,
+     "heard": "Rain upstream all night. The water's still rising.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16668,
+     "sha256": "98646997f41f95ab2fb66ba2882d959e973de6b1a2a309bd5ba38194d815c6f1"
+    },
+    "mp3": {
+     "bytes": 16580,
+     "sha256": "ad2912c527c5c3740ddd1c19f0ca11218050cec8cd476ac58f4084771f6722c8"
+    }
+   }
+  },
+  "film-itaipu-1-o3.es": {
+   "text": "Llovió río arriba toda la noche. El agua sigue subiendo.",
+   "speaker": "mirador",
+   "seconds": 3.545,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 852115917,
+     "heard": "Llovió río arriba toda la noche. El agua sigue subiendo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16198,
+     "sha256": "20339c541b2bcae1eed6e04dd65508ec37ff269da2391787d51948359ef90367"
+    },
+    "mp3": {
+     "bytes": 16244,
+     "sha256": "8c1fe1e8ce202491f6a97f5b915231f6274b1b3f911bcad26c14ec9deea117eb"
+    }
+   }
+  },
+  "film-itaipu-1-o4.en": {
+   "text": "This afternoon we open the gates. They'll know it too.",
+   "speaker": "crest",
+   "seconds": 3.195,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2506871138,
+     "heard": "This afternoon we open the gates. They'll know it too.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14792,
+     "sha256": "33179c2b6fb776702809a75d5f176b9f96cc32bd05792ff081cb5e89de200f4b"
+    },
+    "mp3": {
+     "bytes": 13316,
+     "sha256": "bf6556cbed137e2958858edd11639dba6d7bcfd154ca61921c8d9eaf39ad042f"
+    }
+   }
+  },
+  "film-itaipu-1-o4.es": {
+   "text": "Esta tarde abrimos las compuertas. Ellos también lo van a saber.",
+   "speaker": "crest",
+   "seconds": 4.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1642300443,
+     "heard": "Esta tarde abrimos las compuertas. Ellos también lo van a saber.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19594,
+     "sha256": "312aa4a727e9d9c7278a0402751c329f82e5cb6b7347bed14372bd2a2c547d18"
+    },
+    "mp3": {
+     "bytes": 18188,
+     "sha256": "9cc850d71c62e305a6f84775e9242bfd428455b19ec7e67a39c435101ef092a4"
+    }
+   }
+  },
   "film-itaipu-2-1.en": {
    "text": "It rained upstream all night. The reservoir's at the top of the gates.",
    "speaker": "crest",
