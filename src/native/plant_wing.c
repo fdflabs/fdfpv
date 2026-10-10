@@ -1925,6 +1925,37 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_slip[4] = vi;
     g_slip[5] = xs;
   }
+  /*
+   * THE JET NORMAL FORCE (FixedWingParams.jet_kj), Selig, "Modeling
+   * Propeller Aerodynamics and Slipstream Effects on Small UAVs in
+   * Realtime", AIAA 2010-7938, eq. 13 to 16: air crossing the disc
+   * sideways at V_T leaves in the slipstream along the axis, so the prop
+   * takes its sideways momentum, N_j = k_j rho A w0 V_T, against V_T, w0
+   * the hover's induced speed sqrt(T / (2 rho A)). Selig: k_j about 80
+   * percent behind a smooth cowling and "nearly 100% for cruciform-nose
+   * profile aerobatic foam aircraft in hover", and "for an airplane in
+   * hover the damping force makes hovering flight less demanding of the
+   * pilot". Washed out away from the hover through his jet parameter m =
+   * V_N / (V_N + w), taken here as the weight 1 - m: the classic normal
+   * force his eq. 4 blends with it is not in this plant. V_T is the
+   * disc's own sideways air, the body's and what the rates add at prop_x
+   * ahead of the CG, where the force acts, so it damps the drift and the
+   * nose's swing alike.
+   */
+  double jet_m[3] = { 0.0, 0.0, 0.0 };
+  if (fw->jet_kj > 0.0 && thrust > 0.0) {
+    const double a_disc = WING_PI * fw->slip_r * fw->slip_r;
+    const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * a_disc));
+    const double wi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * thrust / (PLANT.rho * a_disc)) - u_pos);
+    const double k = fw->jet_kj * PLANT.rho * a_disc * w0 * wi / (u_pos + wi);
+    const double vy = v + s->omega[2] * fw->prop_x;
+    const double vz = w - s->omega[1] * fw->prop_x;
+    const double fy = -k * vy, fz = -k * vz;
+    F[1] += fy;
+    F[2] += fz;
+    jet_m[1] = -fw->prop_x * fz;
+    jet_m[2] = fw->prop_x * fy;
+  }
   /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
    * against the sideways speed squared. */
   if (fw->side_cda > 0.0) {
@@ -2030,6 +2061,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[0] += l_slip;
     M[1] -= m_slip;
     M[2] -= n_slip;
+  }
+  if (fw->jet_kj > 0.0) {
+    M[1] += jet_m[1];
+    M[2] += jet_m[2];
   }
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
@@ -4324,6 +4359,11 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_roll_ki = 2.0,
   .acro_pitch_ki = 3.0,
   .acro_i_max = 0.30,
+  /* A cowled nose: Selig's 80 percent for a cowling, not the profile
+   * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
+   * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
+  .jet_kj = 0.80,
+  .prop_x = 0.302,
   .as3x_k = { 0.028, 0.1224, 0.1842 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
@@ -4502,89 +4542,89 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
  * cannot place, so slip_r is zero (docs/HERCULES-CONTRACT.md). */
 const FixedWingParams FW_HERCULES3077 = {
   .mix = FW_MIX_TAIL,
-  .span = 3.077,          /* AeroTetris, 3077 mm */
-  .area = 1.0486,         /* AeroTetris's reference area, 104.86 dm^2 */
-  .chord = 0.3564,        /* AeroTetris's reference length, the mean chord */
-  .cl_alpha = 5.688,      /* wing (its dihedral's cos^2) and tail, Nelson eq. 2.52 */
-  .cl_max = 1.10,         /* an 18 percent 64A section at 2.9e5, ESTIMATED */
+  .span = 3.077,          /* AeroTetris, 3077 mm; docs/HERCULES-STAGE1.md */
+  .area = 1.0486,         /* AeroTetris's reference area, 104.86 dm^2; docs/HERCULES-STAGE1.md */
+  .chord = 0.3564,        /* AeroTetris's reference length, the mean chord; docs/HERCULES-STAGE1.md */
+  .cl_alpha = 5.688,      /* wing (its dihedral's cos^2) and tail, Nelson eq. 2.52; npm run hercules:derive */
+  .cl_max = 1.10,         /* an 18 percent 64A section at 2.9e5, ESTIMATED; docs/HERCULES-STAGE1.md */
   /* The zero lift line 3.5 deg under the thrust line: the 64A318's 2 deg,
    * the wing set at 1.5 deg on the mean of the full size's 3 deg root and
    * 0 deg tip. sin and cos of minus 3.5 degrees, to 17 digits. */
-  .alpha_zl = -3.5 * WING_PI / 180.0,
-  .sin_zl = -0.061048539534856873,
-  .cos_zl = 0.99813479842186692,
-  .cd0 = 0.045,           /* the deep fuselage, four nacelles, fixed gear in sponsons, ESTIMATED */
-  .k_induced = 0.04407,   /* 1/(pi 0.80 9.029) */
-  .cl_de = -0.6135,
-  .cy_beta = -0.5310,
-  .cy_dr = 0.2975,
-  .cl_beta = -0.1410,     /* 2.5 deg of dihedral, the high wing and the tall fin */
-  .cl_p = -0.6971,
-  .cl_da = 0.2998,        /* ailerons from 0.66 to 0.97 of the half span */
-  .cl_r_per_cl = 0.25,
-  .cl_dr = 0.0338,
-  .cm_0 = 0.0687,         /* level at 1.6 Vs with the elevator neutral */
-  .cm_alpha = -0.9097,    /* AeroTetris's 16 percent static margin */
-  .cm_q = -15.83,
-  .cm_de = 1.8527,
-  .cn_beta = 0.0884,      /* the tall fin, less the deep fuselage's */
-  .cn_r = -0.1201,
-  .cn_p_per_cl = -0.125,
-  .cn_da_per_cl = -0.12,  /* the P-51's, a cambered section's plain ailerons, ESTIMATED */
-  .cn_dr = -0.1070,
-  .stall_blend = 4.0 * WING_PI / 180.0,
+  .alpha_zl = -3.5 * WING_PI / 180.0, /* npm run hercules:derive */
+  .sin_zl = -0.061048539534856873, /* npm run hercules:derive */
+  .cos_zl = 0.99813479842186692, /* npm run hercules:derive */
+  .cd0 = 0.045,           /* the deep fuselage, four nacelles, fixed gear in sponsons, ESTIMATED; docs/HERCULES-STAGE1.md */
+  .k_induced = 0.04407,   /* 1/(pi 0.80 9.029); npm run hercules:derive */
+  .cl_de = -0.6135, /* npm run hercules:derive */
+  .cy_beta = -0.5310, /* npm run hercules:derive */
+  .cy_dr = 0.2975, /* npm run hercules:derive */
+  .cl_beta = -0.1410,     /* 2.5 deg of dihedral, the high wing and the tall fin; npm run hercules:derive */
+  .cl_p = -0.6971, /* npm run hercules:derive */
+  .cl_da = 0.2998,        /* ailerons from 0.66 to 0.97 of the half span; npm run hercules:derive */
+  .cl_r_per_cl = 0.25, /* CL/4, Nelson's wing estimate, docs/HERCULES-STAGE1.md */
+  .cl_dr = 0.0338, /* npm run hercules:derive */
+  .cm_0 = 0.0687,         /* level at 1.6 Vs with the elevator neutral; npm run hercules:derive */
+  .cm_alpha = -0.9097,    /* AeroTetris's 16 percent static margin; npm run hercules:derive */
+  .cm_q = -15.83, /* npm run hercules:derive */
+  .cm_de = 1.8527, /* npm run hercules:derive */
+  .cn_beta = 0.0884,      /* the tall fin, less the deep fuselage's; npm run hercules:derive */
+  .cn_r = -0.1201, /* npm run hercules:derive */
+  .cn_p_per_cl = -0.125, /* -CL/8, Nelson's wing estimate, docs/HERCULES-STAGE1.md */
+  .cn_da_per_cl = -0.12,  /* the P-51's, a cambered section's plain ailerons, ESTIMATED; FITTED: no published figure, docs/HERCULES-STAGE1.md */
+  .cn_dr = -0.1070, /* npm run hercules:derive */
+  .stall_blend = 4.0 * WING_PI / 180.0, /* FITTED: a thick section's rounded stall, as the Kadet's, docs/STALL-STAGE1.md */
   /* Scale throws, ESTIMATED (the kit has no manual): 15 deg of aileron
    * and elevator, 25 of rudder. */
-  .throw_a = 15.0 * WING_PI / 180.0,
-  .throw_e = 15.0 * WING_PI / 180.0,
-  .throw_r = 25.0 * WING_PI / 180.0,
-  .surface_max = 15.0 * WING_PI / 180.0,
-  .expo = 0.30,
-  .thrust_static = 81.30, /* N, four Power 25s on 3S against APC's 12 x 8E, 7,961 rpm, ESTIMATED */
-  .pitch_speed = 27.80,   /* 0.85 of 9,657 rpm on the 8 in pitch */
-  .rpm_no_load = 9657.0,
-  .torque_arm = 0.01857,  /* each prop's 0.377 N m at 20.3 N; four turning the same way */
-  .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG */
-  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's; four the same way sum */
-  .current_full = 147.1,  /* A, four times 36.8 at the static point */
-  .duty_min = 0.02,
-  .stab_bank_max = 45.0 * WING_PI / 180.0,
-  .stab_pitch_max = 20.0 * WING_PI / 180.0,
-  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
-  .stab_deadband = 0.04,
-  .stab_roll_kp = 2.0,
-  .stab_roll_kd = 0.40,
-  .stab_pitch_kp = 3.0,
-  .stab_pitch_kd = 0.5,
+  .throw_a = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .throw_e = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .throw_r = 25.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .surface_max = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
+  .thrust_static = 81.30, /* N, four Power 25s on 3S against APC's 12 x 8E, 7,961 rpm, ESTIMATED; npm run hercules:derive */
+  .pitch_speed = 27.80,   /* 0.85 of 9,657 rpm on the 8 in pitch; npm run hercules:derive */
+  .rpm_no_load = 9657.0, /* npm run hercules:derive */
+  .torque_arm = 0.01857,  /* each prop's 0.377 N m at 20.3 N; four turning the same way; npm run hercules:derive */
+  .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG; npm run hercules:derive */
+  .pfactor = 1.6,         /* blade element at 0.75 R, as the Cub's; four the same way sum; docs/FLIGHTMODEL.md */
+  .current_full = 147.1,  /* A, four times 36.8 at the static point; npm run hercules:derive */
+  .duty_min = 0.02, /* FITTED: the fleet's ESC start duty */
+  .stab_bank_max = 45.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .stab_pitch_max = 20.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0, /* FITTED: SAFE's level trim, as the fleet's */
+  .stab_deadband = 0.04, /* docs/WING-STAGE1.md */
+  .stab_roll_kp = 2.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .stab_roll_kd = 0.40, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .stab_pitch_kp = 3.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .stab_pitch_kd = 0.5, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .stab_pitch_down = 8.22 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
-  .stab_trim_throttle = 0.777, /* the stick that flies it level, elevator neutral */
-  .acro_roll_rate = 60.0 * WING_PI / 180.0,
-  .acro_pitch_rate = 30.0 * WING_PI / 180.0,
-  .acro_expo = 0.30,
-  .acro_err_max = 5.0 * WING_PI / 180.0,
-  .acro_roll_kp = 4.0,
-  .acro_roll_kd = 0.8,
-  .acro_roll_ff = 0.30,
-  .acro_pitch_kp = 4.0,
-  .acro_pitch_kd = 0.5,
-  .acro_pitch_ff = 0.40,
-  .acro_roll_ki = 4.0,
-  .acro_pitch_ki = 6.0,
-  .acro_i_max = 0.30,
+  .stab_trim_throttle = 0.777, /* the stick that flies it level, elevator neutral; npm run stab:glide */
+  .acro_roll_rate = 60.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
+  .acro_pitch_rate = 30.0 * WING_PI / 180.0, /* FITTED: a rate setting, a scale transport's */
+  .acro_expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
+  .acro_err_max = 5.0 * WING_PI / 180.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_roll_kp = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_roll_kd = 0.8, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_roll_ff = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_pitch_kp = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_pitch_kd = 0.5, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_pitch_ff = 0.40, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_roll_ki = 4.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_pitch_ki = 6.0, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
+  .acro_i_max = 0.30, /* FITTED: a loop gain, Spektrum publishes none for the AR637T */
   .as3x_k = { 0.1482, 0.2355, 0.7963 }, /* a fitted AR637T's AS3X, npm run as3x:derive */
-  .yaw_coord_k = 1.5,
+  .yaw_coord_k = 1.5, /* FITTED: turn coordination gain, no published figure */
   /* Past the stall, scripts/stall-derive.js's tailed form on this
    * aircraft's numbers; the 18 percent section's rounded trailing edge
    * stall, the Kadet's thick section's figures taken, ESTIMATED. */
   .stall_arm_ac = 0.0791,
-  .stall_arm_cp = 0.0709,
-  .stall_dw = 0.1849,
-  .stall_asym = 0.00281,
-  .stall_k = 0.72,
-  .stall_top = 6.7 * WING_PI / 180.0,
-  .strip_c = { 1.2781, 1.0927, 0.9073, 0.7219 }, /* the straight 0.459 taper */
-  .washout = 3.0 * WING_PI / 180.0, /* the full size's 3 deg root, 0 tip */
-  .j_prop = 0.000687,     /* four 26 g 12 x 8Es, spinners and cans, ESTIMATED */
+  .stall_arm_cp = 0.0709, /* npm run hercules:derive */
+  .stall_dw = 0.1849, /* npm run hercules:derive */
+  .stall_asym = 0.00281, /* scripts/stall-derive.js */
+  .stall_k = 0.72, /* scripts/stall-derive.js */
+  .stall_top = 6.7 * WING_PI / 180.0, /* scripts/stall-derive.js */
+  .strip_c = { 1.2781, 1.0927, 0.9073, 0.7219 }, /* the straight 0.459 taper; npm run hercules:derive */
+  .washout = 3.0 * WING_PI / 180.0, /* the full size's 3 deg root, 0 tip; npm run hercules:derive */
+  .j_prop = 0.000687,     /* four 26 g 12 x 8Es, spinners and cans, ESTIMATED; npm run hercules:derive */
   .side_cda = 0.5225,     /* 0.78 of the 0.67 m^2 side view, scripts/hercules-derive.js */
   /* The rear ramp and door, ESTIMATED (scripts/hercules-derive.js): open
    * in 4 s, a model's slow servo; the open hold's base drag and the hanging
