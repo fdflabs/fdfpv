@@ -64,6 +64,9 @@ const HOLD = 4;
 /* A roll may pause this long and still be one roll (point rolls). */
 const ROLL_BRIDGE_MS = 800;
 const PAUSE_MIN_MS = 100;
+/* A point is the roll stopped, not slowed: a barrel roll's rate sags as
+ * the pilot pulls through the bottom without stopping (figures-plant-sweep.js). */
+const ROLL_STOP = 0.35;
 /* Straight flight this long ends a figure. */
 const SETTLE_MS = 700;
 const BUFFER_MAX = 10;
@@ -153,6 +156,7 @@ class Prim {
     this.alphaSum = 0;
     this.stalled = 0;
     this.pauses = 0;
+    this.stoppedMs = 0;
     this.pausedMs = 0;
     this.sMin = Infinity;
   }
@@ -532,7 +536,11 @@ export class FigureDetector {
     const ap = abs(p), aq = abs(q), ar = abs(r);
     if (s.stalled && d[2] < -0.6 && abs(s.wzWorld) >= 1.5 && speed < 25) return 'spin';
     if (speed < 10 && aq >= 2.5 && aq >= 1.5 * ap && aq >= ar) return 'pitchover';
-    if (speed >= 6 && cosA < COS15 && ap >= 4) return 'snap';
+    /* A snap is the wing stalled at speed while it rolls: the angle of
+     * attack itself (the flow under the wing, -d.u), not the nose to path
+     * angle, which a fast aileron roll on the Extra pushes past 15 deg with
+     * sideslip alone (figures-plant-sweep.js). */
+    if (speed >= 6 && abs(dot3(d, u)) > SIN15 && ap >= 4) return 'snap';
     if (n[2] > 0.5 && dot3(d, n) * speed < -1) return 'tailslide';
     if (speed < 3 && n[2] > COS30) return 'hover';
     if (speed < 8 && ar >= 1.2 && ar >= 2 * aq && ap < 1.5) return 'yawover';
@@ -556,8 +564,12 @@ export class FigureDetector {
      * outlasts ROLL_BRIDGE_MS; then the pause was the next part, and it
      * opens from where it began. */
     if (open.kind === 'roll' && (tok === 'line' || tok === 'knife' || tok === 'arc')) {
-      if (open.pausedMs === 0) this.paused = [];
+      if (open.pausedMs === 0) {
+        this.paused = [];
+        open.stoppedMs = 0;
+      }
       open.pausedMs += SAMPLE_MS;
+      if (abs(s.p) < ROLL_STOP) open.stoppedMs += SAMPLE_MS;
       this.paused.push(s);
       this.cand = null;
       if (open.pausedMs <= ROLL_BRIDGE_MS) return;
@@ -566,7 +578,7 @@ export class FigureDetector {
       return;
     }
     if (open.kind === 'roll' && open.pausedMs > 0) {
-      if (tok === 'roll' && open.pausedMs >= PAUSE_MIN_MS) open.pauses += 1;
+      if (tok === 'roll' && open.stoppedMs >= PAUSE_MIN_MS) open.pauses += 1;
       /* The pause was part of the roll (or of what ends it, below). */
       let prev = this.prev && this.paused.length ? null : this.prev;
       for (const c of this.paused) {
