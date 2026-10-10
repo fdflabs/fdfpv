@@ -82,6 +82,7 @@
     "render:golden": "node scripts/render-golden.js",
     "check:wall": "node scripts/wall-check.js",
     "airframes:selftest": "node scripts/airframes-selftest.js",
+    "aircraft:folder": "node scripts/aircraft-folder-selftest.js",
     "check:roof": "node scripts/roof-check.js --map=swiss2 && node scripts/roof-check.js --map=alps && node scripts/headwall-check.js",
     "check:headwall": "node scripts/headwall-check.js",
     "check:trees": "node scripts/tree-check.js",
