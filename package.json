@@ -444,6 +444,7 @@
     "lint:header": "node scripts/header-lint.js",
     "weather:selftest": "node scripts/weather-selftest.js",
     "weather:surface": "node scripts/weather-surface-build.js",
+    "world:layer": "node scripts/world-layer-selftest.js",
     "check:weather": "node scripts/weather-check.js",
     "check:weather-room": "node scripts/weather-room-check.js",
     "check:weather-ui": "node scripts/weather-ui-check.js",
