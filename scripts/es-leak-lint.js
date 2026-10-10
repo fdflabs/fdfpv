@@ -18,9 +18,8 @@
  * SHARED. Rows the harness itself stands in for (its ghost, live and room
  * rows) are in STAND_INS: they are not game text.
  *
- * The Flight panel (scenarios flight*) must be clean; the pause menu
- * (paused*) joins it once its first screen stops showing the tune's
- * English note (docs/redesign/PAUSE-MENUS.md, step 2). Every other leak the menus still have is written down, exactly, in
+ * The pause menu and its Flight panel (scenarios paused*, quick*) must be
+ * clean. Every other leak the menus still have is written down, exactly, in
  * tests/fixtures/es-leaks.json, and that list may only shrink: a leak not
  * on it fails, and so does an entry that no longer happens, so a fix takes
  * its line off. It is a ratchet, not an excuse list. Every name a tune can
@@ -53,7 +52,7 @@ import en from '../src/strings/en.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const FILE = join(root, 'tests', 'fixtures', 'es-leaks.json');
 const RECORD = process.argv.includes('--record');
-const STRICT = /^flight/;
+const STRICT = /^(paused|quick)/;
 const FIELDS = ['label', 'value', 'note'];
 const ENGLISH = /\b(the|and|you|your|with|is|it|of|to|this|that|from|when|here)\b/i;
 
