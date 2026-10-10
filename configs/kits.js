@@ -209,3 +209,18 @@ export function kitParts(family, kit) {
   const parts = kit && kit.v === KIT_VERSION && isRecord(kit.parts) ? kit.parts : {};
   return Object.fromEntries(slotsFor(family).map((s) => [s.id, parts[s.id] ?? 'stock']));
 }
+
+/* The entry with one slot set; all stock leaves no kit at all. Here, not
+ * in src/ui/hangar-kit.js, because hangar-shop.js needs it too: taking it
+ * from hangar-kit.js made the two modules a cycle, which ran the Kit tab's
+ * registration before the Shop's and the Loadout's and put Kit first. */
+export function withSlot(entry, family, slot, option) {
+  const parts = { ...kitParts(family, entry.kit), [slot]: option };
+  const fitted = Object.fromEntries(Object.entries(parts).filter(([, o]) => o !== 'stock'));
+  const out = { ...entry };
+  delete out.kit;
+  if (Object.keys(fitted).length) {
+    out.kit = { v: KIT_VERSION, parts: fitted };
+  }
+  return out;
+}

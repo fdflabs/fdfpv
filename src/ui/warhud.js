@@ -86,6 +86,25 @@ const SPLASH_MS = 2600;
 /* A radio subtitle stays this long after its line, and at most this many
  * wait behind the one shown. */
 const SUB_TAIL_MS = 600;
+/* A subtitle that waited longer than this for its turn is dropped, as the
+ * radio drops a story line that waited (warradio.js STORY_STALE_MS): with
+ * the sound off the words ran on their own clock, kept every line, and
+ * fell behind the fight ("Something high over the water" under a scout
+ * already down). */
+export const SUB_STALE_MS = 12000;
+
+/* The next subtitle due from the queue at `now` (ms): the oldest that has
+ * not waited past SUB_STALE_MS, the staler ones dropped from the queue
+ * (which it changes). Null when none is left. */
+export function nextDue(queue, now) {
+  while (queue.length) {
+    const s = queue.shift();
+    if (now - s.at <= SUB_STALE_MS) {
+      return s;
+    }
+  }
+  return null;
+}
 const SUB_QUEUE = 3;
 const CALLS_SHOWN = 3;
 /* The display's top, under the room's lines at their longest (see the
@@ -554,7 +573,7 @@ export function createWarHud(nameOf, restart = null) {
   let subUntil = 0;
   let subTimer = 0;
   function subtitle(text, ms) {
-    subs.push({ text, ms });
+    subs.push({ text, ms, at: performance.now() });
     if (subs.length > SUB_QUEUE) {
       subs.shift();
     }
@@ -564,7 +583,7 @@ export function createWarHud(nameOf, restart = null) {
   }
   function nextSub() {
     clearTimeout(subTimer);
-    const s = subs.shift();
+    const s = nextDue(subs, performance.now());
     if (!subEl) {
       subEl = root({
         position: 'fixed', left: '50%', bottom: '21vh', transform: 'translateX(-50%)', zIndex: '43', pointerEvents: 'none',
@@ -739,7 +758,7 @@ export function createWarHud(nameOf, restart = null) {
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
       status: status && status.style.display !== 'none' ? status.textContent : '',
-      objectives: goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
+      objectives: box && box.style.display !== 'none' && goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',

@@ -1904,6 +1904,37 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_slip[4] = vi;
     g_slip[5] = xs;
   }
+  /*
+   * THE JET NORMAL FORCE (FixedWingParams.jet_kj), Selig, "Modeling
+   * Propeller Aerodynamics and Slipstream Effects on Small UAVs in
+   * Realtime", AIAA 2010-7938, eq. 13 to 16: air crossing the disc
+   * sideways at V_T leaves in the slipstream along the axis, so the prop
+   * takes its sideways momentum, N_j = k_j rho A w0 V_T, against V_T, w0
+   * the hover's induced speed sqrt(T / (2 rho A)). Selig: k_j about 80
+   * percent behind a smooth cowling and "nearly 100% for cruciform-nose
+   * profile aerobatic foam aircraft in hover", and "for an airplane in
+   * hover the damping force makes hovering flight less demanding of the
+   * pilot". Washed out away from the hover through his jet parameter m =
+   * V_N / (V_N + w), taken here as the weight 1 - m: the classic normal
+   * force his eq. 4 blends with it is not in this plant. V_T is the
+   * disc's own sideways air, the body's and what the rates add at prop_x
+   * ahead of the CG, where the force acts, so it damps the drift and the
+   * nose's swing alike.
+   */
+  double jet_m[3] = { 0.0, 0.0, 0.0 };
+  if (fw->jet_kj > 0.0 && thrust > 0.0) {
+    const double a_disc = WING_PI * fw->slip_r * fw->slip_r;
+    const double w0 = sim_sqrt(thrust / (2.0 * PLANT.rho * a_disc));
+    const double wi = 0.5 * (sim_sqrt(u_pos * u_pos + 2.0 * thrust / (PLANT.rho * a_disc)) - u_pos);
+    const double k = fw->jet_kj * PLANT.rho * a_disc * w0 * wi / (u_pos + wi);
+    const double vy = v + s->omega[2] * fw->prop_x;
+    const double vz = w - s->omega[1] * fw->prop_x;
+    const double fy = -k * vy, fz = -k * vz;
+    F[1] += fy;
+    F[2] += fz;
+    jet_m[1] = -fw->prop_x * fz;
+    jet_m[2] = fw->prop_x * fy;
+  }
   /* The fuselage's crossflow drag in side view (FixedWingParams.side_cda),
    * against the sideways speed squared. */
   if (fw->side_cda > 0.0) {
@@ -2004,6 +2035,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     M[0] += l_slip;
     M[1] -= m_slip;
     M[2] -= n_slip;
+  }
+  if (fw->jet_kj > 0.0) {
+    M[1] += jet_m[1];
+    M[2] += jet_m[2];
   }
   /* A folded prop is not turning, and 0/0 would be a NaN, not a zero; nor
    * is a prop whose motor the chute has cut. */
@@ -4298,6 +4333,11 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .acro_roll_ki = 2.0,
   .acro_pitch_ki = 3.0,
   .acro_i_max = 0.30,
+  /* A cowled nose: Selig's 80 percent for a cowling, not the profile
+   * foamies' 100; the disc 0.302 m ahead of the CG, the drawn model's
+   * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
+  .jet_kj = 0.80,
+  .prop_x = 0.302,
   .as3x_k = { 0.028, 0.1224, 0.1842 },
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
