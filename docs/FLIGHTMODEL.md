@@ -1071,3 +1071,33 @@ arrives in the hover with the motor at 0.6). The Striker's piston gate
 "the thrust is the stick's" (under 50 ms) contradicted a rotor with
 inertia and is re-derived: its rpm reaches 90 percent of full in 0.5 to
 1.0 s about the 0.75 s the equation gives standing still.
+
+## The Extra's stall from a measured section
+
+The owner found every firm pull stalling the Extra. Its stall was an
+estimate, CL max 0.95 at the stall angle CL max over the aircraft's lift
+slope, 11.6 deg, at every speed. Measured symmetric sections at these
+Reynolds numbers (Timmer, NACA 0018, Wind Engineering 32(6), 2008: CL max
+0.988 at 11.6 deg at 1.5e5 and 1.056 at 15.1 deg at 3e5; Sheldahl and
+Klimas's 0012 and 0015 at 3.6e5 agree, 0.96 at 11.5 and 1.06 at 13.6)
+stall later as the speed rises, and two things in the plant put the
+Extra's stall early:
+
+- The Reynolds number: two new table fields, stall_re, stall_clmax and
+  stall_peak, take the wing's CL max (0.9 of the section's, Raymer,
+  Aircraft Design, sec. 12.4) and the angle its lift peaks at (the
+  section's peak plus the induced angle CL / (pi A e)) from the data,
+  straight between 1.5e5 and 3e5 on the chord: 0.889 at 16.3 deg at the
+  stall's speed, 0.950 at 20.1 deg at 16 m/s.
+- The slope: the stall angle was CL max over cl_alpha, which is the wing
+  and the tail's (Nelson eq. 2.52, as on most tables). The tail does not
+  stall with the wing. cl_alpha_wing (here extra-derive's a_w, 4.390)
+  sets the wing's stall angle, and the tail's share of the slope lifts on
+  past it.
+
+Both are zero on every other table, which flies as it did; the same
+shortcut on every table is the next pull request's. E2, the stall speed,
+is re-derived on the stall's own CL max, 0.898 at 1.7e5: 8.54 m/s, band
+8.03 to 9.73 (was 8.31, 7.81 to 9.47, on the estimated 0.95); the plant
+reads 8.75. A half stick pull at 16 m/s now breaks at 15.2 deg (13.8
+before).

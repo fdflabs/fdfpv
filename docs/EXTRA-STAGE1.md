@@ -123,7 +123,7 @@ Nelson's forms, as the Cub's and the Timber's (`scripts/extra-derive.js`):
 | CL alpha | 4.704 | wing and tail |
 | static margin | 0.154 | h_n 0.406 less the CG's 0.252 of the MAC |
 | Cm alpha, Cm q, Cm0 | -0.7265, -9.496, 0.0450 | Cm0 trims 15 m/s with the elevator neutral: the pilot's trim is the table's neutral |
-| CLmax | 0.95 | a thick symmetric section at 2e5, ESTIMATED |
+| CLmax | 0.889 at Re 1.5e5 to 0.950 at 3e5, peaking at 16.3 to 20.1 deg | Timmer's measured NACA 0018 (2008) times Raymer's 0.9, the peak further on by the induced angle (plant_wing.c stall_re); the wing's own slope 4.390 for the stall angle (cl_alpha_wing). Was 0.95 at 11.6 deg, ESTIMATED |
 | CD0, e | 0.045, 0.75 | gear, spats, hinge gaps, a thick wing, ESTIMATED |
 | CY beta, Cn beta, Cn r | -0.5731, 0.2405, -0.3577 | the big fin, less the fuselage's |
 | Cl beta | +0.0105 | no dihedral: the fin's -0.0212 and the low wing's +0.0317 (DATCOM, 1.2 sqrt(A) (z_w / b)(2 D / b)) |
