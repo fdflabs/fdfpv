@@ -8,8 +8,8 @@
  * what SIGUSR2 means (docs/ROOMS-DRAIN.md, slice 1):
  *
  *   v1 drains: two pilots flying in a room on it get no close and keep
- *   receiving each other's poses at the room's 30 Hz; a third pilot still
- *   joins that room, and a dropped one comes back into its seat with its
+ *   receiving each other's fresh poses, nearly every one the other sent;
+ *   a third pilot still joins that room, and a dropped one comes back into its seat with its
  *   token; a new room, a quick join and a socket to a code v1 does not
  *   hold are refused 503 busy; v2 makes the new room and seats its pilot;
  *   each answers its own /v2/version.
@@ -65,9 +65,12 @@ const nodeJs = fileURLToPath(new URL('../edge/rooms/node.js', import.meta.url));
 const V1 = 'a'.repeat(40);
 const V2 = 'b'.repeat(40);
 
-/* The room's pose rate, 30 Hz, less a sixth for a loaded runner's timers:
- * a drain that drops the room delivers none, so the margin hides nothing. */
-const MIN_HZ = Math.floor((1000 / TICK_MS) * 5 / 6);
+/* The share of a pilot's poses the other must receive, counted against
+ * what was sent rather than a wall-clock rate, which a slow 2-core runner
+ * lowers for sender and room alike (the merge queue saw 23 Hz with no
+ * close). The sixth spared is a pose sent twice in one room tick and so
+ * relayed once; a drain that drops the room relays none. */
+const MIN_SHARE = 5 / 6;
 const WINDOW_MS = 3000;
 
 /* A rooms server as the VM runs it, its own process. */
@@ -163,11 +166,13 @@ async function seat(origin, path, extra = {}) {
  * one at REPEAT_MS. Returns the stop. */
 function fly(p) {
   let seq = 0;
+  p.sent = 0;
   const timer = setInterval(() => {
     if (p.ws.readyState !== 1) {
       return;
     }
     seq = (seq + 1) & 0xffff;
+    p.sent += 1;
     p.ws.send(encodePose({
       flags: 0, seq, t: p.welcome.roomMs + (Date.now() - p.clockAt), px: 10 + seq * 0.01, py: 300, pz: 5, qx: 0, qy: 0, qz: 0, qw: 1,
       vx: 1, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0,
@@ -176,20 +181,24 @@ function fly(p) {
   return () => clearInterval(timer);
 }
 
-/* Batches p has had that carry seat's pose. */
-const posesFrom = (p, seat) => p.got.filter((m) => m instanceof Uint8Array && decodeBatch(m)?.poses.some((q) => q.seat === seat)).length;
+/* The distinct seqs of seat's poses p has had, so a held pose the room
+ * repeats at REPEAT_MS counts once. */
+const seqsFrom = (p, seat) => new Set(p.got.flatMap((m) => (m instanceof Uint8Array ? decodeBatch(m)?.poses ?? [] : []).filter((q) => q.seat === seat).map((q) => q.seq)));
 
-/* The probe: over WINDOW_MS, neither pilot closed and each received the
- * other's poses at MIN_HZ or more. */
+/* The probe: over WINDOW_MS, neither pilot closed and each received, fresh,
+ * MIN_SHARE or more of the poses the other sent. */
 async function keepsFlying(a, b) {
-  const from = { a: posesFrom(a, b.welcome.seat), b: posesFrom(b, a.welcome.seat) };
+  /* What `to` has had from `from` so far, and how much `from` has sent. */
+  const mark = (to, from) => ({ to, from, seen: seqsFrom(to, from.welcome.seat), sent: from.sent });
+  const marks = [mark(a, b), mark(b, a)];
   await sleep(WINDOW_MS);
-  const hz = {
-    a: (posesFrom(a, b.welcome.seat) - from.a) / (WINDOW_MS / 1000),
-    b: (posesFrom(b, a.welcome.seat) - from.b) / (WINDOW_MS / 1000),
-  };
-  const ok = !a.closed && !b.closed && hz.a >= MIN_HZ && hz.b >= MIN_HZ;
-  return { ok, detail: `closed ${JSON.stringify([a.closed, b.closed])}, ${hz.a.toFixed(1)} and ${hz.b.toFixed(1)} Hz, need ${MIN_HZ}` };
+  const got = marks.map(({ to, from, seen, sent }) => {
+    const fresh = [...seqsFrom(to, from.welcome.seat)].filter((q) => !seen.has(q)).length;
+    const n = from.sent - sent;
+    return { fresh, n, share: n ? fresh / n : 0 };
+  });
+  const ok = !a.closed && !b.closed && got.every((g) => g.share >= MIN_SHARE);
+  return { ok, detail: `closed ${JSON.stringify([a.closed, b.closed])}, ${got.map((g) => `${g.fresh}/${g.n}`).join(' and ')} poses, need ${MIN_SHARE.toFixed(2)}` };
 }
 
 const make = (origin) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2' }) });
@@ -217,7 +226,7 @@ try {
   v1.child.kill('SIGUSR2');
   await sleep(1000);
   const during = await keepsFlying(x.a, x.b);
-  check(`v1 draining: no close, poses both ways at ${MIN_HZ} Hz or more`, during.ok, during.detail);
+  check('v1 draining: no close, fresh poses both ways', during.ok, during.detail);
   check('v1 is still running', v1.exit === null, JSON.stringify(v1.exit));
   check('and says it drains', /draining/.test(v1.out), v1.out);
   check('and still answers its own version', (await version(v1)) === V1);
