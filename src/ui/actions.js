@@ -60,7 +60,7 @@ const sound = (ui, name) => { if (ui.onUiSound) ui.onUiSound(name); };
 const tellShell = (ui) => { if (ui.onSettings) ui.onSettings(ui.settings); };
 
 /* Where Back goes after this press: a run paused behind the menus is kept. */
-const pauseOrTitle = (ui) => (ui.screen === 'paused' ? 'paused' : 'title');
+const pauseOrTitle = (ui) => (ui.screen === 'paused' || ui.screen === 'quick' ? 'paused' : 'title');
 
 const noteOn = (node, text) => { node.textContent = text; };
 
@@ -256,6 +256,12 @@ const ACTIONS = {
   'update-reload'() { window.location.reload(); },
   'room-bar'(ui) { if (ui.roomBarView && ui.roomBarView.act) ui.roomBarView.act(); },
   hotswap(ui) { ui.openSwap('paused'); },
+  /* The pause menu's Flight panel. Escape into the pause menu leaves
+   * returnTo where the run found it, so the panel names its way back. */
+  quick(ui) {
+    ui.returnTo = pauseOrTitle(ui);
+    ui.show('quick');
+  },
   'hangar-aircraft'(ui) { ui.openCraftRow(false); },
   'hangar-walk'(ui) { ui.openWalk('main'); },
   'field-walk'(ui) { ui.openWalk('field'); },
@@ -354,7 +360,7 @@ const ACTIONS = {
   rates(ui) {
     /* Reached from Settings or Quad, Back returns there; from the bench,
      * returnTo is left to the pause chain it may be carrying. */
-    if (ui.screen === 'pilot' || ui.screen === 'quad') {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
       ui.ratesFrom = ui.screen;
     } else {
       ui.ratesFrom = null;
@@ -362,9 +368,19 @@ const ACTIONS = {
     }
     ui.show('rates');
   },
+  /* A plane's rates, from the same rows: Back as the quad's Rates. */
+  planerates(ui) {
+    if (ui.screen === 'pilot' || ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.ratesFrom = ui.screen;
+    } else {
+      ui.ratesFrom = null;
+      ui.returnTo = pauseOrTitle(ui);
+    }
+    ui.show('planerates');
+  },
   pids(ui) {
-    if (ui.screen === 'quad') {
-      ui.pidsFrom = 'quad';
+    if (ui.screen === 'quad' || ui.screen === 'quick') {
+      ui.pidsFrom = ui.screen;
     } else {
       ui.pidsFrom = null;
       ui.returnTo = pauseOrTitle(ui);
@@ -589,6 +605,7 @@ const BACK_FROM = {
   /* Rates and PIDs are pages: back to the room that opened them, by
    * show() so a paused run's returnTo survives. */
   rates(ui) { return backToOrigin(ui, 'ratesFrom'); },
+  planerates(ui) { return backToOrigin(ui, 'ratesFrom'); },
   pids(ui) { return backToOrigin(ui, 'pidsFrom'); },
 };
 
