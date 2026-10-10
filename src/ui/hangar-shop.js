@@ -33,7 +33,7 @@
 import { ITEMS, itemById } from '../game/economy.js';
 import { newDecal } from '../../configs/paint.js';
 import { liveryKey } from '../../configs/liveries.js';
-import { withSlot } from './hangar-kit.js';
+import { withSlot } from '../../configs/kits.js';
 import { buyItem, fetchWallet, readWallet, signedIn } from '../share/account.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';

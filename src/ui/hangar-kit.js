@@ -21,7 +21,7 @@
  * along with the Paraguayan Drone Combat Simulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DRAWN, KIT_VERSION, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor } from '../../configs/kits.js';
+import { DRAWN, LED_PATTERNS, LIGHTS_VERSION, kitParts, lightsFor, slotsFor, withSlot } from '../../configs/kits.js';
 import { liveryKey } from '../../configs/liveries.js';
 import { airframeById } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
@@ -34,18 +34,6 @@ function button(cls, text) {
   const b = el('button', cls, text);
   b.type = 'button';
   return b;
-}
-
-/* The entry with one slot set; all stock leaves no kit at all. */
-export function withSlot(entry, family, slot, option) {
-  const parts = { ...kitParts(family, entry.kit), [slot]: option };
-  const fitted = Object.fromEntries(Object.entries(parts).filter(([, o]) => o !== 'stock'));
-  const out = { ...entry };
-  delete out.kit;
-  if (Object.keys(fitted).length) {
-    out.kit = { v: KIT_VERSION, parts: fitted };
-  }
-  return out;
 }
 
 /* The LED colours offered: the common LED strip colours, not the paint

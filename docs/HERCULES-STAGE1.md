@@ -89,6 +89,8 @@ Nelson's forms, as every derivation here uses them:
 | Cl p, Cl delta a | -0.697, 0.300 | strip theory |
 | Cn beta, Cn r, Cn delta r | 0.088, -0.120, -0.107 | the tall fin less the deep fuselage |
 | throws | 15, 15, 25 deg | ESTIMATED: no manual; a scale model's usual, well inside the full size's |
+| Cl r, Cn p (per CL) | 0.25, -0.125 | Nelson's wing estimates, CL/4 and -CL/8 |
+| Cn delta a (per CL) | -0.12 | ESTIMATED: the P-51's, a cambered section's plain ailerons; no figure published |
 
 ## What the plant can and cannot model (docs/HERCULES-CONTRACT.md)
 
@@ -124,6 +126,12 @@ A kit ships with no electronics: **Manual** is the default. Owner rule
 **AS3X** (gains by `npm run as3x:derive`: 0.148, 0.236, 0.796) and its
 **SAFE Select** (45 deg bank, 20 deg pitch, glide trim 8.22 deg and level
 stick 0.777 by `npm run stab:glide`).
+
+The loop gains behind both (the `stab_*` and `acro_*` proportional,
+derivative, feed forward and integral terms, `yaw_coord_k`) are FITTED:
+Spektrum publishes none for the AR637T, so they sit in the range the
+fleet's other gyros fly on, and `npm run stab:chop` holds the Stabilised
+glide they give against the derived one.
 
 ## The gates (tests/hercules-thresholds.json, `npm run hercules:gates`)
 
