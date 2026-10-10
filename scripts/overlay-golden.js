@@ -183,7 +183,7 @@ function stubUi() {
     events: (l) => note('score.events', JSON.stringify(l)),
     reset: () => note('score.reset'),
   };
-  for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsNote', 'resultsKicker', 'resultsHead',
+  for (const k of ['brandSub', 'titleBest', 'osdBest', 'resultsBody', 'resultsFacts', 'resultsNote', 'resultsKicker', 'resultsHead',
     'resultsHeroCap', 'resultsHeroTime', 'resultsHeroMeta', 'announcer', 'osdTopBlock',
     'osdClockLabel', 'osdTimer', 'osdGate', 'osdPack', 'osdLast', 'osdGhost', 'osdPackBar', 'osdSpeed', 'osdFlight',
     'osdFlaps', 'osdGear', 'osdLaunch', 'osdAlt', 'osdThrBar', 'osdHits', 'osdSticks',
@@ -289,7 +289,7 @@ async function snapshot() {
 
   const resultNodes = (ui) => ({
     screen: ui.screens.results, kicker: ui.resultsKicker, head: ui.resultsHead, cap: ui.resultsHeroCap,
-    time: ui.resultsHeroTime, meta: ui.resultsHeroMeta, body: ui.resultsBody, note: ui.resultsNote,
+    time: ui.resultsHeroTime, meta: ui.resultsHeroMeta, facts: ui.resultsFacts, body: ui.resultsBody, note: ui.resultsNote,
   });
   out.results = await scenario((ui, step) => {
     call(ui, 'showResults', [], null, null); step('empty', resultNodes(ui));
@@ -297,6 +297,14 @@ async function snapshot() {
     call(ui, 'showResults', [{ n: 1, ms: 42000 }, { n: 2, ms: null, reason: 'Missed\nGATE 3' }, { n: 3, ms: 39000 }], 39000, 41000, 'Beat the ghost by 0.4 s');
     step('record beaten, void lap, ghost note', resultNodes(ui));
     call(ui, 'showResults', [{ n: 1, ms: 41000 }, { n: 2, ms: 43000 }], 41000, 41000); step('matched', resultNodes(ui));
+    call(ui, 'showResults', [{ n: 1, ms: 39000 }], 39000, 41000, null, {
+      activity: 'race', aircraft: 'whoop65', fixedWing: false, result: { kind: 'record', landed: null }, route: null,
+      time: { flightMs: 64000, runMs: 39000 }, accuracy: [{ what: 'debrief.clean_laps', n: 1, of: 2 }],
+      records: [{ what: 'debrief.track_record', now: 39000, before: 41000, improved: true },
+        { what: 'debrief.aircraft_time', now: 7380, before: 7316, improved: null }],
+      replay: { ok: true, why: null }, next: ['again', 'replay', 'aircraft', 'title'],
+    });
+    step('debrief facts', resultNodes(ui));
     call(ui, 'showResults', [{ n: 1, ms: 45500 }, { n: 2, ms: 44000 }, { n: 3, ms: 50000 }], 40000, 40000); step('off the record', resultNodes(ui));
     call(ui, 'showResults', [{ n: 1, ms: 30000, score: 120 }, { n: 2, ms: 31000, score: 80 }, { n: 3, ms: null }], 29000, 29000);
     step('scored plane laps', resultNodes(ui));
