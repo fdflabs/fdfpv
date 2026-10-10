@@ -137,6 +137,15 @@ static int g_stab = 0;
  * on the first acro step after a reset or a mode change. */
 static double g_acro_q[4] = { 1.0, 0.0, 0.0, 0.0 };
 static int g_acro_held = 0;
+/* Mode 3's state: the rotation beyond what the sticks asked, per axis,
+ * the surfaces' offsets the receiver last wrote, and the time to its next
+ * frame. */
+static double g_as3x_h[3] = { 0.0, 0.0, 0.0 };
+static double g_as3x_out[3] = { 0.0, 0.0, 0.0 };
+static double g_as3x_t = 0.0;
+/* Where the aileron, elevator and rudder servos stand, rad, for a table
+ * whose servos slew (FixedWingParams.servo_rate). */
+static double g_servo[3] = { 0.0, 0.0, 0.0 };
 /* Weight on wheels, from sim.c's gear. Always 0 on an airframe without. */
 static int g_on_wheels = 0;
 /* The wheel brake, 0 to 1, sim_set_brake; sim.c's gear reads it. */
@@ -289,9 +298,16 @@ static void wquat_rotate_inv(const double q[4], const double v[3], double out[3]
 }
 
 /* AS3X's share of its gain at a stick, Spektrum's priority 160. */
-#define AS3X_PRIORITY 1.6
+/* Gone at 40 percent stick: Spektrum's priority 160, "the gain goes to 0
+ * at 40% stick input" (the AS3000 manual, p. 10). */
+#define AS3X_ZERO 0.4 /* docs/FLIGHTMODEL.md, the AS3000 manual p. 10 */
+/* The receiver writes the servos once a frame, FixedWingParams.as3x_frame.
+ * Spektrum's frames are 22, 11 and 5.5 ms, "22ms is the default setting",
+ * "Only use 11ms and 5.5 ms with digital servos" (AS3000): a table that
+ * gives none is on the default. */
+#define AS3X_FRAME_DEFAULT 0.022 /* docs/FLIGHTMODEL.md, the AS3000 manual */
 static double as3x_priority(double stick) {
-  const double g = 1.0 - AS3X_PRIORITY * sim_fabs(stick);
+  const double g = 1.0 - sim_fabs(stick) / AS3X_ZERO;
   return g > 0.0 ? g : 0.0;
 }
 
@@ -732,6 +748,14 @@ void plant_wing_reset(void) {
     g_surf[i] = 0.0;
   }
   g_acro_held = 0;
+  for (int i = 0; i < 3; i += 1) {
+    g_as3x_h[i] = 0.0;
+    g_as3x_out[i] = 0.0;
+  }
+  g_as3x_t = 0.0;
+  g_servo[0] = 0.0;
+  g_servo[1] = 0.0;
+  g_servo[2] = 0.0;
   g_on_wheels = 0;
   g_brake = 0.0;
   g_chute = 0;
@@ -1557,19 +1581,57 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   double da = surface_from_stick(roll, fw->throw_a, fw->tune ? fw->tune_expo[0] : fw->expo);
   const double rudder_stick = fw->mix == FW_MIX_RUDDER ? clamp1(yaw + roll) : yaw;
   double delta_r = -surface_from_stick(rudder_stick, fw->throw_r, fw->tune ? fw->tune_expo[2] : fw->expo);
-  /* Mode 3's damper, after the radio's expo, as the receiver adds it to
-   * the servo's command, and off on the wheels with the other modes. Each
-   * surface opposes its own rate. Spektrum's stick priority takes the
-   * damper out as the stick leaves centre, per axis: at its default, 160,
-   * "the gain goes to 0 at 40% stick input" (the AS3000 manual, p. 10),
-   * taken as falling straight from full at centre, which the manual's
-   * three points (0, 100, 200) fit; so a full stick is the full throw, as
-   * in Manual. No heading term: Spektrum's default is off. Taken only in
-   * mode 3, so every other mode's arithmetic is what it was. */
+  /*
+   * Mode 3, the gyro (scripts/as3x-derive.js): a heading lock gyro, the
+   * electronics a 3D aircraft may carry (the owner, 2026-10-08: any real
+   * electronics). Once a frame it reads the rates and writes each
+   * surface's offset, held to the next: a damper on the body's rate, and
+   * a heading term on the rotation beyond what the stick asks, its stick
+   * times as3x_rate. A centred stick holds the attitude ("Aircraft will
+   * continue to fly at its present attitude", E-flite's AS3X column, the
+   * Timber manual p. 14); a stick held turns it at the rate it asks; past
+   * 40 percent stick both fade to nothing (Spektrum's priority 160), so a
+   * full stick is Manual's. The heading is held to what the throw can
+   * answer, and it starts afresh whenever priority lets the stick have it
+   * all.
+   */
   if (g_stab == 3 && !g_on_wheels && !g_chute) {
-    da = clip(da - as3x_priority(roll) * fw->as3x_k[0] * s->omega[0], fw->throw_a);
-    de = clip(de + as3x_priority(pitch) * fw->as3x_k[1] * s->omega[1], fw->throw_e);
-    delta_r = clip(delta_r - as3x_priority(rudder_stick) * fw->as3x_k[2] * s->omega[2], fw->throw_r);
+    const double st[3] = { roll, pitch, rudder_stick };
+    const double th[3] = { fw->throw_a, fw->throw_e, fw->throw_r };
+    const double frame = fw->as3x_frame > 0.0 ? fw->as3x_frame : AS3X_FRAME_DEFAULT;
+    g_as3x_t -= WING_DT;
+    if (g_as3x_t <= 0.0) {
+      g_as3x_t += frame;
+      for (int i = 0; i < 3; i += 1) {
+        const double pr = as3x_priority(st[i]);
+        const double err = s->omega[i] - st[i] * fw->as3x_rate[i];
+        g_as3x_h[i] = pr > 0.0 ? g_as3x_h[i] + err * frame : 0.0;
+        if (fw->as3x_kh[i] > 0.0) {
+          g_as3x_h[i] = clip(g_as3x_h[i], th[i] / fw->as3x_kh[i]);
+        }
+        g_as3x_out[i] = pr * (fw->as3x_k[i] * s->omega[i] + fw->as3x_kh[i] * g_as3x_h[i]);
+      }
+    }
+    da = clip(da - g_as3x_out[0], fw->throw_a);
+    de = clip(de + g_as3x_out[1], fw->throw_e);
+    delta_r = clip(delta_r - g_as3x_out[2], fw->throw_r);
+  } else {
+    for (int i = 0; i < 3; i += 1) {
+      g_as3x_h[i] = 0.0;
+      g_as3x_out[i] = 0.0;
+    }
+    g_as3x_t = 0.0;
+  }
+  /* The servos turn at their rate, not in the step they are asked. */
+  if (fw->servo_rate > 0.0) {
+    const double cmd[3] = { da, de, delta_r };
+    const double most = fw->servo_rate * WING_DT;
+    for (int i = 0; i < 3; i += 1) {
+      g_servo[i] += clip(cmd[i] - g_servo[i], most);
+    }
+    da = g_servo[0];
+    de = g_servo[1];
+    delta_r = g_servo[2];
   }
   double delta_e;
   if (fw->mix == FW_MIX_ELEVON) {
@@ -4319,7 +4381,14 @@ const FixedWingParams FW_EXTRA3D1308 = {
    * (src/render/extracraft.js, PROP_S to CG_S at the manual's CG). */
   .jet_kj = 0.80,
   .prop_x = 0.302,
-  .as3x_k = { 0.028, 0.1224, 0.1842 },
+  /* E-flite publishes no speed for the Extra's 23 g digital servo
+   * (EFL11598); Hitec's D89MW, a 25 g digital servo of its class, is
+   * "0.11 sec @ 60 deg" at 6 V (hitecrcd.com), 9.52 rad/s. */
+  .servo_rate = 9.52,   /* 0.11 s per 60 deg, https://hitecrcd.com (D89MW), docs/FLIGHTMODEL.md */
+  .as3x_frame = 0.011,  /* the servos are digital: Spektrum's 11 ms frame, docs/FLIGHTMODEL.md */
+  .as3x_k = { 0.0508, 0.2369, 0.3611 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.9068, 4.2287, 6.4456 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.171, -4.445, -5.207 }, /* npm run as3x:derive */
   .yaw_coord_k = 0.25,    /* the Cub's 3.0 over a rudder twelve times its authority */
   /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
   .stall_arm_ac = 0.0018, /* the manual's 95 mm is the wing's aerodynamic centre, near enough */
@@ -4436,7 +4505,9 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .acro_roll_ki = 4.0,
   .acro_pitch_ki = 8.0,
   .acro_i_max = 0.30,
-  .as3x_k = { 0.0934, 0.2367, 0.6655 }, /* npm run as3x:derive */
+  .as3x_k = { 0.0902, 0.233, 0.6616 }, /* npm run as3x:derive */
+  .as3x_kh = { 0.805, 2.0795, 5.9048 }, /* npm run as3x:derive */
+  .as3x_rate = { 7.363, -6.344, -2.546 }, /* npm run as3x:derive */
   .yaw_coord_k = 1.0,     /* the Timber's 2.0 over a rudder twice its authority */
   /* The flaps: E-flite's 30 and 55 mm at the trailing edge of a 93 mm
    * plain flap, 18.8 and 36.2 degrees, across in 2 s (the manual's

@@ -210,24 +210,36 @@ check: {
     gate('E9', 'full right aileron in the wash beats the torque', r9.p > 0 && within(r9.p, th.e9_aileron_hover), `${r9.p.toFixed(0)} deg/s ${r9.p > 0 ? 'right' : 'LEFT'}, nose ${r9.pitch.toFixed(1)} deg`, `${th.e9_aileron_hover.min} to ${th.e9_aileron_hover.max} right`);
   }
 
-  /* E10: hanging still, one full stick for 20 ms from rest at the hover
-   * throttle, and again with the prop stopped: the first angular
-   * acceleration, nose up positive and nose right positive. */
+  /* E10: hanging still, one full stick from rest at the hover throttle,
+   * and again with the prop stopped: the angular acceleration once the
+   * surface is over, nose up positive and nose right positive. */
   {
     const t10 = th.e10_zero_speed;
     const kick = (sticks, throttle) => {
       hanging(sim);
       /* The prop spun up and the wash formed: held still at the throttle
        * for a second, ten of the motor's time constants (prop_spool,
-       * docs/FLIGHTMODEL.md), then the stick steps. */
+       * docs/FLIGHTMODEL.md), then the stick steps. The servos slew
+       * (servo_rate): the stick held 120 ms with the aircraft held still,
+       * past the 70 ms the elevator's 40 deg takes, then let go for the
+       * next 20 ms. */
       for (let ms = 0; ms < 1000; ms += RC_STEP_MS) {
         must(sim.e.sim_set_pose(0, 600, 60, H, 0, -H, 0), 'sim_set_pose');
         must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
         step(sim, [0, 0, 0, throttle]);
       }
       let s = sim.readState().state;
+      const pose = [s[1], s[2], s[3], s[7], s[8], s[9], s[10]];
+      for (let ms = 0; ms < 120; ms += RC_STEP_MS) {
+        must(sim.e.sim_set_pose(...pose), 'sim_set_pose');
+        must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+        s = step(sim, [...sticks, throttle]);
+      }
+      must(sim.e.sim_set_pose(...pose), 'sim_set_pose');
+      must(sim.e.sim_set_velocity(0, 0, 0, 0, 0, 0), 'sim_set_velocity');
+      const s0 = sim.readState().state;
       for (let ms = 0; ms < 20; ms += RC_STEP_MS) s = step(sim, [...sticks, throttle]);
-      return { q: -s[12] / 0.020, r: -s[13] / 0.020 };
+      return { q: -(s[12] - s0[12]) / 0.020, r: -(s[13] - s0[13]) / 0.020 };
     };
     const hoverDuty = Math.sqrt(1.51 * 9.81 / 37.86);
     const up = kick([0, 1, 0], hoverDuty);

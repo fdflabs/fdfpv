@@ -74,7 +74,12 @@ window.__T = { log: [], done: false };
    * elevator for where the rudder was a quarter turn ago. */
   const KP = 5, KR = 0.3, KI = 1.5;
   /* The person: hover-probe.js's limits and one of its pilots. */
-  const LAG = 0.2, EVERY = 0.1, SETTLE = 3, H = { kp: 1, kd: 0.2, kr: 0.1, kv: 0.3, kt: 0.1 };
+  const LAG = 0.2, EVERY = 0.1, SETTLE = 3, H = '${mode}'.startsWith('video')
+    /* The video runs' person flies each mode with the gains that hold it
+     * steadiest in hover-probe's grid, as a pilot settles into an
+     * aircraft: gentle on the gyro, firmer in Manual. */
+    ? ('${mode}'.includes('as3x') ? { kp: 0.2, kd: 0.1, kr: 0.1, kv: 0.1, kt: 0.05 } : { kp: 0.4, kd: 0.2, kr: 0.3, kv: 0.2, kt: 0.05 })
+    : { kp: 1, kd: 0.2, kr: 0.1, kv: 0.3, kt: 0.1 };
   const Y = { x: 0, y: 1, z: 0 };
   const q = (x) => clamp(Math.round(x * 50) / 50);
   const seen = [];
@@ -137,11 +142,17 @@ window.__T = { log: [], done: false };
         lu: c.up.x * c.vel.x + c.up.z * c.vel.z, ll: axes(c).left.x * c.vel.x + axes(c).left.z * c.vel.z });
       const off = Math.acos(clamp(c.fwd.y)) * 180 / Math.PI;
       if (T.heldS === undefined) { T.heldS = SETTLE; T.worst = 0; T.bearing = []; }
-      if (t >= SETTLE && T.heldS >= t - 0.05 && off < 20 && Math.abs(c.worldY - hT) < 10) {
+      /* The height is judged from where the person has caught it, not
+       * from the hand over mid climb. */
+      if (t >= SETTLE && T.hJudge === undefined) { T.hJudge = c.worldY; hT = c.worldY; }
+      /* Held so far: every frame since the judging began inside the bounds,
+       * however far apart the page's frames come. */
+      if (t >= SETTLE && T.heldS === T.lastT && off < 20 && Math.abs(c.worldY - T.hJudge) < 10) {
         T.heldS = t;
         T.worst = Math.max(T.worst, off);
         T.bearing.push(Math.atan2(c.camera.z - c.worldZ, c.camera.x - c.worldX));
       }
+      T.lastT = t >= SETTLE ? t : SETTLE;
       if (t - lastAct >= EVERY) {
         lastAct = t;
         const d = [...seen].reverse().find((x) => x.t <= now - LAG);
@@ -152,7 +163,9 @@ window.__T = { log: [], done: false };
           /* The video's way (3D-VIDEO-LESSONS 5b): the ailerons keep the
            * torque roll at a slow 75 deg/s to the left, not at nothing. */
           const pT = '${mode}'.startsWith('video') ? -75 * Math.PI / 180 : 0;
-          trim = clamp(trim - 0.3 * EVERY * (d.p - pT));
+          /* On the gyro the person leaves the torque to its heading term and
+           * trims nothing; in Manual they learn to hold it on the stick. */
+          trim = '${mode}'.includes('as3x') ? 0 : clamp(trim - 0.3 * EVERY * (d.p - pT));
           const lean = (v) => clamp(H.kv * v, -0.3, 0.3);
           hs = [q(trim - H.kr * (d.p - pT)), q(H.kp * (d.ep - lean(d.lu)) + H.kd * (d.ep - was.ep) / dt2),
             q(-H.kp * (d.ey - lean(d.ll)) - H.kd * (d.ey - was.ey) / dt2), Math.max(0, q(base - H.kt * d.vz))];

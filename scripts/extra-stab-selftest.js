@@ -196,14 +196,31 @@ const pullRates = bothModes((mode) => {
   return fly(0, 1, 0, 1.0, 0.5).q;
 });
 check('full up stick pitches at Manual\'s rate, within 2 percent: no cap', Math.abs(pullRates.as3x / pullRates.manual - 1) < 0.02, `${deg(pullRates.as3x)} against ${deg(pullRates.manual)} deg/s`);
-const released = bothModes((mode) => {
-  throwAt(120, 16);
-  fly(0, 0, 0, 1.0, 1);
-  mode();
-  fly(0, 1, 0, 1.0, 0.3);
-  return Math.abs(fly(0, 0, 0, 1.0, 0.1).q);
-});
-check('centred after a pull, the pitch rate 0.1 s on is below Manual\'s: it damps', released.as3x < released.manual, `${deg(released.as3x)} against ${deg(released.manual)} deg/s`);
+const HOVER_DUTY = 0.625;
+for (const [where, pose, speed, duty] of [['hanging on the prop', [Math.SQRT1_2, 0, -Math.SQRT1_2, 0], 0, HOVER_DUTY], ['level at 16 m/s', [1, 0, 0, 0], 16, 0.75]]) {
+  for (const [axis, k] of [['roll', 11], ['pitch', 12], ['yaw', 13]]) {
+    const turned = bothModes((mode) => {
+      mode();
+      must(sim.reset(), 'reset');
+      clockMs = 0;
+      extraPrelude(sim);
+      must(sim.e.sim_set_pose(0, 0, 120, ...pose), 'pose');
+      if (speed > 0) must(sim.e.sim_wing_launch(speed), 'launch');
+      fly(0, 0, 0, duty, 0.3);
+      const s = sim.readState().state;
+      const w = [s[11], s[12], s[13]];
+      w[k - 11] += 1;
+      must(sim.e.sim_set_velocity(s[4], s[5], s[6], ...w), 'kick');
+      let angle = 0;
+      for (let i = 0; i < 125; i += 1) {
+        fly(0, 0, 0, duty, 0.004);
+        angle += (sim.readState().state[k] - s[k]) * 0.004;
+      }
+      return Math.abs(angle);
+    });
+    check(`${where}, sticks centred, a 1 rad/s ${axis} kick: it turns less in 0.5 s under AS3X than Manual`, turned.as3x < turned.manual, `${deg(turned.as3x)} against ${deg(turned.manual)} deg`);
+  }
+}
 must(sim.e.sim_wing_set_stab(3), 'set as3x');
 throwAt(120, 16);
 fly(0, 0, 0, 1.0, 1);
@@ -222,24 +239,26 @@ check('with the stabiliser off, full stick rolls past the 60 degree cap', manual
 must(sim.reset(), 'reset');
 check('a reset keeps the setting', sim.e.sim_wing_stab() === 0);
 
+/* The servos slew (servo_rate, 8 rad/s): each stick is held 0.15 s, past
+ * the 0.12 s the rudder's 55 deg takes, before the surfaces are read. */
 console.log('surfaces');
 throwAt(30, 13);
 const A = 36.53 / DEG;
 const T = 39.67 / DEG;
 const R = 55.05 / DEG;
 const close = (a, b) => Math.abs(a - b) < 1e-12;
-fly(1, 0, 0, 0.5, 0.02);
+fly(1, 0, 0, 0.5, 0.15);
 let sf = surfaces();
 check('full right roll: right aileron trailing edge up 36.5 degrees, left down 36.5', close(sf[1], A) && close(sf[0], -A) && sf[2] === 0 && sf[3] === 0, sf.map(deg).join(' '));
 const ws = wingSurfaces();
 check('and sim_wing_surfaces reads the same two ailerons', ws[0] === sf[0] && ws[1] === sf[1], ws.map(deg).join(' '));
-fly(0, 1, 0, 0.5, 0.02);
+fly(0, 1, 0, 0.5, 0.15);
 sf = surfaces();
 check('full up: elevator trailing edge up 39.7 degrees, ailerons still', close(sf[2], T) && sf[0] === 0 && sf[1] === 0, sf.map(deg).join(' '));
-fly(0, 0, 1, 0.5, 0.02);
+fly(0, 0, 1, 0.5, 0.15);
 sf = surfaces();
 check('full right yaw: rudder trailing edge right, 55 degrees negative', close(sf[3], -R), sf.map(deg).join(' '));
-fly(0, 0, -0.5, 0.5, 0.02);
+fly(0, 0, -0.5, 0.5, 0.15);
 sf = surfaces();
 check('half left yaw: rudder trailing edge left, positive, with expo', sf[3] > 0 && sf[3] < 0.5 * R, sf.map(deg).join(' '));
 check('a null pointer is refused', sim.e.sim_plane_surfaces(0) !== SIM_OK);
@@ -297,10 +316,10 @@ for (const [mode, name] of [[1, 'Stabilised'], [3, 'AS3X']]) {
   const moved = Math.abs(attitude(sit.s).pitch - attitude(rest0).pitch) * DEG;
   check(`${name}, sitting on the grass for 5 s: every surface where the centred sticks put it`, sit.worstSurf.every((x) => x === 0), sit.worstSurf.map(deg).join(' '));
   check('and the aircraft has not moved: pitch within 0.5 degrees, still on its wheels', moved < 0.5 && wheelLoads(sim).slice(0, 3).every((f) => f > 0), `moved ${moved.toFixed(2)} deg`);
-  const held = roll((ms) => [ms < 2000 ? 1 : 0, ms < 2000 ? 1 : 0, 0, 0], 2.02);
+  const held = roll((ms) => [ms < 2000 ? 1 : 0, ms < 2000 ? 1 : 0, 0, 0], 2.15);
   const sf = surfaces();
   check('full right and up stick held 2 s on the ground is full aileron and elevator, nothing more', Math.abs(held.worstSurf[1] - A) < 1e-9 && Math.abs(held.worstSurf[2] - T) < 1e-9 && sf.every((x) => x === 0), `${held.worstSurf.map(deg).join(' ')}, then ${sf.map(deg).join(' ')}`);
-  check('and no wind up: released, every surface is back at zero on the next step', sf.every((x) => x === 0), sf.map(deg).join(' '));
+  check('and no wind up: released, every surface is back at zero within the servos\' 0.15 s', sf.every((x) => x === 0), sf.map(deg).join(' '));
 }
 
 /* The take off roll at full throttle. On its wheels every mode flies as

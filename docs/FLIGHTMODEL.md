@@ -1001,6 +1001,67 @@ a heading term would do, and Spektrum's receivers carry one ("Heading",
 off by default on the AS3000). Whether the Extra's factory set up (an
 AR636) has it on, and how much, is not published; it is left out until
 that set up is sourced.
+
+## The Extra's gyro: a heading lock
+
+The owner (2026-10-08): "you dont need to be tied to specific receiver
+specs just assume you can use any electronics in there, but make the
+physics and behavior work". So mode 3, the Extra's default, is a heading
+lock gyro, the kind 3D aircraft and helicopter tails fly on, built as
+E-flite describes AS3X behaving (the Timber manual's AS3X column: stick
+neutral, "Aircraft will continue to fly at its present attitude"; small
+stick, it rolls or pitches slowly; full stick, rapidly):
+
+- Once an 11 ms servo frame (Spektrum's frame for digital servos; the
+  Extra's are digital) it reads the rates and writes each surface's
+  offset, held to the next frame.
+- A damper on the body's rate, as3x_k, and a heading term, as3x_kh, on
+  the rotation beyond what the stick asks: the stick times as3x_rate,
+  the airframe's own turn per stick, the larger of level at 16 m/s and
+  hanging on the prop, so the gyro never holds the stick to less than
+  the aircraft gives it. Centred it holds the attitude against the
+  torque and the gusts; held it turns at the rate asked.
+- Both fade as the stick leaves centre and are gone at 40 percent
+  (Spektrum's priority 160), so a full stick is Manual's.
+- The servos slew at 9.52 rad/s, in every mode: E-flite publishes no
+  speed for the Extra's 23 g digital servo (EFL11598); Hitec's D89MW, a
+  25 g digital servo of its class, is "0.11 sec @ 60 deg" at 6 V.
+- Gains from as3x:derive: the rate loop at its 6 dB margin at the top
+  speed against the frame's delay, k = pi / (4 M tau), 0.0508, 0.2369,
+  0.3611; the heading's corner a quarter of that loop's crossover, kh =
+  k pi / (16 tau), 0.9068, 4.2287, 6.4456; as3x_rate 7.171, -4.445, -5.207
+  rad/s per unit stick (as3x:derive on the spun up plant, 2026-10-10). A 1 rad/s kick at 35 m/s settles on every axis
+  (as3x:derive checks it); at a 5.5 ms frame the same derivation's gains
+  oscillate in yaw against the servos' slew, so 11 it is.
+
+Considered and not built:
+- A pure attitude hold under 40 percent stick (the rotation itself
+  integrated, not the rotation beyond the stick's). It is the easiest
+  hover, 379 of 648 person-paced pilots, but it un-rolls a 35 deg bank
+  the pilot made with 35 percent stick (extra:stab's "not levelled"
+  gate, 35 to 1.5 deg), and no real gyro does that.
+- Heading off on yaw (Spektrum's advice for normal flight). The nose
+  in the hover is held on the elevator and the rudder alike, and the
+  yaw term is most of the gyro's help there; a heading lock on the
+  rudder makes a turn flown on the ailerons alone skid, as on every
+  heading lock aircraft, so the rudder goes in with the turn.
+
+Gated in extra:stab: a 1 rad/s kick on each axis with the sticks centred,
+hanging on the prop and level at 16 m/s, turns the Extra less in 0.5 s
+than in Manual (hanging: roll 7.7 against 24.0 deg, pitch 8.0 against
+63.2, yaw 0.1 against 8.1); full stick is Manual's rate within 2
+percent; a bank it is left in stays.
+
+The person-paced hover (hover:probe's limits, the video's technique, a
+slow torque roll, no hand trim; 648 pilots): Manual 72, the gyro 158,
+holding with a mean aileron of 0.12; in a 2 m/s breeze gusting 1 m/s
+RMS (ESTIMATED, the video's "wind pushes it around"), Manual 0, the gyro
+132. The owner's morning target is 70 percent of them; with real
+electronics on this physics it is 24. The
+pure attitude hold above is 58 percent. What separates them is the
+pilot model: it sees 0.2 s late and does not anticipate (analysis pass 2
+counts 96, 52 and 8 of its 336 at 0.12, 0.2 and 0.3 s), so a person
+practised on the aircraft does better than the grid.
 ## A prop spins up
 
 The owner noticed the throttle reaches the thrust in the step it is
