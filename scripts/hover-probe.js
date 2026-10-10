@@ -17,7 +17,7 @@
  *
  *   node scripts/hover-probe.js [--only key,...]
  *
- * Per aircraft, in Manual and in the mode its default tune flies:
+ * Per aircraft, in every mode its Tune row offers, the default marked *:
  *
  *   TW      thrust over weight at full throttle, nose up, as
  *           flightmodel-probe.js's
@@ -49,7 +49,7 @@ import { fileURLToPath } from 'node:url';
 
 import { TABLE } from '../configs/power.js';
 import { AIRFRAMES } from '../configs/airframes.js';
-import { tuneById } from '../configs/registry.js';
+import { tunesFor } from '../configs/registry.js';
 import { loadSim } from '../tests/lib/simmod.js';
 import { wingDebug, must } from '../tests/lib/wingpilot.js';
 
@@ -183,11 +183,7 @@ const pilots = grid();
 for (const af of planes()) {
   if (only && !only.has(af.id)) continue;
   const sim = await planeSim(af);
-  const own = tuneById(af.defaultTune);
-  const modes = [[0, 'Manual']];
-  if ((own.wingStab || 0) !== 0) {
-    modes.push([own.wingStab, own.name]);
-  }
+  const modes = tunesFor(af.id).map((t) => [t.wingStab || 0, `${t.name}${t.id === af.defaultTune ? ' *' : ''}`]);
   const ratio = tw(sim, af);
   if (!(ratio > 0)) {
     continue;

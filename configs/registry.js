@@ -41,12 +41,13 @@ import { AIRFRAMES } from './airframes.js';
 
 export const TUNES = [
   {
-    /* The flying wing's three, which fly the Bramor C4EYE since it took
-     * the 1000 mm wing's place (configs/airframes.js). The ids stayed, so a
-     * profile that picked one on the old wing keeps its mode. The
-     * controller is the stabiliser in plant_wing.c, not Betaflight, which
-     * has no wing mode: the diff is the stock one, parsed and ignored, and
-     * the row is what switches the stabiliser. */
+    /* The Bramor's, which fly the C4EYE since it took the 1000 mm wing's
+     * place (configs/airframes.js); the ids stayed, so a profile keeps
+     * its mode. The real aircraft flies its own autopilot, so Stabilised
+     * is its default and the autopilot has no acro mode to offer (OWNER
+     * 2026-10-08: modes are real controllers only). The diff is the
+     * stock one, parsed and ignored: the row is what switches
+     * plant_wing.c's stabiliser, Betaflight has no wing mode. */
     id: 'wing-stab',
     airframe: 'bramor2300',
     name: 'Stabilised',
@@ -54,38 +55,29 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    /* The stabiliser's acro mode, the same diff parsed and ignored. */
-    id: 'wing-acro',
-    airframe: 'bramor2300',
-    name: 'Acro',
-    note: 'A gyro holds the wing where you leave it. Sticks ask for a roll rate up to 90 degrees a second and a pitch rate up to 40, and centred sticks hold the attitude: no levelling, no limits, no drift.',
-    wingStab: 2,
-  },
-  {
-    /* The same diff, parsed and ignored, with the stabiliser off: the
-     * sticks are the elevons, 6 degrees of pitch and 10 of roll at full
-     * stick with a little expo, all in plant_wing.c. */
     id: 'wing-manual',
     airframe: 'bramor2300',
     name: 'Manual',
     note: 'No flight controller. The sticks are the elevons: 6 degrees of pitch and 10 of roll at full stick, with a little expo.',
   },
   {
-    /* The Skyhunter's three, the same stabiliser modes on its own plant.
-     * With a rudder, Stabilised and Acro add a turn coordinator to the
-     * yaw stick; Manual is the four surfaces straight from the sticks. */
-    id: 'sky-stab',
-    airframe: 'sky1800',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
+    /* The Skyhunter is a kit, and the flight controller its builders fit
+     * is INAV, whose ACRO this Acro is: rates at INAV's defaults,
+     * roll_rate and pitch_rate 20 (200 deg/s), above anything its
+     * surfaces reach, so a full stick is never capped
+     * (docs/CONTROLLERS.md). Stabilised is INAV's ANGLE. */
     id: 'sky-acro',
     airframe: 'sky1800',
     name: 'Acro',
     note: 'A gyro holds the plane where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
     wingStab: 2,
+  },
+  {
+    id: 'sky-stab',
+    airframe: 'sky1800',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
   },
   {
     id: 'sky-manual',
@@ -94,9 +86,23 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder.',
   },
   {
-    /* The Cub's three, the stabiliser's modes on its own plant. On its
-     * wheels every mode flies as Manual, so a taxi or a takeoff roll is
-     * the sticks, and the modes take over once it is off the ground. */
+    /* The Cub's: the FMS 1400 mm PNP has no gyro (FMS sells a Reflex
+     * combo apart), so Manual is the default; AS3X and Stabilised are
+     * electronics a pilot may fit. On its wheels every mode flies as
+     * Manual. */
+    id: 'cub-manual',
+    airframe: 'cub1400',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel.',
+  },
+  {
+    id: 'cub-as3x',
+    airframe: 'cub1400',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
     id: 'cub-stab',
     airframe: 'cub1400',
     name: 'Stabilised',
@@ -104,21 +110,21 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'cub-acro',
-    airframe: 'cub1400',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'cub-manual',
-    airframe: 'cub1400',
+    /* The Radian Pro (PKZ5475) is a PNP with no gyro, so Manual is the
+     * default. The throttle folds the prop in every mode. */
+    id: 'radian-manual',
+    airframe: 'radian2000',
     name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel.',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop.',
   },
   {
-    /* The Radian's three, the stabiliser's modes on its own plant. The
-     * throttle folds the prop in every mode: closed, it glides. */
+    id: 'radian-as3x',
+    airframe: 'radian2000',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate. Close the throttle and it glides.',
+    wingStab: 3,
+  },
+  {
     id: 'radian-stab',
     airframe: 'radian2000',
     name: 'Stabilised',
@@ -126,39 +132,19 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'radian-acro',
-    airframe: 'radian2000',
-    name: 'Acro',
-    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. Close the throttle and it glides.',
-    wingStab: 2,
-  },
-  {
-    id: 'radian-manual',
-    airframe: 'radian2000',
+    /* The NRJ, an F3K glider: a receiver and four servos, no gyro, so
+     * Manual. There is no throttle to close; the stick up throws it. */
+    id: 'nrj-manual',
+    airframe: 'nrj1490',
     name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop.',
+    note: 'No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top.',
   },
   {
-    /* The NRJ's three, the Radian's: the stabiliser's modes on its own
-     * plant. There is no throttle to close; the stick up throws it. */
     id: 'nrj-stab',
     airframe: 'nrj1490',
     name: 'Stabilised',
     note: 'A gyro holds the glider. Roll stick asks for a bank up to 50 degrees, pitch stick for a pitch up to 30, centred sticks glide level, and the rudder is coordinated for you. The launch preset holds the climb after the throw.',
     wingStab: 1,
-  },
-  {
-    id: 'nrj-acro',
-    airframe: 'nrj1490',
-    name: 'Acro',
-    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. After the throw it holds the climb until you push over.',
-    wingStab: 2,
-  },
-  {
-    id: 'nrj-manual',
-    airframe: 'nrj1490',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top.',
   },
   {
     /* The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own
@@ -187,11 +173,23 @@ export const TUNES = [
     note: 'Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo.',
   },
   {
-    /* The Slow Stick's three. It has no ailerons, so in every mode the
-     * roll stick works the rudder and the stabiliser's roll loop does too;
-     * there is no turn coordinator. On its wheels every mode flies as
-     * Manual, as the Cub's does. Manual is where its dihedral shows: let
-     * go and it levels itself. */
+    /* The Slow Stick, a GWS kit with a receiver and servos and no gyro:
+     * Manual. It has no ailerons, so the gyro's roll term has no surface
+     * and AS3X damps pitch and yaw only; Stabilised's roll loop works
+     * the rudder. On its wheels every mode flies as Manual. */
+    id: 'slowstick-manual',
+    airframe: 'slowstick1180',
+    name: 'Manual',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the tailwheel, and the pitch stick the elevator. Let go and the dihedral levels the wings.',
+  },
+  {
+    id: 'slowstick-as3x',
+    airframe: 'slowstick1180',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder, and the gyro damps pitch and yaw against the rate the plane is turning at, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
     id: 'slowstick-stab',
     airframe: 'slowstick1180',
     name: 'Stabilised',
@@ -199,35 +197,16 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'slowstick-acro',
-    airframe: 'slowstick1180',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate, flown on the rudder, and a pitch rate, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
-    wingStab: 2,
-  },
-  {
-    id: 'slowstick-manual',
-    airframe: 'slowstick1180',
-    name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the tailwheel, and the pitch stick the elevator. Let go and the dihedral levels the wings.',
-  },
-  {
-    /* The Timber's three, the Cub's: on its wheels every mode flies as
-     * Manual, and the modes take over once it is off the ground. The flaps
-     * are a switch on top of every mode, F, with the radio's down elevator
-     * mix in all three. */
-    id: 'timber-stab',
+    /* The Timber's are the real aircraft's: E-flite's BNF receiver flies
+     * AS3X with SAFE Select off unless bound for it, so AS3X is the
+     * default and SAFE Select the beginner bind. On its wheels every
+     * mode flies as Manual; the flaps are a switch on top of every mode,
+     * F. */
+    id: 'timber-as3x',
     airframe: 'timber1500',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. F sets the flaps.',
-    wingStab: 1,
-  },
-  {
-    id: 'timber-acro',
-    airframe: 'timber1500',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone. F sets the flaps.',
-    wingStab: 2,
+    name: 'AS3X',
+    note: 'E-flite\'s gyro, as the Timber ships. The sticks are the surfaces, and the gyro damps the bumps against the rate the plane is turning at; it fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate. F sets the flaps.',
+    wingStab: 3,
   },
   {
     id: 'timber-manual',
@@ -236,11 +215,29 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tailwheel. F sets the flaps, with a little down elevator mixed in as the radio would.',
   },
   {
-    /* The Bombshell's three, the Slow Stick's: no ailerons, so in every
-     * mode the roll stick works the rudder and the stabiliser's roll loop
-     * does too, with no turn coordinator; on its wheels every mode flies
-     * as Manual. Manual is where an old timer's character is: let go and
-     * the polyhedral levels it. */
+    id: 'timber-stab',
+    airframe: 'timber1500',
+    name: 'SAFE Select',
+    note: 'E-flite\'s beginner bind, once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. F sets the flaps.',
+    wingStab: 1,
+  },
+  {
+    /* The Bombshell, a balsa kit on a Cox .049: no gyro, Manual. No
+     * ailerons, so AS3X damps pitch and yaw only and Stabilised's roll
+     * loop works the rudder. On its wheels every mode flies as Manual. */
+    id: 'bombshell-manual',
+    airframe: 'bombshell1118',
+    name: 'Manual',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder and the pitch stick the elevator; the tail skid does not steer. Let go and the polyhedral levels the wings. Throttle closed, the engine idles.',
+  },
+  {
+    id: 'bombshell-as3x',
+    airframe: 'bombshell1118',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder, and the gyro damps pitch and yaw, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate. Throttle closed, the engine idles.',
+    wingStab: 3,
+  },
+  {
     id: 'bombshell-stab',
     airframe: 'bombshell1118',
     name: 'Stabilised',
@@ -248,23 +245,22 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'bombshell-acro',
-    airframe: 'bombshell1118',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 45 degrees a second, flown on the rudder, and a pitch rate up to 30, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
-    wingStab: 2,
-  },
-  {
-    id: 'bombshell-manual',
-    airframe: 'bombshell1118',
+    /* The Kadet Senior, a SIG kit: no gyro, Manual. No ailerons, so AS3X
+     * damps pitch and yaw only. On its wheels every mode flies as
+     * Manual. */
+    id: 'kadet-manual',
+    airframe: 'kadet1981',
     name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder and the pitch stick the elevator; the tail skid does not steer. Let go and the polyhedral levels the wings. Throttle closed, the engine idles.',
+    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
   },
   {
-    /* The Kadet's three, the Bombshell's: no ailerons, so in every mode
-     * the roll stick works the rudder and the stabiliser's roll loop does
-     * too, with no turn coordinator; on its wheels every mode flies as
-     * Manual, and the rudder steers the nose wheel. */
+    id: 'kadet-as3x',
+    airframe: 'kadet1981',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevator and the rudder, and the gyro damps pitch and yaw, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
     id: 'kadet-stab',
     airframe: 'kadet1981',
     name: 'Stabilised',
@@ -272,24 +268,21 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'kadet-acro',
-    airframe: 'kadet1981',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 25 degrees a second, flown on the rudder, and a pitch rate up to 60, and centred sticks hold the attitude. It will not roll inverted: a rudder cannot do that.',
-    wingStab: 2,
-  },
-  {
-    id: 'kadet-manual',
-    airframe: 'kadet1981',
+    /* The Ugly Stik, RCM's kit: no gyro, Manual. On its wheels every
+     * mode flies as Manual, the rudder steering the nose wheel. */
+    id: 'uglystik-manual',
+    airframe: 'uglystik1567',
     name: 'Manual',
-    note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
   },
   {
-    /* The Ugly Stik's three, the Cub's on its own plant: ailerons,
-     * elevator and rudder at RCM's travel limits; on its wheels every mode
-     * flies as Manual, and the rudder steers the nose wheel. Manual is
-     * where a sport aerobat is flown: it holds a bank, rolls on its
-     * ailerons and wants a push on its back. */
+    id: 'uglystik-as3x',
+    airframe: 'uglystik1567',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
     id: 'uglystik-stab',
     airframe: 'uglystik1567',
     name: 'Stabilised',
@@ -297,24 +290,22 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'uglystik-acro',
-    airframe: 'uglystik1567',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 80 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'uglystik-manual',
-    airframe: 'uglystik1567',
+    /* The Tiger Moth, Great Planes' GPMA1330 ARF on a glow two stroke:
+     * no gyro in the box, Manual. On its wheels every mode flies as
+     * Manual. */
+    id: 'tigermoth-manual',
+    airframe: 'tigermoth1803',
     name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
+    note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
   },
   {
-    /* The Tiger Moth's three, the Cub's on its own plant: ailerons,
-     * elevator and rudder at Great Planes' high rate; on its wheels every
-     * mode flies as Manual, and the rudder turns the tail wheel. Stabilised
-     * is the default: the turn coordinator puts in the rudder its adverse
-     * yaw asks for, which in Manual is the pilot's. */
+    id: 'tigermoth-as3x',
+    airframe: 'tigermoth1803',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate. The adverse yaw is still yours to feed rudder against.',
+    wingStab: 3,
+  },
+  {
     id: 'tigermoth-stab',
     airframe: 'tigermoth1803',
     name: 'Stabilised',
@@ -322,18 +313,6 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'tigermoth-acro',
-    airframe: 'tigermoth1803',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 75 degrees a second and a pitch rate up to 45, centred sticks hold the attitude, and the rudder stick is the rudder alone: bank on the ailerons and the nose still swings the wrong way until you feed in rudder.',
-    wingStab: 2,
-  },
-  {
-    id: 'tigermoth-manual',
-    airframe: 'tigermoth1803',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
-  },  {
     /* The Extra's three are the real aircraft's: E-flite's receiver flies
      * AS3X out of the box, a rate damper with no self levelling and no
      * caps ("When the normal bind process is followed, the SAFE Select
@@ -363,10 +342,22 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    /* The P-51's three, the Timber's: ailerons, elevator and rudder, the
-     * flaps and the retracts switches on top of every mode, F and G; on
-     * its wheels every mode flies as Manual, so the swing on the take off
-     * roll is the pilot's to hold with the rudder in all three. */
+    /* The P-51, FMS's V8 PNP: no gyro (FMS sells a Reflex version
+     * apart), Manual. G works the retracts, F the flaps, in every mode;
+     * on its wheels every mode flies as Manual. */
+    id: 'p51-manual',
+    airframe: 'p51d1450',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
+  },
+  {
+    id: 'p51-as3x',
+    airframe: 'p51d1450',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate. G works the retracts, F the flaps.',
+    wingStab: 3,
+  },
+  {
     id: 'p51-stab',
     airframe: 'p51d1450',
     name: 'Stabilised',
@@ -374,24 +365,21 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'p51-acro',
-    airframe: 'p51d1450',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 120 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, and the rudder stick is the rudder alone. G works the retracts, F the flaps.',
-    wingStab: 2,
-  },
-  {
-    id: 'p51-manual',
-    airframe: 'p51d1450',
+    /* The F-16, Freewing's PNP: no gyro, Manual. The fan is the pilot's
+     * in every mode. */
+    id: 'f16-manual',
+    airframe: 'f16878',
     name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
+    note: 'No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed.',
   },
   {
-    /* The F-16's three, the Cub's pattern: ailerons, the stabilators and
-     * a rudder, the turn coordinator in Stabilised, and on its wheels
-     * every mode flies as Manual, the rudder steering the nose wheel. The
-     * fan is the pilot's in every mode: none of them touches the
-     * throttle. */
+    id: 'f16-as3x',
+    airframe: 'f16878',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one, which any plane can carry: the sticks are the surfaces and the gyro damps the bumps against the rate the plane is turning at. It fades out as the stick leaves centre, so full stick is full throw. Nothing levels it and nothing caps a rate.',
+    wingStab: 3,
+  },
+  {
     id: 'f16-stab',
     airframe: 'f16878',
     name: 'Stabilised',
@@ -399,21 +387,21 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'f16-acro',
-    airframe: 'f16878',
-    name: 'Acro',
-    note: 'A gyro holds the jet where you leave it once it is off the ground. Sticks ask for a roll rate up to 300 degrees a second and a pitch rate up to 120, and centred sticks hold the attitude, inverted too.',
-    wingStab: 2,
-  },
-  {
-    id: 'f16-manual',
-    airframe: 'f16878',
+    /* The Zagi HP, a kit wing: no gyro, Manual. No rudder, so AS3X damps
+     * roll and pitch only and the yaw stick does nothing. */
+    id: 'zagi-manual',
+    airframe: 'zagi1219',
     name: 'Manual',
-    note: 'No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed.',
+    note: 'No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone.',
   },
   {
-    /* The Zagi's three, the flying wing's modes on its own plant. It has
-     * no rudder, so the yaw stick does nothing in any of them. */
+    id: 'zagi-as3x',
+    airframe: 'zagi1219',
+    name: 'AS3X',
+    note: 'A Spektrum AS3X receiver fitted in place of a plain one: the sticks are the elevons and the gyro damps roll and pitch, fading out as the stick leaves centre. Nothing levels it and nothing caps a rate. No rudder.',
+    wingStab: 3,
+  },
+  {
     id: 'zagi-stab',
     airframe: 'zagi1219',
     name: 'Stabilised',
@@ -421,34 +409,15 @@ export const TUNES = [
     wingStab: 1,
   },
   {
-    id: 'zagi-acro',
-    airframe: 'zagi1219',
-    name: 'Acro',
-    note: 'A gyro holds the wing where you leave it. Sticks ask for a roll rate up to 220 degrees a second and a pitch rate up to 100, and centred sticks hold the attitude. No rudder.',
-    wingStab: 2,
-  },
-  {
-    id: 'zagi-manual',
-    airframe: 'zagi1219',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone.',
-  },
-  {
-    /* The Striker's three, a flying wing's modes on its own plants (the
-     * tunes go by the row's plant, the piston one's, and fly the jet's
-     * alike). Its fins carry small rudders, on the yaw stick in all three. */
+    /* The Striker flies what a one way attack drone flies, an
+     * autopilot's stabilised mode, its default; Manual is the sticks on
+     * the surfaces. The tunes go by the row's plant and fly both
+     * propulsions alike. */
     id: 'striker-stab',
     airframe: 'striker2500',
     name: 'Stabilised',
     note: 'A gyro holds the delta. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level. The yaw stick is the fins\' small rudders.',
     wingStab: 1,
-  },
-  {
-    id: 'striker-acro',
-    airframe: 'striker2500',
-    name: 'Acro',
-    note: 'A gyro holds the delta where you leave it. Sticks ask for a roll rate up to 90 degrees a second, 120 on the jet, and a pitch rate up to 40, and centred sticks hold the attitude.',
-    wingStab: 2,
   },
   {
     id: 'striker-manual',

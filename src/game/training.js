@@ -53,7 +53,7 @@ export const LESSONS = [
   { id: 'first_turns', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', steps: [{ turn: 'left' }, { turn: 'right' }] },
   { id: 'first_land', track: 'first', airframe: 'timber1500', tune: 'timber-stab', place: 'swiss2', aid: 'glide', steps: [{ land: true }] },
   {
-    id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-acro', place: 'swiss2', aid: 'glide',
+    id: 'first_unaided', track: 'first', airframe: 'timber1500', tune: 'timber-as3x', place: 'swiss2', aid: 'glide',
     covers: ['first_takeoff', 'first_turns', 'first_land'],
     steps: [{ airborne: TAKEOFF_HOLD_MS }, { turn: 'left' }, { turn: 'right' }, { land: true }],
   },

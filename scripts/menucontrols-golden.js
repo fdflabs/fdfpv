@@ -230,7 +230,7 @@ function makeUi(extra = {}) {
   BODY.append(appRoot);
   Object.assign(ui, {
     screen: 'quad', returnTo: null, cursor: 0, rowOffset: 0, menuRows: [], focusId: null,
-    settings: { rates: { r: 1 }, airframe: 'quad', tune: 'wing-acro', pids: {} },
+    settings: { rates: { r: 1 }, airframe: 'quad', tune: 'wing-stab', pids: {} },
     root: appRoot, ratesStick: { roll: 0, pitch: 0, yaw: 0 }, pidsLive: null,
     dropEl: null, dropIndex: null, ptrX: null, ptrY: null, roomPages: {}, screens: {},
   });
@@ -338,17 +338,17 @@ const scenarios = {
     ui.returnTo = null;
     ui.pidsLive = { tune: 'wing-stab', roll: [1] };
     ui.syncPids();
-    ui.pidsLive = { tune: 'wing-acro', roll: [1] };
+    ui.pidsLive = { tune: 'wing-stab', roll: [1] };
     ui.syncPids();
-    ui.settings.pids = { 'wing-acro': { mode: 'sliders', sliders: { master: 120 } } };
+    ui.settings.pids = { 'wing-stab': { mode: 'sliders', sliders: { master: 120 } } };
     ui.syncPids();
-    ui.settings.pids = { 'wing-acro': { mode: 'expert', pids: { roll: {} } } };
+    ui.settings.pids = { 'wing-stab': { mode: 'expert', pids: { roll: {} } } };
     ui.syncPids();
-    ui.settings.pids = { 'wing-acro': { mode: 'expert' } };
+    ui.settings.pids = { 'wing-stab': { mode: 'expert' } };
     ui.pidsHint = null;
     ui.syncPids();
     out.hint = hint.textContent;
-    ui.setPidsLive({ tune: 'wing-acro', roll: [2] });
+    ui.setPidsLive({ tune: 'wing-stab', roll: [2] });
     ui.screen = 'quad';
     ui.setPidsLive(undefined);
     out.state = state(ui);
