@@ -2481,6 +2481,8 @@ export default {
   "hangar.finish_satin": "Satinado",
   "hangar.finish_pearl": "Perlado",
   "hangar.finish_candy": "Caramelo",
+  "hangar.finish_flake": "Escamas metálicas",
+  "hangar.finish_brushed": "Metal cepillado",
   "hangar.finish_gold": "Oro",
   "hangar.decal_ribbon": "Cinta de campaña",
   "progress.locked_buy": "En la tienda",
