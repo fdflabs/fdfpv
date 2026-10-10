@@ -83,6 +83,9 @@ jobs:
       - run: npm run catalog-rules:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
+      # A rooms server draining on SIGUSR2 while a second one serves new
+      # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
+      - run: npm run rooms:drain
       - run: npm run keynotes:selftest
       - run: npm run weather:selftest
       # The headless page driver every browser check opens the shell through

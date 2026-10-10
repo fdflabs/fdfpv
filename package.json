@@ -260,6 +260,7 @@
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "rooms:server": "node scripts/rooms-server-check.js",
+    "rooms:drain": "node scripts/rooms-drain-check.js",
     "rooms:accounts": "node scripts/rooms-account-check.js",
     "signin:gate": "node scripts/signin-gate-check.js",
     "signin:bypass": "node scripts/signin-bypass-check.js",
