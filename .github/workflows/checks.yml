@@ -22,182 +22,124 @@ concurrency:
   group: checks-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# The steps are split over shards that run side by side, balanced by each
+# step's measured time (one job took 63 minutes, 2026-10-11). The job
+# named node only gathers their results: it is the check the ruleset
+# requires (deploy/github/ruleset-main.json) and land.sh waits on.
+# Every shard opens with the same three steps; shard-1's comments say why.
 jobs:
-  node:
+  shard-1:
     runs-on: ubuntu-latest
     steps:
       # lint:catalog reads parameter_names.h out of the Betaflight submodule to
       # prove the catalog covers every firmware key, so the submodule is needed.
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      # ws, the one dependency: rooms:server starts the VM's rooms server,
+      # edge/rooms/node.js, and speaks to it.
+      - run: npm ci
+      - run: npm run water:check -- --no-chrome
+      - run: npm run pick:selftest
+      - run: npm run paint:selftest
+      - run: npm run kits:selftest
+      # The hangar's workshop in the real shell: the underside, click to
+      # paint, undo, A/B, patterns and the swatch library
+      # (docs/redesign/WORKSHOP-PAINT.md). Its other half, the views, runs
+      # on shard-5.
+      - run: npm run paint:workshop:paint
+      # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
+      - run: npm run gallery:admin
+      # Every tractor's slipstream terms against their geometry
+      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
+      - run: npm run wash:derive -- --check
+      - run: npm run stab:hold
+      - run: npm run as3x:derive
+      - run: npm run spool:derive
+      # The host's vertical air at the craft (sim_set_air_vertical).
+      - run: npm run air:vertical
+      # The lessons: data that exists, words in en and es, each judge.
+      - run: npm run training:selftest
+      - run: npm run progress:selftest
+      # Medals on built courses (src/game/medals.js): times, award, merge.
+      - run: npm run medals:selftest
+      # Best laps synced to the account, lower wins (src/share/records.js).
+      - run: npm run records:selftest
+      # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
+      - run: npm run economy:selftest
+      # The condition the player reads and its OSD line.
+      - run: npm run damage:selftest
+      # The pilot's own flight time: only flight counts, and the words
+      # (src/share/flighttime.js); its merge is in test:tracks.
+      - run: npm run flighttime:selftest
+      # What this browser tells the board's statistics page, and when it
+      # refuses (src/share/stats.js), against a pinned transcript.
+      - run: npm run stats:selftest
+      # What a page error or a minute of frame times may say when it
+      # leaves the browser: a fuzz for planted personal data, the opt out
+      # (src/share/clientreport.js).
+      - run: npm run clientreport:selftest
+      # The language and statistics keys shared with the board, through
+      # their move to fdfpv.* names (src/share/sharedkeys.js).
+      - run: npm run sharedkeys:selftest
+      - run: npm run retired:selftest
+      - run: npm run retired:aircraft
+      - run: npm run campaign:selftest
+      # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
+      - run: npm run hangar:room
+      - run: npm run parts:check
+      - run: npm run tuning:check
+      # Every quad motor against its maker's bench and the plant: the
+      # stock motor bit identical to the table (docs/MOTORS-STAGE1.md).
+      - run: npm run motors:check
+      - run: npm run wear:selftest
+      # The UI playground (tests/browser/playground.html, development
+      # only) lists every menu component and token, and only classes the
+      # sheet in index.html really styles (docs/redesign/PLAN.md 4.5).
+      - run: npm run ui:playground
+      # The mode registry (src/share/modes.js) whole, and the wire's lists
+      # read off it with their values of before (docs/redesign/PLAN.md 3).
+      - run: npm run modes:selftest
+      # No em or en dash in any text the repository holds (CLAUDE.md),
+      # outside vendor/.
+      - run: npm run lint:dashes
+      - run: npm run lint:owner-rules
+      # Operations' briefing whole for every campaign mission, in every
+      # language (src/ui/briefing.js).
+      - run: npm run briefing:selftest
+      # The verify runner (tests/verify.js) from outside: its printed
+      # report, exit code and the argv it hands shots.js and the browser,
+      # over fakes on PATH, with no Emscripten and no browser.
+      - run: npm run verify:selftest
+      # src/render and src/art outputs on a fixed stage against goldens
+      # recorded from each module before its track U rewrite
+      # (tests/browser/render-golden/).
+      - run: npm run render:golden
+
+  shard-2:
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # ws, the one dependency: rooms:server starts the VM's rooms server,
-      # edge/rooms/node.js, and speaks to it.
       - run: npm ci
-      - run: npm run lint:fc
-      - run: npm run rates:selftest
-      - run: npm run lint:presets
-      - run: npm run lint:catalog
-      - run: npm run fc-catalog:selftest
-      - run: npm run lint:nouns
-      - run: npm run lint:copy
-      - run: npm run lint:header
-      - run: npm run settings:golden
-      - run: npm run rows:golden
-      - run: npm run ways:golden
-      - run: npm run format:golden
-      - run: npm run widgets:golden
-      - run: npm run trickslist:golden
-      - run: npm run keys:golden
-      - run: npm run keybinds:selftest
-      - run: npm run menucontrols:golden
-      - run: npm run nav:golden
-      - run: npm run uirest:golden
-      - run: npm run dialogs:golden
-      - run: npm run overlay:golden
-      - run: npm run session:golden
-      - run: npm run actions:golden
-      - run: npm run items:golden
-      - run: npm run lint:es-leaks
-      # The link preview a crawler reads: index.html's social tags, their
-      # copy, and og.png's size and hash (scripts/og-check.js).
-      - run: npm run og:check
-      - run: npm run dump:selftest
-      # The flight controller bench, src/ui/fc.js: rows, closures, DOM strips
-      # and the horizon, over a pinned module dump (scripts/fc-bench-selftest.js).
-      - run: npm run fc-bench:selftest
-      # The firmware's name only in its Credits attribution: string tables,
-      # script literals and the served pages (scripts/brand-lint.js).
-      - run: npm run lint:bf
-      - run: npm run strings:selftest
-      - run: npm run pids:selftest
-      - run: npm run version:check
-      - run: npm run csp:selftest
-      - run: npm run lap:selftest
-      - run: npm run ratepresets:selftest
-      - run: npm run identity:selftest
-      - run: npm run live:selftest
-      - run: npm run ratescurve:selftest
-      - run: npm run panels:golden
-      - run: npm run rooms:selftest
-      - run: npm run bots:selftest
-      # The valley's shared world data against the page's own terrain
-      # modules, which import three: the page loads three from its CDN
-      # import map (index.html), so the same version is unpacked here.
-      - run: |
-          npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
-          tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
-          npm run world:layer -- --three="$RUNNER_TEMP/package"
-      - run: npm run jam:selftest
-      # Voice chat's signalling relay and TURN credentials; the audio itself
-      # is npm run voicechat:twopage, local, two browsers.
-      - run: npm run voicechat:selftest
-      - run: npm run catalog-rules:selftest
-      - run: npm run streamer:selftest
-      - run: npm run rooms:server
-      - run: npm run keynotes:selftest
-      - run: npm run weather:selftest
-      # The headless page driver every browser check opens the shell through
-      # (tests/lib/page.js): keyInfo, describe and the export list against a
-      # pinned transcript. Its browser half, --browser, stays local: it needs
-      # a Chromium (npm run page:selftest -- --browser).
-      - run: npm run page:selftest
-      - run: npm run rooms:accounts
-      # The checks' stand in for Google signs nobody in on the deployed
-      # game: no production config names it, and the tracks server run as
-      # production runs it refuses its tokens. The sign in itself, in the
-      # shell, is npm run signin:gate, local.
-      - run: npm run signin:bypass
       # 32 pilots in one room through free flight, a race and a combat
       # round, 5 s each, about a minute: the plan's rooms:load at 32 a
       # room. Its checks are about function; the speed numbers it prints
       # are for a person (docs/MULTIPLAYER-PLAN.md section 12, Phase 6).
       - run: npm run rooms:load -- --quick
-      - run: npm run hulls:check
-      - run: npm run airframes:selftest
-      - run: npm run aircraft:folder
-      - run: npm run midair:plant
-      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
-      # by hand (npm run midair:harness) and its numbers go in the pull
-      # request. Two seeds here keep every row and every scenario.
-      - run: npm run midair:harness -- --seeds=2
-      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
-      # half a minute on 20 cores, by hand; four and six here keep every row.
-      - run: npm run tag:harness -- --seeds=4 --runs=6
-      - run: npm run war:harness -- --seeds=3 --runs=6
-      - run: npm run war:routes
-      - run: npm run registry:selftest
-      - run: npm run war:stages
-      - run: npm run war:nudge
-      - run: npm run war:cards
-      # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
-      # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
-      - run: npm run contacts:selftest
-      - run: npm run roles:deal
-      # The Interior's Mission 1 flown headless on track WORLD's map: solo to
-      # the end, a laggy run, a squad of five, the soft fail and its
-      # checkpoint, the boundary, the ISR down.
-      - run: npm run interior:stages
-      # Mission 2 (held development) flown headless: the data against
-      # MISSIONS.md, the gate, both branches, seen at the property, spotted.
-      - run: npm run interior:m2
-      # Mission 3 (held development) flown headless: the data against
-      # MISSIONS.md, the gate, a clean run, the post overrun, two errors.
-      - run: npm run interior:m3
-      - run: npm run platforms:hold
-      # The camp changes on screen as its people act: the tarp, the mast
-      # and the pushed motorcycles read off the contacts the room tells.
-      - run: npm run interior:camp
-      # The owner's allowlist (DEV_ACCOUNTS): only a host on it starts
-      # missions in development on a live server.
-      - run: npm run dev:accounts
-      # The camera ball holds a locked point through an orbit and its
-      # picture is the room's geometry; the screen's capture scorer gives
-      # the expected grades and its stills reach a real room.
-      - run: npm run camera:lock
-      - run: npm run capture:score
-      # The Interior's world in Node (track WORLD): every name invented and
-      # no real coordinate, the canopy's line of sight, every route walked.
-      # Their browser halves (--browser) stay local.
-      - run: npm run lint:interior-names
-      - run: npm run canopy:los
-      - run: npm run people:route
-      - run: npm run films:time -- --check
-      - run: npm run films:lint
-      - run: npm run war:grid
-      - run: npm run hoist:check
-      - run: npm run damage:check
-      - run: npm run marks:selftest
-      - run: npm run combat:harness
-      - run: npm run combat:restart
-      - run: npm run wing:math
-      - run: npm run wing:gates
-      - run: npm run wing:contact
-      - run: npm run wing:stab
-      - run: npm run skyhunter:gates
-      - run: npm run skyhunter:stab
-      - run: npm run cub:gates
-      - run: npm run cub:stab
-      - run: npm run glider:gates
-      - run: npm run glider:stab
-      - run: npm run f16:gates
-      - run: npm run f16:stab
-      - run: npm run p51:gates
-      - run: npm run p51:stab
-      - run: npm run zagi:gates
-      - run: npm run zagi:stab
-      - run: npm run uglystik:gates
-      - run: npm run uglystik:stab
-      - run: npm run dlg:gates
-      - run: npm run dlg:stab
       - run: npm run tigermoth:gates
       - run: npm run tigermoth:stab
       - run: npm run extra:gates
       - run: npm run extra:stab
       - run: npm run nighttimber:gates
+      - run: npm run figures:plant
       - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run padprofiles:selftest
@@ -248,16 +190,6 @@ jobs:
       - run: npm run trackdoc:golden
       - run: npm run race:golden
       - run: npm run ghost:golden
-      # The turtle in the real page: the wait, the poke, the flip and the
-      # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
-      - run: npm run turtle:check
-      # A solo race's debrief in the real page: the facts, Watch the replay
-      # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
-      - run: npm run debrief:race
-      - run: npm run debrief:free
-      # The race results' lap table ends above the menu at 1280x720
-      # (scripts/results-layout-check.js).
-      - run: npm run results:layout
       - run: npm run collide:golden
       - run: npm run collide-state:selftest
       - run: npm run simmod:selftest
@@ -330,103 +262,248 @@ jobs:
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
-      - run: npm run water:check -- --no-chrome
-      - run: npm run pick:selftest
-      - run: npm run paint:selftest
-      - run: npm run kits:selftest
-      # The hangar's workshop in the real shell: Flip, the preset views and a
-      # pad's R3 on one aircraft of every paint family
-      # (docs/redesign/WORKSHOP-PAINT.md).
-      - run: npm run paint:workshop
-      # The Escape menu in the real shell: a quad and a plane in en and es and
-      # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
-      - run: npm run pause:menus -- /tmp/pause-menus
-      # The admin page's livery gallery moderation (docs/LIVERY-GALLERY.md).
-      - run: npm run gallery:admin
-      # The livery gallery against a local tracks server: list, like, sort,
-      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
-      - run: npm run gallery:check
-      # Every tractor's slipstream terms against their geometry
-      # (scripts/wash-derive.js, docs/FLIGHTMODEL.md).
-      - run: npm run wash:derive -- --check
-      - run: npm run stab:hold
-      - run: npm run as3x:derive
-      - run: npm run spool:derive
-      # The host's vertical air at the craft (sim_set_air_vertical).
-      - run: npm run air:vertical
-      - run: npm run stab:glide
-      - run: npm run stab:chop
-      - run: npm run power:check
-      # The lessons: data that exists, words in en and es, each judge.
-      - run: npm run training:selftest
-      - run: npm run progress:selftest
-      # Medals on built courses (src/game/medals.js): times, award, merge.
-      - run: npm run medals:selftest
-      # Best laps synced to the account, lower wins (src/share/records.js).
-      - run: npm run records:selftest
-      # Tokens: finite grants, paid once, never war credits (docs/ECONOMY.md).
-      - run: npm run economy:selftest
-      # The condition the player reads and its OSD line.
-      - run: npm run damage:selftest
-      # The pilot's own flight time: only flight counts, and the words
-      # (src/share/flighttime.js); its merge is in test:tracks.
-      - run: npm run flighttime:selftest
-      # What this browser tells the board's statistics page, and when it
-      # refuses (src/share/stats.js), against a pinned transcript.
-      - run: npm run stats:selftest
-      # What a page error or a minute of frame times may say when it
-      # leaves the browser: a fuzz for planted personal data, the opt out
-      # (src/share/clientreport.js).
-      - run: npm run clientreport:selftest
-      # The language and statistics keys shared with the board, through
-      # their move to fdfpv.* names (src/share/sharedkeys.js).
-      - run: npm run sharedkeys:selftest
-      - run: npm run retired:selftest
-      - run: npm run retired:aircraft
-      - run: npm run campaign:selftest
-      # The walkable hangar's floor plans and walk (docs/HANGAR-ROOM.md).
-      - run: npm run hangar:room
-      - run: npm run parts:check
-      - run: npm run tuning:check
       # A plane's Rates row is its own throws, and a pick flies at once
       # (docs/PLANE-RATES.md).
       - run: npm run planerates:check
-      # A rate change mid run keeps the run, tune loads are generation
-      # counted, and the RC grid follows the module's clock
-      # (scripts/config-swap-check.js).
-      - run: npm run configswap:check
-      # Every quad motor against its maker's bench and the plant: the
-      # stock motor bit identical to the table (docs/MOTORS-STAGE1.md).
-      - run: npm run motors:check
-      - run: npm run wear:selftest
-      # The UI playground (tests/browser/playground.html, development
-      # only) lists every menu component and token, and only classes the
-      # sheet in index.html really styles (docs/redesign/PLAN.md 4.5).
-      - run: npm run ui:playground
       # Flight Club's pilot stats read off the screen in en and es, a sync
       # moving them, the empty state, and the phone layouts
       # (scripts/pilot-stats-check.js, docs/PILOT-STATS.md).
       - run: npm run pilot:stats
+
+  shard-3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # The Interior's Mission 1 flown headless on track WORLD's map: solo to
+      # the end, a laggy run, a squad of five, the soft fail and its
+      # checkpoint, the boundary, the ISR down.
+      - run: npm run interior:stages
+      # Mission 2 (held development) flown headless: the data against
+      # MISSIONS.md, the gate, both branches, seen at the property, spotted.
+      - run: npm run interior:m2
+      # Mission 3 (held development) flown headless: the data against
+      # MISSIONS.md, the gate, a clean run, the post overrun, two errors.
+      - run: npm run interior:m3
+      - run: npm run platforms:hold
+      # The camp changes on screen as its people act: the tarp, the mast
+      # and the pushed motorcycles read off the contacts the room tells.
+      - run: npm run interior:camp
+      # The owner's allowlist (DEV_ACCOUNTS): only a host on it starts
+      # missions in development on a live server.
+      - run: npm run dev:accounts
+      # The camera ball holds a locked point through an orbit and its
+      # picture is the room's geometry; the screen's capture scorer gives
+      # the expected grades and its stills reach a real room.
+      - run: npm run camera:lock
+      - run: npm run capture:score
+      # The Interior's world in Node (track WORLD): every name invented and
+      # no real coordinate, the canopy's line of sight, every route walked.
+      # Their browser halves (--browser) stay local.
+      - run: npm run lint:interior-names
+      - run: npm run canopy:los
+      - run: npm run people:route
+      - run: npm run films:time -- --check
+      - run: npm run films:lint
+      - run: npm run war:grid
+      - run: npm run hoist:check
+      - run: npm run damage:check
+      - run: npm run marks:selftest
+      - run: npm run combat:harness
+      - run: npm run combat:restart
+      - run: npm run wing:math
+      - run: npm run wing:gates
+      - run: npm run wing:contact
+      - run: npm run wing:stab
+      - run: npm run skyhunter:gates
+      - run: npm run skyhunter:stab
+      - run: npm run cub:gates
+      - run: npm run cub:stab
+      - run: npm run glider:gates
+      - run: npm run glider:stab
+      - run: npm run f16:gates
+      - run: npm run f16:stab
+      - run: npm run p51:gates
+      - run: npm run p51:stab
+      - run: npm run zagi:gates
+      - run: npm run zagi:stab
+      - run: npm run uglystik:gates
+      - run: npm run uglystik:stab
+      - run: npm run dlg:gates
+      - run: npm run dlg:stab
+      # The turtle in the real page: the wait, the poke, the flip and the
+      # held stick after it, and the held-T crashflip (scripts/turtle-check.js).
+      - run: npm run turtle:check
+      # A solo race's debrief in the real page: the facts, Watch the replay
+      # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
+      - run: npm run debrief:race
+      - run: npm run debrief:free
+      # The race results' lap table ends above the menu at 1280x720
+      # (scripts/results-layout-check.js).
+      - run: npm run results:layout
+      - run: npm run stab:glide
+      - run: npm run power:check
+      # A rate change mid run keeps the run, tune loads are generation
+      # counted, and the RC grid follows the module's clock
+      # (scripts/config-swap-check.js).
+      - run: npm run configswap:check
+
+  shard-4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run lint:fc
+      - run: npm run rates:selftest
+      - run: npm run lint:presets
+      - run: npm run lint:catalog
+      - run: npm run fc-catalog:selftest
+      - run: npm run lint:nouns
+      - run: npm run lint:copy
+      - run: npm run lint:header
+      - run: npm run settings:golden
+      - run: npm run rows:golden
+      - run: npm run ways:golden
+      - run: npm run format:golden
+      - run: npm run widgets:golden
+      - run: npm run trickslist:golden
+      - run: npm run keys:golden
+      - run: npm run keybinds:selftest
+      - run: npm run menucontrols:golden
+      - run: npm run nav:golden
+      - run: npm run uirest:golden
+      - run: npm run dialogs:golden
+      - run: npm run overlay:golden
+      - run: npm run session:golden
+      - run: npm run actions:golden
+      - run: npm run items:golden
+      - run: npm run lint:es-leaks
+      # The link preview a crawler reads: index.html's social tags, their
+      # copy, and og.png's size and hash (scripts/og-check.js).
+      - run: npm run og:check
+      - run: npm run dump:selftest
+      # The flight controller bench, src/ui/fc.js: rows, closures, DOM strips
+      # and the horizon, over a pinned module dump (scripts/fc-bench-selftest.js).
+      - run: npm run fc-bench:selftest
+      # The firmware's name only in its Credits attribution: string tables,
+      # script literals and the served pages (scripts/brand-lint.js).
+      - run: npm run lint:bf
+      - run: npm run strings:selftest
+      - run: npm run pids:selftest
+      - run: npm run version:check
+      - run: npm run csp:selftest
+      # The shared time of day agrees with the maps and missions that ship
+      # (src/share/daytime.js, docs/DAYTIME-CONTRACT.md).
+      - run: npm run daytime:selftest
+      - run: npm run lap:selftest
+      - run: npm run ratepresets:selftest
+      - run: npm run identity:selftest
+      - run: npm run live:selftest
+      - run: npm run ratescurve:selftest
+      - run: npm run panels:golden
+      - run: npm run rooms:selftest
+      - run: npm run bots:selftest
+      # The valley's shared world data against the page's own terrain
+      # modules, which import three: the page loads three from its CDN
+      # import map (index.html), so the same version is unpacked here.
+      - run: |
+          npm pack three@0.160.0 --pack-destination "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/three-0.160.0.tgz" -C "$RUNNER_TEMP"
+          npm run world:layer -- --three="$RUNNER_TEMP/package"
+      - run: npm run jam:selftest
+      - run: npm run figures:selftest
+      # Voice chat's signalling relay and TURN credentials; the audio itself
+      # is npm run voicechat:twopage, local, two browsers.
+      - run: npm run voicechat:selftest
+      - run: npm run catalog-rules:selftest
+      - run: npm run streamer:selftest
+      - run: npm run rooms:server
+      # A rooms server draining on SIGUSR2 while a second one serves new
+      # rooms, two processes from this tree (docs/ROOMS-DRAIN.md).
+      - run: npm run rooms:drain
+      - run: npm run keynotes:selftest
+      - run: npm run weather:selftest
+      # The headless page driver every browser check opens the shell through
+      # (tests/lib/page.js): keyInfo, describe and the export list against a
+      # pinned transcript. Its browser half, --browser, stays local: it needs
+      # a Chromium (npm run page:selftest -- --browser).
+      - run: npm run page:selftest
+      - run: npm run rooms:accounts
+      # The checks' stand in for Google signs nobody in on the deployed
+      # game: no production config names it, and the tracks server run as
+      # production runs it refuses its tokens. The sign in itself, in the
+      # shell, is npm run signin:gate, local.
+      - run: npm run signin:bypass
+      - run: npm run hulls:check
+      - run: npm run airframes:selftest
+      - run: npm run aircraft:folder
+      - run: npm run midair:plant
+      # The plan's full grid is 20 seeds, about six minutes on 20 cores: run
+      # by hand (npm run midair:harness) and its numbers go in the pull
+      # request. Two seeds here keep every row and every scenario.
+      - run: npm run midair:harness -- --seeds=2
+      # Catch the Ace under lag: the full grid (12 seeds, 16 link sets) is
+      # half a minute on 20 cores, by hand; four and six here keep every row.
+      - run: npm run tag:harness -- --seeds=4 --runs=6
+      - run: npm run war:harness -- --seeds=3 --runs=6
+      - run: npm run war:routes
+      - run: npm run registry:selftest
+      - run: npm run war:stages
+      - run: npm run war:nudge
+      - run: npm run war:cards
+      # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
+      # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
+      - run: npm run contacts:selftest
+      - run: npm run roles:deal
+      # The Escape menu in the real shell: a quad and a plane in en and es and
+      # a phone, into the Flight panel and back (docs/redesign/PAUSE-MENUS.md).
+      - run: npm run pause:menus -- /tmp/pause-menus
+      # The livery gallery against a local tracks server: list, like, sort,
+      # report, wear, publish and remove, by real pointer (docs/LIVERY-GALLERY.md).
+      - run: npm run gallery:check
+      - run: npm run stab:chop
       # A deploy under an open tab: every module and the wasm at the
       # page's version, the new-version bar held off the flight screen and
       # shown on Paused and the title, its Reload landing on the new deploy
       # (scripts/version-reload-check.js, src/ui/update.js).
       - run: npm run version:reload
-      # The mode registry (src/share/modes.js) whole, and the wire's lists
-      # read off it with their values of before (docs/redesign/PLAN.md 3).
-      - run: npm run modes:selftest
-      # No em or en dash in any text the repository holds (CLAUDE.md),
-      # outside vendor/.
-      - run: npm run lint:dashes
-      - run: npm run lint:owner-rules
-      # Operations' briefing whole for every campaign mission, in every
-      # language (src/ui/briefing.js).
-      - run: npm run briefing:selftest
-      # The verify runner (tests/verify.js) from outside: its printed
-      # report, exit code and the argv it hands shots.js and the browser,
-      # over fakes on PATH, with no Emscripten and no browser.
-      - run: npm run verify:selftest
-      # src/render and src/art outputs on a fixed stage against goldens
-      # recorded from each module before its track U rewrite
-      # (tests/browser/render-golden/).
-      - run: npm run render:golden
+
+  # paint:workshop's other half alone: Top, Bottom and Flip on one
+  # aircraft of every paint family, and a pad's R3. Whole, the check was
+  # one step of 15 to 26 minutes, the longest of any shard.
+  shard-5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run paint:workshop:views
+
+  # always(): a node skipped because a shard failed would count as passed
+  # for a required check, so it runs and fails instead.
+  node:
+    needs: [shard-1, shard-2, shard-3, shard-4, shard-5]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "shards: $RESULTS"
+          for r in $RESULTS; do
+            [ "$r" = success ] || exit 1
+          done
