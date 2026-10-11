@@ -290,10 +290,11 @@ export const walkMethods = {
     this.syncFrame();
   },
 
-  /* Another pilot's hangar: their callsign asked for, the server asked,
-   * and the room opened read only, or why not. */
-  async visitHangar() {
-    const got = await this.askForm({
+  /* Another pilot's hangar: their callsign (given, from a pilot in the
+   * same room, or asked for), the server asked, and the room opened read
+   * only, or why not. */
+  async visitHangar(callsign = null) {
+    const got = callsign ? { callsign } : await this.askForm({
       title: str('walk.visit_title'),
       detail: str('walk.visit_detail'),
       confirmLabel: str('walk.visit_go'),
@@ -417,6 +418,13 @@ export const walkMethods = {
     }
     if (!w.photo && !w.lineup && !w.roomLineup) {
       renderPrompt(this);
+    }
+    /* The command bar offers the room's pilots by name: it is painted
+     * again when they come or go while the pilot walks. */
+    const room = this.roomLineupList ? this.roomLineupList().map((e) => e.name).join('|') : '';
+    if (room !== w.roomKey) {
+      w.roomKey = room;
+      this.syncFrame();
     }
     return w.pose;
   },
