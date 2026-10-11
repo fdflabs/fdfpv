@@ -501,59 +501,30 @@ static double power_duty(const SimState *s, const FixedWingParams *fw, double du
 }
 
 /*
- * The pack's current, from the power the prop takes. A prop at a speed
- * takes power as its power coefficient; the plant's thrust law has the
- * thrust coefficient fall as 1 - V / (pitch speed), and APC's published
- * performance data (the 11 x 7E at 9,000 rpm, PER3_11x7E.dat) give how the
- * power coefficient goes with it: CP_OF_CT, Cp over its static value at
- * Ct over its static value 0, 0.1, ..., 1. It hardly moves until the thrust
- * has fallen by a third and is a fifth of static where the thrust is gone
- * (the 8 x 4E, 12 x 6 and 13 x 8E agree within a few percent). So the
- * current is the table's full throttle current times the prop's speed
- * cubed, the motor's torque (the square) through the ESC's switching (the
- * duty), times that ratio; the same power off a sagged pack is more
- * current, so it is over r_v. Nothing while the prop makes no thrust.
+ * The prop's curves at mu = u / (pitch speed n): its thrust and its shaft
+ * torque over their static values, the table's axial_curve and
+ * torque_curve (APC's performance files, scripts/prop-curves.js wings),
+ * straight between their tenths and on along the last two past mu = 2.
  */
-#define CP_OF_CT_N 11
-static const double CP_OF_CT[CP_OF_CT_N] = {
-  0.187, 0.358, 0.517, 0.661, 0.789, 0.901, 0.994, 1.064, 1.099, 1.088, 1.000,
-};
-
-/* Past APC's last row, where the thrust is gone and the prop still takes
- * power, Cp goes on falling straight with Ct: near zero thrust the blades
- * are near zero lift and the power is the thrust's, J Ct, plus the
- * blades' profile drag, which hardly changes over the last rows. The 11 x
- * 7E's last three rows (J 0.71 to 0.77 at 9,000 rpm, PER3_11x7E.dat) fall
- * 1.676 in Cp over its static value per unit of Ct over its, so Cp is
- * zero at Ct over its static value -0.113: the prop windmills there, the
- * air turning it with nothing to drive it. scripts/cp-tail-derive.js
- * prints it and the 8 x 4E's, 12 x 6's, 13 x 6.5E's, 13 x 8E's, 12 x 8E's,
- * 11 x 5.5E's and 12 x 6E's, 1.38 to 1.83. FITTED: a straight line past
- * the data's end; a prop well past its windmill stalls its blades the
- * other way, which no row we hold reaches. */
-#define CP_OF_CT_TAIL 1.676
-
-/* Cp over its static value at the thrust law's ct, CP_OF_CT and its tail. */
-static double cp_of_ct(double ct) {
-  if (!(ct < 1.0)) {
-    return CP_OF_CT[CP_OF_CT_N - 1];
-  }
-  if (ct < 0.0) {
-    return CP_OF_CT[0] + CP_OF_CT_TAIL * ct;
-  }
-  const double x = ct * (double)(CP_OF_CT_N - 1);
-  const int i = (int)x;
-  return CP_OF_CT[i] + (x - (double)i) * (CP_OF_CT[i + 1] - CP_OF_CT[i]);
+static double prop_curve(const double *c, double mu) {
+  const double x = (mu > 0.0 ? mu : 0.0) * 10.0;
+  const int i = x >= (double)(FW_CURVE_N - 2) ? FW_CURVE_N - 2 : (int)x;
+  return c[i] + (x - (double)i) * (c[i + 1] - c[i]);
 }
 
-static double power_current(const FixedWingParams *fw, double de, double ct, double r_v) {
+/*
+ * The pack's current, from the power the prop takes: the table's full
+ * throttle current times the prop's speed cubed, the motor's torque (the
+ * square) through the ESC's switching (the duty), times its torque over
+ * the static at the airspeed (torque_curve); the same power off a sagged
+ * pack is more current, so it is over r_v. Nothing while the prop makes
+ * no thrust.
+ */
+static double power_current(const FixedWingParams *fw, double de, double ct, double mu, double r_v) {
   if (!(fw->current_full > 0.0) || !(ct > 0.0)) {
     return 0.0;
   }
-  /* A ducted fan's power is its speed's cube whatever the airspeed, so
-   * its ratio stays the static one, CP_OF_CT's last. */
-  const double g = fw->fan_tau > 0.0 ? CP_OF_CT[CP_OF_CT_N - 1] : cp_of_ct(ct);
-  return fw->current_full * de * de * de * g / r_v;
+  return fw->current_full * de * de * de * prop_curve(fw->torque_curve, mu) / r_v;
 }
 
 /*
@@ -1078,7 +1049,7 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
    * engine's is the torque that holds n = d. */
   double drive = free ? 0.0 : electric + (fw->current_full > 0.0 ? de : de * de);
   /* A mapped engine drives by its map at the speed it turns, against the
-   * air's own torque on the prop (cp_of_ct), so its speed floats with the
+   * air's own torque on the prop (torque_curve), so its speed floats with the
    * airspeed as a real engine's does. */
   const int mapped = engine_mapped(fw);
   if (mapped && !free) {
@@ -1088,11 +1059,11 @@ static double prop_spool(const FixedWingParams *fw, double de, int off, double u
    * n = d at any airspeed and the trims stay the table's (the motor's
    * unloading at speed is left out, docs/FLIGHTMODEL.md). A free rotor has
    * nothing but the air: its torque at the advance ratio it turns at,
-   * cp_of_ct's, falls as the air speeds it and past the windmill turns it,
+   * torque_curve's, falls as the air speeds it and past the windmill turns it,
    * so it settles where Cp is zero, spinning with the airspeed. */
   double load = n * n;
   if ((free || mapped) && n > 0.0) {
-    load = n * n * cp_of_ct(1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n));
+    load = n * n * prop_curve(fw->torque_curve, u_pos / (fw->pitch_speed * SIM_BOOST * n));
     /* A mapped engine's rotor turns as fast as its torque and the air let
      * it, and a big prop's tips reach the speed of sound: its load climbs
      * with their Mach number as APC's does. */
@@ -2221,7 +2192,8 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* A fan or a prop at rest makes nothing, where 0 / 0 would be a NaN. */
   /* The chase boost's faster prop has the faster pitch speed; exact at
    * 1.0 (sim_set_boost). */
-  const double ct = (!(n > 0.0) || !(fw->thrust_static > 0.0)) ? 0.0 : 1.0 - u_pos / (fw->pitch_speed * SIM_BOOST * n);
+  const double mu = n > 0.0 ? u_pos / (fw->pitch_speed * SIM_BOOST * n) : 0.0;
+  const double ct = (!(n > 0.0) || !(fw->thrust_static > 0.0)) ? 0.0 : prop_curve(fw->axial_curve, mu);
   double thrust = fw->thrust_static * n * n * ct;
   /* A folding prop under its throttle is stopped and folded: no thrust,
    * no rpm, no current. Open, it brakes past its pitch speed rather than
@@ -2257,10 +2229,10 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * THE PROP'S TORQUE AND ITS ROTOR, docs/FLIGHTMODEL.md "The prop's
    * torque, from the drive". q_air is the torque the prop puts into the
    * air, the wash's swirl: its static torque times n^2 times Cp over its
-   * static value at this step's ct (cp_of_ct, APC's), where it was the
-   * thrust's share: at the pitch speed, where the thrust is gone, the
-   * blades' drag still takes a fifth of the static torque, and past the
-   * windmill the air turns the prop. q_react is what the drive puts on the
+   * static value at this step's mu (torque_curve, APC's), where it was the
+   * thrust's share: where the thrust is gone the blades' drag still takes
+   * a part of the static torque, and past the windmill the air turns the
+   * prop. q_react is what the drive puts on the
    * airframe through the motor's mount: the prop's torque and the rotor's
    * own acceleration, J w_f n', so the rotor's angular momentum comes out
    * of the airframe's as it spins up and goes back as it is braked. A
@@ -2276,7 +2248,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const double w_f = 0.85 * fw->rpm_no_load * 2.0 * WING_PI / 60.0;
     const int driven = !folded && !g_chute && !dead && !prop_free(fw, duty_e);
     const double kt = CRASH.active ? CRASH.kt[0] : 1.0;
-    q_air = driven ? fw->torque_arm * fw->thrust_static * n * n * cp_of_ct(ct) * kt * SIM_BOOST * SIM_BOOST : 0.0;
+    q_air = driven ? fw->torque_arm * fw->thrust_static * n * n * prop_curve(fw->torque_curve, mu) * kt * SIM_BOOST * SIM_BOOST : 0.0;
     q_react = driven ? q_air + fw->j_prop * w_f * g_prop_dn : 0.0;
     w_rot = (folded || !(kt > 0.0)) ? 0.0 : n * w_f;
   }
@@ -2421,7 +2393,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   s->motor_omega[1] = 0.0;
   s->motor_omega[2] = 0.0;
   s->motor_omega[3] = 0.0;
-  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, n, ct, r_v);
+  s->pack_current = (folded || g_chute || dead) ? 0.0 : power_current(fw, n, ct, mu, r_v);
   power_drain(s, fw, duty, duty_e);
   if (CRASH.active && CRASH.no_power) {
     s->vbat_load = 0.0;
@@ -2822,7 +2794,18 @@ const FixedWingParams FW_WING1000 = {
   .surface_max = 25.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 11.5,  /* N */
-  .pitch_speed = 29.8,    /* m/s at full duty */
+  .pitch_speed = 29.823, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 6 x 4: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9681, 0.9281, 0.8794, 0.8208, 0.7500, 0.6676,
+    0.5739, 0.4722, 0.3641, 0.2524, 0.1400, 0.0307, -0.0767,
+    -0.1845, -0.2924, -0.4002, -0.5081, -0.6159, -0.7238, -0.8316,
+  },
+  .torque_curve = {
+    1.0000, 1.0355, 1.0645, 1.0853, 1.0886, 1.0730, 1.0324,
+    0.9623, 0.8657, 0.7441, 0.5996, 0.4357, 0.2584, 0.0770,
+    -0.1045, -0.2860, -0.4675, -0.6491, -0.8306, -1.0121, -1.1936,
+  },
   .rpm_no_load = 20720.0,
   /* Prop reaction as a roll moment per newton of thrust. Ideal disc power
    * at static full thrust is T^1.5 / sqrt(2 rho A): 11.5 N through a 6 inch
@@ -2913,7 +2896,18 @@ const FixedWingParams FW_SKY1800 = {
   .surface_max = 15.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 27.0,  /* N, 950 kV on 4S with an 11 x 5.5 */
-  .pitch_speed = 27.8,
+  .pitch_speed = 27.826, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 11 x 5.5: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9599, 0.9143, 0.8610, 0.8002, 0.7316, 0.6549,
+    0.5709, 0.4804, 0.3854, 0.2866, 0.1858, 0.0850, -0.0136,
+    -0.1123, -0.2110, -0.3097, -0.4084, -0.5071, -0.6058, -0.7045,
+  },
+  .torque_curve = {
+    1.0000, 1.0192, 1.0326, 1.0355, 1.0265, 1.0020, 0.9598,
+    0.9004, 0.8217, 0.7236, 0.6080, 0.4753, 0.3294, 0.1727,
+    0.0161, -0.1405, -0.2971, -0.4537, -0.6102, -0.7668, -0.9234,
+  },
   .rpm_no_load = 14060.0,
   .torque_arm = 0.0107,   /* 362 W of disc power at 11,950 rpm is 0.29 N m at 27 N */
   .j_prop = 0.000124, /* APC's 24.9 g 11 x 5.5E and the 2820's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3007,7 +3001,18 @@ const FixedWingParams FW_CUB1400 = {
   .surface_max = 18.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
-  .pitch_speed = 23.8,
+  .pitch_speed = 23.765, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 11 x 7, two blade: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9682, 0.9303, 0.8834, 0.8253, 0.7569, 0.6772,
+    0.5851, 0.4839, 0.3756, 0.2631, 0.1494, 0.0370, -0.0752,
+    -0.1875, -0.2997, -0.4120, -0.5243, -0.6365, -0.7488, -0.8611,
+  },
+  .torque_curve = {
+    1.0000, 1.0380, 1.0706, 1.0931, 1.1019, 1.0874, 1.0498,
+    0.9824, 0.8852, 0.7611, 0.6131, 0.4454, 0.2607, 0.0735,
+    -0.1136, -0.3006, -0.4877, -0.6748, -0.8619, -1.0489, -1.2360,
+  },
   .rpm_no_load = 9435.0,
   .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
   .j_prop = 0.000132, /* the 11 x 7 (26 g) and the 3536's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3105,7 +3110,18 @@ const FixedWingParams FW_RADIAN2000 = {
   .surface_max = 15.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 9.28,  /* N, a 480 960 kV on 3S with a 9.75 x 7.5 at 196 W */
-  .pitch_speed = 28.76,
+  .pitch_speed = 28.758, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 9.75 x 7.5 folding (pitch over diameter 0.77): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9798, 0.9517, 0.9139, 0.8634, 0.7977, 0.7145,
+    0.6152, 0.5003, 0.3760, 0.2471, 0.1170, -0.0095, -0.1358,
+    -0.2621, -0.3884, -0.5147, -0.6410, -0.7672, -0.8935, -1.0198,
+  },
+  .torque_curve = {
+    1.0000, 1.0514, 1.1027, 1.1458, 1.1735, 1.1738, 1.1374,
+    1.0610, 0.9390, 0.7814, 0.5919, 0.3783, 0.1497, -0.0798,
+    -0.3093, -0.5388, -0.7683, -0.9978, -1.2273, -1.4568, -1.6862,
+  },
   .rpm_no_load = 10656.0,
   .torque_arm = 0.00994,  /* 82 W of disc power at 8,516 rpm is 0.092 N m at 9.28 N */
   .j_prop = 0.000077, /* the folding 9.75 x 7.5 with its yoke (20 g) and the 480's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3302,7 +3318,18 @@ const FixedWingParams FW_BRAMOR2300 = {
   .surface_max = 16.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 35.0,  /* N: the thrust that gives the published 5 m/s climb */
-  .pitch_speed = 30.0,    /* m/s, 470 kV on 6S with a 12 x 8 */
+  .pitch_speed = 30.036, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 12 x 8 folding: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9722, 0.9376, 0.8938, 0.8385, 0.7715, 0.6916,
+    0.5979, 0.4935, 0.3808, 0.2629, 0.1442, 0.0292, -0.0838,
+    -0.1971, -0.3105, -0.4238, -0.5372, -0.6505, -0.7638, -0.8772,
+  },
+  .torque_curve = {
+    1.0000, 1.0446, 1.0866, 1.1184, 1.1330, 1.1277, 1.0913,
+    1.0232, 0.9199, 0.7826, 0.6188, 0.4333, 0.2286, 0.0210,
+    -0.1858, -0.3927, -0.5995, -0.8064, -1.0132, -1.2201, -1.4269,
+  },
   .rpm_no_load = 10434.0,
   .torque_arm = 0.0151,   /* 490 W of disc power at 8,870 rpm is 0.53 N m at 35 N */
   .j_prop = 0.00021, /* a 12 x 8 folding carbon prop (30 g) and a 200 g outrunner's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3409,7 +3436,18 @@ const FixedWingParams FW_SLOWSTICK1180 = {
   .surface_max = 0.0,
   .expo = 0.30,
   .thrust_static = 2.69,  /* N, GWS's EPS-300C D with the EP1180 at 7.2 V */
-  .pitch_speed = 11.18,
+  .pitch_speed = 11.175, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* GWS EP1180, 11 x 8: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9739, 0.9404, 0.8970, 0.8424, 0.7739, 0.6915,
+    0.5952, 0.4854, 0.3671, 0.2446, 0.1206, 0.0000, -0.1201,
+    -0.2403, -0.3605, -0.4807, -0.6009, -0.7211, -0.8413, -0.9615,
+  },
+  .torque_curve = {
+    1.0000, 1.0427, 1.0823, 1.1135, 1.1293, 1.1237, 1.0870,
+    1.0193, 0.9159, 0.7834, 0.6263, 0.4475, 0.2576, 0.0667,
+    -0.1242, -0.3151, -0.5060, -0.6969, -0.8878, -1.0787, -1.2696,
+  },
   .rpm_no_load = 3882.0,
   .torque_arm = 0.0122,   /* 11.4 W of disc power at 3,300 rpm is 0.033 N m at 2.69 N */
   .j_prop = 0.000058, /* GWS's 11 x 8 (13 g), less the 6.6:1 geared can motor's rotor turning the other way, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3508,7 +3546,18 @@ const FixedWingParams FW_TIMBER1500 = {
   .surface_max = 30.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
-  .pitch_speed = 31.95,
+  .pitch_speed = 31.953, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 11 x 7.5 three blade (0.68): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9550, 0.9018, 0.8395, 0.7672, 0.6856, 0.5953,
+    0.4973, 0.3930, 0.2843, 0.1723, 0.0596, -0.0532, -0.1661,
+    -0.2790, -0.3920, -0.5049, -0.6178, -0.7308, -0.8437, -0.9566,
+  },
+  .torque_curve = {
+    1.0000, 1.0176, 1.0253, 1.0188, 0.9956, 0.9541, 0.8910,
+    0.8077, 0.7026, 0.5760, 0.4294, 0.2633, 0.0920, -0.0786,
+    -0.2492, -0.4198, -0.5904, -0.7610, -0.9315, -1.1021, -1.2727,
+  },
   .rpm_no_load = 11840.0,
   .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
   .j_prop = 0.00023, /* the three blade 11 x 7.5 (45 g) and the BL10's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3625,7 +3674,18 @@ const FixedWingParams FW_TIMBER1500F = {
   .surface_max = 30.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 25.0,  /* N, BL10 800 kV on 4S with the 11 x 7.5 three blade */
-  .pitch_speed = 31.95,
+  .pitch_speed = 31.953, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 11 x 7.5 three blade (0.68): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9550, 0.9018, 0.8395, 0.7672, 0.6856, 0.5953,
+    0.4973, 0.3930, 0.2843, 0.1723, 0.0596, -0.0532, -0.1661,
+    -0.2790, -0.3920, -0.5049, -0.6178, -0.7308, -0.8437, -0.9566,
+  },
+  .torque_curve = {
+    1.0000, 1.0176, 1.0253, 1.0188, 0.9956, 0.9541, 0.8910,
+    0.8077, 0.7026, 0.5760, 0.4294, 0.2633, 0.0920, -0.0786,
+    -0.2492, -0.4198, -0.5904, -0.7610, -0.9315, -1.1021, -1.2727,
+  },
   .rpm_no_load = 11840.0,
   .torque_arm = 0.0122,   /* 322 W of disc power at 10,060 rpm is 0.31 N m at 25 N */
   .j_prop = 0.00023, /* the three blade 11 x 7.5 (45 g) and the BL10's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3737,7 +3797,18 @@ const FixedWingParams FW_CUB1400F = {
   .surface_max = 18.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 13.5,  /* N, 3536 850 kV on 3S with an 11 x 7 */
-  .pitch_speed = 23.8,
+  .pitch_speed = 23.765, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 11 x 7, two blade: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9682, 0.9303, 0.8834, 0.8253, 0.7569, 0.6772,
+    0.5851, 0.4839, 0.3756, 0.2631, 0.1494, 0.0370, -0.0752,
+    -0.1875, -0.2997, -0.4120, -0.5243, -0.6365, -0.7488, -0.8611,
+  },
+  .torque_curve = {
+    1.0000, 1.0380, 1.0706, 1.0931, 1.1019, 1.0874, 1.0498,
+    0.9824, 0.8852, 0.7611, 0.6131, 0.4454, 0.2607, 0.0735,
+    -0.1136, -0.3006, -0.4877, -0.6748, -0.8619, -1.0489, -1.2360,
+  },
   .rpm_no_load = 9435.0,
   .torque_arm = 0.0113,   /* 128 W of disc power at 8,020 rpm is 0.15 N m at 13.5 N */
   .j_prop = 0.000132, /* the 11 x 7 (26 g) and the 3536's bell, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3838,7 +3909,18 @@ const FixedWingParams FW_BOMBSHELL1118 = {
   .surface_max = 0.0,
   .expo = 0.30,
   .thrust_static = 2.824, /* N, Cox's 7 x 3.5 at Cox's 9,350 rpm */
-  .pitch_speed = 13.85,
+  .pitch_speed = 13.854, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* Cox 7 x 3.5 (0.50): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9559, 0.9055, 0.8485, 0.7840, 0.7126, 0.6347,
+    0.5500, 0.4610, 0.3671, 0.2696, 0.1695, 0.0680, -0.0344,
+    -0.1367, -0.2390, -0.3414, -0.4437, -0.5460, -0.6483, -0.7507,
+  },
+  .torque_curve = {
+    1.0000, 1.0139, 1.0228, 1.0221, 1.0109, 0.9884, 0.9513,
+    0.8996, 0.8331, 0.7505, 0.6513, 0.5368, 0.4062, 0.2655,
+    0.1256, -0.0143, -0.1541, -0.2940, -0.4339, -0.5737, -0.7136,
+  },
   .rpm_no_load = 11000.0,
   .torque_arm = 0.0070,   /* 19.2 W of disc power at 9,350 rpm is 0.0197 N m at 2.82 N */
   .j_prop = 0.0000115, /* Cox's 7 x 3.5 (6 g) and the .049's crank, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -3959,7 +4041,18 @@ const FixedWingParams FW_KADET1981 = {
   .surface_max = 0.0,
   .expo = 0.30,
   .thrust_static = 27.83, /* N, a 12 x 6 at the measured 9,500 rpm */
-  .pitch_speed = 24.13,
+  .pitch_speed = 24.129, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9615, 0.9178, 0.8670, 0.8096, 0.7446, 0.6731,
+    0.5957, 0.5136, 0.4272, 0.3375, 0.2447, 0.1497, 0.0543,
+    -0.0411, -0.1367, -0.2323, -0.3278, -0.4234, -0.5190, -0.6145,
+  },
+  .torque_curve = {
+    1.0000, 1.0233, 1.0389, 1.0458, 1.0417, 1.0237, 0.9897,
+    0.9397, 0.8723, 0.7875, 0.6831, 0.5607, 0.4206, 0.2630,
+    0.0960, -0.0691, -0.2343, -0.3994, -0.5645, -0.7297, -0.8948,
+  },
   .rpm_no_load = 11176.0,
   .torque_arm = 0.0125,   /* 347 W of disc power at 9,500 rpm is 0.349 N m at 27.8 N */
   .j_prop = 0.00027, /* the Ugly Stik's 12 x 6 wood prop and crank front, the same engine class, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -4068,7 +4161,18 @@ const FixedWingParams FW_P51D1450 = {
   .surface_max = 19.8769 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 30.7,  /* N, the 14 x 8 four blade on the 540 kV motor at 4S, ESTIMATED */
-  .pitch_speed = 23.006,  /* 0.85 of 7,992 rpm on the 8 in pitch */
+  .pitch_speed = 23.006, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 14 x 8 four blade (0.57): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9656, 0.9250, 0.8770, 0.8205, 0.7556, 0.6807,
+    0.5981, 0.5086, 0.4143, 0.3157, 0.2146, 0.1123, 0.0094,
+    -0.0936, -0.1965, -0.2994, -0.4023, -0.5052, -0.6082, -0.7111,
+  },
+  .torque_curve = {
+    1.0000, 1.0313, 1.0580, 1.0748, 1.0812, 1.0678, 1.0351,
+    0.9797, 0.9020, 0.8018, 0.6776, 0.5310, 0.3625, 0.1752,
+    -0.0147, -0.2042, -0.3938, -0.5834, -0.7729, -0.9625, -1.1520,
+  },
   .rpm_no_load = 7992.0,
   .torque_arm = 0.0158,   /* 345 W of disc power at 6,793 rpm is 0.485 N m at 30.7 N */
   .thrust_z = 0.0129,     /* the thrust line 12.9 mm over the CG */
@@ -4199,6 +4303,17 @@ const FixedWingParams FW_F16878 = {
   .expo = 0.30,
   .thrust_static = 23.536, /* N, Freewing's 2,400 g */
   .pitch_speed = 76.87,   /* the fan's zero thrust speed, 1.603 n D */
+  /* the fan's straight line to its zero thrust speed (docs/F16-STAGE1.md); its power is its speed's cube whatever the airspeed, the same paper */
+  .axial_curve = {
+    1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4,
+    0.3, 0.2, 0.1, 0.0, -0.1, -0.2, -0.3,
+    -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0,
+  },
+  .torque_curve = {
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+  },
   .rpm_no_load = 49062.0, /* 2210 kV on 6S */
   .torque_arm = 0.0,      /* the fan's stators take out its torque */
   .j_prop = 0.000010, /* the 69 mm twelve blade rotor (12 g) and the 2957 inrunner's rotor, ESTIMATED: 0.7 of the blades' rod inertia plus the rotor, docs/FLIGHTMODEL.md */
@@ -4297,7 +4412,18 @@ const FixedWingParams FW_ZAGI1219 = {
   .surface_max = 14.4775 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 7.295, /* N, 202 W on the shaft through the 5 in disc at an APC 5 x 5E's figure of merit */
-  .pitch_speed = 46.567,  /* Zagi's loaded 22,000 rpm on the 5 in pitch */
+  .pitch_speed = 46.567, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 5 x 5 carbon: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9886, 0.9736, 0.9488, 0.9117, 0.8549, 0.7759,
+    0.6692, 0.5410, 0.3984, 0.2498, 0.1012, -0.0422, -0.1858,
+    -0.3295, -0.4731, -0.6167, -0.7603, -0.9039, -1.0475, -1.1912,
+  },
+  .torque_curve = {
+    1.0000, 1.0556, 1.1196, 1.1851, 1.2410, 1.2708, 1.2587,
+    1.1855, 1.0496, 0.8618, 0.6328, 0.3746, 0.1028, -0.1687,
+    -0.4402, -0.7116, -0.9831, -1.2546, -1.5260, -1.7975, -2.0690,
+  },
   .rpm_no_load = 25882.0, /* the plant's rule: 22,000 is 0.85 of it */
   .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
   .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
@@ -4402,7 +4528,18 @@ const FixedWingParams FW_UGLYSTIK1567 = {
   .surface_max = 12.5969 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 36.206, /* N, APC's 12 x 6 at 10,895 rpm */
-  .pitch_speed = 27.673,
+  .pitch_speed = 27.673, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* APC 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9618, 0.9181, 0.8678, 0.8105, 0.7460, 0.6742,
+    0.5975, 0.5154, 0.4281, 0.3384, 0.2457, 0.1507, 0.0552,
+    -0.0422, -0.1395, -0.2368, -0.3340, -0.4313, -0.5285, -0.6258,
+  },
+  .torque_curve = {
+    1.0000, 1.0210, 1.0377, 1.0445, 1.0413, 1.0232, 0.9877,
+    0.9361, 0.8685, 0.7819, 0.6771, 0.5534, 0.4119, 0.2522,
+    0.0771, -0.0954, -0.2679, -0.4403, -0.6128, -0.7853, -0.9578,
+  },
   .rpm_no_load = 12817.6,
   .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm, the engine's torque, over 36.2 N */
   .thrust_z = -0.0043,    /* the crankshaft 0.17 in under the CG */
@@ -4528,7 +4665,18 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .surface_max = 16.5003 * WING_PI / 180.0,
   .expo = 0.30,           /* the house stock expo; Great Planes give none */
   .thrust_static = 36.206, /* N, the Ugly Stik's 61FX on APC's 12 x 6 at 10,895 rpm */
-  .pitch_speed = 27.673,
+  .pitch_speed = 27.673, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* APC 12 x 6: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9618, 0.9181, 0.8678, 0.8105, 0.7460, 0.6742,
+    0.5975, 0.5154, 0.4281, 0.3384, 0.2457, 0.1507, 0.0552,
+    -0.0422, -0.1395, -0.2368, -0.3340, -0.4313, -0.5285, -0.6258,
+  },
+  .torque_curve = {
+    1.0000, 1.0210, 1.0377, 1.0445, 1.0413, 1.0232, 0.9877,
+    0.9361, 0.8685, 0.7819, 0.6771, 0.5534, 0.4119, 0.2522,
+    0.0771, -0.0954, -0.2679, -0.4403, -0.6128, -0.7853, -0.9578,
+  },
   .rpm_no_load = 12817.6,
   .torque_arm = 0.01690,  /* APC's 0.612 N m at 10,895 rpm over 36.2 N */
   .thrust_z = 0.0074,     /* the thrust line 7 mm over the CG, from the masses */
@@ -4653,7 +4801,18 @@ const FixedWingParams FW_STRIKER_PROP = {
   .surface_max = 24.0 * WING_PI / 180.0,
   .expo = 0.30,
   .thrust_static = 283.25, /* N: 8.2 kW at 5,000 rpm through the 30 in disc at a figure of merit of 0.55 */
-  .pitch_speed = 29.633,   /* the 14 in pitch at 5,000 rpm */
+  .pitch_speed = 29.633, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 30 x 14 (0.47): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9609, 0.9155, 0.8630, 0.8023, 0.7344, 0.6581,
+    0.5750, 0.4861, 0.3916, 0.2952, 0.1969, 0.0990, 0.0035,
+    -0.0920, -0.1875, -0.2830, -0.3785, -0.4740, -0.5695, -0.6650,
+  },
+  .torque_curve = {
+    1.0000, 1.0261, 1.0466, 1.0564, 1.0515, 1.0322, 0.9927,
+    0.9311, 0.8479, 0.7459, 0.6230, 0.4789, 0.3186, 0.1476,
+    -0.0227, -0.1928, -0.3629, -0.5330, -0.7031, -0.8732, -1.0433,
+  },
   .rpm_no_load = 5882.4,   /* the plant's rule: 5,000 is 0.85 of it */
   .torque_arm = 0.05529,   /* 15.7 N m on the shaft over the static thrust */
   .thrust_z = 0.0196,      /* the shaft on the fuselage's axis, over the CG */
@@ -4745,6 +4904,12 @@ const FixedWingParams FW_STRIKER_JET = {
   .expo = 0.30,
   .thrust_static = 140.0, /* N, the class's */
   .pitch_speed = 420.0,   /* the jet's exit velocity: T = mdot (Ve - V), ESTIMATED */
+  /* T = mdot (Ve - V), straight to the exit velocity; no rotor and no pack, so nothing reads a torque curve */
+  .axial_curve = {
+    1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4,
+    0.3, 0.2, 0.1, 0.0, -0.1, -0.2, -0.3,
+    -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0,
+  },
   .rpm_no_load = 147058.8, /* the plant's rule on the class's 125,000 rpm at full */
   .torque_arm = 0.0,      /* a turbojet's reaction is its own shaft's, nothing to the airframe */
   .thrust_z = 0.1099,     /* the nacelle on the tail, over the axis: power pitches the nose down */
@@ -4862,7 +5027,18 @@ const FixedWingParams FW_EXTRA3D1308 = {
   .surface_max = 36.53 * WING_PI / 180.0,
   .expo = 0.30,           /* E-flite's high rate expo */
   .thrust_static = 37.86, /* N, ESTIMATED: the 4250 on 4S against APC's 13 x 6.5E, 10,127 rpm */
-  .pitch_speed = 29.08,
+  .pitch_speed = 29.077, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 13 x 6 wood (0.46): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9629, 0.9191, 0.8678, 0.8092, 0.7413, 0.6652,
+    0.5813, 0.4898, 0.3926, 0.2921, 0.1897, 0.0876, -0.0116,
+    -0.1108, -0.2100, -0.3092, -0.4084, -0.5076, -0.6067, -0.7059,
+  },
+  .torque_curve = {
+    1.0000, 1.0239, 1.0425, 1.0519, 1.0475, 1.0274, 0.9870,
+    0.9273, 0.8467, 0.7425, 0.6212, 0.4810, 0.3260, 0.1606,
+    -0.0049, -0.1703, -0.3357, -0.5011, -0.6665, -0.8319, -0.9973,
+  },
   .rpm_no_load = 13468.0,
   .torque_arm = 0.01719,  /* the prop's 0.651 N m at 37.9 N */
   .thrust_z = 0.0,        /* the thrust line through the CG */
@@ -5005,7 +5181,18 @@ const FixedWingParams FW_NIGHTTIMBER1200 = {
   .surface_max = 28.92 * WING_PI / 180.0,
   .expo = 0.0,            /* the manual sets none: "after first flights, you may adjust expo" */
   .thrust_static = 25.93, /* N, ESTIMATED: the BL10 on 4S against APC's 13 x 4E, 10,058 rpm */
-  .pitch_speed = 19.17,
+  .pitch_speed = 19.172, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 13 x 4: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9546, 0.9059, 0.8519, 0.7949, 0.7329, 0.6679,
+    0.5987, 0.5254, 0.4489, 0.3698, 0.2888, 0.2067, 0.1237,
+    0.0408, -0.0426, -0.1260, -0.2094, -0.2928, -0.3762, -0.4596,
+  },
+  .torque_curve = {
+    1.0000, 1.0000, 0.9947, 0.9838, 0.9678, 0.9459, 0.9138,
+    0.8764, 0.8271, 0.7710, 0.7034, 0.6261, 0.5401, 0.4433,
+    0.3413, 0.2347, 0.1291, 0.0234, -0.0822, -0.1879, -0.2935,
+  },
   .rpm_no_load = 13320.0,
   .torque_arm = 0.01459,  /* the prop's 0.378 N m at 25.9 N */
   .j_prop = 0.000171,     /* a 25 g 13 in blade and the BL10's can, ESTIMATED */
@@ -5139,7 +5326,18 @@ const FixedWingParams FW_HERCULES3077 = {
   .surface_max = 15.0 * WING_PI / 180.0, /* docs/HERCULES-STAGE1.md */
   .expo = 0.30, /* FITTED: a transmitter setting, the fleet's 30 percent */
   .thrust_static = 81.30, /* N, four Power 25s on 3S against APC's 12 x 8E, 7,961 rpm, ESTIMATED; npm run hercules:derive */
-  .pitch_speed = 27.80,   /* 0.85 of 9,657 rpm on the 8 in pitch; npm run hercules:derive */
+  .pitch_speed = 27.799, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* APC 12 x 8E: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9724, 0.9375, 0.8935, 0.8380, 0.7708, 0.6906,
+    0.5972, 0.4931, 0.3800, 0.2628, 0.1438, 0.0288, -0.0835,
+    -0.1964, -0.3092, -0.4220, -0.5349, -0.6477, -0.7605, -0.8734,
+  },
+  .torque_curve = {
+    1.0000, 1.0452, 1.0866, 1.1184, 1.1330, 1.1264, 1.0913,
+    1.0231, 0.9198, 0.7841, 0.6218, 0.4361, 0.2348, 0.0287,
+    -0.1760, -0.3807, -0.5854, -0.7901, -0.9948, -1.1995, -1.4042,
+  },
   .rpm_no_load = 9657.0, /* npm run hercules:derive */
   .torque_arm = 0.01857,  /* each prop's 0.377 N m at 20.3 N; four turning the same way; npm run hercules:derive */
   .thrust_z = 0.0998,     /* the nacelles' thrust lines 0.10 m over the CG; npm run hercules:derive */
@@ -5249,7 +5447,18 @@ const FixedWingParams FW_CAP1702 = {
   .surface_max = 36.00 * WING_PI / 180.0, /* the data sheet's high rate, docs/CAP580-STAGE1.md */
   .expo = 0.60,           /* docs/CAP580-STAGE1.md: the data sheet's high rate expo, one figure for all three */
   .thrust_static = 94.31, /* N, T-Motor's bench table: 9,617 g at 100 percent; npm run cap580:derive */
-  .pitch_speed = 40.37,   /* npm run cap580:derive: APC's 18 x 8E curve through the bench's static and its top speed */
+  .pitch_speed = 29.247, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* AMZ carbon 18 x 8: thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9595, 0.9128, 0.8596, 0.7993, 0.7325, 0.6582,
+    0.5769, 0.4907, 0.3994, 0.3056, 0.2095, 0.1135, 0.0194,
+    -0.0738, -0.1671, -0.2603, -0.3536, -0.4469, -0.5402, -0.6334,
+  },
+  .torque_curve = {
+    1.0000, 1.0179, 1.0302, 1.0337, 1.0264, 1.0045, 0.9653,
+    0.9083, 0.8344, 0.7411, 0.6323, 0.5040, 0.3613, 0.2062,
+    0.0464, -0.1130, -0.2724, -0.4318, -0.5912, -0.7507, -0.9101,
+  },
   .rpm_no_load = 10160.0, /* npm run cap580:derive: shows the bench's 8,636 rpm at full */
   .torque_arm = 0.02224,  /* npm run cap580:derive: the bench's 2.097 N m at 94.3 N */
   .thrust_z = 0.0,        /* docs/CAP580-STAGE1.md: the thrust line through the CG */
@@ -5399,7 +5608,18 @@ const FixedWingParams FW_SLICK2680 = {
    * Cp / Ct, FITTED; the pitch speed APC's zero thrust advance ratio,
    * scripts/slick-derive.js. */
   .thrust_static = 304.11, /* scripts/slick-derive.js */
-  .pitch_speed = 46.588, /* scripts/slick-derive.js */
+  .pitch_speed = 27.728, /* the prop's pitch at its full rpm; npm run prop:curves -- wings */
+  /* 28 x 10 (0.357): thrust and torque over static against mu, APC's; npm run prop:curves -- wings */
+  .axial_curve = {
+    1.0000, 0.9625, 0.9200, 0.8729, 0.8213, 0.7647, 0.7043,
+    0.6393, 0.5703, 0.4984, 0.4229, 0.3453, 0.2644, 0.1824,
+    0.0988, 0.0148, -0.0699, -0.1544, -0.2389, -0.3235, -0.4080,
+  },
+  .torque_curve = {
+    1.0000, 1.0134, 1.0254, 1.0296, 1.0246, 1.0103, 0.9866,
+    0.9500, 0.9024, 0.8444, 0.7694, 0.6789, 0.5741, 0.4521,
+    0.3167, 0.1679, 0.0174, -0.1323, -0.2820, -0.4317, -0.5814,
+  },
   .rpm_no_load = 7705.9,  /* 6,550 over 0.85, the glow rule, docs/POWER-STAGE1.md */
   .torque_arm = 0.03083, /* scripts/slick-derive.js */
   .thrust_z = 0.0390,     /* the CG 39 mm under the thrust line, from the masses, scripts/slick-derive.js */

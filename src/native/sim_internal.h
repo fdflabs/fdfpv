@@ -521,6 +521,7 @@ extern int SIM_RATE_GUARD_TRIPS;
 #define FW_MIX_ELEVON 0 /* two elevons, delta_e plus and minus delta_a; no rudder */
 #define FW_MIX_TAIL 1   /* ailerons, an elevator and a rudder, each its own surface */
 #define FW_MIX_RUDDER 2 /* no ailerons: an elevator, and a rudder the roll stick drives too */
+#define FW_CURVE_N 21  /* mu = 0, 0.1, ... 2 in axial_curve and torque_curve */
 
 typedef struct FixedWingParams {
   int mix;             /* FW_MIX_ELEVON, FW_MIX_TAIL or FW_MIX_RUDDER */
@@ -565,7 +566,13 @@ typedef struct FixedWingParams {
   double expo;
   /* The motor. */
   double thrust_static; /* N */
-  double pitch_speed;   /* m/s at full duty */
+  double pitch_speed;   /* m/s at full duty: the prop's pitch times its full
+                         * rpm (a fan's or a jet's zero thrust speed) */
+  /* The prop's thrust and shaft torque over their static values at mu =
+   * u / (pitch_speed n), mu = 0, 0.1, ... 2, from APC's performance files
+   * (npm run prop:curves -- wings); straight on past mu = 2. */
+  double axial_curve[FW_CURVE_N];
+  double torque_curve[FW_CURVE_N];
   double rpm_no_load;
   double torque_arm;    /* prop reaction, roll moment per newton of thrust, m */
   double thrust_z;      /* thrust line height above the CG, m: a line under
