@@ -252,7 +252,7 @@ and never widened.
 | Z6 | full elevon roll, as its helix angle from a full roll's time | 0.2236 | 0.168 to 0.280 | 0.2197, once round in 1.26 s |
 | Z7 | pitch: the pitch rate's first peak after a tenth of up stick, and the glide's alpha per degree of elevon | 0.098 s; 1.672 | 0.063 to 0.146 s; 1.42 to 1.92 | 0.096 s; 1.678 |
 | Z8 | no rudder: full yaw stick changes nothing | | bit identical | identical |
-| Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 2 to 6 m/s | 0.7 deg, 1.17 s, alpha 17 deg sinking 3.45 |
+| Z9 | the straight stall, full up held: wings level, balloons and breaks, mushes | | bank under 5 deg, break within 3 s, past the stall sinking 0.61 to 4.25 m/s (zagi-derive.js, 2026-10-11; docs/FLIGHTMODEL.md) | 0.3 deg, 2.36 s, alpha 14.9 deg sinking 1.86 |
 | Z10 | a stall in a turn: full roll held into a 30 deg bank spins it; the bank held on the stick does not | | once round within 4 s; within 20 deg | 449 deg; 14 deg |
 | Z11 | the hand throw, the motor off for a second | | no contact, above 5 m after 5 s | lowest 0.21 m, 22.8 m: the shell's throw from shoulder height dips close to the grass before the motor comes on |
 | Z12 | the belly landing | | at rest upright, the CG 12 mm up | slid 1.4 m, at rest at 10.9 mm, level |

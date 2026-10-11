@@ -15,11 +15,15 @@
  *      Aeronautical Knowledge, Weight and Balance, "Effects of Adverse
  *      Balance": a forward CG is more stable and harder to raise the nose,
  *      an aft CG less stable, quicker to stall and harder to recover): full
- *      up elevator from level flight at cruise, power off, reaches a
- *      higher angle of attack in its first second and pitches up faster
- *      tail heavy than stock, and stock than nose heavy. The first second,
- *      because after it the speed a power off pull up has bled away sets
- *      the angle more than the balance does.
+ *      up elevator from level flight at cruise, power off, stalls sooner
+ *      (the first stall strip separating, sim_wing_strips, within 3 s) and
+ *      pitches up faster in its first second tail heavy than stock, and
+ *      stock than nose heavy. Not the peak angle in a fixed first second:
+ *      a nose heavy glider holds its angle low until its speed bleeds off,
+ *      then stalls inside the window while stock is already falling from
+ *      its break, which read as nose heavy higher (2026-10-11). The pitch
+ *      rate in the first second, because after it the speed a power off
+ *      pull up has bled away sets it more than the balance does.
  *   U4 the rates: full aileron (the rudder on a plane without ailerons)
  *      rolls faster, and full elevator pitches faster, on high than mid
  *      than low.
@@ -88,6 +92,7 @@ must(standSim.init(diff), 'stand init');
 const stand = new TestStand(standSim);
 
 const HIGH = 400;
+const stripPtr = sim.e.malloc(8 * 8);
 
 
 function seat(id, tune = null, power = null) {
@@ -158,14 +163,15 @@ function margin(id, tune) {
 function stall(id, tune) {
   seat(id, tune);
   place(TABLE[id].cruiseMs);
-  let alpha = -Infinity;
   let q = 0;
-  flyFor(1000, () => [0, 1, 0, 0], () => {
-    const d = wingDebug(sim);
-    alpha = Math.max(alpha, d[0]);
-    q = Math.max(q, -sim.readState().state[12]);
+  let onset = null;
+  flyFor(3000, () => [0, 1, 0, 0], (t) => {
+    if (t < 1000) q = Math.max(q, -sim.readState().state[12]);
+    if (onset !== null) return;
+    must(sim.e.sim_wing_strips(stripPtr), 'sim_wing_strips');
+    if (new Float64Array(sim.e.memory.buffer, stripPtr, 8).some((x) => Math.abs(x) > 1e-3)) onset = t;
   });
-  return { alpha, q };
+  return { onset, q };
 }
 
 /* Peak body rate from a stick step at cruise, 1 s: axis 11 roll, 12
@@ -261,9 +267,12 @@ for (const id of ids) {
   const sF = stall(id, cgOnly(d));
   const s0 = stall(id, null);
   const sA = stall(id, cgOnly(-d));
-  check(`U3 ${id} full up elevator: tail heavy reaches a higher angle of attack than stock, stock than nose heavy`,
-    sA.alpha > s0.alpha && s0.alpha > sF.alpha,
-    `CG ${f2(d * 1000)} mm each way: ${f2(deg(sA.alpha))}, ${f2(deg(s0.alpha))}, ${f2(deg(sF.alpha))} deg`);
+  const ms = (x) => (x === null ? 'never' : `${x} ms`);
+  check(`U3 ${id} full up elevator: tail heavy stalls sooner than stock, stock than nose heavy`,
+    /* Nose heavy may not stall at all in 3 s: the FAA's harder to raise
+     * the nose, later than any time. */
+    sA.onset !== null && s0.onset !== null && sA.onset < s0.onset && s0.onset < (sF.onset ?? Infinity),
+    `CG ${f2(d * 1000)} mm each way: the first strip separates at ${ms(sA.onset)}, ${ms(s0.onset)}, ${ms(sF.onset)}`);
   check(`U3 ${id} and pitches up faster`, sA.q > s0.q && s0.q > sF.q,
     `${f2(deg(sA.q))}, ${f2(deg(s0.q))}, ${f2(deg(sF.q))} deg/s`);
 
