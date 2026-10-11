@@ -31,7 +31,7 @@
 
 import { airframeById } from '../../configs/airframes.js';
 import { powerChoice } from '../../configs/power.js';
-import { RATES, fullEntry, normalizeEntry, setupFor, throwsFor, tuningFor } from '../../configs/tuning.js';
+import { ELEV_FLAPS, RATES, fullEntry, normalizeEntry, setupFor, throwsFor, tuningFor } from '../../configs/tuning.js';
 import {
   PID_AXES, PID_FIELDS, PID_FIELD_SPECS, SLIDER_KEYS, SLIDERS, pidsAdjusted, pidsEntry, pidsSummary, setPidSlider, setPidsExpert,
 } from '../../configs/pids.js';
@@ -205,6 +205,18 @@ function planeRatesRows(ui, s) {
       (v) => store({ expo: { [k]: v } }),
     ));
   });
+  /* The radio's elevator to flap mix, on a plane with flaps: a 3D pilot's
+   * harrier setup, off as the kit ships. */
+  if (tuningFor(id).flaps) {
+    rows.push(choice(
+      str('ui.plane_elev_flap'),
+      str('ui.plane_elev_flap_note'),
+      ELEV_FLAPS,
+      e.elevFlap,
+      (v) => (v === 0 ? str('tuning.flap_mix_off') : str('tuning.percent', { n: v })),
+      (v) => store({ elevFlap: v }),
+    ));
+  }
   rows.push(backRow());
   return rows;
 }

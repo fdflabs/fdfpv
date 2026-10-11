@@ -1034,7 +1034,8 @@ int sim_set_addon_inertia(const double *in);
  * surfaces' travel at full stick, the expo per surface replaces the
  * table's one expo (0 linear, 1 all cubic), the trim is added to the
  * elevator within its travel, and FLAP_MIX is the radio's flap to
- * elevator mix, elevator rad per rad of flap. A MODE like the power
+ * elevator mix, elevator rad per rad of flap, and ELEV_FLAP the radio's
+ * elevator to flap mix. A MODE like the power
  * option: kept across sim_reset and sim_init, kept by sim_set_power and
  * sim_power_clear, cleared by sim_set_airframe to a different airframe.
  * SIM_ERR_BAD_ARG on a quad, for a null pointer and for a value outside
@@ -1063,7 +1064,12 @@ int sim_set_addon_inertia(const double *in);
 #define SIM_TUNE_EXPO_R 8
 #define SIM_TUNE_TRIM_E 9     /* rad, trailing edge up positive, within 10 deg */
 #define SIM_TUNE_FLAP_MIX 10  /* elevator rad per rad of flap, -1 to 1 */
-#define SIM_TUNE_DOUBLES 11
+/* The radio's elevator to flap mix: flap, as a share of full flap, per
+ * unit of up elevator stick, 0 to 1, added to the notch's within the
+ * flaps' travel. Zero adds nothing. Added after the other ten, so a block
+ * with it zero flies as the eleven doubles did. */
+#define SIM_TUNE_ELEV_FLAP 11
+#define SIM_TUNE_DOUBLES 12
 int sim_wing_set_tune(const double *in);
 int sim_wing_tune_clear(void);
 int sim_wing_tune(double *out);
