@@ -906,6 +906,19 @@ typedef struct FixedWingParams {
    * tail's: the stall angle is the wing's, CL max over this, and the
    * tail's share of the slope lifts on past it. Zero: cl_alpha for both. */
   double cl_alpha_wing;
+  /* The sideslip derivatives' shares, from each derivation (docs/
+   * FLIGHTMODEL.md, sideslip past the stall): the wing's (dihedral, wing
+   * position) and the fin's of cl_beta, and the fin's of cn_beta. Zero:
+   * the linear derivatives through the stall. */
+  double cl_beta_wing;
+  double cl_beta_fin;
+  double cn_beta_fin;
+  /* A surface's share kept past the stall, at 0, 4, 10, 15, 20, 25 and 35
+   * deg past the wing's own stall angle: the ailerons' and the fin's and
+   * rudder's. Zero: the measured defaults, an unswept wing's ailerons (NACA
+   * TR 419) and a rudder over a low stabiliser (NASA TP-2011). */
+  double ail_keep[7];
+  double fin_keep[7];
   /* The stall across the Reynolds numbers on the chord: at stall_re[0]
    * and [1], the wing's CL max and the angle its lift peaks at, rad,
    * straight between them and held past them. Zero leaves cl_max and

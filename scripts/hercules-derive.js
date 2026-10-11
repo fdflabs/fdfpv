@@ -435,7 +435,7 @@ const sideCda = kitLength * fusH * 0.85 * 1.2 * 0.65;
 
 const out = {
   m, W, S, b, c, AR, cr, ct, lam, yMAC, hCG, SM, hnNelson, aw, at, av, deda, VH, VV, CLa, Cma, Cm0, Cmq, Cmde, CLde,
-  CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
+  CYb, Cnb, Cnr, Clb, ClbDih, ClbHigh, ClbFin, CnbFin: av * VV, Clp, Clda, Cndr, CYdr, Cldr, tauA, tauE, tauR, stripC,
   Ixx, Iyy, Izz, packX, nStatic, Qs1, Ts1, Is1, Ts, rpmNL, Vp, torqueArm, propJ, shaftW, kInd,
   Vs, top: level(1), level75: level(0.75), bestLD, vBestLD, minSink, vMinSink, Vcruise, dCruise,
   roll15: rollAt(15) * DEG, pb2v, takeoff: takeoff(), roll11: rollTo(1.1 * Vs), roll15Vs: rollTo(1.5 * Vs), vGlide, ldGlide, sinkGlide, alphaStall: CLmax / CLa, cdDoor, cmDoor, zDoor, doorTime, drag, dragLo: dragLo.cd0, dragHi: dragHi.cd0, e, endurance, big, level75Door: levelDoor(0.75), cgHeight, mainX, mainZ, noseX, noseZ, track, wheelbase, wheelR, noseShare,

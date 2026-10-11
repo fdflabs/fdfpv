@@ -1271,10 +1271,13 @@ What moved, re-derived on it rather than widened:
   lengthens a 50 deg elevator's arm. Aft is held highest and nose heavy
   lowest on every aircraft (FAA, Effects of Adverse Balance).
 
-A BIG FAILURE this does not fix, measured: the Timber does not reach its
-harrier. harrier-flap-probe.js, full up held: pitch 7 to 26 deg at 8 to
-11.6 m/s, bank sd 31 to 39 deg, against the video's nose up 40 to 45 deg
-at a crawl with the elevator flaps mix calming it.
+A BIG FAILURE this does not fix, measured: the harrier. The video's
+aircraft is the Night Timber X (3D-VIDEO-LESSONS.md section 0; the Turbo
+Timber had stood in for it). harrier-flap-probe.js on the Night Timber,
+full up held: bank sd 63 to 72 deg, the height lost with the mix at 50
+percent or more, against the video's nose up 40 to 45 deg at a crawl with
+the elevator flaps mix calming it; on the Turbo Timber pitch 7 to 26 deg
+at 8 to 11.6 m/s. harrier-probe.js (below) is the measure now.
 
 ### The tail's own stall and moment (2026-10-11)
 
@@ -1322,3 +1325,70 @@ before this chain, 18.9 with the slope on the old plate). Still a gap:
 without hi_alpha a tail's lift has no stall and no moment of its own;
 the fleet's tail angle goes with the knife edge work, whose fin half
 needs its own sources. Not started: the Reynolds CLmax per aircraft.
+
+### Lateral control past the stall, measured (2026-10-11)
+
+What a 3D harrier is flown with, from measured data, on every aircraft:
+
+- **Ailerons in separated flow.** NACA TR 419 (Weick and Wenzinger,
+  1932), a Clark Y wing of aspect ratio 6 with 25 percent chord ailerons:
+  the rolling moment past the CL max keeps 0.40 of its attached value 4
+  deg past, 0.10 at 14 and 0.18 at 24 (table II, the mean of 20, 30 and
+  40 deg of aileron), and never reverses. Every aircraft's ailerons now
+  take that share on the wing's angle past its own stall; before, only
+  the Zagi, Extra and Night Timber modelled any loss, and the Cub,
+  Skyhunter and Tiger Moth kept their whole aileron through the stall.
+  The same share scales the aileron's shift of its stall strips, which
+  removed a reversal the strips made at 14 deg past (the Night Timber
+  -0.42) and keeps E5's roll runaway guard. The full size GA airplane
+  keeps more (NASA TP-2011 fig. 56: 0.72, 0.53, 0.42, 0.28 at 5 to 25
+  past, Re 2.5e6); at our Reynolds numbers TR 419 (6.1e5) is the nearer.
+- **Sideslip past the stall, per planform** (cl_beta_wing, cl_beta_fin,
+  cn_beta_fin from each derivation): the wing's dihedral and wing
+  position share fades over 5 deg past the stall (TP-2011 fig. 51; its
+  model CR-2971 fig. 42); the separated wing rolls away from the slip on
+  its own beyond a dead zone, about 0.003 per deg (CR-2971; TR 379 figs.
+  28 and 29; TR 548 fig. 7), the 4 deg dead zone FITTED from the 3 to 6
+  the data put it at; the fin's shares and the rudder take TP-2011's
+  wake decay (fig. 55a: 0.63, 0.46, 0.38, 0.23, 0.08 at 5 to 25 deg
+  past), measured on a low tail under the rudder, which the Extra's and
+  the Night Timber's are (EFL115500 manual p. 5); a T-tail keeps its
+  rudder to 40 deg (CR-3248) and would need its own curve. A linear
+  sideslip term from TR 419's 20 deg yaw was tried and dropped: no data
+  at small yaw supported it, and it killed the P-51's measured wing drop.
+
+- **Per table, by data presence.** Each table may give its own measured
+  keep curves (ail_keep, fin_keep, at 0, 4, 10, 15, 20, 25 and 35 deg past
+  its stall); without them the defaults above apply. A biplane's ailerons
+  judge the stall on the wing they sit on.
+- **OPEN GAP, the F-16 and the Tiger Moth**, known too strong past the
+  stall: both keep their ailerons whole and no sideslip split (the old
+  plant's arithmetic) until each has its own data. The F-16 needs NASA
+  TP-1538's Cn beta and Cl beta to 90 deg and its LEX and vortex lift:
+  with TP-1538 fig. 13's measured ailerons and differential tail alone
+  (0.78, 0.64, 0.54, 0.36 at 4 to 20 deg past) S9 holds 21.6 deg of bank
+  against 15. The Tiger Moth needs a biplane tail in its cell's wake (NACA
+  biplane spin and tail data): with TR 419's ailerons T8b's half throttle
+  stall rolls off at 29 deg/s against 20.
+- **The CAP 580 and the Slick 580** (their own branches) match the Extra's
+  measured layout, a stabiliser on the fuselage at the thrust line with
+  the rudder over it and running under the fuselage (CAP580-STAGE1.md,
+  IMG_7289: 0.277 m over, 0.075 under; slick-derive.js's side view: the
+  stabiliser 0.01 m over the thrust line, the rudder 0.08 m under it):
+  they take the defaults once their derivations print the shares.
+
+The Extra's E11 harrier is judged on the rock the only harrier data
+shows, the 3D video's Night Timber (a different airframe of the same
+class) with its flap mix off: worst bank within 30 deg; AS3X must damp
+it (E11b). Its period is reported, not judged: the rock is a limit cycle
+through these nonlinear terms closed through the pilot, with no clean
+derived period, and the video's 1.5 s is the Night Timber's.
+
+The video's harrier speed, "a crawl, 2 to 4 m/s" (judged, not measured),
+is not a target: at 40 to 45 deg to a level path the thrust's forward
+share (about 16 N on the Night Timber) far exceeds the drag at 3 m/s
+(about 1 N); the derivation's 9.6 m/s at 40 deg stands.
+
+Still open, a BIG FAILURE: the Night Timber's harrier (harrier-probe.js)
+rocks about twice the video's (bank sd 26 to 37 deg with the mix off)
+and the elevator flaps mix does not calm it as the video's does.

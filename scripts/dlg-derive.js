@@ -265,6 +265,7 @@ const rows = [
   ['Cmα, Cm0, Cmq, Cmδe, CLδe', `${f(Cma)} ${f(Cm0, 4)} ${f(Cmq)} ${f(Cmde)} ${f(CLde, 4)}`],
   ['CYβ, Cnβ, Cnr', `${f(CYb)} ${f(Cnb, 4)} ${f(Cnr, 4)}`],
   ['Clβ (wing, total), Clp, Clδa', `${f(ClbWing, 4)} ${f(Clb, 4)} ${f(Clp)} ${f(Clda)}`],
+  ['cl_beta_fin, cn_beta_fin: the fin\'s shares (docs/FLIGHTMODEL.md, sideslip past the stall)', `${f(-av * (Sv / S) * (zv / b), 4)} ${f(av * VV, 4)}`],
   ['Cnδr, CYδr, Clδr, Cnδa per CL', `${f(Cndr, 4)} ${f(CYdr, 4)} ${f(Cldr, 4)} ${f(CndaPerCL, 4)}`],
   ['throws a, e, r deg', `${f(throwA * DEG, 1)} ${f(throwE * DEG, 1)} ${f(throwR * DEG, 1)}`],
   ['Ixx, Iyy, Izz kg m2', `${f(Ixx, 5)} ${f(Iyy, 5)} ${f(Izz, 5)}`],
