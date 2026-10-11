@@ -36,7 +36,7 @@ import {
   PID_AXES, PID_FIELDS, PID_FIELD_SPECS, SLIDER_KEYS, SLIDERS, pidsAdjusted, pidsEntry, pidsSummary, setPidSlider, setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  RATES_STORAGE_WARNING, listRatePresets, presetMatching, ratePresetById,
+  listRatePresets, presetMatching, ratePresetById,
 } from '../../configs/ratepresets.js';
 import {
   RATE_AXES, RATE_DEFAULTS, RATE_FIELDS, RATE_TYPES, THROTTLE_CAP_CHOICES, THROTTLE_CURVE_FIELDS,
@@ -73,7 +73,7 @@ import {
   AVX_PALETTES, FLIGHT_MODES, FLIGHT_STYLES, FPS_CAPS, FREESTYLE_SCORING, HUD_STYLES, LAP_COUNTS, LATENCY_MODES,
   PACK_VOLTAGES, RENDER_SCALES, WEIGHT_STOCK, clampWeight, hudStyleFor, tuneChoices,
 } from './settings.js';
-import { VIEW_LABEL } from './trickfilm.js';
+import { VIEW_LABEL, trickLevel } from './trickfilm.js';
 import { craftSvg, hubWays } from './ways.js';
 import { controlsRows } from './controls.js';
 /* A cycle: ui.js installs this module. These are read only inside the
@@ -117,6 +117,11 @@ function tuneName(id) {
 }
 
 /* The rate system's name: Classic is Betaflight's, the rest are brands. */
+/* A firmware field's label and note from configs/ (rates.js, pids.js),
+ * which name them in English for the bench and the pinned transcripts;
+ * the rows read them from the string table under spec.<group>.<key>. */
+const specText = (base) => ({ label: str(`${base.toLowerCase()}.label`), note: str(`${base.toLowerCase()}.note`) });
+
 const rateTypeName = (type) => str(`rates.type_${type.toLowerCase()}`);
 
 /* configs/rates.js ratesSummary, in the pilot's language: that one is the
@@ -508,7 +513,7 @@ function trickRows(ui) {
   return ui.trickRows().map((t) => ({
     label: t.name,
     value: `${formatScore(t.points)}`,
-    note: `${t.status.tag}. ${t.difficulty}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
+    note: `${t.status.tag}. ${trickLevel(t.difficulty)}. ${t.how}` + str('ui.seen', { v1: VIEW_LABEL[t.view].replace('seen ', '') }),
     action: 'noop',
   }));
 }
@@ -562,7 +567,7 @@ function quadRows(ui, s) {
       str('ui.how_far_the_camera_tilts_up', {
         CAMERA_ANGLE_MIN, CAMERA_ANGLE_DEFAULT, CAMERA_ANGLE_MAX, cameraAngle: s.cameraAngle, v5: tilt,
       }),
-      `${s.cameraAngle} degrees`,
+      str('ui.n_degrees', { n: s.cameraAngle }),
       (d) => {
         const from = s.cameraAngle;
         s.cameraAngle = clampCameraAngle(from + d);
@@ -579,7 +584,7 @@ function quadRows(ui, s) {
       str('ui.wider_sees_more_narrower_magnifies_75'),
       CAMERA_FOVS,
       s.cameraFov,
-      (n) => `${n} degrees vertical`,
+      (n) => str('ui.n_degrees_vertical', { n }),
       (n) => { s.cameraFov = n; },
     ),
     { label: str('ui.flight'), section: true },
@@ -944,7 +949,7 @@ function quickRows(ui, s) {
     ratesRow(s, str('pause.rates_note')),
     { ...feelRow(), note: str('pause.feel_note') },
     { label: plane ? str('pause.plane_setup') : str('pause.quad_setup'), action: 'quad', note: str('pause.setup_note') },
-    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str('hangar.row_note') }] : []),
+    ...(customisable(s.airframe) ? [{ label: str('hangar.customise'), action: 'customise', note: str(plane ? 'hangar.row_note' : 'hangar.row_note_quad') }] : []),
     { label: str('pause.view'), section: true },
     hudStyleRow(s),
     graphicsRow(s),
@@ -1104,14 +1109,15 @@ function ratesRoomRows(ui, s) {
   /* One firmware field. While roll and pitch are joined, roll writes both. */
   const field = (axis, key) => {
     const spec = rateField(r.type, key);
-    const notes = [spec.note];
+    const text = specText(`spec.rates.${normaliseRates(r).type.toLowerCase()}.${key}`);
+    const notes = [text.note];
     if (key !== 'expo') {
       notes.push(str('ui.at_full_stick_this_axis_is', { fullStickDeg: fullStickDeg(r, axis) }));
     }
     if (axis === 'yaw' && key === 'srate') {
       notes.push(str('ui.quads_yaw_slower_than_they_roll', { cameraAngle: s.cameraAngle, v2: Math.round(tilt * 100), v3: Math.round(fullStickDeg(r, 'yaw') * tilt) }));
     }
-    return number(spec.label, notes.join(' '), spec, r[axis][key], (v) => {
+    return number(text.label, notes.join(' '), spec, r[axis][key], (v) => {
       r[axis][key] = v;
       if (!split && axis === 'roll') {
         r.pitch[key] = v;
@@ -1124,11 +1130,11 @@ function ratesRoomRows(ui, s) {
    * remembered, so it cannot claim a preset the numbers have left. */
   const presetValue = loaded ? loaded.name : (changed ? str('ui.not_saved') : str('ui.stock'));
   const presetRow = presets.length === 0
-    ? { label: str('ui.preset'), value: str('ui.none_saved'), info: true, note: str('ui.save_the_numbers_below_under_a', { RATES_STORAGE_WARNING }) }
+    ? { label: str('ui.preset'), value: str('ui.none_saved'), info: true, note: str('ui.save_the_numbers_below_under_a', { RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }) }
     : {
       ...choice(
         str('ui.preset'),
-        str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : `${presets.length} saved profiles`, RATES_STORAGE_WARNING }),
+        str('ui.loading_one_sets_every_number_below', { v1: presets.length === 1 ? str('ui.one_saved_profile') : str('ui.n_saved_profiles', { n: presets.length }), RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }),
         presets.map((p) => p.id),
         loaded ? loaded.id : '',
         (id) => (ratePresetById(id) || { name: presetValue }).name,
@@ -1161,7 +1167,7 @@ function ratesRoomRows(ui, s) {
     { label: split ? str('ratespanel.roll') : str('ui.roll_and_pitch'), section: true },
     ...axis('roll'),
     ...(split ? [{ label: str('ui.pitch'), section: true }, ...axis('pitch')] : []),
-    { label: 'Yaw', section: true },
+    { label: str('ui.yaw_axis'), section: true },
     ...axis('yaw'),
     { label: str('ui.throttle'), section: true },
     choice(
@@ -1174,8 +1180,8 @@ function ratesRoomRows(ui, s) {
       (n) => (n >= 100 ? 'Off' : `${n}%`),
       (n) => { r.throttleCap = n; },
     ),
-    number(THROTTLE_CURVE_FIELDS.thrMid.label, str('ui.this_quad_hovers_near_percent_of', { note: THROTTLE_CURVE_FIELDS.thrMid.note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),
-    number(THROTTLE_CURVE_FIELDS.thrExpo.label, THROTTLE_CURVE_FIELDS.thrExpo.note, THROTTLE_CURVE_FIELDS.thrExpo, r.thrExpo, (v) => { r.thrExpo = v; }),
+    number(specText('spec.throttle.thrMid').label, str('ui.this_quad_hovers_near_percent_of', { note: specText('spec.throttle.thrMid').note, hover }), THROTTLE_CURVE_FIELDS.thrMid, r.thrMid, (v) => { r.thrMid = v; }),
+    number(specText('spec.throttle.thrExpo').label, specText('spec.throttle.thrExpo').note, THROTTLE_CURVE_FIELDS.thrExpo, r.thrExpo, (v) => { r.thrExpo = v; }),
     { label: str('ui.presets'), section: true },
     /* A refused write stays on the screen until the next save or delete. */
     ...(ui.ratesNotice ? [{ label: str('ui.not_saved'), value: '', info: true, rowClass: 'row-warn', note: ui.ratesNotice }] : []),
@@ -1183,8 +1189,8 @@ function ratesRoomRows(ui, s) {
       label: str('ui.save_as_preset'),
       action: 'rates-save',
       note: loaded
-        ? str('ui.save_these_numbers_again_under_a', { name: loaded.name, RATES_STORAGE_WARNING })
-        : str('ui.name_these_numbers_and_they_come', { RATES_STORAGE_WARNING }),
+        ? str('ui.save_these_numbers_again_under_a', { name: loaded.name, RATES_STORAGE_WARNING: str('ui.rates_storage_warning') })
+        : str('ui.name_these_numbers_and_they_come', { RATES_STORAGE_WARNING: str('ui.rates_storage_warning') }),
     },
     {
       label: str('ui.delete_preset'),
@@ -1234,26 +1240,27 @@ function pidsRows(ui, s) {
   const rpNote = live.baselineMode === 'RP' ? str('ui.runs_the_sliders_in_rp_mode', { tuneName: seatedName }).trim() : '';
   const sliderRow = (k) => {
     const spec = SLIDERS[k];
+    const text = specText(`spec.slider.${k}`);
     const tuneVal = live.baseline[k];
     const moved = Boolean(entry && entry.sliders && k in entry.sliders);
-    const notes = [spec.note];
+    const notes = [text.note];
     if (moved) {
       notes.push(str('ui.ships_this_at_setting_it_back', { tuneName: seatedName, tuneVal }));
     }
     if (k === 'master' && rpNote) {
       notes.push(rpNote);
     }
-    const row = number(spec.label, notes.join(' '), spec, moved ? entry.sliders[k] : tuneVal, (v) => {
+    const row = number(text.label, notes.join(' '), spec, moved ? entry.sliders[k] : tuneVal, (v) => {
       setPidSlider(s.pids, s.tune, k, v, tuneVal);
     });
     /* Drawn as a real track, as Configurator draws these. */
     row.range = { min: spec.cliMin, max: spec.cliMax };
     return row;
   };
-  const pidRow = (axis, f) => number(PID_FIELD_SPECS[f].label, PID_FIELD_SPECS[f].note, PID_FIELD_SPECS[f], entry.pids[axis][f], (v) => {
+  const pidRow = (axis, f) => number(specText(`spec.pid.${f}`).label, specText(`spec.pid.${f}`).note, PID_FIELD_SPECS[f], entry.pids[axis][f], (v) => {
     entry.pids[axis][f] = v;
   });
-  const axisName = { roll: str('ratespanel.roll'), pitch: str('ui.pitch'), yaw: 'Yaw' };
+  const axisName = { roll: str('ratespanel.roll'), pitch: str('ui.pitch'), yaw: str('ui.yaw_axis') };
   const table = expert
     ? PID_AXES.flatMap((axis) => [{ label: axisName[axis], section: true }, ...PID_FIELDS.map((f) => pidRow(axis, f))])
     : [{ label: str('ui.betaflight_s_tuning_sliders'), section: true }, ...SLIDER_KEYS.map(sliderRow)];

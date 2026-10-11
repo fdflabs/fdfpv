@@ -3889,7 +3889,7 @@
    "seat": {
     "view": {
      "label": "Aeronave",
-     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
+     "note": "Un cargador pesado de 10 pulgadas y 1,8 kilos con dos baterías Li-ion 6S, que lleva más del doble de carga que el de 7 pulgadas. Lento para girar, lento para frenar, y golpea en consecuencia. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica.",
      "value": "Ten inch",
      "current": "10inch",
      "options": [
@@ -4007,7 +4007,7 @@
    "swap": {
     "view": {
      "label": "Aeronave",
-     "note": "A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
+     "note": "Un cargador pesado de 10 pulgadas y 1,8 kilos con dos baterías Li-ion 6S, que lleva más del doble de carga que el de 7 pulgadas. Lento para girar, lento para frenar, y golpea en consecuencia. Cambiarlo carga el tune de esa máquina, su batería y su cámara, y lleva el constructor de pistas al campo que vuela esa máquina. Tus propios rates se conservan salvo que sigan siendo los de fábrica. Toma el relevo donde estás: mismo sitio, mismo rumbo.",
      "value": "Ten inch",
      "current": "10inch",
      "options": [

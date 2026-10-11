@@ -226,22 +226,22 @@ export const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', '
 export const SCREEN_TITLES = {
   title: str('ui.product_name'),
   courses: str('ui.my_tracks'),
-  freestyle: 'Freestyle',
-  pilot: 'Settings',
-  quad: 'Quad',
+  freestyle: str('ui.freestyle'),
+  pilot: str('ui.settings'),
+  quad: str('ui.quad'),
   launch: str('ui.before_you_fly'),
-  standings: 'Standings',
-  rates: 'Rates',
-  planerates: 'Rates',
+  standings: str('ui.standings'),
+  rates: str('ui.rates'),
+  planerates: str('ui.rates'),
   pids: 'PIDs',
   controls: str('keybinds.title'),
   fc: str('ui.firmware_bench'),
-  paused: 'Paused',
+  paused: str('ui.paused'),
   quick: str('pause.flight'),
   results: str('ui.run_complete'),
   howto: str('ui.how_to_fly'),
   tricks: str('ui.trick_list'),
-  credits: 'Credits',
+  credits: str('ui.credits'),
   friends: str('friends.title'),
   rooms: str('roombrowser.title'),
   roomnew: str('roombrowser.new_title'),
@@ -500,7 +500,7 @@ export function courseCardRows(subject) {
  */
 export function craftItem(s, swap, shown = s.airframe) {
   const inPlace = swap ? ` ${str('carousel.in_place')}` : '';
-  const note = str('ui.changing_it_loads_that_machine_s', { blurb: airframeById(shown).blurb, v3: inPlace });
+  const note = str('ui.changing_it_loads_that_machine_s', { blurb: str(`airframe.blurb.${airframeById(shown).id}`), v3: inPlace });
   const nameOf = (id) => airframeById(id).name;
   const take = swap ? (id) => { swap(id); } : (id) => { seatAirframe(s, id); };
   return { ...choice(str('ui.aircraft'), note, AIRFRAME_IDS, shown, nameOf, take), pickOnly: true };
