@@ -48,6 +48,7 @@ import { DEFAULT_STICK_MODE, normaliseStickMode } from './stickmode.js';
 import {
   FLIGHT_CHANNELS, builtInKind, builtInMap, normaliseMap, readSticks,
 } from './padmap.js';
+import { deviceKey } from './padprofiles.js';
 import { migrateStickStorage, loadStickMap, saveStickMap } from './stickstore.js';
 import { KeyboardSticks } from './keyboard.js';
 import { MouseStick, MOUSE_CENTRE_KEY } from './mouse.js';
@@ -103,7 +104,10 @@ export class InputManager {
     /* The harness stick: when set it IS the channels, held until the next
      * write, above every source. Nothing in the shell writes it. */
     this.harnessChannels = null;
-    this.map = this.loadMap();
+    /* The device this.map belongs to (padprofiles.js deviceKey), null
+     * until one is seen. With none, nothing is saved or loaded. */
+    this.mapKey = null;
+    this.map = loadStickMap(null);
     /* Which built-in layout this.map is while nothing is saved; see
      * builtInKind. 0 is the AETR guess. */
     this.defaultMode = 0;
@@ -143,6 +147,7 @@ export class InputManager {
       this.downAs.clear();
     });
     this.roster.seed();
+    this.followDevice(this.firstGamepad());
   }
 
   /*
@@ -247,15 +252,29 @@ export class InputManager {
 
   /* --------------------------------------------------------- the map */
 
-  loadMap() {
-    return loadStickMap();
-  }
-
   /* A failed write leaves the map calibrated and flying for this tab; the
    * false return lets the shell say it will not outlive it. */
   saveMap() {
     this.map.stored = true;
-    return saveStickMap(this.map);
+    return saveStickMap(this.mapKey, this.map);
+  }
+
+  /*
+   * Each device flies its own calibration: a different device loads its
+   * own map (or none), and the built-in layout is worked out again for it.
+   * Losing every device keeps the last one's map, so the same device
+   * coming back is not a change.
+   */
+  followDevice(gp) {
+    const key = gp ? deviceKey(gp.id) : this.mapKey;
+    if (key === this.mapKey) {
+      return;
+    }
+    this.mapKey = key;
+    this.map = loadStickMap(key);
+    this.defaultMode = 0;
+    this.guess.forget();
+    this.forgetAxisResolution();
   }
 
   readGamepad(gp, map = this.map) {
@@ -656,6 +675,7 @@ export class InputManager {
     this.lastWall = t;
     const gp = this.firstGamepad();
     this.roster.track();
+    this.followDevice(gp);
     this.followDefaultMap(gp);
     this.measureRates(gp, dtMs);
     const next = this.readSource(gp, dtMs);

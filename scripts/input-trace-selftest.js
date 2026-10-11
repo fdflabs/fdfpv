@@ -69,7 +69,7 @@ function check(name, ok, detail = '') {
  * same before and after the keys were renamed; a key present under both
  * spellings at once is reported, because that is a migration bug. */
 const STORE_NAMES = {
-  stickmap: ['webfpv_stick_map_v1', 'fdfpv.stick_map.v1'],
+  stickmap: ['webfpv_stick_map_v1', 'fdfpv.stick_map.v1', 'fdfpv.stick_maps.v2'],
   pad: ['webfpv.pad.v1', 'fdfpv.pad.v1'],
 };
 
@@ -981,24 +981,35 @@ SCENARIOS['polling, heartbeat, the queue bound'] = () => session({}, (s) => {
 
 /*
  * The stick map and the joystick choice moved from the upstream project's
- * key names to this project's. A pilot's saved values have to come with
- * them, once, and nothing may be lost when storage misbehaves.
+ * key names to this project's, and then the one map became one per device
+ * (version 2). A pilot's saved values have to come with them, once, and
+ * nothing may be lost when storage misbehaves. Each map is filed under the
+ * radio the pilot had chosen; input-selftest.js has the cases where none
+ * was.
  */
-console.log('storage keys move to this project\'s names');
+console.log('storage keys move to this project\'s names, and the map to its device');
 {
   const MAP = JSON.stringify({ roll: { axis: 0, center: 0, pos: 1, neg: -1 }, stored: true });
   const PAD = JSON.stringify({ kind: 'pad', id: 'Kept radio', index: 0 });
+  const V2 = JSON.stringify({ v: 2, maps: { 'Kept radio': JSON.parse(MAP) }, orphan: null });
   const NEW_MAP = 'fdfpv.stick_map.v1';
   const NEW_PAD = 'fdfpv.pad.v1';
+  const MAPS = 'fdfpv.stick_maps.v2';
   const OLD_MAP = 'webfpv_stick_map_v1';
   const OLD_PAD = 'webfpv.pad.v1';
   const dump = () => JSON.stringify([...env.store].sort());
+  const kept = () => env.store.get(MAPS) === V2;
+  const radioIn = () => {
+    env.pads = [makePad({ id: 'Kept radio' }), makePad({ id: 'Other', index: 1 })];
+  };
 
   resetEnv({ [OLD_MAP]: MAP, [OLD_PAD]: PAD, unrelated: 'x' });
+  radioIn();
   let im = new InputManager();
-  check('old keys only: both values arrive under the new names',
-    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD, dump());
-  check('and the old keys are gone', !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD), dump());
+  check('old keys only: the choice under its new name, the map in version 2 under its radio',
+    env.store.get(NEW_PAD) === PAD && kept(), dump());
+  check('and the old keys are gone, both spellings of version 1 too',
+    !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD) && !env.store.has(NEW_MAP), dump());
   check('and nothing else is touched', env.store.get('unrelated') === 'x');
   check('and the migrated map and choice are the ones in force',
     im.map.stored === true && im.map.roll.pos === 1 && im.padSummary().calibrated === true);
@@ -1006,30 +1017,37 @@ console.log('storage keys move to this project\'s names');
   im = new InputManager();
   check('running it again changes nothing', dump() === once, dump());
 
-  resetEnv({ [NEW_MAP]: MAP, [NEW_PAD]: PAD });
+  resetEnv({ [MAPS]: V2, [NEW_PAD]: PAD });
+  radioIn();
   im = new InputManager();
-  check('new keys only: left exactly as they were', env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD
+  check('new keys only: left exactly as they were', kept() && env.store.get(NEW_PAD) === PAD
     && env.store.size === 2, dump());
+
+  resetEnv({ [NEW_MAP]: MAP, [NEW_PAD]: PAD });
+  radioIn();
+  im = new InputManager();
+  check('version 1 under the new name: moved into version 2 the same way', kept() && env.store.size === 2, dump());
 
   const OTHER = JSON.stringify({ kind: 'none' });
   resetEnv({ [OLD_MAP]: 'stale', [OLD_PAD]: OTHER, [NEW_MAP]: MAP, [NEW_PAD]: PAD });
+  radioIn();
   im = new InputManager();
   check('both spellings: the new value wins and the old key is removed',
-    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD && env.store.size === 2, dump());
+    kept() && env.store.get(NEW_PAD) === PAD && env.store.size === 2, dump());
 
   resetEnv({ [OLD_MAP]: MAP, [OLD_PAD]: PAD });
+  radioIn();
   env.quota = true;
   im = new InputManager();
   check('storage refusing writes: the old keys are kept intact',
-    env.store.get(OLD_MAP) === MAP && env.store.get(OLD_PAD) === PAD && !env.store.has(NEW_MAP), dump());
+    env.store.get(OLD_MAP) === MAP && env.store.get(OLD_PAD) === PAD && !env.store.has(NEW_MAP) && !env.store.has(MAPS), dump());
   check('and the pilot still flies their own map and radio this visit',
     im.map.stored === true && im.map.roll.pos === 1, JSON.stringify(im.map.roll));
-  env.pads = [makePad({ id: 'Kept radio' }), makePad({ id: 'Other', index: 1 })];
   check('including their joystick choice', im.firstGamepad() && im.firstGamepad().id === 'Kept radio');
   env.quota = false;
   im = new InputManager();
   check('and the move happens on the next visit that can write',
-    env.store.get(NEW_MAP) === MAP && env.store.get(NEW_PAD) === PAD && !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD), dump());
+    kept() && env.store.get(NEW_PAD) === PAD && !env.store.has(OLD_MAP) && !env.store.has(OLD_PAD) && !env.store.has(NEW_MAP), dump());
 
   resetEnv({ [OLD_PAD]: PAD });
   env.quota = true;

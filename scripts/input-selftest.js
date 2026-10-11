@@ -67,14 +67,20 @@ function storage(refuse = null) {
       items.set(k, String(v));
     },
     removeItem: (k) => { items.delete(k); },
+    /* Everything held, in a fixed order, to compare two moments. */
+    dump: () => JSON.stringify([...items].sort()),
+    /* `refuse` can change mid test: a later visit whose storage works. */
+    set refuse(r) { refuse = r; },
   };
 }
 
-/* The globals the module touches, for one radio (or none). */
+/* The globals the module touches, for one radio (or none, or a list of
+ * them, which the caller may change in place to plug and unplug). */
 function world(radio, store) {
   globalThis.localStorage = store || storage();
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
-  const pads = () => (radio ? [radio] : []);
+  const list = Array.isArray(radio) ? radio : (radio ? [radio] : []);
+  const pads = () => list;
   try {
     navigator.getGamepads = pads;
   } catch (e) {
@@ -100,6 +106,7 @@ function gamepad(id = 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e P
 
 world(null);
 const { InputManager, calSteps, SELECT_STEP } = await import('../src/input/input.js');
+const { deviceKey } = await import('../src/input/padprofiles.js');
 const {
   stickChannels, stickCaption, stickSideOf, normaliseStickMode, STICK_MODES,
 } = await import('../src/input/stickmode.js');
@@ -112,7 +119,7 @@ const {
 class Bench {
   constructor(pad, store) {
     world(pad, store);
-    this.pad = pad;
+    this.pad = Array.isArray(pad) ? pad[0] : pad;
     this.im = new InputManager();
     this.clock = performance.now();
   }
@@ -1198,6 +1205,168 @@ heading('a standard pad steers the menus four ways');
   check('the left stick pushed up is up', padDirections(pad([0, -1, 0, 0])).stick.up === true);
   check('the d-pad\'s four buttons are its four ways', show(padDirections(pad([0, 0, 0, 0], [12, 15])).dpad) === show({ up: true, down: false, left: false, right: true }));
   check('a pad with no standard layout (a radio) gets none', padDirections({ mapping: '', axes: [1, 0], buttons: [] }) === null);
+}
+
+heading('every device keeps its own calibration, and the one map from before keeps its pilot');
+{
+  /* Two EdgeTX radios: the same USB ids, told apart by name. */
+  const POCKET = 'Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)';
+  const TX16S = 'TX16S Joystick (Vendor: 1209 Product: 4f54)';
+  const OLD = 'fdfpv.stick_map.v1';
+  const MAPS = 'fdfpv.stick_maps.v2';
+  const PAD = 'fdfpv.pad.v1';
+  const V1 = {
+    roll: { axis: 0, center: 0, pos: 1, neg: -1 },
+    pitch: { axis: 1, center: 0, pos: -1, neg: 1 },
+    yaw: { axis: 4, center: 0, pos: 1, neg: -1 },
+    throttle: { axis: 2, low: -1, high: 1 },
+  };
+  const maps = (store) => JSON.parse(store.getItem(MAPS) || 'null');
+  const chose = (id, index) => show({ kind: 'pad', id, index });
+  const unit = (id, index) => Object.assign(radio([0, 0, -1, 0, 0, -1], 4, id), { index });
+  const use = (b, gp) => {
+    b.im.setPadChoice({ kind: 'pad', id: gp.id, index: gp.index });
+    b.pad = gp;
+    b.tick();
+  };
+
+  {
+    const store = storage();
+    store.setItem(OLD, show(V1));
+    store.setItem(PAD, chose(POCKET, 1));
+    const pocket = unit(POCKET, 1);
+    const tx16s = unit(TX16S, 0);
+    const b = new Bench([tx16s, pocket], store);
+    const m = maps(store);
+    check('old key, chosen radio known: version 1 is filed under that radio, as written',
+      m && show(m.maps[deviceKey(POCKET)]) === show(V1) && Object.keys(m.maps).length === 1 && m.orphan === null, store.getItem(MAPS));
+    check('and version 1 is gone once version 2 holds it', store.getItem(OLD) === null);
+    check('the chosen radio flies it', b.im.map.stored === true && b.im.map.yaw.axis === 4);
+    use(b, tx16s);
+    check('the other radio, plugged in first, does not', b.im.map.stored === false && b.im.padSummary().calibrated === false);
+    use(b, pocket);
+    check('and switching back loads the Pocket\'s again', b.im.map.stored === true && b.im.map.yaw.axis === 4);
+    const once = store.dump();
+    const again = new Bench([tx16s, pocket], store);
+    check('running the migration again changes nothing', store.dump() === once && again.im.map.yaw.axis === 4, store.dump());
+  }
+  {
+    const store = storage();
+    store.setItem(OLD, show(V1));
+    store.setItem(PAD, chose(POCKET, 0));
+    const b = new Bench([unit(TX16S, 0)], store);
+    check('old key, chosen radio absent at boot: another radio does not take its map',
+      b.im.map.stored === false && Object.keys(maps(store).maps).join() === deviceKey(POCKET) && maps(store).orphan === null,
+      store.getItem(MAPS));
+  }
+  {
+    const store = storage();
+    store.setItem(OLD, show(V1));
+    const list = [];
+    const b = new Bench(list, store);
+    check('old key, no radio known: version 1 waits as the orphan',
+      show(maps(store).orphan) === show(V1) && store.getItem(OLD) === null, store.getItem(MAPS));
+    check('and with nothing plugged in nothing flies it', b.im.map.stored === false);
+    const first = unit(TX16S, 0);
+    list.push(first);
+    b.pad = first;
+    b.tick();
+    check('the first radio to connect adopts it', b.im.map.stored === true && b.im.map.yaw.axis === 4);
+    check('and storage says so: filed under it, no orphan left',
+      show(maps(store).maps[deviceKey(TX16S)]) === show(V1) && maps(store).orphan === null, store.getItem(MAPS));
+    const second = unit(POCKET, 1);
+    list.push(second);
+    b.tick();
+    use(b, second);
+    check('a second radio connecting later gets nothing: it was adopted once', b.im.map.stored === false);
+    const reload = new Bench([second], store);
+    check('nor after a reload with only that radio', reload.im.map.stored === false && maps(store).orphan === null);
+    check('while the first still has it after a reload', new Bench([unit(TX16S, 0)], store).im.map.yaw.axis === 4);
+  }
+  {
+    const store = storage();
+    store.setItem(OLD, show(V1));
+    const b = new Bench([unit(POCKET, 0), unit(TX16S, 1)], store);
+    check('no choice and two radios at boot: the one in use (the first) adopts it',
+      b.im.map.stored === true && Object.keys(maps(store).maps).join() === deviceKey(POCKET));
+  }
+  {
+    const pocket = unit(POCKET, 0);
+    const tx16s = unit(TX16S, 1);
+    const store = storage();
+    const b = new Bench([pocket, tx16s], store);
+    use(b, pocket);
+    const a = calibrate(b, plainRadio);
+    check('the Pocket calibrates with yaw on 3', a === true && b.im.acceptCalibration() && b.im.map.yaw.axis === 3, String(a));
+    use(b, tx16s);
+    check('switching to the TX16S does not fly the Pocket\'s map', b.im.map.stored === false);
+    const c = calibrate(b, { roll: 0, pitch: 1, yaw: 4, thr: 2, thrBack: -1 });
+    check('the TX16S calibrates with yaw on 4', c === true && b.im.acceptCalibration() && b.im.map.yaw.axis === 4, String(c));
+    use(b, pocket);
+    check('back on the Pocket: yaw on 3 again', b.im.map.stored === true && b.im.map.yaw.axis === 3);
+    const m = maps(store);
+    check('two maps stored, one per radio', Object.keys(m.maps).length === 2
+      && m.maps[deviceKey(POCKET)].yaw.axis === 3 && m.maps[deviceKey(TX16S)].yaw.axis === 4, store.getItem(MAPS));
+    store.setItem(PAD, chose(TX16S, 1));
+    check('after a reload the TX16S has its own', new Bench([unit(POCKET, 0), unit(TX16S, 1)], store).im.map.yaw.axis === 4);
+    store.setItem(PAD, chose(POCKET, 0));
+    check('and the Pocket its own', new Bench([unit(POCKET, 0), unit(TX16S, 1)], store).im.map.yaw.axis === 3);
+  }
+  {
+    const store = storage();
+    store.setItem(MAPS, show({ v: 2, maps: { [deviceKey(POCKET)]: { ...V1, yaw: { axis: 5, center: 0, pos: 1, neg: -1 } } }, orphan: null }));
+    store.setItem(OLD, show(V1));
+    store.setItem(PAD, chose(POCKET, 0));
+    const b = new Bench([unit(POCKET, 0)], store);
+    check('a radio\'s own version 2 map wins over a version 1 map that arrives later (a move from another browser)',
+      b.im.map.yaw.axis === 5 && store.getItem(OLD) === null);
+  }
+
+  heading('corrupt or refused storage never costs a calibration');
+  for (const [label, text] of [['not JSON', '{nope'], ['an array', '[]'], ['another version', '{"v":3,"maps":{}}'], ['maps not an object', '{"v":2,"maps":7}']]) {
+    const store = storage();
+    store.setItem(MAPS, text);
+    const b = new Bench([unit(POCKET, 0)], store);
+    check(`version 2 ${label}: no map, and no crash`, b.im.map.stored === false);
+    const done = calibrate(b, plainRadio);
+    check('and a calibration saves over it as a valid store', done === true && b.im.acceptCalibration()
+      && b.im.calResult === 'saved' && maps(store).maps[deviceKey(POCKET)].yaw.axis === 3, store.getItem(MAPS));
+  }
+  {
+    const store = storage();
+    store.setItem(MAPS, show({ v: 2, maps: { junk: 5, [deviceKey(POCKET)]: V1 }, orphan: 'x' }));
+    const b = new Bench([unit(POCKET, 0)], store);
+    check('a bad entry is skipped and the good one still loads', b.im.map.yaw.axis === 4);
+  }
+  {
+    const store = storage();
+    store.setItem(MAPS, '{nope');
+    store.setItem(OLD, show(V1));
+    store.setItem(PAD, chose(POCKET, 0));
+    const b = new Bench([unit(POCKET, 0)], store);
+    check('corrupt version 2 beside a good version 1: version 1 moves into a fresh store',
+      b.im.map.yaw.axis === 4 && show(maps(store).maps[deviceKey(POCKET)]) === show(V1) && store.getItem(OLD) === null, store.getItem(MAPS));
+  }
+  {
+    const store = storage();
+    store.setItem(OLD, 'not json');
+    const b = new Bench([unit(POCKET, 0)], store);
+    check('a version 1 value that is not JSON is no map, and is left where it was',
+      b.im.map.stored === false && store.getItem(OLD) === 'not json' && store.getItem(MAPS) === null);
+  }
+  {
+    const store = storage();
+    store.setItem(OLD, show(V1));
+    store.refuse = 'stick_map';
+    const b = new Bench([unit(TX16S, 0)], store);
+    check('storage refusing writes: version 1 is kept intact', store.getItem(OLD) === show(V1) && store.getItem(MAPS) === null);
+    check('and the radio flies it this visit all the same (adopted, unsaved)', b.im.map.stored === true && b.im.map.yaw.axis === 4);
+    store.refuse = null;
+    const later = new Bench([unit(TX16S, 0)], store);
+    check('the next visit that can write moves it and the radio adopts it',
+      later.im.map.yaw.axis === 4 && store.getItem(OLD) === null
+      && show(maps(store).maps[deviceKey(TX16S)]) === show(V1), store.dump());
+  }
 }
 
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
