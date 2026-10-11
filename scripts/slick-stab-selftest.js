@@ -262,9 +262,16 @@ function trimWings(seconds) {
   clockMs += total;
   return sum / n;
 }
-function powerOffPull(mode, pitch, rudder) {
+function powerOffPull(mode, pitch, rudder, { prop = true } = {}) {
   must(sim.e.sim_wing_set_stab(mode), 'set mode');
+  /* prop false: the idling prop's gyroscope and its torque on the mount
+   * taken out (sim_wing_set_gyro, sim_wing_set_mount, measurement switches;
+   * the throw's reset puts them back, so they are set after it). */
   throwAt(120, V_PULL);
+  if (!prop) {
+    must(sim.e.sim_wing_set_gyro(0), 'gyro off');
+    must(sim.e.sim_wing_set_mount(0), 'mount off');
+  }
   const trim = mode === 0 ? trimWings(1) : (fly(0, 0, 0, 0, 1), 0);
   const lead = fly(trim, pitch, 0, 0, 1.2);
   const after = fly(trim, pitch, rudder, 0, 1.0);
@@ -298,7 +305,14 @@ for (const [mode, name] of [[0, 'Manual'], [2, 'Acro'], [3, 'AS3X']]) {
      * zeroed this pull stays within 3 deg (the same scratch build). */
     check(`${name}: a quarter stick pull, power off: the gyro's rudder against the prop's precession rolls it right`, quarter.bank > 0, `${deg(quarter.bank)} deg, ${deg(quarter.worst)} at most`);
   } else {
-    check(`${name}: a quarter stick pull, power off, short of the stall: wings within 3 deg`, quarter.worst * DEG < 3, `${deg(quarter.worst)} deg`);
+    /* The floating idle (3,407 rpm on the DA-120's map) turns the prop
+     * fast enough that its gyroscope and its spin-down torque on the mount
+     * drop the right wing even short of the stall, as P19g reads the
+     * P-51's: the drop is asserted to the right, and the same pull with
+     * the two taken out (the measurement switches) holds within 3 deg,
+     * the airframe's own aero. */
+    const bare = powerOffPull(mode, 0.25, 0, { prop: false });
+    check(`${name}: a quarter stick pull, power off, short of the stall: the idling prop drops the right wing, the airframe alone within 3 deg`, quarter.bank > 0 && bare.worst * DEG < 3, `${deg(quarter.bank)} deg right with the prop, ${deg(bare.worst)} at most without`);
   }
   const half = powerOffPull(mode, 0.5, 0);
   halfBank[mode] = half.bank;

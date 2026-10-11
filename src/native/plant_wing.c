@@ -861,9 +861,16 @@ static int g_gyro_on = 1;
 void plant_wing_set_gyro(int on) {
   g_gyro_on = on ? 1 : 0;
 }
+/* The drive's torque on the motor's mount, on but for a gate that measures
+ * the airframe without it (sim_wing_set_mount); every reset puts it back. */
+static int g_mount_on = 1;
+void plant_wing_set_mount(int on) {
+  g_mount_on = on ? 1 : 0;
+}
 
 void plant_wing_reset(void) {
   g_gyro_on = 1;
+  g_mount_on = 1;
   g_stab_roll_i = 0.0;
   for (int i = 0; i < 4; i += 1) {
     g_surf[i] = 0.0;
@@ -2366,7 +2373,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     const int driven = !folded && !g_chute && !dead && !prop_free(fw, duty_e);
     const double kt = CRASH.active ? CRASH.kt[0] : 1.0;
     q_air = driven ? fw->torque_arm * fw->thrust_static * n * n * prop_curve(fw->torque_curve, mu) * kt * SIM_BOOST * SIM_BOOST : 0.0;
-    q_react = driven ? q_air + fw->j_prop * w_f * g_prop_dn : 0.0;
+    q_react = driven && g_mount_on ? q_air + fw->j_prop * w_f * g_prop_dn : 0.0;
     w_rot = (folded || !(kt > 0.0)) ? 0.0 : n * w_f;
   }
   /*
