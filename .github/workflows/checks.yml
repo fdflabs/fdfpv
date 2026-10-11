@@ -1,7 +1,7 @@
-# The cheap checks on every push and pull request: the lints and selftests
-# that run in plain Node with no browser and no toolchain, in under a
-# minute. The browser lints and npm run verify stay local, because they
-# drive headless Chromium for minutes and verify needs Emscripten.
+# The checks on every push, pull request and merge queue entry: the lints,
+# the selftests and the browser checks that drive headless Chromium
+# (tests/lib/page.js), one serial job. npm run verify stays local, because
+# it needs Emscripten.
 name: checks
 
 on:
@@ -24,7 +24,15 @@ concurrency:
 
 jobs:
   node:
-    runs-on: ubuntu-latest
+    # On the self-hosted runners on the owner's desktop (deploy/ci-runner):
+    # 45 minutes there against 63 on GitHub's two cores, measured
+    # 2026-10-10. A pull request from a fork runs on GitHub's runner instead:
+    # nothing from outside the organisation runs on that machine. This
+    # routes an honest fork only; a fork's own copy of this file decides
+    # where its run goes, so the real gate is that a fork's run waits for
+    # a maintainer's approval, and a fork that touches .github/ is never
+    # approved (deploy/ci-runner/README.md).
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || 'fdfpv-ci' }}
     steps:
       # lint:catalog reads parameter_names.h out of the Betaflight submodule to
       # prove the catalog covers every firmware key, so the submodule is needed.
