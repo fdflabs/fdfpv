@@ -425,20 +425,20 @@ export const ESTIMATES = {
   cap1702: {
     stock: {
       '6s4000': {
-        topSpeed: 32.2,
-        minutes: 21.9
+        topSpeed: 32.14,
+        minutes: 21.3
       },
       '6s4500': {
-        topSpeed: 32.31,
-        minutes: 23.8
+        topSpeed: 32.25,
+        minutes: 23.1
       }
     }
   },
   slick2680: {
     stock: {
       '1006cc': {
-        topSpeed: 42.53,
-        minutes: 24.1
+        topSpeed: 42.47,
+        minutes: 23.8
       }
     }
   },
