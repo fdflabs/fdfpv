@@ -118,6 +118,9 @@ jobs:
       # recorded from each module before its track U rewrite
       # (tests/browser/render-golden/).
       - run: npm run render:golden
+      # The scoring chain end to end, the real aircraft flying the tricks
+      # (a powerloop round a rail by a closed loop pilot) included.
+      - run: npm run score:selftest
 
   shard-2:
     runs-on: ubuntu-latest
@@ -342,6 +345,7 @@ jobs:
       # A solo race's debrief in the real page: the facts, Watch the replay
       # reached by a pointer and back, Fly again (scripts/debrief-race-check.js).
       - run: npm run debrief:race
+      - run: npm run debrief:free
       # The race results' lap table ends above the menu at 1280x720
       # (scripts/results-layout-check.js).
       - run: npm run results:layout

@@ -176,6 +176,13 @@ try {
   check('the match ends by itself, results on both pages, the same', ev.state === 'results' && ev.winners.length > 0
     && end.every((t) => JSON.stringify(t.view.runs) === JSON.stringify(ev.runs) && JSON.stringify(t.view.winners) === JSON.stringify(ev.winners)),
   `${ev.runs.map((r) => `${nameOf(r.seat)} r${r.round} ${r.total}`).join(', ')}; winners ${ev.winners.map(nameOf).join(',')}`);
+  /* Each pilot's own record of the match (src/share/pilotcounts.js),
+   * from the room's final runs: one played, won by the room's winners,
+   * the best its own best run. */
+  const kept = await Promise.all(pages.map((p) => p.evaluate("({ seat: window.__roomJam().seat, slots: Object.values(window.__ui.settings.pilotCounts || {}).map((x) => x.jam || {}) })")));
+  check('each page kept the match: played once, the win as the room says, its best its own best run', kept.every((k) => k.slots.length === 1
+    && k.slots[0].played === 1 && (k.slots[0].won || 0) === (ev.winners.includes(k.seat) ? 1 : 0)
+    && (k.slots[0].best || 0) === Math.round(ev.runs.filter((r) => r.seat === k.seat).reduce((m, r) => Math.max(m, r.total), 0))), JSON.stringify(kept));
   await shot(a, 'a-results');
   await shot(b, 'b-results');
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
