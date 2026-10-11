@@ -145,12 +145,12 @@
     "estimates": {
       "stock": {
         "6s4000": {
-          "topSpeed": 32.2,
-          "minutes": 21.9
+          "topSpeed": 32.14,
+          "minutes": 21.3
         },
         "6s4500": {
-          "topSpeed": 32.31,
-          "minutes": 23.8
+          "topSpeed": 32.25,
+          "minutes": 23.1
         }
       }
     }
