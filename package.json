@@ -555,6 +555,7 @@
     "modes:selftest": "node scripts/modes-selftest.js",
     "foot:node": "node scripts/foot-node-check.js",
     "foot:walk": "node scripts/foot-walk-check.js",
+    "foot:twopage": "node scripts/foot-two-page.js",
     "lint:dashes": "node scripts/dash-lint.js",
     "lint:owner-rules": "node scripts/owner-rules-lint.js",
     "lint:physics-sources": "node scripts/physics-sources-lint.js",

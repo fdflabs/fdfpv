@@ -142,7 +142,7 @@ import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createCrownFx } from './render/acecrown.js';
 import { createRain } from './render/rain.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
-import { createFootTrack } from './share/roomfoot.js';
+import { createFootSender, createFootTrack } from './share/roomfoot.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
@@ -3774,6 +3774,11 @@ export async function boot({
     if (mode === 'replay') {
       return 'crashcam';
     }
+    /* Gone through the field hangar's door on foot: the parked aircraft
+     * still sends, the pilot is not at the sticks. */
+    if (walker && walker.inHangar) {
+      return 'hangar';
+    }
     if (mode === 'flight' && ui.screen === 'flight') {
       return null;
     }
@@ -3885,6 +3890,9 @@ export async function boot({
       roomCombat.seated(w.seat, runAirframe);
       if (roomWreckSender) {
         roomWreckSender.resend();
+      }
+      if (roomFootSender) {
+        roomFootSender.resend();
       }
       roomGone.clear();
       roomSessionWelcome(w);
@@ -6153,6 +6161,36 @@ export async function boot({
    * piece wobbles the same piece here, when both fly the same course.
    */
   let roomWreckSender = null;
+  let roomFootSender = null;
+
+  /*
+   * WHERE THIS PILOT STANDS, FOR THE ROOM (roomwire.js FOOT): on foot, the
+   * walk, in or out of the hangar; flying from a spot walked to, that spot,
+   * facing the aircraft; at the spot every pilot starts on, nothing, and
+   * the others draw this pilot at the station. Only in flight: paused or on
+   * a menu the others draw no pilot at all.
+   */
+  function roomFootSource() {
+    if (mode !== 'flight' || !mapReady || !view) {
+      return null;
+    }
+    if (walker) {
+      return {
+        flags: FOOT_ON | (walker.inHangar ? FOOT_HANGAR : 0), x: walker.x, y: walker.feet, z: walker.z, heading: walker.heading,
+      };
+    }
+    if (pilotSpot.fromY === Infinity) {
+      return null;
+    }
+    return {
+      flags: 0,
+      x: pilotSpot.x,
+      y: view.height(pilotSpot.x, pilotSpot.z, pilotSpot.fromY),
+      z: pilotSpot.z,
+      heading: Math.atan2(pCurr.x - pilotSpot.x, -(pCurr.z - pilotSpot.z)),
+    };
+  }
+
   function roomEvent(ev) {
     const peer = roomPeers.get(ev.seat);
     if (!peer) {
@@ -6326,6 +6364,8 @@ export async function boot({
     if (mode === 'flight' || roomWreckSender.active()) {
       roomWreckSender.frame(now, wallMs);
     }
+    roomFootSender ??= createFootSender(roomLinkState, roomFootSource);
+    roomFootSender.frame(wallMs);
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
     /* The others are drawn at the frame's own moment, wallMs on the room
@@ -15738,6 +15778,14 @@ export async function boot({
     face: (heading) => {
       if (walker) {
         walker.heading = heading;
+      }
+      return Boolean(walker);
+    },
+    /* In or out of the field hangar, as its door will put the pilot
+     * (walk plan slice 4); until there is a door, for foot:twopage. */
+    hangar: (on) => {
+      if (walker) {
+        walker.inHangar = Boolean(on);
       }
       return Boolean(walker);
     },

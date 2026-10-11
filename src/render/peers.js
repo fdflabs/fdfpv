@@ -98,6 +98,11 @@ function nameTag(height, width) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = '600 52px system-ui, sans-serif';
+    /* A long one ("name: in the hangar") is made smaller to fit, never cut. */
+    const wide = ctx.measureText(text).width;
+    if (wide > canvas.width - 8) {
+      ctx.font = `600 ${Math.floor((52 * (canvas.width - 8)) / wide)}px system-ui, sans-serif`;
+    }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(12, 14, 18, 0.85)';
