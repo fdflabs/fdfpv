@@ -393,8 +393,8 @@ static double add_term(double sum, double term) {
  * on past cf/c 0.3, where the figure stops, on the same form.
  * docs/SURFACES-STAGE1.md.
  */
-#define SURF_DRAG_A 0.2475 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
-#define SURF_DRAG_B 0.3993 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
+#define SURF_DRAG_A 0.2476 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
+#define SURF_DRAG_B 0.3992 /* FITTED: Roskam VI fig. 4.44, docs/SURFACES-STAGE1.md */
 static double surf_drag(double delta) {
   const double d = sim_fabs(delta);
   return add_term(SURF_DRAG_A * d, SURF_DRAG_B * d * d);

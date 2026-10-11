@@ -69,9 +69,9 @@ table's own figure is what it multiplies. The control power at full stick
 is k times the throw ratio.
 
 **Drag.** A plain flap's section profile drag is fitted as
-cf (0.2475 |delta| + 0.3993 delta^2), delta in rad, to Roskam VI fig. 4.44
+cf (0.2476 |delta| + 0.3992 delta^2), delta in rad, to Roskam VI fig. 4.44
 (plain flaps, cf 0.1 to 0.3, at 15 and 60 deg, as FAST-GA digitised it,
-`delta_drag_plain_flap.csv` in supaero-aircraft-design/FAST-GA): within 13
+`delta_drag_plain_flap.csv` in supaero-aircraft-design/FAST-GA, its points in `scripts/surfaces-derive.js`, which fits them and checks the two constants): within 13
 percent of every point. The form (SURF_DRAG_A, SURF_DRAG_B in
 `plant_wing.c`) is linear in cf, so a tier's increment is
 cd = (cf - cf0) S_flapped / S on the wing's area. Past cf 0.3 the figure
@@ -140,15 +140,20 @@ T3 per surface, the peak full stick rate from level flight at cruise rises
 with every tier (others stock, the hangar's whole seat: block, throws,
 servo mass); T4 every tier and the all Extreme corner still fly:
 Stabilised recovers from a held full roll and up stick within 4 s, under
-10 deg past level and within 3 deg over the last 3 s, and Manual level
-flight holds; T5 the plant's deflection drag is the formula's.
+10 deg past level and within 3 deg over the last 3 s; Acro and the AS3X
+rate damper with heading hold (the Extra's default) let the roll rate die
+after half a stick for half a second, under 10 deg/s over the last 3 s
+(measured: at most 0.4); Manual level flight holds. No controller gain
+needed rescaling: the AS3X gains are surface per rad/s, so a tier's K
+raises their loop gain by at most 16 percent (the Extra's aileron), well
+inside their margin. T5 the plant's deflection drag is the formula's.
 
 Measured on batch df23fdbb2 (full stick deg/s / a fifth of a stick deg/s /
 top speed m/s at full throttle):
 
 | | stock | sport | 3d | extreme |
 |---|---|---|---|---|
-| Extra roll | 599 / 78 / 23.82 | 642 / 86 / 23.81 | 678 / 93 / 23.81 | 710 / 101 / 23.81 |
+| Extra roll | 599 / 78 / 23.82 | 641 / 86 / 23.81 | 678 / 93 / 23.81 | 710 / 101 / 23.81 |
 | Extra pitch | 206 / 33 / 23.82 | 222 / 38 / 23.81 | 236 / 43 / 23.80 | 247 / 48 / 23.80 |
 | Cub roll | 174 / 17 / 17.81 | 219 / 21 / 17.80 | 281 / 27 / 17.80 | 347 / 33 / 17.77 |
 | Cub pitch | 100 / 11 / 17.81 | 122 / 16 / 17.84 | 147 / 26 / 17.85 | 179 / 35 / 17.87 |

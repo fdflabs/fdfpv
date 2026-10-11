@@ -53,6 +53,7 @@ import {
 } from '../configs/surfaces.js';
 import { SURFACE_TIERS } from '../configs/surfaces-tiers.js';
 import { addonParams } from '../configs/hangar-parts.js';
+import { fitSurfDrag } from './surfaces-derive.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -180,11 +181,40 @@ function stillFlies(sim) {
     }
   }
   must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+  /* Acro (2) and the AS3X rate damper with heading hold (3) hold the
+   * attitude the stick left rather than level it: after half a second of
+   * half roll stick, the roll rate must die away, the largest over the
+   * last 3 of 10 s, where a loop the bigger surfaces push past its margin
+   * keeps ringing. Not Stabilised's full roll and up stick: that snaps
+   * the stock Cub into a spin in mode 3 (317 deg/s 8 s on), which a rate
+   * damper does not recover and a real one would not either. */
+  const lateRate = {};
+  for (const mode of [2, 3]) {
+    const f = fly(sim, { duty: CRUISE, speed0: 18, vzTarget: 0, seconds: 8 });
+    must(sim.e.sim_wing_set_stab(mode), 'sim_wing_set_stab');
+    let worst = 0;
+    for (let ms = 0; ms < 11000; ms += RC_STEP_MS) {
+      must(sim.input((f.endMs + ms) / 1000, ms < 500 ? 0.5 : 0, 0, 0, CRUISE), 'sim_input');
+      must(sim.step(RC_STEP_MS), 'sim_step');
+      const s = sim.readState().state;
+      if (!s.every(Number.isFinite)) {
+        finite = false;
+        break;
+      }
+      /* The roll rate: a held bank turns steadily in yaw and pitch, which
+       * is the turn, not a ringing loop. */
+      if (ms >= 8000) {
+        worst = Math.max(worst, Math.abs(s[11]) * DEG);
+      }
+    }
+    must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+    lateRate[mode] = worst;
+  }
   const level = fly(sim, { duty: CRUISE, speed0: 18, vzTarget: 0, seconds: 25 });
-  return { finite, overshoot, settleMs, lateBank, levelV: level.v, levelVz: level.vz };
+  return { finite, overshoot, settleMs, lateBank, lateRate, levelV: level.v, levelVz: level.vz };
 }
-const fliesOk = (r) => r.finite && r.overshoot < 10 && r.settleMs < 4000 && r.lateBank < 3 && Math.abs(r.levelVz) < 1;
-const fliesText = (r) => `stab: past level ${r.overshoot.toFixed(1)} deg, settled ${(r.settleMs / 1000).toFixed(2)} s, last 3 s <= ${r.lateBank.toFixed(1)} deg; manual level ${r.levelV.toFixed(1)} m/s, vz ${r.levelVz.toFixed(2)}`;
+const fliesOk = (r) => r.finite && r.overshoot < 10 && r.settleMs < 4000 && r.lateBank < 3 && r.lateRate[2] < 10 && r.lateRate[3] < 10 && Math.abs(r.levelVz) < 1;
+const fliesText = (r) => `stab: past level ${r.overshoot.toFixed(1)} deg, settled ${(r.settleMs / 1000).toFixed(2)} s, last 3 s <= ${r.lateBank.toFixed(1)} deg; acro, as3x roll rate last 3 s <= ${r.lateRate[2].toFixed(1)}, ${r.lateRate[3].toFixed(1)} deg/s; manual level ${r.levelV.toFixed(1)} m/s, vz ${r.levelVz.toFixed(2)}`;
 
 function hashFlight(sim) {
   const h = createHash('sha256');
@@ -269,7 +299,8 @@ for (const id of Object.keys(SURFACES)) {
   const V = Math.hypot(s0[4], s0[5], s0[6]);
   const got = -((on[0] - off[0]) * s0[4] + (on[1] - off[1]) * s0[5] + (on[2] - off[2]) * s0[6]) / V / 0.001;
   const d = SURFACE_TIERS[id].a[3].throwDeg / DEG;
-  const shape = 0.2475 * d + 0.3993 * d * d;
+  const { A, B } = fitSurfDrag();
+  const shape = A * d + B * d * d;
   const expect = 0.5 * 1.225 * V * V * 0.28 * block[3] * shape / sim.addonsState().massKg;
   gate('T5', `${id} aileron Extreme: deflection drag`, Math.abs(got / expect - 1) < 0.01,
     `${got.toFixed(4)} m/s^2 measured, ${expect.toFixed(4)} from q S cd shape / m at ${V.toFixed(2)} m/s`);

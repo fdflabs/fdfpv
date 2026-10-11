@@ -71,6 +71,45 @@ export const kPrime = (deg) => (deg < 15 ? 1 : 4e-7 * deg ** 4 - 7e-5 * deg ** 3
 
 const OFFER_MIN = 1.10;
 
+/*
+ * Roskam, Airplane Design VI, fig. 4.44: a plain flap's section profile
+ * drag increment against its chord fraction at 15 and at 60 deg, as
+ * FAST-GA digitised it (supaero-aircraft-design/FAST-GA,
+ * src/fastga/models/aerodynamics/components/resources/
+ * delta_drag_plain_flap.csv), rounded to four places: cf at 15 deg, the
+ * drag there, cf at 60 deg, the drag there.
+ */
+const ROSKAM_444 = [
+  [0.1, 0.0082, 0.1007, 0.0625],
+  [0.1253, 0.0103, 0.126, 0.0804],
+  [0.1507, 0.0125, 0.1507, 0.0978],
+  [0.1753, 0.0152, 0.176, 0.1163],
+  [0.2, 0.0174, 0.2007, 0.1353],
+  [0.2253, 0.0207, 0.2253, 0.1549],
+  [0.2493, 0.0228, 0.25, 0.1761],
+  [0.274, 0.0261, 0.274, 0.1973],
+  [0.3, 0.0299, 0.3, 0.2196],
+];
+
+/* plant_wing.c's SURF_DRAG_A and _B: the least squares fit of
+ * cd = cf (A |delta| + B delta^2) to those points, and its worst error. */
+export function fitSurfDrag() {
+  const pts = [];
+  for (const [c15, d15, c60, d60] of ROSKAM_444) {
+    pts.push([c15, 15 * Math.PI / 180, d15], [c60, 60 * Math.PI / 180, d60]);
+  }
+  let s11 = 0, s12 = 0, s22 = 0, t1 = 0, t2 = 0;
+  for (const [c, d, y] of pts) {
+    const f1 = c * d, f2 = c * d * d;
+    s11 += f1 * f1; s12 += f1 * f2; s22 += f2 * f2; t1 += f1 * y; t2 += f2 * y;
+  }
+  const det = s11 * s22 - s12 * s12;
+  const A = Math.round((t1 * s22 - t2 * s12) / det * 1e4) / 1e4;
+  const B = Math.round((s11 * t2 - s12 * t1) / det * 1e4) / 1e4;
+  const worst = Math.max(...pts.map(([c, d, y]) => Math.abs(c * (A * d + B * d * d) / y - 1)));
+  return { A, B, worst };
+}
+
 const r4 = (x) => Math.round(x * 1e4) / 1e4;
 const r6 = (x) => Math.round(x * 1e6) / 1e6;
 
@@ -174,12 +213,20 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     await writeFile(OUT, text);
     console.log(`\nwrote ${OUT}`);
   }
+  const fit = fitSurfDrag();
+  console.log(`\nplain flap drag fit, Roskam VI fig. 4.44: A ${fit.A}, B ${fit.B}, worst ${(fit.worst * 100).toFixed(1)} percent`);
   if (process.argv.includes('--check')) {
+    const c = await readFile(join(root, 'src/native/plant_wing.c'), 'utf8');
+    const def = (name) => Number((c.match(new RegExp(`#define ${name} ([0-9.]+)`)) || [])[1]);
+    if (def('SURF_DRAG_A') !== fit.A || def('SURF_DRAG_B') !== fit.B) {
+      console.error(`surfaces:derive --check: plant_wing.c SURF_DRAG_A ${def('SURF_DRAG_A')}, SURF_DRAG_B ${def('SURF_DRAG_B')}; the fit gives ${fit.A}, ${fit.B}`);
+      process.exit(1);
+    }
     const now = await readFile(OUT, 'utf8');
     if (now !== text) {
       console.error('\nsurfaces:derive --check: configs/surfaces-tiers.js is not what the derivation gives; run --write and review');
       process.exit(1);
     }
-    console.log('\nsurfaces:derive --check: configs/surfaces-tiers.js matches');
+    console.log('\nsurfaces:derive --check: configs/surfaces-tiers.js and plant_wing.c SURF_DRAG_A/_B match');
   }
 }
